@@ -1,0 +1,68 @@
+#!gmake
+#
+# Makefile for nss client
+
+CC = @CC@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+includedir = @includedir@
+libdir = @libdir@
+VPATH = @srcdir@
+srcdir = @srcdir@
+builddir = @builddir@
+INSTALLCMD = @INSTALL@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = $(CPPFLAGS) @CFLAGS@
+LDFLAGS = @LDFLAGS@
+EXEEXT = @EXEEXT@
+SHLD = @SHLD@
+SHLD_FLAGS = @SHLD_FLAGS@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+PICFLAG = @PICFLAG@
+SHLIBEXT = @SHLIBEXT@
+LIB_PATH_VAR = @LIB_PATH_VAR@
+
+NSS_SSS_SOLIB = libnss_sss.$(SHLIBEXT).$(PACKAGE_VERSION)
+NSS_SSS_SONAME = libnss_sss.$(SHLIBEXT).2
+
+NSS_SSS_OBJS = common.o passwd.o group.o
+
+default: all
+
+showflags:
+	@echo 'Compile flags:'
+	@echo '  CFLAGS = $(CFLAGS)'
+	@echo '  CPPFLAGS = $(CPPFLAGS)'
+	@echo '  LDFLAGS = $(LDFLAGS)'
+	@echo '  LIBS = $(LIBS)'
+
+.SUFFIXES: .c .o
+
+.c.o:
+	@echo Compiling $*.c
+	@$(CC) $(PICFLAG) $(CFLAGS) -c $< -o $@
+
+$(NSS_SSS_SOLIB): $(NSS_SSS_OBJS)
+	$(SHLD) $(SHLD_FLAGS) -o $@ $(NSS_SSS_OBJS) @SONAMEFLAG@$(NSS_SSS_SONAME)
+
+$(NSS_SSS_SONAME): $(NSS_SSS_SOLIB)
+	ln -fs $< $@
+
+all: showflags $(NSS_SSS_OBJS) $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME)
+
+install: all
+	$(INSTALLCMD) -m 755 $(NSS_SSS_SOLIB) /lib
+	$(INSTALLCMD) -m 755 $(NSS_SSS_SONAME) /lib
+
+clean:
+	rm -f *.o *.a */*.o
+	rm -f $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME)
+
+distclean: clean
+	rm -f config.log config.status config.h config.cache
+	rm -f Makefile
+	rm -f *~ */*~
+
+realdistclean: distclean
+	rm -f configure config.h.in
