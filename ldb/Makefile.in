@@ -14,7 +14,7 @@ mandir = @mandir@
 VPATH = @srcdir@:@libreplacedir@
 srcdir = @srcdir@
 builddir = @builddir@
-buildinstdir = @buildinstdir@
+sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 SLAPD = @SLAPD@
 SWIG = swig
@@ -102,16 +102,16 @@ $(LIBSOLIB): $(OBJS)
 all: showflags dirs $(OBJS) $(STATICLIB) $(LIBSOLIB) $(BINS) $(EXAMPLES) manpages \
 	@PYTHON_BUILD_TARGET@
 
-build-install: all
-	${INSTALLCMD} -d $(buildinstdir)/lib
-	${INSTALLCMD} -m 755 $(STATICLIB) $(buildinstdir)/lib
-	${INSTALLCMD} -m 755 $(LIBSOLIB) $(buildinstdir)/lib
-	ln -sf $(SOLIB) $(buildinstdir)/lib/$(SONAME)
-	ln -sf $(SOLIB) $(buildinstdir)/lib/libldb.so
-	${INSTALLCMD} -d $(buildinstdir)/include
-	${INSTALLCMD} -m 644 $(srcdir)/include/ldb.h $(buildinstdir)/include
-	${INSTALLCMD} -m 644 $(srcdir)/include/ldb_errors.h $(buildinstdir)/include
-	${INSTALLCMD} -m 644 $(srcdir)/include/ldb_handlers.h $(buildinstdir)/include
+shared-build: all
+	${INSTALLCMD} -d $(sharedbuilddir)/lib
+	${INSTALLCMD} -m 644 $(STATICLIB) $(sharedbuilddir)/lib
+	${INSTALLCMD} -m 755 $(LIBSOLIB) $(sharedbuilddir)/lib
+	ln -sf $(SOLIB) $(sharedbuilddir)/lib/$(SONAME)
+	ln -sf $(SOLIB) $(sharedbuilddir)/lib/libldb.so
+	${INSTALLCMD} -d $(sharedbuilddir)/include
+	${INSTALLCMD} -m 644 $(srcdir)/include/ldb.h $(sharedbuilddir)/include
+	${INSTALLCMD} -m 644 $(srcdir)/include/ldb_errors.h $(sharedbuilddir)/include
+	${INSTALLCMD} -m 644 $(srcdir)/include/ldb_handlers.h $(sharedbuilddir)/include
 
 dirs:
 	@mkdir -p $(DIRS)

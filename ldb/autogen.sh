@@ -3,7 +3,7 @@
 rm -rf autom4te.cache
 rm -f configure config.h.in
 
-IPATHS="-I libreplace -I lib/replace -I ../libreplace -I ../replace"
+IPATHS="-I libreplace -I lib/replace -I ../libreplace -I ../replace -I ../../../lib/replace"
 IPATHS="$IPATHS -I ./external"
 
 autoheader $IPATHS || exit 1
