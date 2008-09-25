@@ -12,7 +12,7 @@ libdir = @libdir@
 VPATH = @srcdir@:@libreplacedir@
 srcdir = @srcdir@
 builddir = @builddir@
-buildinstdir = @buildinstdir@
+sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 CPPFLAGS = @CPPFLAGS@ -I$(srcdir)/include -Iinclude -I.
 LDFLAGS = @LDFLAGS@
@@ -35,9 +35,13 @@ TALLOC_CFLAGS = @TALLOC_CFLAGS@
 TALLOC_LDFLAGS = @TALLOC_CFLAGS@
 TALLOC_LIBS = @TALLOC_LIBS@
 
-CFLAGS = $(CPPFLAGS) $(TALLOC_CFLAGS) @CFLAGS@
-LDFLAGS = $(TALLOC_LDFLAGS) @LDFLAGS@
-LIBS = $(TALLOC_LIBS) @LIBS@
+EVENTS_CFLAGS = @EVENTS_CFLAGS@
+EVENTS_LDFLAGS = @EVENTS_CFLAGS@
+EVENTS_LIBS = @EVENTS_LIBS@
+
+CFLAGS = $(CPPFLAGS) $(TALLOC_CFLAGS) $(EVENTS_CFLAGS) @CFLAGS@
+LDFLAGS = $(TALLOC_LDFLAGS) $(EVENTS_LDFLAGS) @LDFLAGS@
+LIBS = $(TALLOC_LIBS) $(EVENTS_LIBS) @LIBS@
 
 EVENTS_OBJ = @EVENTS_OBJ@ @LIBREPLACEOBJ@
 
@@ -52,14 +56,14 @@ install:: all
 $(EVENTS_SOLIB): $(EVENTS_OBJ)
 	$(SHLD) $(SHLD_FLAGS) $(LDFLAGS) $(LIBS) -o $@ $(EVENTS_OBJ) @SONAMEFLAG@$(EVENTS_SONAME)
 
-build-install: all
-	${INSTALLCMD} -d $(buildinstdir)/lib
-	${INSTALLCMD} -m 755 libevents.a $(buildinstdir)/lib
-	${INSTALLCMD} -m 755 $(EVENTS_SOLIB) $(buildinstdir)/lib
-	ln -sf $(EVENTS_SOLIB) $(buildinstdir)/lib/$(EVENTS_SONAME)
-	ln -sf $(EVENTS_SOLIB) $(buildinstdir)/lib/libevents.so
-	${INSTALLCMD} -d $(buildinstdir)/include
-	${INSTALLCMD} -m 644 $(srcdir)/events.h $(buildinstdir)/include
+shared-build: all
+	${INSTALLCMD} -d $(sharedbuilddir)/lib
+	${INSTALLCMD} -m 644 libevents.a $(sharedbuilddir)/lib
+	${INSTALLCMD} -m 755 $(EVENTS_SOLIB) $(sharedbuilddir)/lib
+	ln -sf $(EVENTS_SOLIB) $(sharedbuilddir)/lib/$(EVENTS_SONAME)
+	ln -sf $(EVENTS_SOLIB) $(sharedbuilddir)/lib/libevents.so
+	${INSTALLCMD} -d $(sharedbuilddir)/include
+	${INSTALLCMD} -m 644 $(srcdir)/events.h $(sharedbuilddir)/include
 
 check: test
 

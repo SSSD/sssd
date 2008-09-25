@@ -17,7 +17,7 @@ AC_LIBREPLACE_SHLD_FLAGS
 AC_LIBREPLACE_RUNTIME_LIB_PATH_VAR
 
 m4_include(build_macros.m4)
-BUILD_WITH_BUILD_INST_DIR
+BUILD_WITH_SHARED_BUILD_DIR
 
 m4_include(pkg.m4)
 m4_include(libtalloc.m4)

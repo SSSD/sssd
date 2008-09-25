@@ -12,7 +12,7 @@ libdir = @libdir@
 VPATH = @srcdir@:@libreplacedir@
 srcdir = @srcdir@
 builddir = @builddir@
-buildinstdir = @buildinstdir@
+sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 CPPFLAGS = @CPPFLAGS@ -I$(srcdir)/include -Iinclude 
 CFLAGS = $(CPPFLAGS) @CFLAGS@
@@ -45,14 +45,14 @@ install:: all
 $(TDB_SOLIB): $(TDB_OBJ)
 	$(SHLD) $(SHLD_FLAGS) -o $@ $(TDB_OBJ) @SONAMEFLAG@$(TDB_SONAME)
 
-build-install: all
-	${INSTALLCMD} -d $(buildinstdir)/lib
-	${INSTALLCMD} -m 755 libtdb.a $(buildinstdir)/lib
-	${INSTALLCMD} -m 755 $(TDB_SOLIB) $(buildinstdir)/lib
-	ln -sf $(TDB_SOLIB) $(buildinstdir)/lib/$(TDB_SONAME)
-	ln -sf $(TDB_SOLIB) $(buildinstdir)/lib/libtdb.so
-	${INSTALLCMD} -d $(buildinstdir)/include
-	${INSTALLCMD} -m 644 $(srcdir)/include/tdb.h $(buildinstdir)/include
+shared-build: all
+	${INSTALLCMD} -d $(sharedbuilddir)/lib
+	${INSTALLCMD} -m 644 libtdb.a $(sharedbuilddir)/lib
+	${INSTALLCMD} -m 755 $(TDB_SOLIB) $(sharedbuilddir)/lib
+	ln -sf $(TDB_SOLIB) $(sharedbuilddir)/lib/$(TDB_SONAME)
+	ln -sf $(TDB_SOLIB) $(sharedbuilddir)/lib/libtdb.so
+	${INSTALLCMD} -d $(sharedbuilddir)/include
+	${INSTALLCMD} -m 644 $(srcdir)/include/tdb.h $(sharedbuilddir)/include
 
 check: test
 

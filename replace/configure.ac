@@ -23,7 +23,7 @@ if test "$ac_cv_prog_gcc" = yes; then
 fi
 
 m4_include(build_macros.m4)
-BUILD_WITH_BUILD_INST_DIR
+BUILD_WITH_SHARED_BUILD_DIR
 
 LIBS="${LIBREPLACE_NETWORK_LIBS}"
 AC_SUBST(LIBS)
