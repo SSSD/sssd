@@ -1,0 +1,97 @@
+#!gmake
+#
+CC = @CC@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+datarootdir = @datarootdir@
+includedir = @includedir@
+libdir = @libdir@
+bindir = @bindir@
+sbindir = @sbindir@
+mandir = @mandir@
+VPATH = @srcdir@:@libreplacedir@
+srcdir = @srcdir@
+builddir = @builddir@
+sharedbuilddir = @sharedbuilddir@
+INSTALLCMD = @INSTALL@
+EXTRA_OBJ=@EXTRA_OBJ@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+srvdir = $(srcdir)
+
+TALLOC_LIBS = @TALLOC_LIBS@
+TALLOC_CFLAGS = @TALLOC_CFLAGS@
+
+TDB_LIBS = @TDB_LIBS@
+TDB_CFLAGS = @TDB_CFLAGS@
+
+EVENTS_LIBS = @EVENTS_LIBS@
+EVENTS_CFLAGS = @EVENTS_CFLAGS@
+
+POPT_LIBS = @POPT_LIBS@
+POPT_CFLAGS = @POPT_CFLAGS@
+
+LIBDL = @LIBDL@
+
+SHLIBEXT = @SHLIBEXT@
+
+LD_EXPORT_DYNAMIC = @LD_EXPORT_DYNAMIC@
+SHLD = @SHLD@
+SHLD_FLAGS = @SHLD_FLAGS@
+
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS)
+
+PICFLAG = @PICFLAG@
+CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
+       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) \
+	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DUSE_MMAP=1 @CFLAGS@
+
+MDLD = @MDLD@
+MDLD_FLAGS = @MDLD_FLAGS@
+
+OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
+
+headers = .h
+
+BINS = sbin/sssd
+
+DIRS = sbin
+
+default: all
+
+include $(srvdir)/rules.mk
+
+all: showflags dirs $(OBJS) $(BINS)
+
+shared-build: all
+
+dirs:
+	@mkdir -p $(DIRS)
+
+clean::
+	rm -f *.o */*.o
+	rm -f $(BINS)
+
+distclean:: clean
+	rm -rf $(DIRS)
+	rm -f config.log config.status config.cache include/config.h
+	rm -f Makefile
+
+realdistclean:: distclean
+	rm -f configure config.h.in
+
+install:: all installdirs installheaders installlibs installbin
+
+installdirs::
+	mkdir -p $(DESTDIR)$(includedir) $(DESTDIR)$(libdir) $(DESTDIR)$(sbindir)
+
+installheaders:: installdirs
+	cp $(headers) $(DESTDIR)$(includedir)
+
+installlibs:: installdirs
+	cp $(STATICLIB) $(LIBSOLIB) $(DESTDIR)$(libdir)
+
+installbin:: installdirs
+	cp $(BINS) $(DESTDIR)$(sbindir)
+
+include $(srvdir)/server.mk
