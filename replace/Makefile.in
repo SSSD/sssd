@@ -15,8 +15,8 @@ LIBS = @LIBS@
 
 .PHONY: test all showflags install installcheck clean distclean realdistclean
 
-CFLAGS=-I. @CFLAGS@
-LDFLAGS=@LDFLAGS@
+CFLAGS += -I. @CFLAGS@
+LDFLAGS += @LDFLAGS@
 
 OBJS = @LIBREPLACEOBJ@
 
