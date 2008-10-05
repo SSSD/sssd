@@ -22,6 +22,7 @@
 #define RES_ERROR 1
 #define RES_NOMEM 2
 #define RES_INVALID_DATA 3
+#define RES_RETRY 4
 
 #include "util/dlinklist.h"
 

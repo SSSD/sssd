@@ -32,7 +32,9 @@
 #include "../events/events.h"
 #include "../ldb/include/ldb.h"
 #include "service.h"
-#include "monitor.h"
+
+extern void monitor_task_init(struct task_server *task);
+extern void nss_task_init(struct task_server *task);
 
 static void sig_hup(int sig)
 {
@@ -198,9 +200,11 @@ int main(int argc, const char *argv[])
 
 	/* Services */
 	register_server_service("monitor", monitor_task_init);
+	register_server_service("nss", nss_task_init);
 
-	services = calloc(2, sizeof(char *));
+	services = calloc(3, sizeof(char *));
 	services[0] = "monitor";
+	services[1] = "nss";
 
 	status = server_service_startup(event_ctx, services);
 	if (status != RES_SUCCESS) {
