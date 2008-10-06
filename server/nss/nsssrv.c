@@ -27,24 +27,11 @@
 #include <sys/un.h>
 #include <string.h>
 #include <sys/time.h>
-#include "../events/events.h"
-#include "../talloc/talloc.h"
+#include "talloc.h"
+#include "events.h"
 #include "util/util.h"
 #include "service.h"
 #include "nss/nsssrv.h"
-
-struct nss_ctx {
-    struct task_server *task;
-    struct fd_event *lfde;
-    int lfd;
-};
-
-struct cli_ctx {
-    int cfd;
-    struct fd_event *cfde;
-    struct sockaddr_un addr;
-    struct cli_request *creq;
-};
 
 static void set_nonblocking(int fd)
 {
@@ -66,58 +53,62 @@ static int client_destructor(struct cli_ctx *ctx)
     return 0;
 }
 
-static void client_send(struct event_context *ev, struct cli_ctx *ctx)
+static void client_send(struct event_context *ev, struct cli_ctx *cctx)
 {
     int ret;
 
-    ret = nss_packet_send(ctx->creq->out, ctx->cfd);
+    ret = nss_packet_send(cctx->creq->out, cctx->cfd);
     if (ret == RES_RETRY) {
         /* not all data was sent, loop again */
         return;
     }
     if (ret != RES_SUCCESS) {
         DEBUG(0, ("Failed to read request, aborting client!\n"));
-        talloc_free(ctx);
+        talloc_free(cctx);
         return;
     }
 
     /* ok all sent */
-    EVENT_FD_NOT_WRITEABLE(ctx->cfde);
-    EVENT_FD_READABLE(ctx->cfde);
-    talloc_free(ctx->creq);
-    ctx->creq = NULL;
+    EVENT_FD_NOT_WRITEABLE(cctx->cfde);
+    EVENT_FD_READABLE(cctx->cfde);
+    talloc_free(cctx->creq);
+    cctx->creq = NULL;
     return;
 }
 
-static void client_recv(struct event_context *ev, struct cli_ctx *ctx)
+static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
 {
     int ret;
 
-    if (!ctx->creq) {
-        ctx->creq = talloc_zero(ctx, struct cli_request);
-        if (!ctx->creq) {
+    if (!cctx->creq) {
+        cctx->creq = talloc_zero(cctx, struct cli_request);
+        if (!cctx->creq) {
             DEBUG(0, ("Failed to alloc request, aborting client!\n"));
-            talloc_free(ctx);
+            talloc_free(cctx);
             return;
         }
     }
 
-    if (!ctx->creq->in) {
-        ret = nss_packet_new(ctx->creq, 0, &ctx->creq->in);
+    if (!cctx->creq->in) {
+        ret = nss_packet_new(cctx->creq, 0, 0, &cctx->creq->in);
         if (ret != RES_SUCCESS) {
             DEBUG(0, ("Failed to alloc request, aborting client!\n"));
-            talloc_free(ctx);
+            talloc_free(cctx);
             return;
         }
     }
 
-    ret = nss_packet_recv(ctx->creq->in, ctx->cfd);
+    ret = nss_packet_recv(cctx->creq->in, cctx->cfd);
     switch (ret) {
     case RES_SUCCESS:
         /* do not read anymore */
-        EVENT_FD_NOT_READABLE(ctx->cfde);
+        EVENT_FD_NOT_READABLE(cctx->cfde);
         /* execute command */
-    /*    nss_cmd_execute(ctx); */
+        ret = nss_cmd_execute(ev, cctx);
+        if (ret != RES_SUCCESS) {
+            DEBUG(0, ("Failed to execute request, aborting client!\n"));
+            talloc_free(cctx);
+        }
         break;
 
     case RES_RETRY:
@@ -126,7 +117,7 @@ static void client_recv(struct event_context *ev, struct cli_ctx *ctx)
 
     default:
         DEBUG(0, ("Failed to read request, aborting client!\n"));
-        talloc_free(ctx);
+        talloc_free(cctx);
     }
 
     return;
@@ -136,14 +127,14 @@ static void client_fd_handler(struct event_context *ev,
                               struct fd_event *fde,
                               uint16_t flags, void *ptr)
 {
-    struct cli_ctx *ctx = talloc_get_type(ptr, struct cli_ctx);
+    struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
     if (flags & EVENT_FD_READ) {
-        client_recv(ev, ctx);
+        client_recv(ev, cctx);
         return;
     }
     if (flags & EVENT_FD_WRITE) {
-        client_send(ev, ctx);
+        client_send(ev, cctx);
         return;
     }
 }
@@ -153,11 +144,11 @@ static void accept_fd_handler(struct event_context *ev,
                               uint16_t flags, void *ptr)
 {
     /* accept and attach new event handler */
-    struct nss_ctx *ctx = talloc_get_type(ptr, struct nss_ctx);
+    struct nss_ctx *nctx = talloc_get_type(ptr, struct nss_ctx);
     struct cli_ctx *cctx;
     socklen_t len;
 
-    cctx = talloc_zero(ctx, struct cli_ctx);
+    cctx = talloc_zero(nctx, struct cli_ctx);
     if (!cctx) {
         struct sockaddr_un addr;
         int fd;
@@ -165,7 +156,7 @@ static void accept_fd_handler(struct event_context *ev,
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
         len = sizeof(addr);
-        fd = accept(ctx->lfd, (struct sockaddr *)&addr, &len);
+        fd = accept(nctx->lfd, (struct sockaddr *)&addr, &len);
         if (fd == -1) {
             return;
         }
@@ -174,7 +165,7 @@ static void accept_fd_handler(struct event_context *ev,
     }
 
     len = sizeof(cctx->addr);
-    cctx->cfd = accept(ctx->lfd, (struct sockaddr *)&cctx->addr, &len);
+    cctx->cfd = accept(nctx->lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
         DEBUG(1, ("Accept failed [%s]", strerror(errno)));
         talloc_free(cctx);
@@ -196,7 +187,7 @@ static void accept_fd_handler(struct event_context *ev,
 
 /* create a unix socket and listen to it */
 static void set_unix_socket(struct event_context *ev,
-                            struct nss_ctx *ctx,
+                            struct nss_ctx *nctx,
                             const char *sock_name)
 {
     struct sockaddr_un addr;
@@ -204,49 +195,49 @@ static void set_unix_socket(struct event_context *ev,
     /* make sure we have no old sockets around */
     unlink(sock_name);
 
-    ctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (ctx->lfd == -1) {
+    nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (nctx->lfd == -1) {
         return;
     }
 
-    set_nonblocking(ctx->lfd);
-    set_close_on_exec(ctx->lfd);
+    set_nonblocking(nctx->lfd);
+    set_close_on_exec(nctx->lfd);
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, sock_name, sizeof(addr.sun_path));
 
-    if (bind(ctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+    if (bind(nctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         DEBUG(0,("Unable to bind on socket '%s'\n", sock_name));
         goto failed;
     }
-    if (listen(ctx->lfd, 10) != 0) {
+    if (listen(nctx->lfd, 10) != 0) {
         DEBUG(0,("Unable to listen on socket '%s'\n", sock_name));
         goto failed;
     }
 
-    ctx->lfde = event_add_fd(ev, ctx, ctx->lfd,
-                                 EVENT_FD_READ, accept_fd_handler, ctx);
+    nctx->lfde = event_add_fd(ev, nctx, nctx->lfd,
+                                 EVENT_FD_READ, accept_fd_handler, nctx);
 
     return;
 
 failed:
-    close(ctx->lfd);
+    close(nctx->lfd);
 }
 
 void nss_task_init(struct task_server *task)
 {
-    struct nss_ctx *ctx;
+    struct nss_ctx *nctx;
 
     task_server_set_title(task, "sssd[nsssrv]");
 
-    ctx = talloc_zero(task, struct nss_ctx);
-    if (!ctx) {
+    nctx = talloc_zero(task, struct nss_ctx);
+    if (!nctx) {
         task_server_terminate(task, "fatal error initializing nss_ctx\n");
         return;
     }
-    ctx->task = task;
+    nctx->task = task;
 
-    set_unix_socket(task->event_ctx, ctx, SSS_NSS_SOCKET_NAME);
+    set_unix_socket(task->event_ctx, nctx, SSS_NSS_SOCKET_NAME);
 
 }

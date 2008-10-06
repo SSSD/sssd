@@ -23,13 +23,27 @@
 #define __NSSSRV_H__
 
 #include <stdint.h>
+#include <sys/un.h>
+#include "talloc.h"
+#include "events.h"
 #include "../nss_client/sss_nss.h"
+
+struct nss_ctx {
+    struct task_server *task;
+    struct fd_event *lfde;
+    int lfd;
+};
+
+struct cli_ctx {
+    int cfd;
+    struct fd_event *cfde;
+    struct sockaddr_un addr;
+    struct cli_request *creq;
+};
 
 struct nss_packet;
 
 struct cli_request {
-    enum sss_nss_command cmd;
-    void *cmd_req;
 
     /* original request from the wire */
     struct nss_packet *in;
@@ -40,9 +54,15 @@ struct cli_request {
 
 /* from nsssrv_packet.c */
 int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
-                      struct nss_packet **rpacket);
+		   enum sss_nss_command cmd,
+                   struct nss_packet **rpacket);
 int nss_packet_grow(struct nss_packet *packet, size_t size);
 int nss_packet_recv(struct nss_packet *packet, int fd);
 int nss_packet_send(struct nss_packet *packet, int fd);
+enum sss_nss_command nss_get_cmd(struct nss_packet *packet);
+void nss_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen);
+
+/* from nsssrv_cmd.c */
+int nss_cmd_execute(struct event_context *ev, struct cli_ctx *cctx);
 
 #endif /* __NSSSRV_H__ */

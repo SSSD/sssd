@@ -1,4 +1,4 @@
-SERVER_OBJ = server.o monitor.o process.o service.o service_task.o util/signal.o util/become_daemon.o nss/nsssrv.o nss/nsssrv_packet.o
+SERVER_OBJ = server.o monitor.o process.o service.o service_task.o util/signal.o util/become_daemon.o nss/nsssrv.o nss/nsssrv_packet.o nss/nsssrv_cmd.o
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)

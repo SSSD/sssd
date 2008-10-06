@@ -55,6 +55,7 @@ struct nss_packet {
  *   firecgtly from the wire
  */
 int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
+                   enum sss_nss_command cmd,
                    struct nss_packet **rpacket)
 {
     struct nss_packet *packet;
@@ -63,7 +64,7 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     if (!packet) return RES_NOMEM;
 
     if (size) {
-        int n = size % NSSSRV_PACKET_MEM_SIZE;
+        int n = (size + SSS_NSS_HEADER_SIZE) % NSSSRV_PACKET_MEM_SIZE;
         packet->memsize = (n + 1) * NSSSRV_PACKET_MEM_SIZE;
     } else {
         packet->memsize = NSSSRV_PACKET_MEM_SIZE;
@@ -82,7 +83,10 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     packet->reserved = &((uint32_t *)packet->buffer)[3];
     packet->body = (uint8_t *)&((uint32_t *)packet->buffer)[4];
 
-    *(packet->len) = size?size:SSS_NSS_HEADER_SIZE;
+    *(packet->len) = size + SSS_NSS_HEADER_SIZE;
+    *(packet->cmd) = cmd;
+
+    packet->iop = 0;
 
     *rpacket = packet;
 
@@ -148,6 +152,10 @@ int nss_packet_recv(struct nss_packet *packet, int fd)
         return RES_RETRY;
     }
 
+    if (rb == 0) {
+        return RES_ERROR;
+    }
+
     packet->iop += rb;
     if (packet->iop < 4) {
         return RES_RETRY;
@@ -176,10 +184,26 @@ int nss_packet_send(struct nss_packet *packet, int fd)
         return RES_RETRY;
     }
 
+    if (rb == 0) {
+        return RES_ERROR;
+    }
+
     packet->iop += rb;
+
     if (packet->iop < *packet->len) {
         return RES_RETRY;
     }
 
     return RES_SUCCESS;
+}
+
+enum sss_nss_command nss_get_cmd(struct nss_packet *packet)
+{
+    return (enum sss_nss_command)(*packet->cmd);
+}
+
+void nss_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen)
+{
+    *body = packet->body;
+    *blen = *packet->len - SSS_NSS_HEADER_SIZE;
 }
