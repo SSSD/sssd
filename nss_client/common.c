@@ -57,7 +57,7 @@ static void sss_nss_close_socket(void)
  * byte 16-X: (optional) request structure associated to the command code used
  */
 static enum nss_status sss_nss_send_req(enum sss_nss_command cmd,
-                                        struct sssc_req_data *rd,
+                                        struct sss_nss_req_data *rd,
                                         int *errnop)
 {
     uint32_t header[4];
@@ -252,13 +252,13 @@ static enum nss_status sss_nss_recv_rep(enum sss_nss_command cmd,
 /* repbuf and replen report only the data section not the header */
 static enum nss_status sss_nss_make_request_nochecks(
                                        enum sss_nss_command cmd,
-                                       struct sssc_req_data *rd,
+                                       struct sss_nss_req_data *rd,
                                        uint8_t **repbuf, size_t *replen,
                                        int *errnop)
 {
     enum nss_status ret;
-    uint8_t *buf;
-    int len;
+    uint8_t *buf = NULL;
+    int len = 0;
 
     /* send data */
     ret = sss_nss_send_req(cmd, rd, errnop);
@@ -299,16 +299,20 @@ static int sss_nss_check_version(void)
     size_t replen;
     enum nss_status nret;
     int errnop;
-    int res = 0;
+    int res = NSS_STATUS_UNAVAIL;
 
     nret = sss_nss_make_request_nochecks(SSS_NSS_GET_VERSION, NULL,
                                          &repbuf, &replen, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
-        return 0;
+        return nret;
+    }
+
+    if (!repbuf) {
+        return res;
     }
 
     if (((uint32_t *)repbuf)[0] == SSS_NSS_VERSION) {
-        res = 1;
+        res = NSS_STATUS_SUCCESS;
     }
 
     free(repbuf);
@@ -561,7 +565,7 @@ static enum nss_status sss_nss_check_socket(int *errnop)
 /* this function will check command codes match and returned length is ok */
 /* repbuf and replen report only the data section not the header */
 enum nss_status sss_nss_make_request(enum sss_nss_command cmd,
-                      struct sssc_req_data *rd,
+                      struct sss_nss_req_data *rd,
                       uint8_t **repbuf, size_t *replen,
                       int *errnop)
 {
