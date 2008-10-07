@@ -27,6 +27,7 @@
 #include <sys/un.h>
 #include <string.h>
 #include <sys/time.h>
+#include <errno.h>
 #include "talloc.h"
 #include "events.h"
 #include "util/util.h"
@@ -167,7 +168,7 @@ static void accept_fd_handler(struct event_context *ev,
     len = sizeof(cctx->addr);
     cctx->cfd = accept(nctx->lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
-        DEBUG(1, ("Accept failed [%s]", strerror(errno)));
+        DEBUG(0, ("Accept failed [%s]", strerror(errno)));
         talloc_free(cctx);
         return;
     }
@@ -177,10 +178,12 @@ static void accept_fd_handler(struct event_context *ev,
     if (!cctx->cfde) {
         close(cctx->cfd);
         talloc_free(cctx);
-        DEBUG(1, ("Failed to queue client handler\n"));
+        DEBUG(0, ("Failed to queue client handler\n"));
     }
 
     talloc_set_destructor(cctx, client_destructor);
+
+    DEBUG(2, ("Client connected!\n"));
 
     return;
 }

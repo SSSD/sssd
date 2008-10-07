@@ -1,9 +1,18 @@
 #ifndef __SSSD_UTIL_H__
 #define __SSSD_UTIL_H__
 
+#include <stdio.h>
 #include <stdbool.h>
 
-#define DEBUG(level, body)
+extern int debug_level;
+void debug_fn(const char *format, ...);
+
+#define DEBUG(level, body) do { \
+    if (level <= debug_level) { \
+        debug_fn("%s[%s]: ", __location__, __FUNCTION__); \
+        debug_fn body; \
+    } \
+} while(0);
 #define DEBUGADD(level, body)
 
 #ifndef discard_const
