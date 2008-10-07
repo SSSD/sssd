@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include "replace.h"
 
 extern int debug_level;
 void debug_fn(const char *format, ...);
