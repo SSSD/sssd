@@ -1,0 +1,42 @@
+Very Quick Guide to build sssd components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the following instructions to build the libraries and the binaries.
+NOTE: these instructions are temporary and will most likely change agt some
+point but so far the process I describe here is the best one to get something up
+and working while developing this project.
+
+Each library and the sssd service have a --with-shared-build-dir configure option
+that is useful to build the libraries so that you can build all pieces before
+installing each library as a dependency.
+If you just want to make a development build you can provide a temporary
+directory where libraries are installed during the build process in a way that
+let each dependent library find them without having to install each binary into
+its finally system library directory (ie build as user).
+
+I use the following steps to build all pieces.
+
+pushd talloc; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd tdb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd events; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd ldb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd server; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make; popd
+
+At this point you can start testing the sssd daemon this way:
+
+export LD_LIBRARY_PATH=/tmp/foo/lib
+cd server
+./sbin/sssd -i
+
+This will start the sssd daemon in interactive mode.
+
+
+The nss_client doesn't need any dependency nor supports the shared-build option.
+
+pushd nss_client; ./autogen.sh && ./configure && make; popd
+
+Now you have to copy libnss_sss* into /lib (or /lib64) and add the 'sss' traget
+to nsswitch.conf passwd database
+
+~~~~~
+Simo.
