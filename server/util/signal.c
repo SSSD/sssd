@@ -18,6 +18,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
 #include "util/util.h"
 #include <sys/types.h>
 #include <sys/wait.h>

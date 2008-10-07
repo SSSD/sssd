@@ -34,6 +34,7 @@ m4_include(libpopt.m4)
 m4_include(libtalloc.m4)
 m4_include(libtdb.m4)
 m4_include(libevents.m4)
+m4_include(util/signal.m4)
 
 AC_SUBST(TESTS)
 AC_SUBST(EXTRA_OBJ)
