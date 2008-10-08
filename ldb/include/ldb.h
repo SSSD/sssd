@@ -43,8 +43,12 @@
 #ifndef _LDB_H_
 
 /*! \cond DOXYGEN_IGNORE */
-#define _LDB_H_ 1
+#define _LDB_H_
 /*! \endcond */
+
+#include <stdbool.h>
+#include <talloc.h>
+#include <events.h>
 
 /*
   major restrictions as compared to normal LDAP:
@@ -181,7 +185,6 @@ enum ldb_scope {LDB_SCOPE_DEFAULT=-1,
 		LDB_SCOPE_SUBTREE=2};
 
 struct ldb_context;
-struct event_context;
 
 /* debugging uses one of the following levels */
 enum ldb_debug_level {LDB_DEBUG_FATAL, LDB_DEBUG_ERROR, 
@@ -783,7 +786,6 @@ int ldb_set_timeout(struct ldb_context *ldb, struct ldb_request *req, int timeou
 int ldb_set_timeout_from_prev_req(struct ldb_context *ldb, struct ldb_request *oldreq, struct ldb_request *newreq);
 void ldb_set_create_perms(struct ldb_context *ldb, unsigned int perms);
 void ldb_set_modules_dir(struct ldb_context *ldb, const char *path);
-struct event_context;
 void ldb_set_event_context(struct ldb_context *ldb, struct event_context *ev);
 struct event_context * ldb_get_event_context(struct ldb_context *ldb);
 
