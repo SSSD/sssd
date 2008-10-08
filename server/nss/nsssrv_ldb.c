@@ -43,8 +43,8 @@ static int request_done(struct nss_ldb_search_ctx *sctx)
     return sctx->callback(sctx->ptr, LDB_SUCCESS, sctx->res);
 }
 
-static int getpwnam_callback(struct ldb_request *req,
-                             struct ldb_reply *ares)
+static int getpw_callback(struct ldb_request *req,
+                          struct ldb_reply *ares)
 {
     struct nss_ldb_search_ctx *sctx;
     struct ldb_result *res;
@@ -136,7 +136,56 @@ int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
                                ldb_dn_new(sctx, ldb, NSS_USER_BASE),
                                LDB_SCOPE_SUBTREE,
                                expression, attrs, NULL,
-                               sctx, getpwnam_callback,
+                               sctx, getpw_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+        return RES_ERROR;
+    }
+
+    ret = ldb_request(ldb, req);
+    if (ret != LDB_SUCCESS) {
+        return RES_ERROR;
+    }
+
+    return RES_SUCCESS;
+}
+
+int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct ldb_context *ldb,
+                     uint64_t uid,
+                     nss_ldb_callback_t fn, void *ptr)
+{
+    struct nss_ldb_search_ctx *sctx;
+    struct ldb_request *req;
+    static const char *attrs[] = NSS_PW_ATTRS;
+    unsigned long long int filter_uid = uid;
+    char *expression;
+    int ret;
+
+    sctx = talloc(mem_ctx, struct nss_ldb_search_ctx);
+    if (!sctx) {
+        return RES_NOMEM;
+    }
+    sctx->callback = fn;
+    sctx->ptr = ptr;
+    sctx->res = talloc_zero(sctx, struct ldb_result);
+    if (!sctx->res) {
+        talloc_free(sctx);
+        return RES_NOMEM;
+    }
+
+    expression = talloc_asprintf(sctx, NSS_PWUID_FILTER, filter_uid);
+    if (!expression) {
+        talloc_free(sctx);
+        return RES_NOMEM;
+    }
+
+    ret = ldb_build_search_req(&req, ldb, sctx,
+                               ldb_dn_new(sctx, ldb, NSS_USER_BASE),
+                               LDB_SCOPE_SUBTREE,
+                               expression, attrs, NULL,
+                               sctx, getpw_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
         return RES_ERROR;

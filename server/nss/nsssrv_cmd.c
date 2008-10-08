@@ -88,8 +88,8 @@ static int fill_pwent(struct nss_packet *packet,
         gid = ldb_msg_find_attr_as_uint64(msg, NSS_PW_GIDNUM, 0);
 
         if (!name || !fullname || !homedir || !shell || !uid || !gid) {
-            DEBUG(1, ("Incomplede user object for %s! Skipping\n",
-                      name?name:"<NULL>"));
+            DEBUG(1, ("Incomplede user object for %s[%llu]! Skipping\n",
+                      name?name:"<NULL>", (unsigned long long int)uid));
             continue;
         }
 
@@ -131,8 +131,8 @@ done:
     return RES_SUCCESS;
 }
 
-static int nss_cmd_getpwnam_callback(void *ptr, int status,
-                                     struct ldb_result *res)
+static int nss_cmd_getpw_callback(void *ptr, int status,
+                                  struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
@@ -203,7 +203,36 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     nctx->cctx = cctx;
 
     ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->ldb, name,
-                           nss_cmd_getpwnam_callback, nctx);
+                           nss_cmd_getpw_callback, nctx);
+
+    return ret;
+}
+
+static int nss_cmd_getpwuid(struct cli_ctx *cctx)
+{
+    struct nss_cmd_ctx *nctx;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+    uint64_t uid;
+
+    /* get user name to query */
+    nss_get_body(cctx->creq->in, &body, &blen);
+
+    if (blen != sizeof(uint64_t)) {
+        return RES_INVALID_DATA;
+    }
+
+    uid = *((uint64_t *)body);
+
+    nctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!nctx) {
+        return RES_NOMEM;
+    }
+    nctx->cctx = cctx;
+
+    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->ldb, uid,
+                           nss_cmd_getpw_callback, nctx);
 
     return ret;
 }
@@ -211,6 +240,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_GET_VERSION, nss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},
+    {SSS_NSS_GETPWUID, nss_cmd_getpwuid},
     {SSS_NSS_NULL, NULL}
 };
 
