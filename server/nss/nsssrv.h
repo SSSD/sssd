@@ -26,15 +26,21 @@
 #include <sys/un.h>
 #include "talloc.h"
 #include "events.h"
+#include "ldb.h"
 #include "../nss_client/sss_nss.h"
+
+struct nss_ldb_ctx;
 
 struct nss_ctx {
     struct task_server *task;
     struct fd_event *lfde;
     int lfd;
+    struct ldb_context *ldb;
 };
 
 struct cli_ctx {
+    struct event_context *ev;
+    struct ldb_context *ldb;
     int cfd;
     struct fd_event *cfde;
     struct sockaddr_un addr;
@@ -63,6 +69,6 @@ enum sss_nss_command nss_get_cmd(struct nss_packet *packet);
 void nss_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen);
 
 /* from nsssrv_cmd.c */
-int nss_cmd_execute(struct event_context *ev, struct cli_ctx *cctx);
+int nss_cmd_execute(struct cli_ctx *cctx);
 
 #endif /* __NSSSRV_H__ */

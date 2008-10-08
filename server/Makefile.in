@@ -30,6 +30,9 @@ EVENTS_CFLAGS = @EVENTS_CFLAGS@
 POPT_LIBS = @POPT_LIBS@
 POPT_CFLAGS = @POPT_CFLAGS@
 
+LDB_LIBS = @LDB_LIBS@
+LDB_CFLAGS = @LDB_CFLAGS@
+
 LIBDL = @LIBDL@
 
 SHLIBEXT = @SHLIBEXT@
@@ -39,11 +42,11 @@ SHLD = @SHLD@
 SHLD_FLAGS = @SHLD_FLAGS@
 
 LDFLAGS += @LDFLAGS@
-LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS)
+LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS) $(LDB_LIBS)
 
 PICFLAG = @PICFLAG@
 CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
-       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) \
+       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) $(LDB_FLAGS)\
 	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DUSE_MMAP=1 @CFLAGS@
 
 MDLD = @MDLD@
@@ -92,6 +95,5 @@ installlibs:: installdirs
 	cp $(STATICLIB) $(LIBSOLIB) $(DESTDIR)$(libdir)
 
 installbin:: installdirs
-	cp $(BINS) $(DESTDIR)$(sbindir)
 
 include $(srvdir)/server.mk

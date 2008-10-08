@@ -28,11 +28,11 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
-#include "talloc.h"
-#include "events.h"
+#include "ldb.h"
 #include "util/util.h"
 #include "service.h"
 #include "nss/nsssrv.h"
+#include "nss/nsssrv_ldb.h"
 
 static void set_nonblocking(int fd)
 {
@@ -105,7 +105,7 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
         /* do not read anymore */
         EVENT_FD_NOT_READABLE(cctx->cfde);
         /* execute command */
-        ret = nss_cmd_execute(ev, cctx);
+        ret = nss_cmd_execute(cctx);
         if (ret != RES_SUCCESS) {
             DEBUG(0, ("Failed to execute request, aborting client!\n"));
             talloc_free(cctx);
@@ -181,6 +181,9 @@ static void accept_fd_handler(struct event_context *ev,
         DEBUG(0, ("Failed to queue client handler\n"));
     }
 
+    cctx->ev = ev;
+    cctx->ldb = nctx->ldb;
+
     talloc_set_destructor(cctx, client_destructor);
 
     DEBUG(2, ("Client connected!\n"));
@@ -231,6 +234,7 @@ failed:
 void nss_task_init(struct task_server *task)
 {
     struct nss_ctx *nctx;
+    int ret;
 
     task_server_set_title(task, "sssd[nsssrv]");
 
@@ -243,4 +247,9 @@ void nss_task_init(struct task_server *task)
 
     set_unix_socket(task->event_ctx, nctx, SSS_NSS_SOCKET_NAME);
 
+    ret = nss_ldb_init(nctx, task->event_ctx, &nctx->ldb);
+    if (ret != RES_SUCCESS) {
+        task_server_terminate(task, "fatal error initializing nss_ctx\n");
+        return;
+    }
 }
