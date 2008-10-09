@@ -40,13 +40,13 @@ static int nss_ldb_error_to_errno(int lerr)
 
 static int request_error(struct nss_ldb_search_ctx *sctx, int ldb_error)
 {
-    sctx->callback(sctx->ptr, ldb_error, sctx->res);
+    sctx->callback(sctx->ptr, nss_ldb_error_to_errno(ldb_error), sctx->res);
     return ldb_error;
 }
 
 static int request_done(struct nss_ldb_search_ctx *sctx)
 {
-    return sctx->callback(sctx->ptr, LDB_SUCCESS, sctx->res);
+    return sctx->callback(sctx->ptr, EOK, sctx->res);
 }
 
 static int getpw_callback(struct ldb_request *req,
@@ -108,35 +108,33 @@ static int getpw_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
-int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
-                     struct event_context *ev,
-                     struct ldb_context *ldb,
-                     const char *name,
-                     nss_ldb_callback_t fn, void *ptr)
+static struct nss_ldb_search_ctx *init_sctx(TALLOC_CTX *mem_ctx,
+                                            nss_ldb_callback_t fn, void *ptr)
 {
     struct nss_ldb_search_ctx *sctx;
-    struct ldb_request *req;
-    static const char *attrs[] = NSS_PW_ATTRS;
-    char *expression;
-    int ret;
 
     sctx = talloc(mem_ctx, struct nss_ldb_search_ctx);
     if (!sctx) {
-        return ENOMEM;
+        return NULL;
     }
     sctx->callback = fn;
     sctx->ptr = ptr;
     sctx->res = talloc_zero(sctx, struct ldb_result);
     if (!sctx->res) {
         talloc_free(sctx);
-        return ENOMEM;
+        return NULL;
     }
 
-    expression = talloc_asprintf(sctx, NSS_PWNAM_FILTER, name);
-    if (!expression) {
-        talloc_free(sctx);
-        return ENOMEM;
-    }
+    return sctx;
+}
+
+static int do_search(struct nss_ldb_search_ctx *sctx,
+                     struct ldb_context *ldb,
+                     const char *expression)
+{
+    static const char *attrs[] = NSS_PW_ATTRS;
+    struct ldb_request *req;
+    int ret;
 
     ret = ldb_build_search_req(&req, ldb, sctx,
                                ldb_dn_new(sctx, ldb, NSS_USER_BASE),
@@ -145,7 +143,7 @@ int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
                                sctx, getpw_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
-        return nss_ldb_error_to_errno(ret);;
+        return nss_ldb_error_to_errno(ret);
     }
 
     ret = ldb_request(ldb, req);
@@ -156,6 +154,29 @@ int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct ldb_context *ldb,
+                     const char *name,
+                     nss_ldb_callback_t fn, void *ptr)
+{
+    struct nss_ldb_search_ctx *sctx;
+    char *expression;
+
+    sctx = init_sctx(mem_ctx, fn, ptr);
+    if (!sctx) {
+        return ENOMEM;
+    }
+
+    expression = talloc_asprintf(sctx, NSS_PWNAM_FILTER, name);
+    if (!expression) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    return do_search(sctx, ldb, expression);
+}
+
 int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
                      struct event_context *ev,
                      struct ldb_context *ldb,
@@ -163,21 +184,11 @@ int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
                      nss_ldb_callback_t fn, void *ptr)
 {
     struct nss_ldb_search_ctx *sctx;
-    struct ldb_request *req;
-    static const char *attrs[] = NSS_PW_ATTRS;
     unsigned long long int filter_uid = uid;
     char *expression;
-    int ret;
 
-    sctx = talloc(mem_ctx, struct nss_ldb_search_ctx);
+    sctx = init_sctx(mem_ctx, fn, ptr);
     if (!sctx) {
-        return ENOMEM;
-    }
-    sctx->callback = fn;
-    sctx->ptr = ptr;
-    sctx->res = talloc_zero(sctx, struct ldb_result);
-    if (!sctx->res) {
-        talloc_free(sctx);
         return ENOMEM;
     }
 
@@ -187,22 +198,22 @@ int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = ldb_build_search_req(&req, ldb, sctx,
-                               ldb_dn_new(sctx, ldb, NSS_USER_BASE),
-                               LDB_SCOPE_SUBTREE,
-                               expression, attrs, NULL,
-                               sctx, getpw_callback,
-                               NULL);
-    if (ret != LDB_SUCCESS) {
-        return nss_ldb_error_to_errno(ret);
+    return do_search(sctx, ldb, expression);
+}
+
+int nss_ldb_enumpwent(TALLOC_CTX *mem_ctx,
+                      struct event_context *ev,
+                      struct ldb_context *ldb,
+                      nss_ldb_callback_t fn, void *ptr)
+{
+    struct nss_ldb_search_ctx *sctx;
+
+    sctx = init_sctx(mem_ctx, fn, ptr);
+    if (!sctx) {
+        return ENOMEM;
     }
 
-    ret = ldb_request(ldb, req);
-    if (ret != LDB_SUCCESS) {
-        return nss_ldb_error_to_errno(ret);
-    }
-
-    return EOK;
+    return do_search(sctx, ldb, NSS_PWENT_FILTER);
 }
 
 int nss_ldb_init(TALLOC_CTX *mem_ctx,

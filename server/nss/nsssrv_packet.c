@@ -197,13 +197,18 @@ int nss_packet_send(struct nss_packet *packet, int fd)
     return EOK;
 }
 
-enum sss_nss_command nss_get_cmd(struct nss_packet *packet)
+enum sss_nss_command nss_packet_get_cmd(struct nss_packet *packet)
 {
     return (enum sss_nss_command)(*packet->cmd);
 }
 
-void nss_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen)
+void nss_packet_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen)
 {
     *body = packet->body;
     *blen = *packet->len - SSS_NSS_HEADER_SIZE;
+}
+
+void nss_packet_set_error(struct nss_packet *packet, int error)
+{
+    *(packet->status) = error;
 }

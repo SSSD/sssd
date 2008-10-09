@@ -23,3 +23,8 @@ int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
                      struct ldb_context *ldb,
                      uint64_t uid,
                      nss_ldb_callback_t fn, void *ptr);
+
+int nss_ldb_enumpwent(TALLOC_CTX *mem_ctx,
+                      struct event_context *ev,
+                      struct ldb_context *ldb,
+                      nss_ldb_callback_t fn, void *ptr);

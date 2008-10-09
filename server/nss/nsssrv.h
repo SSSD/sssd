@@ -30,6 +30,7 @@
 #include "../nss_client/sss_nss.h"
 
 struct nss_ldb_ctx;
+struct getent_ctx;
 
 struct nss_ctx {
     struct task_server *task;
@@ -45,6 +46,7 @@ struct cli_ctx {
     struct fd_event *cfde;
     struct sockaddr_un addr;
     struct cli_request *creq;
+    struct getent_ctx *gctx;
 };
 
 struct nss_packet;
@@ -65,8 +67,9 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
 int nss_packet_grow(struct nss_packet *packet, size_t size);
 int nss_packet_recv(struct nss_packet *packet, int fd);
 int nss_packet_send(struct nss_packet *packet, int fd);
-enum sss_nss_command nss_get_cmd(struct nss_packet *packet);
-void nss_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen);
+enum sss_nss_command nss_packet_get_cmd(struct nss_packet *packet);
+void nss_packet_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen);
+void nss_packet_set_error(struct nss_packet *packet, int error);
 
 /* from nsssrv_cmd.c */
 int nss_cmd_execute(struct cli_ctx *cctx);
