@@ -68,16 +68,16 @@ static int getpw_callback(struct ldb_request *req,
 
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
-        sctx->res->msgs = talloc_realloc(sctx, res->msgs,
-                                         struct ldb_message *,
-                                         res->count + 2);
-        if (! res->msgs) {
+        res->msgs = talloc_realloc(res, res->msgs,
+                                   struct ldb_message *,
+                                   res->count + 2);
+        if (!res->msgs) {
             return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
         }
 
         res->msgs[res->count + 1] = NULL;
 
-        res->msgs[res->count] = talloc_move(res->msgs, &ares->message);
+        res->msgs[res->count] = talloc_steal(res->msgs, ares->message);
         res->count++;
         break;
 
@@ -93,12 +93,12 @@ static int getpw_callback(struct ldb_request *req,
             return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
         }
 
-        res->refs[n] = talloc_move(res->refs, &ares->referral);
+        res->refs[n] = talloc_steal(res->refs, ares->referral);
         res->refs[n + 1] = NULL;
         break;
 
     case LDB_REPLY_DONE:
-        res->controls = talloc_move(res, &ares->controls);
+        res->controls = talloc_steal(res, ares->controls);
 
         /* this is the last message, and means the request is done */
         return request_done(sctx);
