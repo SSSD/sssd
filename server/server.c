@@ -207,7 +207,7 @@ int main(int argc, const char *argv[])
 	services[1] = "nss";
 
 	status = server_service_startup(event_ctx, services);
-	if (status != RES_SUCCESS) {
+	if (status != EOK) {
 		DEBUG(0,("Starting Services failed - %d\n", status));
 		return 1;
 	}

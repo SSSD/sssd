@@ -61,7 +61,7 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     struct nss_packet *packet;
 
     packet = talloc(mem_ctx, struct nss_packet);
-    if (!packet) return RES_NOMEM;
+    if (!packet) return ENOMEM;
 
     if (size) {
         int n = (size + SSS_NSS_HEADER_SIZE) % NSSSRV_PACKET_MEM_SIZE;
@@ -73,7 +73,7 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     packet->buffer = talloc_size(packet, packet->memsize);
     if (!packet->buffer) {
         talloc_free(packet);
-        return RES_NOMEM;
+        return ENOMEM;
     }
     memset(packet->buffer, 0, SSS_NSS_HEADER_SIZE);
 
@@ -90,7 +90,7 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
 
     *rpacket = packet;
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 /* grows a packet size only in NSSSRV_PACKET_MEM_SIZE chunks */
@@ -100,7 +100,7 @@ int nss_packet_grow(struct nss_packet *packet, size_t size)
     uint8_t *newmem;
 
     if (size == 0) {
-        return RES_SUCCESS;
+        return EOK;
     }
 
     totlen = packet->memsize;
@@ -111,14 +111,14 @@ int nss_packet_grow(struct nss_packet *packet, size_t size)
         int n = len % NSSSRV_PACKET_MEM_SIZE + 1;
         totlen += n * NSSSRV_PACKET_MEM_SIZE;
         if (totlen < len) {
-            return RES_INVALID_DATA;
+            return EINVAL;
         }
     }
 
     if (totlen > packet->memsize) {
         newmem = talloc_realloc_size(packet, packet->buffer, totlen);
         if (!newmem) {
-            return RES_NOMEM;
+            return ENOMEM;
         }
 
         packet->memsize = totlen;
@@ -149,23 +149,23 @@ int nss_packet_recv(struct nss_packet *packet, int fd)
     rb = recv(fd, buf, len, 0);
 
     if (rb == -1 && errno == EAGAIN) {
-        return RES_RETRY;
+        return EAGAIN;
     }
 
     if (rb == 0) {
-        return RES_ERROR;
+        return EIO;
     }
 
     packet->iop += rb;
     if (packet->iop < 4) {
-        return RES_RETRY;
+        return EAGAIN;
     }
 
     if (packet->iop < *packet->len) {
-        return RES_RETRY;
+        return EAGAIN;
     }
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 int nss_packet_send(struct nss_packet *packet, int fd)
@@ -181,20 +181,20 @@ int nss_packet_send(struct nss_packet *packet, int fd)
     rb = send(fd, buf, len, 0);
 
     if (rb == -1 && errno == EAGAIN) {
-        return RES_RETRY;
+        return EAGAIN;
     }
 
     if (rb == 0) {
-        return RES_ERROR;
+        return EIO;
     }
 
     packet->iop += rb;
 
     if (packet->iop < *packet->len) {
-        return RES_RETRY;
+        return EAGAIN;
     }
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 enum sss_nss_command nss_get_cmd(struct nss_packet *packet)

@@ -44,7 +44,7 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
     ret = nss_packet_new(cctx->creq, sizeof(uint32_t),
                          nss_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
-    if (ret != RES_SUCCESS) {
+    if (ret != EOK) {
         return ret;
     }
     nss_get_body(cctx->creq->out, &body, &blen);
@@ -54,7 +54,7 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
      * making the event writable */
     EVENT_FD_WRITEABLE(cctx->cfde);
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 static int fill_pwent(struct nss_packet *packet,
@@ -100,7 +100,7 @@ static int fill_pwent(struct nss_packet *packet,
         rsize = 2*sizeof(uint64_t) +s1 + 2 + s2 + s3 +s4;
 
         ret = nss_packet_grow(packet, rsize);
-        if (ret != RES_SUCCESS) {
+        if (ret != EOK) {
             num = 0;
             goto done;
         }
@@ -128,7 +128,7 @@ done:
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 static int nss_cmd_getpw_callback(void *ptr, int status,
@@ -150,7 +150,7 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
         ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              nss_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
-        if (ret != RES_SUCCESS) {
+        if (ret != EOK) {
             return ret;
         }
         nss_get_body(cctx->creq->out, &body, &blen);
@@ -163,7 +163,7 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
     ret = nss_packet_new(cctx->creq, 0,
                          nss_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
-    if (ret != RES_SUCCESS) {
+    if (ret != EOK) {
         return ret;
     }
 
@@ -193,12 +193,12 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     name = (const char *)body;
     /* if not terminated fail */
     if (name[blen -1] != '\0') {
-        return RES_INVALID_DATA;
+        return EINVAL;
     }
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
-        return RES_NOMEM;
+        return ENOMEM;
     }
     nctx->cctx = cctx;
 
@@ -220,14 +220,14 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     nss_get_body(cctx->creq->in, &body, &blen);
 
     if (blen != sizeof(uint64_t)) {
-        return RES_INVALID_DATA;
+        return EINVAL;
     }
 
     uid = *((uint64_t *)body);
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
-        return RES_NOMEM;
+        return ENOMEM;
     }
     nctx->cctx = cctx;
 
@@ -257,5 +257,5 @@ int nss_cmd_execute(struct cli_ctx *cctx)
         }
     }
 
-    return RES_INVALID_DATA;
+    return EINVAL;
 }

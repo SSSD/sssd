@@ -73,7 +73,7 @@ int task_server_startup(struct event_context *event_ctx,
 	struct task_state *state;
 
 	state = talloc(event_ctx, struct task_state);
-	if (NULL == state) return RES_NOMEM;
+	if (NULL == state) return ENOMEM;
 
 	state->task_init = task_init;
 

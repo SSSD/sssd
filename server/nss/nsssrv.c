@@ -59,11 +59,11 @@ static void client_send(struct event_context *ev, struct cli_ctx *cctx)
     int ret;
 
     ret = nss_packet_send(cctx->creq->out, cctx->cfd);
-    if (ret == RES_RETRY) {
+    if (ret == EAGAIN) {
         /* not all data was sent, loop again */
         return;
     }
-    if (ret != RES_SUCCESS) {
+    if (ret != EOK) {
         DEBUG(0, ("Failed to read request, aborting client!\n"));
         talloc_free(cctx);
         return;
@@ -92,7 +92,7 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
 
     if (!cctx->creq->in) {
         ret = nss_packet_new(cctx->creq, 0, 0, &cctx->creq->in);
-        if (ret != RES_SUCCESS) {
+        if (ret != EOK) {
             DEBUG(0, ("Failed to alloc request, aborting client!\n"));
             talloc_free(cctx);
             return;
@@ -101,18 +101,18 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
 
     ret = nss_packet_recv(cctx->creq->in, cctx->cfd);
     switch (ret) {
-    case RES_SUCCESS:
+    case EOK:
         /* do not read anymore */
         EVENT_FD_NOT_READABLE(cctx->cfde);
         /* execute command */
         ret = nss_cmd_execute(cctx);
-        if (ret != RES_SUCCESS) {
+        if (ret != EOK) {
             DEBUG(0, ("Failed to execute request, aborting client!\n"));
             talloc_free(cctx);
         }
         break;
 
-    case RES_RETRY:
+    case EAGAIN:
         /* need to read still some data, loop again */
         break;
 
@@ -248,7 +248,7 @@ void nss_task_init(struct task_server *task)
     set_unix_socket(task->event_ctx, nctx, SSS_NSS_SOCKET_NAME);
 
     ret = nss_ldb_init(nctx, task->event_ctx, &nctx->ldb);
-    if (ret != RES_SUCCESS) {
+    if (ret != EOK) {
         task_server_terminate(task, "fatal error initializing nss_ctx\n");
         return;
     }

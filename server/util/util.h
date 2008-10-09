@@ -28,11 +28,7 @@ void debug_fn(const char *format, ...);
 
 #define PID_DIR "/var/run/sssd"
 
-#define RES_SUCCESS 0
-#define RES_ERROR 1
-#define RES_NOMEM 2
-#define RES_INVALID_DATA 3
-#define RES_RETRY 4
+#define EOK 0
 
 #include "util/dlinklist.h"
 

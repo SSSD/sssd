@@ -55,11 +55,11 @@ int process_new_task(struct event_context *ev,
 		int res;
 
 		/* parent */
-		res = RES_SUCCESS;
+		res = EOK;
 
 		if (pid == -1) {
 			/* error */
-			res = RES_ERROR;
+			res = ECHILD;
 		}
 
 		/* ... go back to the event loop */

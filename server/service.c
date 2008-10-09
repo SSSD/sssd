@@ -42,11 +42,11 @@ int register_server_service(const char *name,
 {
 	struct registered_server *srv;
 	srv = talloc(talloc_autofree_context(), struct registered_server);
-	if (NULL == srv) return RES_NOMEM;
+	if (NULL == srv) return ENOMEM;
 	srv->service_name = name;
 	srv->task_init = task_init;
 	DLIST_ADD_END(registered_servers, srv, struct registered_server *);
-	return RES_SUCCESS;
+	return EOK;
 }
 
 
@@ -63,7 +63,7 @@ static int server_service_init(const char *name, struct event_context *ev)
 						   srv->task_init);
 		}
 	}
-	return RES_INVALID_DATA;
+	return EINVAL;
 }
 
 
@@ -77,19 +77,19 @@ int server_service_startup(struct event_context *event_ctx,
 
 	if (!server_services) {
 		DEBUG(0,("server_service_startup: no endpoint servers configured\n"));
-		return RES_INVALID_DATA;
+		return EINVAL;
 	}
 
 	for (i = 0; server_services[i]; i++) {
 		int status;
 
 		status = server_service_init(server_services[i], event_ctx);
-		if (status != RES_SUCCESS) {
+		if (status != EOK) {
 			DEBUG(0,("Failed to start service '%s'\n",
 				server_services[i]));
 			return status;
 		}
 	}
 
-	return RES_SUCCESS;
+	return EOK;
 }

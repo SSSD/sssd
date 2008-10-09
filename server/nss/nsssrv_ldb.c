@@ -32,6 +32,12 @@ struct nss_ldb_search_ctx {
     struct ldb_result *res;
 };
 
+static int nss_ldb_error_to_errno(int lerr)
+{
+    /* fake it up for now, requires a mapping table */
+    return EIO;
+}
+
 static int request_error(struct nss_ldb_search_ctx *sctx, int ldb_error)
 {
     sctx->callback(sctx->ptr, ldb_error, sctx->res);
@@ -116,20 +122,20 @@ int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
 
     sctx = talloc(mem_ctx, struct nss_ldb_search_ctx);
     if (!sctx) {
-        return RES_NOMEM;
+        return ENOMEM;
     }
     sctx->callback = fn;
     sctx->ptr = ptr;
     sctx->res = talloc_zero(sctx, struct ldb_result);
     if (!sctx->res) {
         talloc_free(sctx);
-        return RES_NOMEM;
+        return ENOMEM;
     }
 
     expression = talloc_asprintf(sctx, NSS_PWNAM_FILTER, name);
     if (!expression) {
         talloc_free(sctx);
-        return RES_NOMEM;
+        return ENOMEM;
     }
 
     ret = ldb_build_search_req(&req, ldb, sctx,
@@ -139,15 +145,15 @@ int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
                                sctx, getpw_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
-        return RES_ERROR;
+        return nss_ldb_error_to_errno(ret);;
     }
 
     ret = ldb_request(ldb, req);
     if (ret != LDB_SUCCESS) {
-        return RES_ERROR;
+        return nss_ldb_error_to_errno(ret);
     }
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
@@ -165,20 +171,20 @@ int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
 
     sctx = talloc(mem_ctx, struct nss_ldb_search_ctx);
     if (!sctx) {
-        return RES_NOMEM;
+        return ENOMEM;
     }
     sctx->callback = fn;
     sctx->ptr = ptr;
     sctx->res = talloc_zero(sctx, struct ldb_result);
     if (!sctx->res) {
         talloc_free(sctx);
-        return RES_NOMEM;
+        return ENOMEM;
     }
 
     expression = talloc_asprintf(sctx, NSS_PWUID_FILTER, filter_uid);
     if (!expression) {
         talloc_free(sctx);
-        return RES_NOMEM;
+        return ENOMEM;
     }
 
     ret = ldb_build_search_req(&req, ldb, sctx,
@@ -188,15 +194,15 @@ int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
                                sctx, getpw_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
-        return RES_ERROR;
+        return nss_ldb_error_to_errno(ret);
     }
 
     ret = ldb_request(ldb, req);
     if (ret != LDB_SUCCESS) {
-        return RES_ERROR;
+        return nss_ldb_error_to_errno(ret);
     }
 
-    return RES_SUCCESS;
+    return EOK;
 }
 
 int nss_ldb_init(TALLOC_CTX *mem_ctx,
@@ -208,16 +214,16 @@ int nss_ldb_init(TALLOC_CTX *mem_ctx,
 
     ldb = ldb_init(mem_ctx, ev);
     if (!ldb) {
-        return RES_ERROR;
+        return EIO;
     }
 
     ret = ldb_connect(ldb, NSS_LDB_PATH, 0, NULL);
     if (ret != LDB_SUCCESS) {
         talloc_free(ldb);
-        return RES_ERROR;
+        return EIO;
     }
 
     *ldbp = ldb;
 
-    return RES_SUCCESS;
+    return EOK;
 }
