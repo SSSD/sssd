@@ -6,6 +6,10 @@
 #define NSS_PW_HOMEDIR "HomeDirectory"
 #define NSS_PW_SHELL "loginShell"
 
+#define NSS_GR_NAME "gid"
+#define NSS_GR_GIDNUM "gidNumber"
+#define NSS_GR_MEMBER "member"
+
 typedef int (*nss_ldb_callback_t)(void *, int, struct ldb_result *);
 
 int nss_ldb_init(TALLOC_CTX *mem_ctx,
@@ -28,3 +32,10 @@ int nss_ldb_enumpwent(TALLOC_CTX *mem_ctx,
                       struct event_context *ev,
                       struct ldb_context *ldb,
                       nss_ldb_callback_t fn, void *ptr);
+
+int nss_ldb_getgrnam(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct ldb_context *ldb,
+                     const char *name,
+                     nss_ldb_callback_t fn, void *ptr);
+

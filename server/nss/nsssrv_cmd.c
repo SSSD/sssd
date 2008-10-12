@@ -78,6 +78,10 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
     return EOK;
 }
 
+/****************************************************************************
+ * PASSWD db related functions
+ ***************************************************************************/
+
 static int fill_pwent(struct nss_packet *packet,
                       struct ldb_message **msgs,
                       int count)
@@ -92,12 +96,13 @@ static int fill_pwent(struct nss_packet *packet,
     uint64_t gid;
     size_t rsize, rp, blen;
     size_t s1, s2, s3, s4;
-    int i, ret, num = 0;
+    int i, ret, num;
 
-    /* first 2 fieldss (len and reserved), filled up later */
+    /* first 2 fields (len and reserved), filled up later */
     ret = nss_packet_grow(packet, 2*sizeof(uint32_t));
     rp = 2*sizeof(uint32_t);
 
+    num = 0;
     for (i = 0; i < count; i++) {
         msg = msgs[i];
 
@@ -109,7 +114,7 @@ static int fill_pwent(struct nss_packet *packet,
         gid = ldb_msg_find_attr_as_uint64(msg, NSS_PW_GIDNUM, 0);
 
         if (!name || !fullname || !homedir || !shell || !uid || !gid) {
-            DEBUG(1, ("Incomplede user object for %s[%llu]! Skipping\n",
+            DEBUG(1, ("Incomplete user object for %s[%llu]! Skipping\n",
                       name?name:"<NULL>", (unsigned long long int)uid));
             continue;
         }
@@ -176,7 +181,7 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
 
     if (res->count != 1) {
         if (res->count > 1) {
-            DEBUG(1, ("getpwnam call returned more than oine result !?!\n"));
+            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
         }
         if (res->count == 0) {
             DEBUG(2, ("No results for getpwnam call"));
@@ -468,6 +473,172 @@ done:
     return EOK;
 }
 
+/****************************************************************************
+ * GROUP db related functions
+ ***************************************************************************/
+
+static int fill_grent(struct nss_packet *packet,
+                      struct ldb_message **msgs,
+                      int count)
+{
+    struct ldb_message *msg;
+    uint8_t *body;
+    const char *name;
+    uint64_t gid;
+    size_t rsize, rp, blen, mnump;
+    int i, ret, num, memnum;
+    bool get_group = true;
+
+    /* first 2 fields (len and reserved), filled up later */
+    ret = nss_packet_grow(packet, 2*sizeof(uint32_t));
+    rp = 2*sizeof(uint32_t);
+
+    num = 0;
+    for (i = 0; i < count; i++) {
+        msg = msgs[i];
+
+        if (get_group) {
+            /* find group name/gid */
+            name = ldb_msg_find_attr_as_string(msg, NSS_GR_NAME, NULL);
+            gid = ldb_msg_find_attr_as_uint64(msg, NSS_GR_GIDNUM, 0);
+            if (!name || !gid) {
+                DEBUG(1, ("Incomplete group object for %s[%llu]! Aborting\n",
+                          name?name:"<NULL>", (unsigned long long int)gid));
+                num = 0;
+                goto done;
+            }
+
+            /* fill in gid and name and set pointer for number of members */
+            rsize = sizeof(uint64_t) + sizeof(uint32_t) + strlen(name)+1 +2;
+            ret = nss_packet_grow(packet, rsize);
+            nss_packet_get_body(packet, &body, &blen);
+            rp = blen - rsize;
+            ((uint64_t *)(&body[rp]))[0] = gid;
+            rp += sizeof(uint64_t);
+            ((uint32_t *)(&body[rp]))[0] = 0; /* init members num to 0 */
+            mnump = rp; /* keep around pointer to set members num later */
+            rp += sizeof(uint32_t);
+            memcpy(&body[rp], name, strlen(name)+1);
+            body[blen-2] = 'x'; /* group passwd field */
+            body[blen-1] = '\0';
+
+            get_group = false;
+            memnum = 0;
+            num++;
+            continue;
+        }
+
+        name = ldb_msg_find_attr_as_string(msg, NSS_PW_NAME, NULL);
+
+        if (!name) {
+            /* last member of previous group found, or error.
+             * set next element to be a group, and eventually
+             * fail there if here start bogus entries */
+            get_group = true;
+            nss_packet_get_body(packet, &body, &blen);
+            ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+            continue;
+        }
+
+        rsize = strlen(name) + 1;
+
+        ret = nss_packet_grow(packet, rsize);
+        if (ret != EOK) {
+            num = 0;
+            goto done;
+        }
+        nss_packet_get_body(packet, &body, &blen);
+        rp = blen - rsize;
+        memcpy(&body[rp], name, rsize);
+
+        memnum++;
+    }
+
+    /* fill in the last group member count */
+    nss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+
+done:
+    nss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)body)[0] = num; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+
+    return EOK;
+}
+
+static int nss_cmd_getgr_callback(void *ptr, int status,
+                                  struct ldb_result *res)
+{
+    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = nctx->cctx;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+
+    /* create response packet */
+    ret = nss_packet_new(cctx->creq, 0,
+                         nss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (status != LDB_SUCCESS) {
+        nss_packet_set_error(cctx->creq->out, status);
+        goto done;
+    }
+
+    if (res->count == 0) {
+        DEBUG(2, ("No results for getpwnam call"));
+
+        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            return ret;
+        }
+        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        ((uint32_t *)body)[0] = 0; /* 0 results */
+        ((uint32_t *)body)[1] = 0; /* reserved */
+        goto done;
+    }
+
+    ret = fill_grent(cctx->creq->out, res->msgs, res->count);
+    nss_packet_set_error(cctx->creq->out, ret);
+
+done:
+    nss_cmd_done(nctx);
+    return EOK;
+}
+
+static int nss_cmd_getgrnam(struct cli_ctx *cctx)
+{
+    struct nss_cmd_ctx *nctx;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+    const char *name;
+
+    /* get user name to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    name = (const char *)body;
+    /* if not terminated fail */
+    if (name[blen -1] != '\0') {
+        return EINVAL;
+    }
+
+    nctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!nctx) {
+        return ENOMEM;
+    }
+    nctx->cctx = cctx;
+
+    ret = nss_ldb_getgrnam(nctx, cctx->ev, cctx->ldb, name,
+                           nss_cmd_getgr_callback, nctx);
+
+    return ret;
+}
+
 struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_GET_VERSION, nss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},
@@ -475,6 +646,7 @@ struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_SETPWENT, nss_cmd_setpwent},
     {SSS_NSS_GETPWENT, nss_cmd_getpwent},
     {SSS_NSS_ENDPWENT, nss_cmd_endpwent},
+    {SSS_NSS_GETGRNAM, nss_cmd_getgrnam},
     {SSS_NSS_NULL, NULL}
 };
 
