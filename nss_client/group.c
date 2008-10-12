@@ -76,7 +76,7 @@ struct sss_nss_gr_rep {
 static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
                                  uint8_t *buf, size_t *len)
 {
-    size_t i, l, slen;
+    size_t i, l, slen, dlen, ptmem;
     char *sbuf;
     uint32_t mem_num;
     int err;
@@ -86,63 +86,76 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     }
 
     pr->result->gr_gid = ((uint64_t *)buf)[0];
-    mem_num = ((uint32_t *)buf)[3];
+    mem_num = ((uint32_t *)buf)[2];
 
     sbuf = (char *)&buf[12];
-    if (*len < pr->buflen) {
-        slen = *len;
-        err = EBADMSG;
-    } else {
-        slen = pr->buflen;
-        err = ENOMEM;
-    }
+    slen = *len - 12;
+    dlen = pr->buflen;
 
     pr->result->gr_name = &(pr->buffer[0]);
     i = 0;
-    while (i < slen) {
+    while (i < slen && 0 < dlen) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (i == slen) { /* premature end of buf */
-        return err;
+    if (i >= slen) { /* premature end of buf */
+        return EBADMSG;
     }
-
+    if (0 >= dlen) { /* not enough memory */
+        return ENOMEM;
+    }
     i++;
+    dlen--;
+
     pr->result->gr_passwd = &(pr->buffer[i]);
-    while (i < slen) {
+    while (i < slen && 0 < dlen) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (i == slen) { /* premature end of buf */
-        return err;
+    if (i >= slen) { /* premature end of buf */
+        return EBADMSG;
     }
+    if (0 >= dlen) { /* not enough memory */
+        return ENOMEM;
+    }
+    i++;
+    dlen--;
 
     /* now members */
-    i++;
     pr->result->gr_mem = (char **)&(pr->buffer[i]);
-    i += sizeof(char *) * (mem_num + 1);
-    if (i > slen) { /* premature end of buf */
-        return err;
+    ptmem = sizeof(char *) * (mem_num + 1);
+    dlen -= ptmem;
+    if (0 > dlen) { /* not enough mem in buffer */
+        return ENOMEM;
     }
+    ptmem += i;
     pr->result->gr_mem[mem_num] = NULL; /* terminate array */
 
     for (l = 0; l < mem_num; l++) {
-        i++;
-        pr->result->gr_mem[l] = &(pr->buffer[i]);
-        while (i < slen) {
-            pr->buffer[i] = sbuf[i];
-            if (pr->buffer[i] == '\0') break;
+        pr->result->gr_mem[l] = &(pr->buffer[ptmem]);
+        while ((i < slen) && (0 < dlen)) {
+            pr->buffer[ptmem] = sbuf[i];
             i++;
+            dlen --;
+            if (pr->buffer[ptmem] == '\0') break;
+            ptmem++;
         }
-        if (i == slen || pr->buffer[i] != '\0') {
-            /* premature end of buf */
-            return err;
+        if (pr->buffer[ptmem] != '\0') {
+            if (i > slen) { /* premature end of buf */
+                return EBADMSG;
+            }
+            if (0 > dlen) { /* not enough memory */
+                return ENOMEM;
+            }
         }
+        ptmem++;
     }
 
-    *len = *len -12 -i -1;
+    *len = slen -i -1;
     return 0;
 }
 
