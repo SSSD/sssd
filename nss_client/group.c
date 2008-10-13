@@ -290,7 +290,7 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     rd.len = sizeof(uint64_t);
     rd.data = &group_gid;
 
-    nret = sss_nss_make_request(SSS_NSS_GETPWUID, &rd,
+    nret = sss_nss_make_request(SSS_NSS_GETGRGID, &rd,
                                 &repbuf, &replen, errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         return nret;

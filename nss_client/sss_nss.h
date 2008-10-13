@@ -39,7 +39,7 @@ enum sss_nss_command {
 /* group */
 
     SSS_NSS_GETGRNAM       = 0x0021,
-    SSS_NSS_GETGRUID       = 0x0022,
+    SSS_NSS_GETGRGID       = 0x0022,
     SSS_NSS_SETGRENT       = 0x0023,
     SSS_NSS_GETGRENT       = 0x0024,
     SSS_NSS_ENDGRENT       = 0x0025,
