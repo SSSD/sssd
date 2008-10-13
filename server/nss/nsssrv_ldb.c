@@ -364,6 +364,30 @@ int nss_ldb_getgrnam(TALLOC_CTX *mem_ctx,
     return grp_search(sctx, ldb, expression);
 }
 
+int nss_ldb_getgrgid(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct ldb_context *ldb,
+                     uint64_t gid,
+                     nss_ldb_callback_t fn, void *ptr)
+{
+    struct nss_ldb_search_ctx *sctx;
+    unsigned long long int filter_gid = gid;
+    char *expression;
+
+    sctx = init_sctx(mem_ctx, ldb, fn, ptr);
+    if (!sctx) {
+        return ENOMEM;
+    }
+
+    expression = talloc_asprintf(sctx, NSS_GRGID_FILTER, filter_gid);
+    if (!expression) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    return grp_search(sctx, ldb, expression);
+}
+
 
 int nss_ldb_init(TALLOC_CTX *mem_ctx,
                  struct event_context *ev,

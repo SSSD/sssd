@@ -619,7 +619,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     int ret;
     const char *name;
 
-    /* get user name to query */
+    /* get group name to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
     name = (const char *)body;
     /* if not terminated fail */
@@ -639,6 +639,35 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     return ret;
 }
 
+static int nss_cmd_getgrgid(struct cli_ctx *cctx)
+{
+    struct nss_cmd_ctx *nctx;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+    uint64_t gid;
+
+    /* get gid to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+
+    if (blen != sizeof(uint64_t)) {
+        return EINVAL;
+    }
+
+    gid = *((uint64_t *)body);
+
+    nctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!nctx) {
+        return ENOMEM;
+    }
+    nctx->cctx = cctx;
+
+    ret = nss_ldb_getgrgid(nctx, cctx->ev, cctx->ldb, gid,
+                           nss_cmd_getgr_callback, nctx);
+
+    return ret;
+}
+
 struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_GET_VERSION, nss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},
@@ -647,6 +676,7 @@ struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_GETPWENT, nss_cmd_getpwent},
     {SSS_NSS_ENDPWENT, nss_cmd_endpwent},
     {SSS_NSS_GETGRNAM, nss_cmd_getgrnam},
+    {SSS_NSS_GETGRGID, nss_cmd_getgrgid},
     {SSS_NSS_NULL, NULL}
 };
 

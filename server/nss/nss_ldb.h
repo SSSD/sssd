@@ -11,7 +11,7 @@
 
 #define NSS_GRNAM_FILTER "(&(objectclass=group)(gid=%s))"
 #define NSS_GRNA2_FILTER "(&(objectclass=user)(memberof=%s))"
-#define NSS_GRUID_FILTER "(&(objectclass=group)(gidNumber=%llu))"
+#define NSS_GRGID_FILTER "(&(objectclass=group)(gidNumber=%llu))"
 #define NSS_GRENT_FILTER "(objectclass=group)"
 
 #define NSS_PW_ATTRS {NSS_PW_NAME, NSS_PW_UIDNUM, NSS_PW_GIDNUM, \

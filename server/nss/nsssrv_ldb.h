@@ -39,3 +39,9 @@ int nss_ldb_getgrnam(TALLOC_CTX *mem_ctx,
                      const char *name,
                      nss_ldb_callback_t fn, void *ptr);
 
+int nss_ldb_getgrgid(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct ldb_context *ldb,
+                     uint64_t gid,
+                     nss_ldb_callback_t fn, void *ptr);
+
