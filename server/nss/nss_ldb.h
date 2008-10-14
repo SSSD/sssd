@@ -14,9 +14,13 @@
 #define NSS_GRGID_FILTER "(&(objectclass=group)(gidNumber=%llu))"
 #define NSS_GRENT_FILTER "(objectclass=group)"
 
+#define NSS_INITGR_FILTER "(&(objectclass=group)(gidNumber=*))"
+
 #define NSS_PW_ATTRS {NSS_PW_NAME, NSS_PW_UIDNUM, NSS_PW_GIDNUM, \
                       NSS_PW_FULLNAME, NSS_PW_HOMEDIR, NSS_PW_SHELL, \
                       NULL}
 #define NSS_GRNAM_ATTRS {NSS_GR_NAME, NSS_GR_GIDNUM, NULL}
 #define NSS_GRPW_ATTRS {NSS_PW_NAME, NULL}
 
+#define NSS_INITGR_SEARCH_ATTR "memberof"
+#define NSS_INITGR_ATTRS {NSS_GR_GIDNUM, NULL}

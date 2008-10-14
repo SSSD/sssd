@@ -484,6 +484,120 @@ int nss_ldb_enumgrent(TALLOC_CTX *mem_ctx,
     return grp_search(sctx, ldb, NSS_GRENT_FILTER);
 }
 
+static int nss_ldb_initgr_search(void *ptr, int status,
+                                 struct ldb_result *res)
+{
+    struct nss_ldb_search_ctx *sctx;
+    static const char *attrs[] = NSS_INITGR_ATTRS;
+    char *expression;
+    struct ldb_request *req;
+    struct ldb_control **ctrl;
+    struct ldb_asq_control *control;
+    int ret;
+
+    sctx = talloc_get_type(ptr, struct nss_ldb_search_ctx);
+
+    if (res->count == 0) {
+        return request_done(sctx);
+    }
+    if (res->count > 1) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    expression = talloc_asprintf(sctx, NSS_INITGR_FILTER);
+    if (!expression) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    ctrl = talloc_array(sctx, struct ldb_control *, 2);
+    if (!ctrl) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+    ctrl[1] = NULL;
+    ctrl[0] = talloc(ctrl, struct ldb_control);
+    if (!ctrl[0]) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+    ctrl[0]->oid = LDB_CONTROL_ASQ_OID;
+    ctrl[0]->critical = 1;
+    control = talloc(ctrl[0], struct ldb_asq_control);
+    if (!control) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+    control->request = 1;
+    control->source_attribute = talloc_strdup(control, NSS_INITGR_SEARCH_ATTR);
+    if (!control->source_attribute) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+    control->src_attr_len = strlen(control->source_attribute);
+    ctrl[0]->data = control;
+
+    ret = ldb_build_search_req(&req, sctx->ldb, sctx,
+                               res->msgs[0]->dn,
+                               LDB_SCOPE_BASE,
+                               expression, attrs, ctrl,
+                               sctx, get_gen_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+        return request_error(sctx, ret);
+    }
+
+    ret = ldb_request(sctx->ldb, req);
+    if (ret != LDB_SUCCESS) {
+        return request_error(sctx, ret);
+    }
+
+    return LDB_SUCCESS;
+}
+
+int nss_ldb_initgroups(TALLOC_CTX *mem_ctx,
+                       struct event_context *ev,
+                       struct ldb_context *ldb,
+                       const char *name,
+                       nss_ldb_callback_t fn, void *ptr)
+{
+    struct nss_ldb_search_ctx *ret_sctx;
+    struct nss_ldb_search_ctx *sctx;
+    static const char *attrs[] = NSS_PW_ATTRS;
+    char *expression;
+    struct ldb_request *req;
+    int ret;
+
+    ret_sctx = init_sctx(mem_ctx, ldb, fn, ptr);
+    if (!ret_sctx) {
+        return ENOMEM;
+    }
+    sctx = init_sctx(ret_sctx, ldb, nss_ldb_initgr_search, ret_sctx);
+    if (!sctx) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    expression = talloc_asprintf(sctx, NSS_PWNAM_FILTER, name);
+    if (!expression) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    ret = ldb_build_search_req(&req, ldb, sctx,
+                               ldb_dn_new(sctx, ldb, NSS_USER_BASE),
+                               LDB_SCOPE_SUBTREE,
+                               expression, attrs, NULL,
+                               sctx, get_gen_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+        return nss_ldb_error_to_errno(ret);
+    }
+
+    ret = ldb_request(ldb, req);
+    if (ret != LDB_SUCCESS) {
+        return nss_ldb_error_to_errno(ret);
+    }
+
+    return LDB_SUCCESS;
+}
+
+
 int nss_ldb_init(TALLOC_CTX *mem_ctx,
                  struct event_context *ev,
                  struct ldb_context **ldbp)

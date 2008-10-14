@@ -50,3 +50,9 @@ int nss_ldb_enumgrent(TALLOC_CTX *mem_ctx,
                       struct ldb_context *ldb,
                       nss_ldb_callback_t fn, void *ptr);
 
+int nss_ldb_initgroups(TALLOC_CTX *mem_ctx,
+                       struct event_context *ev,
+                       struct ldb_context *ldb,
+                       const char *name,
+                       nss_ldb_callback_t fn, void *ptr);
+

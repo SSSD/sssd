@@ -882,6 +882,87 @@ done:
     return EOK;
 }
 
+static int nss_cmd_initgr_callback(void *ptr, int status,
+                                   struct ldb_result *res)
+{
+    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = nctx->cctx;
+    uint8_t *body;
+    size_t blen;
+    uint64_t gid;
+    uint32_t num;
+    int ret, i;
+
+    /* create response packet */
+    ret = nss_packet_new(cctx->creq, 0,
+                         nss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (status != LDB_SUCCESS) {
+        nss_packet_set_error(cctx->creq->out, status);
+        goto done;
+    }
+
+    num = res->count;
+    /* the first 64 bit uint is really 2 32 units used to hold the number of
+     * results */
+    ret = nss_packet_grow(cctx->creq->out, (1 + num) * sizeof(uint64_t));
+    if (ret != EOK) {
+        nss_packet_set_error(cctx->creq->out, ret);
+        goto done;
+    }
+    nss_packet_get_body(cctx->creq->out, &body, &blen);
+
+    for (i = 0; i < num; i++) {
+        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], NSS_GR_GIDNUM, 0);
+        if (!gid) {
+            DEBUG(1, ("Incomplete group object for initgroups! Aborting\n"));
+            nss_packet_set_error(cctx->creq->out, EIO);
+            num = 0;
+            goto done;
+        }
+        ((uint64_t *)body)[i+1] = gid;
+    }
+
+    ((uint32_t *)body)[0] = num; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+
+done:
+    nss_cmd_done(nctx);
+    return EOK;
+}
+
+static int nss_cmd_initgroups(struct cli_ctx *cctx)
+{
+    struct nss_cmd_ctx *nctx;
+    uint8_t *body;
+    size_t blen;
+    int ret;
+    const char *name;
+
+    /* get user name to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    name = (const char *)body;
+    /* if not terminated fail */
+    if (name[blen -1] != '\0') {
+        return EINVAL;
+    }
+
+    nctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!nctx) {
+        return ENOMEM;
+    }
+    nctx->cctx = cctx;
+
+    ret = nss_ldb_initgroups(nctx, cctx->ev, cctx->ldb, name,
+                             nss_cmd_initgr_callback, nctx);
+
+    return ret;
+}
+
 struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_GET_VERSION, nss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},
@@ -894,6 +975,7 @@ struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_SETGRENT, nss_cmd_setgrent},
     {SSS_NSS_GETGRENT, nss_cmd_getgrent},
     {SSS_NSS_ENDGRENT, nss_cmd_endgrent},
+    {SSS_NSS_INITGR, nss_cmd_initgroups},
     {SSS_NSS_NULL, NULL}
 };
 
