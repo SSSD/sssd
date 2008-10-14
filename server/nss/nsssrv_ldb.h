@@ -6,7 +6,7 @@
 #define NSS_PW_HOMEDIR "HomeDirectory"
 #define NSS_PW_SHELL "loginShell"
 
-#define NSS_GR_NAME "gid"
+#define NSS_GR_NAME "cn"
 #define NSS_GR_GIDNUM "gidNumber"
 #define NSS_GR_MEMBER "member"
 
@@ -44,4 +44,9 @@ int nss_ldb_getgrgid(TALLOC_CTX *mem_ctx,
                      struct ldb_context *ldb,
                      uint64_t gid,
                      nss_ldb_callback_t fn, void *ptr);
+
+int nss_ldb_enumgrent(TALLOC_CTX *mem_ctx,
+                      struct event_context *ev,
+                      struct ldb_context *ldb,
+                      nss_ldb_callback_t fn, void *ptr);
 

@@ -131,6 +131,8 @@ static struct nss_ldb_search_ctx *init_sctx(TALLOC_CTX *mem_ctx,
     return sctx;
 }
 
+/* users */
+
 static int pwd_search(struct nss_ldb_search_ctx *sctx,
                      struct ldb_context *ldb,
                      const char *expression)
@@ -219,7 +221,97 @@ int nss_ldb_enumpwent(TALLOC_CTX *mem_ctx,
     return pwd_search(sctx, ldb, NSS_PWENT_FILTER);
 }
 
+/* groups */
 
+struct get_mem_ctx {
+    struct nss_ldb_search_ctx *ret_sctx;
+    struct ldb_message **grps;
+    int num_grps;
+};
+
+static int get_members(void *ptr, int status,
+                       struct ldb_result *res)
+{
+    struct nss_ldb_search_ctx *sctx;
+    struct get_mem_ctx *gmctx;
+    struct nss_ldb_search_ctx *mem_sctx;
+    static const char *attrs[] = NSS_GRPW_ATTRS;
+    struct ldb_request *req;
+    struct ldb_message *msg;
+    struct ldb_result *ret_res;
+    const char *expression;
+    int ret, i;
+
+    sctx = talloc_get_type(ptr, struct nss_ldb_search_ctx);
+    gmctx = talloc_get_type(sctx->ptr, struct get_mem_ctx);
+
+    if (status != LDB_SUCCESS) {
+        return request_error(gmctx->ret_sctx, status);
+    }
+
+    ret_res = gmctx->ret_sctx->res;
+
+    /* append previous search results to final (if any) */
+    if (res && res->count != 0) {
+        ret_res->msgs = talloc_realloc(ret_res, ret_res->msgs,
+                                       struct ldb_message *,
+                                       ret_res->count + res->count + 1);
+        for(i = 0; i < res->count; i++) {
+            ret_res->msgs[ret_res->count] = talloc_steal(ret_res, res->msgs[i]);
+            ret_res->count++;
+        }
+        ret_res->msgs[ret_res->count] = NULL;
+    }
+
+    if (gmctx->grps[0] == NULL) {
+        return request_done(gmctx->ret_sctx);
+    }
+
+    mem_sctx = init_sctx(gmctx, sctx->ldb, get_members, sctx);
+    if (!mem_sctx) {
+        return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    /* fetch next group to search for members */
+    gmctx->num_grps--;
+    msg = gmctx->grps[gmctx->num_grps];
+    gmctx->grps[gmctx->num_grps] = NULL;
+
+    /* queue the group entry on the final result structure */
+    ret_res->msgs = talloc_realloc(ret_res, ret_res->msgs,
+                                   struct ldb_message *,
+                                   ret_res->count + 2);
+    if (!ret_res->msgs) {
+        return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+    ret_res->msgs[ret_res->count + 1] = NULL;
+    ret_res->msgs[ret_res->count] = talloc_steal(ret_res->msgs, msg);
+    ret_res->count++;
+
+    /* search for this group members */
+    expression = talloc_asprintf(mem_sctx, NSS_GRNA2_FILTER,
+                                 ldb_dn_get_linearized(msg->dn));
+    if (!expression) {
+        return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    ret = ldb_build_search_req(&req, mem_sctx->ldb, mem_sctx,
+                               ldb_dn_new(mem_sctx, mem_sctx->ldb, NSS_USER_BASE),
+                               LDB_SCOPE_SUBTREE,
+                               expression, attrs, NULL,
+                               mem_sctx, get_gen_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+       return request_error(gmctx->ret_sctx, ret);
+    }
+
+    ret = ldb_request(mem_sctx->ldb, req);
+    if (ret != LDB_SUCCESS) {
+        return request_error(gmctx->ret_sctx, ret);
+    }
+
+    return LDB_SUCCESS;
+}
 
 static int get_grp_callback(struct ldb_request *req,
                             struct ldb_reply *ares)
@@ -276,35 +368,24 @@ static int get_grp_callback(struct ldb_request *req,
         if (res->count == 0) {
             return request_done(sctx);
         }
-        /* 1 result, let's search for members now and append results */
-        if (res->count == 1) {
-            static const char *attrs[] = NSS_GRPW_ATTRS;
-            struct ldb_request *ureq;
-            const char *expression;
-            int ret;
+        if (res->count > 0) {
+            struct get_mem_ctx *gmctx;
 
-            expression = talloc_asprintf(sctx, NSS_GRNA2_FILTER,
-                                         ldb_dn_get_linearized(res->msgs[0]->dn));
-            if (!expression) {
-                return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            gmctx = talloc_zero(req, struct get_mem_ctx);
+            if (!gmctx) {
+                request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
             }
+            gmctx->ret_sctx = sctx;
+            gmctx->grps = talloc_steal(gmctx, res->msgs);
+            gmctx->num_grps = res->count;
+            res->msgs = NULL;
+            res->count = 0;
 
-            ret = ldb_build_search_req(&ureq, sctx->ldb, sctx,
-                                       ldb_dn_new(sctx, sctx->ldb, NSS_USER_BASE),
-                                       LDB_SCOPE_SUBTREE,
-                                       expression, attrs, NULL,
-                                       sctx, get_gen_callback,
-                                       NULL);
-            if (ret != LDB_SUCCESS) {
-                return request_error(sctx, ret);
-            }
+            /* re-use sctx to create a fake handler for the first call to
+             * get_members() */
+            sctx = init_sctx(gmctx, sctx->ldb, get_members, gmctx);
 
-            ret = ldb_request(sctx->ldb, ureq);
-            if (ret != LDB_SUCCESS) {
-                return request_error(sctx, ret);
-            }
-
-            return LDB_SUCCESS;
+            return get_members(sctx, LDB_SUCCESS, NULL);
         }
 
         /* anything else is an error */
@@ -388,6 +469,20 @@ int nss_ldb_getgrgid(TALLOC_CTX *mem_ctx,
     return grp_search(sctx, ldb, expression);
 }
 
+int nss_ldb_enumgrent(TALLOC_CTX *mem_ctx,
+                      struct event_context *ev,
+                      struct ldb_context *ldb,
+                      nss_ldb_callback_t fn, void *ptr)
+{
+    struct nss_ldb_search_ctx *sctx;
+
+    sctx = init_sctx(mem_ctx, ldb, fn, ptr);
+    if (!sctx) {
+        return ENOMEM;
+    }
+
+    return grp_search(sctx, ldb, NSS_GRENT_FILTER);
+}
 
 int nss_ldb_init(TALLOC_CTX *mem_ctx,
                  struct event_context *ev,

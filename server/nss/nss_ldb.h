@@ -9,7 +9,7 @@
 #define NSS_PWUID_FILTER "(&(objectclass=user)(uidNumber=%llu))"
 #define NSS_PWENT_FILTER "(objectclass=user)"
 
-#define NSS_GRNAM_FILTER "(&(objectclass=group)(gid=%s))"
+#define NSS_GRNAM_FILTER "(&(objectclass=group)(cn=%s))"
 #define NSS_GRNA2_FILTER "(&(objectclass=user)(memberof=%s))"
 #define NSS_GRGID_FILTER "(&(objectclass=group)(gidNumber=%llu))"
 #define NSS_GRENT_FILTER "(objectclass=group)"
