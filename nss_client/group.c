@@ -155,7 +155,7 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
         ptmem++;
     }
 
-    *len = slen -i -1;
+    *len = slen -i;
     return 0;
 }
 
