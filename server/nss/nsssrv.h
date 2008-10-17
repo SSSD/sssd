@@ -36,12 +36,12 @@ struct nss_ctx {
     struct task_server *task;
     struct fd_event *lfde;
     int lfd;
-    struct ldb_context *ldb;
+    struct nss_ldb_ctx *lctx;
 };
 
 struct cli_ctx {
     struct event_context *ev;
-    struct ldb_context *ldb;
+    struct nss_ldb_ctx *lctx;
     int cfd;
     struct fd_event *cfde;
     struct sockaddr_un addr;

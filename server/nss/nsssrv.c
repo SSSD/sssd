@@ -33,6 +33,7 @@
 #include "service.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
+#include "confdb/confdb.h"
 
 static void set_nonblocking(int fd)
 {
@@ -182,7 +183,7 @@ static void accept_fd_handler(struct event_context *ev,
     }
 
     cctx->ev = ev;
-    cctx->ldb = nctx->ldb;
+    cctx->lctx = nctx->lctx;
 
     talloc_set_destructor(cctx, client_destructor);
 
@@ -233,10 +234,17 @@ failed:
 
 void nss_task_init(struct task_server *task)
 {
+    struct confdb_ctx *cdb;
     struct nss_ctx *nctx;
     int ret;
 
     task_server_set_title(task, "sssd[nsssrv]");
+
+    ret = confdb_init(task, task->event_ctx, &cdb);
+    if (ret != EOK) {
+        task_server_terminate(task, "fatal error initializing confdb\n");
+        return;
+    }
 
     nctx = talloc_zero(task, struct nss_ctx);
     if (!nctx) {
@@ -247,7 +255,7 @@ void nss_task_init(struct task_server *task)
 
     set_unix_socket(task->event_ctx, nctx, SSS_NSS_SOCKET_NAME);
 
-    ret = nss_ldb_init(nctx, task->event_ctx, &nctx->ldb);
+    ret = nss_ldb_init(nctx, task->event_ctx, cdb, &nctx->lctx);
     if (ret != EOK) {
         task_server_terminate(task, "fatal error initializing nss_ctx\n");
         return;
