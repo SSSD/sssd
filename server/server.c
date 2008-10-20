@@ -32,6 +32,7 @@
 #include "../events/events.h"
 #include "../ldb/include/ldb.h"
 #include "service.h"
+#include "confdb/confdb.h"
 
 extern void monitor_task_init(struct task_server *task);
 extern void nss_task_init(struct task_server *task);
@@ -114,9 +115,11 @@ int main(int argc, const char *argv[])
 	int opt;
 	poptContext pc;
 	struct event_context *event_ctx;
+    struct confdb_ctx *confdb_ctx;
+    TALLOC_CTX *mem_ctx;
 	uint16_t stdin_event_flags;
 	int status;
-	const char **services;
+	char **services;
 
 	enum {
 		OPT_DAEMON = 1000,
@@ -176,9 +179,20 @@ int main(int argc, const char *argv[])
 	/* the event context is the top level structure in smbd. Everything else
 	   should hang off that */
 	event_ctx = event_context_init(talloc_autofree_context());
-
 	if (event_ctx == NULL) {
-		DEBUG(0,("Initializing event context failed\n"));
+		DEBUG(0,("The event context initialiaziton failed\n"));
+		return 1;
+	}
+
+    mem_ctx = talloc_new(event_ctx);
+    if (mem_ctx == NULL) {
+        DEBUG(0,("Out of memory, aborting!\n"));
+        return 1;
+    }
+
+    status = confdb_init(mem_ctx, event_ctx, &confdb_ctx);
+    if (status != EOK) {
+        DEBUG(0,("The confdb initialiaztion failed\n"));
 		return 1;
 	}
 
@@ -202,11 +216,15 @@ int main(int argc, const char *argv[])
 	register_server_service("monitor", monitor_task_init);
 	register_server_service("nss", nss_task_init);
 
-	services = calloc(3, sizeof(char *));
-	services[0] = "monitor";
-	services[1] = "nss";
+    status = confdb_get_param(confdb_ctx, mem_ctx, "config.services",
+                              "activeServices", &services);
 
-	status = server_service_startup(event_ctx, services);
+    if (services[0] == NULL) {
+        DEBUG(0, ("No services configured!\n"));
+        return 2;
+    }
+
+	status = server_service_startup(event_ctx, (const char **)services);
 	if (status != EOK) {
 		DEBUG(0,("Starting Services failed - %d\n", status));
 		return 1;
