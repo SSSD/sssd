@@ -1,0 +1,16 @@
+# editing 4 records
+# record 1
+dn: cn=config
+cn: config
+version: 0.1
+
+dn: cn=services,cn=config
+cn: services
+description: Local service configuration
+activeServices: nss
+
+dn: cn=nss,cn=services,cn=config
+cn: nss
+description: NSS Responder Configuration
+unix-socket: /var/lib/sssd/nss/pipe
+

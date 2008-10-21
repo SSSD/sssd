@@ -1,0 +1,46 @@
+dn: @MODULES
+@LIST: asq
+
+dn: cn=local
+cn: local
+description: Local system data
+
+dn: cn=groups,cn=local
+cn: groups
+description: Local POSIX groups
+
+dn: cn=foousers,cn=groups,cn=local
+cn: foousers
+description: Local user accounts
+member: uid=foobar,cn=users,cn=local
+objectclass: group
+gidNumber: 10101
+
+dn: cn=users,cn=local
+cn: users
+description: Local POSIX users
+
+dn: uid=foobar,cn=users,cn=local
+uid: foobar
+objectClass: user
+description: User Foo Bar
+uidNumber: 10101
+gidNumber: 10101
+legacy: false
+primaryGroup: cn=foousers,cn=groups,cn=local
+userPassword: !@#$%#@#@!FOOBAR
+homeDirectory: /home/foobar
+fullName: Foo Bar
+loginShell: /bin/bash
+accountExpires: 20500101000000Z
+biometricSignature: <binary>
+disabled: false
+failedLoginAttempts: 0
+keyboardLayout: it_IT
+lastPasswordChange: 20080912142034Z
+passwordHint: Favorite pasta sauce
+passwordHistory: foo,bar,baz
+preferredLanguage: IT
+preferredSession: GNOME
+memberOf: cn=foousers,cn=groups,cn=local
+
