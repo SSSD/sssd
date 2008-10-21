@@ -33,6 +33,7 @@
 #include "../ldb/include/ldb.h"
 #include "service.h"
 #include "confdb/confdb.h"
+#include "monitor.h"
 
 extern void monitor_task_init(struct task_server *task);
 extern void nss_task_init(struct task_server *task);
@@ -119,7 +120,6 @@ int main(int argc, const char *argv[])
     TALLOC_CTX *mem_ctx;
 	uint16_t stdin_event_flags;
 	int status;
-	char **services;
 
 	enum {
 		OPT_DAEMON = 1000,
@@ -213,22 +213,13 @@ int main(int argc, const char *argv[])
 		     discard_const(argv[0]));
 
 	/* Services */
-	register_server_service("monitor", monitor_task_init);
 	register_server_service("nss", nss_task_init);
 
-    status = confdb_get_param(confdb_ctx, mem_ctx, "config.services",
-                              "activeServices", &services);
-
-    if (services[0] == NULL) {
-        DEBUG(0, ("No services configured!\n"));
-        return 2;
+    /* the monitor starts the services */
+    status = start_monitor(mem_ctx, event_ctx, confdb_ctx);
+    if (status != EOK) {
+        return 1;
     }
-
-	status = server_service_startup(event_ctx, (const char **)services);
-	if (status != EOK) {
-		DEBUG(0,("Starting Services failed - %d\n", status));
-		return 1;
-	}
 
 	/* wait for events - this is where smbd sits for most of its
 	   life */

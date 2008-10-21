@@ -19,55 +19,88 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <string.h>
+#include <sys/wait.h>
 #include <sys/time.h>
+#include <time.h>
 #include "../events/events.h"
 #include "util/util.h"
 #include "service.h"
+#include "confdb/confdb.h"
 
 struct mt_ctx {
-    struct task_server *task;
-    struct fd_event *test_fde;
-    int test_fd;
+    struct event_context *ev;
+    struct confdb_ctx *cdb;
+	char **services;
 };
 
-static void set_nonblocking(int fd)
+struct mt_srv {
+    const char *name;
+    struct mt_ctx *mt_ctx;
+    pid_t pid;
+    time_t last_restart;
+    int restarts;
+};
+
+static void set_tasks_checker(struct mt_srv *srv);
+
+static void tasks_check_handler(struct event_context *ev,
+                                struct timed_event *te,
+                                struct timeval t, void *ptr)
 {
-    unsigned v;
-    v = fcntl(fd, F_GETFL, 0);
-    fcntl(fd, F_SETFL, v | O_NONBLOCK);
+    struct mt_srv *srv = talloc_get_type(ptr, struct mt_srv);
+    time_t now = time(NULL);
+    int status;
+    pid_t pid;
+    int ret;
+
+    pid = waitpid(srv->pid, &status, WNOHANG);
+    if (pid == 0) {
+        set_tasks_checker(srv);
+        return;
+    }
+
+    if (pid != srv->pid) {
+        DEBUG(1, ("bad return (%d) from waitpid() waiting for %d\n",
+                  pid, srv->pid));
+        /* TODO: what do we do now ? */
+    }
+
+    if (WIFEXITED(status)) { /* children exited on it's own ?? */
+        /* TODO: check configuration to see if it was removed
+         * from the list of process to run */
+        DEBUG(0,("Process [%s] exited on it's own ?!\n", srv->name));
+    }
+
+    if (srv->last_restart != 0) {
+        if ((now - srv->last_restart) > 30) { /* TODO: get val from config */
+            /* it was long ago reset restart threshold */
+            srv->restarts = 0;
+        }
+    }
+
+    /* restart the process */
+    if (srv->restarts < 3) { /* TODO: get val from config */
+
+        ret = server_service_init(srv->name, srv->mt_ctx->ev, &srv->pid);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to restart service '%s'\n", srv->name));
+            talloc_free(srv);
+            return;
+        }
+
+        srv->restarts++;
+        srv->last_restart = now;
+
+        set_tasks_checker(srv);
+        return;
+    }
+
+    DEBUG(0, ("Process [%s], definitely stopped!\n", srv->name));
+    talloc_free(srv);
 }
 
-static void set_close_on_exec(int fd)
-{
-    unsigned v;
-    v = fcntl(fd, F_GETFD, 0);
-    fcntl(fd, F_SETFD, v | FD_CLOEXEC);
-}
-
-static void set_test_timed_event(struct event_context *ev,
-                                 struct mt_ctx *ctx);
-
-static void test_timed_handler(struct event_context *ev,
-                               struct timed_event *te,
-                               struct timeval t, void *ptr)
-{
-    struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
-
-    fprintf(stdout, ".");
-    fflush(stdout);
-
-    set_test_timed_event(ev, ctx);
-}
-
-static void set_test_timed_event(struct event_context *ev,
-                                 struct mt_ctx *ctx)
+static void set_tasks_checker(struct mt_srv *srv)
 {
     struct timed_event *te = NULL;
     struct timeval tv;
@@ -75,94 +108,55 @@ static void set_test_timed_event(struct event_context *ev,
     gettimeofday(&tv, NULL);
     tv.tv_sec += 2;
     tv.tv_usec = 0;
-    te = event_add_timed(ev, ctx, tv, test_timed_handler, ctx);
+    te = event_add_timed(srv->mt_ctx->ev, srv, tv, tasks_check_handler, srv);
     if (te == NULL) {
-        DEBUG(0, ("failed to add event!\n"));
-        task_server_terminate(ctx->task, "fatal error initializing service\n");
+        DEBUG(0, ("failed to add event, monitor offline for [%s]!\n",
+                  srv->name));
+        /* FIXME: shutdown ? */
     }
 }
 
-static void test_fd_handler(struct event_context *ev,
-                            struct fd_event *fde,
-                            uint16_t flags, void *ptr)
-{
-    /* accept and close */
-    struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
-    struct sockaddr_un addr;
-    socklen_t len;
-    int fd;
-
-    memset(&addr, 0, sizeof(addr));
-    len = sizeof(addr);
-    fd = accept(ctx->test_fd, (struct sockaddr *)&addr, &len);
-    if (fd == -1) {
-        return;
-    }
-
-    close(fd);
-    return;
-}
-
-/* create a unix socket and listen to it */
-static void set_test_fd_event(struct event_context *ev,
-                              struct mt_ctx *ctx)
-{
-    struct sockaddr_un addr;
-    const char *sock_name = "/tmp/foo/test_sock";
-
-    /* make sure we have no old sockets around */
-    unlink(sock_name);
-
-    ctx->test_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (ctx->test_fd == -1) {
-        return;
-    }
-
-    set_nonblocking(ctx->test_fd);
-    set_close_on_exec(ctx->test_fd);
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, sock_name, sizeof(addr.sun_path));
-
-    if (bind(ctx->test_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        DEBUG(0,("Unable to bind on socket '%s'\n", sock_name));
-        goto failed;
-    }
-    if (listen(ctx->test_fd, 10) != 0) {
-        DEBUG(0,("Unable to listen on socket '%s'\n", sock_name));
-        goto failed;
-    }
-
-    ctx->test_fde = event_add_fd(ev, ctx, ctx->test_fd,
-                                 EVENT_FD_READ, test_fd_handler, ctx);
-
-    return;
-
-failed:
-    close(ctx->test_fd);
-}
-
-void monitor_task_init(struct task_server *task)
+int start_monitor(TALLOC_CTX *mem_ctx,
+                  struct event_context *event_ctx,
+                  struct confdb_ctx *cdb)
 {
     struct mt_ctx *ctx;
+    struct mt_srv *srv;
+    int ret, i;
 
-    task_server_set_title(task, "sssd[monitor]");
-
-    ctx = talloc_zero(task, struct mt_ctx);
+    ctx = talloc_zero(mem_ctx, struct mt_ctx);
     if (!ctx) {
-        task_server_terminate(task, "fatal error initializing mt_ctx\n");
-        return;
+        DEBUG(0, ("fatal error initializing monitor!\n"));
+        return ENOMEM;
     }
-    ctx->task = task;
+    ctx->ev = event_ctx;
 
-    /* without an fd event the event system just exits.
-     * We must always have at least one file base event around
-     */
-    set_test_fd_event(task->event_ctx, ctx);
+    ret = confdb_get_param(cdb, mem_ctx, "config.services",
+                           "activeServices", &ctx->services);
 
-    /* our test timed event */
-    set_test_timed_event(task->event_ctx, ctx);
+    if (ctx->services[0] == NULL) {
+        DEBUG(0, ("No services configured!\n"));
+        return EINVAL;
+    }
 
-    fprintf(stdout, "test monitor process started!\n");
+    for (i = 0; ctx->services[i]; i++) {
+
+        srv = talloc_zero(ctx, struct mt_srv);
+        if (!srv) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
+        srv->name = ctx->services[i];
+        srv->mt_ctx = ctx;
+
+        ret = server_service_init(srv->name, event_ctx, &srv->pid);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to restart service '%s'\n", srv->name));
+            talloc_free(srv);
+        }
+
+        set_tasks_checker(srv);
+    }
+
+    return EOK;
 }

@@ -31,12 +31,16 @@ int register_server_service(const char *name,
                             void (*task_init)(struct task_server *));
 int server_service_startup(struct event_context *event_ctx,
                            const char **server_services);
+int server_service_init(const char *name,
+			struct event_context *ev,
+			pid_t *rpid);
 
 /* The following definitions come from service_task.c  */
 
 int task_server_startup(struct event_context *event_ctx,
                         const char *service_name,
-                        void (*task_init)(struct task_server *));
+                        void (*task_init)(struct task_server *),
+                        pid_t *rpid);
 void task_server_set_title(struct task_server *task, const char *title);
 void task_server_terminate(struct task_server *task, const char *reason);
 

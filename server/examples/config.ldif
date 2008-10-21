@@ -12,5 +12,5 @@ activeServices: nss
 dn: cn=nss,cn=services,cn=config
 cn: nss
 description: NSS Responder Configuration
-unix-socket: /var/lib/sssd/nss/pipe
+unixSocket: /var/lib/sss/pipes/nss
 

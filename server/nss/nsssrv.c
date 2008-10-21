@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <string.h>
@@ -169,7 +170,7 @@ static void accept_fd_handler(struct event_context *ev,
     len = sizeof(cctx->addr);
     cctx->cfd = accept(nctx->lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
-        DEBUG(0, ("Accept failed [%s]", strerror(errno)));
+        DEBUG(1, ("Accept failed [%s]", strerror(errno)));
         talloc_free(cctx);
         return;
     }
@@ -179,7 +180,7 @@ static void accept_fd_handler(struct event_context *ev,
     if (!cctx->cfde) {
         close(cctx->cfd);
         talloc_free(cctx);
-        DEBUG(0, ("Failed to queue client handler\n"));
+        DEBUG(2, ("Failed to queue client handler\n"));
     }
 
     cctx->ev = ev;
@@ -199,13 +200,14 @@ static void set_unix_socket(struct event_context *ev,
 {
     struct sockaddr_un addr;
 
-    /* make sure we have no old sockets around */
-    unlink(sock_name);
-
     nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (nctx->lfd == -1) {
         return;
     }
+
+    /* Set the umask so that permissions are set right on the socket.
+     * It must be readable and writable by anybody on the system. */
+    umask(0111);
 
     set_nonblocking(nctx->lfd);
     set_close_on_exec(nctx->lfd);
@@ -213,6 +215,9 @@ static void set_unix_socket(struct event_context *ev,
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
     strncpy(addr.sun_path, sock_name, sizeof(addr.sun_path));
+
+    /* make sure we have no old sockets around */
+    unlink(sock_name);
 
     if (bind(nctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         DEBUG(0,("Unable to bind on socket '%s'\n", sock_name));
@@ -226,9 +231,15 @@ static void set_unix_socket(struct event_context *ev,
     nctx->lfde = event_add_fd(ev, nctx, nctx->lfd,
                                  EVENT_FD_READ, accept_fd_handler, nctx);
 
+	/* we want default permissions on created files to be very strict,
+	   so set our umask to 0177 */
+	umask(0177);
     return;
 
 failed:
+	/* we want default permissions on created files to be very strict,
+	   so set our umask to 0177 */
+	umask(0177);
     close(nctx->lfd);
 }
 
@@ -236,6 +247,8 @@ void nss_task_init(struct task_server *task)
 {
     struct confdb_ctx *cdb;
     struct nss_ctx *nctx;
+    const char *sock_name;
+    char **values;
     int ret;
 
     task_server_set_title(task, "sssd[nsssrv]");
@@ -253,7 +266,20 @@ void nss_task_init(struct task_server *task)
     }
     nctx->task = task;
 
-    set_unix_socket(task->event_ctx, nctx, SSS_NSS_SOCKET_NAME);
+    ret = confdb_get_param(cdb, nctx,
+                           "config.services.nss", "unixSocket", &values);
+    if (ret != EOK) {
+        task_server_terminate(task, "fatal error reading configuration\n");
+        return;
+    }
+    if (values[0]) {
+        sock_name = talloc_steal(nctx, values[0]);
+    } else {
+        sock_name = talloc_strdup(nctx, SSS_NSS_SOCKET_NAME);
+    }
+    talloc_free(values);
+
+    set_unix_socket(task->event_ctx, nctx, sock_name);
 
     ret = nss_ldb_init(nctx, task->event_ctx, cdb, &nctx->lctx);
     if (ret != EOK) {

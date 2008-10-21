@@ -44,7 +44,8 @@ static int none_setproctitle(const char *fmt, ...)
 int process_new_task(struct event_context *ev,
 		     const char *service_name,
 		     void (*new_task)(struct event_context *, void *),
-		     void *private)
+		     void *private,
+		     pid_t *rpid)
 {
 	pid_t pid;
 	struct event_context *ev2;
@@ -60,6 +61,10 @@ int process_new_task(struct event_context *ev,
 		if (pid == -1) {
 			/* error */
 			res = ECHILD;
+		}
+
+		if (rpid) {
+			*rpid = pid;
 		}
 
 		/* ... go back to the event loop */

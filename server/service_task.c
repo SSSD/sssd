@@ -68,7 +68,8 @@ static void task_server_callback(struct event_context *event_ctx, void *private)
 */
 int task_server_startup(struct event_context *event_ctx,
 			const char *service_name,
-			void (*task_init)(struct task_server *))
+			void (*task_init)(struct task_server *),
+			pid_t *rpid)
 {
 	struct task_state *state;
 
@@ -77,7 +78,7 @@ int task_server_startup(struct event_context *event_ctx,
 
 	state->task_init = task_init;
 
-	return process_new_task(event_ctx, service_name, task_server_callback, state);
+	return process_new_task(event_ctx, service_name, task_server_callback, state, rpid);
 }
 
 /*

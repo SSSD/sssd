@@ -53,14 +53,16 @@ int register_server_service(const char *name,
 /*
   initialise a server service
 */
-static int server_service_init(const char *name, struct event_context *ev)
+int server_service_init(const char *name,
+			struct event_context *ev,
+			pid_t *rpid)
 {
 	struct registered_server *srv;
 	for (srv=registered_servers; srv; srv=srv->next) {
 		if (strcasecmp(name, srv->service_name) == 0) {
 			return task_server_startup(ev,
 						   srv->service_name,
-						   srv->task_init);
+						   srv->task_init, rpid);
 		}
 	}
 	return EINVAL;
@@ -83,7 +85,7 @@ int server_service_startup(struct event_context *event_ctx,
 	for (i = 0; server_services[i]; i++) {
 		int status;
 
-		status = server_service_init(server_services[i], event_ctx);
+		status = server_service_init(server_services[i], event_ctx, NULL);
 		if (status != EOK) {
 			DEBUG(0,("Failed to start service '%s'\n",
 				server_services[i]));
