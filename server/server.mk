@@ -12,22 +12,19 @@ SERVER_OBJ = \
     nss/nsssrv_packet.o \
     nss/nsssrv_cmd.o \
     nss/nsssrv_ldb.o \
-    dbus/sssd_dbus_server.o \
-    dbus/sssd_dbus_client.o \
-    dbus/sssd_dbus_common.o
+    dbus/sssd_dbus_common.o \
+    dbus/sssd_dbus_connection.o \
+    dbus/sssd_dbus_server.o
 
 CLIENT_OBJ = \
     dbus/sssd_dbus_common.o \
-    dbus/sssd_dbus_client.o \
+    dbus/sssd_dbus_connection.o \
     util/debug.o \
     dbus/tests/test_client.o
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 755 sssd $(DESTDIR)$(sbindir)
-
-clean::
-	rm -f *~ $(SERVER_OBJS)
 
 sbin/sssd: $(SERVER_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(LDFLAGS) $(LIBS)

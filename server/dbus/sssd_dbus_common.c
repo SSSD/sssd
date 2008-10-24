@@ -1,6 +1,6 @@
 #include <sys/time.h>
-#include "dbus/sssd_dbus_common.h"
 #include "events.h"
+#include "dbus/dbus.h"
 
 struct timeval _dbus_timeout_get_interval_tv(int interval) {
     struct timeval tv;
