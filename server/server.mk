@@ -1,4 +1,26 @@
-SERVER_OBJ = server.o monitor.o process.o service.o service_task.o util/debug.o util/signal.o util/become_daemon.o confdb/confdb.o nss/nsssrv.o nss/nsssrv_packet.o nss/nsssrv_cmd.o nss/nsssrv_ldb.o
+SERVER_OBJ = \
+    server.o \
+    monitor.o \
+    process.o \
+    service.o \
+    service_task.o \
+    util/debug.o \
+    util/signal.o \
+    util/become_daemon.o \
+    confdb/confdb.o \
+    nss/nsssrv.o \
+    nss/nsssrv_packet.o \
+    nss/nsssrv_cmd.o \
+    nss/nsssrv_ldb.o \
+    dbus/sssd_dbus_server.o \
+    dbus/sssd_dbus_client.o \
+    dbus/sssd_dbus_common.o
+
+CLIENT_OBJ = \
+    dbus/sssd_dbus_common.o \
+    dbus/sssd_dbus_client.o \
+    util/debug.o \
+    dbus/tests/test_client.o
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
@@ -10,3 +32,5 @@ clean::
 sbin/sssd: $(SERVER_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(LDFLAGS) $(LIBS)
 
+sbin/sssd-dbus-client: $(CLIENT_OBJ)
+	$(CC) -o sbin/sssd-dbus-client $(CLIENT_OBJ) $(LDFLAGS) $(LIBS)

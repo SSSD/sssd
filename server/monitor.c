@@ -27,12 +27,9 @@
 #include "util/util.h"
 #include "service.h"
 #include "confdb/confdb.h"
-
-struct mt_ctx {
-    struct event_context *ev;
-    struct confdb_ctx *cdb;
-	char **services;
-};
+#include "dbus/dbus.h"
+#include "dbus/sssd_dbus_server.h"
+#include "dbus/sssd_dbus_client.h"
 
 struct mt_srv {
     const char *name;
@@ -139,6 +136,11 @@ int start_monitor(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
+    /* Initialize D-BUS Server
+     * The monitor will act as a D-BUS server for all
+     * SSSD processes */
+    monitor_dbus_init(event_ctx);
+
     for (i = 0; ctx->services[i]; i++) {
 
         srv = talloc_zero(ctx, struct mt_srv);
@@ -159,4 +161,98 @@ int start_monitor(TALLOC_CTX *mem_ctx,
     }
 
     return EOK;
+}
+
+
+/*
+ * monitor_dbus_init
+ * Set up the monitor service as a D-BUS Server
+ */
+int monitor_dbus_init(struct event_context *event_ctx) {
+    DBusError dbus_error;
+    DBusServer *dbus_server;
+
+    /* Set up D-BUS server */
+    dbus_error_init(&dbus_error);
+    dbus_server = dbus_server_listen(DBUS_ADDRESS, &dbus_error);
+    if (dbus_server == NULL) {
+        DEBUG(0,("Error: name=%s, message=%s\n", dbus_error.name,
+                dbus_error.message));
+    }
+
+    /* TODO: remove debug */
+    DEBUG(2,("Server listening on %s\n", dbus_server_get_address(dbus_server)));
+
+    integrate_server_with_event_loop(event_ctx, dbus_server, monitor_dbus_method_init);
+
+    return 0;
+}
+
+/* monitor_messsage_handler
+ * Receive messages and process them
+ */
+DBusHandlerResult monitor_message_handler(DBusConnection *conn,
+    DBusMessage *message, void *user_data) {
+    const char *method;
+    const char *path;
+    const char *msg_interface;
+    DBusMessage *reply = NULL;
+
+    method = dbus_message_get_member(message);
+    path = dbus_message_get_path(message);
+    msg_interface = dbus_message_get_interface(message);
+
+    if (!method || !path || !msg_interface)
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+    /* Validate the method interface */
+    if (strcmp(msg_interface, MONITOR_DBUS_INTERFACE) != 0)
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+    /* Validate the D-BUS path */
+    if (strcmp(path, MONITOR_DBUS_PATH) == 0) {
+        /* TODO Fill in methods */
+        if(strcmp(method,MONITOR_METHOD_VERSION) == 0) {
+            reply = dbus_get_monitor_version(message);
+        }
+    }
+
+    if(reply) {
+        dbus_connection_send(conn,reply, NULL);
+        dbus_message_unref(reply);
+    }
+
+    return reply ? DBUS_HANDLER_RESULT_HANDLED :
+        DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+/* dbus_get_monitor_version
+ * Return the monitor version over D-BUS
+ */
+DBusMessage *dbus_get_monitor_version(DBusMessage *message) {
+    DBusMessage *reply;
+    const char *version = MONITOR_VERSION;
+
+    reply = dbus_message_new_method_return(message);
+    dbus_message_append_args(reply,DBUS_TYPE_STRING, &version, DBUS_TYPE_INVALID);
+
+    return reply;
+}
+
+/* monitor_dbus_method_init
+ * Initialize D-BUS methods on the monitor
+ * Sets up a callback to monitor_message_handler
+ */
+void monitor_dbus_method_init(DBusConnection *conn, struct event_context *event_ctx) {
+    DBusObjectPathVTable *monitor_vtable;
+    monitor_vtable = talloc_zero(event_ctx, DBusObjectPathVTable);
+
+    DEBUG (3,("Initializing D-BUS methods.\n"));
+    monitor_vtable->message_function = monitor_message_handler;
+
+    dbus_connection_register_object_path(
+            conn, MONITOR_DBUS_PATH,
+            monitor_vtable, event_ctx);
+
+    DEBUG(3,("D-BUS method initialization complete.\n"));
 }
