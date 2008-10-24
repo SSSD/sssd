@@ -192,7 +192,7 @@ int main(int argc, const char *argv[])
 
     status = confdb_init(mem_ctx, event_ctx, &confdb_ctx);
     if (status != EOK) {
-        DEBUG(0,("The confdb initialiaztion failed\n"));
+        DEBUG(0,("The confdb initialization failed\n"));
 		return 1;
 	}
 
