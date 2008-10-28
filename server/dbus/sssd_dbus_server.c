@@ -28,6 +28,8 @@
 /* Types */
 struct dbus_server_toplevel_context {
     DBusServer *server;
+    /* talloc context to manage the server object memory*/
+    DBusServer **server_talloc;
     struct sssd_dbus_ctx *sd_ctx;
 };
 
@@ -43,6 +45,18 @@ struct dbus_server_timeout_context {
     struct timed_event *te;
     struct dbus_server_toplevel_context *top;
 };
+
+static int dbus_server_destructor(void **server);
+
+void remove_server_watch(DBusWatch *watch, void *data) {
+    struct fd_event *fde;
+    
+    DEBUG(2, ("%lX\n", watch));
+    fde = talloc_get_type(dbus_watch_get_data(watch), struct fd_event);
+
+    /* Freeing the event object will remove it from the event loop */
+    talloc_free(fde);
+}
 
 /*
  * dbus_server_read_write_handler
@@ -99,6 +113,7 @@ static dbus_bool_t add_server_watch(DBusWatch *watch, void *data)
     if (flags & DBUS_WATCH_WRITABLE) {
         event_flags |= EVENT_FD_WRITE;
     }
+    DEBUG(2,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
     svw_ctx->fde = event_add_fd(dt_ctx->sd_ctx->ev, svw_ctx, svw_ctx->fd,
                                 event_flags, dbus_server_read_write_handler,
@@ -272,6 +287,7 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
 {
     struct dbus_server_toplevel_context *dt_ctx;
     DBusServer *dbus_server;
+    DBusServer **dbus_server_talloc;
     DBusError dbus_error;
     dbus_bool_t dbret;
 
@@ -283,32 +299,33 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
                  dbus_error.name, dbus_error.message));
         return EIO;
     }
+    dbus_server_talloc = talloc_takeover(ctx, dbus_server, dbus_server_destructor);
 
-    /* TODO: remove debug */
     DEBUG(2, ("D-BUS Server listening on %s\n",
               dbus_server_get_address(dbus_server)));
 
     dt_ctx = talloc_zero(ctx, struct dbus_server_toplevel_context);
     if (!dt_ctx) {
-        /* FIXME: free DBusServer resources */
+        talloc_free(dbus_server_talloc);
         return ENOMEM;
     }
-    dt_ctx->server = dbus_server;
+    dt_ctx->server_talloc = dbus_server_talloc;
+    dt_ctx->server = *dbus_server_talloc;
     dt_ctx->sd_ctx = ctx;
 
     /* Set up D-BUS new connection handler */
-    /* FIXME: set free_data_function */
     dbus_server_set_new_connection_function(dt_ctx->server,
                                             new_connection_callback,
                                             dt_ctx, NULL);
 
     /* Set up DBusWatch functions */
     dbret = dbus_server_set_watch_functions(dt_ctx->server, add_server_watch,
-                                            remove_watch, toggle_server_watch,
+                                            remove_server_watch, toggle_server_watch,
                                             dt_ctx, NULL);
     if (!dbret) {
         DEBUG(0, ("Error setting up D-BUS server watch functions"));
-        /* FIXME: free DBusServer resources */
+        talloc_free(dt_ctx->server_talloc);
+        dt_ctx->server = NULL;
         return EIO;
     }
 
@@ -320,9 +337,16 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
                                               dt_ctx, NULL);
     if (!dbret) {
         DEBUG(0,("Error setting up D-BUS server timeout functions"));
-        /* FIXME: free DBusServer resources */
+        dbus_server_set_watch_functions(dt_ctx->server, NULL, NULL, NULL, NULL, NULL);        
+        talloc_free(dt_ctx->server_talloc);
+        dt_ctx->server = NULL;
         return EIO;
     }
 
     return EOK;
+}
+
+static int dbus_server_destructor(void **server) {
+    dbus_server_disconnect(*server);
+    return 0;
 }

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "replace.h"
+#include "talloc.h"
 
 extern int debug_level;
 void debug_fn(const char *format, ...);
@@ -42,4 +43,7 @@ void (*CatchSignal(int signum,void (*handler)(int )))(int);
 void CatchChild(void);
 void CatchChildLeaveStatus(void);
 
+/* from memory.c */
+//TALLOC_CTX *talloc_takeover(TALLOC_CTX *mem_ctx, void *ptr, int (*destructor)(void *), const char *type);
+TALLOC_CTX *talloc_takeover(TALLOC_CTX *mem_ctx, void *ptr, int (*destructor)(void **));
 #endif /* __SSSD_UTIL_H__ */

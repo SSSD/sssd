@@ -112,6 +112,8 @@ static dbus_bool_t add_connection_watch(DBusWatch *watch, void *data)
 
     if (event_flags == 0)
         return FALSE;
+    
+    DEBUG(2,("%lX: %d, %d=%s\n", watch, conn_w_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
     /* Add the file descriptor to the event loop */
     conn_w_ctx->fde = event_add_fd(conn_w_ctx->top->ev, conn_w_ctx,

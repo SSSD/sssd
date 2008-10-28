@@ -7,6 +7,7 @@ SERVER_OBJ = \
     util/debug.o \
     util/signal.o \
     util/become_daemon.o \
+    util/memory.o \
     confdb/confdb.o \
     nss/nsssrv.o \
     nss/nsssrv_packet.o \

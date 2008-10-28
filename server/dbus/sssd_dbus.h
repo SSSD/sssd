@@ -43,6 +43,4 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address);
 /* Connection Functions */
 int sssd_new_dbus_connection(struct sssd_dbus_ctx *ctx, const char *address,
                              DBusConnection **connection);
-
-
 #endif /* _SSSD_DBUS_H_*/
