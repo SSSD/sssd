@@ -320,7 +320,7 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
 
     /* Set up DBusWatch functions */
     dbret = dbus_server_set_watch_functions(dt_ctx->server, add_server_watch,
-                                            remove_server_watch, toggle_server_watch,
+                                            remove_watch, toggle_server_watch,
                                             dt_ctx, NULL);
     if (!dbret) {
         DEBUG(0, ("Error setting up D-BUS server watch functions"));
