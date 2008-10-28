@@ -9,18 +9,18 @@
  */
 TALLOC_CTX *talloc_takeover(TALLOC_CTX *mem_ctx, void *ptr, int (*destructor)(void **)) {
     void **handle;
-    
+
     if (ptr == NULL) {
         return NULL;
     }
-    
+
     handle = talloc_named_const(mem_ctx, sizeof(void *), "void *");
     if (handle == NULL) {
         return NULL;
     }
-    
+
     *handle = ptr;
     talloc_set_destructor(handle,destructor);
-    
+
     return handle;
 }

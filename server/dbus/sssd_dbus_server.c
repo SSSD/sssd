@@ -48,16 +48,6 @@ struct dbus_server_timeout_context {
 
 static int dbus_server_destructor(void **server);
 
-void remove_server_watch(DBusWatch *watch, void *data) {
-    struct fd_event *fde;
-    
-    DEBUG(2, ("%lX\n", watch));
-    fde = talloc_get_type(dbus_watch_get_data(watch), struct fd_event);
-
-    /* Freeing the event object will remove it from the event loop */
-    talloc_free(fde);
-}
-
 /*
  * dbus_server_read_write_handler
  * Callback for D-BUS to handle messages on a file-descriptor
@@ -261,7 +251,7 @@ static void new_connection_callback(DBusServer *server, DBusConnection *conn,
         dbus_connection_close(conn);
         return;
     }
-    
+
     connection_type = talloc(dst_ctx, int);
     *connection_type = DBUS_CONNECTION_TYPE_PRIVATE;
     dbus_connection_set_data(conn, connection_type_slot, connection_type, talloc_free);
@@ -347,7 +337,7 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
                                               dt_ctx, NULL);
     if (!dbret) {
         DEBUG(0,("Error setting up D-BUS server timeout functions"));
-        dbus_server_set_watch_functions(dt_ctx->server, NULL, NULL, NULL, NULL, NULL);        
+        dbus_server_set_watch_functions(dt_ctx->server, NULL, NULL, NULL, NULL, NULL);
         talloc_free(dt_ctx->server_talloc);
         dt_ctx->server = NULL;
         return EIO;

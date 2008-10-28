@@ -222,7 +222,7 @@ int start_monitor(TALLOC_CTX *mem_ctx,
 
         set_tasks_checker(srv);
     }
-    
+
     /* Initialize D-BUS Server
      * The monitor will act as a D-BUS server for all
      * SSSD processes */

@@ -55,7 +55,7 @@ static void do_dispatch(struct event_context *ev,
             DEBUG(0,("Critical Error, connection_type is neither shared nor private!\n"))
         }
         dbus_connection_set_data(conn,connection_type_slot, NULL, NULL);
-        
+
         return;
     }
 
@@ -67,7 +67,7 @@ static void do_dispatch(struct event_context *ev,
         DEBUG(2,("Dispatching.\n"));
         dbus_connection_dispatch(conn);
     }
-    
+
     /* If other dispatches are waiting, queue up the do_dispatch function
      * for the next loop.
      */
@@ -76,7 +76,7 @@ static void do_dispatch(struct event_context *ev,
         new_event = event_add_timed(ev, ev, tv, do_dispatch, conn);
         if (new_event == NULL) {
             DEBUG(0,("Could not add dispatch event!\n"));
-            
+
             /* TODO: Calling exit here is bad */ 
             exit(1);
         }
@@ -140,7 +140,7 @@ static dbus_bool_t add_connection_watch(DBusWatch *watch, void *data)
 
     if (event_flags == 0)
         return FALSE;
-    
+
     DEBUG(2,("%lX: %d, %d=%s\n", watch, conn_w_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
     /* Add the file descriptor to the event loop */
@@ -317,7 +317,7 @@ int sssd_new_dbus_connection(struct sssd_dbus_ctx *ctx, const char *address,
     int ret;
 
     dbus_error_init(&dbus_error);
-    
+
     /* Open a shared D-BUS connection to the address */
     dbus_conn = dbus_connection_open(address, &dbus_error);
     if (!dbus_conn) {
@@ -325,12 +325,12 @@ int sssd_new_dbus_connection(struct sssd_dbus_ctx *ctx, const char *address,
                 dbus_error.name, dbus_error.message));
         return EIO;
     }
-    
+
     /* Allocate or increase the reference count of connection_type_slot */
     if (!dbus_connection_allocate_data_slot(&connection_type_slot)) {
         return ENOMEM;
     }
-    
+
     connection_type = DBUS_CONNECTION_TYPE_SHARED;
     dbus_connection_set_data(dbus_conn, connection_type_slot, &connection_type, NULL);
 
