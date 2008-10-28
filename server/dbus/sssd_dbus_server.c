@@ -252,9 +252,19 @@ static void new_connection_callback(DBusServer *server, DBusConnection *conn,
 {
     struct dbus_server_toplevel_context *dst_ctx;
     DBusObjectPathVTable *monitor_vtable;
+    int *connection_type;
     int ret;
 
     dst_ctx = talloc_get_type(data,struct dbus_server_toplevel_context);
+
+    if (!dbus_connection_allocate_data_slot(&connection_type_slot)) {
+        dbus_connection_close(conn);
+        return;
+    }
+    
+    connection_type = talloc(dst_ctx, int);
+    *connection_type = DBUS_CONNECTION_TYPE_PRIVATE;
+    dbus_connection_set_data(conn, connection_type_slot, connection_type, talloc_free);
 
     ret = sssd_add_dbus_connection(dst_ctx->sd_ctx, conn);
     if (ret != 0) {

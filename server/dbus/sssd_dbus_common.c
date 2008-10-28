@@ -41,4 +41,5 @@ void remove_timeout(DBusTimeout *timeout, void *data) {
 
     /* Freeing the event object will remove it from the event loop */
     talloc_free(te);
+    dbus_timeout_set_data(timeout, NULL, NULL);
 }

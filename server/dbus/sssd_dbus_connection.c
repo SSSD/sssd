@@ -5,10 +5,14 @@
 #include "dbus/sssd_dbus.h"
 #include "dbus/sssd_dbus_private.h"
 
+dbus_int32_t connection_type_slot = -1;
+dbus_int32_t connection_destructor_slot = -1;
+
 /* Types */
 struct dbus_connection_toplevel_context {
     DBusConnection *conn;
     struct event_context *ev;
+    /*sssd_dbus_connection_destructor_fn destructor;*/
 };
 
 struct dbus_connection_watch_context {
@@ -30,9 +34,30 @@ static void do_dispatch(struct event_context *ev,
 {
     struct timed_event *new_event;
     DBusConnection *conn;
+    int connection_type;
     int ret;
 
     conn = (DBusConnection *)data;
+
+    if(!dbus_connection_get_is_connected(conn)) {
+        DEBUG(0,("Connection is not open for dispatching.\n"));
+        connection_type = *(int *)(dbus_connection_get_data(conn, connection_type_slot));
+        if (connection_type == DBUS_CONNECTION_TYPE_PRIVATE) {
+            /* Private connections must be closed explicitly */
+            dbus_connection_close(conn);
+            dbus_connection_unref(conn);
+        } else if (connection_type == DBUS_CONNECTION_TYPE_SHARED) {
+            /* Shared connections are destroyed when their last reference is removed */
+            dbus_connection_unref(conn);
+        }
+        else {
+            /* Critical Error! */
+            DEBUG(0,("Critical Error, connection_type is neither shared nor private!\n"))
+        }
+        dbus_connection_set_data(conn,connection_type_slot, NULL, NULL);
+        
+        return;
+    }
 
     /* Dispatch only once each time through the mainloop to avoid
      * starving other features
@@ -42,6 +67,7 @@ static void do_dispatch(struct event_context *ev,
         DEBUG(2,("Dispatching.\n"));
         dbus_connection_dispatch(conn);
     }
+    
     /* If other dispatches are waiting, queue up the do_dispatch function
      * for the next loop.
      */
@@ -50,6 +76,8 @@ static void do_dispatch(struct event_context *ev,
         new_event = event_add_timed(ev, ev, tv, do_dispatch, conn);
         if (new_event == NULL) {
             DEBUG(0,("Could not add dispatch event!\n"));
+            
+            /* TODO: Calling exit here is bad */ 
             exit(1);
         }
     }
@@ -59,7 +87,6 @@ static void do_dispatch(struct event_context *ev,
  * dbus_connection_read_write_handler
  * Callback for D-BUS to handle messages on a file-descriptor
  */
-
 static void dbus_connection_read_write_handler(struct event_context *ev,
                                                struct fd_event *fde,
                                                uint16_t flags, void *data)
@@ -67,6 +94,7 @@ static void dbus_connection_read_write_handler(struct event_context *ev,
     struct dbus_connection_watch_context *conn_w_ctx;
     conn_w_ctx = talloc_get_type(data, struct dbus_connection_watch_context);
 
+    DEBUG(0,("Connection is open for read/write.\n"));
     dbus_connection_ref(conn_w_ctx->top->conn);
     if (flags & EVENT_FD_READ) {
         dbus_watch_handle(conn_w_ctx->watch, DBUS_WATCH_READABLE);
@@ -214,6 +242,7 @@ static void dbus_connection_wakeup_main(void *data) {
     struct dbus_connection_toplevel_context *dct_ctx;
     struct timeval tv;
     struct timed_event *te;
+
     dct_ctx = talloc_get_type(data, struct dbus_connection_toplevel_context);
     gettimeofday(&tv, NULL);
 
@@ -284,15 +313,26 @@ int sssd_new_dbus_connection(struct sssd_dbus_ctx *ctx, const char *address,
 {
     DBusConnection *dbus_conn;
     DBusError dbus_error;
+    int connection_type;
     int ret;
 
     dbus_error_init(&dbus_error);
+    
+    /* Open a shared D-BUS connection to the address */
     dbus_conn = dbus_connection_open(address, &dbus_error);
     if (!dbus_conn) {
         DEBUG(0, ("Failed to open connection: name=%s, message=%s\n",
                 dbus_error.name, dbus_error.message));
         return EIO;
     }
+    
+    /* Allocate or increase the reference count of connection_type_slot */
+    if (!dbus_connection_allocate_data_slot(&connection_type_slot)) {
+        return ENOMEM;
+    }
+    
+    connection_type = DBUS_CONNECTION_TYPE_SHARED;
+    dbus_connection_set_data(dbus_conn, connection_type_slot, &connection_type, NULL);
 
     ret = sssd_add_dbus_connection(ctx, dbus_conn);
     if (ret == EOK) {

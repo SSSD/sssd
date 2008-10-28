@@ -204,14 +204,6 @@ int start_monitor(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    /* Initialize D-BUS Server
-     * The monitor will act as a D-BUS server for all
-     * SSSD processes */
-    ret = monitor_dbus_init(ctx);
-    if (ret != EOK) {
-        return ret;
-    }
-
     for (i = 0; ctx->services[i]; i++) {
 
         srv = talloc_zero(ctx, struct mt_srv);
@@ -229,6 +221,14 @@ int start_monitor(TALLOC_CTX *mem_ctx,
         }
 
         set_tasks_checker(srv);
+    }
+    
+    /* Initialize D-BUS Server
+     * The monitor will act as a D-BUS server for all
+     * SSSD processes */
+    ret = monitor_dbus_init(ctx);
+    if (ret != EOK) {
+        return ret;
     }
 
     return EOK;

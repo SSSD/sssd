@@ -25,6 +25,13 @@
 typedef int (*sssd_dbus_msg_handler_fn)(DBusMessage *msg, void *data,
                                         DBusMessage **reply);
 
+extern int connection_type_slot;
+
+enum {
+    DBUS_CONNECTION_TYPE_PRIVATE = 1,
+    DBUS_CONNECTION_TYPE_SHARED
+};
+
 struct sssd_dbus_method {
     const char *method;
     sssd_dbus_msg_handler_fn fn;
