@@ -27,6 +27,7 @@ void remove_watch(DBusWatch *watch, void *data) {
 
     /* Freeing the event object will remove it from the event loop */
     talloc_free(fde);
+    dbus_watch_set_data(watch, NULL, NULL);
 }
 
 
