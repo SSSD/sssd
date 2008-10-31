@@ -75,7 +75,7 @@ dirs:
 	@mkdir -p $(DIRS)
 
 clean::
-	rm -f *.o */*.o
+	rm -f *.o */*.o */*/*.o
 	rm -f $(BINS)
 
 distclean:: clean

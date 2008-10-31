@@ -31,6 +31,10 @@
 #include "dbus/dbus.h"
 #include "dbus/sssd_dbus.h"
 
+/* TODO: Get these values from LDB */
+#define SERVICE_PATH "/org/freeipa/sssd/service"
+#define SERVICE_INTERFACE "org.freeipa.sssd.service"
+#define SERVICE_METHOD_IDENTITY "getIdentity"
 
 /* TODO: get this value from LDB */
 #define DBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"
@@ -48,6 +52,9 @@ struct mt_srv {
     time_t last_restart;
     int restarts;
 };
+
+static int dbus_service_init(struct dbus_connection_toplevel_context *dct_ctx);
+static void identity_check(DBusPendingCall *pending, void *data);
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -80,17 +87,17 @@ struct sssd_dbus_method monitor_methods[] = {
  * Set up the monitor service as a D-BUS Server */
 static int monitor_dbus_init(struct mt_ctx *ctx)
 {
-    struct sssd_dbus_ctx *sd_ctx;
+    struct sssd_dbus_method_ctx *sd_ctx;
     int ret;
 
-    sd_ctx = talloc(ctx, struct sssd_dbus_ctx);
+    sd_ctx = talloc_zero(ctx, struct sssd_dbus_method_ctx);
     if (!sd_ctx) {
         return ENOMEM;
     }
 
-    sd_ctx->ev = ctx->ev;
-    sd_ctx->name = talloc_strdup(sd_ctx, MONITOR_DBUS_INTERFACE);
-    if (!sd_ctx->name) {
+    /* Set up globally-available D-BUS methods */
+    sd_ctx->interface = talloc_strdup(sd_ctx, MONITOR_DBUS_INTERFACE);
+    if (!sd_ctx->interface) {
         talloc_free(sd_ctx);
         return ENOMEM;
     }
@@ -100,8 +107,9 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
         return ENOMEM;
     }
     sd_ctx->methods = monitor_methods;
+    sd_ctx->message_handler = NULL; /* Use the default message_handler */
 
-    ret = sssd_new_dbus_server(sd_ctx, DBUS_ADDRESS);
+    ret = sssd_new_dbus_server(ctx->ev, sd_ctx, DBUS_ADDRESS, dbus_service_init);
 
     return ret;
 }
@@ -234,3 +242,92 @@ int start_monitor(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+/*
+ * dbus_service_init
+ * This function should initiate a query to the newly connected
+ * service to discover the service's identity (invoke the getIdentity
+ * method on the new client). The reply callback for this request
+ * should set the connection destructor appropriately.
+ */
+static int dbus_service_init(struct dbus_connection_toplevel_context *dct_ctx) {
+    DBusMessage *msg;
+    DBusPendingCall *pending_reply;
+    DBusConnection *conn;
+    DBusError dbus_error;
+    dbus_bool_t dbret;
+    
+    DEBUG(0,("Initializing D-BUS Service"));
+    conn = sssd_get_dbus_connection(dct_ctx);
+    dbus_error_init(&dbus_error);
+
+    /* 
+     * Set up identity request 
+     * This should be a well-known path and method
+     * for all services
+     */
+    msg = dbus_message_new_method_call(NULL,
+            SERVICE_PATH,
+            SERVICE_INTERFACE,
+            SERVICE_METHOD_IDENTITY);
+    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply, -1);
+    if (!dbret) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         * We'll drop it using the default destructor.
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        talloc_free(dct_ctx);
+    }
+    
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, identity_check, dct_ctx, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+
+static void identity_check(DBusPendingCall *pending, void *data) {
+    struct dbus_connection_toplevel_context *dct_ctx;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    int type;
+
+    dct_ctx = talloc_get_type(data, struct dbus_connection_toplevel_context);
+    dbus_error_init(&dbus_error);
+    
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("Serious error. A reply callback was called but no reply was received and no timeout occurred\n"));
+        
+        /* Destroy this connection */
+        sssd_dbus_disconnect(dct_ctx);
+        return;
+    }
+    
+    type = dbus_message_get_type(reply);
+    switch (type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        /* Got the service name and version */
+        /* Extract the name and version from the message */
+        /* Set up the destructor for this service */
+        break;
+    case DBUS_MESSAGE_TYPE_ERROR:
+        DEBUG(0,("getIdentity returned an error %s, closing connection.\n", dbus_message_get_error_name(reply)));
+        /* Falling through to default intentionally*/
+    default:
+        /*
+         * Timeout or other error occurred or something
+         * unexpected happened.
+         * It doesn't matter which, because either way we 
+         * know that this connection isn't trustworthy.
+         * We'll destroy it now.
+         */
+        sssd_dbus_disconnect(dct_ctx);
+        break;
+    }
+}

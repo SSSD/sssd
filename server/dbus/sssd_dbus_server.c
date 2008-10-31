@@ -28,9 +28,18 @@
 /* Types */
 struct dbus_server_toplevel_context {
     DBusServer *server;
-    /* talloc context to manage the server object memory*/
-    DBusServer **server_talloc;
-    struct sssd_dbus_ctx *sd_ctx;
+    /*
+     * sd_ctx here describes the object path that will be
+     * presented to all clients of this server. Additional
+     * connection-specific paths can be specified by the
+     * init_fn, which is called every time a new connection
+     * is established.
+     * There should only be one global object path (for
+     * simplicity's sake)
+     */
+    struct event_context *ev;
+    struct sssd_dbus_method_ctx *sd_ctx;
+    sssd_dbus_server_connection_init_fn init_fn;
 };
 
 struct dbus_server_watch_context {
@@ -105,7 +114,7 @@ static dbus_bool_t add_server_watch(DBusWatch *watch, void *data)
     }
     DEBUG(2,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
-    svw_ctx->fde = event_add_fd(dt_ctx->sd_ctx->ev, svw_ctx, svw_ctx->fd,
+    svw_ctx->fde = event_add_fd(dt_ctx->ev, svw_ctx, svw_ctx->fd,
                                 event_flags, dbus_server_read_write_handler,
                                 svw_ctx);
 
@@ -159,7 +168,7 @@ static dbus_bool_t add_server_timeout(DBusTimeout *timeout, void *data)
 
     tv = _dbus_timeout_get_interval_tv(dbus_timeout_get_interval(timeout));
 
-    svt_ctx->te = event_add_timed(dt_ctx->sd_ctx->ev, svt_ctx, tv,
+    svt_ctx->te = event_add_timed(dt_ctx->ev, svt_ctx, tv,
                                   dbus_server_timeout_handler, svt_ctx);
 
     /* Save the event to the watch object so it can be removed later */
@@ -182,54 +191,6 @@ static void toggle_server_timeout(DBusTimeout *timeout, void *data)
     }
 }
 
-/* messsage_handler
- * Receive messages and process them
- */
-static DBusHandlerResult message_handler(DBusConnection *conn,
-                                         DBusMessage *message,
-                                         void *user_data)
-{
-    struct sssd_dbus_ctx *ctx;
-    const char *method;
-    const char *path;
-    const char *msg_interface;
-    DBusMessage *reply = NULL;
-    int i, ret;
-
-    ctx = talloc_get_type(user_data, struct sssd_dbus_ctx);
-
-    method = dbus_message_get_member(message);
-    path = dbus_message_get_path(message);
-    msg_interface = dbus_message_get_interface(message);
-
-    if (!method || !path || !msg_interface)
-        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-
-    /* Validate the method interface */
-    if (strcmp(msg_interface, ctx->name) != 0)
-        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-
-    /* Validate the D-BUS path */
-    if (strcmp(path, ctx->path) == 0) {
-        for (i = 0; ctx->methods[i].method != NULL; i++) {
-            if (strcmp(method, ctx->methods[i].method) == 0) {
-                ret = ctx->methods[i].fn(message, ctx, &reply);
-                /* FIXME: check error */
-                break;
-            }
-        }
-        /* FIXME: check if we didn't find any matching method */
-    }
-
-    if (reply) {
-        dbus_connection_send(conn, reply, NULL);
-        dbus_message_unref(reply);
-    }
-
-    return reply ? DBUS_HANDLER_RESULT_HANDLED :
-                   DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-}
-
 /*
  * new_connection_callback
  * Actions to be run upon each new client connection
@@ -241,41 +202,45 @@ static void new_connection_callback(DBusServer *server, DBusConnection *conn,
                                     void *data)
 {
     struct dbus_server_toplevel_context *dst_ctx;
-    DBusObjectPathVTable *monitor_vtable;
-    int *connection_type;
+    struct dbus_connection_toplevel_context *dct_ctx;
+    struct sssd_dbus_method_ctx *iter;
+    
+    /*DBusObjectPathVTable *connection_vtable;*/
     int ret;
-
+    DEBUG(0,("Entering.\n"));
     dst_ctx = talloc_get_type(data,struct dbus_server_toplevel_context);
-
-    if (!dbus_connection_allocate_data_slot(&connection_type_slot)) {
-        dbus_connection_close(conn);
+    if(dst_ctx == NULL) {
         return;
     }
 
-    connection_type = talloc(dst_ctx, int);
-    *connection_type = DBUS_CONNECTION_TYPE_PRIVATE;
-    dbus_connection_set_data(conn, connection_type_slot, connection_type, talloc_free);
-
-    ret = sssd_add_dbus_connection(dst_ctx->sd_ctx, conn);
+    DEBUG(0,("Adding connection %lX.\n", conn));
+    ret = sssd_add_dbus_connection(dst_ctx, dst_ctx->ev, conn, &dct_ctx, DBUS_CONNECTION_TYPE_PRIVATE);
     if (ret != 0) {
         dbus_connection_close(conn);
         DEBUG(0,("Closing connection (failed setup)"));
         return;
     }
-
+    
     dbus_connection_ref(conn);
 
     DEBUG(3,("Got a connection\n"));
 
-    monitor_vtable = talloc_zero(dst_ctx, DBusObjectPathVTable);
-
-    DEBUG (3,("Initializing D-BUS methods.\n"));
-    monitor_vtable->message_function = message_handler;
-
-    dbus_connection_register_object_path(conn, dst_ctx->sd_ctx->path,
-                                         monitor_vtable, dst_ctx->sd_ctx);
-
-    DEBUG(3,("D-BUS method initialization complete.\n"));
+    /* Set up global methods */
+    iter = dst_ctx->sd_ctx;
+    while (iter != NULL) {
+        dbus_connection_add_method_ctx(dct_ctx, iter);
+        iter = iter->next;
+    }
+    
+    /*
+     * Initialize connection-specific features
+     * This may set a more detailed destructor, but
+     * the default destructor will always be chained
+     * to handle connection cleanup.
+     * This function (or its callbacks) should also
+     * set up connection-specific methods.
+     */
+    dst_ctx->init_fn(dct_ctx);
 }
 
 /*
@@ -283,9 +248,9 @@ static void new_connection_callback(DBusServer *server, DBusConnection *conn,
  * Set up a D-BUS server, integrate with the event loop
  * for handling file descriptor and timed events
  */
-int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
+int sssd_new_dbus_server(struct event_context *ev, struct sssd_dbus_method_ctx *ctx, const char *address, sssd_dbus_server_connection_init_fn init_fn)
 {
-    struct dbus_server_toplevel_context *dt_ctx;
+    struct dbus_server_toplevel_context *dst_ctx;
     DBusServer *dbus_server;
     DBusServer **dbus_server_talloc;
     DBusError dbus_error;
@@ -299,47 +264,46 @@ int sssd_new_dbus_server(struct sssd_dbus_ctx *ctx, const char *address)
                  dbus_error.name, dbus_error.message));
         return EIO;
     }
-    dbus_server_talloc = talloc_takeover(ctx, dbus_server, dbus_server_destructor);
 
     DEBUG(2, ("D-BUS Server listening on %s\n",
               dbus_server_get_address(dbus_server)));
 
-    dt_ctx = talloc_zero(ctx, struct dbus_server_toplevel_context);
-    if (!dt_ctx) {
-        talloc_free(dbus_server_talloc);
+    dst_ctx = talloc_zero(ev, struct dbus_server_toplevel_context);
+    if (!dst_ctx) {
         return ENOMEM;
     }
-    dt_ctx->server_talloc = dbus_server_talloc;
-    dt_ctx->server = *dbus_server_talloc;
-    dt_ctx->sd_ctx = ctx;
+    
+    dbus_server_talloc = talloc_takeover(ctx, dbus_server, dbus_server_destructor);
+    dst_ctx->ev = ev;
+    dst_ctx->server = dbus_server;
+    dst_ctx->sd_ctx = ctx;
+    dst_ctx->init_fn = init_fn;
 
     /* Set up D-BUS new connection handler */
-    dbus_server_set_new_connection_function(dt_ctx->server,
+    dbus_server_set_new_connection_function(dst_ctx->server,
                                             new_connection_callback,
-                                            dt_ctx, NULL);
+                                            dst_ctx, NULL);
 
     /* Set up DBusWatch functions */
-    dbret = dbus_server_set_watch_functions(dt_ctx->server, add_server_watch,
+    dbret = dbus_server_set_watch_functions(dst_ctx->server, add_server_watch,
                                             remove_watch, toggle_server_watch,
-                                            dt_ctx, NULL);
+                                            dst_ctx, NULL);
     if (!dbret) {
         DEBUG(0, ("Error setting up D-BUS server watch functions"));
-        talloc_free(dt_ctx->server_talloc);
-        dt_ctx->server = NULL;
+        talloc_free(dst_ctx);
         return EIO;
     }
 
     /* Set up DBusTimeout functions */
-    dbret = dbus_server_set_timeout_functions(dt_ctx->server,
+    dbret = dbus_server_set_timeout_functions(dst_ctx->server,
                                               add_server_timeout,
                                               remove_timeout,
                                               toggle_server_timeout,
-                                              dt_ctx, NULL);
+                                              dst_ctx, NULL);
     if (!dbret) {
         DEBUG(0,("Error setting up D-BUS server timeout functions"));
-        dbus_server_set_watch_functions(dt_ctx->server, NULL, NULL, NULL, NULL, NULL);
-        talloc_free(dt_ctx->server_talloc);
-        dt_ctx->server = NULL;
+        dbus_server_set_watch_functions(dst_ctx->server, NULL, NULL, NULL, NULL, NULL);
+        talloc_free(dst_ctx);
         return EIO;
     }
 

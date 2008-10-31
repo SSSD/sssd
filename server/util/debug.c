@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-int debug_level = 2;
+int debug_level = 3;
 
 void debug_fn(const char *format, ...)
 {

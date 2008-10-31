@@ -5,14 +5,17 @@
 #include "dbus/sssd_dbus.h"
 #include "dbus/sssd_dbus_private.h"
 
-dbus_int32_t connection_type_slot = -1;
-dbus_int32_t connection_destructor_slot = -1;
-
 /* Types */
+struct dbus_ctx_list;
+
 struct dbus_connection_toplevel_context {
     DBusConnection *conn;
     struct event_context *ev;
-    /*sssd_dbus_connection_destructor_fn destructor;*/
+    int connection_type;
+    int disconnect;
+    struct sssd_dbus_method_ctx *method_ctx_list;
+    sssd_dbus_connection_destructor_fn destructor;
+    void *private; /* Private data for this connection */
 };
 
 struct dbus_connection_watch_context {
@@ -28,34 +31,35 @@ struct dbus_connection_timeout_context {
     struct dbus_connection_toplevel_context *top;
 };
 
+static int method_list_contains_path(struct sssd_dbus_method_ctx *list, struct sssd_dbus_method_ctx *method);
+static void sssd_unregister_object_paths(struct dbus_connection_toplevel_context *dct_ctx);
+
 static void do_dispatch(struct event_context *ev,
                                struct timed_event *te,
                                struct timeval tv, void *data)
 {
     struct timed_event *new_event;
+    struct dbus_connection_toplevel_context *dct_ctx;
     DBusConnection *conn;
-    int connection_type;
     int ret;
 
-    conn = (DBusConnection *)data;
+    if (data == NULL) {
+        return;
+    }
 
-    if(!dbus_connection_get_is_connected(conn)) {
+    dct_ctx = talloc_get_type(data, struct dbus_connection_toplevel_context);
+
+    conn = dct_ctx->conn;
+    DEBUG(3, ("conn: %lX\n", conn));
+
+    if((dct_ctx->disconnect) || (!dbus_connection_get_is_connected(conn))) {
         DEBUG(0,("Connection is not open for dispatching.\n"));
-        connection_type = *(int *)(dbus_connection_get_data(conn, connection_type_slot));
-        if (connection_type == DBUS_CONNECTION_TYPE_PRIVATE) {
-            /* Private connections must be closed explicitly */
-            dbus_connection_close(conn);
-            dbus_connection_unref(conn);
-        } else if (connection_type == DBUS_CONNECTION_TYPE_SHARED) {
-            /* Shared connections are destroyed when their last reference is removed */
-            dbus_connection_unref(conn);
-        }
-        else {
-            /* Critical Error! */
-            DEBUG(0,("Critical Error, connection_type is neither shared nor private!\n"))
-        }
-        dbus_connection_set_data(conn,connection_type_slot, NULL, NULL);
-
+        /* 
+         * Free the connection object.
+         * This will invoke the destructor for the connection
+         */
+        talloc_free(dct_ctx);
+        dct_ctx = NULL;
         return;
     }
 
@@ -73,7 +77,7 @@ static void do_dispatch(struct event_context *ev,
      */
     ret = dbus_connection_get_dispatch_status(conn);
     if (ret != DBUS_DISPATCH_COMPLETE) {
-        new_event = event_add_timed(ev, ev, tv, do_dispatch, conn);
+        new_event = event_add_timed(ev, ev, tv, do_dispatch, dct_ctx);
         if (new_event == NULL) {
             DEBUG(0,("Could not add dispatch event!\n"));
 
@@ -248,7 +252,7 @@ static void dbus_connection_wakeup_main(void *data) {
 
     /* D-BUS calls this function when it is time to do a dispatch */
     te = event_add_timed(dct_ctx->ev, dct_ctx->ev,
-                         tv, do_dispatch, dct_ctx->conn);
+                         tv, do_dispatch, dct_ctx);
     if (te == NULL) {
         DEBUG(0,("Could not add dispatch event!\n"));
         exit(1);
@@ -260,15 +264,30 @@ static void dbus_connection_wakeup_main(void *data) {
  * Set up a D-BUS connection to use the libevents mainloop
  * for handling file descriptor and timed events
  */
-int sssd_add_dbus_connection(struct sssd_dbus_ctx *ctx,
-                             DBusConnection *dbus_conn)
+int sssd_add_dbus_connection(TALLOC_CTX *ctx,
+                             struct event_context *ev,
+                             DBusConnection *dbus_conn,
+                             struct dbus_connection_toplevel_context **dct_ctx,
+                             int connection_type)
 {
-    struct dbus_connection_toplevel_context *dt_ctx;
     dbus_bool_t dbret;
+    struct dbus_connection_toplevel_context *dt_ctx;
 
+    DEBUG(0,("Adding connection %lX\n", dbus_conn));
     dt_ctx = talloc_zero(ctx, struct dbus_connection_toplevel_context);
-    dt_ctx->ev = ctx->ev;
+    dt_ctx->ev = ev;
     dt_ctx->conn = dbus_conn;
+    dt_ctx->connection_type = connection_type;
+    dt_ctx->disconnect = 0;
+    /* This will be replaced on the first call to dbus_connection_add_method_ctx() */
+    dt_ctx->method_ctx_list = NULL; 
+    
+    /*
+     * Set the default destructor
+     * Connections can override this with 
+     * sssd_dbus_connection_set_destructor
+     */ 
+    sssd_dbus_connection_set_destructor(dt_ctx, NULL);
 
     /* Set up DBusWatch functions */
     dbret = dbus_connection_set_watch_functions(dt_ctx->conn,
@@ -297,6 +316,8 @@ int sssd_add_dbus_connection(struct sssd_dbus_ctx *ctx,
     dbus_connection_set_wakeup_main_function(dt_ctx->conn,
                                              dbus_connection_wakeup_main,
                                              dt_ctx, NULL);
+    
+    /* Set up any method_contexts passed in */
 
     /* Attempt to dispatch immediately in case of opportunistic
      * services connecting before the handlers were all up.
@@ -305,15 +326,21 @@ int sssd_add_dbus_connection(struct sssd_dbus_ctx *ctx,
      */
     dbus_connection_wakeup_main(dt_ctx);
 
+    /* Return the new toplevel object */
+    *dct_ctx = dt_ctx;
+
     return EOK;
 }
 
-int sssd_new_dbus_connection(struct sssd_dbus_ctx *ctx, const char *address,
-                             DBusConnection **connection)
+/*int sssd_new_dbus_connection(struct sssd_dbus_method_ctx *ctx, const char *address,
+                             DBusConnection **connection,
+                             sssd_dbus_connection_destructor_fn destructor)*/
+int sssd_new_dbus_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *address,
+                             struct dbus_connection_toplevel_context **dct_ctx, 
+                             sssd_dbus_connection_destructor_fn destructor)
 {
     DBusConnection *dbus_conn;
     DBusError dbus_error;
-    int connection_type;
     int ret;
 
     dbus_error_init(&dbus_error);
@@ -326,20 +353,224 @@ int sssd_new_dbus_connection(struct sssd_dbus_ctx *ctx, const char *address,
         return EIO;
     }
 
-    /* Allocate or increase the reference count of connection_type_slot */
-    if (!dbus_connection_allocate_data_slot(&connection_type_slot)) {
-        return ENOMEM;
-    }
-
-    connection_type = DBUS_CONNECTION_TYPE_SHARED;
-    dbus_connection_set_data(dbus_conn, connection_type_slot, &connection_type, NULL);
-
-    ret = sssd_add_dbus_connection(ctx, dbus_conn);
-    if (ret == EOK) {
-        *connection = dbus_conn;
-    } else {
+    ret = sssd_add_dbus_connection(ctx, ev, dbus_conn, dct_ctx, DBUS_CONNECTION_TYPE_SHARED);
+    if (ret != EOK) {
         /* FIXME: release resources */
     }
 
+    dbus_connection_set_exit_on_disconnect((*dct_ctx)->conn, FALSE);
+    
+    /* Set connection destructor */
+    sssd_dbus_connection_set_destructor(*dct_ctx, destructor);
+
     return ret;
+}
+
+/*
+ * sssd_dbus_connection_set_destructor
+ * Configures a callback to clean up this connection when it
+ * is finalized.
+ * @param dct_ctx The dbus_connection_toplevel_context created
+ * when this connection was established
+ * @param destructor The destructor function that should be
+ * called when the connection is finalized. If passed NULL,
+ * this will reset the connection to the default destructor.
+ */
+void sssd_dbus_connection_set_destructor(struct dbus_connection_toplevel_context *dct_ctx,
+        sssd_dbus_connection_destructor_fn destructor) {
+    if (!dct_ctx) {
+        return;
+    }
+    
+    dct_ctx->destructor = destructor;
+    /* TODO: Should we try to handle the talloc_destructor too? */
+}
+
+int default_connection_destructor(void *ctx) {
+    struct dbus_connection_toplevel_context *dct_ctx;
+    dct_ctx = talloc_get_type(ctx, struct dbus_connection_toplevel_context);
+
+    DEBUG(3, ("Invoking default destructor on connection %lX\n", dct_ctx->conn));
+    if (dct_ctx->connection_type == DBUS_CONNECTION_TYPE_PRIVATE) {
+        /* Private connections must be closed explicitly */
+        dbus_connection_close(dct_ctx->conn);
+    } else if (dct_ctx->connection_type == DBUS_CONNECTION_TYPE_SHARED) {
+        /* Shared connections are destroyed when their last reference is removed */
+    }
+    else {
+        /* Critical Error! */
+        DEBUG(0,("Critical Error, connection_type is neither shared nor private!\n"));
+        return -1;
+    }
+    
+    /* Remove object path */
+    
+    
+    
+    dbus_connection_unref(dct_ctx->conn);
+    return 0;
+}
+
+/*
+ * sssd_get_dbus_connection
+ * Utility function to retreive the DBusConnection object
+ * from a dbus_connection_toplevel_context
+ */
+DBusConnection *sssd_get_dbus_connection(struct dbus_connection_toplevel_context *dct_ctx) {
+    return dct_ctx->conn;
+}
+
+void sssd_dbus_disconnect (struct dbus_connection_toplevel_context *dct_ctx) {
+    if (dct_ctx == NULL) {
+        return;
+    }
+
+    DEBUG(2,("Disconnecting %lX\n", dct_ctx->conn));
+    dbus_connection_ref(dct_ctx->conn);
+        dct_ctx->disconnect = 1;
+        
+        /* Invoke the custom destructor, if it exists */
+        if(dct_ctx->destructor) {
+            dct_ctx->destructor(dct_ctx);
+        }
+        
+        /* Unregister object paths */
+        sssd_unregister_object_paths(dct_ctx);
+
+        /* Disable watch functions */
+        dbus_connection_set_watch_functions(dct_ctx->conn,
+                                            NULL, NULL, NULL,
+                                            NULL, NULL);
+        /* Disable timeout functions */
+        dbus_connection_set_timeout_functions(dct_ctx->conn,
+                                              NULL, NULL, NULL,
+                                              NULL, NULL);
+
+        /* Disable dispatch status function */
+        dbus_connection_set_dispatch_status_function(dct_ctx->conn, NULL, NULL, NULL);
+        
+        /* Disable wakeup main function */
+        dbus_connection_set_wakeup_main_function(dct_ctx->conn, NULL, NULL, NULL);
+
+        /* Finalize the connection */
+        default_connection_destructor(dct_ctx);
+    dbus_connection_unref(dct_ctx->conn);
+    DEBUG(2,("Disconnected %lX\n", dct_ctx->conn));
+}
+
+/* messsage_handler
+ * Receive messages and process them
+ */
+static DBusHandlerResult message_handler(DBusConnection *conn,
+                                         DBusMessage *message,
+                                         void *user_data)
+{
+    struct sssd_dbus_method_ctx *ctx;
+    const char *method;
+    const char *path;
+    const char *msg_interface;
+    DBusMessage *reply = NULL;
+    int i, ret;
+
+    ctx = talloc_get_type(user_data, struct sssd_dbus_method_ctx);
+
+    method = dbus_message_get_member(message);
+    path = dbus_message_get_path(message);
+    msg_interface = dbus_message_get_interface(message);
+
+    if (!method || !path || !msg_interface)
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+    /* Validate the method interface */
+    if (strcmp(msg_interface, ctx->interface) != 0)
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+
+    /* Validate the D-BUS path */
+    if (strcmp(path, ctx->path) == 0) {
+        for (i = 0; ctx->methods[i].method != NULL; i++) {
+            if (strcmp(method, ctx->methods[i].method) == 0) {
+                ret = ctx->methods[i].fn(message, ctx, &reply);
+                /* FIXME: check error */
+                break;
+            }
+        }
+        /* FIXME: check if we didn't find any matching method */
+    }
+    
+    DEBUG(2, ("Method %s complete. Reply %sneeded.\n", method, reply?"":"not "));
+
+    if (reply) {
+        dbus_connection_send(conn, reply, NULL);
+        dbus_message_unref(reply);
+    }
+
+    return reply ? DBUS_HANDLER_RESULT_HANDLED :
+                   DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
+/* Adds a new D-BUS path message handler to the connection
+ * Note: this must be a unique path.
+ */
+int dbus_connection_add_method_ctx(struct dbus_connection_toplevel_context *dct_ctx, struct sssd_dbus_method_ctx *method_ctx) {
+    DBusObjectPathVTable *connection_vtable;
+    dbus_bool_t dbret;
+    if (!method_ctx) {
+        return EINVAL;
+    }
+    
+    if (method_list_contains_path(dct_ctx->method_ctx_list, method_ctx)) {
+        return EINVAL;
+    }
+
+    DLIST_ADD(dct_ctx->method_ctx_list, method_ctx);
+
+    /* Set up the vtable for the object path */
+    connection_vtable = talloc_zero(dct_ctx, DBusObjectPathVTable);
+    if (method_ctx->message_handler) {
+        connection_vtable->message_function = method_ctx->message_handler;
+    } else {
+        connection_vtable->message_function = message_handler;
+    }
+    
+    dbret = dbus_connection_register_object_path(dct_ctx->conn, method_ctx->path, connection_vtable, method_ctx);
+    if (!dbret) {
+        return ENOMEM; 
+    }
+    
+    return EOK;
+}
+
+static int method_list_contains_path(struct sssd_dbus_method_ctx *list, struct sssd_dbus_method_ctx *method) {
+    struct sssd_dbus_method_ctx *iter;
+    
+    if (!list || !method) {
+        return 0; /* FALSE */
+    }
+    
+    iter = list;
+    while (iter != NULL) {
+        if (strcmp(iter->path, method->path) == 0)
+            return 1; /* TRUE */
+        
+        iter = iter->next;
+    }
+    
+    return 0; /* FALSE */
+}
+
+static void sssd_unregister_object_paths(struct dbus_connection_toplevel_context *dct_ctx) {
+    struct sssd_dbus_method_ctx *iter = dct_ctx->method_ctx_list;
+    struct sssd_dbus_method_ctx *purge;
+    
+    while(iter != NULL) {
+        dbus_connection_unregister_object_path(dct_ctx->conn, iter->path);
+        DLIST_REMOVE(dct_ctx->method_ctx_list, iter);
+        purge = iter;
+        iter = iter->next;
+        talloc_free(purge);
+    }
+}
+
+void sssd_connection_set_private_data(struct dbus_connection_toplevel_context *dct_ctx, void *private) {
+    dct_ctx->private = private;
 }
