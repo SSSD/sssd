@@ -5,6 +5,7 @@
 #include "util/util.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
+#include "sbus_interfaces.h"
 
 /* TODO: get this value from LDB */
 #define DBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"
@@ -12,16 +13,6 @@
 /* Identity */
 #define TEST_CLIENT_NAME "testclient"
 #define TEST_CLIENT_VERSION 1
-
-/* Monitor Interface */
-#define MONITOR_DBUS_INTERFACE "org.freeipa.sssd.monitor"
-#define MONITOR_DBUS_PATH "/org/freeipa/sssd/monitor"
-#define MONITOR_METHOD_VERSION "getVersion"
-
-/* Service Interface */
-#define SERVICE_PATH "/org/freeipa/sssd/service"
-#define SERVICE_INTERFACE "org.freeipa.sssd.service"
-#define SERVICE_METHOD_IDENTITY "getIdentity"
 
 struct test_cli_ctx {
     struct sbus_method_ctx *sd_ctx;

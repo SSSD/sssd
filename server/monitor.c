@@ -30,11 +30,7 @@
 #include "monitor.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-
-/* TODO: Get these values from LDB */
-#define SERVICE_PATH "/org/freeipa/sssd/service"
-#define SERVICE_INTERFACE "org.freeipa.sssd.service"
-#define SERVICE_METHOD_IDENTITY "getIdentity"
+#include "sbus_interfaces.h"
 
 /* TODO: get this value from LDB */
 #define DBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"

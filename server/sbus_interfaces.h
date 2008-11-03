@@ -1,7 +1,7 @@
-/* 
+/*
    SSSD
 
-   Service monitor
+   Sbus Interfaces
 
    Copyright (C) Simo Sorce			2008
 
@@ -19,11 +19,21 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MONITOR_H_
-#define _MONITOR_H_
+/*** Monitor ***/
 
-int start_monitor(TALLOC_CTX *mem_ctx,
-                  struct event_context *event_ctx,
-                  struct confdb_ctx *cdb);
+#define MONITOR_VERSION "0.1"
+#define MONITOR_DBUS_INTERFACE "org.freeipa.sssd.monitor"
+#define MONITOR_DBUS_PATH "/org/freeipa/sssd/monitor"
 
-#endif /* _MONITOR_H */
+/* Monitor Methods */
+#define MONITOR_METHOD_VERSION "getVersion"
+
+
+/*** Services ***/
+
+#define SERVICE_PATH "/org/freeipa/sssd/service"
+#define SERVICE_INTERFACE "org.freeipa.sssd.service"
+
+/* Service Methods */
+#define SERVICE_METHOD_IDENTITY "getIdentity"
+
