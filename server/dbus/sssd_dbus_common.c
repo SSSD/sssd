@@ -15,11 +15,11 @@ struct timeval _dbus_timeout_get_interval_tv(int interval) {
 }
 
 /*
- * remove_watch
+ * sbus_remove_watch
  * Hook for D-BUS to remove file descriptor-based events
  * from the libevents mainloop
  */
-void remove_watch(DBusWatch *watch, void *data) {
+void sbus_remove_watch(DBusWatch *watch, void *data) {
     struct fd_event *fde;
 
     DEBUG(2, ("%lX\n", watch));
@@ -32,10 +32,10 @@ void remove_watch(DBusWatch *watch, void *data) {
 
 
 /*
- * remove_timeout
+ * sbus_remove_timeout
  * Hook for D-BUS to remove time-based events from the mainloop
  */
-void remove_timeout(DBusTimeout *timeout, void *data) {
+void sbus_remove_timeout(DBusTimeout *timeout, void *data) {
     struct timed_event *te;
     te = talloc_get_type(dbus_timeout_get_data(timeout), struct timed_event);
 

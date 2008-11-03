@@ -24,15 +24,15 @@
 #define SERVICE_METHOD_IDENTITY "getIdentity"
 
 struct test_cli_ctx {
-    struct sssd_dbus_method_ctx *sd_ctx;
+    struct sbus_method_ctx *sd_ctx;
     /*DBusConnection *conn;*/
     struct event_context *ev;
-    struct dbus_connection_toplevel_context *dct_ctx;
+    struct sbus_conn_ctx *dct_ctx;
 };
 
 static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
 
-struct sssd_dbus_method monitor_service_methods [] = {
+struct sbus_method monitor_service_methods [] = {
         {SERVICE_METHOD_IDENTITY, provide_identity},
         {NULL, NULL}
 };
@@ -92,7 +92,7 @@ static void test_timed_handler(struct event_context *ev,
                                struct timeval tv, void *data)
 {
     struct test_cli_ctx *test_ctx;
-    struct sssd_dbus_method_ctx *ctx;
+    struct sbus_method_ctx *ctx;
     DBusPendingCall *pending_reply;
     DBusMessage *vmsg;
     DBusError error;
@@ -109,7 +109,7 @@ static void test_timed_handler(struct event_context *ev,
                                         ctx->path, ctx->interface,
                                         MONITOR_METHOD_VERSION);
 
-    dbret = dbus_connection_send_with_reply(sssd_get_dbus_connection(test_ctx->dct_ctx), vmsg,
+    dbret = dbus_connection_send_with_reply(sbus_get_connection(test_ctx->dct_ctx), vmsg,
                                             &pending_reply, -1);
     if (!dbret) {
         /* Critical failure */
@@ -142,9 +142,9 @@ static void request_version_timed(struct test_cli_ctx *ctx)
 int main (int argc, const char *argv[])
 {
     struct event_context *event_ctx;
-    struct sssd_dbus_method_ctx *ctx;
+    struct sbus_method_ctx *ctx;
     struct test_cli_ctx *test_ctx;
-    struct sssd_dbus_method_ctx *service_methods;
+    struct sbus_method_ctx *service_methods;
     int ret;
 
     event_ctx = event_context_init(talloc_autofree_context());
@@ -153,7 +153,7 @@ int main (int argc, const char *argv[])
         exit(1);
     }
 
-    ctx = talloc_zero(event_ctx, struct sssd_dbus_method_ctx);
+    ctx = talloc_zero(event_ctx, struct sbus_method_ctx);
     if (!ctx) {
         printf("Out of memory!?\n");
         exit(1);
@@ -173,14 +173,14 @@ int main (int argc, const char *argv[])
         exit(1);
     }
 
-    ret = sssd_new_dbus_connection(test_ctx, test_ctx->ev, DBUS_ADDRESS, &(test_ctx->dct_ctx), NULL);
+    ret = sbus_new_connection(test_ctx, test_ctx->ev, DBUS_ADDRESS, &(test_ctx->dct_ctx), NULL);
     if (ret != EOK) {
         exit(1);
     }
 
     test_ctx->sd_ctx = ctx;
 
-    dbus_connection_set_exit_on_disconnect(sssd_get_dbus_connection(test_ctx->dct_ctx), TRUE);
+    dbus_connection_set_exit_on_disconnect(sbus_get_connection(test_ctx->dct_ctx), TRUE);
 
     /* Set up a timed event to request the server version every
      * five seconds and print it to the screen.
@@ -188,11 +188,11 @@ int main (int argc, const char *argv[])
     request_version_timed(test_ctx);
     
     /* Set up handler for service methods */
-    service_methods = talloc_zero(test_ctx, struct sssd_dbus_method_ctx);
+    service_methods = talloc_zero(test_ctx, struct sbus_method_ctx);
     service_methods->interface = talloc_strdup(service_methods, SERVICE_INTERFACE);
     service_methods->path = talloc_strdup(service_methods, SERVICE_PATH);
     service_methods->methods = monitor_service_methods;
-    dbus_connection_add_method_ctx(test_ctx->dct_ctx, service_methods);
+    sbus_conn_add_method_ctx(test_ctx->dct_ctx, service_methods);
 
     /* Enter the main loop (and hopefully never return) */
     event_loop_wait(event_ctx);

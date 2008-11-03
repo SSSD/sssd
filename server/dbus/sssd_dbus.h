@@ -21,68 +21,66 @@
 
 #ifndef _SSSD_DBUS_H_
 #define _SSSD_DBUS_H_
-struct dbus_connection_toplevel_context;
-typedef int (*sssd_dbus_msg_handler_fn)(DBusMessage *msg, void *data,
+struct sbus_conn_ctx;
+typedef int (*sbus_msg_handler_fn)(DBusMessage *msg, void *data,
                                         DBusMessage **reply);
 
 /*
- * sssd_dbus_connection_destructor_fn
+ * sbus_conn_destructor_fn
  * Function to be called when a connection is finalized
  */
-typedef int (*sssd_dbus_connection_destructor_fn)(
+typedef int (*sbus_conn_destructor_fn)(
         void *ctx);
 
 /*
- * sssd_dbus_server_connection_init_fn
+ * sbus_server_conn_init_fn
  * Set up function for connection-specific activities
- * This function should define the sssd_dbus_connection_destructor_fn
+ * This function should define the sbus_conn_destructor_fn
  * for this connection at a minimum
  */
-typedef int (*sssd_dbus_server_connection_init_fn)(
-        struct dbus_connection_toplevel_context *dct_ctx);
-
-extern int connection_type_slot;
+typedef int (*sbus_server_conn_init_fn)(
+        struct sbus_conn_ctx *dct_ctx);
 
 enum {
-    DBUS_CONNECTION_TYPE_PRIVATE = 1,
-    DBUS_CONNECTION_TYPE_SHARED
+    SBUS_CONN_TYPE_PRIVATE = 1,
+    SBUS_CONN_TYPE_SHARED
 };
 
-struct sssd_dbus_method {
+struct sbus_method {
     const char *method;
-    sssd_dbus_msg_handler_fn fn;
+    sbus_msg_handler_fn fn;
 };
 
-struct sssd_dbus_method_ctx {
-    struct sssd_dbus_method_ctx *prev, *next;
+struct sbus_method_ctx {
+    struct sbus_method_ctx *prev, *next;
     /*struct event_context *ev;*/
     char *interface;
     char *path;
     
     /* If a non-default message_handler is desired, set it in this
-     * object before calling dbus_connection_add_method_ctx()
+     * object before calling sbus_conn_add_method_ctx()
      * Otherwise it will default to message_handler() in
      * sssd_dbus_connection.c
      */
     DBusObjectPathMessageFunction message_handler;
-    struct sssd_dbus_method *methods;
+    struct sbus_method *methods;
 };
 
 /* Server Functions */
-int sssd_new_dbus_server(struct event_context *ev, struct sssd_dbus_method_ctx *ctx, const char *address, sssd_dbus_server_connection_init_fn init_fn);
+int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx, const char *address, sbus_server_conn_init_fn init_fn);
 
 /* Connection Functions */
-int sssd_new_dbus_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *address,
-                             struct dbus_connection_toplevel_context **dct_ctx, 
-                             sssd_dbus_connection_destructor_fn destructor);
+int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *address,
+                             struct sbus_conn_ctx **dct_ctx, 
+                             sbus_conn_destructor_fn destructor);
 
-void sssd_dbus_connection_set_destructor(struct dbus_connection_toplevel_context *dct_ctx,
-        sssd_dbus_connection_destructor_fn destructor);
-int default_connection_destructor(void *ctx);
+void sbus_conn_set_destructor(struct sbus_conn_ctx *dct_ctx,
+        sbus_conn_destructor_fn destructor);
+int sbus_default_connection_destructor(void *ctx);
 
-DBusConnection *sssd_get_dbus_connection(struct dbus_connection_toplevel_context *dct_ctx);
-void sssd_dbus_disconnect (struct dbus_connection_toplevel_context *dct_ctx);
-void sssd_connection_set_private_data(struct dbus_connection_toplevel_context *dct_ctx, void *private);
-int dbus_connection_add_method_ctx(struct dbus_connection_toplevel_context *dct_ctx, struct sssd_dbus_method_ctx *method_ctx);
+DBusConnection *sbus_get_connection(struct sbus_conn_ctx *dct_ctx);
+void sbus_disconnect (struct sbus_conn_ctx *dct_ctx);
+void sbus_conn_set_private_data(struct sbus_conn_ctx *dct_ctx, void *private);
+int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx, struct sbus_method_ctx *method_ctx);
 
 #endif /* _SSSD_DBUS_H_*/

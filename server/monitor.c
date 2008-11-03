@@ -53,7 +53,7 @@ struct mt_srv {
     int restarts;
 };
 
-static int dbus_service_init(struct dbus_connection_toplevel_context *dct_ctx);
+static int dbus_service_init(struct sbus_conn_ctx *dct_ctx);
 static void identity_check(DBusPendingCall *pending, void *data);
 
 /* dbus_get_monitor_version
@@ -78,7 +78,7 @@ static int dbus_get_monitor_version(DBusMessage *message,
     return EOK;
 }
 
-struct sssd_dbus_method monitor_methods[] = {
+struct sbus_method monitor_methods[] = {
     { MONITOR_METHOD_VERSION, dbus_get_monitor_version},
     {NULL, NULL}
 };
@@ -87,10 +87,10 @@ struct sssd_dbus_method monitor_methods[] = {
  * Set up the monitor service as a D-BUS Server */
 static int monitor_dbus_init(struct mt_ctx *ctx)
 {
-    struct sssd_dbus_method_ctx *sd_ctx;
+    struct sbus_method_ctx *sd_ctx;
     int ret;
 
-    sd_ctx = talloc_zero(ctx, struct sssd_dbus_method_ctx);
+    sd_ctx = talloc_zero(ctx, struct sbus_method_ctx);
     if (!sd_ctx) {
         return ENOMEM;
     }
@@ -109,7 +109,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = NULL; /* Use the default message_handler */
 
-    ret = sssd_new_dbus_server(ctx->ev, sd_ctx, DBUS_ADDRESS, dbus_service_init);
+    ret = sbus_new_server(ctx->ev, sd_ctx, DBUS_ADDRESS, dbus_service_init);
 
     return ret;
 }
@@ -249,7 +249,7 @@ int start_monitor(TALLOC_CTX *mem_ctx,
  * method on the new client). The reply callback for this request
  * should set the connection destructor appropriately.
  */
-static int dbus_service_init(struct dbus_connection_toplevel_context *dct_ctx) {
+static int dbus_service_init(struct sbus_conn_ctx *dct_ctx) {
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
@@ -257,7 +257,7 @@ static int dbus_service_init(struct dbus_connection_toplevel_context *dct_ctx) {
     dbus_bool_t dbret;
     
     DEBUG(0,("Initializing D-BUS Service"));
-    conn = sssd_get_dbus_connection(dct_ctx);
+    conn = sbus_get_connection(dct_ctx);
     dbus_error_init(&dbus_error);
 
     /* 
@@ -288,12 +288,12 @@ static int dbus_service_init(struct dbus_connection_toplevel_context *dct_ctx) {
 }
 
 static void identity_check(DBusPendingCall *pending, void *data) {
-    struct dbus_connection_toplevel_context *dct_ctx;
+    struct sbus_conn_ctx *dct_ctx;
     DBusMessage *reply;
     DBusError dbus_error;
     int type;
 
-    dct_ctx = talloc_get_type(data, struct dbus_connection_toplevel_context);
+    dct_ctx = talloc_get_type(data, struct sbus_conn_ctx);
     dbus_error_init(&dbus_error);
     
     reply = dbus_pending_call_steal_reply(pending);
@@ -305,7 +305,7 @@ static void identity_check(DBusPendingCall *pending, void *data) {
         DEBUG(0, ("Serious error. A reply callback was called but no reply was received and no timeout occurred\n"));
         
         /* Destroy this connection */
-        sssd_dbus_disconnect(dct_ctx);
+        sbus_disconnect(dct_ctx);
         return;
     }
     
@@ -327,7 +327,7 @@ static void identity_check(DBusPendingCall *pending, void *data) {
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sssd_dbus_disconnect(dct_ctx);
+        sbus_disconnect(dct_ctx);
         break;
     }
 }

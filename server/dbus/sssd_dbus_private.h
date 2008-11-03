@@ -1,14 +1,14 @@
 #ifndef _SSSD_DBUS_PRIVATE_H_
 #define _SSSD_DBUS_PRIVATE_H_
 
-int sssd_add_dbus_connection(TALLOC_CTX *ctx,
+int sbus_add_connection(TALLOC_CTX *ctx,
                              struct event_context *ev,
                              DBusConnection *dbus_conn,
-                             struct dbus_connection_toplevel_context **dct_ctx,
+                             struct sbus_conn_ctx **dct_ctx,
                              int connection_type);
 
 struct timeval _dbus_timeout_get_interval_tv(int interval);
-void remove_watch(DBusWatch *watch, void *data);
-void remove_timeout(DBusTimeout *timeout, void *data);
+void sbus_remove_watch(DBusWatch *watch, void *data);
+void sbus_remove_timeout(DBusTimeout *timeout, void *data);
 
 #endif /* _SSSD_DBUS_PRIVATE_H_ */
