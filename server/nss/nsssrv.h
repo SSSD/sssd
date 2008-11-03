@@ -29,14 +29,27 @@
 #include "ldb.h"
 #include "../nss_client/sss_nss.h"
 
+#define NSS_SBUS_SERVICE_VERSION 0x0001
+#define NSS_SBUS_SERVICE_NAME "NSS"
+
 struct nss_ldb_ctx;
 struct getent_ctx;
 
+struct nss_sbus_ctx {
+    struct event_context *ev;
+    struct sbus_method_ctx *sm_ctx;
+    struct sbus_conn_ctx *scon_ctx;
+};
+
 struct nss_ctx {
+    struct event_context *ev;
     struct task_server *task;
     struct fd_event *lfde;
     int lfd;
     struct nss_ldb_ctx *lctx;
+    struct confdb_ctx *cdb;
+    char *sock_name;
+    struct nss_sbus_ctx *ns_ctx;
 };
 
 struct cli_ctx {

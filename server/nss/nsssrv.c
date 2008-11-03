@@ -35,6 +35,16 @@
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
 #include "confdb/confdb.h"
+#include "dbus/dbus.h"
+#include "sbus/sssd_dbus.h"
+#include "sbus_interfaces.h"
+
+static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
+
+struct sbus_method nss_sbus_methods[] = {
+    {SERVICE_METHOD_IDENTITY, provide_identity},
+    {NULL, NULL}
+};
 
 static void set_nonblocking(int fd)
 {
@@ -193,16 +203,108 @@ static void accept_fd_handler(struct event_context *ev,
     return;
 }
 
+static int provide_identity(DBusMessage *message, void *data, DBusMessage **r)
+{
+    dbus_uint16_t version = NSS_SBUS_SERVICE_VERSION;
+    const char *name = NSS_SBUS_SERVICE_NAME;
+    DBusMessage *reply;
+    dbus_bool_t ret;
+
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
+                                   DBUS_TYPE_STRING, &name,
+                                   DBUS_TYPE_UINT16, &version,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) {
+        return EIO;
+    }
+
+    *r = reply;
+    return EOK;
+}
+
+static int nss_sbus_init(struct nss_ctx *nctx)
+{
+    struct sbus_method_ctx *cli_sm_ctx;
+    struct sbus_method_ctx *srv_sm_ctx;
+    struct nss_sbus_ctx *ns_ctx;
+    DBusConnection *dbus_conn;
+    char *sbus_address;
+    int ret;
+
+    ret = confdb_get_string(nctx->cdb, nctx,
+                            "config.services.monitor", "sbusAddress",
+                            DEFAULT_SBUS_ADDRESS, &sbus_address);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ns_ctx = talloc(nctx, struct nss_sbus_ctx);
+    if (!ns_ctx) {
+        return ENOMEM;
+    }
+    ns_ctx->ev = nctx->ev;
+
+    ret = sbus_new_connection(ns_ctx, ns_ctx->ev,
+                              sbus_address,
+                              &ns_ctx->scon_ctx, NULL);
+    if (ret != EOK) {
+        talloc_free(ns_ctx);
+        return ret;
+    }
+    dbus_conn = sbus_get_connection(ns_ctx->scon_ctx);
+    dbus_connection_set_exit_on_disconnect(dbus_conn, TRUE);
+
+    /* set up handler for service methods */
+    srv_sm_ctx = talloc_zero(ns_ctx, struct sbus_method_ctx);
+    if (!srv_sm_ctx) {
+        talloc_free(ns_ctx);
+        return ENOMEM;
+    }
+    srv_sm_ctx->interface = talloc_strdup(srv_sm_ctx, SERVICE_INTERFACE);
+    srv_sm_ctx->path = talloc_strdup(srv_sm_ctx, SERVICE_PATH);
+    if (!srv_sm_ctx->interface || !srv_sm_ctx->path) {
+        talloc_free(ns_ctx);
+        return ENOMEM;
+    }
+    srv_sm_ctx->methods = nss_sbus_methods;
+    sbus_conn_add_method_ctx(ns_ctx->scon_ctx, srv_sm_ctx);
+
+    /* set up client stuff */
+    cli_sm_ctx = talloc(ns_ctx, struct sbus_method_ctx);
+    if (!cli_sm_ctx) {
+        talloc_free(ns_ctx);
+        return ENOMEM;
+    }
+    cli_sm_ctx->interface = talloc_strdup(cli_sm_ctx, MONITOR_DBUS_INTERFACE);
+    cli_sm_ctx->path = talloc_strdup(cli_sm_ctx, MONITOR_DBUS_PATH);
+    if (!cli_sm_ctx->interface || !cli_sm_ctx->path) {
+        talloc_free(ns_ctx);
+        return ENOMEM;
+    }
+    ns_ctx->sm_ctx = cli_sm_ctx;
+
+    nctx->ns_ctx = ns_ctx;
+
+    return EOK;
+}
+
 /* create a unix socket and listen to it */
-static void set_unix_socket(struct event_context *ev,
-                            struct nss_ctx *nctx,
-                            const char *sock_name)
+static int set_unix_socket(struct nss_ctx *nctx)
 {
     struct sockaddr_un addr;
+    int ret;
+
+    ret = confdb_get_string(nctx->cdb, nctx,
+                            "config.services.nss", "unixSocket",
+                            SSS_NSS_SOCKET_NAME, &nctx->sock_name);
+    if (ret != EOK) {
+        return ret;
+    }
 
     nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (nctx->lfd == -1) {
-        return;
+        return EIO;
     }
 
     /* Set the umask so that permissions are set right on the socket.
@@ -214,76 +316,73 @@ static void set_unix_socket(struct event_context *ev,
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, sock_name, sizeof(addr.sun_path));
+    strncpy(addr.sun_path, nctx->sock_name, sizeof(addr.sun_path));
 
     /* make sure we have no old sockets around */
-    unlink(sock_name);
+    unlink(nctx->sock_name);
 
     if (bind(nctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        DEBUG(0,("Unable to bind on socket '%s'\n", sock_name));
+        DEBUG(0,("Unable to bind on socket '%s'\n", nctx->sock_name));
         goto failed;
     }
     if (listen(nctx->lfd, 10) != 0) {
-        DEBUG(0,("Unable to listen on socket '%s'\n", sock_name));
+        DEBUG(0,("Unable to listen on socket '%s'\n", nctx->sock_name));
         goto failed;
     }
 
-    nctx->lfde = event_add_fd(ev, nctx, nctx->lfd,
-                                 EVENT_FD_READ, accept_fd_handler, nctx);
+    nctx->lfde = event_add_fd(nctx->ev, nctx, nctx->lfd,
+                              EVENT_FD_READ, accept_fd_handler, nctx);
 
 	/* we want default permissions on created files to be very strict,
 	   so set our umask to 0177 */
 	umask(0177);
-    return;
+    return EOK;
 
 failed:
 	/* we want default permissions on created files to be very strict,
 	   so set our umask to 0177 */
 	umask(0177);
     close(nctx->lfd);
+    return EIO;
 }
 
 void nss_task_init(struct task_server *task)
 {
-    struct confdb_ctx *cdb;
     struct nss_ctx *nctx;
-    const char *sock_name;
-    char **values;
     int ret;
 
     task_server_set_title(task, "sssd[nsssrv]");
-
-    ret = confdb_init(task, task->event_ctx, &cdb);
-    if (ret != EOK) {
-        task_server_terminate(task, "fatal error initializing confdb\n");
-        return;
-    }
 
     nctx = talloc_zero(task, struct nss_ctx);
     if (!nctx) {
         task_server_terminate(task, "fatal error initializing nss_ctx\n");
         return;
     }
+    nctx->ev = task->event_ctx;
     nctx->task = task;
 
-    ret = confdb_get_param(cdb, nctx,
-                           "config.services.nss", "unixSocket", &values);
+    ret = confdb_init(task, task->event_ctx, &nctx->cdb);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error reading configuration\n");
+        task_server_terminate(task, "fatal error initializing confdb\n");
         return;
     }
-    if (values[0]) {
-        sock_name = talloc_steal(nctx, values[0]);
-    } else {
-        sock_name = talloc_strdup(nctx, SSS_NSS_SOCKET_NAME);
+
+    ret = nss_sbus_init(nctx);
+    if (ret != EOK) {
+        task_server_terminate(task, "fatal error setting up message bus\n");
+        return;
     }
-    talloc_free(values);
 
-    set_unix_socket(task->event_ctx, nctx, sock_name);
-
-    ret = nss_ldb_init(nctx, task->event_ctx, cdb, &nctx->lctx);
+    ret = nss_ldb_init(nctx, nctx->ev, nctx->cdb, &nctx->lctx);
     if (ret != EOK) {
         task_server_terminate(task, "fatal error initializing nss_ctx\n");
+        return;
+    }
+
+    /* after all initializations we are ready to listen on our socket */
+    ret = set_unix_socket(nctx);
+    if (ret != EOK) {
+        task_server_terminate(task, "fatal error initializing socket\n");
         return;
     }
 }

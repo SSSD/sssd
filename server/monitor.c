@@ -32,9 +32,6 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 
-/* TODO: get this value from LDB */
-#define DBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"
-
 struct mt_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
@@ -84,7 +81,15 @@ struct sbus_method monitor_methods[] = {
 static int monitor_dbus_init(struct mt_ctx *ctx)
 {
     struct sbus_method_ctx *sd_ctx;
+    char *sbus_address;
     int ret;
+
+    ret = confdb_get_string(ctx->cdb, ctx,
+                            "config.services.monitor", "sbusAddress",
+                            DEFAULT_SBUS_ADDRESS, &sbus_address);
+    if (ret != EOK) {
+        return ret;
+    }
 
     sd_ctx = talloc_zero(ctx, struct sbus_method_ctx);
     if (!sd_ctx) {
@@ -105,7 +110,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = NULL; /* Use the default message_handler */
 
-    ret = sbus_new_server(ctx->ev, sd_ctx, DBUS_ADDRESS, dbus_service_init);
+    ret = sbus_new_server(ctx->ev, sd_ctx, sbus_address, dbus_service_init);
 
     return ret;
 }

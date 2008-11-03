@@ -282,6 +282,40 @@ done:
     return ret;
 }
 
+int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                      const char *section, const char *attribute,
+                      const char *defstr, char **result)
+{
+    char **values;
+    char *restr;
+    int ret;
+
+    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (values[0]) {
+        if (values[1] != NULL) {
+            /* too many values */
+            talloc_free(values);
+            return EINVAL;
+        }
+        restr = talloc_steal(ctx, values[0]);
+    } else {
+        restr = talloc_strdup(ctx, defstr);
+    }
+    if (!restr) {
+        talloc_free(values);
+        return ENOMEM;
+    }
+
+    talloc_free(values);
+
+    *result = restr;
+    return EOK;
+}
+
 static int confdb_test(struct confdb_ctx *cdb)
 {
     char **values;

@@ -7,9 +7,6 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 
-/* TODO: get this value from LDB */
-#define DBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"
-
 /* Identity */
 #define TEST_CLIENT_NAME "testclient"
 #define TEST_CLIENT_VERSION 1
@@ -149,13 +146,13 @@ int main (int argc, const char *argv[])
         printf("Out of memory!?\n");
         exit(1);
     }
-    
+
     test_ctx = talloc(event_ctx, struct test_cli_ctx);
     if (!test_ctx) {
         printf("Out of memory!?\n");
         exit(1);
     }
-    
+
     test_ctx->ev = event_ctx;
     ctx->interface = talloc_strdup(ctx, MONITOR_DBUS_INTERFACE);
     ctx->path = talloc_strdup(ctx, MONITOR_DBUS_PATH);
@@ -164,7 +161,9 @@ int main (int argc, const char *argv[])
         exit(1);
     }
 
-    ret = sbus_new_connection(test_ctx, test_ctx->ev, DBUS_ADDRESS, &(test_ctx->dct_ctx), NULL);
+    ret = sbus_new_connection(test_ctx, test_ctx->ev,
+                              DEFAULT_SBUS_ADDRESS,
+                              &test_ctx->dct_ctx, NULL);
     if (ret != EOK) {
         exit(1);
     }
