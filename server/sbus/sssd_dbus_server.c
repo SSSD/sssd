@@ -22,8 +22,8 @@
 #include "events.h"
 #include "util/util.h"
 #include "dbus/dbus.h"
-#include "dbus/sssd_dbus.h"
-#include "dbus/sssd_dbus_private.h"
+#include "sbus/sssd_dbus.h"
+#include "sbus/sssd_dbus_private.h"
 
 /* Types */
 struct sbus_srv_ctx {

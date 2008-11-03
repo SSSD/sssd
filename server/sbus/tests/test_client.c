@@ -4,7 +4,7 @@
 #include "events.h"
 #include "util/util.h"
 #include "dbus/dbus.h"
-#include "dbus/sssd_dbus.h"
+#include "sbus/sssd_dbus.h"
 
 /* TODO: get this value from LDB */
 #define DBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"

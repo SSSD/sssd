@@ -13,15 +13,15 @@ SERVER_OBJ = \
     nss/nsssrv_packet.o \
     nss/nsssrv_cmd.o \
     nss/nsssrv_ldb.o \
-    dbus/sssd_dbus_common.o \
-    dbus/sssd_dbus_connection.o \
-    dbus/sssd_dbus_server.o
+    sbus/sssd_dbus_common.o \
+    sbus/sssd_dbus_connection.o \
+    sbus/sssd_dbus_server.o
 
 CLIENT_OBJ = \
-    dbus/sssd_dbus_common.o \
-    dbus/sssd_dbus_connection.o \
+    sbus/sssd_dbus_common.o \
+    sbus/sssd_dbus_connection.o \
     util/debug.o \
-    dbus/tests/test_client.o
+    sbus/tests/test_client.o
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)

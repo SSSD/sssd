@@ -29,7 +29,7 @@
 #include "confdb/confdb.h"
 #include "monitor.h"
 #include "dbus/dbus.h"
-#include "dbus/sssd_dbus.h"
+#include "sbus/sssd_dbus.h"
 
 /* TODO: Get these values from LDB */
 #define SERVICE_PATH "/org/freeipa/sssd/service"
