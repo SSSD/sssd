@@ -15,7 +15,7 @@ struct sbus_conn_ctx {
     int disconnect;
     struct sbus_method_ctx *method_ctx_list;
     sbus_conn_destructor_fn destructor;
-    void *private; /* Private data for this connection */
+    void *pvt_data; /* Private data for this connection */
 };
 
 struct sbus_conn_watch_ctx {
@@ -571,6 +571,7 @@ static void sbus_unreg_object_paths(struct sbus_conn_ctx *dct_ctx) {
     }
 }
 
-void sbus_conn_set_private_data(struct sbus_conn_ctx *dct_ctx, void *private) {
-    dct_ctx->private = private;
+void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data)
+{
+    conn_ctx->pvt_data = pvt_data;
 }

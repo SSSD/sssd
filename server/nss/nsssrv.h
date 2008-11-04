@@ -30,7 +30,7 @@
 #include "../nss_client/sss_nss.h"
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
-#define NSS_SBUS_SERVICE_NAME "NSS"
+#define NSS_SBUS_SERVICE_NAME "nss"
 
 struct nss_ldb_ctx;
 struct getent_ctx;

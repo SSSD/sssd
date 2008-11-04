@@ -32,22 +32,45 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 
+struct mt_conn {
+    struct sbus_conn_ctx *conn_ctx;
+    struct mt_svc *svc_ptr;
+};
+
+struct mt_svc {
+    struct mt_svc *prev;
+    struct mt_svc *next;
+
+    struct mt_conn *mt_conn;
+    struct mt_ctx *mt_ctx;
+
+    const char *name;
+    pid_t pid;
+
+    int restarts;
+    time_t last_restart;
+    time_t last_pong;
+};
+
 struct mt_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
     char **services;
+    struct mt_svc *svc_list;
+
+    int service_id_timeout;
+    int service_ping_time;
 };
 
-struct mt_srv {
-    const char *name;
-    struct mt_ctx *mt_ctx;
-    pid_t pid;
-    time_t last_restart;
-    int restarts;
-};
-
-static int dbus_service_init(struct sbus_conn_ctx *dct_ctx);
+static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data);
 static void identity_check(DBusPendingCall *pending, void *data);
+
+static int service_send_ping(struct mt_svc *svc);
+static void ping_check(DBusPendingCall *pending, void *data);
+
+static int service_check_alive(struct mt_svc *svc);
+
+static void set_tasks_checker(struct mt_svc *srv);
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -93,101 +116,162 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
 
     sd_ctx = talloc_zero(ctx, struct sbus_method_ctx);
     if (!sd_ctx) {
+        talloc_free(sbus_address);
         return ENOMEM;
     }
 
     /* Set up globally-available D-BUS methods */
     sd_ctx->interface = talloc_strdup(sd_ctx, MONITOR_DBUS_INTERFACE);
     if (!sd_ctx->interface) {
+        talloc_free(sbus_address);
         talloc_free(sd_ctx);
         return ENOMEM;
     }
     sd_ctx->path = talloc_strdup(sd_ctx, MONITOR_DBUS_PATH);
     if (!sd_ctx->path) {
+        talloc_free(sbus_address);
         talloc_free(sd_ctx);
         return ENOMEM;
     }
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = NULL; /* Use the default message_handler */
 
-    ret = sbus_new_server(ctx->ev, sd_ctx, sbus_address, dbus_service_init);
+    ret = sbus_new_server(ctx->ev, sd_ctx, sbus_address, dbus_service_init, ctx);
 
     return ret;
 }
-
-
-static void set_tasks_checker(struct mt_srv *srv);
 
 static void tasks_check_handler(struct event_context *ev,
                                 struct timed_event *te,
                                 struct timeval t, void *ptr)
 {
-    struct mt_srv *srv = talloc_get_type(ptr, struct mt_srv);
+    struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
     time_t now = time(NULL);
-    int status;
-    pid_t pid;
+    bool process_alive = true;
     int ret;
 
-    pid = waitpid(srv->pid, &status, WNOHANG);
-    if (pid == 0) {
-        set_tasks_checker(srv);
-        return;
+    ret = service_check_alive(svc);
+    switch (ret) {
+    case EOK:
+        /* all fine */
+        break;
+
+    case ECHILD:
+        DEBUG(1,("Process is stopped!\n"));
+        process_alive = false;
+        break;
+
+    default:
+        /* TODO: should we tear down it ? */
+        DEBUG(1,("Checking for service process failed!!\n"));
+        break;
     }
 
-    if (pid != srv->pid) {
-        DEBUG(1, ("bad return (%d) from waitpid() waiting for %d\n",
-                  pid, srv->pid));
-        /* TODO: what do we do now ? */
-    }
+    if (process_alive) {
+        ret = service_send_ping(svc);
+        switch (ret) {
+        case EOK:
+            /* all fine */
+            break;
 
-    if (WIFEXITED(status)) { /* children exited on it's own ?? */
-        /* TODO: check configuration to see if it was removed
-         * from the list of process to run */
-        DEBUG(0,("Process [%s] exited on it's own ?!\n", srv->name));
-    }
+        case ENXIO:
+            DEBUG(1,("Connection with child not available! (yet)\n"));
+            break;
 
-    if (srv->last_restart != 0) {
-        if ((now - srv->last_restart) > 30) { /* TODO: get val from config */
-            /* it was long ago reset restart threshold */
-            srv->restarts = 0;
+        default:
+            /* TODO: should we tear it down ? */
+            DEBUG(1,("Sending a message to the service failed!!\n"));
+            break;
         }
+
+        if (svc->last_pong != 0) {
+            if ((now - svc->last_pong) > 30) { /* TODO: get val from config */
+                /* too long since we last heard of this process */
+                ret = kill(svc->pid, SIGUSR1);
+                if (ret != EOK) {
+                    DEBUG(0,("Sending signal to child failed! Ignore and pretend child is dead.\n"));
+                }
+                process_alive = false;
+            }
+        }
+
     }
 
-    /* restart the process */
-    if (srv->restarts < 3) { /* TODO: get val from config */
+    if (!process_alive) {
+        if (svc->last_restart != 0) {
+            if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
+                /* it was long ago reset restart threshold */
+                svc->restarts = 0;
+            }
+        }
 
-        ret = server_service_init(srv->name, srv->mt_ctx->ev, &srv->pid);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to restart service '%s'\n", srv->name));
-            talloc_free(srv);
+        /* restart the process */
+        if (svc->restarts > 3) { /* TODO: get val from config */
+            DEBUG(0, ("Process [%s], definitely stopped!\n", svc->name));
+            talloc_free(svc);
             return;
         }
 
-        srv->restarts++;
-        srv->last_restart = now;
+        ret = server_service_init(svc->name, svc->mt_ctx->ev, &svc->pid);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to restart service '%s'\n", svc->name));
+            talloc_free(svc);
+            return;
+        }
 
-        set_tasks_checker(srv);
-        return;
+        svc->restarts++;
+        svc->last_restart = now;
+        svc->last_pong = 0;
     }
 
-    DEBUG(0, ("Process [%s], definitely stopped!\n", srv->name));
-    talloc_free(srv);
+    /* all fine, set up the task checker again */
+    set_tasks_checker(svc);
 }
 
-static void set_tasks_checker(struct mt_srv *srv)
+static void set_tasks_checker(struct mt_svc *svc)
 {
     struct timed_event *te = NULL;
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
-    tv.tv_sec += 2;
+    tv.tv_sec += svc->mt_ctx->service_ping_time;
     tv.tv_usec = 0;
-    te = event_add_timed(srv->mt_ctx->ev, srv, tv, tasks_check_handler, srv);
+    te = event_add_timed(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
     if (te == NULL) {
         DEBUG(0, ("failed to add event, monitor offline for [%s]!\n",
-                  srv->name));
+                  svc->name));
         /* FIXME: shutdown ? */
     }
+}
+
+int get_monitor_config(struct mt_ctx *ctx)
+{
+    int ret;
+
+    ret = confdb_get_int(ctx->cdb, ctx,
+                         "config.services.monitor", "sbusTimeout",
+                         -1, &ctx->service_id_timeout);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = confdb_get_int(ctx->cdb, ctx,
+                         "config.services.monitor", "servicePingTime",
+                         -1, &ctx->service_ping_time);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = confdb_get_param(ctx->cdb, ctx,
+                           "config.services", "activeServices",
+                           &ctx->services);
+
+    if (ctx->services[0] == NULL) {
+        DEBUG(0, ("No services configured!\n"));
+        return EINVAL;
+    }
+
+    return EOK;
 }
 
 int start_monitor(TALLOC_CTX *mem_ctx,
@@ -195,7 +279,7 @@ int start_monitor(TALLOC_CTX *mem_ctx,
                   struct confdb_ctx *cdb)
 {
     struct mt_ctx *ctx;
-    struct mt_srv *srv;
+    struct mt_svc *svc;
     int ret, i;
 
     ctx = talloc_zero(mem_ctx, struct mt_ctx);
@@ -204,32 +288,32 @@ int start_monitor(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
     ctx->ev = event_ctx;
+    ctx->cdb = cdb;
 
-    ret = confdb_get_param(cdb, mem_ctx, "config.services",
-                           "activeServices", &ctx->services);
-
-    if (ctx->services[0] == NULL) {
-        DEBUG(0, ("No services configured!\n"));
-        return EINVAL;
-    }
+    ret = get_monitor_config(ctx);
+    if (ret != EOK)
+        return ret;
 
     for (i = 0; ctx->services[i]; i++) {
 
-        srv = talloc_zero(ctx, struct mt_srv);
-        if (!srv) {
+        svc = talloc_zero(ctx, struct mt_svc);
+        if (!svc) {
             talloc_free(ctx);
             return ENOMEM;
         }
-        srv->name = ctx->services[i];
-        srv->mt_ctx = ctx;
+        svc->name = ctx->services[i];
+        svc->mt_ctx = ctx;
 
-        ret = server_service_init(srv->name, event_ctx, &srv->pid);
+        ret = server_service_init(svc->name, event_ctx, &svc->pid);
         if (ret != EOK) {
-            DEBUG(0,("Failed to restart service '%s'\n", srv->name));
-            talloc_free(srv);
+            DEBUG(0,("Failed to start service '%s'\n", svc->name));
+            talloc_free(svc);
+            continue;
         }
 
-        set_tasks_checker(srv);
+        DLIST_ADD(ctx->svc_list, svc);
+
+        set_tasks_checker(svc);
     }
 
     /* Initialize D-BUS Server
@@ -243,6 +327,21 @@ int start_monitor(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static int mt_conn_destructor(void *ptr)
+{
+    struct mt_conn *mt_conn;
+    struct mt_svc *svc;
+
+    mt_conn = talloc_get_type(ptr, struct mt_conn);
+    svc = mt_conn->svc_ptr;
+
+    /* now clear up so that the rest of the code will know there
+     * is no connection attached to the service anymore */
+    svc->mt_conn = NULL;
+
+    return 0;
+}
+
 /*
  * dbus_service_init
  * This function should initiate a query to the newly connected
@@ -250,27 +349,64 @@ int start_monitor(TALLOC_CTX *mem_ctx,
  * method on the new client). The reply callback for this request
  * should set the connection destructor appropriately.
  */
-static int dbus_service_init(struct sbus_conn_ctx *dct_ctx) {
+static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data) {
+    struct mt_ctx *ctx;
+    struct mt_svc *svc;
+    struct mt_conn *mt_conn;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
     DBusError dbus_error;
     dbus_bool_t dbret;
-    
-    DEBUG(0,("Initializing D-BUS Service"));
-    conn = sbus_get_connection(dct_ctx);
+
+    DEBUG(3, ("Initializing D-BUS Service\n"));
+
+    ctx = talloc_get_type(data, struct mt_ctx);
+    conn = sbus_get_connection(conn_ctx);
     dbus_error_init(&dbus_error);
 
-    /* 
-     * Set up identity request 
+    /* hang off this memory to the connection so that when the connection
+     * is freed we can call a destructor to clear up the structure and
+     * have a way to know we need to restart the service */
+    mt_conn = talloc(conn_ctx, struct mt_conn);
+    if (!mt_conn) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_free(conn_ctx);
+        return ENOMEM;
+    }
+    mt_conn->conn_ctx = conn_ctx;
+
+    /* at this stage we still do not know what service is this
+     * we will know only after we get its identity, so we make
+     * up a temporary fake service and complete the operation
+     * when we receive the reply */
+    svc = talloc_zero(mt_conn, struct mt_svc);
+    if (!svc) {
+        talloc_free(conn_ctx);
+        return ENOMEM;
+    }
+    svc->mt_ctx = ctx;
+    svc->mt_conn = mt_conn;
+
+    mt_conn->svc_ptr = svc;
+    talloc_set_destructor((TALLOC_CTX *)mt_conn, mt_conn_destructor);
+
+    /*
+     * Set up identity request
      * This should be a well-known path and method
      * for all services
      */
     msg = dbus_message_new_method_call(NULL,
-            SERVICE_PATH,
-            SERVICE_INTERFACE,
-            SERVICE_METHOD_IDENTITY);
-    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply, -1);
+                                       SERVICE_PATH,
+                                       SERVICE_INTERFACE,
+                                       SERVICE_METHOD_IDENTITY);
+    if (msg == NULL) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_free(conn_ctx);
+        return ENOMEM;
+    }
+    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            ctx->service_id_timeout);
     if (!dbret) {
         /*
          * Critical Failure
@@ -278,25 +414,33 @@ static int dbus_service_init(struct sbus_conn_ctx *dct_ctx) {
          * We'll drop it using the default destructor.
          */
         DEBUG(0, ("D-BUS send failed.\n"));
-        talloc_free(dct_ctx);
+        talloc_free(conn_ctx);
+        return EIO;
     }
-    
+
     /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, identity_check, dct_ctx, NULL);
+    dbus_pending_call_set_notify(pending_reply, identity_check, svc, NULL);
     dbus_message_unref(msg);
 
     return EOK;
 }
 
-static void identity_check(DBusPendingCall *pending, void *data) {
-    struct sbus_conn_ctx *dct_ctx;
+static void identity_check(DBusPendingCall *pending, void *data)
+{
+    struct mt_svc *fake_svc;
+    struct mt_svc *svc;
+    struct sbus_conn_ctx *conn_ctx;
     DBusMessage *reply;
     DBusError dbus_error;
+    dbus_uint16_t svc_ver;
+    char *svc_name;
+    dbus_bool_t ret;
     int type;
 
-    dct_ctx = talloc_get_type(data, struct sbus_conn_ctx);
+    fake_svc = talloc_get_type(data, struct mt_svc);
+    conn_ctx = fake_svc->mt_conn->conn_ctx;
     dbus_error_init(&dbus_error);
-    
+
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {
         /* reply should never be null. This function shouldn't be called
@@ -304,31 +448,207 @@ static void identity_check(DBusPendingCall *pending, void *data) {
          * here, something is seriously wrong and we should bail out.
          */
         DEBUG(0, ("Serious error. A reply callback was called but no reply was received and no timeout occurred\n"));
-        
+
         /* Destroy this connection */
-        sbus_disconnect(dct_ctx);
+        sbus_disconnect(conn_ctx);
         return;
     }
-    
+
     type = dbus_message_get_type(reply);
     switch (type) {
     case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-        /* Got the service name and version */
-        /* Extract the name and version from the message */
+        ret = dbus_message_get_args(reply, &dbus_error,
+                                    DBUS_TYPE_STRING, &svc_name,
+                                    DBUS_TYPE_UINT16, &svc_ver,
+                                    DBUS_TYPE_INVALID);
+        if (!ret) {
+            DEBUG(1,("Failed, to parse message, killing connection\n"));
+            sbus_disconnect(conn_ctx);
+            return;
+        }
+
+        /* search this service in the list */
+        svc = fake_svc->mt_ctx->svc_list;
+        while (svc) {
+            ret = strcasecmp(svc->name, svc_name);
+            if (ret == 0) {
+                break;
+            }
+            svc = svc->next;
+        }
+        if (!svc) {
+            DEBUG(0,("Unable to find peer in list of services, killing connection!\n"));
+            sbus_disconnect(conn_ctx);
+            return;
+        }
+
+        /* transfer all from the fake service and get rid of it */
+        fake_svc->mt_conn->svc_ptr = svc;
+        svc->mt_conn = fake_svc->mt_conn;
+        talloc_free(fake_svc);
+
         /* Set up the destructor for this service */
         break;
+
     case DBUS_MESSAGE_TYPE_ERROR:
-        DEBUG(0,("getIdentity returned an error %s, closing connection.\n", dbus_message_get_error_name(reply)));
+        DEBUG(0,("getIdentity returned an error [%s], closing connection.\n",
+                 dbus_message_get_error_name(reply)));
         /* Falling through to default intentionally*/
     default:
         /*
          * Timeout or other error occurred or something
          * unexpected happened.
-         * It doesn't matter which, because either way we 
+         * It doesn't matter which, because either way we
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sbus_disconnect(dct_ctx);
-        break;
+        sbus_disconnect(conn_ctx);
+        return;
     }
 }
+
+/* service_send_ping
+ * this function send a dbus ping to a service.
+ * It returns EOK if all is fine or ENXIO if the connection is
+ * not available (either not yet set up or teared down).
+ * Returns e generic error in other cases.
+ */
+static int service_send_ping(struct mt_svc *svc)
+{
+    DBusMessage *msg;
+    DBusPendingCall *pending_reply;
+    DBusConnection *conn;
+    DBusError dbus_error;
+    dbus_bool_t dbret;
+
+    if (!svc->mt_conn) {
+        return ENXIO;
+    }
+
+    conn = sbus_get_connection(svc->mt_conn->conn_ctx);
+    dbus_error_init(&dbus_error);
+
+    /*
+     * Set up identity request
+     * This should be a well-known path and method
+     * for all services
+     */
+    msg = dbus_message_new_method_call(NULL,
+                                       SERVICE_PATH,
+                                       SERVICE_INTERFACE,
+                                       SERVICE_METHOD_PING);
+    if (!msg) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_free(svc->mt_conn->conn_ctx);
+        return ENOMEM;
+    }
+
+    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            svc->mt_ctx->service_id_timeout);
+    if (!dbret) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         * We'll drop it using the default destructor.
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        talloc_free(svc->mt_conn->conn_ctx);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, ping_check, svc, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+
+static void ping_check(DBusPendingCall *pending, void *data)
+{
+    struct mt_svc *svc;
+    struct sbus_conn_ctx *conn_ctx;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    const char *dbus_error_name;
+    int type;
+
+    svc = talloc_get_type(data, struct mt_svc);
+    conn_ctx = svc->mt_conn->conn_ctx;
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("A reply callback was called but no reply was received"
+                  " and no timeout occurred\n"));
+
+        /* Destroy this connection */
+        sbus_disconnect(conn_ctx);
+        return;
+    }
+
+    type = dbus_message_get_type(reply);
+    switch (type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        /* ok peer replied,
+         * set the reply timestamp into the service structure */
+
+        svc->last_pong = time(NULL);
+        break;
+
+    case DBUS_MESSAGE_TYPE_ERROR:
+
+        dbus_error_name = dbus_message_get_error_name(reply);
+
+        /* timeouts are handled in the main service check function */
+        if (strcmp(dbus_error_name, DBUS_ERROR_TIMEOUT) == 0)
+            break;
+
+        DEBUG(0,("A service PING returned an error [%s], closing connection.\n",
+                 dbus_error_name));
+        /* Falling through to default intentionally*/
+    default:
+        /*
+         * Timeout or other error occurred or something
+         * unexpected happened.
+         * It doesn't matter which, because either way we
+         * know that this connection isn't trustworthy.
+         * We'll destroy it now.
+         */
+        sbus_disconnect(conn_ctx);
+        return;
+    }
+}
+
+/* service_check_alive
+ * This function checks if the service child is still alive
+ */
+static int service_check_alive(struct mt_svc *svc)
+{
+    int status;
+    pid_t pid;
+
+    pid = waitpid(svc->pid, &status, WNOHANG);
+    if (pid == 0) {
+        return EOK;
+    }
+
+    if (pid != svc->pid) {
+        DEBUG(1, ("bad return (%d) from waitpid() waiting for %d\n",
+                  pid, svc->pid));
+        /* TODO: what do we do now ? */
+        return EINVAL;
+    }
+
+    if (WIFEXITED(status)) { /* children exited on it's own */
+        /* TODO: check configuration to see if it was removed
+         * from the list of process to run */
+        DEBUG(0,("Process [%s] exited\n", svc->name));
+    }
+
+    return ECHILD;
+}
+

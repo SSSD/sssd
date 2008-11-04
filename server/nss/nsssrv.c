@@ -40,9 +40,11 @@
 #include "sbus_interfaces.h"
 
 static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
+static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method nss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, provide_identity},
+    {SERVICE_METHOD_PING, reply_ping},
     {NULL, NULL}
 };
 
@@ -215,6 +217,21 @@ static int provide_identity(DBusMessage *message, void *data, DBusMessage **r)
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
+    if (!ret) {
+        return EIO;
+    }
+
+    *r = reply;
+    return EOK;
+}
+
+static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
+{
+    DBusMessage *reply;
+    dbus_bool_t ret;
+
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
     if (!ret) {
         return EIO;
     }

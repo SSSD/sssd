@@ -36,6 +36,7 @@
 
 /* Service Methods */
 #define SERVICE_METHOD_IDENTITY "getIdentity"
+#define SERVICE_METHOD_PING "ping"
 
 #define DEFAULT_SBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"
 

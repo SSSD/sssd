@@ -21,16 +21,16 @@
 
 #ifndef _SSSD_DBUS_H_
 #define _SSSD_DBUS_H_
+
 struct sbus_conn_ctx;
-typedef int (*sbus_msg_handler_fn)(DBusMessage *msg, void *data,
-                                        DBusMessage **reply);
+
+typedef int (*sbus_msg_handler_fn)(DBusMessage *, void *, DBusMessage **);
 
 /*
  * sbus_conn_destructor_fn
  * Function to be called when a connection is finalized
  */
-typedef int (*sbus_conn_destructor_fn)(
-        void *ctx);
+typedef int (*sbus_conn_destructor_fn)(void *);
 
 /*
  * sbus_server_conn_init_fn
@@ -38,8 +38,7 @@ typedef int (*sbus_conn_destructor_fn)(
  * This function should define the sbus_conn_destructor_fn
  * for this connection at a minimum
  */
-typedef int (*sbus_server_conn_init_fn)(
-        struct sbus_conn_ctx *dct_ctx);
+typedef int (*sbus_server_conn_init_fn)(struct sbus_conn_ctx *, void *);
 
 enum {
     SBUS_CONN_TYPE_PRIVATE = 1,
@@ -56,7 +55,7 @@ struct sbus_method_ctx {
     /*struct event_context *ev;*/
     char *interface;
     char *path;
-    
+
     /* If a non-default message_handler is desired, set it in this
      * object before calling sbus_conn_add_method_ctx()
      * Otherwise it will default to message_handler() in
@@ -67,20 +66,25 @@ struct sbus_method_ctx {
 };
 
 /* Server Functions */
-int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx, const char *address, sbus_server_conn_init_fn init_fn);
+int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
+                    const char *address,
+                    sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 
 /* Connection Functions */
-int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *address,
-                             struct sbus_conn_ctx **dct_ctx, 
-                             sbus_conn_destructor_fn destructor);
+int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
+                        const char *address,
+                        struct sbus_conn_ctx **conn_ctx,
+                        sbus_conn_destructor_fn destructor);
 
-void sbus_conn_set_destructor(struct sbus_conn_ctx *dct_ctx,
-        sbus_conn_destructor_fn destructor);
+void sbus_conn_set_destructor(struct sbus_conn_ctx *conn_ctx,
+                              sbus_conn_destructor_fn destructor);
+
 int sbus_default_connection_destructor(void *ctx);
 
-DBusConnection *sbus_get_connection(struct sbus_conn_ctx *dct_ctx);
-void sbus_disconnect (struct sbus_conn_ctx *dct_ctx);
-void sbus_conn_set_private_data(struct sbus_conn_ctx *dct_ctx, void *private);
-int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx, struct sbus_method_ctx *method_ctx);
+DBusConnection *sbus_get_connection(struct sbus_conn_ctx *conn_ctx);
+void sbus_disconnect(struct sbus_conn_ctx *conn_ctx);
+void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data);
+int sbus_conn_add_method_ctx(struct sbus_conn_ctx *conn_ctx,
+                             struct sbus_method_ctx *method_ctx);
 
 #endif /* _SSSD_DBUS_H_*/
