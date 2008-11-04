@@ -38,6 +38,10 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                       const char *section, const char *attribute,
                       const char *defstr, char **result);
 
+int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                   const char *section, const char *attribute,
+                   int defval, int *result);
+
 int confdb_init(TALLOC_CTX *mem_ctx,
                 struct event_context *ev,
                 struct confdb_ctx **cdb_ctx);

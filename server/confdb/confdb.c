@@ -316,6 +316,48 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
     return EOK;
 }
 
+int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                   const char *section, const char *attribute,
+                   int defval, int *result)
+{
+    char **values;
+    long int val;
+    int ret;
+
+    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (values[0]) {
+        if (values[1] != NULL) {
+            /* too many values */
+            talloc_free(values);
+            return EINVAL;
+        }
+
+        errno = 0;
+        val = strtol(values[0], NULL, 0);
+        if (errno) {
+            talloc_free(values);
+            return errno;
+        }
+
+        if (val < INT_MIN || val > INT_MAX) {
+            talloc_free(values);
+            return ERANGE;
+        }
+
+    } else {
+        val = defval;
+    }
+
+    talloc_free(values);
+
+    *result = (int)val;
+    return EOK;
+}
+
 static int confdb_test(struct confdb_ctx *cdb)
 {
     char **values;
