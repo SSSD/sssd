@@ -44,6 +44,8 @@ void CatchChild(void);
 void CatchChildLeaveStatus(void);
 
 /* from memory.c */
-//TALLOC_CTX *talloc_takeover(TALLOC_CTX *mem_ctx, void *ptr, int (*destructor)(void *), const char *type);
-TALLOC_CTX *talloc_takeover(TALLOC_CTX *mem_ctx, void *ptr, int (*destructor)(void **));
+TALLOC_CTX *sssd_mem_takeover(TALLOC_CTX *mem_ctx,
+                              void *ptr,
+                              int (*destructor)(void **));
+
 #endif /* __SSSD_UTIL_H__ */
