@@ -32,6 +32,10 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 
+/* ping time cannot be less then once every few seconds or the
+ * monitor will get crazy hammering children with messages */
+#define MONITOR_MIN_PING_TIME 2
+
 struct mt_conn {
     struct sbus_conn_ctx *conn_ctx;
     struct mt_svc *svc_ptr;
@@ -257,10 +261,12 @@ int get_monitor_config(struct mt_ctx *ctx)
 
     ret = confdb_get_int(ctx->cdb, ctx,
                          "config.services.monitor", "servicePingTime",
-                         -1, &ctx->service_ping_time);
+                         MONITOR_MIN_PING_TIME, &ctx->service_ping_time);
     if (ret != EOK) {
         return ret;
     }
+    if (ctx->service_ping_time < MONITOR_MIN_PING_TIME)
+        ctx->service_ping_time = MONITOR_MIN_PING_TIME;
 
     ret = confdb_get_param(ctx->cdb, ctx,
                            "config.services", "activeServices",
