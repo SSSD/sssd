@@ -14,3 +14,9 @@ cn: nss
 description: NSS Responder Configuration
 unixSocket: /var/lib/sss/pipes/nss
 
+dn: cn=monitor,cn=services,cn=config
+cn: monitor
+description: Monitor Configuration
+sbusTimeout: 10
+sbusAddress: unix:path=/var/lib/sss/pipes/private/dbus
+servicePingTime: 10
