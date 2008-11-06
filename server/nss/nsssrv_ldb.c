@@ -600,7 +600,7 @@ int nss_ldb_initgroups(TALLOC_CTX *mem_ctx,
     return LDB_SUCCESS;
 }
 
-#define NSS_LDB_CONF_SECTION "config.services.nss"
+#define NSS_LDB_CONF_SECTION "config/services/nss"
 
 static int nss_ldb_read_var(TALLOC_CTX *tmp_ctx,
                             struct confdb_ctx *cdb,

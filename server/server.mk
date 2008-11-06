@@ -8,6 +8,7 @@ SERVER_OBJ = \
     util/signal.o \
     util/become_daemon.o \
     util/memory.o \
+    util/btreemap.o \
     confdb/confdb.o \
     nss/nsssrv.o \
     nss/nsssrv_packet.o \

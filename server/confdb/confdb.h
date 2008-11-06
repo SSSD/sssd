@@ -45,3 +45,11 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 int confdb_init(TALLOC_CTX *mem_ctx,
                 struct event_context *ev,
                 struct confdb_ctx **cdb_ctx);
+
+int confdb_get_domains(struct confdb_ctx *cdb,
+                       TALLOC_CTX *mem_ctx,
+                       char ***values);
+int confdb_get_domain_basedn(struct confdb_ctx *cdb,
+                             TALLOC_CTX *mem_ctx,
+                             const char *domain,
+                             char **basedn);

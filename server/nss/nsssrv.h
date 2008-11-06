@@ -50,6 +50,7 @@ struct nss_ctx {
     struct confdb_ctx *cdb;
     char *sock_name;
     struct nss_sbus_ctx *ns_ctx;
+    struct btreemap *domain_map;
 };
 
 struct cli_ctx {

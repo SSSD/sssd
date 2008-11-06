@@ -112,7 +112,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     int ret;
 
     ret = confdb_get_string(ctx->cdb, ctx,
-                            "config.services.monitor", "sbusAddress",
+                            "config/services/monitor", "sbusAddress",
                             DEFAULT_SBUS_ADDRESS, &sbus_address);
     if (ret != EOK) {
         return ret;
@@ -253,14 +253,14 @@ int get_monitor_config(struct mt_ctx *ctx)
     int ret;
 
     ret = confdb_get_int(ctx->cdb, ctx,
-                         "config.services.monitor", "sbusTimeout",
+                         "config/services/monitor", "sbusTimeout",
                          -1, &ctx->service_id_timeout);
     if (ret != EOK) {
         return ret;
     }
 
     ret = confdb_get_int(ctx->cdb, ctx,
-                         "config.services.monitor", "servicePingTime",
+                         "config/services/monitor", "servicePingTime",
                          MONITOR_MIN_PING_TIME, &ctx->service_ping_time);
     if (ret != EOK) {
         return ret;
@@ -269,7 +269,7 @@ int get_monitor_config(struct mt_ctx *ctx)
         ctx->service_ping_time = MONITOR_MIN_PING_TIME;
 
     ret = confdb_get_param(ctx->cdb, ctx,
-                           "config.services", "activeServices",
+                           "config/services", "activeServices",
                            &ctx->services);
 
     if (ctx->services[0] == NULL) {

@@ -38,9 +38,12 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
+#include "util/btreemap.h"
 
 static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
+static int nss_init_domains(struct nss_ctx *nctx);
+static int _domain_comparator(void *key1, void *key2);
 
 struct sbus_method nss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, provide_identity},
@@ -250,7 +253,7 @@ static int nss_sbus_init(struct nss_ctx *nctx)
     int ret;
 
     ret = confdb_get_string(nctx->cdb, nctx,
-                            "config.services.monitor", "sbusAddress",
+                            "config/services/monitor", "sbusAddress",
                             DEFAULT_SBUS_ADDRESS, &sbus_address);
     if (ret != EOK) {
         return ret;
@@ -313,7 +316,7 @@ static int set_unix_socket(struct nss_ctx *nctx)
     int ret;
 
     ret = confdb_get_string(nctx->cdb, nctx,
-                            "config.services.nss", "unixSocket",
+                            "config/services/nss", "unixSocket",
                             SSS_NSS_SOCKET_NAME, &nctx->sock_name);
     if (ret != EOK) {
         return ret;
@@ -363,6 +366,51 @@ failed:
     return EIO;
 }
 
+static int _domain_comparator(void *key1, void *key2)
+{
+    return strcmp((char *)key1, (char *)key2);
+}
+
+static int nss_init_domains(struct nss_ctx *nctx)
+{
+    char **domains;
+    char *basedn;
+    TALLOC_CTX *tmp_ctx;
+    int ret, i;
+    int retval;
+
+    tmp_ctx = talloc_new(nctx);
+    ret = confdb_get_domains(nctx->cdb, tmp_ctx, &domains);
+    if (ret != EOK) {
+        retval = ret;
+        goto done;
+    }
+
+    i = 0;
+    while (domains[i] != NULL) {
+        DEBUG(3, ("Adding domain %s to the map\n", domains[i]));
+        /* Look up the appropriate basedn for this domain */
+        ret = confdb_get_domain_basedn(nctx->cdb, tmp_ctx, domains[i], &basedn);
+        DEBUG(3, ("BaseDN: %s\n", basedn));
+        btreemap_set_value(&nctx->domain_map, domains[i], basedn, _domain_comparator);
+        i++;
+    }
+    if (i == 0) {
+        /* No domains configured!
+         * Note: this should never happen, since LOCAL should
+         * always be configured */
+        DEBUG(0, ("No domains configured on this client!\n"));
+        retval = EINVAL;
+        goto done;
+    }
+
+    retval = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return retval;
+}
+
 void nss_task_init(struct task_server *task)
 {
     struct nss_ctx *nctx;
@@ -381,6 +429,12 @@ void nss_task_init(struct task_server *task)
     ret = confdb_init(task, task->event_ctx, &nctx->cdb);
     if (ret != EOK) {
         task_server_terminate(task, "fatal error initializing confdb\n");
+        return;
+    }
+
+    ret = nss_init_domains(nctx);
+    if (ret != EOK) {
+        task_server_terminate(task, "fatal error setting up domain map\n");
         return;
     }
 

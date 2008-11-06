@@ -27,6 +27,8 @@
 #include "util/util.h"
 #define CONFDB_VERSION "0.1"
 #define CONFDB_FILE "/var/lib/sss/db/config.ldb"
+#define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
+#define CONFDB_DOMAIN_ATTR "cn"
 
 #define CONFDB_ZERO_CHECK_OR_JUMP(var, ret, err, label) do { \
     if (!var) { \
@@ -67,15 +69,15 @@ static int parse_section(TALLOC_CTX *mem_ctx, const char *section,
     const char *s;
     int l, ret;
 
-    /* section must be a non null string and must not start with '.' */
-    if (!section || !*section || *section == '.') return EINVAL;
+    /* section must be a non null string and must not start with '/' */
+    if (!section || !*section || *section == '/') return EINVAL;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
     s = section;
     l = 0;
-    while ((p = strchrnul(s, '.'))) {
+    while ((p = strchrnul(s, '/'))) {
         if (l == 0) {
             dn = talloc_asprintf(tmp_ctx, "cn=%s", s);
             l = 3 + (p-s);
@@ -445,4 +447,89 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     *cdb_ctx = cdb;
 
     return EOK;
+}
+
+int confdb_get_domains(struct confdb_ctx *cdb,
+                       TALLOC_CTX *mem_ctx,
+                       char ***values)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    struct ldb_result *res;
+    struct ldb_message_element *el;
+    int ret, i;
+    const char *attrs[] = {CONFDB_DOMAIN_ATTR, NULL};
+    char **vals;
+    int val_count;
+
+    tmp_ctx = talloc_new(mem_ctx);
+
+    dn = ldb_dn_new(tmp_ctx,cdb->ldb, CONFDB_DOMAIN_BASEDN);
+    if (!dn) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
+                     LDB_SCOPE_ONELEVEL, attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    val_count = 1;
+    vals = talloc(mem_ctx, char *);
+    if (!vals) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    i = 0;
+    while (i < res->count) {
+        el = ldb_msg_find_element(res->msgs[i], CONFDB_DOMAIN_ATTR);
+        if (el && el->num_values > 0) {
+            if (el->num_values > 1) {
+                DEBUG(0, ("Error, domains should not have multivalued cn\n"));
+                ret = EINVAL;
+                goto done;
+            }
+            val_count++;
+            vals = talloc_realloc(mem_ctx, vals, char *, val_count);
+            if (!vals) {
+                DEBUG(0, ("realloc failed\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+            /* should always be strings so this should be safe */
+            struct ldb_val v = el->values[0];
+            vals[i] = talloc_strndup(vals, (char *)v.data, v.length);
+            if (!vals[i]) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+        i++;
+    }
+    vals[i] = NULL;
+
+    *values = vals;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int confdb_get_domain_basedn(struct confdb_ctx *cdb,
+                             TALLOC_CTX *mem_ctx,
+                             const char *domain,
+                             char **basedn)
+{
+    char *section;
+    int ret;
+
+    section = talloc_asprintf(mem_ctx, "config/domains/%s", domain);
+    ret = confdb_get_string(cdb, mem_ctx, section, "basedn", "cn=local", basedn);
+    
+    talloc_free(section);
+    return ret;
 }

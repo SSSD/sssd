@@ -20,3 +20,21 @@ description: Monitor Configuration
 sbusTimeout: 10
 sbusAddress: unix:path=/var/lib/sss/pipes/private/dbus
 servicePingTime: 10
+
+dn: cn=domains,cn=config
+cn: domains
+description: Domains served by SSSD
+
+dn: cn=LOCAL,cn=domains,cn=config
+cn: LOCAL
+description: Reserved domain for local configurations
+provider: local
+basedn: cn=local
+
+dn: cn=EXAMPLE.COM,cn=domains,cn=config
+cn: EXAMPLE.COM
+description: Example domain served by IPA
+provider: ipa
+server: ipaserver1.example.com
+server: ipabackupserver.example.com
+basedn: cn=EXAMPLE.COM,cn=ipa,cn=remote
