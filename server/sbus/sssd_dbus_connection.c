@@ -31,7 +31,8 @@ struct sbus_conn_timeout_ctx {
     struct sbus_conn_ctx *top;
 };
 
-static int _method_list_contains_path(struct sbus_method_ctx *list, struct sbus_method_ctx *method);
+static int _method_list_contains_path(struct sbus_method_ctx *list,
+                                      struct sbus_method_ctx *method);
 static void sbus_unreg_object_paths(struct sbus_conn_ctx *dct_ctx);
 
 static void sbus_dispatch(struct event_context *ev,
@@ -43,9 +44,7 @@ static void sbus_dispatch(struct event_context *ev,
     DBusConnection *conn;
     int ret;
 
-    if (data == NULL) {
-        return;
-    }
+    if (data == NULL) return;
 
     dct_ctx = talloc_get_type(data, struct sbus_conn_ctx);
 
@@ -54,7 +53,7 @@ static void sbus_dispatch(struct event_context *ev,
 
     if((dct_ctx->disconnect) || (!dbus_connection_get_is_connected(conn))) {
         DEBUG(0,("Connection is not open for dispatching.\n"));
-        /* 
+        /*
          * Free the connection object.
          * This will invoke the destructor for the connection
          */
@@ -81,7 +80,7 @@ static void sbus_dispatch(struct event_context *ev,
         if (new_event == NULL) {
             DEBUG(0,("Could not add dispatch event!\n"));
 
-            /* TODO: Calling exit here is bad */ 
+            /* TODO: Calling exit here is bad */
             exit(1);
         }
     }
@@ -145,7 +144,9 @@ static dbus_bool_t sbus_add_conn_watch(DBusWatch *watch, void *data)
     if (event_flags == 0)
         return FALSE;
 
-    DEBUG(2,("%lX: %d, %d=%s\n", watch, conn_w_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
+    DEBUG(2,("%lX: %d, %d=%s\n",
+             watch, conn_w_ctx->fd, event_flags,
+             event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
     /* Add the file descriptor to the event loop */
     conn_w_ctx->fde = event_add_fd(conn_w_ctx->top->ev, conn_w_ctx,
@@ -242,7 +243,8 @@ void sbus_toggle_conn_timeout(DBusTimeout *timeout, void *data)
  * timed event to perform the dispatch during the next iteration
  * through the mainloop
  */
-static void sbus_conn_wakeup_main(void *data) {
+static void sbus_conn_wakeup_main(void *data)
+{
     struct sbus_conn_ctx *dct_ctx;
     struct timeval tv;
     struct timed_event *te;
@@ -280,13 +282,13 @@ int sbus_add_connection(TALLOC_CTX *ctx,
     dt_ctx->connection_type = connection_type;
     dt_ctx->disconnect = 0;
     /* This will be replaced on the first call to sbus_conn_add_method_ctx() */
-    dt_ctx->method_ctx_list = NULL; 
-    
+    dt_ctx->method_ctx_list = NULL;
+
     /*
      * Set the default destructor
-     * Connections can override this with 
+     * Connections can override this with
      * sbus_conn_set_destructor
-     */ 
+     */
     sbus_conn_set_destructor(dt_ctx, NULL);
 
     /* Set up DBusWatch functions */
@@ -316,7 +318,7 @@ int sbus_add_connection(TALLOC_CTX *ctx,
     dbus_connection_set_wakeup_main_function(dt_ctx->conn,
                                              sbus_conn_wakeup_main,
                                              dt_ctx, NULL);
-    
+
     /* Set up any method_contexts passed in */
 
     /* Attempt to dispatch immediately in case of opportunistic
@@ -335,8 +337,9 @@ int sbus_add_connection(TALLOC_CTX *ctx,
 /*int sbus_new_connection(struct sbus_method_ctx *ctx, const char *address,
                              DBusConnection **connection,
                              sbus_conn_destructor_fn destructor)*/
-int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *address,
-                        struct sbus_conn_ctx **dct_ctx, 
+int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
+                        const char *address,
+                        struct sbus_conn_ctx **dct_ctx,
                         sbus_conn_destructor_fn destructor)
 {
     DBusConnection *dbus_conn;
@@ -353,13 +356,14 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *a
         return EIO;
     }
 
-    ret = sbus_add_connection(ctx, ev, dbus_conn, dct_ctx, SBUS_CONN_TYPE_SHARED);
+    ret = sbus_add_connection(ctx, ev, dbus_conn,
+                              dct_ctx, SBUS_CONN_TYPE_SHARED);
     if (ret != EOK) {
         /* FIXME: release resources */
     }
 
     dbus_connection_set_exit_on_disconnect((*dct_ctx)->conn, FALSE);
-    
+
     /* Set connection destructor */
     sbus_conn_set_destructor(*dct_ctx, destructor);
 
@@ -377,16 +381,16 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev, const char *a
  * this will reset the connection to the default destructor.
  */
 void sbus_conn_set_destructor(struct sbus_conn_ctx *dct_ctx,
-        sbus_conn_destructor_fn destructor) {
-    if (!dct_ctx) {
-        return;
-    }
-    
+                              sbus_conn_destructor_fn destructor)
+{
+    if (!dct_ctx) return;
+
     dct_ctx->destructor = destructor;
     /* TODO: Should we try to handle the talloc_destructor too? */
 }
 
-int sbus_default_connection_destructor(void *ctx) {
+int sbus_default_connection_destructor(void *ctx)
+{
     struct sbus_conn_ctx *dct_ctx;
     dct_ctx = talloc_get_type(ctx, struct sbus_conn_ctx);
 
@@ -402,11 +406,10 @@ int sbus_default_connection_destructor(void *ctx) {
         DEBUG(0,("Critical Error, connection_type is neither shared nor private!\n"));
         return -1;
     }
-    
+
     /* Remove object path */
     /* TODO: Remove object paths */
-    
-    
+
     dbus_connection_unref(dct_ctx->conn);
     return 0;
 }
@@ -416,11 +419,13 @@ int sbus_default_connection_destructor(void *ctx) {
  * Utility function to retreive the DBusConnection object
  * from a sbus_conn_ctx
  */
-DBusConnection *sbus_get_connection(struct sbus_conn_ctx *dct_ctx) {
+DBusConnection *sbus_get_connection(struct sbus_conn_ctx *dct_ctx)
+{
     return dct_ctx->conn;
 }
 
-void sbus_disconnect (struct sbus_conn_ctx *dct_ctx) {
+void sbus_disconnect (struct sbus_conn_ctx *dct_ctx)
+{
     if (dct_ctx == NULL) {
         return;
     }
@@ -428,12 +433,12 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx) {
     DEBUG(2,("Disconnecting %lX\n", dct_ctx->conn));
     dbus_connection_ref(dct_ctx->conn);
         dct_ctx->disconnect = 1;
-        
+
         /* Invoke the custom destructor, if it exists */
         if(dct_ctx->destructor) {
             dct_ctx->destructor(dct_ctx);
         }
-        
+
         /* Unregister object paths */
         sbus_unreg_object_paths(dct_ctx);
 
@@ -448,7 +453,7 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx) {
 
         /* Disable dispatch status function */
         dbus_connection_set_dispatch_status_function(dct_ctx->conn, NULL, NULL, NULL);
-        
+
         /* Disable wakeup main function */
         dbus_connection_set_wakeup_main_function(dct_ctx->conn, NULL, NULL, NULL);
 
@@ -496,7 +501,7 @@ static DBusHandlerResult message_handler(DBusConnection *conn,
         }
         /* FIXME: check if we didn't find any matching method */
     }
-    
+
     DEBUG(2, ("Method %s complete. Reply was %srequested.\n", method, reply?"":"not "));
 
     if (reply) {
@@ -511,13 +516,15 @@ static DBusHandlerResult message_handler(DBusConnection *conn,
 /* Adds a new D-BUS path message handler to the connection
  * Note: this must be a unique path.
  */
-int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx, struct sbus_method_ctx *method_ctx) {
+int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
+                             struct sbus_method_ctx *method_ctx)
+{
     DBusObjectPathVTable *connection_vtable;
     dbus_bool_t dbret;
     if (!method_ctx) {
         return EINVAL;
     }
-    
+
     if (_method_list_contains_path(dct_ctx->method_ctx_list, method_ctx)) {
         return EINVAL;
     }
@@ -531,38 +538,42 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx, struct sbus_method_c
     } else {
         connection_vtable->message_function = message_handler;
     }
-    
-    dbret = dbus_connection_register_object_path(dct_ctx->conn, method_ctx->path, connection_vtable, method_ctx);
+
+    dbret = dbus_connection_register_object_path(dct_ctx->conn, method_ctx->path,
+                                                 connection_vtable, method_ctx);
     if (!dbret) {
-        return ENOMEM; 
+        return ENOMEM;
     }
-    
+
     return EOK;
 }
 
-static int _method_list_contains_path(struct sbus_method_ctx *list, struct sbus_method_ctx *method) {
+static int _method_list_contains_path(struct sbus_method_ctx *list,
+                                      struct sbus_method_ctx *method)
+{
     struct sbus_method_ctx *iter;
-    
+
     if (!list || !method) {
         return 0; /* FALSE */
     }
-    
+
     iter = list;
     while (iter != NULL) {
         if (strcmp(iter->path, method->path) == 0)
             return 1; /* TRUE */
-        
+
         iter = iter->next;
     }
-    
+
     return 0; /* FALSE */
 }
 
-static void sbus_unreg_object_paths(struct sbus_conn_ctx *dct_ctx) {
+static void sbus_unreg_object_paths(struct sbus_conn_ctx *dct_ctx)
+{
     struct sbus_method_ctx *iter = dct_ctx->method_ctx_list;
     struct sbus_method_ctx *purge;
-    
-    while(iter != NULL) {
+
+    while (iter != NULL) {
         dbus_connection_unregister_object_path(dct_ctx->conn, iter->path);
         DLIST_REMOVE(dct_ctx->method_ctx_list, iter);
         purge = iter;
