@@ -466,18 +466,21 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx)
 /* messsage_handler
  * Receive messages and process them
  */
-static DBusHandlerResult message_handler(DBusConnection *conn,
+DBusHandlerResult sbus_message_handler(DBusConnection *conn,
                                          DBusMessage *message,
                                          void *user_data)
 {
-    struct sbus_method_ctx *ctx;
+    struct sbus_message_handler_ctx *ctx;
     const char *method;
     const char *path;
     const char *msg_interface;
     DBusMessage *reply = NULL;
     int i, ret;
 
-    ctx = talloc_get_type(user_data, struct sbus_method_ctx);
+    if (!user_data) {
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+    ctx = talloc_get_type(user_data, struct sbus_message_handler_ctx);
 
     method = dbus_message_get_member(message);
     path = dbus_message_get_path(message);
@@ -487,14 +490,14 @@ static DBusHandlerResult message_handler(DBusConnection *conn,
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     /* Validate the method interface */
-    if (strcmp(msg_interface, ctx->interface) != 0)
+    if (strcmp(msg_interface, ctx->method_ctx->interface) != 0)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     /* Validate the D-BUS path */
-    if (strcmp(path, ctx->path) == 0) {
-        for (i = 0; ctx->methods[i].method != NULL; i++) {
-            if (strcmp(method, ctx->methods[i].method) == 0) {
-                ret = ctx->methods[i].fn(message, ctx, &reply);
+    if (strcmp(path, ctx->method_ctx->path) == 0) {
+        for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
+            if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
+                ret = ctx->method_ctx->methods[i].fn(message, ctx, &reply);
                 /* FIXME: check error */
                 break;
             }
@@ -520,8 +523,10 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
                              struct sbus_method_ctx *method_ctx)
 {
     DBusObjectPathVTable *connection_vtable;
+    struct sbus_message_handler_ctx *msg_handler_ctx;
+
     dbus_bool_t dbret;
-    if (!method_ctx) {
+    if (!dct_ctx||!method_ctx) {
         return EINVAL;
     }
 
@@ -529,18 +534,29 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
         return EINVAL;
     }
 
+    if (method_ctx->message_handler == NULL) {
+        return EINVAL;
+    }
+
     DLIST_ADD(dct_ctx->method_ctx_list, method_ctx);
 
     /* Set up the vtable for the object path */
     connection_vtable = talloc_zero(dct_ctx, DBusObjectPathVTable);
-    if (method_ctx->message_handler) {
-        connection_vtable->message_function = method_ctx->message_handler;
-    } else {
-        connection_vtable->message_function = message_handler;
+    if (!connection_vtable) {
+        return ENOMEM;
     }
+    connection_vtable->message_function = method_ctx->message_handler;
+
+    msg_handler_ctx = talloc_zero(dct_ctx, struct sbus_message_handler_ctx);
+    if (!msg_handler_ctx) {
+        talloc_free(connection_vtable);
+        return ENOMEM;
+    }
+    msg_handler_ctx->conn_ctx = dct_ctx;
+    msg_handler_ctx->method_ctx = method_ctx;
 
     dbret = dbus_connection_register_object_path(dct_ctx->conn, method_ctx->path,
-                                                 connection_vtable, method_ctx);
+                                                 connection_vtable, msg_handler_ctx);
     if (!dbret) {
         return ENOMEM;
     }

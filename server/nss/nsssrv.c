@@ -288,6 +288,7 @@ static int nss_sbus_init(struct nss_ctx *nctx)
         return ENOMEM;
     }
     srv_sm_ctx->methods = nss_sbus_methods;
+    srv_sm_ctx->message_handler = sbus_message_handler;
     sbus_conn_add_method_ctx(ns_ctx->scon_ctx, srv_sm_ctx);
 
     /* set up client stuff */

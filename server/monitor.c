@@ -138,7 +138,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
         return ENOMEM;
     }
     sd_ctx->methods = monitor_methods;
-    sd_ctx->message_handler = NULL; /* Use the default message_handler */
+    sd_ctx->message_handler = sbus_message_handler; /* Use the default message_handler */
 
     ret = sbus_new_server(ctx->ev, sd_ctx, sbus_address, dbus_service_init, ctx);
 

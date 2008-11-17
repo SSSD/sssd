@@ -182,6 +182,7 @@ int main (int argc, const char *argv[])
     service_methods->interface = talloc_strdup(service_methods, SERVICE_INTERFACE);
     service_methods->path = talloc_strdup(service_methods, SERVICE_PATH);
     service_methods->methods = monitor_service_methods;
+    service_methods->message_handler = sbus_message_handler;
     sbus_conn_add_method_ctx(test_ctx->dct_ctx, service_methods);
 
     /* Enter the main loop (and hopefully never return) */

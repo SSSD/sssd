@@ -52,17 +52,15 @@ struct sbus_method {
 
 struct sbus_method_ctx {
     struct sbus_method_ctx *prev, *next;
-    /*struct event_context *ev;*/
     char *interface;
     char *path;
-
-    /* If a non-default message_handler is desired, set it in this
-     * object before calling sbus_conn_add_method_ctx()
-     * Otherwise it will default to message_handler() in
-     * sssd_dbus_connection.c
-     */
     DBusObjectPathMessageFunction message_handler;
     struct sbus_method *methods;
+};
+
+struct sbus_message_handler_ctx {
+    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_method_ctx *method_ctx;
 };
 
 /* Server Functions */
@@ -86,5 +84,11 @@ void sbus_disconnect(struct sbus_conn_ctx *conn_ctx);
 void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data);
 int sbus_conn_add_method_ctx(struct sbus_conn_ctx *conn_ctx,
                              struct sbus_method_ctx *method_ctx);
+
+/* Default message handler
+ * Should be usable for most cases */
+DBusHandlerResult sbus_message_handler(DBusConnection *conn,
+                                  DBusMessage *message,
+                                  void *user_data);
 
 #endif /* _SSSD_DBUS_H_*/
