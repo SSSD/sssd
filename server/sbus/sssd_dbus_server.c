@@ -56,7 +56,7 @@ struct dbus_srv_timeout_ctx {
     struct sbus_srv_ctx *top;
 };
 
-static int sbus_server_destructor(void **server);
+static int sbus_server_destructor(void *ctx);
 
 /*
  * dbus_server_read_write_handler
@@ -209,7 +209,7 @@ static void sbus_server_init_new_connection(DBusServer *server,
     int ret;
 
     DEBUG(3,("Entering.\n"));
-    srv_ctx = talloc_get_type(data,struct sbus_srv_ctx);
+    srv_ctx = talloc_get_type(data, struct sbus_srv_ctx);
     if (srv_ctx == NULL) {
         return;
     }
@@ -259,7 +259,6 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
 {
     struct sbus_srv_ctx *srv_ctx;
     DBusServer *dbus_server;
-    DBusServer **dbus_server_talloc;
     DBusError dbus_error;
     dbus_bool_t dbret;
 
@@ -280,13 +279,13 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
         return ENOMEM;
     }
 
-    dbus_server_talloc = sssd_mem_takeover(ctx, dbus_server,
-                                           sbus_server_destructor);
     srv_ctx->ev = ev;
     srv_ctx->server = dbus_server;
     srv_ctx->sd_ctx = ctx;
     srv_ctx->init_fn = init_fn;
     srv_ctx->init_pvt_data = init_pvt_data;
+
+    talloc_set_destructor((TALLOC_CTX *)srv_ctx, sbus_server_destructor);
 
     /* Set up D-BUS new connection handler */
     dbus_server_set_new_connection_function(srv_ctx->server,
@@ -322,8 +321,9 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
     return EOK;
 }
 
-static int sbus_server_destructor(void **server)
+static int sbus_server_destructor(void *ctx)
 {
-    dbus_server_disconnect(*server);
+    struct sbus_srv_ctx *srv_ctx = talloc_get_type(ctx, struct sbus_srv_ctx);
+    dbus_server_disconnect(srv_ctx->server);
     return 0;
 }

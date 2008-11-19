@@ -82,6 +82,7 @@ int sbus_default_connection_destructor(void *ctx);
 DBusConnection *sbus_get_connection(struct sbus_conn_ctx *conn_ctx);
 void sbus_disconnect(struct sbus_conn_ctx *conn_ctx);
 void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data);
+void *sbus_conn_get_private_data(struct sbus_conn_ctx *conn_ctx);
 int sbus_conn_add_method_ctx(struct sbus_conn_ctx *conn_ctx,
                              struct sbus_method_ctx *method_ctx);
 

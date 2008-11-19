@@ -602,3 +602,8 @@ void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data)
 {
     conn_ctx->pvt_data = pvt_data;
 }
+
+void *sbus_conn_get_private_data(struct sbus_conn_ctx *conn_ctx)
+{
+    return conn_ctx->pvt_data;
+}
