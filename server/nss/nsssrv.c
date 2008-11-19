@@ -272,6 +272,7 @@ static int nss_sbus_init(struct nss_ctx *nctx)
         talloc_free(ns_ctx);
         return ret;
     }
+
     dbus_conn = sbus_get_connection(ns_ctx->scon_ctx);
     dbus_connection_set_exit_on_disconnect(dbus_conn, TRUE);
 

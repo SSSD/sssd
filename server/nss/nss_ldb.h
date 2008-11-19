@@ -1,5 +1,7 @@
 /* nss_ldb private header file */
 
+#define NSS_LDB_CONF_SECTION "config/services/nss"
+
 #define NSS_DEF_LDB_PATH "/var/lib/sss/db/sssd.ldb"
 
 #define NSS_DEF_USER_BASE "cn=users,cn=local"
