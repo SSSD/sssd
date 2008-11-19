@@ -16,7 +16,8 @@ SERVER_OBJ = \
     nss/nsssrv_ldb.o \
     sbus/sssd_dbus_common.o \
     sbus/sssd_dbus_connection.o \
-    sbus/sssd_dbus_server.o
+    sbus/sssd_dbus_server.o \
+	providers/data_provider.o
 
 CLIENT_OBJ = \
     sbus/sssd_dbus_common.o \

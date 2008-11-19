@@ -33,6 +33,7 @@
 #include "../ldb/include/ldb.h"
 #include "service.h"
 #include "confdb/confdb.h"
+#include "providers/providers.h"
 #include "monitor.h"
 
 extern void monitor_task_init(struct task_server *task);
@@ -214,6 +215,7 @@ int main(int argc, const char *argv[])
 
 	/* Services */
 	register_server_service("nss", nss_task_init);
+	register_server_service("dp", dp_task_init);
 
     /* the monitor starts the services */
     status = start_monitor(mem_ctx, event_ctx, confdb_ctx);

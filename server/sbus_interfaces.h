@@ -40,3 +40,9 @@
 
 #define DEFAULT_SBUS_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus"
 
+/* Data Provider */
+
+#define DATA_PROVIDER_DBUS_INTERFACE "org.freeipa.sssd.dataprovider"
+#define DATA_PROVIDER_DBUS_PATH "/org/freeipa/sssd/dataprovider"
+
+#define DP_METHOD_CHECK_ONLINE "isOnline"

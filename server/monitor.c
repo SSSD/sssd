@@ -300,6 +300,14 @@ int start_monitor(TALLOC_CTX *mem_ctx,
     if (ret != EOK)
         return ret;
 
+    /* Initialize D-BUS Server
+     * The monitor will act as a D-BUS server for all
+     * SSSD processes */
+    ret = monitor_dbus_init(ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
     for (i = 0; ctx->services[i]; i++) {
 
         svc = talloc_zero(ctx, struct mt_svc);
@@ -320,14 +328,6 @@ int start_monitor(TALLOC_CTX *mem_ctx,
         DLIST_ADD(ctx->svc_list, svc);
 
         set_tasks_checker(svc);
-    }
-
-    /* Initialize D-BUS Server
-     * The monitor will act as a D-BUS server for all
-     * SSSD processes */
-    ret = monitor_dbus_init(ctx);
-    if (ret != EOK) {
-        return ret;
     }
 
     return EOK;
@@ -355,7 +355,8 @@ static int mt_conn_destructor(void *ptr)
  * method on the new client). The reply callback for this request
  * should set the connection destructor appropriately.
  */
-static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data) {
+static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
+{
     struct mt_ctx *ctx;
     struct mt_svc *svc;
     struct mt_conn *mt_conn;
