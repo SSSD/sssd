@@ -8,11 +8,16 @@ dn: cn=services,cn=config
 cn: services
 description: Local service configuration
 activeServices: nss
+activeServices: dp
 
 dn: cn=nss,cn=services,cn=config
 cn: nss
 description: NSS Responder Configuration
 unixSocket: /var/lib/sss/pipes/nss
+
+dn: cn=dp,cn=services,cn=config
+cn: dp
+description: Data Provider Configuration
 
 dn: cn=monitor,cn=services,cn=config
 cn: monitor
