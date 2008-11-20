@@ -29,7 +29,7 @@
 #include "ldb.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
-#define DATA_PROVIDER_SERVICE_NAME "data-provider"
+#define DATA_PROVIDER_SERVICE_NAME "dp"
 #define DATA_PROVIDER_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus-dp"
 
 #define DATA_PROVIDER_DEF_DB_FILE "/var/lib/sss/db/sssd.ldb"

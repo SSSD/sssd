@@ -34,7 +34,7 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 
-static int start_service(const char *name, pid_t *retpid);
+static int start_service(const char *name, const char *command, pid_t *retpid);
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
@@ -52,7 +52,8 @@ struct mt_svc {
     struct mt_conn *mt_conn;
     struct mt_ctx *mt_ctx;
 
-    const char *name;
+    char *command;
+    char *name;
     pid_t pid;
 
     int restarts;
@@ -223,7 +224,7 @@ static void tasks_check_handler(struct event_context *ev,
             return;
         }
 
-        ret = start_service(svc->name, &svc->pid);
+        ret = start_service(svc->name, svc->command, &svc->pid);
         if (ret != EOK) {
             DEBUG(0,("Failed to restart service '%s'\n", svc->name));
             talloc_free(svc);
@@ -293,6 +294,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 {
     struct mt_ctx *ctx;
     struct mt_svc *svc;
+    char *path;
     int ret, i;
 
     ctx = talloc_zero(mem_ctx, struct mt_ctx);
@@ -325,7 +327,21 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         svc->name = ctx->services[i];
         svc->mt_ctx = ctx;
 
-        ret = start_service(svc->name, &svc->pid);
+        path = talloc_asprintf(svc, "config/services/%s", svc->name);
+        if (!path) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
+
+        ret = confdb_get_string(cdb, svc, path, "command", NULL, &svc->command);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to start service '%s'\n", svc->name));
+            talloc_free(svc);
+            continue;
+        }
+        talloc_free(path);
+
+        ret = start_service(svc->name, svc->command, &svc->pid);
         if (ret != EOK) {
             DEBUG(0,("Failed to start service '%s'\n", svc->name));
             talloc_free(svc);
@@ -666,8 +682,107 @@ static int service_check_alive(struct mt_svc *svc)
     return ECHILD;
 }
 
+static void free_args(char **args)
+{
+    int i;
 
-static int start_service(const char *name, pid_t *retpid)
+    if (args) {
+        for (i = 0; args[i]; i++) free(args[i]);
+        free(args);
+    }
+}
+
+
+/* parse a string into arguments.
+ * arguments are separated by a space
+ * '\' is an escape character and can be used only to escape
+ * itself or the white space.
+ */
+static char **parse_args(const char *str)
+{
+    const char *p;
+    char **ret, **r;
+    char *tmp;
+    int num;
+    int i, e;
+
+    tmp = malloc(strlen(str) + 1);
+    if (!tmp) return NULL;
+
+    ret = NULL;
+    num = 0;
+    e = 0;
+    i = 0;
+    p = str;
+    while (*p) {
+        switch (*p) {
+        case '\\':
+            if (e) {
+                tmp[i] = '\\';
+                i++;
+                e = 0;
+            } else {
+                e = 1;
+            }
+            break;
+        case ' ':
+            if (e) {
+                tmp[i] = ' ';
+                i++;
+                e = 0;
+            } else {
+                tmp[i] = '\0';
+                i++;
+            }
+            break;
+        default:
+            if (e) {
+                tmp[i] = '\\';
+                i++;
+                e = 0;
+            }
+            tmp[i] = *p;
+            i++;
+            break;
+        }
+
+        p++;
+
+        /* check if this was the last char */
+        if (*p == '\0') {
+            if (e) {
+                tmp[i] = '\\';
+                i++;
+                e = 0;
+            }
+            tmp[i] = '\0';
+            i++;
+        }
+        if (tmp[i-1] != '\0' || strlen(tmp) == 0) {
+            /* check next char and skip multiple spaces */
+            continue;
+        }
+
+        r = realloc(ret, (num + 2) * sizeof(char *));
+        if (!r) goto fail;
+        ret = r;
+        ret[num+1] = NULL;
+        ret[num] = strdup(tmp);
+        if (!ret[num]) goto fail;
+        num++;
+        i = 0;
+    }
+
+    free(tmp);
+    return ret;
+
+fail:
+    free(tmp);
+    free_args(ret);
+    return NULL;
+}
+
+static int start_service(const char *name, const char *command, pid_t *retpid)
 {
     char **args;
     pid_t pid;
@@ -685,11 +800,7 @@ static int start_service(const char *name, pid_t *retpid)
 
     /* child */
 
-    args = calloc(4, sizeof(char *));
-    asprintf(&args[0], "sssd[%s]", name);
-    args[1] = strdup("-s");
-    args[2] = strdup(name);
-    if (!args[0] || !args[1] || !args[2]) exit(2);
+    args = parse_args(command);
     execvp("./sbin/sssd", args);
     exit(1);
 }
