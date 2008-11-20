@@ -413,49 +413,45 @@ done:
     return retval;
 }
 
-void nss_task_init(struct task_server *task)
+int nss_process_init(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct confdb_ctx *cdb)
 {
     struct nss_ctx *nctx;
     int ret;
 
-    task_server_set_title(task, "sssd[nsssrv]");
-
-    nctx = talloc_zero(task, struct nss_ctx);
+    nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
-        task_server_terminate(task, "fatal error initializing nss_ctx\n");
-        return;
+        DEBUG(0, ("fatal error initializing nss_ctx\n"));
+        return ENOMEM;
     }
-    nctx->ev = task->event_ctx;
-    nctx->task = task;
-
-    ret = confdb_init(task, task->event_ctx, &nctx->cdb);
-    if (ret != EOK) {
-        task_server_terminate(task, "fatal error initializing confdb\n");
-        return;
-    }
+    nctx->ev = ev;
+    nctx->cdb = cdb;
 
     ret = nss_init_domains(nctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error setting up domain map\n");
-        return;
+        DEBUG(0, ("fatal error setting up domain map\n"));
+        return ret;
     }
 
     ret = nss_sbus_init(nctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error setting up message bus\n");
-        return;
+        DEBUG(0, ("fatal error setting up message bus\n"));
+        return ret;
     }
 
-    ret = nss_ldb_init(nctx, nctx->ev, nctx->cdb, &nctx->lctx);
+    ret = nss_ldb_init(nctx, ev, cdb, &nctx->lctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error initializing nss_ctx\n");
-        return;
+        DEBUG(0, ("fatal error initializing nss_ctx\n"));
+        return ret;
     }
 
     /* after all initializations we are ready to listen on our socket */
     ret = set_unix_socket(nctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error initializing socket\n");
-        return;
+        DEBUG(0, ("fatal error initializing socket\n"));
+        return ret;
     }
+
+    return EOK;
 }

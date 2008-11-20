@@ -113,7 +113,7 @@ static dbus_bool_t sbus_add_srv_watch(DBusWatch *watch, void *data)
     if (flags & DBUS_WATCH_WRITABLE) {
         event_flags |= EVENT_FD_WRITE;
     }
-    DEBUG(2,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
+    DEBUG(5,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
     svw_ctx->fde = event_add_fd(dt_ctx->ev, svw_ctx, svw_ctx->fd,
                                 event_flags, sbus_srv_read_write_handler,
@@ -208,24 +208,24 @@ static void sbus_server_init_new_connection(DBusServer *server,
     struct sbus_method_ctx *iter;
     int ret;
 
-    DEBUG(3,("Entering.\n"));
+    DEBUG(5,("Entering.\n"));
     srv_ctx = talloc_get_type(data, struct sbus_srv_ctx);
     if (srv_ctx == NULL) {
         return;
     }
 
-    DEBUG(3,("Adding connection %lX.\n", conn));
+    DEBUG(5,("Adding connection %lX.\n", conn));
     ret = sbus_add_connection(srv_ctx, srv_ctx->ev, conn,
                               &conn_ctx, SBUS_CONN_TYPE_PRIVATE);
     if (ret != 0) {
         dbus_connection_close(conn);
-        DEBUG(3,("Closing connection (failed setup)"));
+        DEBUG(5,("Closing connection (failed setup)"));
         return;
     }
 
     dbus_connection_ref(conn);
 
-    DEBUG(2,("Got a connection\n"));
+    DEBUG(5,("Got a connection\n"));
 
     /* Set up global methods */
     iter = srv_ctx->sd_ctx;
@@ -266,12 +266,12 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
     dbus_error_init(&dbus_error);
     dbus_server = dbus_server_listen(address, &dbus_error);
     if (!dbus_server) {
-        DEBUG(0,("dbus_server_listen failed! (name=%s, message=%s)\n",
+        DEBUG(1,("dbus_server_listen failed! (name=%s, message=%s)\n",
                  dbus_error.name, dbus_error.message));
         return EIO;
     }
 
-    DEBUG(2, ("D-BUS Server listening on %s\n",
+    DEBUG(3, ("D-BUS Server listening on %s\n",
               dbus_server_get_address(dbus_server)));
 
     srv_ctx = talloc_zero(ev, struct sbus_srv_ctx);
@@ -299,7 +299,7 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
                                             sbus_toggle_srv_watch,
                                             srv_ctx, NULL);
     if (!dbret) {
-        DEBUG(0, ("Error setting up D-BUS server watch functions"));
+        DEBUG(4, ("Error setting up D-BUS server watch functions"));
         talloc_free(srv_ctx);
         return EIO;
     }
@@ -311,7 +311,7 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
                                               sbus_toggle_srv_timeout,
                                               srv_ctx, NULL);
     if (!dbret) {
-        DEBUG(0,("Error setting up D-BUS server timeout functions"));
+        DEBUG(4,("Error setting up D-BUS server timeout functions"));
         dbus_server_set_watch_functions(srv_ctx->server,
                                         NULL, NULL, NULL, NULL, NULL);
         talloc_free(srv_ctx);

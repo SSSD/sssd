@@ -22,7 +22,7 @@ struct timeval _dbus_timeout_get_interval_tv(int interval) {
 void sbus_remove_watch(DBusWatch *watch, void *data) {
     struct fd_event *fde;
 
-    DEBUG(2, ("%lX\n", watch));
+    DEBUG(5, ("%lX\n", watch));
     fde = talloc_get_type(dbus_watch_get_data(watch), struct fd_event);
 
     /* Freeing the event object will remove it from the event loop */

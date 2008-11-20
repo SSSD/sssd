@@ -2,8 +2,6 @@ SERVER_OBJ = \
     server.o \
     monitor.o \
     process.o \
-    service.o \
-    service_task.o \
     util/debug.o \
     util/signal.o \
     util/become_daemon.o \

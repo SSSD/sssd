@@ -58,7 +58,6 @@ struct dp_sbus_ctx {
 
 struct dp_ctx {
     struct event_context *ev;
-    struct task_server *task;
     struct confdb_ctx *cdb;
     struct ldb_context *ldb;
     struct dp_sbus_ctx *sbus_ctx;

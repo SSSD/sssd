@@ -43,7 +43,6 @@ struct nss_sbus_ctx {
 
 struct nss_ctx {
     struct event_context *ev;
-    struct task_server *task;
     struct fd_event *lfde;
     int lfd;
     struct nss_ldb_ctx *lctx;
@@ -76,7 +75,7 @@ struct cli_request {
 
 /* from nsssrv_packet.c */
 int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
-		   enum sss_nss_command cmd,
+                   enum sss_nss_command cmd,
                    struct nss_packet **rpacket);
 int nss_packet_grow(struct nss_packet *packet, size_t size);
 int nss_packet_recv(struct nss_packet *packet, int fd);

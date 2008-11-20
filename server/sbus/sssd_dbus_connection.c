@@ -49,10 +49,10 @@ static void sbus_dispatch(struct event_context *ev,
     dct_ctx = talloc_get_type(data, struct sbus_conn_ctx);
 
     conn = dct_ctx->conn;
-    DEBUG(3, ("conn: %lX\n", conn));
+    DEBUG(4, ("conn: %lX\n", conn));
 
     if((dct_ctx->disconnect) || (!dbus_connection_get_is_connected(conn))) {
-        DEBUG(0,("Connection is not open for dispatching.\n"));
+        DEBUG(4,("Connection is not open for dispatching.\n"));
         /*
          * Free the connection object.
          * This will invoke the destructor for the connection
@@ -67,7 +67,7 @@ static void sbus_dispatch(struct event_context *ev,
      */
     ret = dbus_connection_get_dispatch_status(conn);
     if (ret != DBUS_DISPATCH_COMPLETE) {
-        DEBUG(2,("Dispatching.\n"));
+        DEBUG(4,("Dispatching.\n"));
         dbus_connection_dispatch(conn);
     }
 
@@ -78,7 +78,7 @@ static void sbus_dispatch(struct event_context *ev,
     if (ret != DBUS_DISPATCH_COMPLETE) {
         new_event = event_add_timed(ev, dct_ctx, tv, sbus_dispatch, dct_ctx);
         if (new_event == NULL) {
-            DEBUG(0,("Could not add dispatch event!\n"));
+            DEBUG(2,("Could not add dispatch event!\n"));
 
             /* TODO: Calling exit here is bad */
             exit(1);
@@ -97,7 +97,7 @@ static void sbus_conn_read_write_handler(struct event_context *ev,
     struct sbus_conn_watch_ctx *conn_w_ctx;
     conn_w_ctx = talloc_get_type(data, struct sbus_conn_watch_ctx);
 
-    DEBUG(0,("Connection is open for read/write.\n"));
+    DEBUG(4,("Connection is open for read/write.\n"));
     dbus_connection_ref(conn_w_ctx->top->conn);
     if (flags & EVENT_FD_READ) {
         dbus_watch_handle(conn_w_ctx->watch, DBUS_WATCH_READABLE);
@@ -144,7 +144,7 @@ static dbus_bool_t sbus_add_conn_watch(DBusWatch *watch, void *data)
     if (event_flags == 0)
         return FALSE;
 
-    DEBUG(2,("%lX: %d, %d=%s\n",
+    DEBUG(5,("%lX: %d, %d=%s\n",
              watch, conn_w_ctx->fd, event_flags,
              event_flags==EVENT_FD_READ?"READ":"WRITE"));
 
@@ -256,7 +256,8 @@ static void sbus_conn_wakeup_main(void *data)
     te = event_add_timed(dct_ctx->ev, dct_ctx,
                          tv, sbus_dispatch, dct_ctx);
     if (te == NULL) {
-        DEBUG(0,("Could not add dispatch event!\n"));
+        DEBUG(2,("Could not add dispatch event!\n"));
+        /* TODO: Calling exit here is bad */
         exit(1);
     }
 }
@@ -275,7 +276,7 @@ int sbus_add_connection(TALLOC_CTX *ctx,
     dbus_bool_t dbret;
     struct sbus_conn_ctx *dt_ctx;
 
-    DEBUG(0,("Adding connection %lX\n", dbus_conn));
+    DEBUG(5,("Adding connection %lX\n", dbus_conn));
     dt_ctx = talloc_zero(ctx, struct sbus_conn_ctx);
     dt_ctx->ev = ev;
     dt_ctx->conn = dbus_conn;
@@ -298,7 +299,7 @@ int sbus_add_connection(TALLOC_CTX *ctx,
                                                 sbus_toggle_conn_watch,
                                                 dt_ctx, NULL);
     if (!dbret) {
-        DEBUG(0,("Error setting up D-BUS connection watch functions\n"));
+        DEBUG(2,("Error setting up D-BUS connection watch functions\n"));
         return EIO;
     }
 
@@ -309,7 +310,7 @@ int sbus_add_connection(TALLOC_CTX *ctx,
                                                   sbus_toggle_conn_timeout,
                                                   dt_ctx, NULL);
     if (!dbret) {
-        DEBUG(0,("Error setting up D-BUS server timeout functions\n"));
+        DEBUG(2,("Error setting up D-BUS server timeout functions\n"));
         /* FIXME: free resources ? */
         return EIO;
     }
@@ -351,7 +352,7 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
     /* Open a shared D-BUS connection to the address */
     dbus_conn = dbus_connection_open(address, &dbus_error);
     if (!dbus_conn) {
-        DEBUG(0, ("Failed to open connection: name=%s, message=%s\n",
+        DEBUG(1, ("Failed to open connection: name=%s, message=%s\n",
                 dbus_error.name, dbus_error.message));
         return EIO;
     }
@@ -394,7 +395,7 @@ int sbus_default_connection_destructor(void *ctx)
     struct sbus_conn_ctx *dct_ctx;
     dct_ctx = talloc_get_type(ctx, struct sbus_conn_ctx);
 
-    DEBUG(3, ("Invoking default destructor on connection %lX\n", dct_ctx->conn));
+    DEBUG(5, ("Invoking default destructor on connection %lX\n", dct_ctx->conn));
     if (dct_ctx->connection_type == SBUS_CONN_TYPE_PRIVATE) {
         /* Private connections must be closed explicitly */
         dbus_connection_close(dct_ctx->conn);
@@ -403,7 +404,7 @@ int sbus_default_connection_destructor(void *ctx)
     }
     else {
         /* Critical Error! */
-        DEBUG(0,("Critical Error, connection_type is neither shared nor private!\n"));
+        DEBUG(1,("Critical Error, connection_type is neither shared nor private!\n"));
         return -1;
     }
 
@@ -430,7 +431,7 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx)
         return;
     }
 
-    DEBUG(2,("Disconnecting %lX\n", dct_ctx->conn));
+    DEBUG(5,("Disconnecting %lX\n", dct_ctx->conn));
     dbus_connection_ref(dct_ctx->conn);
         dct_ctx->disconnect = 1;
 
@@ -460,7 +461,7 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx)
         /* Finalize the connection */
         sbus_default_connection_destructor(dct_ctx);
     dbus_connection_unref(dct_ctx->conn);
-    DEBUG(2,("Disconnected %lX\n", dct_ctx->conn));
+    DEBUG(5,("Disconnected %lX\n", dct_ctx->conn));
 }
 
 /* messsage_handler
@@ -505,7 +506,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
         /* FIXME: check if we didn't find any matching method */
     }
 
-    DEBUG(2, ("Method %s complete. Reply was %srequested.\n", method, reply?"":"not "));
+    DEBUG(5, ("Method %s complete. Reply was %srequested.\n", method, reply?"":"not "));
 
     if (reply) {
         dbus_connection_send(conn, reply, NULL);

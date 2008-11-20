@@ -1,4 +1,4 @@
-/* 
+/*
    SSSD
 
    Service monitor
@@ -19,18 +19,22 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <time.h>
 #include "../events/events.h"
 #include "util/util.h"
-#include "service.h"
 #include "confdb/confdb.h"
 #include "monitor.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
+
+static int start_service(const char *name, pid_t *retpid);
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
@@ -138,7 +142,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
         return ENOMEM;
     }
     sd_ctx->methods = monitor_methods;
-    sd_ctx->message_handler = sbus_message_handler; /* Use the default message_handler */
+    sd_ctx->message_handler = sbus_message_handler;
 
     ret = sbus_new_server(ctx->ev, sd_ctx, sbus_address, dbus_service_init, ctx);
 
@@ -161,13 +165,14 @@ static void tasks_check_handler(struct event_context *ev,
         break;
 
     case ECHILD:
-        DEBUG(1,("Process is stopped!\n"));
+        DEBUG(1,("Process (%s) is stopped!\n", svc->name));
         process_alive = false;
         break;
 
     default:
         /* TODO: should we tear down it ? */
-        DEBUG(1,("Checking for service process failed!!\n"));
+        DEBUG(1,("Checking for service %s(%d) failed!!\n",
+                 svc->name, svc->pid));
         break;
     }
 
@@ -179,12 +184,12 @@ static void tasks_check_handler(struct event_context *ev,
             break;
 
         case ENXIO:
-            DEBUG(1,("Connection with child not available! (yet)\n"));
+            DEBUG(1,("Child (%s) not responding! (yet)\n", svc->name));
             break;
 
         default:
             /* TODO: should we tear it down ? */
-            DEBUG(1,("Sending a message to the service failed!!\n"));
+            DEBUG(1,("Sending a message to service (%s) failed!!\n", svc->name));
             break;
         }
 
@@ -193,7 +198,9 @@ static void tasks_check_handler(struct event_context *ev,
                 /* too long since we last heard of this process */
                 ret = kill(svc->pid, SIGUSR1);
                 if (ret != EOK) {
-                    DEBUG(0,("Sending signal to child failed! Ignore and pretend child is dead.\n"));
+                    DEBUG(0,("Sending signal to child (%s:%d) failed! "
+                             "Ignore and pretend child is dead.\n",
+                             svc->name, svc->pid));
                 }
                 process_alive = false;
             }
@@ -216,7 +223,7 @@ static void tasks_check_handler(struct event_context *ev,
             return;
         }
 
-        ret = server_service_init(svc->name, svc->mt_ctx->ev, &svc->pid);
+        ret = start_service(svc->name, &svc->pid);
         if (ret != EOK) {
             DEBUG(0,("Failed to restart service '%s'\n", svc->name));
             talloc_free(svc);
@@ -280,9 +287,9 @@ int get_monitor_config(struct mt_ctx *ctx)
     return EOK;
 }
 
-int start_monitor(TALLOC_CTX *mem_ctx,
-                  struct event_context *event_ctx,
-                  struct confdb_ctx *cdb)
+int monitor_process_init(TALLOC_CTX *mem_ctx,
+                         struct event_context *event_ctx,
+                         struct confdb_ctx *cdb)
 {
     struct mt_ctx *ctx;
     struct mt_svc *svc;
@@ -318,7 +325,7 @@ int start_monitor(TALLOC_CTX *mem_ctx,
         svc->name = ctx->services[i];
         svc->mt_ctx = ctx;
 
-        ret = server_service_init(svc->name, event_ctx, &svc->pid);
+        ret = start_service(svc->name, &svc->pid);
         if (ret != EOK) {
             DEBUG(0,("Failed to start service '%s'\n", svc->name));
             talloc_free(svc);
@@ -659,3 +666,30 @@ static int service_check_alive(struct mt_svc *svc)
     return ECHILD;
 }
 
+
+static int start_service(const char *name, pid_t *retpid)
+{
+    char **args;
+    pid_t pid;
+
+    pid = fork();
+    if (pid != 0) {
+        if (pid == -1) {
+            return ECHILD;
+        }
+
+        *retpid = pid;
+
+        return EOK;
+    }
+
+    /* child */
+
+    args = calloc(4, sizeof(char *));
+    asprintf(&args[0], "sssd[%s]", name);
+    args[1] = strdup("-s");
+    args[2] = strdup(name);
+    if (!args[0] || !args[1] || !args[2]) exit(2);
+    execvp("./sbin/sssd", args);
+    exit(1);
+}

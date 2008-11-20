@@ -367,48 +367,44 @@ done:
     return ret;
 }
 
-void dp_task_init(struct task_server *task)
+int dp_process_init(TALLOC_CTX *mem_ctx,
+                    struct event_context *ev,
+                    struct confdb_ctx *cdb)
 {
     struct dp_ctx *dpctx;
     int ret;
 
-    task_server_set_title(task, "sssd[datap]");
-
-    dpctx = talloc_zero(task, struct dp_ctx);
+    dpctx = talloc_zero(mem_ctx, struct dp_ctx);
     if (!dpctx) {
-        task_server_terminate(task, "fatal error initializing dp_ctx\n");
-        return;
+        DEBUG(0, ("fatal error initializing dp_ctx\n"));
+        return ENOMEM;
     }
-    dpctx->ev = task->event_ctx;
-    dpctx->task = task;
-
-    ret = confdb_init(task, task->event_ctx, &dpctx->cdb);
-    if (ret != EOK) {
-        task_server_terminate(task, "fatal error initializing confdb\n");
-        return;
-    }
+    dpctx->ev = ev;
+    dpctx->cdb = cdb;
 
     ret = dp_db_init(dpctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error opening database\n");
-        return;
+        DEBUG(0, ("fatal error opening database\n"));
+        return ret;
     }
 
     ret = dp_monitor_init(dpctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error setting up monitor bus\n");
-        return;
+        DEBUG(0, ("fatal error setting up monitor bus\n"));
+        return ret;
     }
 
     ret = dp_srv_init(dpctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error setting up server bus\n");
-        return;
+        DEBUG(0, ("fatal error setting up server bus\n"));
+        return ret;
     }
 
     ret = init_data_providers(dpctx);
     if (ret != EOK) {
-        task_server_terminate(task, "fatal error initializing data providers\n");
-        return;
+        DEBUG(0, ("fatal error initializing data providers\n"));
+        return ret;
     }
+
+    return EOK;
 }

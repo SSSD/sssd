@@ -6,16 +6,17 @@
 #include "replace.h"
 #include "talloc.h"
 
+extern const char *debug_prg_name;
 extern int debug_level;
 void debug_fn(const char *format, ...);
 
 #define DEBUG(level, body) do { \
     if (level <= debug_level) { \
-        debug_fn("%s[%s]: ", __location__, __FUNCTION__); \
+        debug_fn("[%s] [%s] (%d): ", \
+                 debug_prg_name, __FUNCTION__, level); \
         debug_fn body; \
     } \
 } while(0);
-#define DEBUGADD(level, body)
 
 #ifndef discard_const
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
@@ -35,6 +36,7 @@ void debug_fn(const char *format, ...);
 
 /* from become_daemon.c */
 void become_daemon(bool Fork);
+int pidfile(const char *path, const char *name);
 
 /* from signal.c */
 #include <signal.h>

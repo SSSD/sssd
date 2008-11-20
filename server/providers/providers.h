@@ -19,4 +19,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-void dp_task_init(struct task_server *task);
+int dp_process_init(TALLOC_CTX *mem_ctx,
+                    struct event_context *ev,
+                    struct confdb_ctx *cdb);

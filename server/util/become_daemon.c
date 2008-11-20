@@ -21,7 +21,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
+#define _GNU_SOURCE
+#include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -94,5 +95,67 @@ void become_daemon(bool Fork)
 	/* Close fd's 0,1,2. Needed if started by rsh */
 	close_low_fds(false);  /* Don't close stderr, let the debug system
 				  attach it to the logfile */
+}
+
+int pidfile(const char *path, const char *name)
+{
+    char pid_str[32];
+    pid_t pid;
+    char *file;
+    int fd;
+    int ret;
+
+    asprintf(&file, "%s/%s.pid", path, name);
+
+    fd = open(file, O_RDONLY, 0644);
+    if (fd != -1) {
+
+        pid_str[sizeof(pid_str) -1] = '\0';
+        ret = read(fd, pid_str, sizeof(pid_str) -1);
+        if (ret > 0) {
+            /* let's check the pid */
+
+            pid = (pid_t)atoi(pid_str);
+            if (pid != 0) {
+                errno = 0;
+                ret = kill(pid, 0);
+                if (ret != 0 && errno != ESRCH) {
+                    close(fd);
+                    free(file);
+                    return EEXIST;
+                }
+            }
+        }
+
+        /* notihng in the file or no process */
+        close(fd);
+        unlink(file);
+
+    } else {
+        if (errno != ENOENT) {
+            free(file);
+            return EIO;
+        }
+    }
+
+    fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
+    if (fd == -1) {
+        free(file);
+        return EIO;
+    }
+    free(file);
+
+    memset(pid_str, 0, sizeof(pid_str));
+    snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
+
+    ret = write(fd, pid_str, strlen(pid_str));
+    if (ret != strlen(pid_str)) {
+        close(fd);
+        return EIO;
+    }
+
+    close(fd);
+
+    return 0;
 }
 

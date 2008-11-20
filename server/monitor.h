@@ -22,8 +22,8 @@
 #ifndef _MONITOR_H_
 #define _MONITOR_H_
 
-int start_monitor(TALLOC_CTX *mem_ctx,
-                  struct event_context *event_ctx,
-                  struct confdb_ctx *cdb);
+int monitor_process_init(TALLOC_CTX *mem_ctx,
+                         struct event_context *event_ctx,
+                         struct confdb_ctx *cdb);
 
 #endif /* _MONITOR_H */

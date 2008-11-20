@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+const char *debug_prg_name = "sssd";
 int debug_level = 3;
 
 void debug_fn(const char *format, ...)
