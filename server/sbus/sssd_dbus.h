@@ -24,6 +24,8 @@
 
 struct sbus_conn_ctx;
 
+#include "dbus/dbus.h"
+
 typedef int (*sbus_msg_handler_fn)(DBusMessage *, void *, DBusMessage **);
 
 /*

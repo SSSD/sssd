@@ -39,6 +39,7 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 #include "util/btreemap.h"
+#include "util/service_helpers.h"
 
 static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
@@ -245,53 +246,21 @@ static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
 
 static int nss_sbus_init(struct nss_ctx *nctx)
 {
-    struct nss_sbus_ctx *ns_ctx;
-    DBusConnection *dbus_conn;
-    char *sbus_address;
-    int ret;
+    struct service_sbus_ctx *ss_ctx;
 
-    ret = confdb_get_string(nctx->cdb, nctx,
-                            "config/services/monitor", "sbusAddress",
-                            DEFAULT_SBUS_ADDRESS, &sbus_address);
-    if (ret != EOK) {
-        return ret;
+    /* Set up SBUS connection to the monitor */
+    ss_ctx = sssd_service_sbus_init(nctx, nctx->ev, nctx->cdb,
+    								provide_identity,
+    								reply_ping);
+    if (ss_ctx == NULL) {
+        DEBUG(0, ("Could not initialize D-BUS.\n"));
+    	return ENOMEM;
     }
 
-    ns_ctx = talloc(nctx, struct nss_sbus_ctx);
-    if (!ns_ctx) {
-        return ENOMEM;
-    }
-    ns_ctx->ev = nctx->ev;
+    /* Set up NSS-specific listeners */
+    /* None currently used */
 
-    ret = sbus_new_connection(ns_ctx, ns_ctx->ev,
-                              sbus_address,
-                              &ns_ctx->scon_ctx, NULL);
-    if (ret != EOK) {
-        talloc_free(ns_ctx);
-        return ret;
-    }
-
-    dbus_conn = sbus_get_connection(ns_ctx->scon_ctx);
-
-    /* set up handler for service methods */
-    ns_ctx->sm_ctx = talloc_zero(ns_ctx, struct sbus_method_ctx);
-    if (!ns_ctx->sm_ctx) {
-        talloc_free(ns_ctx);
-        return ENOMEM;
-    }
-    ns_ctx->sm_ctx->interface = talloc_strdup(ns_ctx->sm_ctx,
-                                              SERVICE_INTERFACE);
-    ns_ctx->sm_ctx->path = talloc_strdup(ns_ctx->sm_ctx,
-                                         SERVICE_PATH);
-    if (!ns_ctx->sm_ctx->interface || !ns_ctx->sm_ctx->path) {
-        talloc_free(ns_ctx);
-        return ENOMEM;
-    }
-    ns_ctx->sm_ctx->methods = nss_sbus_methods;
-    ns_ctx->sm_ctx->message_handler = sbus_message_handler;
-    sbus_conn_add_method_ctx(ns_ctx->scon_ctx, ns_ctx->sm_ctx);
-
-    nctx->ns_ctx = ns_ctx;
+    nctx->ss_ctx = ss_ctx;
 
     return EOK;
 }

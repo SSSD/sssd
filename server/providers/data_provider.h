@@ -50,17 +50,11 @@ struct dp_module {
     void *pvt_data;
 };
 
-struct dp_sbus_ctx {
-    struct event_context *ev;
-    struct sbus_method_ctx *sm_ctx;
-    struct sbus_conn_ctx *scon_ctx;
-};
-
 struct dp_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
     struct ldb_context *ldb;
-    struct dp_sbus_ctx *sbus_ctx;
+    struct service_sbus_ctx *ss_ctx;
     struct dp_module **modules;
 };
 

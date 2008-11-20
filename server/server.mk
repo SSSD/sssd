@@ -7,6 +7,7 @@ SERVER_OBJ = \
     util/become_daemon.o \
     util/memory.o \
     util/btreemap.o \
+    util/service_helpers.o \
     confdb/confdb.o \
     nss/nsssrv.o \
     nss/nsssrv_packet.o \

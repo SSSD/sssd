@@ -39,6 +39,7 @@
 #include "sbus_interfaces.h"
 #include "util/btreemap.h"
 #include "data_provider.h"
+#include "util/service_helpers.h"
 
 static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
@@ -86,52 +87,21 @@ static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
 {
-    struct dp_sbus_ctx *sbus_ctx;
-    DBusConnection *dbus_conn;
-    char *sbus_address;
-    int ret;
+    struct service_sbus_ctx *ss_ctx;
 
-    ret = confdb_get_string(dpctx->cdb, dpctx,
-                            "config/services/monitor", "sbusAddress",
-                            DEFAULT_SBUS_ADDRESS, &sbus_address);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    sbus_ctx = talloc(dpctx, struct dp_sbus_ctx);
-    if (!sbus_ctx) {
+    /* Set up SBUS connection to the monitor */
+    ss_ctx = sssd_service_sbus_init(dpctx, dpctx->ev, dpctx->cdb,
+                                    provide_identity,
+                                    reply_ping);
+    if (ss_ctx == NULL) {
+        DEBUG(0, ("Could not initialize D-BUS.\n"));
         return ENOMEM;
     }
-    sbus_ctx->ev = dpctx->ev;
 
-    ret = sbus_new_connection(sbus_ctx, sbus_ctx->ev,
-                              sbus_address,
-                              &sbus_ctx->scon_ctx, NULL);
-    if (ret != EOK) {
-        talloc_free(sbus_ctx);
-        return ret;
-    }
-    dbus_conn = sbus_get_connection(sbus_ctx->scon_ctx);
+    /* Set up DP-specific listeners */
+    /* None currently used */
 
-    /* set up handler for service methods */
-    sbus_ctx->sm_ctx = talloc_zero(sbus_ctx, struct sbus_method_ctx);
-    if (!sbus_ctx->sm_ctx) {
-        talloc_free(sbus_ctx);
-        return ENOMEM;
-    }
-    sbus_ctx->sm_ctx->interface = talloc_strdup(sbus_ctx->sm_ctx,
-                                                SERVICE_INTERFACE);
-    sbus_ctx->sm_ctx->path = talloc_strdup(sbus_ctx->sm_ctx,
-                                           SERVICE_PATH);
-    if (!sbus_ctx->sm_ctx->interface || !sbus_ctx->sm_ctx->path) {
-        talloc_free(sbus_ctx);
-        return ENOMEM;
-    }
-    sbus_ctx->sm_ctx->methods = mon_sbus_methods;
-    sbus_ctx->sm_ctx->message_handler = sbus_message_handler;
-    sbus_conn_add_method_ctx(sbus_ctx->scon_ctx, sbus_ctx->sm_ctx);
-
-    dpctx->sbus_ctx = sbus_ctx;
+    dpctx->ss_ctx = ss_ctx;
 
     return EOK;
 }

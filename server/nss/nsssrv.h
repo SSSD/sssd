@@ -35,12 +35,6 @@
 struct nss_ldb_ctx;
 struct getent_ctx;
 
-struct nss_sbus_ctx {
-    struct event_context *ev;
-    struct sbus_method_ctx *sm_ctx;
-    struct sbus_conn_ctx *scon_ctx;
-};
-
 struct nss_ctx {
     struct event_context *ev;
     struct fd_event *lfde;
@@ -48,7 +42,7 @@ struct nss_ctx {
     struct nss_ldb_ctx *lctx;
     struct confdb_ctx *cdb;
     char *sock_name;
-    struct nss_sbus_ctx *ns_ctx;
+    struct service_sbus_ctx *ss_ctx;
     struct btreemap *domain_map;
 };
 
