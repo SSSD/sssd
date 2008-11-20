@@ -86,8 +86,6 @@ static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
 {
-    struct sbus_method_ctx *cli_sm_ctx;
-    struct sbus_method_ctx *srv_sm_ctx;
     struct dp_sbus_ctx *sbus_ctx;
     DBusConnection *dbus_conn;
     char *sbus_address;
@@ -114,36 +112,24 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
         return ret;
     }
     dbus_conn = sbus_get_connection(sbus_ctx->scon_ctx);
-    dbus_connection_set_exit_on_disconnect(dbus_conn, TRUE);
 
     /* set up handler for service methods */
-    srv_sm_ctx = talloc_zero(sbus_ctx, struct sbus_method_ctx);
-    if (!srv_sm_ctx) {
+    sbus_ctx->sm_ctx = talloc_zero(sbus_ctx, struct sbus_method_ctx);
+    if (!sbus_ctx->sm_ctx) {
         talloc_free(sbus_ctx);
         return ENOMEM;
     }
-    srv_sm_ctx->interface = talloc_strdup(srv_sm_ctx, SERVICE_INTERFACE);
-    srv_sm_ctx->path = talloc_strdup(srv_sm_ctx, SERVICE_PATH);
-    if (!srv_sm_ctx->interface || !srv_sm_ctx->path) {
+    sbus_ctx->sm_ctx->interface = talloc_strdup(sbus_ctx->sm_ctx,
+                                                SERVICE_INTERFACE);
+    sbus_ctx->sm_ctx->path = talloc_strdup(sbus_ctx->sm_ctx,
+                                           SERVICE_PATH);
+    if (!sbus_ctx->sm_ctx->interface || !sbus_ctx->sm_ctx->path) {
         talloc_free(sbus_ctx);
         return ENOMEM;
     }
-    srv_sm_ctx->methods = mon_sbus_methods;
-    sbus_conn_add_method_ctx(sbus_ctx->scon_ctx, srv_sm_ctx);
-
-    /* set up client stuff */
-    cli_sm_ctx = talloc(sbus_ctx, struct sbus_method_ctx);
-    if (!cli_sm_ctx) {
-        talloc_free(sbus_ctx);
-        return ENOMEM;
-    }
-    cli_sm_ctx->interface = talloc_strdup(cli_sm_ctx, MONITOR_DBUS_INTERFACE);
-    cli_sm_ctx->path = talloc_strdup(cli_sm_ctx, MONITOR_DBUS_PATH);
-    if (!cli_sm_ctx->interface || !cli_sm_ctx->path) {
-        talloc_free(sbus_ctx);
-        return ENOMEM;
-    }
-    sbus_ctx->sm_ctx = cli_sm_ctx;
+    sbus_ctx->sm_ctx->methods = mon_sbus_methods;
+    sbus_ctx->sm_ctx->message_handler = sbus_message_handler;
+    sbus_conn_add_method_ctx(sbus_ctx->scon_ctx, sbus_ctx->sm_ctx);
 
     dpctx->sbus_ctx = sbus_ctx;
 

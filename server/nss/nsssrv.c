@@ -245,8 +245,6 @@ static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
 
 static int nss_sbus_init(struct nss_ctx *nctx)
 {
-    struct sbus_method_ctx *cli_sm_ctx;
-    struct sbus_method_ctx *srv_sm_ctx;
     struct nss_sbus_ctx *ns_ctx;
     DBusConnection *dbus_conn;
     char *sbus_address;
@@ -274,37 +272,24 @@ static int nss_sbus_init(struct nss_ctx *nctx)
     }
 
     dbus_conn = sbus_get_connection(ns_ctx->scon_ctx);
-    dbus_connection_set_exit_on_disconnect(dbus_conn, TRUE);
 
     /* set up handler for service methods */
-    srv_sm_ctx = talloc_zero(ns_ctx, struct sbus_method_ctx);
-    if (!srv_sm_ctx) {
+    ns_ctx->sm_ctx = talloc_zero(ns_ctx, struct sbus_method_ctx);
+    if (!ns_ctx->sm_ctx) {
         talloc_free(ns_ctx);
         return ENOMEM;
     }
-    srv_sm_ctx->interface = talloc_strdup(srv_sm_ctx, SERVICE_INTERFACE);
-    srv_sm_ctx->path = talloc_strdup(srv_sm_ctx, SERVICE_PATH);
-    if (!srv_sm_ctx->interface || !srv_sm_ctx->path) {
+    ns_ctx->sm_ctx->interface = talloc_strdup(ns_ctx->sm_ctx,
+                                              SERVICE_INTERFACE);
+    ns_ctx->sm_ctx->path = talloc_strdup(ns_ctx->sm_ctx,
+                                         SERVICE_PATH);
+    if (!ns_ctx->sm_ctx->interface || !ns_ctx->sm_ctx->path) {
         talloc_free(ns_ctx);
         return ENOMEM;
     }
-    srv_sm_ctx->methods = nss_sbus_methods;
-    srv_sm_ctx->message_handler = sbus_message_handler;
-    sbus_conn_add_method_ctx(ns_ctx->scon_ctx, srv_sm_ctx);
-
-    /* set up client stuff */
-    cli_sm_ctx = talloc(ns_ctx, struct sbus_method_ctx);
-    if (!cli_sm_ctx) {
-        talloc_free(ns_ctx);
-        return ENOMEM;
-    }
-    cli_sm_ctx->interface = talloc_strdup(cli_sm_ctx, MONITOR_DBUS_INTERFACE);
-    cli_sm_ctx->path = talloc_strdup(cli_sm_ctx, MONITOR_DBUS_PATH);
-    if (!cli_sm_ctx->interface || !cli_sm_ctx->path) {
-        talloc_free(ns_ctx);
-        return ENOMEM;
-    }
-    ns_ctx->sm_ctx = cli_sm_ctx;
+    ns_ctx->sm_ctx->methods = nss_sbus_methods;
+    ns_ctx->sm_ctx->message_handler = sbus_message_handler;
+    sbus_conn_add_method_ctx(ns_ctx->scon_ctx, ns_ctx->sm_ctx);
 
     nctx->ns_ctx = ns_ctx;
 
