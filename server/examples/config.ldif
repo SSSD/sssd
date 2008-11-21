@@ -14,10 +14,12 @@ dn: cn=nss,cn=services,cn=config
 cn: nss
 description: NSS Responder Configuration
 unixSocket: /var/lib/sss/pipes/nss
+command: /usr/sbin/sssd -s nss
 
 dn: cn=dp,cn=services,cn=config
 cn: dp
 description: Data Provider Configuration
+command: /usr/sbin/sssd -s dp
 
 dn: cn=monitor,cn=services,cn=config
 cn: monitor
