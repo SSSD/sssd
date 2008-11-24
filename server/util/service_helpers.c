@@ -50,7 +50,8 @@ struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
     ss_ctx = talloc_zero(ctx, struct service_sbus_ctx);
     if (ss_ctx == NULL) return NULL;
 
-    default_monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s", PIPE_PATH,SSSD_SERVICE_PIPE);
+    default_monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s",
+                                              PIPE_PATH, SSSD_SERVICE_PIPE);
     if (default_monitor_address == NULL) goto error;
 
     ret = confdb_get_string(cdb, ctx,

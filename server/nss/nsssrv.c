@@ -41,6 +41,8 @@
 #include "util/btreemap.h"
 #include "util/service_helpers.h"
 
+#define SSS_NSS_PIPE_NAME "nss"
+
 static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
 static int nss_init_domains(struct nss_ctx *nctx);
@@ -269,14 +271,22 @@ static int nss_sbus_init(struct nss_ctx *nctx)
 static int set_unix_socket(struct nss_ctx *nctx)
 {
     struct sockaddr_un addr;
+    char *default_pipe;
     int ret;
+
+    default_pipe = talloc_asprintf(nctx, "%s/%s", PIPE_PATH, SSS_NSS_PIPE_NAME);
+    if (!default_pipe) {
+        return ENOMEM;
+    }
 
     ret = confdb_get_string(nctx->cdb, nctx,
                             "config/services/nss", "unixSocket",
-                            SSS_NSS_SOCKET_NAME, &nctx->sock_name);
+                            default_pipe, &nctx->sock_name);
     if (ret != EOK) {
+        talloc_free(default_pipe);
         return ret;
     }
+    talloc_free(default_pipe);
 
     nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (nctx->lfd == -1) {

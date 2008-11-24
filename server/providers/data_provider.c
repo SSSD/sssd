@@ -203,7 +203,8 @@ static int dp_srv_init(struct dp_ctx *dpctx)
     }
 
     DEBUG(3, ("Initializing Data Provider D-BUS Server\n"));
-    default_dp_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s", PIPE_PATH, DATA_PROVIDER_PIPE);
+    default_dp_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s",
+                                         PIPE_PATH, DATA_PROVIDER_PIPE);
     if (default_dp_address == NULL) {
         ret = ENOMEM;
         goto done;

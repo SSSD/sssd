@@ -30,7 +30,7 @@
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"
-#define DATA_PROVIDER_PIPE "sbus-dp"
+#define DATA_PROVIDER_PIPE "private/sbus-dp"
 
 #define DATA_PROVIDER_DB_FILE "sssd.ldb"
 #define DATA_PROVIDER_DB_CONF_SEC "config/services/nss"

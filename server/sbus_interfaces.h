@@ -38,7 +38,7 @@
 #define SERVICE_METHOD_IDENTITY "getIdentity"
 #define SERVICE_METHOD_PING "ping"
 
-#define SSSD_SERVICE_PIPE "sbus-monitor"
+#define SSSD_SERVICE_PIPE "private/sbus-monitor"
 
 /* Data Provider */
 
