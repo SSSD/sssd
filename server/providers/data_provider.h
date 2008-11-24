@@ -41,9 +41,14 @@ struct dp_mod_ops {
     int (*check_online)(void *pvt_data, int *reply);
 };
 
-typedef int (*sssm_init_fn_t)(TALLOC_CTX *, struct dp_mod_ops **, void **);
+#define MOD_OFFLINE 0x0000
+#define MOD_ONLINE  0x0001
 
-struct dp_module {
+struct dp_mod_ctx;
+typedef int (*sssm_init_fn_t)(struct dp_mod_ctx *);
+
+struct dp_mod_ctx {
+    struct dp_ctx *dp_ctx;
     const char *name;
     const char *domain;
     struct dp_mod_ops *ops;
@@ -55,7 +60,7 @@ struct dp_ctx {
     struct confdb_ctx *cdb;
     struct ldb_context *ldb;
     struct service_sbus_ctx *ss_ctx;
-    struct dp_module **modules;
+    struct dp_mod_ctx **modules;
 };
 
 struct dp_client {

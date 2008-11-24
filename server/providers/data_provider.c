@@ -226,7 +226,7 @@ static int check_online(DBusMessage *message, void *data, DBusMessage **r)
 static int init_data_providers(struct dp_ctx *dpctx)
 {
     TALLOC_CTX *tmp_ctx;
-    struct dp_module *module;
+    struct dp_mod_ctx *module;
     char **doms;
     char *sec;
     char *mod_name;
@@ -291,22 +291,23 @@ static int init_data_providers(struct dp_ctx *dpctx)
             goto done;
         }
 
-        dpctx->modules = talloc_array(tmp_ctx, struct dp_module *, num_mods +1);
+        dpctx->modules = talloc_array(tmp_ctx, struct dp_mod_ctx *, num_mods +1);
         if (!dpctx->modules) {
             ret = ENOMEM;
             goto done;
         }
-        module = talloc(dpctx->modules, struct dp_module);
+        module = talloc(dpctx->modules, struct dp_mod_ctx);
         if (!module) {
             ret = ENOMEM;
             goto done;
         }
         dpctx->modules[num_mods] = module;
 
+        module->dp_ctx = dpctx;
         module->domain = talloc_strdup(dpctx->modules, doms[i]);
         module->name = talloc_steal(dpctx->modules, mod_name);
 
-        ret = mod_init_fn(module, &module->ops, &module->pvt_data);
+        ret = mod_init_fn(module);
         if (ret != EOK) {
             DEBUG(0, ("Error (%d) in module (%s) initialization!\n",
                       ret, mod_name));
