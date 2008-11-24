@@ -59,7 +59,7 @@ OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 
 headers = .h
 
-BINS = sbin/sssd sbin/sssd-dbus-client
+BINS = sbin/sssd
 
 DIRS = sbin
 

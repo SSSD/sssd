@@ -21,8 +21,7 @@ SERVER_OBJ = \
 CLIENT_OBJ = \
     sbus/sssd_dbus_common.o \
     sbus/sssd_dbus_connection.o \
-    util/debug.o \
-    sbus/tests/test_client.o
+    util/debug.o
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
@@ -30,6 +29,3 @@ install:: all
 
 sbin/sssd: $(SERVER_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(LDFLAGS) $(LIBS)
-
-sbin/sssd-dbus-client: $(CLIENT_OBJ)
-	$(CC) -o sbin/sssd-dbus-client $(CLIENT_OBJ) $(LDFLAGS) $(LIBS)
