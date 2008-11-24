@@ -1,4 +1,4 @@
-/* 
+/*
  SSSD
 
  Service monitor
@@ -27,7 +27,7 @@
 #include "service_helpers.h"
 #include "sbus_interfaces.h"
 
-/* 
+/*
  * Set up an SBUS connection to the monitor
  */
 struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
@@ -42,7 +42,7 @@ struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
     char *sbus_address;
     DBusConnection *conn;
     int ret;
-    
+
     ctx = talloc_new(mem_ctx);
     if (ctx == NULL) goto error;
 

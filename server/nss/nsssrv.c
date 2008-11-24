@@ -250,11 +250,11 @@ static int nss_sbus_init(struct nss_ctx *nctx)
 
     /* Set up SBUS connection to the monitor */
     ss_ctx = sssd_service_sbus_init(nctx, nctx->ev, nctx->cdb,
-    								provide_identity,
-    								reply_ping);
+                                    provide_identity,
+                                    reply_ping);
     if (ss_ctx == NULL) {
         DEBUG(0, ("Could not initialize D-BUS.\n"));
-    	return ENOMEM;
+        return ENOMEM;
     }
 
     /* Set up NSS-specific listeners */
@@ -309,15 +309,15 @@ static int set_unix_socket(struct nss_ctx *nctx)
     nctx->lfde = event_add_fd(nctx->ev, nctx, nctx->lfd,
                               EVENT_FD_READ, accept_fd_handler, nctx);
 
-	/* we want default permissions on created files to be very strict,
-	   so set our umask to 0177 */
-	umask(0177);
+    /* we want default permissions on created files to be very strict,
+       so set our umask to 0177 */
+    umask(0177);
     return EOK;
 
 failed:
-	/* we want default permissions on created files to be very strict,
-	   so set our umask to 0177 */
-	umask(0177);
+    /* we want default permissions on created files to be very strict,
+       so set our umask to 0177 */
+    umask(0177);
     close(nctx->lfd);
     return EIO;
 }

@@ -1,4 +1,4 @@
-/* 
+/*
  SSSD
 
  Service monitor
@@ -27,7 +27,7 @@ struct service_sbus_ctx {
     struct sbus_conn_ctx *scon_ctx;
 };
 
-/* 
+/*
  * Set up an SBUS connection to the monitor
  */
 struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
