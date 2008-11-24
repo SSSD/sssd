@@ -675,6 +675,7 @@ static int nss_ldb_read_conf(TALLOC_CTX *mem_ctx,
 {
     struct nss_ldb_ctx *ctx;
     TALLOC_CTX *tmp_ctx;
+    char *default_ldb_path;
     int ret;
 
     tmp_ctx = talloc_new(mem_ctx);
@@ -687,8 +688,15 @@ static int nss_ldb_read_conf(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    default_ldb_path = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, NSS_DEF_LDB_FILE);
+    if (default_ldb_path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
     nss_ldb_read_var(tmp_ctx, cdb, ctx, "ldbFile",
-                     NSS_DEF_LDB_PATH, &ctx->ldb_file);
+                     default_ldb_path, &ctx->ldb_file);
+    DEBUG(3, ("NSS LDB Cache Path: %s\n", ctx->ldb_file));
 
     nss_ldb_read_var(tmp_ctx, cdb, ctx, "userBase",
                      NSS_DEF_USER_BASE, &ctx->user_base);

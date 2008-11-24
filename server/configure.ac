@@ -29,6 +29,12 @@ EXTRA_OBJ=""
 m4_include(build_macros.m4)
 BUILD_WITH_SHARED_BUILD_DIR
 
+m4_include(conf_macros.m4)
+WITH_DB_PATH
+WITH_PLUGIN_PATH
+WITH_PID_PATH
+WITH_PIPE_PATH
+
 m4_include(pkg.m4)
 m4_include(libpopt.m4)
 m4_include(libtalloc.m4)

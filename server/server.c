@@ -108,8 +108,6 @@ static void server_stdin_handler(struct event_context *event_ctx, struct fd_even
 	}
 }
 
-#define PID_PATH "/var/run/"
-
 /*
  main server.
 */

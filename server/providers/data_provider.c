@@ -108,26 +108,44 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
 
 static int dp_db_init(struct dp_ctx *dpctx)
 {
+    TALLOC_CTX *ctx;
     char *ldb_file;
+    char *default_db_file;
     int ret;
 
-    ret = confdb_get_string(dpctx->cdb, dpctx,
+    ctx = talloc_new(dpctx);
+    if(ctx == NULL) {
+        return ENOMEM;
+    }
+
+    default_db_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, DATA_PROVIDER_DB_FILE);
+    if (default_db_file == NULL) {
+        talloc_free(ctx);
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(dpctx->cdb, ctx,
                             DATA_PROVIDER_DB_CONF_SEC, "ldbFile",
-                            DATA_PROVIDER_DEF_DB_FILE, &ldb_file);
+                            default_db_file, &ldb_file);
     if (ret != EOK) {
+        talloc_free(ctx);
         return ret;
     }
 
-    dpctx->ldb = ldb_init(dpctx, dpctx->ev);
+    dpctx->ldb = ldb_init(ctx, dpctx->ev);
     if (!dpctx->ldb) {
+        talloc_free(ctx);
         return EIO;
     }
 
     ret = ldb_connect(dpctx->ldb, ldb_file, 0, NULL);
     if (ret != LDB_SUCCESS) {
-        talloc_free(dpctx->ldb);
+        talloc_free(ctx);
         return EIO;
     }
+
+    talloc_steal(dpctx,dpctx->ldb);
+    talloc_free(ctx);
 
     return EOK;
 }
@@ -173,44 +191,58 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
  * Set up the monitor service as a D-BUS Server */
 static int dp_srv_init(struct dp_ctx *dpctx)
 {
+    TALLOC_CTX *tmp_ctx;
     struct sbus_method_ctx *sd_ctx;
     char *dpbus_address;
+    char *default_dp_address;
     int ret;
 
-    DEBUG(3, ("Initializing Data Provider D-BUS Server\n"));
-
-    ret = confdb_get_string(dpctx->cdb, dpctx,
-                            "config/services/dataprovider", "dpbusAddress",
-                            DATA_PROVIDER_ADDRESS, &dpbus_address);
-    if (ret != EOK) {
-        return ret;
+    tmp_ctx = talloc_new(dpctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
     }
 
-    sd_ctx = talloc_zero(dpctx, struct sbus_method_ctx);
+    DEBUG(3, ("Initializing Data Provider D-BUS Server\n"));
+    default_dp_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s", PIPE_PATH, DATA_PROVIDER_PIPE);
+    if (default_dp_address == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_string(dpctx->cdb, tmp_ctx,
+                            "config/services/dataprovider", "dpbusAddress",
+                            default_dp_address, &dpbus_address);
+    if (ret != EOK) goto done;
+
+    sd_ctx = talloc_zero(tmp_ctx, struct sbus_method_ctx);
     if (!sd_ctx) {
-        talloc_free(dpbus_address);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     /* Set up globally-available D-BUS methods */
     sd_ctx->interface = talloc_strdup(sd_ctx, DATA_PROVIDER_DBUS_INTERFACE);
     if (!sd_ctx->interface) {
-        talloc_free(dpbus_address);
-        talloc_free(sd_ctx);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
     sd_ctx->path = talloc_strdup(sd_ctx, DATA_PROVIDER_DBUS_PATH);
     if (!sd_ctx->path) {
-        talloc_free(dpbus_address);
-        talloc_free(sd_ctx);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
     sd_ctx->methods = dp_sbus_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
     ret = sbus_new_server(dpctx->ev, sd_ctx, dpbus_address,
                           dbus_dp_init, dpctx);
+    if (ret != EOK) {
+        goto done;
+    }
+    talloc_steal(dpctx, sd_ctx);
 
+done:
+    talloc_free(tmp_ctx);
     return ret;
 }
 

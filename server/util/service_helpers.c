@@ -40,6 +40,7 @@ struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
     struct sbus_method_ctx *sm_ctx;
     TALLOC_CTX *ctx;
     char *sbus_address;
+    char *default_monitor_address;
     DBusConnection *conn;
     int ret;
 
@@ -49,9 +50,12 @@ struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
     ss_ctx = talloc_zero(ctx, struct service_sbus_ctx);
     if (ss_ctx == NULL) return NULL;
 
+    default_monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s", PIPE_PATH,SSSD_SERVICE_PIPE);
+    if (default_monitor_address == NULL) goto error;
+
     ret = confdb_get_string(cdb, ctx,
                             "config/services/monitor", "sbusAddress",
-                            DEFAULT_SBUS_ADDRESS, &sbus_address);
+                            default_monitor_address, &sbus_address);
     if (ret != EOK) goto error;
     ss_ctx->ev = ev;
 

@@ -28,8 +28,6 @@ void debug_fn(const char *format, ...);
 
 #define ZERO_STRUCT(x) memset((char *)&(x), 0, sizeof(x))
 
-#define PID_DIR "/var/run/sssd"
-
 #define EOK 0
 
 #include "util/dlinklist.h"

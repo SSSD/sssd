@@ -114,14 +114,23 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
 {
     struct sbus_method_ctx *sd_ctx;
     char *sbus_address;
+    char *default_monitor_address;
     int ret;
+
+    default_monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s",
+                                              PIPE_PATH, SSSD_SERVICE_PIPE);
+    if (!default_monitor_address) {
+        return ENOMEM;
+    }
 
     ret = confdb_get_string(ctx->cdb, ctx,
                             "config/services/monitor", "sbusAddress",
-                            DEFAULT_SBUS_ADDRESS, &sbus_address);
+                            default_monitor_address, &sbus_address);
     if (ret != EOK) {
+        talloc_free(default_monitor_address);
         return ret;
     }
+    talloc_free(default_monitor_address);
 
     sd_ctx = talloc_zero(ctx, struct sbus_method_ctx);
     if (!sd_ctx) {

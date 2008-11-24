@@ -30,12 +30,10 @@
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"
-#define DATA_PROVIDER_ADDRESS "unix:path=/var/lib/sss/pipes/private/dbus-dp"
+#define DATA_PROVIDER_PIPE "sbus-dp"
 
-#define DATA_PROVIDER_DEF_DB_FILE "/var/lib/sss/db/sssd.ldb"
+#define DATA_PROVIDER_DB_FILE "sssd.ldb"
 #define DATA_PROVIDER_DB_CONF_SEC "config/services/nss"
-
-#define DATA_PROVIDER_PLUGINS_PATH "/usr/lib/sssd"
 
 struct dp_mod_ops {
     int (*check_online)(void *pvt_data, int *reply);

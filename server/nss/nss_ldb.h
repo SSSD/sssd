@@ -2,7 +2,7 @@
 
 #define NSS_LDB_CONF_SECTION "config/services/nss"
 
-#define NSS_DEF_LDB_PATH "/var/lib/sss/db/sssd.ldb"
+#define NSS_DEF_LDB_FILE "sssd.ldb"
 
 #define NSS_DEF_USER_BASE "cn=users,cn=local"
 #define NSS_DEF_GROUP_BASE "cn=groups,cn=local"
