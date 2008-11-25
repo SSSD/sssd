@@ -32,7 +32,6 @@
 #include "ldb.h"
 #include "ldb_errors.h"
 #include "util/util.h"
-#include "service.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"

@@ -31,7 +31,6 @@
 #include <errno.h>
 #include "ldb.h"
 #include "util/util.h"
-#include "service.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
 #include "confdb/confdb.h"

@@ -1,7 +1,7 @@
-/* 
-   Unix SMB/CIFS implementation.
+/*
+   SSSD
 
-   Main SMB server routines
+   Servers setup routines
 
    Copyright (C) Andrew Tridgell		1992-2005
    Copyright (C) Martin Pool			2002
@@ -31,7 +31,6 @@
 #include "util/util.h"
 #include "../events/events.h"
 #include "../ldb/include/ldb.h"
-#include "service.h"
 #include "confdb/confdb.h"
 #include "providers/providers.h"
 #include "monitor.h"
