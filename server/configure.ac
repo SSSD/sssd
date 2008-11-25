@@ -12,7 +12,7 @@ AC_DEFUN([SMB_LIBRARY_ENABLE], [echo -n ""])
 AC_DEFUN([SMB_EXT_LIB], [echo -n ""])
 AC_DEFUN([SMB_ENABLE], [echo -n ""])
 AC_INIT(ldb, 0.9.2)
-AC_CONFIG_SRCDIR([server.c])
+AC_CONFIG_SRCDIR([monitor.c])
 
 AC_LIBREPLACE_ALL_CHECKS
 

@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include "popt.h"
 #include "ldb.h"
 #include "ldb_errors.h"
 #include "util/util.h"
@@ -397,3 +398,45 @@ int dp_process_init(TALLOC_CTX *mem_ctx,
 
     return EOK;
 }
+
+int main(int argc, const char *argv[])
+{
+    int opt;
+    poptContext pc;
+    struct main_context *main_ctx;
+    int ret;
+
+	struct poptOption long_options[] = {
+		POPT_AUTOHELP
+        SSSD_MAIN_OPTS
+		{ NULL }
+	};
+
+	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+	while((opt = poptGetNextOpt(pc)) != -1) {
+		switch(opt) {
+		default:
+			fprintf(stderr, "\nInvalid option %s: %s\n\n",
+				  poptBadOption(pc, 0), poptStrerror(opt));
+			poptPrintUsage(pc, stderr, 0);
+			return 1;
+		}
+	}
+
+	poptFreeContext(pc);
+
+    /* set up things like debug , signals, daemonization, etc... */
+    ret = server_setup("sssd[dp]", 0, &main_ctx);
+    if (ret != EOK) return 2;
+
+    ret = dp_process_init(main_ctx,
+                           main_ctx->event_ctx,
+                           main_ctx->confdb_ctx);
+    if (ret != EOK) return 3;
+
+    /* loop on main */
+    server_loop(main_ctx);
+
+    return 0;
+}
+

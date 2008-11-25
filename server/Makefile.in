@@ -59,7 +59,7 @@ OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 
 headers = .h
 
-BINS = sbin/sssd
+BINS = sbin/sssd sbin/sssd_nss sbin/sssd_dp
 
 DIRS = sbin
 

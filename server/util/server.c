@@ -23,6 +23,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -231,86 +232,17 @@ static void server_stdin_handler(struct event_context *event_ctx, struct fd_even
 }
 
 /*
- main server.
+ main server helpers.
 */
-int main(int argc, const char *argv[])
+int server_setup(const char *name, int flags,
+                 struct main_context **main_ctx)
 {
-    char *service = NULL;
-	bool opt_daemon = false;
-	bool opt_interactive = false;
-	int opt;
-	poptContext pc;
 	struct event_context *event_ctx;
-    struct confdb_ctx *confdb_ctx;
-    TALLOC_CTX *mem_ctx;
+    struct main_context *ctx;
 	uint16_t stdin_event_flags;
 	int ret = EOK;
-    bool is_monitor = false;
 
-    debug_prg_name = argv[0];
-
-	enum {
-		OPT_DAEMON = 1000,
-		OPT_INTERACTIVE
-	};
-	struct poptOption long_options[] = {
-		POPT_AUTOHELP
-		{"daemon", 'D', POPT_ARG_NONE, NULL, OPT_DAEMON,
-		 "Become a daemon (default)", NULL },
-		{"interactive",	'i', POPT_ARG_NONE, NULL, OPT_INTERACTIVE,
-		 "Run interactive (not a daemon)", NULL},
-		{"service",	's', POPT_ARG_STRING, &service, 0,
-		 "Executes a specific service instead of the monitor", NULL},
-		{"debug-level",	'd', POPT_ARG_INT, &debug_level, 0,
-		 "Executes a specific service instead of the monitor", NULL},
-		{ NULL }
-	};
-
-	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-	while((opt = poptGetNextOpt(pc)) != -1) {
-		switch(opt) {
-		case OPT_DAEMON:
-			opt_daemon = true;
-			break;
-		case OPT_INTERACTIVE:
-			opt_interactive = true;
-			break;
-		default:
-			fprintf(stderr, "\nInvalid option %s: %s\n\n",
-				  poptBadOption(pc, 0), poptStrerror(opt));
-			poptPrintUsage(pc, stderr, 0);
-			return 1;
-		}
-	}
-
-    if (!service) {
-        fprintf(stderr,"\nERROR: No service specified\n\n");
-        return 5;
-    }
-
-    if (strcmp(service, "monitor") == 0) is_monitor = true;
-
-    if (is_monitor) {
-        if (opt_daemon && opt_interactive) {
-            fprintf(stderr,"\nERROR: "
-                    "Option -i|--interactive is not allowed together with -D|--daemon\n\n");
-            poptPrintUsage(pc, stderr, 0);
-            return 1;
-        } else if (!opt_interactive) {
-            /* default is --daemon */
-            opt_daemon = true;
-        }
-    } else {
-        if (opt_daemon || opt_interactive) {
-            fprintf(stderr,"\nERROR: "
-                    "Options -i or -D not allowed with -s (service)\n\n");
-            poptPrintUsage(pc, stderr, 0);
-            return 1;
-        }
-
-    }
-
-	poptFreeContext(pc);
+    debug_prg_name = name;
 
 	setup_signals();
 
@@ -318,14 +250,16 @@ int main(int argc, const char *argv[])
 	   so set our umask to 0177 */
 	umask(0177);
 
-	if (opt_daemon) {
+	if (flags & FLAGS_DAEMON) {
 		DEBUG(3,("Becoming a daemon.\n"));
 		become_daemon(true);
+    }
 
-		ret = pidfile(PID_PATH, "sssd");
+    if (flags & FLAGS_PID_FILE) {
+		ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
-            fprintf(stderr, "\nERROR: PID File reports daemon already running!\n");
-            return 1;
+            DEBUG(0, ("ERROR: PID File reports daemon already running!\n"));
+            return EEXIST;
         }
 	}
 
@@ -337,19 +271,21 @@ int main(int argc, const char *argv[])
 		return 1;
 	}
 
-    mem_ctx = talloc_new(event_ctx);
-    if (mem_ctx == NULL) {
+    ctx = talloc(event_ctx, struct main_context);
+    if (ctx == NULL) {
         DEBUG(0,("Out of memory, aborting!\n"));
-        return 1;
+        return ENOMEM;
     }
 
-    ret = confdb_init(mem_ctx, event_ctx, &confdb_ctx);
+    ctx->event_ctx = event_ctx;
+
+    ret = confdb_init(ctx, event_ctx, &ctx->confdb_ctx);
     if (ret != EOK) {
         DEBUG(0,("The confdb initialization failed\n"));
-		return 1;
+		return ret;
 	}
 
-	if (opt_interactive) {
+	if (flags & FLAGS_INTERACTIVE) {
 		/* terminate when stdin goes away */
 		stdin_event_flags = EVENT_FD_READ;
 	} else {
@@ -362,39 +298,19 @@ int main(int argc, const char *argv[])
 	signal(SIGTTIN, SIG_IGN);
 #endif
 	event_add_fd(event_ctx, event_ctx, 0, stdin_event_flags,
-		     server_stdin_handler,
-		     discard_const(argv[0]));
+                 server_stdin_handler, discard_const(name));
 
-    /* What are we asked to run ? */
-    if (is_monitor) {
-        /* the monitor */
-        ret = monitor_process_init(mem_ctx, event_ctx, confdb_ctx);
+    *main_ctx = ctx;
+    return EOK;
+}
 
-    } else {
-
-        if (strcmp(service, "nss") == 0) {
-            ret = nss_process_init(mem_ctx, event_ctx, confdb_ctx);
-
-        } else if (strcmp(service, "dp") == 0) {
-            ret = dp_process_init(mem_ctx, event_ctx, confdb_ctx);
-
-        } else {
-            fprintf(stderr,
-                    "\nERROR: Unknown Service specified [%s]\n",
-                    service);
-            ret = EINVAL;
-        }
-    }
-
-    if (ret != EOK) return 3;
-
+void server_loop(struct main_context *main_ctx)
+{
 	/* wait for events - this is where smbd sits for most of its
 	   life */
-	event_loop_wait(event_ctx);
+	event_loop_wait(main_ctx->event_ctx);
 
 	/* as everything hangs off this event context, freeing it
 	   should initiate a clean shutdown of all services */
-	talloc_free(event_ctx);
-
-	return 0;
+	talloc_free(main_ctx->event_ctx);
 }

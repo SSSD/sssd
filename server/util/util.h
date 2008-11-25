@@ -10,6 +10,10 @@ extern const char *debug_prg_name;
 extern int debug_level;
 void debug_fn(const char *format, ...);
 
+#define SSSD_DEBUG_OPTS \
+		{"debug-level",	'd', POPT_ARG_INT, &debug_level, 0, \
+		 "Debug level", NULL},
+
 #define DEBUG(level, body) do { \
     if (level <= debug_level) { \
         debug_fn("[%s] [%s] (%d): ", \
@@ -30,11 +34,24 @@ void debug_fn(const char *format, ...);
 
 #define EOK 0
 
+#define SSSD_MAIN_OPTS SSSD_DEBUG_OPTS
+
+#define FLAGS_NONE 0x0000
+#define FLAGS_DAEMON 0x0001
+#define FLAGS_INTERACTIVE 0x0002
+#define FLAGS_PID_FILE 0x0004
+
+struct main_context {
+    struct event_context *event_ctx;
+    struct confdb_ctx *confdb_ctx;
+};
+
 #include "util/dlinklist.h"
 
-/* from become_daemon.c */
-void become_daemon(bool Fork);
-int pidfile(const char *path, const char *name);
+/* from server.c */
+int server_setup(const char *name, int flags,
+                 struct main_context **main_ctx);
+void server_loop(struct main_context *main_ctx);
 
 /* from signal.c */
 #include <signal.h>

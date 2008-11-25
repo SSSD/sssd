@@ -26,6 +26,7 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <time.h>
+#include "popt.h"
 #include "../events/events.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -810,6 +811,68 @@ static int start_service(const char *name, const char *command, pid_t *retpid)
     /* child */
 
     args = parse_args(command);
-    execvp("./sbin/sssd", args);
+    execvp(args[0], args);
     exit(1);
 }
+
+int main(int argc, const char *argv[])
+{
+    int opt;
+    poptContext pc;
+    int opt_daemon = 0;
+    int opt_interactive = 0;
+    int flags = 0;
+    struct main_context *main_ctx;
+    int ret;
+
+	struct poptOption long_options[] = {
+		POPT_AUTOHELP
+        SSSD_MAIN_OPTS
+		{"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0, \
+		 "Become a daemon (default)", NULL }, \
+		{"interactive",	'i', POPT_ARG_NONE, &opt_interactive, 0, \
+		 "Run interactive (not a daemon)", NULL}, \
+		{ NULL }
+	};
+
+	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+	while((opt = poptGetNextOpt(pc)) != -1) {
+		switch(opt) {
+		default:
+			fprintf(stderr, "\nInvalid option %s: %s\n\n",
+				  poptBadOption(pc, 0), poptStrerror(opt));
+			poptPrintUsage(pc, stderr, 0);
+			return 1;
+		}
+	}
+
+    if (opt_daemon && opt_interactive) {
+        fprintf(stderr, "Option -i|--interactive is not allowed together with -D|--daemon\n");
+        poptPrintUsage(pc, stderr, 0);
+        return 1;
+    }
+
+	poptFreeContext(pc);
+
+    if (opt_daemon) flags |= FLAGS_DAEMON;
+    if (opt_interactive) flags |= FLAGS_INTERACTIVE;
+
+    /* we want a pid file check */
+    flags |= FLAGS_PID_FILE;
+
+    /* set up things like debug , signals, daemonization, etc... */
+    ret = server_setup("sssd", flags, &main_ctx);
+    if (ret != EOK) return 2;
+
+    ret = monitor_process_init(main_ctx,
+                               main_ctx->event_ctx,
+                               main_ctx->confdb_ctx);
+    if (ret != EOK) return 3;
+
+    /* loop on main */
+    server_loop(main_ctx);
+
+    return 0;
+}
+
+
