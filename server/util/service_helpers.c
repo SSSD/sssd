@@ -33,8 +33,7 @@
 struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
                                                 struct event_context *ev,
                                                 struct confdb_ctx *cdb,
-                                                sbus_msg_handler_fn get_identity,
-                                                sbus_msg_handler_fn ping)
+                                                struct sbus_method *methods)
 {
     struct service_sbus_ctx *ss_ctx;
     struct sbus_method_ctx *sm_ctx;
@@ -75,22 +74,8 @@ struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
     sm_ctx->path = talloc_strdup(sm_ctx, SERVICE_PATH);
     if (!sm_ctx->interface || !sm_ctx->path) goto error;
 
-    /* Set up required monitor methods */
-    sm_ctx->methods = talloc_array(sm_ctx, struct sbus_method, 3);
-    if (sm_ctx->methods == NULL) goto error;
-
-    /* Handle getIdentity */
-    sm_ctx->methods[0].method = SERVICE_METHOD_IDENTITY;
-    sm_ctx->methods[0].fn = get_identity;
-
-    /* Handle ping */
-    sm_ctx->methods[1].method = SERVICE_METHOD_PING;
-    sm_ctx->methods[1].fn = ping;
-
-    /* Terminate the list */
-    sm_ctx->methods[2].method = NULL;
-    sm_ctx->methods[2].fn = NULL;
-
+    /* Set up required monitor methods  and handlers */
+    sm_ctx->methods = methods;
     sm_ctx->message_handler = sbus_message_handler;
     sbus_conn_add_method_ctx(ss_ctx->scon_ctx, sm_ctx);
 

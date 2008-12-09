@@ -16,6 +16,9 @@ SERVER_OBJ = \
 DP_OBJ = \
 	providers/data_provider.o
 
+DP_BE_OBJ = \
+	providers/data_provider_be.o
+
 NSSSRV_OBJ = \
     nss/nsssrv.o \
     nss/nsssrv_packet.o \
@@ -34,3 +37,6 @@ sbin/sssd_nss: $(NSSSRV_OBJ) $(UTIL_OBJ)
 
 sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd_dp $(DP_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+
+sbin/sssd_be: $(DP_BE_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)

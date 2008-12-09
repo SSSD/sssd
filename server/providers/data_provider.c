@@ -41,16 +41,57 @@
 #include "data_provider.h"
 #include "util/service_helpers.h"
 
-static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
-static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
+struct dp_backend;
+struct dp_frontend;
+
+struct dp_ctx {
+    struct event_context *ev;
+    struct confdb_ctx *cdb;
+    struct ldb_context *ldb;
+    struct service_sbus_ctx *ss_ctx;
+    struct dp_backend *be_list;
+    struct dp_frontend *fe_list;
+};
+
+struct dp_client {
+    struct dp_ctx *dpctx;
+    struct sbus_conn_ctx *conn_ctx;
+    const char *domain;
+};
+
+struct dp_backend {
+    struct dp_backend *prev;
+    struct dp_backend *next;
+    char *name;
+    char *domain;
+    struct dp_client *dpcli;
+};
+
+struct dp_frontend {
+    struct dp_frontend *prev;
+    struct dp_frontend *next;
+    char *name;
+    uint16_t flags;
+    struct dp_client *dpcli;
+};
+
+static int dp_backend_destructor(void *ctx);
+static int dp_frontend_destructor(void *ctx);
+
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method mon_sbus_methods[] = {
-    {SERVICE_METHOD_IDENTITY, provide_identity},
-    {SERVICE_METHOD_PING, reply_ping},
+    {SERVICE_METHOD_IDENTITY, service_identity},
+    {SERVICE_METHOD_PING, service_pong},
     {NULL, NULL}
 };
 
-static int provide_identity(DBusMessage *message, void *data, DBusMessage **r)
+struct sbus_method dp_sbus_methods[] = {
+    {NULL, NULL}
+};
+
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     const char *name = DATA_PROVIDER_SERVICE_NAME;
@@ -70,7 +111,7 @@ static int provide_identity(DBusMessage *message, void *data, DBusMessage **r)
     return EOK;
 }
 
-static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 {
     DBusMessage *reply;
     dbus_bool_t ret;
@@ -91,8 +132,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
 
     /* Set up SBUS connection to the monitor */
     ss_ctx = sssd_service_sbus_init(dpctx, dpctx->ev, dpctx->cdb,
-                                    provide_identity,
-                                    reply_ping);
+                                    mon_sbus_methods);
     if (ss_ctx == NULL) {
         DEBUG(0, ("Could not initialize D-BUS.\n"));
         return ENOMEM;
@@ -150,19 +190,18 @@ static int dp_db_init(struct dp_ctx *dpctx)
     return EOK;
 }
 
-static int check_online(DBusMessage *message, void *data, DBusMessage **r);
-
-struct sbus_method dp_sbus_methods[] = {
-    { DP_METHOD_CHECK_ONLINE, check_online },
-    { NULL, NULL }
-};
+static void identity_check(DBusPendingCall *pending, void *data);
+static void online_check(DBusPendingCall *pending, void *data);
 
 static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
 {
     struct dp_ctx *dpctx;
     struct dp_client *dpcli;
+    DBusMessage *msg;
+    DBusPendingCall *pending_reply;
     DBusConnection *conn;
     DBusError dbus_error;
+    dbus_bool_t dbret;
 
     dpctx = talloc_get_type(data, struct dp_ctx);
     conn = sbus_get_connection(conn_ctx);
@@ -178,13 +217,184 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
         return ENOMEM;
     }
     dpcli->dpctx = dpctx;
-    dpcli->conn = conn;
+    dpcli->conn_ctx = conn_ctx;
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
     sbus_conn_set_private_data(conn_ctx, dpcli);
 
+    /* identify the connecting client */
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_CLI_PATH,
+                                       DP_CLI_INTERFACE,
+                                       DP_CLI_METHOD_IDENTITY);
+    if (msg == NULL) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_free(conn_ctx);
+        return ENOMEM;
+    }
+    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            -1 /* TODO: set timeout */);
+    if (!dbret) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         * We'll drop it using the default destructor.
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        talloc_free(conn_ctx);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, identity_check, dpcli, NULL);
+    dbus_message_unref(msg);
+
     return EOK;
+}
+
+static void identity_check(DBusPendingCall *pending, void *data)
+{
+    struct dp_backend *dpbe;
+    struct dp_frontend *dpfe;
+    struct dp_client *dpcli;
+    DBusMessage *reply;
+    DBusConnection *conn;
+    DBusError dbus_error;
+    dbus_uint16_t cli_ver;
+    dbus_uint16_t cli_type;
+    char *cli_name;
+    char *cli_domain;
+    dbus_bool_t ret;
+    int type;
+
+    dpcli = talloc_get_type(data, struct dp_client);
+    conn = sbus_get_connection(dpcli->conn_ctx);
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("Serious error. A reply callback was called but no reply was received and no timeout occurred\n"));
+
+        /* Destroy this connection */
+        sbus_disconnect(dpcli->conn_ctx);
+        return;
+    }
+
+    type = dbus_message_get_type(reply);
+    switch (type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        ret = dbus_message_get_args(reply, &dbus_error,
+                                    DBUS_TYPE_UINT16, &cli_type,
+                                    DBUS_TYPE_UINT16, &cli_ver,
+                                    DBUS_TYPE_STRING, &cli_name,
+                                    DBUS_TYPE_STRING, &cli_domain,
+                                    DBUS_TYPE_INVALID);
+        if (!ret) {
+            DEBUG(1,("Failed, to parse message, killing connection\n"));
+            sbus_disconnect(dpcli->conn_ctx);
+            return;
+        }
+
+        switch (cli_type && DP_CLI_TYPE_MASK) {
+        case DP_CLI_BACKEND:
+            dpbe = talloc_zero(dpcli->dpctx, struct dp_backend);
+            if (!dpbe) {
+                DEBUG(0, ("Out of memory!\n"));
+                sbus_disconnect(dpcli->conn_ctx);
+                return;
+            }
+
+            dpbe->name = talloc_strdup(dpbe, cli_name);
+            dpbe->domain = talloc_strdup(dpbe, cli_domain);
+            if (!dpbe->name || !dpbe->domain) {
+                DEBUG(0, ("Out of memory!\n"));
+                sbus_disconnect(dpcli->conn_ctx);
+                return;
+            }
+
+            dpbe->dpcli = dpcli;
+
+            DLIST_ADD(dpcli->dpctx->be_list, dpbe);
+
+            talloc_set_destructor((TALLOC_CTX *)dpbe, dp_backend_destructor);
+            break;
+
+        case DP_CLI_FRONTEND:
+            dpfe = talloc_zero(dpcli->dpctx, struct dp_frontend);
+            if (!dpfe) {
+                DEBUG(0, ("Out of memory!\n"));
+                sbus_disconnect(dpcli->conn_ctx);
+                return;
+            }
+
+            dpfe->name = talloc_strdup(dpfe, cli_name);
+            if (!dpfe->name) {
+                DEBUG(0, ("Out of memory!\n"));
+                sbus_disconnect(dpcli->conn_ctx);
+                return;
+            }
+
+            dpfe->dpcli = dpcli;
+
+            DLIST_ADD(dpcli->dpctx->fe_list, dpfe);
+
+            talloc_set_destructor((TALLOC_CTX *)dpfe, dp_frontend_destructor);
+            break;
+
+        default:
+            DEBUG(1, ("Unknown client type, killing connection\n"));
+            sbus_disconnect(dpcli->conn_ctx);
+            return;
+        }
+
+        /* Set up the destructor for this service */
+        break;
+
+    case DBUS_MESSAGE_TYPE_ERROR:
+        DEBUG(0,("getIdentity returned an error [%s], closing connection.\n",
+                 dbus_message_get_error_name(reply)));
+        /* Falling through to default intentionally*/
+    default:
+        /*
+         * Timeout or other error occurred or something
+         * unexpected happened.
+         * It doesn't matter which, because either way we
+         * know that this connection isn't trustworthy.
+         * We'll destroy it now.
+         */
+        sbus_disconnect(dpcli->conn_ctx);
+        return;
+    }
+}
+
+static void online_check(DBusPendingCall *pending, void *data)
+{
+    return;
+}
+
+static int dp_backend_destructor(void *ctx)
+{
+    struct dp_backend *dpbe = talloc_get_type(ctx, struct dp_backend);
+    if (dpbe->dpcli && dpbe->dpcli &&
+        dpbe->dpcli->dpctx && dpbe->dpcli->dpctx->be_list) {
+        DLIST_REMOVE(dpbe->dpcli->dpctx->be_list, dpbe);
+    }
+    return 0;
+}
+
+static int dp_frontend_destructor(void *ctx)
+{
+    struct dp_frontend *dpfe = talloc_get_type(ctx, struct dp_frontend);
+    if (dpfe->dpcli && dpfe->dpcli &&
+        dpfe->dpcli->dpctx && dpfe->dpcli->dpctx->fe_list) {
+        DLIST_REMOVE(dpfe->dpcli->dpctx->fe_list, dpfe);
+    }
+    return 0;
 }
 
 /* monitor_dbus_init
@@ -247,116 +457,6 @@ done:
     return ret;
 }
 
-static int check_online(DBusMessage *message, void *data, DBusMessage **r)
-{
-    return EOK;
-}
-
-/* find list of backends */
-/* find library implementing them */
-/* dload() said library and set up a structure to hold pointers */
-
-static int init_data_providers(struct dp_ctx *dpctx)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct dp_mod_ctx *module;
-    char **doms;
-    char *sec;
-    char *mod_name;
-    char *path;
-    void *handle;
-    char *mod_init_fn_name;
-    sssm_init_fn_t mod_init_fn;
-    int num_mods;
-    int i, ret;
-
-    tmp_ctx = talloc_new(dpctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    ret = confdb_get_domains(dpctx->cdb, tmp_ctx, &doms);
-    if (ret != EOK) {
-        DEBUG(2, ("No domains configured!\n"));
-        return ret;
-    }
-
-    num_mods = 0;
-    for (i = 0; doms[i]; i++) {
-        sec = talloc_asprintf(tmp_ctx, "config/domains/%s", doms[i]);
-        if (!sec) {
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = confdb_get_string(dpctx->cdb, tmp_ctx, sec,
-                                "provider", NULL, &mod_name);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        /* the LOCAL domain does not have a backend at the moment */
-        if (strcasecmp(mod_name, "LOCAL") == 0) {
-            continue;
-        }
-
-        path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
-                               DATA_PROVIDER_PLUGINS_PATH, mod_name);
-
-        handle = dlopen(path, RTLD_NOW);
-        if (!handle) {
-            DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
-                      mod_name, path, dlerror()));
-            ret = ELIBACC;
-            goto done;
-        }
-
-        mod_init_fn_name = talloc_asprintf(tmp_ctx, "sssm_%s_init", mod_name);
-        if (!mod_init_fn_name) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        mod_init_fn = (sssm_init_fn_t)dlsym(handle, mod_init_fn_name);
-        if (!mod_init_fn) {
-            DEBUG(0, ("Unable to load init fn from module %s, error: %s\n",
-                      mod_name, dlerror()));
-            ret = ELIBBAD;
-            goto done;
-        }
-
-        dpctx->modules = talloc_array(tmp_ctx, struct dp_mod_ctx *, num_mods +1);
-        if (!dpctx->modules) {
-            ret = ENOMEM;
-            goto done;
-        }
-        module = talloc(dpctx->modules, struct dp_mod_ctx);
-        if (!module) {
-            ret = ENOMEM;
-            goto done;
-        }
-        dpctx->modules[num_mods] = module;
-
-        module->dp_ctx = dpctx;
-        module->domain = talloc_strdup(dpctx->modules, doms[i]);
-        module->name = talloc_steal(dpctx->modules, mod_name);
-
-        ret = mod_init_fn(module);
-        if (ret != EOK) {
-            DEBUG(0, ("Error (%d) in module (%s) initialization!\n",
-                      ret, mod_name));
-            continue;
-        }
-
-        num_mods++;
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(doms);
-    return ret;
-}
-
 int dp_process_init(TALLOC_CTX *mem_ctx,
                     struct event_context *ev,
                     struct confdb_ctx *cdb)
@@ -387,12 +487,6 @@ int dp_process_init(TALLOC_CTX *mem_ctx,
     ret = dp_srv_init(dpctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up server bus\n"));
-        return ret;
-    }
-
-    ret = init_data_providers(dpctx);
-    if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing data providers\n"));
         return ret;
     }
 

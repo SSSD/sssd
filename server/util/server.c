@@ -242,7 +242,10 @@ int server_setup(const char *name, int flags,
 	uint16_t stdin_event_flags;
 	int ret = EOK;
 
-    debug_prg_name = name;
+    debug_prg_name = strdup(name);
+    if (!debug_prg_name) {
+        return ENOMEM;
+    }
 
 	setup_signals();
 

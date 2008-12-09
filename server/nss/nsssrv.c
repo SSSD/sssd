@@ -43,14 +43,14 @@
 
 #define SSS_NSS_PIPE_NAME "nss"
 
-static int provide_identity(DBusMessage *message, void *data, DBusMessage **r);
-static int reply_ping(DBusMessage *message, void *data, DBusMessage **r);
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
 static int nss_init_domains(struct nss_ctx *nctx);
 static int _domain_comparator(void *key1, void *key2);
 
 struct sbus_method nss_sbus_methods[] = {
-    {SERVICE_METHOD_IDENTITY, provide_identity},
-    {SERVICE_METHOD_PING, reply_ping},
+    {SERVICE_METHOD_IDENTITY, service_identity},
+    {SERVICE_METHOD_PING, service_pong},
     {NULL, NULL}
 };
 
@@ -211,7 +211,7 @@ static void accept_fd_handler(struct event_context *ev,
     return;
 }
 
-static int provide_identity(DBusMessage *message, void *data, DBusMessage **r)
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = NSS_SBUS_SERVICE_VERSION;
     const char *name = NSS_SBUS_SERVICE_NAME;
@@ -231,7 +231,7 @@ static int provide_identity(DBusMessage *message, void *data, DBusMessage **r)
     return EOK;
 }
 
-static int reply_ping(DBusMessage *message, void *data, DBusMessage **r)
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 {
     DBusMessage *reply;
     dbus_bool_t ret;
@@ -252,8 +252,7 @@ static int nss_sbus_init(struct nss_ctx *nctx)
 
     /* Set up SBUS connection to the monitor */
     ss_ctx = sssd_service_sbus_init(nctx, nctx->ev, nctx->cdb,
-                                    provide_identity,
-                                    reply_ping);
+                                    nss_sbus_methods);
     if (ss_ctx == NULL) {
         DEBUG(0, ("Could not initialize D-BUS.\n"));
         return ENOMEM;

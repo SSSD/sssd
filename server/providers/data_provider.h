@@ -29,41 +29,24 @@
 #include "ldb.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
+#define BE_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
 
 #define DATA_PROVIDER_DB_FILE "sssd.ldb"
 #define DATA_PROVIDER_DB_CONF_SEC "config/services/nss"
 
-struct dp_mod_ops {
-    int (*check_online)(void *pvt_data, int *reply);
-};
-
 #define MOD_OFFLINE 0x0000
 #define MOD_ONLINE  0x0001
 
-struct dp_mod_ctx;
-typedef int (*sssm_init_fn_t)(struct dp_mod_ctx *);
+#define DP_CLI_INTERFACE "org.freeipa.sssd.dataprovider"
+#define DP_CLI_PATH "/org/freeipa/sssd/dataprovider"
 
-struct dp_mod_ctx {
-    struct dp_ctx *dp_ctx;
-    const char *name;
-    const char *domain;
-    struct dp_mod_ops *ops;
-    void *pvt_data;
-};
+#define DP_CLI_BACKEND 0x0001
+#define DP_CLI_FRONTEND 0x0002
+#define DP_CLI_TYPE_MASK 0x0003
 
-struct dp_ctx {
-    struct event_context *ev;
-    struct confdb_ctx *cdb;
-    struct ldb_context *ldb;
-    struct service_sbus_ctx *ss_ctx;
-    struct dp_mod_ctx **modules;
-};
-
-struct dp_client {
-    struct dp_ctx *dpctx;
-    DBusConnection *conn;
-};
+#define DP_CLI_METHOD_IDENTITY "getIdentity"
+#define DP_CLI_METHOD_ONLINE "getOnline"
 
 #endif /* __DATA_PROVIDER_ */

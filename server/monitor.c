@@ -304,6 +304,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 {
     struct mt_ctx *ctx;
     struct mt_svc *svc;
+    char **doms;
     char *path;
     int ret, i;
 
@@ -327,6 +328,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    /* start all services */
     for (i = 0; ctx->services[i]; i++) {
 
         svc = talloc_zero(ctx, struct mt_svc);
@@ -354,6 +356,58 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         ret = start_service(svc->name, svc->command, &svc->pid);
         if (ret != EOK) {
             DEBUG(0,("Failed to start service '%s'\n", svc->name));
+            talloc_free(svc);
+            continue;
+        }
+
+        DLIST_ADD(ctx->svc_list, svc);
+
+        set_tasks_checker(svc);
+    }
+
+    /* now start the data providers */
+    ret = confdb_get_domains(cdb, ctx, &doms);
+    if (ret != EOK) {
+        DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
+        return ret;
+    }
+
+    for (i = 0; doms[i]; i++) {
+        svc = talloc_zero(ctx, struct mt_svc);
+        if (!svc) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
+        svc->name = talloc_strdup(svc, doms[i]);
+        svc->mt_ctx = ctx;
+
+        path = talloc_asprintf(svc, "config/domains/%s", svc->name);
+        if (!path) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
+        ret = confdb_get_string(cdb, svc, path,
+                                "command", NULL, &svc->command);
+        if (ret != EOK) {
+            DEBUG(0, ("Failed to find provider [%s] configuration\n",
+                  svc->name));
+            talloc_free(svc);
+            continue;
+        }
+
+        /* if no command is present to not run the domain */
+        if (svc->command == NULL) {
+            /* the LOCAL domain does not need a backend at the moment */
+            if (strcasecmp(svc->name, "LOCAL") != 0) {
+                DEBUG(0, ("Missing command to run provider [%s]\n"));
+            }
+            talloc_free(svc);
+            continue;
+        }
+
+        ret = start_service(svc->name, svc->command, &svc->pid);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to start provider '%s'\n", svc->name));
             talloc_free(svc);
             continue;
         }
