@@ -508,6 +508,7 @@ static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
          * We'll drop it using the default destructor.
          */
         DEBUG(0, ("D-BUS send failed.\n"));
+        dbus_message_unref(msg);
         talloc_free(conn_ctx);
         return EIO;
     }
@@ -545,7 +546,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
 
         /* Destroy this connection */
         sbus_disconnect(conn_ctx);
-        return;
+        goto done;
     }
 
     type = dbus_message_get_type(reply);
@@ -558,7 +559,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         if (!ret) {
             DEBUG(1,("Failed, to parse message, killing connection\n"));
             sbus_disconnect(conn_ctx);
-            return;
+            goto done;
         }
 
         /* search this service in the list */
@@ -573,7 +574,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         if (!svc) {
             DEBUG(0,("Unable to find peer in list of services, killing connection!\n"));
             sbus_disconnect(conn_ctx);
-            return;
+            goto done;
         }
 
         /* transfer all from the fake service and get rid of it */
@@ -599,6 +600,10 @@ static void identity_check(DBusPendingCall *pending, void *data)
         sbus_disconnect(conn_ctx);
         return;
     }
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
 }
 
 /* service_send_ping
@@ -681,7 +686,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
 
         /* Destroy this connection */
         sbus_disconnect(conn_ctx);
-        return;
+        goto done;
     }
 
     type = dbus_message_get_type(reply);
@@ -713,8 +718,11 @@ static void ping_check(DBusPendingCall *pending, void *data)
          * We'll destroy it now.
          */
         sbus_disconnect(conn_ctx);
-        return;
     }
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
 }
 
 /* service_check_alive

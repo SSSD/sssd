@@ -243,6 +243,7 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
          */
         DEBUG(0, ("D-BUS send failed.\n"));
         talloc_free(conn_ctx);
+        dbus_message_unref(msg);
         return EIO;
     }
 
@@ -282,7 +283,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
 
         /* Destroy this connection */
         sbus_disconnect(dpcli->conn_ctx);
-        return;
+        goto done;
     }
 
     type = dbus_message_get_type(reply);
@@ -297,7 +298,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         if (!ret) {
             DEBUG(1,("Failed, to parse message, killing connection\n"));
             sbus_disconnect(dpcli->conn_ctx);
-            return;
+            goto done;
         }
 
         switch (cli_type && DP_CLI_TYPE_MASK) {
@@ -306,7 +307,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
             if (!dpbe) {
                 DEBUG(0, ("Out of memory!\n"));
                 sbus_disconnect(dpcli->conn_ctx);
-                return;
+                goto done;
             }
 
             dpbe->name = talloc_strdup(dpbe, cli_name);
@@ -314,7 +315,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
             if (!dpbe->name || !dpbe->domain) {
                 DEBUG(0, ("Out of memory!\n"));
                 sbus_disconnect(dpcli->conn_ctx);
-                return;
+                goto done;
             }
 
             dpbe->dpcli = dpcli;
@@ -329,14 +330,14 @@ static void identity_check(DBusPendingCall *pending, void *data)
             if (!dpfe) {
                 DEBUG(0, ("Out of memory!\n"));
                 sbus_disconnect(dpcli->conn_ctx);
-                return;
+                goto done;
             }
 
             dpfe->name = talloc_strdup(dpfe, cli_name);
             if (!dpfe->name) {
                 DEBUG(0, ("Out of memory!\n"));
                 sbus_disconnect(dpcli->conn_ctx);
-                return;
+                goto done;
             }
 
             dpfe->dpcli = dpcli;
@@ -349,7 +350,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         default:
             DEBUG(1, ("Unknown client type, killing connection\n"));
             sbus_disconnect(dpcli->conn_ctx);
-            return;
+            goto done;
         }
 
         /* Set up the destructor for this service */
@@ -368,8 +369,11 @@ static void identity_check(DBusPendingCall *pending, void *data)
          * We'll destroy it now.
          */
         sbus_disconnect(dpcli->conn_ctx);
-        return;
     }
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
 }
 
 static void online_check(DBusPendingCall *pending, void *data)

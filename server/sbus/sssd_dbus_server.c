@@ -261,6 +261,7 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
     DBusServer *dbus_server;
     DBusError dbus_error;
     dbus_bool_t dbret;
+    char *tmp;
 
     /* Set up D-BUS server */
     dbus_error_init(&dbus_error);
@@ -271,8 +272,9 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
         return EIO;
     }
 
-    DEBUG(3, ("D-BUS Server listening on %s\n",
-              dbus_server_get_address(dbus_server)));
+    tmp = dbus_server_get_address(dbus_server);
+    DEBUG(3, ("D-BUS Server listening on %s\n", tmp));
+    free(tmp);
 
     srv_ctx = talloc_zero(ev, struct sbus_srv_ctx);
     if (!srv_ctx) {
