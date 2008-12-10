@@ -49,4 +49,8 @@
 #define DP_CLI_METHOD_IDENTITY "getIdentity"
 #define DP_CLI_METHOD_ONLINE "getOnline"
 
+struct dp_be_mod_ops {
+    int (*check_online)(void *pvt_data, int *reply);
+};
+
 #endif /* __DATA_PROVIDER_ */

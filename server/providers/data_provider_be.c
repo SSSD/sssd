@@ -38,12 +38,8 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 #include "util/btreemap.h"
-#include "data_provider.h"
+#include "providers/data_provider.h"
 #include "util/service_helpers.h"
-
-struct dp_mod_ops {
-    int (*check_online)(void *pvt_data, int *reply);
-};
 
 struct be_ctx {
     struct event_context *ev;
@@ -54,11 +50,11 @@ struct be_ctx {
     const char *name;
     const char *domain;
     const char *identity;
-    struct dp_mod_ops *ops;
+    struct dp_be_mod_ops *ops;
     void *pvt_data;
 };
 
-typedef int (*be_init_fn_t)(struct be_ctx *, struct dp_mod_ops **, void **);
+typedef int (*be_init_fn_t)(TALLOC_CTX *, struct dp_be_mod_ops **, void **);
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
@@ -374,6 +370,10 @@ static int load_backend(struct be_ctx *ctx)
 
     path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
                            DATA_PROVIDER_PLUGINS_PATH, ctx->name);
+    if (!path) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     handle = dlopen(path, RTLD_NOW);
     if (!handle) {
@@ -427,9 +427,10 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     }
     ctx->ev = ev;
     ctx->cdb = cdb;
+    ctx->name = talloc_strdup(ctx, be_name);
     ctx->domain = talloc_strdup(ctx, be_domain);
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
-    if (!ctx->domain || !ctx->identity) {
+    if (!ctx->name || !ctx->domain || !ctx->identity) {
         DEBUG(0, ("Out of memory!?\n"));
         return ENOMEM;
     }

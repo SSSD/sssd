@@ -60,6 +60,7 @@ OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 headers = .h
 
 BINS = sbin/sssd sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
+SOLIBS = lib/libsss_ldap.$(SHLIBEXT)
 
 DIRS = sbin
 
@@ -67,7 +68,7 @@ default: all
 
 include $(srvdir)/rules.mk
 
-all: showflags dirs $(OBJS) $(BINS)
+all: showflags dirs $(OBJS) $(BINS) $(SOLIBS)
 
 shared-build: all
 
@@ -76,7 +77,7 @@ dirs:
 
 clean::
 	rm -f *.o */*.o */*/*.o
-	rm -f $(BINS)
+	rm -f $(BINS) $(SOLIBS)
 
 distclean:: clean
 	rm -rf $(DIRS)
