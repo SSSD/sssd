@@ -237,42 +237,42 @@ static void server_stdin_handler(struct event_context *event_ctx, struct fd_even
 int server_setup(const char *name, int flags,
                  struct main_context **main_ctx)
 {
-	struct event_context *event_ctx;
+    struct event_context *event_ctx;
     struct main_context *ctx;
-	uint16_t stdin_event_flags;
-	int ret = EOK;
+    uint16_t stdin_event_flags;
+    int ret = EOK;
 
     debug_prg_name = strdup(name);
     if (!debug_prg_name) {
         return ENOMEM;
     }
 
-	setup_signals();
+    setup_signals();
 
-	/* we want default permissions on created files to be very strict,
-	   so set our umask to 0177 */
-	umask(0177);
+    /* we want default permissions on created files to be very strict,
+       so set our umask to 0177 */
+    umask(0177);
 
-	if (flags & FLAGS_DAEMON) {
-		DEBUG(3,("Becoming a daemon.\n"));
-		become_daemon(true);
+    if (flags & FLAGS_DAEMON) {
+        DEBUG(3,("Becoming a daemon.\n"));
+        become_daemon(true);
     }
 
     if (flags & FLAGS_PID_FILE) {
-		ret = pidfile(PID_PATH, name);
+        ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
             DEBUG(0, ("ERROR: PID File reports daemon already running!\n"));
             return EEXIST;
         }
-	}
+    }
 
-	/* the event context is the top level structure.
+    /* the event context is the top level structure.
      * Everything else should hang off that */
-	event_ctx = event_context_init(talloc_autofree_context());
-	if (event_ctx == NULL) {
-		DEBUG(0,("The event context initialiaziton failed\n"));
-		return 1;
-	}
+    event_ctx = event_context_init(talloc_autofree_context());
+    if (event_ctx == NULL) {
+        DEBUG(0,("The event context initialiaziton failed\n"));
+        return 1;
+    }
 
     ctx = talloc(event_ctx, struct main_context);
     if (ctx == NULL) {
@@ -285,22 +285,22 @@ int server_setup(const char *name, int flags,
     ret = confdb_init(ctx, event_ctx, &ctx->confdb_ctx);
     if (ret != EOK) {
         DEBUG(0,("The confdb initialization failed\n"));
-		return ret;
-	}
+        return ret;
+    }
 
-	if (flags & FLAGS_INTERACTIVE) {
-		/* terminate when stdin goes away */
-		stdin_event_flags = EVENT_FD_READ;
-	} else {
-		/* stay alive forever */
-		stdin_event_flags = 0;
-	}
+    if (flags & FLAGS_INTERACTIVE) {
+        /* terminate when stdin goes away */
+        stdin_event_flags = EVENT_FD_READ;
+    } else {
+        /* stay alive forever */
+        stdin_event_flags = 0;
+    }
 
-	/* catch EOF on stdin */
+    /* catch EOF on stdin */
 #ifdef SIGTTIN
-	signal(SIGTTIN, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
 #endif
-	event_add_fd(event_ctx, event_ctx, 0, stdin_event_flags,
+    event_add_fd(event_ctx, event_ctx, 0, stdin_event_flags,
                  server_stdin_handler, discard_const(name));
 
     *main_ctx = ctx;
@@ -309,11 +309,11 @@ int server_setup(const char *name, int flags,
 
 void server_loop(struct main_context *main_ctx)
 {
-	/* wait for events - this is where smbd sits for most of its
-	   life */
-	event_loop_wait(main_ctx->event_ctx);
+    /* wait for events - this is where smbd sits for most of its
+       life */
+    event_loop_wait(main_ctx->event_ctx);
 
-	/* as everything hangs off this event context, freeing it
-	   should initiate a clean shutdown of all services */
-	talloc_free(main_ctx->event_ctx);
+    /* as everything hangs off this event context, freeing it
+       should initiate a clean shutdown of all services */
+    talloc_free(main_ctx->event_ctx);
 }

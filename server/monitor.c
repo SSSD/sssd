@@ -887,26 +887,26 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     int ret;
 
-	struct poptOption long_options[] = {
-		POPT_AUTOHELP
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
         SSSD_MAIN_OPTS
-		{"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0, \
-		 "Become a daemon (default)", NULL }, \
-		{"interactive",	'i', POPT_ARG_NONE, &opt_interactive, 0, \
-		 "Run interactive (not a daemon)", NULL}, \
-		{ NULL }
-	};
+        {"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0, \
+         "Become a daemon (default)", NULL }, \
+        {"interactive",	'i', POPT_ARG_NONE, &opt_interactive, 0, \
+         "Run interactive (not a daemon)", NULL}, \
+        { NULL }
+    };
 
-	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-	while((opt = poptGetNextOpt(pc)) != -1) {
-		switch(opt) {
-		default:
-			fprintf(stderr, "\nInvalid option %s: %s\n\n",
-				  poptBadOption(pc, 0), poptStrerror(opt));
-			poptPrintUsage(pc, stderr, 0);
-			return 1;
-		}
-	}
+    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    while((opt = poptGetNextOpt(pc)) != -1) {
+        switch(opt) {
+        default:
+            fprintf(stderr, "\nInvalid option %s: %s\n\n",
+                    poptBadOption(pc, 0), poptStrerror(opt));
+            poptPrintUsage(pc, stderr, 0);
+            return 1;
+        }
+    }
 
     if (opt_daemon && opt_interactive) {
         fprintf(stderr, "Option -i|--interactive is not allowed together with -D|--daemon\n");
@@ -914,7 +914,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-	poptFreeContext(pc);
+    poptFreeContext(pc);
 
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) flags |= FLAGS_INTERACTIVE;
