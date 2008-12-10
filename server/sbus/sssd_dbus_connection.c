@@ -432,35 +432,43 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx)
     }
 
     DEBUG(5,("Disconnecting %lX\n", dct_ctx->conn));
+
+    /*******************************
+     *  Referencing dct_ctx->conn */
     dbus_connection_ref(dct_ctx->conn);
-        dct_ctx->disconnect = 1;
 
-        /* Invoke the custom destructor, if it exists */
-        if(dct_ctx->destructor) {
-            dct_ctx->destructor(dct_ctx);
-        }
+    dct_ctx->disconnect = 1;
 
-        /* Unregister object paths */
-        sbus_unreg_object_paths(dct_ctx);
+    /* Invoke the custom destructor, if it exists */
+    if(dct_ctx->destructor) {
+        dct_ctx->destructor(dct_ctx);
+    }
 
-        /* Disable watch functions */
-        dbus_connection_set_watch_functions(dct_ctx->conn,
-                                            NULL, NULL, NULL,
-                                            NULL, NULL);
-        /* Disable timeout functions */
-        dbus_connection_set_timeout_functions(dct_ctx->conn,
-                                              NULL, NULL, NULL,
-                                              NULL, NULL);
+    /* Unregister object paths */
+    sbus_unreg_object_paths(dct_ctx);
 
-        /* Disable dispatch status function */
-        dbus_connection_set_dispatch_status_function(dct_ctx->conn, NULL, NULL, NULL);
+    /* Disable watch functions */
+    dbus_connection_set_watch_functions(dct_ctx->conn,
+                                        NULL, NULL, NULL,
+                                        NULL, NULL);
+    /* Disable timeout functions */
+    dbus_connection_set_timeout_functions(dct_ctx->conn,
+                                          NULL, NULL, NULL,
+                                          NULL, NULL);
 
-        /* Disable wakeup main function */
-        dbus_connection_set_wakeup_main_function(dct_ctx->conn, NULL, NULL, NULL);
+    /* Disable dispatch status function */
+    dbus_connection_set_dispatch_status_function(dct_ctx->conn, NULL, NULL, NULL);
 
-        /* Finalize the connection */
-        sbus_default_connection_destructor(dct_ctx);
+    /* Disable wakeup main function */
+    dbus_connection_set_wakeup_main_function(dct_ctx->conn, NULL, NULL, NULL);
+
+    /* Finalize the connection */
+    sbus_default_connection_destructor(dct_ctx);
+
     dbus_connection_unref(dct_ctx->conn);
+    /* Unreferenced dct_ctx->conn *
+     ******************************/
+
     DEBUG(5,("Disconnected %lX\n", dct_ctx->conn));
 }
 
