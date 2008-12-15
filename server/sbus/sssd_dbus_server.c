@@ -253,7 +253,8 @@ static void sbus_server_init_new_connection(DBusServer *server,
  * Set up a D-BUS server, integrate with the event loop
  * for handling file descriptor and timed events
  */
-int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
+int sbus_new_server(TALLOC_CTX *mem_ctx,
+                    struct event_context *ev, struct sbus_method_ctx *ctx,
                     struct sbus_srv_ctx **server_ctx, const char *address,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data)
 {
@@ -278,7 +279,7 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
     DEBUG(3, ("D-BUS Server listening on %s\n", tmp));
     free(tmp);
 
-    srv_ctx = talloc_zero(ev, struct sbus_srv_ctx);
+    srv_ctx = talloc_zero(mem_ctx, struct sbus_srv_ctx);
     if (!srv_ctx) {
         return ENOMEM;
     }

@@ -67,7 +67,8 @@ struct sbus_message_handler_ctx {
 };
 
 /* Server Functions */
-int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
+int sbus_new_server(TALLOC_CTX *mem_ctx,
+                    struct event_context *ev, struct sbus_method_ctx *ctx,
                     struct sbus_srv_ctx **server_ctx, const char *address,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 

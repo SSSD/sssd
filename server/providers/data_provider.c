@@ -451,7 +451,8 @@ static int dp_srv_init(struct dp_ctx *dpctx)
     sd_ctx->methods = dp_sbus_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(dpctx->ev, sd_ctx,
+    ret = sbus_new_server(dpctx,
+                          dpctx->ev, sd_ctx,
                           &sbus_srv, dpbus_address,
                           dbus_dp_init, dpctx);
     if (ret != EOK) {

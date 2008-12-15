@@ -157,7 +157,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(ctx->ev, sd_ctx, &sbus_srv, sbus_address, dbus_service_init, ctx);
+    ret = sbus_new_server(ctx, ctx->ev, sd_ctx, &sbus_srv, sbus_address, dbus_service_init, ctx);
     ctx->sbus_srv = sbus_srv;
 
     return ret;
