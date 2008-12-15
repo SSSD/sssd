@@ -254,14 +254,16 @@ static void sbus_server_init_new_connection(DBusServer *server,
  * for handling file descriptor and timed events
  */
 int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
-                    const char *address, sbus_server_conn_init_fn init_fn,
-                    void *init_pvt_data)
+                    struct sbus_srv_ctx **server_ctx, const char *address,
+                    sbus_server_conn_init_fn init_fn, void *init_pvt_data)
 {
     struct sbus_srv_ctx *srv_ctx;
     DBusServer *dbus_server;
     DBusError dbus_error;
     dbus_bool_t dbret;
     char *tmp;
+
+    *server_ctx = NULL;
 
     /* Set up D-BUS server */
     dbus_error_init(&dbus_error);
@@ -320,6 +322,7 @@ int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
         return EIO;
     }
 
+    *server_ctx = srv_ctx;
     return EOK;
 }
 

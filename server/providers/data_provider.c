@@ -49,6 +49,7 @@ struct dp_ctx {
     struct confdb_ctx *cdb;
     struct ldb_context *ldb;
     struct service_sbus_ctx *ss_ctx;
+    struct sbus_srv_ctx *sbus_srv;
     struct dp_backend *be_list;
     struct dp_frontend *fe_list;
 };
@@ -406,6 +407,7 @@ static int dp_frontend_destructor(void *ctx)
 static int dp_srv_init(struct dp_ctx *dpctx)
 {
     TALLOC_CTX *tmp_ctx;
+    struct sbus_srv_ctx *sbus_srv;
     struct sbus_method_ctx *sd_ctx;
     char *dpbus_address;
     char *default_dp_address;
@@ -449,11 +451,13 @@ static int dp_srv_init(struct dp_ctx *dpctx)
     sd_ctx->methods = dp_sbus_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(dpctx->ev, sd_ctx, dpbus_address,
+    ret = sbus_new_server(dpctx->ev, sd_ctx,
+                          &sbus_srv, dpbus_address,
                           dbus_dp_init, dpctx);
     if (ret != EOK) {
         goto done;
     }
+    dpctx->sbus_srv = sbus_srv;
     talloc_steal(dpctx, sd_ctx);
 
 done:

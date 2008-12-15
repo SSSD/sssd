@@ -23,6 +23,7 @@
 #define _SSSD_DBUS_H_
 
 struct sbus_conn_ctx;
+struct sbus_srv_ctx;
 
 #include "dbus/dbus.h"
 
@@ -67,7 +68,7 @@ struct sbus_message_handler_ctx {
 
 /* Server Functions */
 int sbus_new_server(struct event_context *ev, struct sbus_method_ctx *ctx,
-                    const char *address,
+                    struct sbus_srv_ctx **server_ctx, const char *address,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 
 /* Connection Functions */

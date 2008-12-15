@@ -67,6 +67,7 @@ struct mt_ctx {
     struct confdb_ctx *cdb;
     char **services;
     struct mt_svc *svc_list;
+    struct sbus_srv_ctx *sbus_srv;
 
     int service_id_timeout;
     int service_ping_time;
@@ -114,6 +115,7 @@ struct sbus_method monitor_methods[] = {
 static int monitor_dbus_init(struct mt_ctx *ctx)
 {
     struct sbus_method_ctx *sd_ctx;
+    struct sbus_srv_ctx *sbus_srv;
     char *sbus_address;
     char *default_monitor_address;
     int ret;
@@ -155,7 +157,8 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(ctx->ev, sd_ctx, sbus_address, dbus_service_init, ctx);
+    ret = sbus_new_server(ctx->ev, sd_ctx, &sbus_srv, sbus_address, dbus_service_init, ctx);
+    ctx->sbus_srv = sbus_srv;
 
     return ret;
 }
@@ -378,10 +381,10 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             talloc_free(ctx);
             return ENOMEM;
         }
-        svc->name = talloc_strdup(svc, doms[i]);
+        svc->name = talloc_asprintf(svc, "%%BE_%s", doms[i]);
         svc->mt_ctx = ctx;
 
-        path = talloc_asprintf(svc, "config/domains/%s", svc->name);
+        path = talloc_asprintf(svc, "config/domains/%s", doms[i]);
         if (!path) {
             talloc_free(ctx);
             return ENOMEM;
@@ -389,8 +392,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         ret = confdb_get_string(cdb, svc, path,
                                 "command", NULL, &svc->command);
         if (ret != EOK) {
-            DEBUG(0, ("Failed to find provider [%s] configuration\n",
-                  svc->name));
+            DEBUG(0, ("Failed to find provider [%s] configuration\n", doms[i]));
             talloc_free(svc);
             continue;
         }
@@ -398,16 +400,16 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         /* if no command is present to not run the domain */
         if (svc->command == NULL) {
             /* the LOCAL domain does not need a backend at the moment */
-            if (strcasecmp(svc->name, "LOCAL") != 0) {
+            if (strcasecmp(doms[i], "LOCAL") != 0) {
                 DEBUG(0, ("Missing command to run provider [%s]\n"));
             }
             talloc_free(svc);
             continue;
         }
 
-        ret = start_service(svc->name, svc->command, &svc->pid);
+        ret = start_service(doms[i], svc->command, &svc->pid);
         if (ret != EOK) {
-            DEBUG(0,("Failed to start provider '%s'\n", svc->name));
+            DEBUG(0,("Failed to start provider for '%s'\n", doms[i]));
             talloc_free(svc);
             continue;
         }

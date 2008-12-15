@@ -548,6 +548,7 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
     }
 
     DLIST_ADD(dct_ctx->method_ctx_list, method_ctx);
+    talloc_reference(dct_ctx, method_ctx);
 
     /* Set up the vtable for the object path */
     connection_vtable = talloc_zero(dct_ctx, DBusObjectPathVTable);
@@ -603,7 +604,7 @@ static void sbus_unreg_object_paths(struct sbus_conn_ctx *dct_ctx)
         DLIST_REMOVE(dct_ctx->method_ctx_list, iter);
         purge = iter;
         iter = iter->next;
-        talloc_free(purge);
+        talloc_unlink(dct_ctx, purge);
     }
 }
 
