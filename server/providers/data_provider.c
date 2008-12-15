@@ -133,7 +133,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
 
     /* Set up SBUS connection to the monitor */
     ss_ctx = sssd_service_sbus_init(dpctx, dpctx->ev, dpctx->cdb,
-                                    mon_sbus_methods);
+                                    mon_sbus_methods, NULL);
     if (ss_ctx == NULL) {
         DEBUG(0, ("Could not initialize D-BUS.\n"));
         return ENOMEM;

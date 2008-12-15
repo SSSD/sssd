@@ -533,6 +533,7 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
 {
     DBusObjectPathVTable *connection_vtable;
     struct sbus_message_handler_ctx *msg_handler_ctx;
+    TALLOC_CTX *tmp_ctx;
 
     dbus_bool_t dbret;
     if (!dct_ctx||!method_ctx) {
@@ -548,7 +549,10 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
     }
 
     DLIST_ADD(dct_ctx->method_ctx_list, method_ctx);
-    talloc_reference(dct_ctx, method_ctx);
+    if((tmp_ctx = talloc_reference(dct_ctx, method_ctx))!=method_ctx) {
+        /* talloc_reference only fails on insufficient memory */
+        return ENOMEM;
+    }
 
     /* Set up the vtable for the object path */
     connection_vtable = talloc_zero(dct_ctx, DBusObjectPathVTable);

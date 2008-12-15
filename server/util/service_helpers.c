@@ -33,7 +33,8 @@
 struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
                                                 struct event_context *ev,
                                                 struct confdb_ctx *cdb,
-                                                struct sbus_method *methods)
+                                                struct sbus_method *methods,
+                                                sbus_conn_destructor_fn destructor)
 {
     struct service_sbus_ctx *ss_ctx;
     struct sbus_method_ctx *sm_ctx;
@@ -61,7 +62,7 @@ struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
 
     ret = sbus_new_connection(ss_ctx, ss_ctx->ev,
                               sbus_address, &ss_ctx->scon_ctx,
-                              NULL);
+                              destructor);
     if (ret != EOK) goto error;
 
     conn = sbus_get_connection(ss_ctx->scon_ctx);

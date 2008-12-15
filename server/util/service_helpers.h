@@ -33,6 +33,7 @@ struct service_sbus_ctx {
 struct service_sbus_ctx *sssd_service_sbus_init(TALLOC_CTX *mem_ctx,
                                                 struct event_context *ev,
                                                 struct confdb_ctx *cdb,
-                                                struct sbus_method *methods);
+                                                struct sbus_method *methods,
+                                                sbus_conn_destructor_fn destructor);
 
 #endif /*SERVICE_HELPERS_H_*/

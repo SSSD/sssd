@@ -252,7 +252,7 @@ static int nss_sbus_init(struct nss_ctx *nctx)
 
     /* Set up SBUS connection to the monitor */
     ss_ctx = sssd_service_sbus_init(nctx, nctx->ev, nctx->cdb,
-                                    nss_sbus_methods);
+                                    nss_sbus_methods, NULL);
     if (ss_ctx == NULL) {
         DEBUG(0, ("Could not initialize D-BUS.\n"));
         return ENOMEM;

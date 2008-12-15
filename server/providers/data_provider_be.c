@@ -191,7 +191,7 @@ static int mon_cli_init(struct be_ctx *ctx)
 
    /* Set up SBUS connection to the monitor */
     ss_ctx = sssd_service_sbus_init(ctx, ctx->ev, ctx->cdb,
-                                    mon_sbus_methods);
+                                    mon_sbus_methods, NULL);
     if (ss_ctx == NULL) {
         DEBUG(0, ("Could not initialize D-BUS.\n"));
         return ENOMEM;
