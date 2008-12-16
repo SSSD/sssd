@@ -62,7 +62,7 @@ headers = .h
 BINS = sbin/sssd sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
 SOLIBS = lib/libsss_ldap.$(SHLIBEXT)
 
-DIRS = sbin
+DIRS = sbin lib
 
 default: all
 
