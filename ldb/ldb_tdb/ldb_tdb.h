@@ -33,6 +33,7 @@ struct ltdb_private {
 	int in_transaction;
 
 	bool check_base;
+	struct ltdb_idxptr *idxptr;
 };
 
 /*
@@ -50,12 +51,14 @@ struct ltdb_context {
 	struct ldb_dn *base;
 	enum ldb_scope scope;
 	const char * const *attrs;
+	struct timed_event *timeout_event;
 };
 
 /* special record types */
 #define LTDB_INDEX      "@INDEX"
 #define LTDB_INDEXLIST  "@INDEXLIST"
 #define LTDB_IDX        "@IDX"
+#define LTDB_IDXPTR     "@IDXPTR"
 #define LTDB_IDXATTR    "@IDXATTR"
 #define LTDB_IDXONE     "@IDXONE"
 #define LTDB_BASEINFO   "@BASEINFO"
@@ -84,6 +87,9 @@ int ltdb_index_add(struct ldb_module *module, const struct ldb_message *msg);
 int ltdb_index_del(struct ldb_module *module, const struct ldb_message *msg);
 int ltdb_index_one(struct ldb_module *module, const struct ldb_message *msg, int add);
 int ltdb_reindex(struct ldb_module *module);
+int ltdb_index_transaction_start(struct ldb_module *module);
+int ltdb_index_transaction_commit(struct ldb_module *module);
+int ltdb_index_transaction_cancel(struct ldb_module *module);
 
 /* The following definitions come from lib/ldb/ldb_tdb/ldb_pack.c  */
 

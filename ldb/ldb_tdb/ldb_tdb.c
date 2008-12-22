@@ -161,7 +161,7 @@ failed:
   check special dn's have valid attributes
   currently only @ATTRIBUTES is checked
 */
-int ltdb_check_special_dn(struct ldb_module *module,
+static int ltdb_check_special_dn(struct ldb_module *module,
 			  const struct ldb_message *msg)
 {
 	int i, j;
@@ -850,6 +850,8 @@ static int ltdb_start_trans(struct ldb_module *module)
 
 	ltdb->in_transaction++;
 
+	ltdb_index_transaction_start(module);
+
 	return LDB_SUCCESS;
 }
 
@@ -859,6 +861,10 @@ static int ltdb_end_trans(struct ldb_module *module)
 		talloc_get_type(module->private_data, struct ltdb_private);
 
 	ltdb->in_transaction--;
+
+	if (ltdb_index_transaction_commit(module) != 0) {
+		return ltdb_err_map(tdb_error(ltdb->tdb));
+	}
 
 	if (tdb_transaction_commit(ltdb->tdb) != 0) {
 		return ltdb_err_map(tdb_error(ltdb->tdb));
@@ -873,6 +879,10 @@ static int ltdb_del_trans(struct ldb_module *module)
 		talloc_get_type(module->private_data, struct ltdb_private);
 
 	ltdb->in_transaction--;
+
+	if (ltdb_index_transaction_cancel(module) != 0) {
+		return ltdb_err_map(tdb_error(ltdb->tdb));
+	}
 
 	if (tdb_transaction_cancel(ltdb->tdb) != 0) {
 		return ltdb_err_map(tdb_error(ltdb->tdb));
@@ -968,7 +978,7 @@ done:
 	return ret;
 }
 
-void ltdb_request_done(struct ldb_request *req, int error)
+static void ltdb_request_done(struct ldb_request *req, int error)
 {
 	struct ldb_reply *ares;
 
@@ -1076,12 +1086,14 @@ static void ltdb_callback(struct event_context *ev,
 	}
 
 	if (!ctx->callback_failed) {
+		/* Once we are done, we do not need timeout events */
+		talloc_free(ctx->timeout_event);
 		ltdb_request_done(ctx->req, ret);
 	}
 }
 
 static int ltdb_handle_request(struct ldb_module *module,
-				struct ldb_request *req)
+			       struct ldb_request *req)
 {
 	struct event_context *ev;
 	struct ltdb_context *ac;
@@ -1115,10 +1127,9 @@ static int ltdb_handle_request(struct ldb_module *module,
 		return LDB_ERR_OPERATIONS_ERROR;
 	}
 
-
 	tv.tv_sec = req->starttime + req->timeout;
-	te = event_add_timed(ev, ac, tv, ltdb_timeout, ac);
-	if (NULL == te) {
+	ac->timeout_event = event_add_timed(ev, ac, tv, ltdb_timeout, ac);
+	if (NULL == ac->timeout_event) {
 		return LDB_ERR_OPERATIONS_ERROR;
 	}
 

@@ -278,13 +278,15 @@ int ldb_ldif_write(struct ldb_context *ldb,
 	TALLOC_CTX *mem_ctx;
 	unsigned int i, j;
 	int total=0, ret;
+	char *p;
 	const struct ldb_message *msg;
 
 	mem_ctx = talloc_named_const(NULL, 0, "ldb_ldif_write");
 
 	msg = ldif->msg;
-
-	ret = fprintf_fn(private_data, "dn: %s\n", ldb_dn_get_linearized(msg->dn));
+	p = ldb_dn_get_extended_linearized(mem_ctx, msg->dn, 1);
+	ret = fprintf_fn(private_data, "dn: %s\n", p);
+	talloc_free(p);
 	CHECK_RET;
 
 	if (ldif->changetype != LDB_CHANGETYPE_NONE) {
@@ -328,8 +330,10 @@ int ldb_ldif_write(struct ldb_context *ldb,
 		for (j=0;j<msg->elements[i].num_values;j++) {
 			struct ldb_val v;
 			ret = a->syntax->ldif_write_fn(ldb, mem_ctx, &msg->elements[i].values[j], &v);
-			CHECK_RET;
-			if (ldb_should_b64_encode(&v)) {
+			if (ret != LDB_SUCCESS) {
+				v = msg->elements[i].values[j];
+			}
+			if (ret != LDB_SUCCESS || ldb_should_b64_encode(&v)) {
 				ret = fprintf_fn(private_data, "%s:: ", 
 						 msg->elements[i].name);
 				CHECK_RET;
@@ -562,11 +566,11 @@ struct ldb_ldif *ldb_ldif_read(struct ldb_context *ldb,
 		goto failed;
 	}
 
-	msg->dn = ldb_dn_new(msg, ldb, (char *)value.data);
+	msg->dn = ldb_dn_from_ldb_val(msg, ldb, &value);
 
 	if ( ! ldb_dn_validate(msg->dn)) {
 		ldb_debug(ldb, LDB_DEBUG_ERROR, "Error: Unable to parse dn '%s'\n", 
-				  value.data);
+			  (char *)value.data);
 		goto failed;
 	}
 

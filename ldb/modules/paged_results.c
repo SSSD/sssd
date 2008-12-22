@@ -70,7 +70,7 @@ struct private_data {
 	
 };
 
-int store_destructor(struct results_store *del)
+static int store_destructor(struct results_store *del)
 {
 	struct private_data *priv = del->priv;
 	struct results_store *loop;
@@ -147,7 +147,7 @@ static int paged_results(struct paged_context *ac)
 
 	while (ac->store->num_entries > 0 && ac->size > 0) {
 		msg = ac->store->first;
-		ret = ldb_module_send_entry(ac->req, msg->r->message);
+		ret = ldb_module_send_entry(ac->req, msg->r->message, msg->r->controls);
 		if (ret != LDB_SUCCESS) {
 			return ret;
 		}

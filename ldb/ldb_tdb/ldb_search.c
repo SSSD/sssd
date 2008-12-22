@@ -205,7 +205,7 @@ static struct ldb_message *ltdb_pull_attrs(struct ldb_module *module,
   return LDB_ERR_NO_SUCH_OBJECT on record-not-found
   and LDB_SUCCESS on success
 */
-int ltdb_search_base(struct ldb_module *module, struct ldb_dn *dn)
+static int ltdb_search_base(struct ldb_module *module, struct ldb_dn *dn)
 {
 	struct ltdb_private *ltdb = (struct ltdb_private *)module->private_data;
 	TDB_DATA tdb_key, tdb_data;
@@ -418,7 +418,7 @@ static int search_func(struct tdb_context *tdb, TDB_DATA key, TDB_DATA data, voi
 		return -1;
 	}
 
-	ret = ldb_module_send_entry(ac->req, msg);
+	ret = ldb_module_send_entry(ac->req, msg, NULL);
 	if (ret != LDB_SUCCESS) {
 		ac->callback_failed = true;
 		/* the callback failed, abort the operation */

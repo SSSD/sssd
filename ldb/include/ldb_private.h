@@ -84,6 +84,9 @@ struct ldb_schema {
 	/* attribute handling table */
 	unsigned num_attributes;
 	struct ldb_schema_attribute *attributes;
+
+	unsigned num_dn_extended_syntax;
+	struct ldb_dn_extended_syntax *dn_extended_syntax;
 };
 
 /*
@@ -211,6 +214,10 @@ char *ldb_casefold_default(void *context, void *mem_ctx, const char *s, size_t n
 
 void ldb_msg_remove_element(struct ldb_message *msg, struct ldb_message_element *el);
 
+int ldb_msg_element_compare_name(struct ldb_message_element *el1, 
+				 struct ldb_message_element *el2);
+void ldb_dump_results(struct ldb_context *ldb, struct ldb_result *result, FILE *f);
+
 /**
   Obtain current/next database sequence number
 */
@@ -255,13 +262,11 @@ const char *ldb_default_modules_dir(void);
 
 int ldb_register_backend(const char *url_prefix, ldb_connect_fn);
 
-void *ldb_dso_load_symbol(struct ldb_context *ldb, const char *name,
-			    const char *symbol);
-
 struct ldb_handle *ldb_handle_new(TALLOC_CTX *mem_ctx, struct ldb_context *ldb);
 
 int ldb_module_send_entry(struct ldb_request *req,
-			  struct ldb_message *msg);
+			  struct ldb_message *msg,
+			  struct ldb_control **ctrls);
 
 int ldb_module_send_referral(struct ldb_request *req,
 					   char *ref);
@@ -272,5 +277,8 @@ int ldb_module_done(struct ldb_request *req,
 		    int error);
 
 int ldb_mod_register_control(struct ldb_module *module, const char *oid);
+
+
+struct ldb_val ldb_binary_decode(void *mem_ctx, const char *str);
 
 #endif

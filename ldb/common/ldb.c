@@ -394,7 +394,6 @@ static int ldb_autotransaction_request(struct ldb_context *ldb,
 int ldb_wait(struct ldb_handle *handle, enum ldb_wait_type type)
 {
 	struct event_context *ev;
-	int ret;
 
 	if (!handle) {
 		return LDB_ERR_UNAVAILABLE;
@@ -411,8 +410,7 @@ int ldb_wait(struct ldb_handle *handle, enum ldb_wait_type type)
 
 	switch (type) {
 	case LDB_WAIT_NONE:
-		ret = event_loop_once(ev);
-		if (ret) return LDB_ERR_OPERATIONS_ERROR;
+		event_loop_once(ev);
 		if (handle->state == LDB_ASYNC_DONE ||
 		    handle->status != LDB_SUCCESS) {
 			return handle->status;
@@ -421,8 +419,7 @@ int ldb_wait(struct ldb_handle *handle, enum ldb_wait_type type)
 
 	case LDB_WAIT_ALL:
 		while (handle->state != LDB_ASYNC_DONE) {
-			ret = event_loop_once(ev);
-			if (ret) return LDB_ERR_OPERATIONS_ERROR;
+			event_loop_once(ev);
 			if (handle->status != LDB_SUCCESS) {
 				return handle->status;
 			}

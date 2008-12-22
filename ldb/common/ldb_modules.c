@@ -40,6 +40,9 @@
 #define LDB_MODULE_PREFIX	"modules:"
 #define LDB_MODULE_PREFIX_LEN	8
 
+static void *ldb_dso_load_symbol(struct ldb_context *ldb, const char *name,
+				 const char *symbol);
+
 void ldb_set_modules_dir(struct ldb_context *ldb, const char *path)
 {
 	talloc_free(ldb->modules_dir);
@@ -291,8 +294,8 @@ int ldb_register_module(const struct ldb_module_ops *ops)
 	return 0;
 }
 
-void *ldb_dso_load_symbol(struct ldb_context *ldb, const char *name,
-			    const char *symbol)
+static void *ldb_dso_load_symbol(struct ldb_context *ldb, const char *name,
+				 const char *symbol)
 {
 	char *path;
 	void *handle;
@@ -334,6 +337,10 @@ int ldb_load_modules_list(struct ldb_context *ldb, const char **module_list, str
 	for (i = 0; module_list[i] != NULL; i++) {
 		struct ldb_module *current;
 		const struct ldb_module_ops *ops;
+
+		if (strcmp(module_list[i], "") == 0) {
+			continue;
+		}
 		
 		ops = ldb_find_module_ops(module_list[i]);
 		if (ops == NULL) {
@@ -580,10 +587,13 @@ struct ldb_handle *ldb_handle_new(TALLOC_CTX *mem_ctx, struct ldb_context *ldb)
  *      req: the original request passed to your module
  *      msg: reply message (must be a talloc pointer, and it will be stolen
  *           on the ldb_reply that is sent to the callback)
+ * 	ctrls: controls to send in the reply  (must be a talloc pointer, and it will be stolen
+ *           on the ldb_reply that is sent to the callback)
  */
 
 int ldb_module_send_entry(struct ldb_request *req,
-			  struct ldb_message *msg)
+			  struct ldb_message *msg,
+			  struct ldb_control **ctrls)
 {
 	struct ldb_reply *ares;
 
@@ -595,6 +605,7 @@ int ldb_module_send_entry(struct ldb_request *req,
 	}
 	ares->type = LDB_REPLY_ENTRY;
 	ares->message = talloc_steal(ares, msg);
+	ares->controls = talloc_steal(ares, ctrls);
 	ares->error = LDB_SUCCESS;
 
 	return req->callback(req, ares);
