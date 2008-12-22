@@ -19,7 +19,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <sys/time.h>
-#include "events.h"
+#include "tevent.h"
 #include "util/util.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"

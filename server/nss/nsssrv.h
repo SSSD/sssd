@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <sys/un.h>
 #include "talloc.h"
-#include "events.h"
+#include "tevent.h"
 #include "ldb.h"
 #include "../nss_client/sss_nss.h"
 

@@ -30,8 +30,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "../events/events.h"
-#include "../ldb/include/ldb.h"
+#include "tevent.h"
+#include "ldb.h"
 #include "confdb/confdb.h"
 #include "util/util.h"
 

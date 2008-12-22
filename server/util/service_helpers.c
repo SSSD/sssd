@@ -21,11 +21,12 @@
 
 #include "util/util.h"
 #include "talloc.h"
-#include "events.h"
 #include "sbus/sssd_dbus.h"
 #include "confdb/confdb.h"
 #include "service_helpers.h"
 #include "sbus_interfaces.h"
+
+struct event_context;
 
 /*
  * Set up an SBUS connection to the monitor

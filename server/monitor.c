@@ -27,7 +27,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include "popt.h"
-#include "../events/events.h"
+#include "tevent.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "monitor.h"
