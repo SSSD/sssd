@@ -40,6 +40,7 @@ shared-build: all
 	ln -sf $(TALLOC_SOLIB) $(sharedbuilddir)/lib/libtalloc.so
 	${INSTALLCMD} -d $(sharedbuilddir)/include
 	${INSTALLCMD} -m 644 $(srcdir)/talloc.h $(sharedbuilddir)/include
+	${INSTALLCMD} -m 644 $(srcdir)/pytalloc.h $(sharedbuilddir)/include
 
 check: test
 

@@ -46,6 +46,10 @@
 #define _LDB_H_ 1
 /*! \endcond */
 
+#include <stdbool.h>
+#include <talloc.h>
+#include <tevent.h>
+
 /*
   major restrictions as compared to normal LDAP:
 

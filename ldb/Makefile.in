@@ -50,11 +50,11 @@ LD_EXPORT_DYNAMIC = @LD_EXPORT_DYNAMIC@
 SHLD = @SHLD@
 SHLD_FLAGS = @SHLD_FLAGS@
 
-LDFLAGS = @LDFLAGS@
+LDFLAGS += @LDFLAGS@
 LIBS = @LIBS@
 
 PICFLAG = @PICFLAG@
-CFLAGS=-g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
+CFLAGS += -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
        $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) \
 	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DUSE_MMAP=1 @CFLAGS@
 
