@@ -66,11 +66,11 @@ struct sbus_method mon_sbus_methods[] = {
 };
 
 static int be_identity(DBusMessage *message, void *data, DBusMessage **r);
-static int check_online(DBusMessage *message, void *data, DBusMessage **r);
+static int be_check_online(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method be_methods[] = {
     { DP_CLI_METHOD_IDENTITY, be_identity },
-    { DP_CLI_METHOD_ONLINE, check_online },
+    { DP_CLI_METHOD_ONLINE, be_check_online },
     { NULL, NULL }
 };
 
@@ -90,6 +90,8 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
+
+    DEBUG(4,("Sending ID reply: (%s,%d)\n", ctx->identity, version));
 
     reply = dbus_message_new_method_return(message);
     ret = dbus_message_append_args(reply,
@@ -137,6 +139,9 @@ static int be_identity(DBusMessage *message, void *data, DBusMessage **r)
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
 
+    DEBUG(4,("Sending ID reply: (%d,%d,%s,%s)\n",
+             clitype, version, ctx->name, ctx->domain));
+
     reply = dbus_message_new_method_return(message);
     ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_UINT16, &clitype,
@@ -152,7 +157,7 @@ static int be_identity(DBusMessage *message, void *data, DBusMessage **r)
     return EOK;
 }
 
-static int check_online(DBusMessage *message, void *data, DBusMessage **r)
+static int be_check_online(DBusMessage *message, void *data, DBusMessage **r)
 {
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_ctx *ctx;
@@ -215,7 +220,7 @@ static int be_dp_sbus_init(TALLOC_CTX *mem_ctx,
     struct service_sbus_ctx *ss_ctx;
     struct sbus_method_ctx *sm_ctx;
     TALLOC_CTX *tmp_ctx;
-    char *default_monitor_address;
+    char *default_dp_address;
     char *sbus_address;
     DBusConnection *conn;
     int ret;
@@ -233,16 +238,16 @@ static int be_dp_sbus_init(TALLOC_CTX *mem_ctx,
     }
     ss_ctx->ev = ev;
 
-    default_monitor_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s",
-                                              PIPE_PATH, SSSD_SERVICE_PIPE);
-    if (default_monitor_address == NULL) {
+    default_dp_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s",
+                                         PIPE_PATH, DATA_PROVIDER_PIPE);
+    if (default_dp_address == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
     ret = confdb_get_string(cdb, tmp_ctx,
-                            "config/services/monitor", "sbusAddress",
-                            default_monitor_address, &sbus_address);
+                            "config/services/dp", "sbusAddress",
+                            default_dp_address, &sbus_address);
     if (ret != EOK) goto done;
 
     ret = sbus_new_connection(ss_ctx, ss_ctx->ev,
@@ -259,8 +264,8 @@ static int be_dp_sbus_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sm_ctx->interface = talloc_strdup(sm_ctx, SERVICE_INTERFACE);
-    sm_ctx->path = talloc_strdup(sm_ctx, SERVICE_PATH);
+    sm_ctx->interface = talloc_strdup(sm_ctx, DATA_PROVIDER_INTERFACE);
+    sm_ctx->path = talloc_strdup(sm_ctx, DATA_PROVIDER_PATH);
     if (!sm_ctx->interface || !sm_ctx->path) {
         ret = ENOMEM;
         goto done;

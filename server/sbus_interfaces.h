@@ -42,7 +42,7 @@
 
 /* Data Provider */
 
-#define DATA_PROVIDER_DBUS_INTERFACE "org.freeipa.sssd.dataprovider"
-#define DATA_PROVIDER_DBUS_PATH "/org/freeipa/sssd/dataprovider"
+#define DATA_PROVIDER_INTERFACE "org.freeipa.sssd.dataprovider"
+#define DATA_PROVIDER_PATH "/org/freeipa/sssd/dataprovider"
 
 #define DP_METHOD_CHECK_ONLINE "isOnline"

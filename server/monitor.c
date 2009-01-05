@@ -626,6 +626,8 @@ static int service_send_ping(struct mt_svc *svc)
         return ENXIO;
     }
 
+    DEBUG(4,("Pinging %s\n", svc->name));
+
     conn = sbus_get_connection(svc->mt_conn->conn_ctx);
     dbus_error_init(&dbus_error);
 
@@ -697,6 +699,8 @@ static void ping_check(DBusPendingCall *pending, void *data)
         /* ok peer replied,
          * set the reply timestamp into the service structure */
 
+        DEBUG(4,("Service %s replied to ping\n", svc->name));
+
         svc->last_pong = time(NULL);
         break;
 
@@ -734,6 +738,8 @@ static int service_check_alive(struct mt_svc *svc)
 {
     int status;
     pid_t pid;
+
+    DEBUG(4,("Checking service %s(%d) is still alive\n", svc->name, svc->pid));
 
     pid = waitpid(svc->pid, &status, WNOHANG);
     if (pid == 0) {
@@ -860,6 +866,8 @@ static int start_service(const char *name, const char *command, pid_t *retpid)
 {
     char **args;
     pid_t pid;
+
+    DEBUG(4,("Starting service %s\n", name));
 
     pid = fork();
     if (pid != 0) {

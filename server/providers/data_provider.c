@@ -191,8 +191,8 @@ static int dp_db_init(struct dp_ctx *dpctx)
     return EOK;
 }
 
-static void identity_check(DBusPendingCall *pending, void *data);
-static void online_check(DBusPendingCall *pending, void *data);
+static void be_identity_check(DBusPendingCall *pending, void *data);
+static void be_online_check(DBusPendingCall *pending, void *data);
 
 static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
 {
@@ -249,13 +249,13 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
     }
 
     /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, identity_check, dpcli, NULL);
+    dbus_pending_call_set_notify(pending_reply, be_identity_check, dpcli, NULL);
     dbus_message_unref(msg);
 
     return EOK;
 }
 
-static void identity_check(DBusPendingCall *pending, void *data)
+static void be_identity_check(DBusPendingCall *pending, void *data)
 {
     struct dp_backend *dpbe;
     struct dp_frontend *dpfe;
@@ -297,7 +297,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
                                     DBUS_TYPE_STRING, &cli_domain,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1,("Failed, to parse message, killing connection\n"));
+            DEBUG(1,("be_identity_check failed, to parse message, killing connection\n"));
             sbus_disconnect(dpcli->conn_ctx);
             goto done;
         }
@@ -377,7 +377,7 @@ done:
     dbus_message_unref(reply);
 }
 
-static void online_check(DBusPendingCall *pending, void *data)
+static void be_online_check(DBusPendingCall *pending, void *data)
 {
     return;
 }
@@ -438,12 +438,12 @@ static int dp_srv_init(struct dp_ctx *dpctx)
     }
 
     /* Set up globally-available D-BUS methods */
-    sd_ctx->interface = talloc_strdup(sd_ctx, DATA_PROVIDER_DBUS_INTERFACE);
+    sd_ctx->interface = talloc_strdup(sd_ctx, DATA_PROVIDER_INTERFACE);
     if (!sd_ctx->interface) {
         ret = ENOMEM;
         goto done;
     }
-    sd_ctx->path = talloc_strdup(sd_ctx, DATA_PROVIDER_DBUS_PATH);
+    sd_ctx->path = talloc_strdup(sd_ctx, DATA_PROVIDER_PATH);
     if (!sd_ctx->path) {
         ret = ENOMEM;
         goto done;
