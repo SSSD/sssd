@@ -16,6 +16,7 @@ its finally system library directory (ie build as user).
 
 I use the following steps to build all pieces.
 
+export LD_LIBRARY_PATH=/tmp/foo/lib
 pushd talloc; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
 pushd tdb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
 pushd events; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
@@ -24,8 +25,8 @@ pushd server; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && ma
 
 At this point you can start testing the sssd daemon this way:
 
-export LD_LIBRARY_PATH=/tmp/foo/lib
 cd server
+export LD_LIBRARY_PATH=/tmp/foo/lib
 ./sbin/sssd -i
 
 This will start the sssd daemon in interactive mode.
