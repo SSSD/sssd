@@ -1,4 +1,4 @@
-/* 
+/*
    SSSD
 
    Service monitor
@@ -20,6 +20,13 @@
 */
 #ifndef BTREEMAP_H_
 #define BTREEMAP_H_
+
+enum {
+    BTREEMAP_EMPTY = -2,
+    BTREEMAP_CREATE_LEFT,
+    BTREEMAP_FOUND,
+    BTREEMAP_CREATE_RIGHT
+};
 
 typedef int (*btreemap_comparison_fn)(void *first, void *second);
 struct btreemap;

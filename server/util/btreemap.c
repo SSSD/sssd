@@ -1,4 +1,4 @@
-/* 
+/*
  SSSD
 
  Service monitor
@@ -43,27 +43,27 @@ struct btreemap
 
 /* btreemap_search_key
  * Searches a btreemap for an entry with a specific key
- * If found, it will return 0 and node will be set to the 
- * appropriate node.
+ * If found, it will return BTREEMAP_FOUND and node will
+ * be set to the appropriate node.
  * If not found, it will set the following:
- * -2: The map was empty, create a new map when adding keys
- * -1: A new node created should use node->left
- * 1: A new node created should use node->right
+ * BTREEMAP_EMPTY: The map was empty, create a new map when adding keys
+ * BTREEMAP_CREATE_LEFT: A new node created should use node->left
+ * BTREEMAP_CREATE_RIGHT: A new node created should use node->right
  */
 int btreemap_search_key(struct btreemap *map, void *key, struct btreemap **node)
 {
     struct btreemap *tempnode;
     int result;
-    int found = -2;
+    int found = BTREEMAP_EMPTY;
 
     if (!map)
     {
         *node = NULL;
-        return -2;
+        return BTREEMAP_EMPTY;
     }
 
     tempnode = map;
-    while (found == -2) {
+    while (found == BTREEMAP_EMPTY) {
         result = tempnode->comparator(tempnode->key, key);
         if (result > 0)
         {
@@ -71,7 +71,7 @@ int btreemap_search_key(struct btreemap *map, void *key, struct btreemap **node)
                 tempnode=tempnode->right;
             else
             {
-                found = 1;
+                found = BTREEMAP_CREATE_RIGHT;
             }
         } else if (result < 0)
         {
@@ -79,12 +79,12 @@ int btreemap_search_key(struct btreemap *map, void *key, struct btreemap **node)
                 tempnode=tempnode->left;
             else
             {
-                found = -1;
+                found = BTREEMAP_CREATE_LEFT;
             }
         } else
         {
             /* This entry matched */
-            found = 0;
+            found = BTREEMAP_FOUND;
         }
     }
 
@@ -127,7 +127,7 @@ int btreemap_set_value(struct btreemap **map, void *key, void *value,
 
     /* Search for the key */
     found = btreemap_search_key(*map, key, &node);
-    if (found == 0)
+    if (found == BTREEMAP_FOUND)
     {
         /* Update existing value */
         node->value = value;
@@ -144,14 +144,14 @@ int btreemap_set_value(struct btreemap **map, void *key, void *value,
     new_node->value = talloc_steal(*map, value);
     new_node->comparator = comparator;
 
-    if (found == -2)
+    if (found == BTREEMAP_EMPTY)
     {
         *map = new_node;
     }
-    if (found == -1)
+    if (found == BTREEMAP_CREATE_LEFT)
     {
         node->left = new_node;
-    } else if (found == 1)
+    } else if (found == BTREEMAP_CREATE_RIGHT)
     {
         node->right = new_node;
     }
