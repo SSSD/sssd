@@ -507,7 +507,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
         for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
             if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
                 ret = ctx->method_ctx->methods[i].fn(message, ctx, &reply);
-                /* FIXME: check error */
+                if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
                 break;
             }
         }
@@ -521,8 +521,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
         dbus_message_unref(reply);
     }
 
-    return reply ? DBUS_HANDLER_RESULT_HANDLED :
-                   DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    return DBUS_HANDLER_RESULT_HANDLED;
 }
 
 /* Adds a new D-BUS path message handler to the connection
