@@ -397,7 +397,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             continue;
         }
 
-        /* if no command is present to not run the domain */
+        /* if no command is present do not run the domain */
         if (svc->command == NULL) {
             /* the LOCAL domain does not need a backend at the moment */
             if (strcasecmp(doms[i], "LOCAL") != 0) {
