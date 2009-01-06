@@ -22,7 +22,7 @@
 #define NSS_DEF_PW_UIDNUM "uidNumber"
 #define NSS_DEF_PW_GIDNUM "gidNumber"
 #define NSS_DEF_PW_FULLNAME "fullName"
-#define NSS_DEF_PW_HOMEDIR "HomeDirectory"
+#define NSS_DEF_PW_HOMEDIR "homeDirectory"
 #define NSS_DEF_PW_SHELL "loginShell"
 
 #define NSS_DEF_GR_NAME "cn"
