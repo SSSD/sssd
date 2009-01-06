@@ -5,6 +5,7 @@ UTIL_OBJ = \
     util/memory.o \
     util/btreemap.o \
     util/service_helpers.o \
+    providers/dp_helpers.o \
     confdb/confdb.o \
     sbus/sssd_dbus_common.o \
     sbus/sssd_dbus_connection.o \
@@ -17,7 +18,8 @@ DP_OBJ = \
 	providers/data_provider.o
 
 DP_BE_OBJ = \
-	providers/data_provider_be.o
+	providers/data_provider_be.o \
+	providers/dp_backend_store.o
 
 LDAP_BE_OBJ = \
 	providers/ldap_provider.o

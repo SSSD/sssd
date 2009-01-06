@@ -24,12 +24,18 @@
 
 #include <stdint.h>
 #include <sys/un.h>
+#include <errno.h>
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"
+#include "util/util.h"
+#include "confdb/confdb.h"
+#include "dbus/dbus.h"
+#include "sbus/sssd_dbus.h"
+#include "sbus_interfaces.h"
+#include "util/service_helpers.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
-#define BE_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"
 #define DATA_PROVIDER_PIPE "private/sbus-dp"
 
@@ -48,9 +54,29 @@
 
 #define DP_CLI_METHOD_IDENTITY "getIdentity"
 #define DP_CLI_METHOD_ONLINE "getOnline"
+#define DP_CLI_METHOD_GETACCTINFO "getAccountInfo"
 
-struct dp_be_mod_ops {
-    int (*check_online)(void *pvt_data, int *reply);
-};
+#define DP_SRV_METHOD_GETACCTINFO "getAccountInfo"
+
+#define DP_ERR_OK 0
+#define DP_ERR_OFFLINE 1
+#define DP_ERR_TIMEOUT 2
+#define DP_ERR_FATAL 3
+
+#define BE_ATTR_CORE 1
+#define BE_ATTR_MEM 2
+#define BE_ATTR_ALL 3
+
+#define BE_FILTER_NAME 1
+#define BE_FILTER_IDNUM 2
+
+#define BE_REQ_USER 1
+#define BE_REQ_GROUP 2
+
+int dp_sbus_cli_init(TALLOC_CTX *mem_ctx,
+                     struct event_context *ev,
+                     struct confdb_ctx *cdb,
+                     struct sbus_method *methods,
+                     struct service_sbus_ctx **srvs_ctx);
 
 #endif /* __DATA_PROVIDER_ */

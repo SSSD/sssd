@@ -24,7 +24,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include "util/util.h"
-#include "providers/data_provider.h"
+#include "providers/dp_backend.h"
 
 struct ldap_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
@@ -54,19 +54,104 @@ struct ldap_ctx {
     struct ldap_nss_ops ops;
 };
 
-static int ldap_check_online(void *pvt_data, int *reply);
+static int get_pw_name(struct be_ctx *be_ctx, struct ldap_ctx *ldap_ctx, char *name)
+{
+    struct ldap_nss_ops *ops = &ldap_ctx->ops;
+    enum nss_status status;
+    struct passwd result;
+    char *buffer;
+    int ret;
 
-struct dp_be_mod_ops ldap_mod_ops = {
-    .check_online = ldap_check_online
+    buffer = talloc_size(NULL, 4096);
+    if (!buffer) return ENOMEM;
+
+    status = ops->getpwnam_r(name, &result, buffer, 4096, &ret);
+
+    switch (status) {
+    case NSS_STATUS_NOTFOUND:
+        ret = dp_be_remove_account_posix(be_ctx, name);
+        break;
+    case NSS_STATUS_SUCCESS:
+        ret = dp_be_store_account_posix(be_ctx, name, result.pw_passwd,
+                                        result.pw_uid, result.pw_gid,
+                                        result.pw_gecos, result.pw_dir,
+                                        result.pw_shell);
+        break;
+    default:
+        DEBUG(2, ("ldap->getpwnam_r failed for '%s' (%d)[%s]\n",
+                  name, ret, strerror(ret)));
+        talloc_free(buffer);
+        return ret;
+    }
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d) !?\n",
+                   name, ret));
+    }
+
+    talloc_free(buffer);
+    return ret;
+}
+
+static int ldap_check_online(struct be_ctx *be_ctx, int *reply);
+static int ldap_get_account_info(struct be_ctx *be_ctx,
+                                 int entry_type, int attr_type,
+                                 int filter_type, char *filter_value);
+
+struct be_mod_ops ldap_mod_ops = {
+    .check_online = ldap_check_online,
+    .get_account_info = ldap_get_account_info
 };
 
-static int ldap_check_online(void *pvt_data, int *reply)
+static int ldap_check_online(struct be_ctx *be_ctx, int *reply)
 {
     *reply = MOD_ONLINE;
     return EOK;
 }
 
-int sssm_ldap_init(TALLOC_CTX *bectx, struct dp_be_mod_ops **ops, void **pvt_data)
+static int ldap_get_account_info(struct be_ctx *be_ctx,
+                                 int entry_type, int attr_type,
+                                 int filter_type, char *filter_value)
+{
+    struct ldap_ctx *ctx;
+
+    ctx = talloc_get_type(be_ctx->pvt_data, struct ldap_ctx);
+
+    switch (entry_type) {
+    case BE_REQ_USER: /* user */
+        switch (filter_type) {
+        case BE_FILTER_NAME:
+            switch (attr_type) {
+            case BE_ATTR_CORE:
+                if (strchr(filter_value, '*')) {
+                    /* TODO */
+                } else {
+                    return get_pw_name(be_ctx, ctx, filter_value);
+                }
+                break;
+            default:
+                return EINVAL;
+            }
+            break;
+        case BE_FILTER_IDNUM:
+            break;
+        default:
+            return EINVAL;
+        }
+        break;
+
+    case BE_REQ_GROUP: /* group */
+        /* TODO */
+        return EOK;
+
+    default: /*fail*/
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
+int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
 {
     struct ldap_ctx *ctx;
     void *handle;

@@ -57,7 +57,6 @@ struct dp_ctx {
 struct dp_client {
     struct dp_ctx *dpctx;
     struct sbus_conn_ctx *conn_ctx;
-    const char *domain;
 };
 
 struct dp_backend {
@@ -83,13 +82,30 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method mon_sbus_methods[] = {
-    {SERVICE_METHOD_IDENTITY, service_identity},
-    {SERVICE_METHOD_PING, service_pong},
-    {NULL, NULL}
+    { SERVICE_METHOD_IDENTITY, service_identity },
+    { SERVICE_METHOD_PING, service_pong },
+    { NULL, NULL }
 };
 
+static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r);
+
 struct sbus_method dp_sbus_methods[] = {
-    {NULL, NULL}
+    { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
+    { NULL, NULL }
+};
+
+struct dp_request {
+    /* reply message to send when request is done */
+    DBusMessage *reply;
+    /* frontend client that made the request */
+    struct dp_client *src_cli;
+
+    int pending_replies;
+};
+
+struct dp_be_request {
+    struct dp_request *req;
+    struct dp_client *be_cli;
 };
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
@@ -193,6 +209,7 @@ static int dp_db_init(struct dp_ctx *dpctx)
 
 static void be_identity_check(DBusPendingCall *pending, void *data);
 static void be_online_check(DBusPendingCall *pending, void *data);
+static void be_got_account_info(DBusPendingCall *pending, void *data);
 
 static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
 {
@@ -280,7 +297,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("Serious error. A reply callback was called but no reply was received and no timeout occurred\n"));
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
         sbus_disconnect(dpcli->conn_ctx);
@@ -382,6 +399,314 @@ static void be_online_check(DBusPendingCall *pending, void *data)
     return;
 }
 
+static void be_got_account_info(DBusPendingCall *pending, void *data)
+{
+    struct dp_be_request *bereq;
+    DBusMessage *reply;
+    DBusConnection *conn;
+    DBusError dbus_error;
+    dbus_uint16_t cli_err_maj;
+    dbus_uint32_t cli_err_min;
+    char *cli_err_msg;
+    dbus_bool_t ret;
+    int type;
+
+    bereq = talloc_get_type(data, struct dp_be_request);
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
+
+        /* Destroy this connection */
+        sbus_disconnect(bereq->be_cli->conn_ctx);
+        goto done;
+    }
+
+    type = dbus_message_get_type(reply);
+    switch (type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        ret = dbus_message_get_args(reply, &dbus_error,
+                                    DBUS_TYPE_UINT16, &cli_err_maj,
+                                    DBUS_TYPE_UINT32, &cli_err_min,
+                                    DBUS_TYPE_STRING, &cli_err_msg,
+                                    DBUS_TYPE_INVALID);
+        if (!ret) {
+            DEBUG(1,("be_identity_check failed, to parse message, killing connection\n"));
+            sbus_disconnect(bereq->be_cli->conn_ctx);
+            goto done;
+        }
+
+        /* Set up the destructor for this service */
+        break;
+
+    case DBUS_MESSAGE_TYPE_ERROR:
+        DEBUG(0,("getAccountInfo returned an error [%s], closing connection.\n",
+                 dbus_message_get_error_name(reply)));
+        /* Falling through to default intentionally*/
+    default:
+        /*
+         * Timeout or other error occurred or something
+         * unexpected happened.
+         * It doesn't matter which, because either way we
+         * know that this connection isn't trustworthy.
+         * We'll destroy it now.
+         */
+        sbus_disconnect(bereq->be_cli->conn_ctx);
+    }
+
+    /* TODO: handle errors !! */
+    if (bereq->req->pending_replies > 1) {
+        bereq->req->pending_replies--;
+        talloc_free(bereq);
+    } else {
+        conn = sbus_get_connection(bereq->be_cli->conn_ctx);
+        ret = dbus_message_append_args(bereq->req->reply,
+                                       DBUS_TYPE_UINT16, 0,
+                                       DBUS_TYPE_UINT32, 0,
+                                       DBUS_TYPE_STRING, "Success",
+                                       DBUS_TYPE_INVALID);
+        if (!ret) {
+            DEBUG(1, ("Failed to build reply ... frontend will wait for timeout ...\n"));
+            talloc_free(bereq->req);
+            goto done;
+        }
+
+        /* finally send it */
+        dbus_connection_send(conn, bereq->req->reply, NULL);
+        dbus_message_unref(bereq->req->reply);
+        talloc_free(bereq->req);
+    }
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+}
+
+static int dp_send_acct_req(struct dp_be_request *bereq,
+                            uint32_t type, char *attrs, char *filter)
+{
+    DBusMessage *msg;
+    DBusPendingCall *pending_reply;
+    DBusConnection *conn;
+    DBusError dbus_error;
+    dbus_bool_t ret;
+
+    conn = sbus_get_connection(bereq->be_cli->conn_ctx);
+    dbus_error_init(&dbus_error);
+
+    /* create the message */
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_CLI_PATH,
+                                       DP_CLI_INTERFACE,
+                                       DP_CLI_METHOD_GETACCTINFO);
+    if (msg == NULL) {
+        DEBUG(0,("Out of memory?!\n"));
+        return ENOMEM;
+    }
+
+    ret = dbus_message_append_args(msg,
+                                   DBUS_TYPE_UINT32, &type,
+                                   DBUS_TYPE_STRING, &attrs,
+                                   DBUS_TYPE_STRING, &filter,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1,("Failed to build message\n"));
+        return EIO;
+    }
+
+    ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            -1 /* TODO: set timeout */);
+    if (!ret) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         * We'll drop it using the default destructor.
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        dbus_message_unref(msg);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, be_got_account_info,
+                                 bereq, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+
+static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r)
+{
+    struct sbus_message_handler_ctx *smh_ctx;
+    struct dp_client *dpcli;
+    struct dp_be_request *bereq;
+    struct dp_request *dpreq = NULL;
+    struct dp_backend *dpbe;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    dbus_bool_t dbret;
+    void *user_data;
+    uint32_t type;
+    char *domain, *attrs, *filter;
+    const char *errmsg = NULL;
+    int dpret = 0, ret = 0;
+
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
+    if (!smh_ctx) return EINVAL;
+    user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
+    if (!user_data) return EINVAL;
+    dpcli = talloc_get_type(user_data, struct dp_client);
+    if (!dpcli) return EINVAL;
+
+    dbus_error_init(&dbus_error);
+
+    ret = dbus_message_get_args(message, &dbus_error,
+                                DBUS_TYPE_STRING, &domain,
+                                DBUS_TYPE_UINT32, &type,
+                                DBUS_TYPE_STRING, &attrs,
+                                DBUS_TYPE_STRING, &filter,
+                                DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1,("Failed, to parse message!\n"));
+        return EIO;
+    }
+
+    reply = dbus_message_new_method_return(message);
+
+    /* search for domain */
+    if (!domain) {
+        dpret = DP_ERR_FATAL;
+        errmsg = "Invalid Domain";
+        ret = EINVAL;
+        goto respond;
+    }
+
+    /* nothing to do for local */
+    if (strcasecmp(domain, "LOCAL") == 0) {
+        dpret = DP_ERR_OK;
+        errmsg = "Success";
+        ret = EOK;
+        goto respond;
+    }
+
+    /* all domains, fire off a request for each backend */
+    if (strcmp(domain, "*") == 0) {
+        dpreq = talloc(dpcli->dpctx, struct dp_request);
+        if (!dpreq) {
+            dpret = DP_ERR_FATAL;
+            errmsg = "Out of memory";
+            ret = ENOMEM;
+            goto respond;
+        }
+
+        dpreq->reply = reply;
+        dpreq->src_cli = dpcli;
+        dpreq->pending_replies = 0;
+
+        /* now fire off requests */
+        dpbe = dpcli->dpctx->be_list;
+        while (dpbe) {
+            bereq = talloc(dpreq, struct dp_be_request);
+            if (!bereq) {
+                DEBUG(1, ("Out of memory while sending requests\n"));
+                dpbe = dpbe->next;
+                continue;
+            }
+            bereq->req = dpreq;
+            bereq->be_cli = dpbe->dpcli;
+            ret = dp_send_acct_req(bereq, type, attrs, filter);
+            if (ret != EOK) {
+                DEBUG(2,("Failed to dispatch request to %s", dpbe->domain));
+                dpbe = dpbe->next;
+                continue;
+            }
+            dpreq->pending_replies++;
+            dpbe = dpbe->next;
+        }
+
+        if (dpreq->pending_replies == 0) {
+            dpret = DP_ERR_FATAL;
+            errmsg = "Unable to contact backends";
+            ret = EIO;
+            talloc_free(dpreq);
+            goto respond;
+        }
+
+        return EOK;
+    }
+
+    dpbe = dpcli->dpctx->be_list;
+    while (dpbe) {
+        if (strcasecmp(dpbe->domain, domain) == 0) {
+            break;
+        }
+
+        dpbe = dpbe->next;
+    }
+
+    if (dpbe) {
+        dpreq = talloc(dpcli->dpctx, struct dp_request);
+        if (!dpreq) {
+            DEBUG(1, ("Out of memory while sending request\n"));
+            dpret = DP_ERR_FATAL;
+            errmsg = "Out of memory";
+            ret = ENOMEM;
+            goto respond;
+        }
+
+        dpreq->reply = reply;
+        dpreq->src_cli = dpcli;
+        dpreq->pending_replies = 1;
+
+        bereq = talloc(dpreq, struct dp_be_request);
+        if (!bereq) {
+            DEBUG(1, ("Out of memory while sending request\n"));
+            dpret = DP_ERR_FATAL;
+            errmsg = "Out of memory";
+            ret = ENOMEM;
+            talloc_free(dpreq);
+            goto respond;
+        }
+        bereq->req = dpreq;
+        bereq->be_cli = dpbe->dpcli;
+
+        ret = dp_send_acct_req(bereq, type, attrs, filter);
+        if (ret != EOK) {
+            DEBUG(2,("Failed to dispatch request to %s", dpbe->domain));
+            dpret = DP_ERR_FATAL;
+            errmsg = "Dispatch Failed";
+            talloc_free(dpreq);
+            goto respond;
+        }
+
+    } else {
+
+        dpret = DP_ERR_FATAL;
+        errmsg = "Invalid Domain";
+        ret = EINVAL;
+        goto respond;
+    }
+
+    return EOK;
+
+respond:
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT16, dpret,
+                                     DBUS_TYPE_UINT32, ret,
+                                     DBUS_TYPE_STRING, errmsg,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) return EIO;
+
+    *r = reply;
+    return EOK;
+}
+
 static int dp_backend_destructor(void *ctx)
 {
     struct dp_backend *dpbe = talloc_get_type(ctx, struct dp_backend);
@@ -466,9 +791,9 @@ done:
     return ret;
 }
 
-int dp_process_init(TALLOC_CTX *mem_ctx,
-                    struct event_context *ev,
-                    struct confdb_ctx *cdb)
+static int dp_process_init(TALLOC_CTX *mem_ctx,
+                           struct event_context *ev,
+                           struct confdb_ctx *cdb)
 {
     struct dp_ctx *dpctx;
     int ret;

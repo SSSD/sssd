@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   Data Provider Runner
+   Data Provider Process
 
    Copyright (C) Simo Sorce <ssorce@redhat.com>	2008
 
@@ -38,45 +38,35 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 #include "util/btreemap.h"
-#include "providers/data_provider.h"
+#include "providers/dp_backend.h"
 #include "util/service_helpers.h"
 
-struct be_ctx {
-    struct event_context *ev;
-    struct confdb_ctx *cdb;
-    struct ldb_context *ldb;
-    struct service_sbus_ctx *ss_ctx;
-    struct service_sbus_ctx *dp_ctx;
-    const char *name;
-    const char *domain;
-    const char *identity;
-    struct dp_be_mod_ops *ops;
-    void *pvt_data;
-};
 
-typedef int (*be_init_fn_t)(TALLOC_CTX *, struct dp_be_mod_ops **, void **);
+typedef int (*be_init_fn_t)(TALLOC_CTX *, struct be_mod_ops **, void **);
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method mon_sbus_methods[] = {
-    {SERVICE_METHOD_IDENTITY, service_identity},
-    {SERVICE_METHOD_PING, service_pong},
-    {NULL, NULL}
+    { SERVICE_METHOD_IDENTITY, service_identity },
+    { SERVICE_METHOD_PING, service_pong },
+    { NULL, NULL }
 };
 
 static int be_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int be_check_online(DBusMessage *message, void *data, DBusMessage **r);
+static int be_get_account_info(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method be_methods[] = {
     { DP_CLI_METHOD_IDENTITY, be_identity },
     { DP_CLI_METHOD_ONLINE, be_check_online },
+    { DP_CLI_METHOD_GETACCTINFO, be_get_account_info },
     { NULL, NULL }
 };
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
-    dbus_uint16_t version = BE_VERSION;
+    dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_ctx *ctx;
     DBusMessage *reply;
@@ -123,7 +113,7 @@ static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 
 static int be_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
-    dbus_uint16_t version = BE_VERSION;
+    dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_BACKEND;
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_ctx *ctx;
@@ -175,12 +165,82 @@ static int be_check_online(DBusMessage *message, void *data, DBusMessage **r)
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
 
-    ret = ctx->ops->check_online(ctx->pvt_data, &online);
+    ret = ctx->ops->check_online(ctx, &online);
     if (ret != EOK) return ret;
 
     reply = dbus_message_new_method_return(message);
     dbret = dbus_message_append_args(reply,
                                      DBUS_TYPE_UINT16, &online,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) return EIO;
+
+    *r = reply;
+    return EOK;
+}
+
+static int be_get_account_info(DBusMessage *message, void *data, DBusMessage **r)
+{
+    struct sbus_message_handler_ctx *smh_ctx;
+    struct be_ctx *ctx;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    dbus_bool_t dbret;
+    void *user_data;
+    uint32_t type;
+    char *attrs, *search_exp;
+    int attr_type, filter_type;
+    char *filter_val;
+    int ret;
+
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
+    if (!smh_ctx) return EINVAL;
+    user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
+    if (!user_data) return EINVAL;
+    ctx = talloc_get_type(user_data, struct be_ctx);
+    if (!ctx) return EINVAL;
+
+    dbus_error_init(&dbus_error);
+
+    ret = dbus_message_get_args(message, &dbus_error,
+                                DBUS_TYPE_UINT32, &type,
+                                DBUS_TYPE_STRING, &attrs,
+                                DBUS_TYPE_STRING, &search_exp,
+                                DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1,("Failed, to parse message!\n"));
+        return EIO;
+    }
+
+    if (!attrs) {
+        if (strcmp(attrs, "core") == 0) attr_type = BE_ATTR_CORE;
+        else if (strcmp(attrs, "membership") == 0) attr_type = BE_ATTR_MEM;
+        else if (strcmp(attrs, "all") == 0) attr_type = BE_ATTR_ALL;
+        else return EINVAL;
+    }
+    else return EINVAL;
+
+    if (!search_exp) {
+        if (strncmp(search_exp, "name=", 5) == 0) {
+            filter_type = BE_FILTER_NAME;
+            filter_val = &search_exp[5];
+        } else if (strncmp(search_exp, "idnumber=", 9) == 0) {
+            filter_type = BE_FILTER_IDNUM;
+            filter_val = &search_exp[9];
+        } else return EINVAL;
+    }
+    else return EINVAL;
+
+    /* process request */
+    ret = ctx->ops->get_account_info(ctx, type, attr_type,
+                                     filter_type, filter_val);
+    if (ret != EOK) return ret;
+
+    reply = dbus_message_new_method_return(message);
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT16, 0,
+                                     DBUS_TYPE_UINT32, 0,
+                                     DBUS_TYPE_STRING, "Success",
                                      DBUS_TYPE_INVALID);
     if (!dbret) return EIO;
 
@@ -210,99 +270,16 @@ static int mon_cli_init(struct be_ctx *ctx)
     return EOK;
 }
 
-static int be_dp_sbus_init(TALLOC_CTX *mem_ctx,
-                           struct event_context *ev,
-                           struct confdb_ctx *cdb,
-                           const char *address,
-                           struct sbus_method *methods,
-                           struct service_sbus_ctx **srvs_ctx)
-{
-    struct service_sbus_ctx *ss_ctx;
-    struct sbus_method_ctx *sm_ctx;
-    TALLOC_CTX *tmp_ctx;
-    char *default_dp_address;
-    char *sbus_address;
-    DBusConnection *conn;
-    int ret;
-
-    tmp_ctx = talloc_new(mem_ctx);
-    if (tmp_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ss_ctx = talloc_zero(tmp_ctx, struct service_sbus_ctx);
-    if (ss_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ss_ctx->ev = ev;
-
-    default_dp_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s",
-                                         PIPE_PATH, DATA_PROVIDER_PIPE);
-    if (default_dp_address == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = confdb_get_string(cdb, tmp_ctx,
-                            "config/services/dp", "sbusAddress",
-                            default_dp_address, &sbus_address);
-    if (ret != EOK) goto done;
-
-    ret = sbus_new_connection(ss_ctx, ss_ctx->ev,
-                              sbus_address, &ss_ctx->scon_ctx,
-                              NULL);
-    if (ret != EOK) goto done;
-
-    conn = sbus_get_connection(ss_ctx->scon_ctx);
-
-    /* set up handler for service methods */
-    sm_ctx = talloc_zero(ss_ctx, struct sbus_method_ctx);
-    if (sm_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    sm_ctx->interface = talloc_strdup(sm_ctx, DATA_PROVIDER_INTERFACE);
-    sm_ctx->path = talloc_strdup(sm_ctx, DATA_PROVIDER_PATH);
-    if (!sm_ctx->interface || !sm_ctx->path) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Set up required monitor methods */
-    sm_ctx->methods = methods;
-
-    sm_ctx->message_handler = sbus_message_handler;
-    sbus_conn_add_method_ctx(ss_ctx->scon_ctx, sm_ctx);
-
-    talloc_steal(mem_ctx, ss_ctx);
-    *srvs_ctx = ss_ctx;
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
 /* be_cli_init
  * sbus channel to the data provider daemon */
 static int be_cli_init(struct be_ctx *ctx)
 {
     struct service_sbus_ctx *dp_ctx;
-    char *default_dp_address;
     int ret;
 
-    default_dp_address = talloc_asprintf(ctx, "unix:path=%s/%s",
-                                         PIPE_PATH, DATA_PROVIDER_PIPE);
-    if (!default_dp_address) return ENOMEM;
-
-    ret = be_dp_sbus_init(ctx, ctx->ev, ctx->cdb,
-                          default_dp_address, be_methods,
-                          &dp_ctx);
+    ret = dp_sbus_cli_init(ctx, ctx->ev, ctx->cdb,
+                           be_methods, &dp_ctx);
     if (ret != EOK) {
-        talloc_free(default_dp_address);
         return ret;
     }
 
@@ -311,51 +288,6 @@ static int be_cli_init(struct be_ctx *ctx)
     /* attach be context to the connection */
     sbus_conn_set_private_data(dp_ctx->scon_ctx, ctx);
 
-    talloc_free(default_dp_address);
-    return EOK;
-}
-
-static int be_db_init(struct be_ctx *ctx)
-{
-    TALLOC_CTX *tmp_ctx;
-    char *ldb_file;
-    char *default_db_file;
-    int ret;
-
-    tmp_ctx = talloc_new(ctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    default_db_file = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, DATA_PROVIDER_DB_FILE);
-    if (!default_db_file) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(ctx->cdb, tmp_ctx,
-                            DATA_PROVIDER_DB_CONF_SEC, "ldbFile",
-                            default_db_file, &ldb_file);
-    if (ret != EOK) {
-        talloc_free(tmp_ctx);
-        return ret;
-    }
-
-    ctx->ldb = ldb_init(tmp_ctx, ctx->ev);
-    if (!ctx->ldb) {
-        talloc_free(tmp_ctx);
-        return EIO;
-    }
-
-    ret = ldb_connect(ctx->ldb, ldb_file, 0, NULL);
-    if (ret != LDB_SUCCESS) {
-        talloc_free(tmp_ctx);
-        return EIO;
-    }
-
-    talloc_steal(ctx, ctx->ldb);
-
-    talloc_free(tmp_ctx);
     return EOK;
 }
 
@@ -440,9 +372,9 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = be_db_init(ctx);
+    ret = dp_be_cachedb_init(ctx);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error opening database\n"));
+        DEBUG(0, ("fatal error opening cache database\n"));
         return ret;
     }
 
@@ -512,6 +444,8 @@ int main(int argc, const char *argv[])
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
     if (ret != EOK) return 3;
+
+    DEBUG(1, ("Backend provider %s(%s) started!", be_name, be_domain));
 
     /* loop on main */
     server_loop(main_ctx);
