@@ -24,6 +24,7 @@
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
+#include "providers/data_provider.h"
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
@@ -204,6 +205,12 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
+    return EOK;
+}
+
+static int nss_dispatch_getpwnam(struct cli_ctx *cctx)
+{
+
     return EOK;
 }
 
@@ -999,3 +1006,53 @@ int nss_cmd_execute(struct cli_ctx *cctx)
 
     return EINVAL;
 }
+
+static int cmd_identity(DBusMessage *message, void *data, DBusMessage **r)
+{
+    dbus_uint16_t version = DATA_PROVIDER_VERSION;
+    dbus_uint16_t clitype = DP_CLI_FRONTEND;
+    const char *cliname = "NSS";
+    const char *nullname = "";
+    DBusMessage *reply;
+    dbus_bool_t ret;
+
+    DEBUG(4,("Sending ID reply: (%d,%d,%s)\n",
+             clitype, version, cliname));
+
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
+                                   DBUS_TYPE_UINT16, &clitype,
+                                   DBUS_TYPE_UINT16, &version,
+                                   DBUS_TYPE_STRING, &cliname,
+                                   DBUS_TYPE_STRING, &nullname,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) {
+        return EIO;
+    }
+
+    *r = reply;
+    return EOK;
+}
+
+struct sbus_method nss_dp_methods[] = {
+    { DP_CLI_METHOD_IDENTITY, cmd_identity },
+    { NULL, NULL }
+};
+
+int nss_cmd_init(struct nss_ctx *nctx)
+{
+    int ret;
+
+    /* Set up SBUS connection to the data provider */
+    ret = dp_sbus_cli_init(nctx, nctx->ev, nctx->cdb,
+                           nss_dp_methods, &nctx->dp_ctx);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* attach context to the connection */
+    sbus_conn_set_private_data(nctx->dp_ctx->scon_ctx, nctx);
+
+    return EOK;
+}
+

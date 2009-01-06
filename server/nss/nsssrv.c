@@ -40,6 +40,7 @@
 #include "sbus_interfaces.h"
 #include "util/btreemap.h"
 #include "util/service_helpers.h"
+#include "providers/data_provider.h"
 
 #define SSS_NSS_PIPE_NAME "nss"
 
@@ -400,6 +401,12 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     ret = nss_sbus_init(nctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up message bus\n"));
+        return ret;
+    }
+
+    ret = nss_cmd_init(nctx);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
 

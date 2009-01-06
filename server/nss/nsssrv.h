@@ -80,6 +80,7 @@ void nss_packet_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen
 void nss_packet_set_error(struct nss_packet *packet, int error);
 
 /* from nsssrv_cmd.c */
+int nss_cmd_init(struct nss_ctx *nctx);
 int nss_cmd_execute(struct cli_ctx *cctx);
 
 #endif /* __NSSSRV_H__ */
