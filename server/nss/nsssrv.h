@@ -43,12 +43,13 @@ struct nss_ctx {
     struct confdb_ctx *cdb;
     char *sock_name;
     struct service_sbus_ctx *ss_ctx;
+    struct service_sbus_ctx *dp_ctx;
     struct btreemap *domain_map;
 };
 
 struct cli_ctx {
     struct event_context *ev;
-    struct nss_ldb_ctx *lctx;
+    struct nss_ctx *nctx;
     int cfd;
     struct fd_event *cfde;
     struct sockaddr_un addr;

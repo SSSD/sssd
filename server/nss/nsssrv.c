@@ -202,7 +202,7 @@ static void accept_fd_handler(struct event_context *ev,
     }
 
     cctx->ev = ev;
-    cctx->lctx = nctx->lctx;
+    cctx->nctx = nctx;
 
     talloc_set_destructor(cctx, client_destructor);
 

@@ -199,7 +199,7 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
         goto done;
     }
 
-    ret = fill_pwent(cctx->creq->out, cctx->lctx, res->msgs, res->count);
+    ret = fill_pwent(cctx->creq->out, cctx->nctx->lctx, res->msgs, res->count);
     nss_packet_set_error(cctx->creq->out, ret);
 
 done:
@@ -229,7 +229,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     }
     nctx->cctx = cctx;
 
-    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->lctx, name,
+    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx, name,
                            nss_cmd_getpw_callback, nctx);
 
     return ret;
@@ -258,7 +258,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     }
     nctx->cctx = cctx;
 
-    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->lctx, uid,
+    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx, uid,
                            nss_cmd_getpw_callback, nctx);
 
     return ret;
@@ -329,7 +329,7 @@ static int nss_cmd_setpwent(struct cli_ctx *cctx)
         cctx->gctx->pwd_cur = 0;
     }
 
-    ret = nss_ldb_enumpwent(nctx, cctx->ev, cctx->lctx,
+    ret = nss_ldb_enumpwent(nctx, cctx->ev, cctx->nctx->lctx,
                             nss_cmd_setpwent_callback, nctx);
 
     return ret;
@@ -343,7 +343,7 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
     n = gctx->pwds->count - gctx->pwd_cur;
     if (n > num) n = num;
 
-    ret = fill_pwent(cctx->creq->out, cctx->lctx,
+    ret = fill_pwent(cctx->creq->out, cctx->nctx->lctx,
                      &(gctx->pwds->msgs[gctx->pwd_cur]), n);
     gctx->pwd_cur += n;
 
@@ -426,7 +426,7 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
             cctx->gctx = gctx;
         }
         if (cctx->gctx->pwds == NULL) {
-            ret = nss_ldb_enumpwent(nctx, cctx->ev, cctx->lctx,
+            ret = nss_ldb_enumpwent(nctx, cctx->ev, cctx->nctx->lctx,
                                     nss_cmd_getpwent_callback, nctx);
             return ret;
         }
@@ -610,7 +610,7 @@ static int nss_cmd_getgr_callback(void *ptr, int status,
         goto done;
     }
 
-    ret = fill_grent(cctx->creq->out, cctx->lctx, res->msgs, res->count);
+    ret = fill_grent(cctx->creq->out, cctx->nctx->lctx, res->msgs, res->count);
     nss_packet_set_error(cctx->creq->out, ret);
 
 done:
@@ -640,7 +640,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     }
     nctx->cctx = cctx;
 
-    ret = nss_ldb_getgrnam(nctx, cctx->ev, cctx->lctx, name,
+    ret = nss_ldb_getgrnam(nctx, cctx->ev, cctx->nctx->lctx, name,
                            nss_cmd_getgr_callback, nctx);
 
     return ret;
@@ -669,7 +669,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     }
     nctx->cctx = cctx;
 
-    ret = nss_ldb_getgrgid(nctx, cctx->ev, cctx->lctx, gid,
+    ret = nss_ldb_getgrgid(nctx, cctx->ev, cctx->nctx->lctx, gid,
                            nss_cmd_getgr_callback, nctx);
 
     return ret;
@@ -740,7 +740,7 @@ static int nss_cmd_setgrent(struct cli_ctx *cctx)
         cctx->gctx->grp_cur = 0;
     }
 
-    ret = nss_ldb_enumgrent(nctx, cctx->ev, cctx->lctx,
+    ret = nss_ldb_enumgrent(nctx, cctx->ev, cctx->nctx->lctx,
                             nss_cmd_setgrent_callback, nctx);
 
     return ret;
@@ -754,7 +754,7 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     n = gctx->grps->count - gctx->grp_cur;
     if (n > num) n = num;
 
-    ret = fill_grent(cctx->creq->out, cctx->lctx,
+    ret = fill_grent(cctx->creq->out, cctx->nctx->lctx,
                      &(gctx->grps->msgs[gctx->grp_cur]), n);
     gctx->grp_cur += n;
 
@@ -837,7 +837,7 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
             cctx->gctx = gctx;
         }
         if (cctx->gctx->grps == NULL) {
-            ret = nss_ldb_enumgrent(nctx, cctx->ev, cctx->lctx,
+            ret = nss_ldb_enumgrent(nctx, cctx->ev, cctx->nctx->lctx,
                                     nss_cmd_getgrent_callback, nctx);
             return ret;
         }
@@ -891,7 +891,7 @@ static int nss_cmd_initgr_callback(void *ptr, int status,
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
-    struct nss_ldb_ctx *lctx = cctx->lctx;
+    struct nss_ldb_ctx *lctx = cctx->nctx->lctx;
     uint8_t *body;
     size_t blen;
     uint64_t gid;
@@ -962,7 +962,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     }
     nctx->cctx = cctx;
 
-    ret = nss_ldb_initgroups(nctx, cctx->ev, cctx->lctx, name,
+    ret = nss_ldb_initgroups(nctx, cctx->ev, cctx->nctx->lctx, name,
                              nss_cmd_initgr_callback, nctx);
 
     return ret;
