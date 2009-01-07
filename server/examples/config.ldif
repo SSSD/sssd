@@ -45,3 +45,10 @@ provider: ipa
 server: ipaserver1.example.com
 server: ipabackupserver.example.com
 basedn: cn=EXAMPLE.COM,cn=ipa,cn=remote
+
+dn: cn=TEST,cn=domains,cn=config
+cn: TEST
+description: TEST Ldap domain
+provider: TEST
+basedn: cn=test,cn=remote
+command: ./sbin/sssd_be -d 2 --provider ldap --domain TEST
