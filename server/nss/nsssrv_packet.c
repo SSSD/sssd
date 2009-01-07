@@ -50,9 +50,6 @@ struct nss_packet {
  *
  * - if size is defined use it otherwise the default packet will be
  *   NSSSRV_PACKET_MEM_SIZE bytes.
- * - if buf is provided also give back the pointer to the base of
- *   the buffer (the header), so that a packet can be written into
- *   firecgtly from the wire
  */
 int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
                    enum sss_nss_command cmd,
@@ -142,8 +139,13 @@ int nss_packet_recv(struct nss_packet *packet, int fd)
     void *buf;
 
     buf = packet->buffer + packet->iop;
-    if (packet->iop > 4) len = *packet->len;
-    else len = packet->memsize;
+    if (packet->iop > 4) len = *packet->len - packet->iop;
+    else len = packet->memsize - packet->iop;
+
+    /* check for wrapping */
+    if (len > packet->memsize) {
+        return EINVAL;
+    }
 
     errno = 0;
     rb = recv(fd, buf, len, 0);
@@ -154,6 +156,10 @@ int nss_packet_recv(struct nss_packet *packet, int fd)
 
     if (rb == 0) {
         return EIO;
+    }
+
+    if (packet->len > packet->memsize) {
+        return EINVAL;
     }
 
     packet->iop += rb;

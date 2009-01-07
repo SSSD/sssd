@@ -112,7 +112,8 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
     }
 
     if (!cctx->creq->in) {
-        ret = nss_packet_new(cctx->creq, 0, 0, &cctx->creq->in);
+        ret = nss_packet_new(cctx->creq, NSS_PACKET_MAX_RECV_SIZE,
+                             0, &cctx->creq->in);
         if (ret != EOK) {
             DEBUG(0, ("Failed to alloc request, aborting client!\n"));
             talloc_free(cctx);
