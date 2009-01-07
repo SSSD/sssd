@@ -48,6 +48,7 @@ installcheck:: test install
 
 distclean:: clean
 	rm -f Makefile
+	rm -f talloc.pc
 	rm -f config.log config.status config.h config.cache
 
 realdistclean:: distclean

@@ -28,7 +28,7 @@ installlibs:: installdirs
 install:: all installdirs installheaders installlibs $(PYTHON_INSTALL_TARGET)
 
 clean::
-	rm -f $(TEVENT_SONAME) $(TEVENT_SOLIB) libtevent.a libtevent.$(SHLIBEXT)
+	rm -f $(TEVENT_SONAME) $(TEVENT_SOLIB) libtevent.a libtevent.$(SHLIBEXT) tevent.$(SHLIBEXT)
 	rm -f tevent.pc
 	rm -f _libtevent.$(SHLIBEXT)
 
