@@ -306,10 +306,20 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         }
         restr = talloc_steal(ctx, values[0]);
     } else {
+        /* Did not return a value, so use the default */
+
+        if (defstr == NULL) { /* No default given */
+            *result = NULL;
+            talloc_free(values);
+            return EOK;
+        }
+
+        /* Copy the default string */
         restr = talloc_strdup(ctx, defstr);
     }
     if (!restr) {
         talloc_free(values);
+        DEBUG(0, ("Out of memory\n"));
         return ENOMEM;
     }
 
@@ -540,7 +550,7 @@ int confdb_get_domain_basedn(struct confdb_ctx *cdb,
 
     section = talloc_asprintf(mem_ctx, "config/domains/%s", domain);
     ret = confdb_get_string(cdb, mem_ctx, section, "basedn", "cn=local", basedn);
-    
+
     talloc_free(section);
     return ret;
 }
