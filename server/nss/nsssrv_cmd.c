@@ -24,10 +24,11 @@
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
-#include "providers/data_provider.h"
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
+    const char *name;
+    uint64_t id;
 };
 
 struct getent_ctx {
@@ -51,6 +52,31 @@ static void nss_cmd_done(struct nss_cmd_ctx *nctx)
     /* free all request related data through the talloc hierarchy */
     talloc_free(nctx);
 }
+
+static int nss_cmd_send_error(struct nss_cmd_ctx *nctx, int err)
+{
+    struct cli_ctx *cctx = nctx->cctx;
+    int ret;
+
+    /* create response packet */
+    ret = nss_packet_new(cctx->creq, 0,
+                         nss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    nss_packet_set_error(cctx->creq->out, err);
+
+    nss_cmd_done(nctx);
+    return EOK;
+}
+
+#define NSS_CMD_FATAL_ERROR(cctx) do { \
+    DEBUG(1,("Fatal error, killing connection!")); \
+    talloc_free(cctx); \
+    return; \
+} while(0)
 
 static int nss_cmd_get_version(struct cli_ctx *cctx)
 {
@@ -159,8 +185,8 @@ done:
     return EOK;
 }
 
-static int nss_cmd_getpw_callback(void *ptr, int status,
-                                  struct ldb_result *res)
+static void nss_cmd_getpw_callback(void *ptr, int status,
+                                   struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
@@ -173,7 +199,7 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -192,7 +218,7 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
                              nss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
-            return ret;
+            NSS_CMD_FATAL_ERROR(cctx);
         }
         nss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
@@ -205,13 +231,33 @@ static int nss_cmd_getpw_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
-static int nss_dispatch_getpwnam(struct cli_ctx *cctx)
+static void nss_cmd_getpwnam_callback(DBusPendingCall *pending, void *ptr)
 {
+    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = nctx->cctx;
+    dbus_uint16_t cli_err_maj;
+    dbus_uint32_t cli_err_min;
+    char *cli_err_msg;
+    int ret;
 
-    return EOK;
+    ret = nss_dp_get_reply(pending, &cli_err_maj, &cli_err_min, &cli_err_msg);
+    if (ret != EOK) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Will try to return what we have in cache\n"));
+    }
+
+    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
+                           nctx->name, nss_cmd_getpw_callback, nctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!"));
+
+        ret = nss_cmd_send_error(nctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+    }
 }
 
 static int nss_cmd_getpwnam(struct cli_ctx *cctx)
@@ -220,15 +266,6 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret;
-    const char *name;
-
-    /* get user name to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
-    name = (const char *)body;
-    /* if not terminated fail */
-    if (name[blen -1] != '\0') {
-        return EINVAL;
-    }
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -236,8 +273,27 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     }
     nctx->cctx = cctx;
 
-    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx, name,
-                           nss_cmd_getpw_callback, nctx);
+    /* get user name to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    nctx->name = (const char *)body;
+    /* if not terminated fail */
+    if (nctx->name[blen -1] != '\0') {
+        talloc_free(nctx);
+        return EINVAL;
+    }
+
+    DEBUG(4, ("Requesting info for [%s]\n", nctx->name));
+
+    /* FIXME: Just ask all backends for now, until Steve provides for name
+     * parsing code */
+
+    ret = nss_dp_send_acct_req(cctx->nctx, nctx,
+                               nss_cmd_getpwnam_callback, nctx,
+                               "*", NSS_DP_USER, nctx->name, 0);
+    if (ret != EOK) {
+        talloc_free(nctx);
+        return ret;
+    }
 
     return ret;
 }
@@ -258,6 +314,8 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     }
 
     uid = *((uint64_t *)body);
+
+    DEBUG(4, ("Requesting info for [%lu]\n", uid));
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -282,7 +340,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
  *   even if the data is still being fetched
  * - make getpwent() wait on the mutex
  */
-static int nss_cmd_setpwent_callback(void *ptr, int status,
+static void nss_cmd_setpwent_callback(void *ptr, int status,
                                      struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
@@ -295,7 +353,7 @@ static int nss_cmd_setpwent_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -307,7 +365,6 @@ static int nss_cmd_setpwent_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
 static int nss_cmd_setpwent(struct cli_ctx *cctx)
@@ -315,6 +372,8 @@ static int nss_cmd_setpwent(struct cli_ctx *cctx)
     struct nss_cmd_ctx *nctx;
     struct getent_ctx *gctx;
     int ret;
+
+    DEBUG(4, ("Requesting info for all accounts\n"));
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -359,8 +418,8 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 
 /* used only if a process calls getpwent() without first calling setpwent()
  * in this case we basically trigger an implicit setpwent() */
-static int nss_cmd_getpwent_callback(void *ptr, int status,
-                                     struct ldb_result *res)
+static void nss_cmd_getpwent_callback(void *ptr, int status,
+                                      struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
@@ -373,7 +432,7 @@ static int nss_cmd_getpwent_callback(void *ptr, int status,
     /* get max num of entries to return in one call */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
-        return EINVAL;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
     num = *((uint32_t *)body);
 
@@ -382,7 +441,7 @@ static int nss_cmd_getpwent_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -397,7 +456,6 @@ static int nss_cmd_getpwent_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
 static int nss_cmd_getpwent(struct cli_ctx *cctx)
@@ -408,6 +466,8 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
     size_t blen;
     uint32_t num;
     int ret;
+
+    DEBUG(4, ("Requesting info for all accounts\n"));
 
     /* get max num of entries to return in one call */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
@@ -457,6 +517,8 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *nctx;
     int ret;
+
+    DEBUG(4, ("Terminating request info for all accounts\n"));
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -580,8 +642,8 @@ done:
     return EOK;
 }
 
-static int nss_cmd_getgr_callback(void *ptr, int status,
-                                  struct ldb_result *res)
+static void nss_cmd_getgr_callback(void *ptr, int status,
+                                   struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
@@ -594,7 +656,7 @@ static int nss_cmd_getgr_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -609,7 +671,7 @@ static int nss_cmd_getgr_callback(void *ptr, int status,
                              nss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
-            return ret;
+            NSS_CMD_FATAL_ERROR(cctx);
         }
         nss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
@@ -622,7 +684,6 @@ static int nss_cmd_getgr_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
 static int nss_cmd_getgrnam(struct cli_ctx *cctx)
@@ -640,6 +701,8 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     if (name[blen -1] != '\0') {
         return EINVAL;
     }
+
+    DEBUG(4, ("Requesting info for [%s]\n", name));
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -670,6 +733,8 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 
     gid = *((uint64_t *)body);
 
+    DEBUG(4, ("Requesting info for [%lu]\n", gid));
+
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
         return ENOMEM;
@@ -693,7 +758,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
  *   even if the data is still being fetched
  * - make getpwent() wait on the mutex
  */
-static int nss_cmd_setgrent_callback(void *ptr, int status,
+static void nss_cmd_setgrent_callback(void *ptr, int status,
                                      struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
@@ -706,7 +771,7 @@ static int nss_cmd_setgrent_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -718,7 +783,6 @@ static int nss_cmd_setgrent_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
 static int nss_cmd_setgrent(struct cli_ctx *cctx)
@@ -726,6 +790,8 @@ static int nss_cmd_setgrent(struct cli_ctx *cctx)
     struct nss_cmd_ctx *nctx;
     struct getent_ctx *gctx;
     int ret;
+
+    DEBUG(4, ("Requesting info for all groups\n"));
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -770,7 +836,7 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 
 /* used only if a process calls getpwent() without first calling setpwent()
  * in this case we basically trigger an implicit setpwent() */
-static int nss_cmd_getgrent_callback(void *ptr, int status,
+static void nss_cmd_getgrent_callback(void *ptr, int status,
                                      struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
@@ -784,7 +850,10 @@ static int nss_cmd_getgrent_callback(void *ptr, int status,
     /* get max num of entries to return in one call */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
-        return EINVAL;
+        ret = nss_cmd_send_error(nctx, EIO);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
     }
     num = *((uint32_t *)body);
 
@@ -793,7 +862,7 @@ static int nss_cmd_getgrent_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -808,7 +877,6 @@ static int nss_cmd_getgrent_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
 static int nss_cmd_getgrent(struct cli_ctx *cctx)
@@ -819,6 +887,8 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     size_t blen;
     uint32_t num;
     int ret;
+
+    DEBUG(4, ("Requesting info for all groups\n"));
 
     /* get max num of entries to return in one call */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
@@ -869,6 +939,8 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
     struct nss_cmd_ctx *nctx;
     int ret;
 
+    DEBUG(4, ("Terminating request info for all groups\n"));
+
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
         return ENOMEM;
@@ -893,7 +965,7 @@ done:
     return EOK;
 }
 
-static int nss_cmd_initgr_callback(void *ptr, int status,
+static void nss_cmd_initgr_callback(void *ptr, int status,
                                    struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
@@ -910,7 +982,7 @@ static int nss_cmd_initgr_callback(void *ptr, int status,
                          nss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        return ret;
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
@@ -944,7 +1016,6 @@ static int nss_cmd_initgr_callback(void *ptr, int status,
 
 done:
     nss_cmd_done(nctx);
-    return EOK;
 }
 
 static int nss_cmd_initgroups(struct cli_ctx *cctx)
@@ -962,6 +1033,8 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     if (name[blen -1] != '\0') {
         return EINVAL;
     }
+
+    DEBUG(4, ("Requesting groups for [%s]\n", name));
 
     nctx = talloc(cctx, struct nss_cmd_ctx);
     if (!nctx) {
@@ -1005,54 +1078,5 @@ int nss_cmd_execute(struct cli_ctx *cctx)
     }
 
     return EINVAL;
-}
-
-static int cmd_identity(DBusMessage *message, void *data, DBusMessage **r)
-{
-    dbus_uint16_t version = DATA_PROVIDER_VERSION;
-    dbus_uint16_t clitype = DP_CLI_FRONTEND;
-    const char *cliname = "NSS";
-    const char *nullname = "";
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    DEBUG(4,("Sending ID reply: (%d,%d,%s)\n",
-             clitype, version, cliname));
-
-    reply = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_UINT16, &clitype,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_STRING, &cliname,
-                                   DBUS_TYPE_STRING, &nullname,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        return EIO;
-    }
-
-    *r = reply;
-    return EOK;
-}
-
-struct sbus_method nss_dp_methods[] = {
-    { DP_CLI_METHOD_IDENTITY, cmd_identity },
-    { NULL, NULL }
-};
-
-int nss_cmd_init(struct nss_ctx *nctx)
-{
-    int ret;
-
-    /* Set up SBUS connection to the data provider */
-    ret = dp_sbus_cli_init(nctx, nctx->ev, nctx->cdb,
-                           nss_dp_methods, &nctx->dp_ctx);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    /* attach context to the connection */
-    sbus_conn_set_private_data(nctx->dp_ctx->scon_ctx, nctx);
-
-    return EOK;
 }
 

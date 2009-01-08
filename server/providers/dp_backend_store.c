@@ -71,7 +71,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
                                 account_dn, LDB_SCOPE_BASE,
                                 "(objectClass=User)", attrs, NULL,
                                 res, ldb_search_default_callback, NULL);
-    if (!lret) {
+    if (lret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to build search request (%d) !?\n", lret));
         ret = EIO;
         goto done;

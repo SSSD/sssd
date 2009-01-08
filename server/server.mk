@@ -29,6 +29,7 @@ NSSSRV_OBJ = \
     nss/nsssrv_packet.o \
     nss/nsssrv_cmd.o \
     nss/nsssrv_ldb.o \
+    nss/nsssrv_dp.o
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)

@@ -39,7 +39,7 @@ static int start_service(const char *name, const char *command, pid_t *retpid);
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
-#define MONITOR_MIN_PING_TIME 2
+#define MONITOR_MIN_PING_TIME 15
 
 struct mt_conn {
     struct sbus_conn_ctx *conn_ctx;

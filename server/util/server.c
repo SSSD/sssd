@@ -247,6 +247,8 @@ int server_setup(const char *name, int flags,
         return ENOMEM;
     }
 
+    setenv("_SSS_LOOPS", "NO", 0);
+
     setup_signals();
 
     /* we want default permissions on created files to be very strict,

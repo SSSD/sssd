@@ -115,6 +115,8 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
     DBusMessage *reply;
     dbus_bool_t ret;
 
+    DEBUG(4, ("Sending identity data [%s,%d]\n", name, version));
+
     reply = dbus_message_new_method_return(message);
     ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_STRING, &name,
@@ -252,7 +254,7 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
         return ENOMEM;
     }
     dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
-                                            -1 /* TODO: set timeout */);
+                                            600000 /* TODO: set timeout */);
     if (!dbret) {
         /*
          * Critical Failure
@@ -405,9 +407,9 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
     DBusMessage *reply;
     DBusConnection *conn;
     DBusError dbus_error;
-    dbus_uint16_t cli_err_maj;
-    dbus_uint32_t cli_err_min;
-    char *cli_err_msg;
+    dbus_uint16_t err_maj = 0;
+    dbus_uint32_t err_min = 0;
+    const char *err_msg;
     dbus_bool_t ret;
     int type;
 
@@ -431,21 +433,20 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
     switch (type) {
     case DBUS_MESSAGE_TYPE_METHOD_RETURN:
         ret = dbus_message_get_args(reply, &dbus_error,
-                                    DBUS_TYPE_UINT16, &cli_err_maj,
-                                    DBUS_TYPE_UINT32, &cli_err_min,
-                                    DBUS_TYPE_STRING, &cli_err_msg,
+                                    DBUS_TYPE_UINT16, &err_maj,
+                                    DBUS_TYPE_UINT32, &err_min,
+                                    DBUS_TYPE_STRING, &err_msg,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1,("be_identity_check failed, to parse message, killing connection\n"));
+            DEBUG(1,("Failed to parse message, killing connection\n"));
             sbus_disconnect(bereq->be_cli->conn_ctx);
             goto done;
         }
 
-        /* Set up the destructor for this service */
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
-        DEBUG(0,("getAccountInfo returned an error [%s], closing connection.\n",
+        DEBUG(0,("The Data Provider returned an error [%s], closing connection.\n",
                  dbus_message_get_error_name(reply)));
         /* Falling through to default intentionally*/
     default:
@@ -459,16 +460,24 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         sbus_disconnect(bereq->be_cli->conn_ctx);
     }
 
-    /* TODO: handle errors !! */
+    if (err_maj) {
+        DEBUG(1, ("Backend returned an error: %d,%d(%s),%s\n",
+                  err_maj, err_min, strerror(err_min), err_msg));
+        /* TODO: handle errors !! */
+    }
+
     if (bereq->req->pending_replies > 1) {
         bereq->req->pending_replies--;
         talloc_free(bereq);
     } else {
         conn = sbus_get_connection(bereq->be_cli->conn_ctx);
+        err_maj = 0;
+        err_min = 0;
+        err_msg = "Success";
         ret = dbus_message_append_args(bereq->req->reply,
-                                       DBUS_TYPE_UINT16, 0,
-                                       DBUS_TYPE_UINT32, 0,
-                                       DBUS_TYPE_STRING, "Success",
+                                       DBUS_TYPE_UINT16, &err_maj,
+                                       DBUS_TYPE_UINT32, &err_min,
+                                       DBUS_TYPE_STRING, &err_msg,
                                        DBUS_TYPE_INVALID);
         if (!ret) {
             DEBUG(1, ("Failed to build reply ... frontend will wait for timeout ...\n"));
@@ -509,6 +518,8 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
         return ENOMEM;
     }
 
+    DEBUG(4, ("Sending request for [%u][%s][%s]\n", type, attrs, filter));
+
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_UINT32, &type,
                                    DBUS_TYPE_STRING, &attrs,
@@ -520,7 +531,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
     }
 
     ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
-                                            -1 /* TODO: set timeout */);
+                                            600000 /* TODO: set timeout */);
     if (!ret) {
         /*
          * Critical Failure
@@ -577,6 +588,9 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
         return EIO;
     }
 
+    DEBUG(4, ("Got request for [%s][%u][%s][%s]\n",
+              domain, type, attrs, filter));
+
     reply = dbus_message_new_method_return(message);
 
     /* search for domain */
@@ -620,9 +634,10 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
             }
             bereq->req = dpreq;
             bereq->be_cli = dpbe->dpcli;
+            DEBUG(4, ("Sending wildcard request to [%s]\n", dpbe->domain));
             ret = dp_send_acct_req(bereq, type, attrs, filter);
             if (ret != EOK) {
-                DEBUG(2,("Failed to dispatch request to %s", dpbe->domain));
+                DEBUG(2,("Failed to dispatch request to %s\n", dpbe->domain));
                 dpbe = dpbe->next;
                 continue;
             }
@@ -678,7 +693,7 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
 
         ret = dp_send_acct_req(bereq, type, attrs, filter);
         if (ret != EOK) {
-            DEBUG(2,("Failed to dispatch request to %s", dpbe->domain));
+            DEBUG(2,("Failed to dispatch request to %s\n", dpbe->domain));
             dpret = DP_ERR_FATAL;
             errmsg = "Dispatch Failed";
             talloc_free(dpreq);
@@ -710,8 +725,7 @@ respond:
 static int dp_backend_destructor(void *ctx)
 {
     struct dp_backend *dpbe = talloc_get_type(ctx, struct dp_backend);
-    if (dpbe->dpcli && dpbe->dpcli &&
-        dpbe->dpcli->dpctx && dpbe->dpcli->dpctx->be_list) {
+    if (dpbe->dpcli && dpbe->dpcli->dpctx && dpbe->dpcli->dpctx->be_list) {
         DLIST_REMOVE(dpbe->dpcli->dpctx->be_list, dpbe);
     }
     return 0;
@@ -720,8 +734,7 @@ static int dp_backend_destructor(void *ctx)
 static int dp_frontend_destructor(void *ctx)
 {
     struct dp_frontend *dpfe = talloc_get_type(ctx, struct dp_frontend);
-    if (dpfe->dpcli && dpfe->dpcli &&
-        dpfe->dpcli->dpctx && dpfe->dpcli->dpctx->fe_list) {
+    if (dpfe->dpcli && dpfe->dpcli->dpctx && dpfe->dpcli->dpctx->fe_list) {
         DLIST_REMOVE(dpfe->dpcli->dpctx->fe_list, dpfe);
     }
     return 0;

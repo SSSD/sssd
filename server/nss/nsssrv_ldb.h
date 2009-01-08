@@ -38,7 +38,7 @@ struct nss_ldb_ctx {
 
 struct confdb_ctx;
 
-typedef int (*nss_ldb_callback_t)(void *, int, struct ldb_result *);
+typedef void (*nss_ldb_callback_t)(void *, int, struct ldb_result *);
 
 int nss_ldb_init(TALLOC_CTX *mem_ctx,
                  struct event_context *ev,

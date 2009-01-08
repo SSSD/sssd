@@ -132,7 +132,9 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
             DEBUG(0, ("Failed to execute request, aborting client!\n"));
             talloc_free(cctx);
         }
-        break;
+        /* past this point cctx can be freed at any time by callbacks
+         * in case of error, do not use it */
+        return;
 
     case EAGAIN:
         /* need to read still some data, loop again */
@@ -219,6 +221,9 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
     const char *name = NSS_SBUS_SERVICE_NAME;
     DBusMessage *reply;
     dbus_bool_t ret;
+
+    DEBUG(4,("Sending ID reply: (%s,%d)\n",
+             name, version));
 
     reply = dbus_message_new_method_return(message);
     ret = dbus_message_append_args(reply,
@@ -405,7 +410,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = nss_cmd_init(nctx);
+    ret = nss_dp_init(nctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
@@ -423,6 +428,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error initializing socket\n"));
         return ret;
     }
+
+    DEBUG(1, ("NSS Initialization complete\n"));
 
     return EOK;
 }

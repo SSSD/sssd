@@ -158,7 +158,7 @@ int nss_packet_recv(struct nss_packet *packet, int fd)
         return EIO;
     }
 
-    if (packet->len > packet->memsize) {
+    if (*packet->len > packet->memsize) {
         return EINVAL;
     }
 

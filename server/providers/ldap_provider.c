@@ -93,16 +93,6 @@ static int get_pw_name(struct be_ctx *be_ctx, struct ldap_ctx *ldap_ctx, char *n
     return ret;
 }
 
-static int ldap_check_online(struct be_ctx *be_ctx, int *reply);
-static int ldap_get_account_info(struct be_ctx *be_ctx,
-                                 int entry_type, int attr_type,
-                                 int filter_type, char *filter_value);
-
-struct be_mod_ops ldap_mod_ops = {
-    .check_online = ldap_check_online,
-    .get_account_info = ldap_get_account_info
-};
-
 static int ldap_check_online(struct be_ctx *be_ctx, int *reply)
 {
     *reply = MOD_ONLINE;
@@ -150,6 +140,11 @@ static int ldap_get_account_info(struct be_ctx *be_ctx,
 
     return EOK;
 }
+
+struct be_mod_ops ldap_mod_ops = {
+    .check_online = ldap_check_online,
+    .get_account_info = ldap_get_account_info
+};
 
 int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
 {

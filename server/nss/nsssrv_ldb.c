@@ -40,15 +40,14 @@ static int nss_ldb_error_to_errno(int lerr)
     return EIO;
 }
 
-static int request_error(struct nss_ldb_search_ctx *sctx, int ldb_error)
+static void request_error(struct nss_ldb_search_ctx *sctx, int ldb_error)
 {
     sctx->callback(sctx->ptr, nss_ldb_error_to_errno(ldb_error), sctx->res);
-    return ldb_error;
 }
 
-static int request_done(struct nss_ldb_search_ctx *sctx)
+static void request_done(struct nss_ldb_search_ctx *sctx)
 {
-    return sctx->callback(sctx->ptr, EOK, sctx->res);
+    sctx->callback(sctx->ptr, EOK, sctx->res);
 }
 
 static int get_gen_callback(struct ldb_request *req,
@@ -62,10 +61,12 @@ static int get_gen_callback(struct ldb_request *req,
     res = sctx->res;
 
     if (!ares) {
-        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+        request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+        return LDB_ERR_OPERATIONS_ERROR;
     }
     if (ares->error != LDB_SUCCESS) {
-        return request_error(sctx, ares->error);
+        request_error(sctx, ares->error);
+        return ares->error;
     }
 
     switch (ares->type) {
@@ -74,7 +75,8 @@ static int get_gen_callback(struct ldb_request *req,
                                    struct ldb_message *,
                                    res->count + 2);
         if (!res->msgs) {
-            return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            return LDB_ERR_OPERATIONS_ERROR;
         }
 
         res->msgs[res->count + 1] = NULL;
@@ -92,7 +94,8 @@ static int get_gen_callback(struct ldb_request *req,
 
         res->refs = talloc_realloc(res, res->refs, char *, n + 2);
         if (! res->refs) {
-            return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            return LDB_ERR_OPERATIONS_ERROR;
         }
 
         res->refs[n] = talloc_steal(res->refs, ares->referral);
@@ -103,7 +106,8 @@ static int get_gen_callback(struct ldb_request *req,
         res->controls = talloc_steal(res, ares->controls);
 
         /* this is the last message, and means the request is done */
-        return request_done(sctx);
+        request_done(sctx);
+        return LDB_SUCCESS;
     }
 
     talloc_free(ares);
@@ -230,8 +234,7 @@ struct get_mem_ctx {
     int num_grps;
 };
 
-static int get_members(void *ptr, int status,
-                       struct ldb_result *res)
+static void get_members(void *ptr, int status, struct ldb_result *res)
 {
     struct nss_ldb_ctx *ctx;
     struct nss_ldb_search_ctx *sctx;
@@ -304,15 +307,13 @@ static int get_members(void *ptr, int status,
                                mem_sctx, get_gen_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
-       return request_error(gmctx->ret_sctx, ret);
+        return request_error(gmctx->ret_sctx, ret);
     }
 
     ret = ldb_request(ctx->ldb, req);
     if (ret != LDB_SUCCESS) {
         return request_error(gmctx->ret_sctx, ret);
     }
-
-    return LDB_SUCCESS;
 }
 
 static int get_grp_callback(struct ldb_request *req,
@@ -328,10 +329,12 @@ static int get_grp_callback(struct ldb_request *req,
     res = sctx->res;
 
     if (!ares) {
-        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+        request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+        return LDB_ERR_OPERATIONS_ERROR;
     }
     if (ares->error != LDB_SUCCESS) {
-        return request_error(sctx, ares->error);
+        request_error(sctx, ares->error);
+        return ares->error;
     }
 
     switch (ares->type) {
@@ -340,7 +343,8 @@ static int get_grp_callback(struct ldb_request *req,
                                    struct ldb_message *,
                                    res->count + 2);
         if (!res->msgs) {
-            return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            return LDB_ERR_OPERATIONS_ERROR;
         }
 
         res->msgs[res->count + 1] = NULL;
@@ -358,7 +362,8 @@ static int get_grp_callback(struct ldb_request *req,
 
         res->refs = talloc_realloc(res, res->refs, char *, n + 2);
         if (! res->refs) {
-            return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+            return LDB_ERR_OPERATIONS_ERROR;
         }
 
         res->refs[n] = talloc_steal(res->refs, ares->referral);
@@ -370,7 +375,8 @@ static int get_grp_callback(struct ldb_request *req,
 
         /* no results, return */
         if (res->count == 0) {
-            return request_done(sctx);
+            request_done(sctx);
+            return LDB_SUCCESS;
         }
         if (res->count > 0) {
             struct get_mem_ctx *gmctx;
@@ -378,6 +384,7 @@ static int get_grp_callback(struct ldb_request *req,
             gmctx = talloc_zero(req, struct get_mem_ctx);
             if (!gmctx) {
                 request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+                return LDB_ERR_OPERATIONS_ERROR;
             }
             gmctx->ret_sctx = sctx;
             gmctx->grps = talloc_steal(gmctx, res->msgs);
@@ -389,11 +396,13 @@ static int get_grp_callback(struct ldb_request *req,
              * get_members() */
             sctx = init_src_ctx(gmctx, ctx, get_members, gmctx);
 
-            return get_members(sctx, LDB_SUCCESS, NULL);
+            get_members(sctx, LDB_SUCCESS, NULL);
+            return LDB_SUCCESS;
         }
 
         /* anything else is an error */
-        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+        request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+        return LDB_ERR_OPERATIONS_ERROR;
     }
 
     talloc_free(ares);
@@ -487,8 +496,8 @@ int nss_ldb_enumgrent(TALLOC_CTX *mem_ctx,
     return grp_search(sctx, ctx, ctx->grent_filter);
 }
 
-static int nss_ldb_initgr_search(void *ptr, int status,
-                                 struct ldb_result *res)
+static void nss_ldb_initgr_search(void *ptr, int status,
+                                  struct ldb_result *res)
 {
     struct nss_ldb_ctx *ctx;
     struct nss_ldb_search_ctx *sctx;
@@ -550,8 +559,6 @@ static int nss_ldb_initgr_search(void *ptr, int status,
     if (ret != LDB_SUCCESS) {
         return request_error(sctx, ret);
     }
-
-    return LDB_SUCCESS;
 }
 
 int nss_ldb_initgroups(TALLOC_CTX *mem_ctx,

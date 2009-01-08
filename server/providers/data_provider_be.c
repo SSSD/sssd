@@ -187,10 +187,15 @@ static int be_get_account_info(DBusMessage *message, void *data, DBusMessage **r
     dbus_bool_t dbret;
     void *user_data;
     uint32_t type;
-    char *attrs, *search_exp;
+    char *attrs, *filter;
     int attr_type, filter_type;
     char *filter_val;
     int ret;
+    dbus_uint16_t err_maj = 0;
+    dbus_uint32_t err_min = 0;
+    const char *err_msg = "Success";
+
+    *r = NULL;
 
     if (!data) return EINVAL;
     smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
@@ -205,44 +210,74 @@ static int be_get_account_info(DBusMessage *message, void *data, DBusMessage **r
     ret = dbus_message_get_args(message, &dbus_error,
                                 DBUS_TYPE_UINT32, &type,
                                 DBUS_TYPE_STRING, &attrs,
-                                DBUS_TYPE_STRING, &search_exp,
+                                DBUS_TYPE_STRING, &filter,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
         DEBUG(1,("Failed, to parse message!\n"));
         return EIO;
     }
 
-    if (!attrs) {
+    DEBUG(4, ("Got request for [%u][%s][%s]\n", type, attrs, filter));
+
+    reply = dbus_message_new_method_return(message);
+
+    if (attrs) {
         if (strcmp(attrs, "core") == 0) attr_type = BE_ATTR_CORE;
         else if (strcmp(attrs, "membership") == 0) attr_type = BE_ATTR_MEM;
         else if (strcmp(attrs, "all") == 0) attr_type = BE_ATTR_ALL;
-        else return EINVAL;
+        else {
+            err_maj = DP_ERR_FATAL;
+            err_min = EINVAL;
+            err_msg = "Invalid Attrs Parameter";
+            goto done;
+        }
+    } else {
+        err_maj = DP_ERR_FATAL;
+        err_min = EINVAL;
+        err_msg = "Missing Attrs Parameter";
+        goto done;
     }
-    else return EINVAL;
 
-    if (!search_exp) {
-        if (strncmp(search_exp, "name=", 5) == 0) {
+    if (filter) {
+        if (strncmp(filter, "name=", 5) == 0) {
             filter_type = BE_FILTER_NAME;
-            filter_val = &search_exp[5];
-        } else if (strncmp(search_exp, "idnumber=", 9) == 0) {
+            filter_val = &filter[5];
+        } else if (strncmp(filter, "idnumber=", 9) == 0) {
             filter_type = BE_FILTER_IDNUM;
-            filter_val = &search_exp[9];
-        } else return EINVAL;
+            filter_val = &filter[9];
+        } else {
+            err_maj = DP_ERR_FATAL;
+            err_min = EINVAL;
+            err_msg = "Invalid Filter";
+            goto done;
+        }
+    } else {
+        err_maj = DP_ERR_FATAL;
+        err_min = EINVAL;
+        err_msg = "Missing Filter Parameter";
+        goto done;
     }
-    else return EINVAL;
 
     /* process request */
     ret = ctx->ops->get_account_info(ctx, type, attr_type,
                                      filter_type, filter_val);
-    if (ret != EOK) return ret;
+    if (ret != EOK) {
+        err_maj = DP_ERR_FATAL;
+        err_min = ret;
+        err_msg = "Backend error";
+        goto done;
+    }
 
-    reply = dbus_message_new_method_return(message);
+done:
     dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, 0,
-                                     DBUS_TYPE_UINT32, 0,
-                                     DBUS_TYPE_STRING, "Success",
+                                     DBUS_TYPE_UINT16, &err_maj,
+                                     DBUS_TYPE_UINT32, &err_min,
+                                     DBUS_TYPE_STRING, &err_msg,
                                      DBUS_TYPE_INVALID);
     if (!dbret) return EIO;
+
+    DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
+              err_maj, err_min, err_msg));
 
     *r = reply;
     return EOK;
@@ -445,7 +480,7 @@ int main(int argc, const char *argv[])
                           main_ctx->confdb_ctx);
     if (ret != EOK) return 3;
 
-    DEBUG(1, ("Backend provider %s(%s) started!", be_name, be_domain));
+    DEBUG(1, ("Backend provider %s(%s) started!\n", be_name, be_domain));
 
     /* loop on main */
     server_loop(main_ctx);

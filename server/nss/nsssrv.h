@@ -28,6 +28,7 @@
 #include "tevent.h"
 #include "ldb.h"
 #include "../nss_client/sss_nss.h"
+#include "dbus/dbus.h"
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define NSS_SBUS_SERVICE_NAME "nss"
@@ -82,7 +83,21 @@ void nss_packet_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen
 void nss_packet_set_error(struct nss_packet *packet, int error);
 
 /* from nsssrv_cmd.c */
-int nss_cmd_init(struct nss_ctx *nctx);
 int nss_cmd_execute(struct cli_ctx *cctx);
+
+/* from nsssrv_dp.c */
+#define NSS_DP_USER 1
+#define NSS_DP_GROUP 2
+
+int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
+                         DBusPendingCallNotifyFunction callback,
+                         void *callback_ctx,
+                         const char *domain, int type,
+                         const char *opt_name, uint32_t opt_id);
+int nss_dp_get_reply(DBusPendingCall *pending,
+                     dbus_uint16_t *err_maj,
+                     dbus_uint32_t *err_min,
+                     char **err_msg);
+int nss_dp_init(struct nss_ctx *nctx);
 
 #endif /* __NSSSRV_H__ */
