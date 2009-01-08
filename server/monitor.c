@@ -401,7 +401,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         if (svc->command == NULL) {
             /* the LOCAL domain does not need a backend at the moment */
             if (strcasecmp(doms[i], "LOCAL") != 0) {
-                DEBUG(0, ("Missing command to run provider [%s]\n"));
+                DEBUG(0, ("Missing command to run provider\n"));
             }
             talloc_free(svc);
             continue;
@@ -884,7 +884,15 @@ static int start_service(const char *name, const char *command, pid_t *retpid)
 
     args = parse_args(command);
     execvp(args[0], args);
-    exit(1);
+
+    /* If we are here, exec() has failed
+     * Print errno and abort quickly */
+    DEBUG(0,("Could not exec %s, reason: %s\n", command, strerror(errno)));
+
+    /* We have to call _exit() instead of exit() here
+     * because a bug in D-BUS will cause the server to
+     * close its socket at exit() */
+    _exit(1);
 }
 
 int main(int argc, const char *argv[])
