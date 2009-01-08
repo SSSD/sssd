@@ -570,6 +570,13 @@ enum nss_status sss_nss_make_request(enum sss_nss_command cmd,
                       int *errnop)
 {
     enum nss_status ret;
+    char *envval;
+
+    /* avoid looping in the nss daemon */
+    envval = getenv("_SSS_LOOPS");
+    if (envval && strcmp(envval, "NO") == 0) {
+        return NSS_STATUS_NOTFOUND;
+    }
 
     ret = sss_nss_check_socket(errnop);
     if (ret != NSS_STATUS_SUCCESS) {
