@@ -49,10 +49,10 @@ static void sbus_dispatch(struct event_context *ev,
     dct_ctx = talloc_get_type(data, struct sbus_conn_ctx);
 
     conn = dct_ctx->conn;
-    DEBUG(4, ("conn: %lX\n", conn));
+    DEBUG(6, ("conn: %lX\n", conn));
 
     if((dct_ctx->disconnect) || (!dbus_connection_get_is_connected(conn))) {
-        DEBUG(4,("Connection is not open for dispatching.\n"));
+        DEBUG(3,("Connection is not open for dispatching.\n"));
         /*
          * Free the connection object.
          * This will invoke the destructor for the connection
@@ -67,7 +67,7 @@ static void sbus_dispatch(struct event_context *ev,
      */
     ret = dbus_connection_get_dispatch_status(conn);
     if (ret != DBUS_DISPATCH_COMPLETE) {
-        DEBUG(4,("Dispatching.\n"));
+        DEBUG(6,("Dispatching.\n"));
         dbus_connection_dispatch(conn);
     }
 
@@ -97,7 +97,7 @@ static void sbus_conn_read_write_handler(struct event_context *ev,
     struct sbus_conn_watch_ctx *conn_w_ctx;
     conn_w_ctx = talloc_get_type(data, struct sbus_conn_watch_ctx);
 
-    DEBUG(4,("Connection is open for read/write.\n"));
+    DEBUG(6,("Connection is open for read/write.\n"));
     dbus_connection_ref(conn_w_ctx->top->conn);
     if (flags & EVENT_FD_READ) {
         dbus_watch_handle(conn_w_ctx->watch, DBUS_WATCH_READABLE);

@@ -140,8 +140,18 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
         /* need to read still some data, loop again */
         break;
 
+    case EINVAL:
+        DEBUG(6, ("Invalid data from client, closing connection!\n"));
+        talloc_free(cctx);
+        break;
+
+    case ENODATA:
+        DEBUG(5, ("Client disconnected!\n"));
+        talloc_free(cctx);
+        break;
+
     default:
-        DEBUG(0, ("Failed to read request, aborting client!\n"));
+        DEBUG(6, ("Failed to read request, aborting client!\n"));
         talloc_free(cctx);
     }
 
@@ -210,7 +220,7 @@ static void accept_fd_handler(struct event_context *ev,
 
     talloc_set_destructor(cctx, client_destructor);
 
-    DEBUG(2, ("Client connected!\n"));
+    DEBUG(4, ("Client connected!\n"));
 
     return;
 }

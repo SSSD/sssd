@@ -19,16 +19,71 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <sys/time.h>
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "providers/data_provider.h"
 
+struct nss_dp_req {
+    nss_dp_callback_t callback;
+    void *callback_ctx;
+    bool replied;
+    struct timed_event *te;
+};
+
+static void nss_dp_send_acct_timeout(struct event_context *ev,
+                                     struct timed_event *te,
+                                     struct timeval t, void *data)
+{
+    struct nss_dp_req *ndp_req;
+    dbus_uint16_t err_maj = DP_ERR_TIMEOUT;
+    dbus_uint32_t err_min = EIO;
+    const char *err_msg = "Request timed out";
+
+    ndp_req = talloc_get_type(data, struct nss_dp_req);
+    ndp_req->replied = true;
+
+    ndp_req->callback(err_maj, err_min, err_msg, ndp_req->callback_ctx);
+}
+
+static int nss_dp_get_reply(DBusPendingCall *pending,
+                            dbus_uint16_t *err_maj,
+                            dbus_uint32_t *err_min,
+                            const char **err_msg);
+
+static void nss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
+{
+    struct nss_dp_req *ndp_req;
+    dbus_uint16_t err_maj;
+    dbus_uint32_t err_min;
+    const char *err_msg;
+    int ret;
+
+    ndp_req = talloc_get_type(ptr, struct nss_dp_req);
+    if (ndp_req->replied) {
+        DEBUG(5, ("Callback called, but the request was already timed out!\n"));
+        talloc_free(ndp_req);
+        return;
+    }
+
+    ret = nss_dp_get_reply(pending, &err_maj, &err_min, &err_msg);
+    if (ret != EOK) {
+        err_maj = DP_ERR_FATAL;
+        err_min = ret;
+        err_msg = "Failed to get reply from Data Provider";
+    }
+
+    talloc_free(ndp_req->te);
+
+    ndp_req->callback(err_maj, err_min, err_msg, ndp_req->callback_ctx);
+}
+
 int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
-                         DBusPendingCallNotifyFunction callback,
-                         void *callback_ctx,
-                         const char *domain, int type,
+                         nss_dp_callback_t callback, void *callback_ctx,
+                         int timeout, const char *domain, int type,
                          const char *opt_name, uint32_t opt_id)
 {
+    struct nss_dp_req *ndp_req;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
@@ -37,6 +92,7 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
     uint32_t be_type;
     const char *attrs = "core";
     char *filter;
+    struct timeval tv;
 
     /* either, or, not both */
     if (opt_name && opt_id) {
@@ -106,17 +162,34 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
         return EIO;
     }
 
+    /* setup the timeout handler */
+    ndp_req = talloc(memctx, struct nss_dp_req);
+    if (!ndp_req) {
+        dbus_message_unref(msg);
+        return ENOMEM;
+    }
+    ndp_req->callback = callback;
+    ndp_req->callback_ctx = callback_ctx;
+    ndp_req->replied = false;
+    gettimeofday(&tv, NULL);
+    tv.tv_sec += timeout/1000;
+    tv.tv_usec += (timeout%1000) * 1000;
+    ndp_req->te = event_add_timed(nctx->ev, memctx, tv,
+                                  nss_dp_send_acct_timeout, ndp_req);
+
     /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, callback, callback_ctx, NULL);
+    dbus_pending_call_set_notify(pending_reply,
+                                 nss_dp_send_acct_callback,
+                                 ndp_req, NULL);
     dbus_message_unref(msg);
 
     return EOK;
 }
 
-int nss_dp_get_reply(DBusPendingCall *pending,
-                     dbus_uint16_t *err_maj,
-                     dbus_uint32_t *err_min,
-                     char **err_msg)
+static int nss_dp_get_reply(DBusPendingCall *pending,
+                            dbus_uint16_t *err_maj,
+                            dbus_uint32_t *err_min,
+                            const char **err_msg)
 {
     DBusMessage *reply;
     DBusError dbus_error;
@@ -153,6 +226,9 @@ int nss_dp_get_reply(DBusPendingCall *pending,
             err = EIO;
             goto done;
         }
+
+        DEBUG(4, ("Got reply (%u, %u, %s) from Data Provider\n",
+                  (unsigned int)*err_maj, (unsigned int)*err_min, *err_msg));
 
         break;
 

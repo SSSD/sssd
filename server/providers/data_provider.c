@@ -105,7 +105,7 @@ struct dp_request {
 
 struct dp_be_request {
     struct dp_request *req;
-    struct dp_client *be_cli;
+    struct dp_backend *be;
 };
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
@@ -321,7 +321,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
             goto done;
         }
 
-        switch (cli_type && DP_CLI_TYPE_MASK) {
+        switch (cli_type & DP_CLI_TYPE_MASK) {
         case DP_CLI_BACKEND:
             dpbe = talloc_zero(dpcli->dpctx, struct dp_backend);
             if (!dpbe) {
@@ -341,6 +341,9 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
             dpbe->dpcli = dpcli;
 
             DLIST_ADD(dpcli->dpctx->be_list, dpbe);
+
+            DEBUG(4, ("Added Backend client [%s], for domain [%s]\n",
+                      dpbe->name, dpbe->domain));
 
             talloc_set_destructor((TALLOC_CTX *)dpbe, dp_backend_destructor);
             break;
@@ -363,6 +366,8 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
             dpfe->dpcli = dpcli;
 
             DLIST_ADD(dpcli->dpctx->fe_list, dpfe);
+
+            DEBUG(4, ("Added Frontend client [%s]\n", dpfe->name));
 
             talloc_set_destructor((TALLOC_CTX *)dpfe, dp_frontend_destructor);
             break;
@@ -425,7 +430,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(bereq->be_cli->conn_ctx);
+        sbus_disconnect(bereq->be->dpcli->conn_ctx);
         goto done;
     }
 
@@ -439,9 +444,13 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
                                     DBUS_TYPE_INVALID);
         if (!ret) {
             DEBUG(1,("Failed to parse message, killing connection\n"));
-            sbus_disconnect(bereq->be_cli->conn_ctx);
+            sbus_disconnect(bereq->be->dpcli->conn_ctx);
             goto done;
         }
+
+        DEBUG(4, ("Got reply (%u, %u, %s) from %s(%s)\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg,
+                  bereq->be->name, bereq->be->domain));
 
         break;
 
@@ -457,7 +466,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sbus_disconnect(bereq->be_cli->conn_ctx);
+        sbus_disconnect(bereq->be->dpcli->conn_ctx);
     }
 
     if (err_maj) {
@@ -470,7 +479,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         bereq->req->pending_replies--;
         talloc_free(bereq);
     } else {
-        conn = sbus_get_connection(bereq->be_cli->conn_ctx);
+        conn = sbus_get_connection(bereq->req->src_cli->conn_ctx);
         err_maj = 0;
         err_min = 0;
         err_msg = "Success";
@@ -505,7 +514,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
     DBusError dbus_error;
     dbus_bool_t ret;
 
-    conn = sbus_get_connection(bereq->be_cli->conn_ctx);
+    conn = sbus_get_connection(bereq->be->dpcli->conn_ctx);
     dbus_error_init(&dbus_error);
 
     /* create the message */
@@ -633,7 +642,7 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
                 continue;
             }
             bereq->req = dpreq;
-            bereq->be_cli = dpbe->dpcli;
+            bereq->be = dpbe;
             DEBUG(4, ("Sending wildcard request to [%s]\n", dpbe->domain));
             ret = dp_send_acct_req(bereq, type, attrs, filter);
             if (ret != EOK) {
@@ -689,7 +698,7 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
             goto respond;
         }
         bereq->req = dpreq;
-        bereq->be_cli = dpbe->dpcli;
+        bereq->be = dpbe;
 
         ret = dp_send_acct_req(bereq, type, attrs, filter);
         if (ret != EOK) {
@@ -727,6 +736,8 @@ static int dp_backend_destructor(void *ctx)
     struct dp_backend *dpbe = talloc_get_type(ctx, struct dp_backend);
     if (dpbe->dpcli && dpbe->dpcli->dpctx && dpbe->dpcli->dpctx->be_list) {
         DLIST_REMOVE(dpbe->dpcli->dpctx->be_list, dpbe);
+        DEBUG(4, ("Removed Backend client [%s], for domain [%s]\n",
+                  dpbe->name, dpbe->domain));
     }
     return 0;
 }
@@ -736,6 +747,7 @@ static int dp_frontend_destructor(void *ctx)
     struct dp_frontend *dpfe = talloc_get_type(ctx, struct dp_frontend);
     if (dpfe->dpcli && dpfe->dpcli->dpctx && dpfe->dpcli->dpctx->fe_list) {
         DLIST_REMOVE(dpfe->dpcli->dpctx->fe_list, dpfe);
+        DEBUG(4, ("Removed Frontend client [%s]\n", dpfe->name));
     }
     return 0;
 }

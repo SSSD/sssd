@@ -212,7 +212,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
             DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
         }
         if (res->count == 0) {
-            DEBUG(2, ("No results for getpwnam call"));
+            DEBUG(2, ("No results for getpwnam call\n"));
         }
         ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              nss_packet_get_cmd(cctx->creq->in),
@@ -233,25 +233,24 @@ done:
     nss_cmd_done(nctx);
 }
 
-static void nss_cmd_getpwnam_callback(DBusPendingCall *pending, void *ptr)
+static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
-    dbus_uint16_t cli_err_maj;
-    dbus_uint32_t cli_err_min;
-    char *cli_err_msg;
     int ret;
 
-    ret = nss_dp_get_reply(pending, &cli_err_maj, &cli_err_min, &cli_err_msg);
-    if (ret != EOK) {
+    if (err_maj) {
         DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Will try to return what we have in cache\n"));
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
     ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
                            nctx->name, nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!"));
+        DEBUG(1, ("Failed to make request to our cache!\n"));
 
         ret = nss_cmd_send_error(nctx, ret);
         if (ret != EOK) {
@@ -289,7 +288,8 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
     ret = nss_dp_send_acct_req(cctx->nctx, nctx,
                                nss_cmd_getpwnam_callback, nctx,
-                               "*", NSS_DP_USER, nctx->name, 0);
+                               SSS_NSS_SOCKET_TIMEOUT/2, "*",
+                               NSS_DP_USER, nctx->name, 0);
     if (ret != EOK) {
         talloc_free(nctx);
         return ret;
