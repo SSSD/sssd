@@ -402,7 +402,8 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ctx->name = talloc_strdup(ctx, be_name);
     ctx->domain = talloc_strdup(ctx, be_domain);
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
-    if (!ctx->name || !ctx->domain || !ctx->identity) {
+    ctx->conf_path = talloc_asprintf(ctx, "config/domains/%s", be_domain);
+    if (!ctx->name || !ctx->domain || !ctx->identity || !ctx->conf_path) {
         DEBUG(0, ("Out of memory!?\n"));
         return ENOMEM;
     }

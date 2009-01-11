@@ -35,6 +35,7 @@ struct be_ctx {
     const char *name;
     const char *domain;
     const char *identity;
+    const char *conf_path;
     struct be_mod_ops *ops;
     void *pvt_data;
 };

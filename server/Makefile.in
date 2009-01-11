@@ -60,7 +60,7 @@ OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 headers = .h
 
 BINS = sbin/sssd sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
-SOLIBS = lib/libsss_ldap.$(SHLIBEXT)
+SOLIBS = lib/libsss_proxy.$(SHLIBEXT)
 
 DIRS = sbin lib
 

@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   Test LDAP Module
+   Proxy Module
 
    Copyright (C) Simo Sorce <ssorce@redhat.com>	2008
 
@@ -26,7 +26,7 @@
 #include "util/util.h"
 #include "providers/dp_backend.h"
 
-struct ldap_nss_ops {
+struct proxy_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
                                   char *buffer, size_t buflen, int *errnop);
     enum nss_status (*getpwuid_r)(uid_t uid, struct passwd *result,
@@ -50,13 +50,13 @@ struct ldap_nss_ops {
                                       int *errnop);
 };
 
-struct ldap_ctx {
-    struct ldap_nss_ops ops;
+struct proxy_ctx {
+    struct proxy_nss_ops ops;
 };
 
-static int get_pw_name(struct be_ctx *be_ctx, struct ldap_ctx *ldap_ctx, char *name)
+static int get_pw_name(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, char *name)
 {
-    struct ldap_nss_ops *ops = &ldap_ctx->ops;
+    struct proxy_nss_ops *ops = &proxy_ctx->ops;
     enum nss_status status;
     struct passwd result;
     char *buffer;
@@ -78,7 +78,7 @@ static int get_pw_name(struct be_ctx *be_ctx, struct ldap_ctx *ldap_ctx, char *n
                                         result.pw_shell);
         break;
     default:
-        DEBUG(2, ("ldap->getpwnam_r failed for '%s' (%d)[%s]\n",
+        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
                   name, ret, strerror(ret)));
         talloc_free(buffer);
         return ret;
@@ -93,19 +93,19 @@ static int get_pw_name(struct be_ctx *be_ctx, struct ldap_ctx *ldap_ctx, char *n
     return ret;
 }
 
-static int ldap_check_online(struct be_ctx *be_ctx, int *reply)
+static int proxy_check_online(struct be_ctx *be_ctx, int *reply)
 {
     *reply = MOD_ONLINE;
     return EOK;
 }
 
-static int ldap_get_account_info(struct be_ctx *be_ctx,
+static int proxy_get_account_info(struct be_ctx *be_ctx,
                                  int entry_type, int attr_type,
                                  int filter_type, char *filter_value)
 {
-    struct ldap_ctx *ctx;
+    struct proxy_ctx *ctx;
 
-    ctx = talloc_get_type(be_ctx->pvt_data, struct ldap_ctx);
+    ctx = talloc_get_type(be_ctx->pvt_data, struct proxy_ctx);
 
     switch (entry_type) {
     case BE_REQ_USER: /* user */
@@ -141,107 +141,135 @@ static int ldap_get_account_info(struct be_ctx *be_ctx,
     return EOK;
 }
 
-struct be_mod_ops ldap_mod_ops = {
-    .check_online = ldap_check_online,
-    .get_account_info = ldap_get_account_info
+struct be_mod_ops proxy_mod_ops = {
+    .check_online = proxy_check_online,
+    .get_account_info = proxy_get_account_info
 };
 
-int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
+static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
 {
-    struct ldap_ctx *ctx;
+    char *funcname;
+    void *funcptr;
+
+    funcname = talloc_asprintf(NULL, functemp, libname);
+    if (funcname == NULL) return NULL;
+
+    funcptr = dlsym(handle, funcname);
+    talloc_free(funcname);
+
+    return funcptr;
+}
+
+int sssm_proxy_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
+{
+    struct proxy_ctx *ctx;
+    char *libname;
+    char *libpath;
     void *handle;
     int ret;
 
-    ctx = talloc(bectx, struct ldap_ctx);
+    ctx = talloc(bectx, struct proxy_ctx);
     if (!ctx) {
         return ENOMEM;
     }
 
-    handle = dlopen("/usr/lib64/libnss_ldap.so.2", RTLD_NOW);
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                           "libName", NULL, &libname);
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                           "libPath", NULL, &libpath);
+    if (ret != EOK) goto done;
+    if (libpath == NULL || libname == NULL) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    handle = dlopen(libpath, RTLD_NOW);
     if (!handle) {
-        DEBUG(0, ("Unable to load libnss_ldap module with path, error: %s\n", dlerror()));
+        DEBUG(0, ("Unable to load %s module with path, error: %s\n",
+                  libpath, dlerror()));
         ret = ELIBACC;
         goto done;
     }
 
-    ctx->ops.getpwnam_r = dlsym(handle, "_nss_ldap_getpwnam_r");
+    ctx->ops.getpwnam_r = proxy_dlsym(handle, "_nss_%s_getpwnam_r", libname);
     if (!ctx->ops.getpwnam_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getpwuid_r = dlsym(handle, "_nss_ldap_getpwuid_r");
+    ctx->ops.getpwuid_r = proxy_dlsym(handle, "_nss_%s_getpwuid_r", libname);
     if (!ctx->ops.getpwuid_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.setpwent = dlsym(handle, "_nss_ldap_setpwent");
+    ctx->ops.setpwent = proxy_dlsym(handle, "_nss_%s_setpwent", libname);
     if (!ctx->ops.setpwent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getpwent_r = dlsym(handle, "_nss_ldap_getpwent_r");
+    ctx->ops.getpwent_r = proxy_dlsym(handle, "_nss_%s_getpwent_r", libname);
     if (!ctx->ops.getpwent_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.endpwent = dlsym(handle, "_nss_ldap_endpwent");
+    ctx->ops.endpwent = proxy_dlsym(handle, "_nss_%s_endpwent", libname);
     if (!ctx->ops.endpwent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getgrnam_r = dlsym(handle, "_nss_ldap_getgrnam_r");
+    ctx->ops.getgrnam_r = proxy_dlsym(handle, "_nss_%s_getgrnam_r", libname);
     if (!ctx->ops.getgrnam_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getgrgid_r = dlsym(handle, "_nss_ldap_getgrgid_r");
+    ctx->ops.getgrgid_r = proxy_dlsym(handle, "_nss_%s_getgrgid_r", libname);
     if (!ctx->ops.getgrgid_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.setgrent = dlsym(handle, "_nss_ldap_setgrent");
+    ctx->ops.setgrent = proxy_dlsym(handle, "_nss_%s_setgrent", libname);
     if (!ctx->ops.setgrent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.getgrent_r = dlsym(handle, "_nss_ldap_getgrent_r");
+    ctx->ops.getgrent_r = proxy_dlsym(handle, "_nss_%s_getgrent_r", libname);
     if (!ctx->ops.getgrent_r) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.endgrent = dlsym(handle, "_nss_ldap_endgrent");
+    ctx->ops.endgrent = proxy_dlsym(handle, "_nss_%s_endgrent", libname);
     if (!ctx->ops.endgrent) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ctx->ops.initgroups_dyn = dlsym(handle, "_nss_ldap_initgroups_dyn");
+    ctx->ops.initgroups_dyn = proxy_dlsym(handle, "_nss_%s_initgroups_dyn",
+                                                  libname);
     if (!ctx->ops.initgroups_dyn) {
         DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    *ops = &ldap_mod_ops;
+    *ops = &proxy_mod_ops;
     *pvt_data = ctx;
     ret = EOK;
 

@@ -21,8 +21,8 @@ DP_BE_OBJ = \
 	providers/data_provider_be.o \
 	providers/dp_backend_store.o
 
-LDAP_BE_OBJ = \
-	providers/ldap_provider.o
+PROXY_BE_OBJ = \
+	providers/proxy.o
 
 NSSSRV_OBJ = \
     nss/nsssrv.o \
@@ -47,5 +47,5 @@ sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ)
 sbin/sssd_be: $(DP_BE_OBJ) $(UTIL_OBJ)
 	$(CC) -Wl,-E -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
-lib/libsss_ldap.$(SHLIBEXT): $(LDAP_BE_OBJ)
-	$(SHLD) $(SHLD_FLAGS) -o $@ $(LDAP_BE_OBJ) $(LDFLAGS) $(LIBS)
+lib/libsss_proxy.$(SHLIBEXT): $(PROXY_BE_OBJ)
+	$(SHLD) $(SHLD_FLAGS) -o $@ $(PROXY_BE_OBJ) $(LDFLAGS) $(LIBS)
