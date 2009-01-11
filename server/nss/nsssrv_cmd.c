@@ -24,11 +24,13 @@
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
+#include <time.h>
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
     const char *name;
     uint64_t id;
+    bool check_expiration;
 };
 
 struct getent_ctx {
@@ -185,26 +187,45 @@ done:
     return EOK;
 }
 
+static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr);
+
 static void nss_cmd_getpw_callback(void *ptr, int status,
                                    struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
+    int timeout;
+    uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
     int ret;
 
-    /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret != EOK) {
-        NSS_CMD_FATAL_ERROR(cctx);
+    if (status != LDB_SUCCESS) {
+        ret = nss_cmd_send_error(nctx, status);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        return;
     }
 
-    if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
-        goto done;
+    if (res->count == 0 && nctx->check_expiration) {
+
+        /* dont loop forever :-) */
+        nctx->check_expiration = false;
+
+        ret = nss_dp_send_acct_req(cctx->nctx, nctx,
+                                   nss_cmd_getpwnam_callback, nctx,
+                                   SSS_NSS_SOCKET_TIMEOUT/2, "*",
+                                   NSS_DP_USER, nctx->name, 0);
+        if (ret != EOK) {
+            ret = nss_cmd_send_error(nctx, ret);
+        }
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+
+        return;
     }
 
     if (res->count != 1) {
@@ -224,6 +245,38 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
         goto done;
+    }
+
+    if (nctx->check_expiration) {
+        timeout = nctx->cctx->nctx->cache_timeout;
+
+        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0], "lastUpdate", 0);
+        if (lastUpdate + timeout < time(NULL)) {
+
+            /* dont loop forever :-) */
+            nctx->check_expiration = false;
+
+            ret = nss_dp_send_acct_req(cctx->nctx, nctx,
+                                       nss_cmd_getpwnam_callback, nctx,
+                                       SSS_NSS_SOCKET_TIMEOUT/2, "*",
+                                       NSS_DP_USER, nctx->name, 0);
+            if (ret != EOK) {
+                ret = nss_cmd_send_error(nctx, ret);
+            }
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+
+            return;
+        }
+    }
+
+    /* create response packet */
+    ret = nss_packet_new(cctx->creq, 0,
+                         nss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 
     ret = fill_pwent(cctx->creq->out, cctx->nctx->lctx, res->msgs, res->count);
@@ -271,6 +324,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         return ENOMEM;
     }
     nctx->cctx = cctx;
+    nctx->check_expiration = true;
 
     /* get user name to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
@@ -286,16 +340,18 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     /* FIXME: Just ask all backends for now, until Steve provides for name
      * parsing code */
 
-    ret = nss_dp_send_acct_req(cctx->nctx, nctx,
-                               nss_cmd_getpwnam_callback, nctx,
-                               SSS_NSS_SOCKET_TIMEOUT/2, "*",
-                               NSS_DP_USER, nctx->name, 0);
+    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
+                           nctx->name, nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
-        talloc_free(nctx);
-        return ret;
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(nctx, ret);
+        if (ret != EOK) {
+            return ret;
+        }
     }
 
-    return ret;
+    return EOK;
 }
 
 static int nss_cmd_getpwuid(struct cli_ctx *cctx)

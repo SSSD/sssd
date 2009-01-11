@@ -439,6 +439,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    nctx->cache_timeout = 600; /* FIXME: read from conf */
+
     DEBUG(1, ("NSS Initialization complete\n"));
 
     return EOK;

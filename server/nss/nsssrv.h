@@ -48,6 +48,8 @@ struct nss_ctx {
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
     struct btreemap *domain_map;
+
+    int cache_timeout;
 };
 
 struct cli_ctx {
