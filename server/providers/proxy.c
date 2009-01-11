@@ -72,7 +72,8 @@ static int get_pw_name(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, char 
         ret = dp_be_remove_account_posix(be_ctx, name);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = dp_be_store_account_posix(be_ctx, name, result.pw_passwd,
+        ret = dp_be_store_account_posix(be_ctx,
+                                        result.pw_name, result.pw_passwd,
                                         result.pw_uid, result.pw_gid,
                                         result.pw_gecos, result.pw_dir,
                                         result.pw_shell);
@@ -93,6 +94,46 @@ static int get_pw_name(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, char 
     return ret;
 }
 
+static int get_pw_uid(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, uid_t uid)
+{
+    struct proxy_nss_ops *ops = &proxy_ctx->ops;
+    enum nss_status status;
+    struct passwd result;
+    char *buffer;
+    int ret;
+
+    buffer = talloc_size(NULL, 4096);
+    if (!buffer) return ENOMEM;
+
+    status = ops->getpwuid_r(uid, &result, buffer, 4096, &ret);
+
+    switch (status) {
+    case NSS_STATUS_NOTFOUND:
+        ret = dp_be_remove_account_posix_by_uid(be_ctx, uid);
+        break;
+    case NSS_STATUS_SUCCESS:
+        ret = dp_be_store_account_posix(be_ctx,
+                                        result.pw_name, result.pw_passwd,
+                                        result.pw_uid, result.pw_gid,
+                                        result.pw_gecos, result.pw_dir,
+                                        result.pw_shell);
+        break;
+    default:
+        DEBUG(2, ("proxy -> getpwuid_r failed for '%lu' (%d)[%s]\n",
+                  (unsigned long)uid, ret, strerror(ret)));
+        talloc_free(buffer);
+        return ret;
+    }
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to update LDB Cache for '%lu' (%d) !?\n",
+                   (unsigned long)uid, ret));
+    }
+
+    talloc_free(buffer);
+    return ret;
+}
+
 static int proxy_check_online(struct be_ctx *be_ctx, int *reply)
 {
     *reply = MOD_ONLINE;
@@ -104,6 +145,7 @@ static int proxy_get_account_info(struct be_ctx *be_ctx,
                                  int filter_type, char *filter_value)
 {
     struct proxy_ctx *ctx;
+    uid_t uid;
 
     ctx = talloc_get_type(be_ctx->pvt_data, struct proxy_ctx);
 
@@ -124,6 +166,23 @@ static int proxy_get_account_info(struct be_ctx *be_ctx,
             }
             break;
         case BE_FILTER_IDNUM:
+            switch (attr_type) {
+            case BE_ATTR_CORE:
+                if (strchr(filter_value, '*')) {
+                    return EINVAL;
+                } else {
+                    char *endptr;
+                    errno = 0;
+                    uid = (uid_t)strtol(filter_value, &endptr, 0);
+                    if (errno || *endptr || (filter_value == endptr)) {
+                        return EINVAL;
+                    }
+                    return get_pw_uid(be_ctx, ctx, uid);
+                }
+                break;
+            default:
+                return EINVAL;
+            }
             break;
         default:
             return EINVAL;

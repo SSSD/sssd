@@ -27,6 +27,11 @@
 #include "providers/dp_backend.h"
 #include <time.h>
 
+/* NOTE: these functions ues ldb sync calls, but the cache db is a
+ * local TDB, so there should never be an issue.
+ * In case this changes (ex. plugins that contact the network etc..
+ * make sure to split functions in multiple async calls */
+
 int dp_be_store_account_posix(struct be_ctx *ctx,
                               char *name, char *pwd,
                               uint64_t uid, uint64_t gid,
@@ -47,7 +52,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
     }
 
     account_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                                "uid=%s,cn=users,cn=%s,cn=remote",
+                                "uid=%s,cn=users,cn=%s,cn=accounts",
                                 name, ctx->domain);
     if (!account_dn) {
         talloc_free(tmp_ctx);
@@ -61,26 +66,8 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
         goto done;
     }
 
-	res = talloc_zero(tmp_ctx, struct ldb_result);
-	if (!res) {
-        ret = ENOMEM;
-        goto done;
-	}
-
-    lret = ldb_build_search_req(&req, ctx->ldb, tmp_ctx,
-                                account_dn, LDB_SCOPE_BASE,
-                                "(objectClass=User)", attrs, NULL,
-                                res, ldb_search_default_callback, NULL);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build search request (%d) !?\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
-    lret = ldb_request(ctx->ldb, req);
-    if (lret == LDB_SUCCESS) {
-        lret = ldb_wait(req->handle, LDB_WAIT_ALL);
-    }
+    lret = ldb_search(ctx->ldb, tmp_ctx, &res, account_dn,
+                      LDB_SCOPE_BASE, attrs, "(objectClass=User)");
     if (lret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
                   ldb_strerror(lret), lret, ldb_errstring(ctx->ldb)));
@@ -88,7 +75,6 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
         goto done;
     }
 
-    talloc_free(req);
     req = NULL;
 
     msg = ldb_msg_new(tmp_ctx);
@@ -159,7 +145,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
         lret = ldb_msg_add_empty(msg, "uidNumber", flags, NULL);
         if (lret == LDB_SUCCESS) {
             lret = ldb_msg_add_fmt(msg, "uidNumber",
-                                   "%lu", (long unsigned)uid);
+                                   "%lu", (unsigned long)uid);
         }
         if (lret != LDB_SUCCESS) {
             ret = errno;
@@ -176,7 +162,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
         lret = ldb_msg_add_empty(msg, "gidNumber", flags, NULL);
         if (lret == LDB_SUCCESS) {
             lret = ldb_msg_add_fmt(msg, "gidNumber",
-                                   "%lu", (long unsigned)gid);
+                                   "%lu", (unsigned long)gid);
         }
         if (lret != LDB_SUCCESS) {
             ret = errno;
@@ -310,6 +296,95 @@ int dp_be_remove_account_posix(struct be_ctx *ctx, char *name)
         DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
         ret = EIO;
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int dp_be_remove_account_posix_by_uid(struct be_ctx *ctx, uid_t uid)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *attrs[] = { "name", "uid", NULL };
+    struct ldb_dn *base_dn;
+    struct ldb_dn *account_dn;
+	struct ldb_result *res;
+    int lret, ret;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
+                             "cn=users,cn=%s,cn=accounts", ctx->domain);
+    if (!base_dn) {
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+
+    lret = ldb_transaction_start(ctx->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_search(ctx->ldb, tmp_ctx, &res, base_dn,
+                      LDB_SCOPE_BASE, attrs,
+                      "(&(uid=%lu)(objectClass=User))",
+                      (unsigned long)uid);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
+                  ldb_strerror(lret), lret, ldb_errstring(ctx->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count == 0) {
+        ret = EOK;
+        goto done;
+    }
+    if (res->count > 1) {
+        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
+                  res->count));
+        ret = EOK;
+        goto done;
+    }
+
+    account_dn = ldb_dn_copy(tmp_ctx, res->msgs[0]->dn);
+    if (!account_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    talloc_free(res);
+    res = NULL;
+
+    ret = ldb_delete(ctx->ldb, account_dn);
+
+    if (ret != LDB_SUCCESS) {
+        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_transaction_commit(ctx->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        lret = ldb_transaction_cancel(ctx->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+        }
     }
 
     talloc_free(tmp_ctx);

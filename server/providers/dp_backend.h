@@ -52,6 +52,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
                               uint64_t uid, uint64_t gid,
                               char *gecos, char *homedir, char *shell);
 int dp_be_remove_account_posix(struct be_ctx *ctx, char *name);
+int dp_be_remove_account_posix_by_uid(struct be_ctx *ctx, uid_t uid);
 
 int dp_be_cachedb_init(struct be_ctx *ctx);
 

@@ -29,7 +29,7 @@
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
     const char *name;
-    uint64_t id;
+    uid_t id;
     bool check_expiration;
 };
 
@@ -189,12 +189,15 @@ done:
 
 static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr);
+static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr);
 
 static void nss_cmd_getpw_callback(void *ptr, int status,
                                    struct ldb_result *res)
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
+    nss_dp_callback_t callback_fn;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
@@ -209,16 +212,24 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
         return;
     }
 
+    if (nctx->name) {
+        callback_fn = &nss_cmd_getpwnam_callback;
+    } else {
+        callback_fn = &nss_cmd_getpwuid_callback;
+    }
+
     if (res->count == 0 && nctx->check_expiration) {
 
         /* dont loop forever :-) */
         nctx->check_expiration = false;
+        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
 
-        ret = nss_dp_send_acct_req(cctx->nctx, nctx,
-                                   nss_cmd_getpwnam_callback, nctx,
-                                   SSS_NSS_SOCKET_TIMEOUT/2, "*",
-                                   NSS_DP_USER, nctx->name, 0);
+        ret = nss_dp_send_acct_req(cctx->nctx, nctx, callback_fn, nctx,
+                                   timeout, "*", NSS_DP_USER,
+                                   nctx->name, nctx->id);
         if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)",
+                      ret, strerror(ret)));
             ret = nss_cmd_send_error(nctx, ret);
         }
         if (ret != EOK) {
@@ -255,12 +266,14 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
 
             /* dont loop forever :-) */
             nctx->check_expiration = false;
+            timeout = SSS_NSS_SOCKET_TIMEOUT/2;
 
-            ret = nss_dp_send_acct_req(cctx->nctx, nctx,
-                                       nss_cmd_getpwnam_callback, nctx,
-                                       SSS_NSS_SOCKET_TIMEOUT/2, "*",
-                                       NSS_DP_USER, nctx->name, 0);
+            ret = nss_dp_send_acct_req(cctx->nctx, nctx, callback_fn, nctx,
+                                       timeout, "*", NSS_DP_USER,
+                                       nctx->name, nctx->id);
             if (ret != EOK) {
+                DEBUG(3, ("Failed to dispatch request: %d(%s)",
+                          ret, strerror(ret)));
                 ret = nss_cmd_send_error(nctx, ret);
             }
             if (ret != EOK) {
@@ -319,7 +332,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     size_t blen;
     int ret;
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
+    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!nctx) {
         return ENOMEM;
     }
@@ -354,13 +367,45 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     return EOK;
 }
 
+static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
+{
+    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = nctx->cctx;
+    int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
+
+    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx,
+                           nctx->id, nss_cmd_getpw_callback, nctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(nctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+    }
+}
+
 static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *nctx;
     uint8_t *body;
     size_t blen;
     int ret;
-    uint64_t uid;
+
+    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!nctx) {
+        return ENOMEM;
+    }
+    nctx->cctx = cctx;
+    nctx->check_expiration = true;
 
     /* get uid to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
@@ -369,20 +414,24 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         return EINVAL;
     }
 
-    uid = *((uint64_t *)body);
+    nctx->id = (uid_t)*((uint64_t *)body);
 
-    DEBUG(4, ("Requesting info for [%lu]\n", uid));
+    DEBUG(4, ("Requesting info for [%lu]\n", nctx->id));
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
-        return ENOMEM;
+    /* FIXME: Just ask all backends for now, until we check for ranges */
+
+    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx,
+                           nctx->id, nss_cmd_getpw_callback, nctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(nctx, ret);
+        if (ret != EOK) {
+            return ret;
+        }
     }
-    nctx->cctx = cctx;
 
-    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx, uid,
-                           nss_cmd_getpw_callback, nctx);
-
-    return ret;
+    return EOK;
 }
 
 /* to keep it simple at this stage we are retrieving the
