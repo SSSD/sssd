@@ -28,6 +28,7 @@
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
+    const char *domain;
     const char *name;
     uid_t id;
     bool check_expiration;
@@ -112,7 +113,6 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
  ***************************************************************************/
 
 static int fill_pwent(struct nss_packet *packet,
-                      struct nss_ldb_ctx *lctx,
                       struct ldb_message **msgs,
                       int count)
 {
@@ -136,12 +136,12 @@ static int fill_pwent(struct nss_packet *packet,
     for (i = 0; i < count; i++) {
         msg = msgs[i];
 
-        name = ldb_msg_find_attr_as_string(msg, lctx->pw_name, NULL);
-        fullname = ldb_msg_find_attr_as_string(msg, lctx->pw_fullname, NULL);
-        homedir = ldb_msg_find_attr_as_string(msg, lctx->pw_homedir, NULL);
-        shell = ldb_msg_find_attr_as_string(msg, lctx->pw_shell, NULL);
-        uid = ldb_msg_find_attr_as_uint64(msg, lctx->pw_uidnum, 0);
-        gid = ldb_msg_find_attr_as_uint64(msg, lctx->pw_gidnum, 0);
+        name = ldb_msg_find_attr_as_string(msg, NSS_PW_NAME, NULL);
+        fullname = ldb_msg_find_attr_as_string(msg, NSS_PW_FULLNAME, NULL);
+        homedir = ldb_msg_find_attr_as_string(msg, NSS_PW_HOMEDIR, NULL);
+        shell = ldb_msg_find_attr_as_string(msg, NSS_PW_SHELL, NULL);
+        uid = ldb_msg_find_attr_as_uint64(msg, NSS_PW_UIDNUM, 0);
+        gid = ldb_msg_find_attr_as_uint64(msg, NSS_PW_GIDNUM, 0);
 
         if (!name || !fullname || !homedir || !shell || !uid || !gid) {
             DEBUG(1, ("Incomplete user object for %s[%llu]! Skipping\n",
@@ -261,7 +261,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
     if (nctx->check_expiration) {
         timeout = nctx->cctx->nctx->cache_timeout;
 
-        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0], "lastUpdate", 0);
+        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0], NSS_LAST_UPDATE, 0);
         if (lastUpdate + timeout < time(NULL)) {
 
             /* dont loop forever :-) */
@@ -292,7 +292,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
         NSS_CMD_FATAL_ERROR(cctx);
     }
 
-    ret = fill_pwent(cctx->creq->out, cctx->nctx->lctx, res->msgs, res->count);
+    ret = fill_pwent(cctx->creq->out, res->msgs, res->count);
     nss_packet_set_error(cctx->creq->out, ret);
 
 done:
@@ -314,7 +314,8 @@ static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->name, nss_cmd_getpw_callback, nctx);
+                           nctx->domain, nctx->name,
+                           nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -348,13 +349,15 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         return EINVAL;
     }
 
-    DEBUG(4, ("Requesting info for [%s]\n", nctx->name));
-
     /* FIXME: Just ask all backends for now, until Steve provides for name
      * parsing code */
+    nctx->domain = NULL;
+
+    DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
 
     ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->name, nss_cmd_getpw_callback, nctx);
+                           nctx->domain, nctx->name,
+                           nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -382,7 +385,8 @@ static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->id, nss_cmd_getpw_callback, nctx);
+                           nctx->domain, nctx->id,
+                           nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -416,12 +420,14 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 
     nctx->id = (uid_t)*((uint64_t *)body);
 
-    DEBUG(4, ("Requesting info for [%lu]\n", nctx->id));
-
     /* FIXME: Just ask all backends for now, until we check for ranges */
+    nctx->domain = NULL;
+
+    DEBUG(4, ("Requesting info for [%lu]@[%s]\n", nctx->id, nctx->domain));
 
     ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->id, nss_cmd_getpw_callback, nctx);
+                           nctx->domain, nctx->id,
+                           nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -514,7 +520,7 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
     n = gctx->pwds->count - gctx->pwd_cur;
     if (n > num) n = num;
 
-    ret = fill_pwent(cctx->creq->out, cctx->nctx->lctx,
+    ret = fill_pwent(cctx->creq->out,
                      &(gctx->pwds->msgs[gctx->pwd_cur]), n);
     gctx->pwd_cur += n;
 
@@ -654,7 +660,6 @@ done:
  ***************************************************************************/
 
 static int fill_grent(struct nss_packet *packet,
-                      struct nss_ldb_ctx *lctx,
                       struct ldb_message **msgs,
                       int count)
 {
@@ -677,8 +682,8 @@ static int fill_grent(struct nss_packet *packet,
 
         if (get_group) {
             /* find group name/gid */
-            name = ldb_msg_find_attr_as_string(msg, lctx->gr_name, NULL);
-            gid = ldb_msg_find_attr_as_uint64(msg, lctx->gr_gidnum, 0);
+            name = ldb_msg_find_attr_as_string(msg, NSS_GR_NAME, NULL);
+            gid = ldb_msg_find_attr_as_uint64(msg, NSS_GR_GIDNUM, 0);
             if (!name || !gid) {
                 DEBUG(1, ("Incomplete group object for %s[%llu]! Aborting\n",
                           name?name:"<NULL>", (unsigned long long int)gid));
@@ -706,7 +711,7 @@ static int fill_grent(struct nss_packet *packet,
             continue;
         }
 
-        name = ldb_msg_find_attr_as_string(msg, lctx->pw_name, NULL);
+        name = ldb_msg_find_attr_as_string(msg, NSS_PW_NAME, NULL);
 
         if (!name) {
             /* last member of previous group found, or error.
@@ -784,7 +789,7 @@ static void nss_cmd_getgr_callback(void *ptr, int status,
         goto done;
     }
 
-    ret = fill_grent(cctx->creq->out, cctx->nctx->lctx, res->msgs, res->count);
+    ret = fill_grent(cctx->creq->out, res->msgs, res->count);
     nss_packet_set_error(cctx->creq->out, ret);
 
 done:
@@ -797,25 +802,30 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret;
-    const char *name;
 
-    /* get group name to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
-    name = (const char *)body;
-    /* if not terminated fail */
-    if (name[blen -1] != '\0') {
-        return EINVAL;
-    }
-
-    DEBUG(4, ("Requesting info for [%s]\n", name));
-
-    nctx = talloc(cctx, struct nss_cmd_ctx);
+    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!nctx) {
         return ENOMEM;
     }
     nctx->cctx = cctx;
+    nctx->check_expiration = true;
 
-    ret = nss_ldb_getgrnam(nctx, cctx->ev, cctx->nctx->lctx, name,
+    /* get group name to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    nctx->name = (const char *)body;
+    /* if not terminated fail */
+    if (nctx->name[blen -1] != '\0') {
+        return EINVAL;
+    }
+
+    /* FIXME: Just ask all backends for now, until Steve provides for name
+     * parsing code */
+    nctx->domain = NULL;
+
+    DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
+
+    ret = nss_ldb_getgrnam(nctx, cctx->ev, cctx->nctx->lctx,
+                           nctx->domain, nctx->name,
                            nss_cmd_getgr_callback, nctx);
 
     return ret;
@@ -827,26 +837,28 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret;
-    uint64_t gid;
 
-    /* get gid to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
-
-    if (blen != sizeof(uint64_t)) {
-        return EINVAL;
-    }
-
-    gid = *((uint64_t *)body);
-
-    DEBUG(4, ("Requesting info for [%lu]\n", gid));
-
-    nctx = talloc(cctx, struct nss_cmd_ctx);
+    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!nctx) {
         return ENOMEM;
     }
     nctx->cctx = cctx;
+    nctx->check_expiration = true;
 
-    ret = nss_ldb_getgrgid(nctx, cctx->ev, cctx->nctx->lctx, gid,
+    /* get gid to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    if (blen != sizeof(uint64_t)) {
+        return EINVAL;
+    }
+    nctx->id = (uid_t)*((uint64_t *)body);
+
+    /* FIXME: Just ask all backends for now, until we check for ranges */
+    nctx->domain = NULL;
+
+    DEBUG(4, ("Requesting info for [%lu]@[%s]\n", nctx->id, nctx->domain));
+
+    ret = nss_ldb_getgrgid(nctx, cctx->ev, cctx->nctx->lctx,
+                           nctx->domain, nctx->id,
                            nss_cmd_getgr_callback, nctx);
 
     return ret;
@@ -932,7 +944,7 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     n = gctx->grps->count - gctx->grp_cur;
     if (n > num) n = num;
 
-    ret = fill_grent(cctx->creq->out, cctx->nctx->lctx,
+    ret = fill_grent(cctx->creq->out,
                      &(gctx->grps->msgs[gctx->grp_cur]), n);
     gctx->grp_cur += n;
 
@@ -1075,7 +1087,6 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
 {
     struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
     struct cli_ctx *cctx = nctx->cctx;
-    struct nss_ldb_ctx *lctx = cctx->nctx->lctx;
     uint8_t *body;
     size_t blen;
     uint64_t gid;
@@ -1106,7 +1117,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     nss_packet_get_body(cctx->creq->out, &body, &blen);
 
     for (i = 0; i < num; i++) {
-        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], lctx->gr_gidnum, 0);
+        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], NSS_GR_GIDNUM, 0);
         if (!gid) {
             DEBUG(1, ("Incomplete group object for initgroups! Aborting\n"));
             nss_packet_set_error(cctx->creq->out, EIO);
@@ -1129,25 +1140,31 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret;
-    const char *name;
 
-    /* get user name to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
-    name = (const char *)body;
-    /* if not terminated fail */
-    if (name[blen -1] != '\0') {
-        return EINVAL;
-    }
-
-    DEBUG(4, ("Requesting groups for [%s]\n", name));
-
-    nctx = talloc(cctx, struct nss_cmd_ctx);
+    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!nctx) {
         return ENOMEM;
     }
     nctx->cctx = cctx;
+    nctx->check_expiration = true;
 
-    ret = nss_ldb_initgroups(nctx, cctx->ev, cctx->nctx->lctx, name,
+    /* get user name to query */
+    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    nctx->name = (const char *)body;
+    /* if not terminated fail */
+    if (nctx->name[blen -1] != '\0') {
+        return EINVAL;
+    }
+
+    /* FIXME: Just ask all backends for now, until Steve provides for name
+     * parsing code */
+    nctx->domain = NULL;
+
+    DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
+
+
+    ret = nss_ldb_initgroups(nctx, cctx->ev, cctx->nctx->lctx,
+                             nctx->domain, nctx->name,
                              nss_cmd_initgr_callback, nctx);
 
     return ret;

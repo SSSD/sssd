@@ -25,6 +25,7 @@
 #include "ldb_errors.h"
 #include "util/util.h"
 #include "providers/dp_backend.h"
+#include "nss/nss_ldb.h"
 #include <time.h>
 
 /* NOTE: these functions ues ldb sync calls, but the cache db is a
@@ -38,7 +39,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
                               char *gecos, char *homedir, char *shell)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *attrs[] = { "uid", NULL };
+    const char *attrs[] = { NSS_PW_NAME, NULL };
     struct ldb_dn *account_dn;
     struct ldb_message *msg;
     struct ldb_request *req;
@@ -52,7 +53,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
     }
 
     account_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                                "uid=%s,cn=users,cn=%s,cn=accounts",
+                                "uid=%s,"NSS_TMPL_USER_BASE,
                                 name, ctx->domain);
     if (!account_dn) {
         talloc_free(tmp_ctx);
@@ -67,7 +68,7 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
     }
 
     lret = ldb_search(ctx->ldb, tmp_ctx, &res, account_dn,
-                      LDB_SCOPE_BASE, attrs, "(objectClass=User)");
+                      LDB_SCOPE_BASE, attrs, NSS_PWENT_FILTER);
     if (lret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
                   ldb_strerror(lret), lret, ldb_errstring(ctx->ldb)));
@@ -113,9 +114,9 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
         }
 
         /* TODO: retrieve user name attribute from configuration */
-        lret = ldb_msg_add_empty(msg, "uid", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_NAME, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "uid", name);
+            lret = ldb_msg_add_string(msg, NSS_PW_NAME, name);
         }
         if (lret != LDB_SUCCESS) {
             ret = errno;
@@ -127,12 +128,12 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
 
     /* pwd */
     if (pwd && *pwd) {
-        lret = ldb_msg_add_empty(msg, "userPassword", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_PWD, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "userPassword", pwd);
+            lret = ldb_msg_add_string(msg, NSS_PW_PWD, pwd);
         }
     } else {
-        lret = ldb_msg_add_empty(msg, "userPassword",
+        lret = ldb_msg_add_empty(msg, NSS_PW_PWD,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
@@ -142,9 +143,9 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
 
     /* uid */
     if (uid) {
-        lret = ldb_msg_add_empty(msg, "uidNumber", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_UIDNUM, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_fmt(msg, "uidNumber",
+            lret = ldb_msg_add_fmt(msg, NSS_PW_UIDNUM,
                                    "%lu", (unsigned long)uid);
         }
         if (lret != LDB_SUCCESS) {
@@ -159,9 +160,9 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
 
     /* gid */
     if (gid) {
-        lret = ldb_msg_add_empty(msg, "gidNumber", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_GIDNUM, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_fmt(msg, "gidNumber",
+            lret = ldb_msg_add_fmt(msg, NSS_PW_GIDNUM,
                                    "%lu", (unsigned long)gid);
         }
         if (lret != LDB_SUCCESS) {
@@ -176,12 +177,12 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
 
     /* gecos */
     if (gecos && *gecos) {
-        lret = ldb_msg_add_empty(msg, "fullName", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_FULLNAME, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "fullName", gecos);
+            lret = ldb_msg_add_string(msg, NSS_PW_FULLNAME, gecos);
         }
     } else {
-        lret = ldb_msg_add_empty(msg, "fullName",
+        lret = ldb_msg_add_empty(msg, NSS_PW_FULLNAME,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
@@ -191,12 +192,12 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
 
     /* homedir */
     if (homedir && *homedir) {
-        lret = ldb_msg_add_empty(msg, "homeDirectory", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_HOMEDIR, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "homeDirectory", homedir);
+            lret = ldb_msg_add_string(msg, NSS_PW_HOMEDIR, homedir);
         }
     } else {
-        lret = ldb_msg_add_empty(msg, "homeDirectory",
+        lret = ldb_msg_add_empty(msg, NSS_PW_HOMEDIR,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
@@ -206,12 +207,12 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
 
     /* shell */
     if (shell && *shell) {
-        lret = ldb_msg_add_empty(msg, "loginShell", flags, NULL);
+        lret = ldb_msg_add_empty(msg, NSS_PW_SHELL, flags, NULL);
         if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "loginShell", shell);
+            lret = ldb_msg_add_string(msg, NSS_PW_SHELL, shell);
         }
     } else {
-        lret = ldb_msg_add_empty(msg, "loginShell",
+        lret = ldb_msg_add_empty(msg, NSS_PW_SHELL,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
@@ -220,9 +221,9 @@ int dp_be_store_account_posix(struct be_ctx *ctx,
     }
 
     /* modification time */
-    lret = ldb_msg_add_empty(msg, "lastUpdate", flags, NULL);
+    lret = ldb_msg_add_empty(msg, NSS_LAST_UPDATE, flags, NULL);
     if (lret == LDB_SUCCESS) {
-        lret = ldb_msg_add_fmt(msg, "lastUpdate",
+        lret = ldb_msg_add_fmt(msg, NSS_LAST_UPDATE,
                                "%ld", (long int)time(NULL));
     }
     if (lret != LDB_SUCCESS) {
@@ -283,7 +284,7 @@ int dp_be_remove_account_posix(struct be_ctx *ctx, char *name)
     }
 
     account_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                                "uid=%s,cn=users,cn=%s,cn=remote",
+                                "uid=%s,"NSS_TMPL_USER_BASE,
                                 name, ctx->domain);
     if (!account_dn) {
         talloc_free(tmp_ctx);
@@ -305,7 +306,7 @@ int dp_be_remove_account_posix(struct be_ctx *ctx, char *name)
 int dp_be_remove_account_posix_by_uid(struct be_ctx *ctx, uid_t uid)
 {
     TALLOC_CTX *tmp_ctx;
-    const char *attrs[] = { "name", "uid", NULL };
+    const char *attrs[] = { NSS_PW_NAME, NSS_PW_UIDNUM, NULL };
     struct ldb_dn *base_dn;
     struct ldb_dn *account_dn;
 	struct ldb_result *res;
@@ -317,7 +318,7 @@ int dp_be_remove_account_posix_by_uid(struct be_ctx *ctx, uid_t uid)
     }
 
     base_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
-                             "cn=users,cn=%s,cn=accounts", ctx->domain);
+                             NSS_TMPL_USER_BASE, ctx->domain);
     if (!base_dn) {
         talloc_free(tmp_ctx);
         return ENOMEM;
@@ -332,7 +333,7 @@ int dp_be_remove_account_posix_by_uid(struct be_ctx *ctx, uid_t uid)
 
     lret = ldb_search(ctx->ldb, tmp_ctx, &res, base_dn,
                       LDB_SCOPE_BASE, attrs,
-                      "(&(uid=%lu)(objectClass=User))",
+                      NSS_PWUID_FILTER,
                       (unsigned long)uid);
     if (lret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",

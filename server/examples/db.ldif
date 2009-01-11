@@ -1,33 +1,37 @@
 dn: @MODULES
 @LIST: asq
 
-dn: cn=local
+dn: dc=sssd
+dc: sssd
+description: base object
+
+dn: cn=local,dc=sssd
 cn: local
 description: Local system data
 
-dn: cn=groups,cn=local
+dn: cn=groups,cn=local,dc=sssd
 cn: groups
 description: Local POSIX groups
 
-dn: cn=foousers,cn=groups,cn=local
+dn: cn=foousers,cn=groups,cn=local,dc=sssd
 cn: foousers
 description: Local user accounts
-member: uid=foobar,cn=users,cn=local
+member: uid=foobar,cn=users,cn=local,dc=sssd
 objectclass: group
 gidNumber: 10101
 
-dn: cn=users,cn=local
+dn: cn=users,cn=local,dc=sssd
 cn: users
 description: Local POSIX users
 
-dn: uid=foobar,cn=users,cn=local
+dn: uid=foobar,cn=users,cn=local,dc=sssd
 uid: foobar
 objectClass: user
 description: User Foo Bar
 uidNumber: 10101
 gidNumber: 10101
 legacy: false
-primaryGroup: cn=foousers,cn=groups,cn=local
+primaryGroup: cn=foousers,cn=groups,cn=local,dc=sssd
 userPassword: !@#$%#@#@!FOOBAR
 homeDirectory: /home/foobar
 fullName: Foo Bar
@@ -42,5 +46,5 @@ passwordHint: Favorite pasta sauce
 passwordHistory: foo,bar,baz
 preferredLanguage: IT
 preferredSession: GNOME
-memberOf: cn=foousers,cn=groups,cn=local
+memberOf: cn=foousers,cn=groups,cn=local,dc=sssd
 

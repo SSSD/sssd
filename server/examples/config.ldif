@@ -36,7 +36,7 @@ dn: cn=LOCAL,cn=domains,cn=config
 cn: LOCAL
 description: Reserved domain for local configurations
 provider: local
-basedn: cn=local
+basedn: cn=local,dc=sssd
 
 dn: cn=EXAMPLE.COM,cn=domains,cn=config
 cn: EXAMPLE.COM
@@ -44,14 +44,14 @@ description: Example domain served by IPA
 provider: ipa
 server: ipaserver1.example.com
 server: ipabackupserver.example.com
-basedn: cn=EXAMPLE.COM,cn=ipa,cn=remote
+basedn: cn=EXAMPLE.COM,dc=sssd
 
 dn: cn=TEST,cn=domains,cn=config
 cn: TEST
 description: TEST Ldap domain
-provider: TEST
-basedn: cn=test,cn=remote
-command: ./sbin/sssd_be -d 2 --provider ldap --domain TEST
+provider: proxy
+basedn: cn=TEST,dc=sssd
+command: ./sbin/sssd_be -d 2 --provider proxy --domain TEST
 libName: ldap
 libPath: /usr/lib64/libnss_ldap.so.2
 

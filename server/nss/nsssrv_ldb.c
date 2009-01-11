@@ -24,11 +24,11 @@
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
-#include "nss/nss_ldb.h"
 #include "confdb/confdb.h"
 
 struct nss_ldb_search_ctx {
     struct nss_ldb_ctx *nlctx;
+    const char *base_dn;
     nss_ldb_callback_t callback;
     void *ptr;
     struct ldb_result *res;
@@ -115,6 +115,7 @@ static int get_gen_callback(struct ldb_request *req,
 }
 
 static struct nss_ldb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
+                                               const char *base_dn,
                                                struct nss_ldb_ctx *ctx,
                                                nss_ldb_callback_t fn,
                                                void *ptr)
@@ -126,6 +127,7 @@ static struct nss_ldb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     sctx->nlctx = ctx;
+    sctx->base_dn = base_dn;
     sctx->callback = fn;
     sctx->ptr = ptr;
     sctx->res = talloc_zero(sctx, struct ldb_result);
@@ -143,13 +145,14 @@ static int pwd_search(struct nss_ldb_search_ctx *sctx,
                      struct nss_ldb_ctx *ctx,
                      const char *expression)
 {
+    static const char *attrs[] = NSS_PW_ATTRS;
     struct ldb_request *req;
     int ret;
 
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               ldb_dn_new(sctx, ctx->ldb, ctx->user_base),
+                               ldb_dn_new(sctx, ctx->ldb, sctx->base_dn),
                                LDB_SCOPE_SUBTREE,
-                               expression, ctx->pw_attrs, NULL,
+                               expression, attrs, NULL,
                                sctx, get_gen_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
@@ -167,18 +170,29 @@ static int pwd_search(struct nss_ldb_search_ctx *sctx,
 int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
                      struct event_context *ev,
                      struct nss_ldb_ctx *ctx,
+                     const char *domain,
                      const char *name,
                      nss_ldb_callback_t fn, void *ptr)
 {
     struct nss_ldb_search_ctx *sctx;
+    const char *base_dn;
     char *expression;
 
-    sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    if (domain) {
+        base_dn = talloc_asprintf(mem_ctx, NSS_TMPL_USER_BASE, domain);
+    } else {
+        base_dn = NSS_DEF_BASE;
+    }
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
+    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
-    expression = talloc_asprintf(sctx, ctx->pwnam_filter, name);
+    expression = talloc_asprintf(sctx, NSS_PWNAM_FILTER, name);
     if (!expression) {
         talloc_free(sctx);
         return ENOMEM;
@@ -190,19 +204,30 @@ int nss_ldb_getpwnam(TALLOC_CTX *mem_ctx,
 int nss_ldb_getpwuid(TALLOC_CTX *mem_ctx,
                      struct event_context *ev,
                      struct nss_ldb_ctx *ctx,
+                     const char *domain,
                      uint64_t uid,
                      nss_ldb_callback_t fn, void *ptr)
 {
     struct nss_ldb_search_ctx *sctx;
     unsigned long long int filter_uid = uid;
+    const char *base_dn;
     char *expression;
 
-    sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    if (domain) {
+        base_dn = talloc_asprintf(mem_ctx, NSS_TMPL_USER_BASE, domain);
+    } else {
+        base_dn = NSS_DEF_BASE;
+    }
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
+    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
-    expression = talloc_asprintf(sctx, ctx->pwuid_filter, filter_uid);
+    expression = talloc_asprintf(sctx, NSS_PWUID_FILTER, filter_uid);
     if (!expression) {
         talloc_free(sctx);
         return ENOMEM;
@@ -218,12 +243,12 @@ int nss_ldb_enumpwent(TALLOC_CTX *mem_ctx,
 {
     struct nss_ldb_search_ctx *sctx;
 
-    sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, NSS_DEF_BASE, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
-    return pwd_search(sctx, ctx, ctx->pwent_filter);
+    return pwd_search(sctx, ctx, NSS_PWENT_FILTER);
 }
 
 /* groups */
@@ -243,6 +268,7 @@ static void get_members(void *ptr, int status, struct ldb_result *res)
     struct ldb_request *req;
     struct ldb_message *msg;
     struct ldb_result *ret_res;
+    static const char *attrs[] = NSS_GRPW_ATTRS;
     const char *expression;
     int ret, i;
 
@@ -272,7 +298,7 @@ static void get_members(void *ptr, int status, struct ldb_result *res)
         return request_done(gmctx->ret_sctx);
     }
 
-    mem_sctx = init_src_ctx(gmctx, ctx, get_members, sctx);
+    mem_sctx = init_src_ctx(gmctx, NSS_DEF_BASE, ctx, get_members, sctx);
     if (!mem_sctx) {
         return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
     }
@@ -294,16 +320,16 @@ static void get_members(void *ptr, int status, struct ldb_result *res)
     ret_res->count++;
 
     /* search for this group members */
-    expression = talloc_asprintf(mem_sctx, ctx->grna2_filter,
+    expression = talloc_asprintf(mem_sctx, NSS_GRNA2_FILTER,
                                  ldb_dn_get_linearized(msg->dn));
     if (!expression) {
         return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
     }
 
     ret = ldb_build_search_req(&req, ctx->ldb, mem_sctx,
-                               ldb_dn_new(mem_sctx, ctx->ldb, ctx->user_base),
+                               ldb_dn_new(mem_sctx, ctx->ldb, sctx->base_dn),
                                LDB_SCOPE_SUBTREE,
-                               expression, ctx->grpw_attrs, NULL,
+                               expression, attrs, NULL,
                                mem_sctx, get_gen_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
@@ -394,7 +420,7 @@ static int get_grp_callback(struct ldb_request *req,
 
             /* re-use sctx to create a fake handler for the first call to
              * get_members() */
-            sctx = init_src_ctx(gmctx, ctx, get_members, gmctx);
+            sctx = init_src_ctx(gmctx, NSS_DEF_BASE, ctx, get_members, gmctx);
 
             get_members(sctx, LDB_SUCCESS, NULL);
             return LDB_SUCCESS;
@@ -413,13 +439,14 @@ static int grp_search(struct nss_ldb_search_ctx *sctx,
                      struct nss_ldb_ctx *ctx,
                      const char *expression)
 {
+    static const char *attrs[] = NSS_GRNAM_ATTRS;
     struct ldb_request *req;
     int ret;
 
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               ldb_dn_new(sctx, ctx->ldb, ctx->group_base),
+                               ldb_dn_new(sctx, ctx->ldb, sctx->base_dn),
                                LDB_SCOPE_SUBTREE,
-                               expression, ctx->grnam_attrs, NULL,
+                               expression, attrs, NULL,
                                sctx, get_grp_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
@@ -437,18 +464,29 @@ static int grp_search(struct nss_ldb_search_ctx *sctx,
 int nss_ldb_getgrnam(TALLOC_CTX *mem_ctx,
                      struct event_context *ev,
                      struct nss_ldb_ctx *ctx,
+                     const char *domain,
                      const char *name,
                      nss_ldb_callback_t fn, void *ptr)
 {
     struct nss_ldb_search_ctx *sctx;
+    const char *base_dn;
     char *expression;
 
-    sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    if (domain) {
+        base_dn = talloc_asprintf(mem_ctx, NSS_TMPL_GROUP_BASE, domain);
+    } else {
+        base_dn = NSS_DEF_BASE;
+    }
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
+    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
-    expression = talloc_asprintf(sctx, ctx->grnam_filter, name);
+    expression = talloc_asprintf(sctx, NSS_GRNAM_FILTER, name);
     if (!expression) {
         talloc_free(sctx);
         return ENOMEM;
@@ -460,19 +498,30 @@ int nss_ldb_getgrnam(TALLOC_CTX *mem_ctx,
 int nss_ldb_getgrgid(TALLOC_CTX *mem_ctx,
                      struct event_context *ev,
                      struct nss_ldb_ctx *ctx,
+                     const char *domain,
                      uint64_t gid,
                      nss_ldb_callback_t fn, void *ptr)
 {
     struct nss_ldb_search_ctx *sctx;
     unsigned long long int filter_gid = gid;
+    const char *base_dn;
     char *expression;
 
-    sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    if (domain) {
+        base_dn = talloc_asprintf(mem_ctx, NSS_TMPL_GROUP_BASE, domain);
+    } else {
+        base_dn = NSS_DEF_BASE;
+    }
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
+    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
-    expression = talloc_asprintf(sctx, ctx->grgid_filter, filter_gid);
+    expression = talloc_asprintf(sctx, NSS_GRGID_FILTER, filter_gid);
     if (!expression) {
         talloc_free(sctx);
         return ENOMEM;
@@ -488,12 +537,12 @@ int nss_ldb_enumgrent(TALLOC_CTX *mem_ctx,
 {
     struct nss_ldb_search_ctx *sctx;
 
-    sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, NSS_DEF_BASE, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
-    return grp_search(sctx, ctx, ctx->grent_filter);
+    return grp_search(sctx, ctx, NSS_GRENT_FILTER);
 }
 
 static void nss_ldb_initgr_search(void *ptr, int status,
@@ -505,6 +554,7 @@ static void nss_ldb_initgr_search(void *ptr, int status,
     struct ldb_request *req;
     struct ldb_control **ctrl;
     struct ldb_asq_control *control;
+    static const char *attrs[] = NSS_INITGR_ATTRS;
     int ret;
 
     sctx = talloc_get_type(ptr, struct nss_ldb_search_ctx);
@@ -517,7 +567,7 @@ static void nss_ldb_initgr_search(void *ptr, int status,
         return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
 
-    expression = talloc_asprintf(sctx, ctx->initgr_filter);
+    expression = talloc_asprintf(sctx, NSS_INITGR_FILTER);
     if (!expression) {
         return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
@@ -538,7 +588,7 @@ static void nss_ldb_initgr_search(void *ptr, int status,
         return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
     control->request = 1;
-    control->source_attribute = talloc_strdup(control, ctx->initgr_attr);
+    control->source_attribute = talloc_strdup(control, NSS_INITGR_ATTR);
     if (!control->source_attribute) {
         return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
@@ -548,7 +598,7 @@ static void nss_ldb_initgr_search(void *ptr, int status,
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
                                res->msgs[0]->dn,
                                LDB_SCOPE_BASE,
-                               expression, ctx->initgr_attrs, ctrl,
+                               expression, attrs, ctrl,
                                sctx, get_gen_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
@@ -564,35 +614,47 @@ static void nss_ldb_initgr_search(void *ptr, int status,
 int nss_ldb_initgroups(TALLOC_CTX *mem_ctx,
                        struct event_context *ev,
                        struct nss_ldb_ctx *ctx,
+                       const char *domain,
                        const char *name,
                        nss_ldb_callback_t fn, void *ptr)
 {
+    static const char *attrs[] = NSS_PW_ATTRS;
     struct nss_ldb_search_ctx *ret_sctx;
     struct nss_ldb_search_ctx *sctx;
+    const char *base_dn;
     char *expression;
     struct ldb_request *req;
     int ret;
 
-    ret_sctx = init_src_ctx(mem_ctx, ctx, fn, ptr);
+    if (domain) {
+        base_dn = talloc_asprintf(mem_ctx, NSS_TMPL_USER_BASE, domain);
+    } else {
+        base_dn = NSS_DEF_BASE;
+    }
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
+    ret_sctx = init_src_ctx(mem_ctx, NSS_DEF_BASE, ctx, fn, ptr);
     if (!ret_sctx) {
         return ENOMEM;
     }
-    sctx = init_src_ctx(ret_sctx, ctx, nss_ldb_initgr_search, ret_sctx);
+    sctx = init_src_ctx(ret_sctx, base_dn, ctx, nss_ldb_initgr_search, ret_sctx);
     if (!sctx) {
         talloc_free(sctx);
         return ENOMEM;
     }
 
-    expression = talloc_asprintf(sctx, ctx->pwnam_filter, name);
+    expression = talloc_asprintf(sctx, NSS_PWNAM_FILTER, name);
     if (!expression) {
         talloc_free(sctx);
         return ENOMEM;
     }
 
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               ldb_dn_new(sctx, ctx->ldb, ctx->user_base),
+                               ldb_dn_new(sctx, ctx->ldb, sctx->base_dn),
                                LDB_SCOPE_SUBTREE,
-                               expression, ctx->pw_attrs, NULL,
+                               expression, attrs, NULL,
                                sctx, get_gen_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
@@ -633,49 +695,6 @@ static int nss_ldb_read_var(TALLOC_CTX *tmp_ctx,
     return EOK;
 }
 
-static int nss_ldb_read_array(TALLOC_CTX *tmp_ctx,
-                              struct confdb_ctx *cdb,
-                              struct nss_ldb_ctx *ctx,
-                              const char *name,
-                              const char **def_value,
-                              const char ***target)
-{
-    char **values;
-    const char **t;
-    int i, ret;
-
-    ret = confdb_get_param(cdb, tmp_ctx,
-                           NSS_LDB_CONF_SECTION,
-                           name, &values);
-    if (ret != EOK)
-        return ret;
-
-    for (i = 0; values[i]; i++) /* count */ ;
-    if (i == 0) {
-        for (i = 0; def_value[i]; i++) /*count */ ;
-    }
-    if (i == 0)
-        return EINVAL;
-
-    t = talloc_array(ctx, const char *, i+1);
-    if (!*target)
-        return ENOMEM;
-
-    if (values[0]) {
-        for (i = 0; values[i]; i++) {
-            t[i] = talloc_steal(ctx, values[i]);
-        }
-    } else {
-        for (i = 0; def_value[i]; i++) {
-            t[i] = talloc_strdup(ctx, def_value[i]);
-        }
-    }
-    t[i] = NULL;
-
-    *target = t;
-    return EOK;
-}
-
 static int nss_ldb_read_conf(TALLOC_CTX *mem_ctx,
                       struct confdb_ctx *cdb,
                       struct nss_ldb_ctx **nlctx)
@@ -704,67 +723,6 @@ static int nss_ldb_read_conf(TALLOC_CTX *mem_ctx,
     nss_ldb_read_var(tmp_ctx, cdb, ctx, "ldbFile",
                      default_ldb_path, &ctx->ldb_file);
     DEBUG(3, ("NSS LDB Cache Path: %s\n", ctx->ldb_file));
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "userBase",
-                     NSS_DEF_USER_BASE, &ctx->user_base);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "groupBase",
-                     NSS_DEF_GROUP_BASE, &ctx->group_base);
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwnamFilter",
-                     NSS_DEF_PWNAM_FILTER, &ctx->pwnam_filter);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwuidFilter",
-                     NSS_DEF_PWUID_FILTER, &ctx->pwuid_filter);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwentFilter",
-                     NSS_DEF_PWENT_FILTER, &ctx->pwent_filter);
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grnamFilter",
-                     NSS_DEF_GRNAM_FILTER, &ctx->grnam_filter);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grna2Filter",
-                     NSS_DEF_GRNA2_FILTER, &ctx->grna2_filter);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grgidFilter",
-                     NSS_DEF_GRGID_FILTER, &ctx->grgid_filter);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grentFilter",
-                     NSS_DEF_GRENT_FILTER, &ctx->grent_filter);
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "initgrFilter",
-                     NSS_DEF_INITGR_FILTER, &ctx->initgr_filter);
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwName",
-                     NSS_DEF_PW_NAME, &ctx->pw_name);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwUidnum",
-                     NSS_DEF_PW_UIDNUM, &ctx->pw_uidnum);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwGidnum",
-                     NSS_DEF_PW_GIDNUM, &ctx->pw_gidnum);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwFullname",
-                     NSS_DEF_PW_FULLNAME, &ctx->pw_fullname);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwHomedir",
-                     NSS_DEF_PW_HOMEDIR, &ctx->pw_homedir);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "pwShell",
-                     NSS_DEF_PW_SHELL, &ctx->pw_shell);
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grName",
-                     NSS_DEF_GR_NAME, &ctx->gr_name);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grGidnum",
-                     NSS_DEF_GR_GIDNUM, &ctx->gr_gidnum);
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "grMember",
-                     NSS_DEF_GR_MEMBER, &ctx->gr_member);
-
-    nss_ldb_read_var(tmp_ctx, cdb, ctx, "initgrAttr",
-                     NSS_DEF_INITGR_ATTR,
-                     &ctx->initgr_attr);
-
-    const char *pwattrs[] = NSS_DEF_PW_ATTRS;
-    nss_ldb_read_array(tmp_ctx, cdb, ctx, "pwAttrs",
-                       pwattrs, &ctx->pw_attrs);
-    const char *grnamattrs[] = NSS_DEF_GRNAM_ATTRS;
-    nss_ldb_read_array(tmp_ctx, cdb, ctx, "grnamAttrs",
-                       grnamattrs, &ctx->grnam_attrs);
-    const char *grpwattrs[] = NSS_DEF_GRPW_ATTRS;
-    nss_ldb_read_array(tmp_ctx, cdb, ctx, "grpwAttrs",
-                       grpwattrs, &ctx->grpw_attrs);
-    const char *initgrattrs[] = NSS_DEF_INITGR_ATTRS;
-    nss_ldb_read_array(tmp_ctx, cdb, ctx, "initgrAttrs",
-                       initgrattrs, &ctx->initgr_attrs);
 
     *nlctx = ctx;
     ret = EOK;
