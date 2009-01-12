@@ -45,12 +45,14 @@
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
+static int service_reload(DBusMessage *message, void *data, DBusMessage **r);
 static int nss_init_domains(struct nss_ctx *nctx);
 static int _domain_comparator(void *key1, void *key2);
 
 struct sbus_method nss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, service_identity},
     {SERVICE_METHOD_PING, service_pong},
+    {SERVICE_METHOD_RELOAD, service_reload},
     {NULL, NULL}
 };
 
@@ -260,6 +262,16 @@ static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 
     *r = reply;
     return EOK;
+}
+
+static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
+    /* Monitor calls this function when we need to reload
+     * our configuration information. Perform whatever steps
+     * are needed to update the configuration objects.
+     */
+
+    /* Send an empty reply to acknowledge receipt */
+    return service_pong(message, data, r);
 }
 
 static int nss_sbus_init(struct nss_ctx *nctx)

@@ -37,6 +37,7 @@
 /* Service Methods */
 #define SERVICE_METHOD_IDENTITY "getIdentity"
 #define SERVICE_METHOD_PING "ping"
+#define SERVICE_METHOD_RELOAD "reloadConfig"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 
