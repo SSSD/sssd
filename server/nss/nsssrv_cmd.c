@@ -19,12 +19,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ldb.h"
-#include "ldb_errors.h"
 #include "util/util.h"
 #include "util/btreemap.h"
 #include "nss/nsssrv.h"
-#include "nss/nsssrv_ldb.h"
+#include "db/sysdb.h"
 #include <time.h>
 
 struct nss_cmd_ctx {
@@ -137,12 +135,12 @@ static int fill_pwent(struct nss_packet *packet,
     for (i = 0; i < count; i++) {
         msg = msgs[i];
 
-        name = ldb_msg_find_attr_as_string(msg, NSS_PW_NAME, NULL);
-        fullname = ldb_msg_find_attr_as_string(msg, NSS_PW_FULLNAME, NULL);
-        homedir = ldb_msg_find_attr_as_string(msg, NSS_PW_HOMEDIR, NULL);
-        shell = ldb_msg_find_attr_as_string(msg, NSS_PW_SHELL, NULL);
-        uid = ldb_msg_find_attr_as_uint64(msg, NSS_PW_UIDNUM, 0);
-        gid = ldb_msg_find_attr_as_uint64(msg, NSS_PW_GIDNUM, 0);
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_PW_NAME, NULL);
+        fullname = ldb_msg_find_attr_as_string(msg, SYSDB_PW_FULLNAME, NULL);
+        homedir = ldb_msg_find_attr_as_string(msg, SYSDB_PW_HOMEDIR, NULL);
+        shell = ldb_msg_find_attr_as_string(msg, SYSDB_PW_SHELL, NULL);
+        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_PW_UIDNUM, 0);
+        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_PW_GIDNUM, 0);
 
         if (!name || !fullname || !homedir || !shell || !uid || !gid) {
             DEBUG(1, ("Incomplete user object for %s[%llu]! Skipping\n",
@@ -262,7 +260,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
     if (nctx->check_expiration) {
         timeout = nctx->cctx->nctx->cache_timeout;
 
-        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0], NSS_LAST_UPDATE, 0);
+        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_LAST_UPDATE, 0);
         if (lastUpdate + timeout < time(NULL)) {
 
             /* dont loop forever :-) */
@@ -347,9 +345,9 @@ static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->domain, nctx->name,
-                           nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwnam(nctx, cctx->ev, cctx->nctx->sysdb,
+                         nctx->domain, nctx->name,
+                         nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -393,9 +391,9 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               nctx->name, nctx->domain?nctx->domain:"all domains"));
 
-    ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->domain, nctx->name,
-                           nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwnam(nctx, cctx->ev, cctx->nctx->sysdb,
+                         nctx->domain, nctx->name,
+                         nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -422,9 +420,9 @@ static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->domain, nctx->id,
-                           nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwuid(nctx, cctx->ev, cctx->nctx->sysdb,
+                         nctx->domain, nctx->id,
+                         nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -463,9 +461,9 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 
     DEBUG(4, ("Requesting info for [%lu]@[%s]\n", nctx->id, nctx->domain));
 
-    ret = nss_ldb_getpwuid(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->domain, nctx->id,
-                           nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwuid(nctx, cctx->ev, cctx->nctx->sysdb,
+                         nctx->domain, nctx->id,
+                         nss_cmd_getpw_callback, nctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -544,8 +542,8 @@ static int nss_cmd_setpwent(struct cli_ctx *cctx)
         cctx->gctx->pwd_cur = 0;
     }
 
-    ret = nss_ldb_enumpwent(nctx, cctx->ev, cctx->nctx->lctx,
-                            nss_cmd_setpwent_callback, nctx);
+    ret = sysdb_enumpwent(nctx, cctx->ev, cctx->nctx->sysdb,
+                          nss_cmd_setpwent_callback, nctx);
 
     return ret;
 }
@@ -642,8 +640,8 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
             cctx->gctx = gctx;
         }
         if (cctx->gctx->pwds == NULL) {
-            ret = nss_ldb_enumpwent(nctx, cctx->ev, cctx->nctx->lctx,
-                                    nss_cmd_getpwent_callback, nctx);
+            ret = sysdb_enumpwent(nctx, cctx->ev, cctx->nctx->sysdb,
+                                  nss_cmd_getpwent_callback, nctx);
             return ret;
         }
     }
@@ -720,8 +718,8 @@ static int fill_grent(struct nss_packet *packet,
 
         if (get_group) {
             /* find group name/gid */
-            name = ldb_msg_find_attr_as_string(msg, NSS_GR_NAME, NULL);
-            gid = ldb_msg_find_attr_as_uint64(msg, NSS_GR_GIDNUM, 0);
+            name = ldb_msg_find_attr_as_string(msg, SYSDB_GR_NAME, NULL);
+            gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GR_GIDNUM, 0);
             if (!name || !gid) {
                 DEBUG(1, ("Incomplete group object for %s[%llu]! Aborting\n",
                           name?name:"<NULL>", (unsigned long long int)gid));
@@ -749,7 +747,7 @@ static int fill_grent(struct nss_packet *packet,
             continue;
         }
 
-        name = ldb_msg_find_attr_as_string(msg, NSS_PW_NAME, NULL);
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_PW_NAME, NULL);
 
         if (!name) {
             /* last member of previous group found, or error.
@@ -862,9 +860,9 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 
     DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
 
-    ret = nss_ldb_getgrnam(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->domain, nctx->name,
-                           nss_cmd_getgr_callback, nctx);
+    ret = sysdb_getgrnam(nctx, cctx->ev, cctx->nctx->sysdb,
+                         nctx->domain, nctx->name,
+                         nss_cmd_getgr_callback, nctx);
 
     return ret;
 }
@@ -895,9 +893,9 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 
     DEBUG(4, ("Requesting info for [%lu]@[%s]\n", nctx->id, nctx->domain));
 
-    ret = nss_ldb_getgrgid(nctx, cctx->ev, cctx->nctx->lctx,
-                           nctx->domain, nctx->id,
-                           nss_cmd_getgr_callback, nctx);
+    ret = sysdb_getgrgid(nctx, cctx->ev, cctx->nctx->sysdb,
+                         nctx->domain, nctx->id,
+                         nss_cmd_getgr_callback, nctx);
 
     return ret;
 }
@@ -968,8 +966,8 @@ static int nss_cmd_setgrent(struct cli_ctx *cctx)
         cctx->gctx->grp_cur = 0;
     }
 
-    ret = nss_ldb_enumgrent(nctx, cctx->ev, cctx->nctx->lctx,
-                            nss_cmd_setgrent_callback, nctx);
+    ret = sysdb_enumgrent(nctx, cctx->ev, cctx->nctx->sysdb,
+                          nss_cmd_setgrent_callback, nctx);
 
     return ret;
 }
@@ -1069,8 +1067,8 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
             cctx->gctx = gctx;
         }
         if (cctx->gctx->grps == NULL) {
-            ret = nss_ldb_enumgrent(nctx, cctx->ev, cctx->nctx->lctx,
-                                    nss_cmd_getgrent_callback, nctx);
+            ret = sysdb_enumgrent(nctx, cctx->ev, cctx->nctx->sysdb,
+                                  nss_cmd_getgrent_callback, nctx);
             return ret;
         }
     }
@@ -1155,7 +1153,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     nss_packet_get_body(cctx->creq->out, &body, &blen);
 
     for (i = 0; i < num; i++) {
-        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], NSS_GR_GIDNUM, 0);
+        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], SYSDB_GR_GIDNUM, 0);
         if (!gid) {
             DEBUG(1, ("Incomplete group object for initgroups! Aborting\n"));
             nss_packet_set_error(cctx->creq->out, EIO);
@@ -1201,9 +1199,9 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
 
 
-    ret = nss_ldb_initgroups(nctx, cctx->ev, cctx->nctx->lctx,
-                             nctx->domain, nctx->name,
-                             nss_cmd_initgr_callback, nctx);
+    ret = sysdb_initgroups(nctx, cctx->ev, cctx->nctx->sysdb,
+                           nctx->domain, nctx->name,
+                           nss_cmd_initgr_callback, nctx);
 
     return ret;
 }

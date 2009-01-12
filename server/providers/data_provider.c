@@ -30,8 +30,6 @@
 #include <sys/time.h>
 #include <errno.h>
 #include "popt.h"
-#include "ldb.h"
-#include "ldb_errors.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
@@ -47,7 +45,6 @@ struct dp_frontend;
 struct dp_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
-    struct ldb_context *ldb;
     struct service_sbus_ctx *ss_ctx;
     struct sbus_srv_ctx *sbus_srv;
     struct dp_backend *be_list;
@@ -161,50 +158,6 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
     /* None currently used */
 
     dpctx->ss_ctx = ss_ctx;
-
-    return EOK;
-}
-
-static int dp_db_init(struct dp_ctx *dpctx)
-{
-    TALLOC_CTX *ctx;
-    char *ldb_file;
-    char *default_db_file;
-    int ret;
-
-    ctx = talloc_new(dpctx);
-    if(ctx == NULL) {
-        return ENOMEM;
-    }
-
-    default_db_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, DATA_PROVIDER_DB_FILE);
-    if (default_db_file == NULL) {
-        talloc_free(ctx);
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(dpctx->cdb, ctx,
-                            DATA_PROVIDER_DB_CONF_SEC, "ldbFile",
-                            default_db_file, &ldb_file);
-    if (ret != EOK) {
-        talloc_free(ctx);
-        return ret;
-    }
-
-    dpctx->ldb = ldb_init(ctx, dpctx->ev);
-    if (!dpctx->ldb) {
-        talloc_free(ctx);
-        return EIO;
-    }
-
-    ret = ldb_connect(dpctx->ldb, ldb_file, 0, NULL);
-    if (ret != LDB_SUCCESS) {
-        talloc_free(ctx);
-        return EIO;
-    }
-
-    talloc_steal(dpctx,dpctx->ldb);
-    talloc_free(ctx);
 
     return EOK;
 }
@@ -830,12 +783,6 @@ static int dp_process_init(TALLOC_CTX *mem_ctx,
     }
     dpctx->ev = ev;
     dpctx->cdb = cdb;
-
-    ret = dp_db_init(dpctx);
-    if (ret != EOK) {
-        DEBUG(0, ("fatal error opening database\n"));
-        return ret;
-    }
 
     ret = dp_monitor_init(dpctx);
     if (ret != EOK) {

@@ -25,6 +25,7 @@
 #include <grp.h>
 #include "util/util.h"
 #include "providers/dp_backend.h"
+#include "db/sysdb.h"
 
 struct proxy_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
@@ -69,10 +70,11 @@ static int get_pw_name(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, char 
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = dp_be_remove_account_posix(be_ctx, name);
+        ret = sysdb_remove_account_posix(be_ctx, be_ctx->sysdb,
+                                         be_ctx->domain, name);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = dp_be_store_account_posix(be_ctx,
+        ret = sysdb_store_account_posix(be_ctx, be_ctx->sysdb, be_ctx->domain,
                                         result.pw_name, result.pw_passwd,
                                         result.pw_uid, result.pw_gid,
                                         result.pw_gecos, result.pw_dir,
@@ -109,10 +111,11 @@ static int get_pw_uid(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, uid_t 
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = dp_be_remove_account_posix_by_uid(be_ctx, uid);
+        ret = sysdb_remove_account_posix_by_uid(be_ctx, be_ctx->sysdb,
+                                                be_ctx->domain,uid);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = dp_be_store_account_posix(be_ctx,
+        ret = sysdb_store_account_posix(be_ctx, be_ctx->sysdb, be_ctx->domain,
                                         result.pw_name, result.pw_passwd,
                                         result.pw_uid, result.pw_gid,
                                         result.pw_gecos, result.pw_dir,

@@ -50,7 +50,7 @@ dn: cn=TEST,cn=domains,cn=config
 cn: TEST
 description: TEST Ldap domain
 provider: proxy
-basedn: cn=TEST,dc=sssd
+basedn: cn=TEST,sn=sysdb
 command: ./sbin/sssd_be -d 2 --provider proxy --domain TEST
 libName: ldap
 libPath: /usr/lib64/libnss_ldap.so.2

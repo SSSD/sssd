@@ -23,13 +23,14 @@
 #define __DP_BACKEND_H__
 
 #include "providers/data_provider.h"
+#include "db/sysdb.h"
 
 struct be_mod_ops;
 
 struct be_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
-    struct ldb_context *ldb;
+    struct sysdb_ctx *sysdb;
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
     const char *name;
@@ -46,14 +47,5 @@ struct be_mod_ops {
                             int entry_type, int attr_type,
                             int filter_type, char *filter_value);
 };
-
-int dp_be_store_account_posix(struct be_ctx *ctx,
-                              char *name, char *pwd,
-                              uint64_t uid, uint64_t gid,
-                              char *gecos, char *homedir, char *shell);
-int dp_be_remove_account_posix(struct be_ctx *ctx, char *name);
-int dp_be_remove_account_posix_by_uid(struct be_ctx *ctx, uid_t uid);
-
-int dp_be_cachedb_init(struct be_ctx *ctx);
 
 #endif /* __DP_BACKEND_H___ */

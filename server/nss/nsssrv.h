@@ -41,14 +41,14 @@
 #define NSS_DOMAIN_DELIM '@'
 #endif
 
-struct nss_ldb_ctx;
+struct sysdb_ctx;
 struct getent_ctx;
 
 struct nss_ctx {
     struct event_context *ev;
     struct fd_event *lfde;
     int lfd;
-    struct nss_ldb_ctx *lctx;
+    struct sysdb_ctx *sysdb;
     struct confdb_ctx *cdb;
     char *sock_name;
     struct service_sbus_ctx *ss_ctx;

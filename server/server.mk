@@ -5,11 +5,12 @@ UTIL_OBJ = \
     util/memory.o \
     util/btreemap.o \
     util/service_helpers.o \
-    providers/dp_helpers.o \
-    confdb/confdb.o \
     sbus/sssd_dbus_common.o \
     sbus/sssd_dbus_connection.o \
-    sbus/sssd_dbus_server.o
+    sbus/sssd_dbus_server.o \
+    providers/dp_helpers.o \
+    confdb/confdb.o \
+	db/sysdb.o
 
 SERVER_OBJ = \
     monitor.o
@@ -19,7 +20,6 @@ DP_OBJ = \
 
 DP_BE_OBJ = \
 	providers/data_provider_be.o \
-	providers/dp_backend_store.o
 
 PROXY_BE_OBJ = \
 	providers/proxy.o
@@ -28,7 +28,6 @@ NSSSRV_OBJ = \
     nss/nsssrv.o \
     nss/nsssrv_packet.o \
     nss/nsssrv_cmd.o \
-    nss/nsssrv_ldb.o \
     nss/nsssrv_dp.o
 
 install:: all

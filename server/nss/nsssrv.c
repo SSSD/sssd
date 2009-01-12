@@ -30,10 +30,9 @@
 #include <sys/time.h>
 #include <errno.h>
 #include "popt.h"
-#include "ldb.h"
 #include "util/util.h"
 #include "nss/nsssrv.h"
-#include "nss/nsssrv_ldb.h"
+#include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
@@ -426,7 +425,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = nss_ldb_init(nctx, ev, cdb, &nctx->lctx);
+    ret = sysdb_init(nctx, ev, cdb, &nctx->sysdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing nss_ctx\n"));
         return ret;
