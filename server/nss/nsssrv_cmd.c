@@ -80,6 +80,50 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *nctx, int err)
     return; \
 } while(0)
 
+static int nss_check_domain(struct ldb_dn *dn,
+                            struct btreemap *domain_map,
+                            const char *def_domain, const char *domain)
+{
+    /* FIXME: it would be better to use ldb_dn_compare() */
+    const char *lineardn;
+    const char *basedn;
+    const char *key;
+    int blen, llen;
+
+    lineardn = ldb_dn_get_linearized(dn);
+    if (!lineardn || !*lineardn) {
+        DEBUG(4, ("Invalid DN (empty)\n"));
+        return EINVAL;
+    }
+    llen = strlen(lineardn);
+
+    /* if domain is NULL check if it is the default domain or LOCAL */
+    if (domain) {
+        key = domain;
+    } else if (def_domain) {
+        key = def_domain;
+    } else {
+        key = "LOCAL";
+    }
+
+    basedn = btreemap_get_value(domain_map, (void *)key);
+    if (!basedn) {
+        DEBUG(4, ("Domain (%s) not found in map!\n", domain));
+        return EINVAL;
+    }
+
+    blen = strlen(basedn);
+    if (blen < llen) {
+        if (strcasecmp(basedn, &lineardn[llen-blen]) == 0)
+            return EOK;
+    }
+
+    DEBUG(4, ("DN %s, does not match domain %s (or %s (or LOCAL))\n",
+              ldb_dn_get_linearized(dn), domain, def_domain));
+
+    return EINVAL;
+}
+
 static int nss_cmd_get_version(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *nctx;
@@ -240,6 +284,8 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
 
     if (res->count != 1) {
         if (res->count > 1) {
+            /* FIXME: when multiple domains are configured this is possible.
+             * Add logic to select which result to return */
             DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
         }
         if (res->count == 0) {
@@ -280,6 +326,19 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
             }
 
             return;
+        }
+    }
+
+    if (nctx->name) {
+        /* before returning results check if they match their domain */
+        /* FIXME: pass the current default domain in here */
+        ret = nss_check_domain(res->msgs[0]->dn, cctx->nctx->domain_map,
+                               cctx->nctx->default_domain, nctx->domain);
+        if (ret != EOK) {
+            ret = nss_cmd_send_error(nctx, ret);
+        }
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
         }
     }
 

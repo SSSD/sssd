@@ -359,9 +359,12 @@ failed:
     return EIO;
 }
 
+/* domain names are case insensitive for now
+ * NOTE: this function is not utf-8 safe,
+ * only ASCII names for now */
 static int _domain_comparator(void *key1, void *key2)
 {
-    return strcmp((char *)key1, (char *)key2);
+    return strcasecmp((char *)key1, (char *)key2);
 }
 
 static int nss_init_domains(struct nss_ctx *nctx)
@@ -394,6 +397,14 @@ static int nss_init_domains(struct nss_ctx *nctx)
          * always be configured */
         DEBUG(0, ("No domains configured on this client!\n"));
         retval = EINVAL;
+        goto done;
+    }
+
+    ret = confdb_get_string(nctx->cdb, nctx,
+                            "config/domains", "default",
+                            NULL, &nctx->default_domain);
+    if (ret != EOK) {
+        retval = ret;
         goto done;
     }
 
