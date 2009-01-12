@@ -35,6 +35,12 @@
 
 #define NSS_PACKET_MAX_RECV_SIZE 1024
 
+/* NSS_DOMAIN_DELIM can be specified in config.h */
+#include "config.h"
+#ifndef NSS_DOMAIN_DELIM
+#define NSS_DOMAIN_DELIM '@'
+#endif
+
 struct nss_ldb_ctx;
 struct getent_ctx;
 

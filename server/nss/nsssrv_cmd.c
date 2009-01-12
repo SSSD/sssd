@@ -22,6 +22,7 @@
 #include "ldb.h"
 #include "ldb_errors.h"
 #include "util/util.h"
+#include "util/btreemap.h"
 #include "nss/nsssrv.h"
 #include "nss/nsssrv_ldb.h"
 #include <time.h>
@@ -299,6 +300,39 @@ done:
     nss_cmd_done(nctx);
 }
 
+static int nss_parse_name(TALLOC_CTX *memctx,
+                          const char *fullname,
+                          struct btreemap *domain_map,
+                          const char **domain, const char **name) {
+    char *delim;
+    struct btreemap *node;
+    int ret;
+
+    if ((delim = strchr(fullname, NSS_DOMAIN_DELIM)) != NULL) {
+
+        /* Check for registered domain */
+        ret = btreemap_search_key(domain_map, (void *)(delim+1), &node);
+        if (ret != BTREEMAP_FOUND) {
+            /* No such domain was registered. Return EINVAL.
+             * TODO: alternative approach?
+             * Alternatively, we could simply fail down to
+             * below, treating the entire construct as the
+             * full name if the domain is unspecified.
+             */
+            return EINVAL;
+        }
+
+        *name = talloc_strndup(memctx, fullname, delim-fullname);
+        *domain = talloc_strdup(memctx, delim+1);
+    }
+    else {
+        *name = talloc_strdup(memctx, fullname);
+        *domain = NULL;
+    }
+
+    return EOK;
+}
+
 static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr)
 {
@@ -342,18 +376,22 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
     /* get user name to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
-    nctx->name = (const char *)body;
     /* if not terminated fail */
-    if (nctx->name[blen -1] != '\0') {
+    if (body[blen -1] != '\0') {
         talloc_free(nctx);
         return EINVAL;
     }
 
-    /* FIXME: Just ask all backends for now, until Steve provides for name
-     * parsing code */
-    nctx->domain = NULL;
-
-    DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
+    ret = nss_parse_name(nctx, (const char *)body,
+                         cctx->nctx->domain_map,
+                         &nctx->domain, &nctx->name);
+    if (ret != EOK) {
+        DEBUG(1, ("Invalid name received\n"));
+        talloc_free(nctx);
+        return ret;
+    }
+    DEBUG(4, ("Requesting info for [%s] from [%s]\n",
+              nctx->name, nctx->domain?nctx->domain:"all domains"));
 
     ret = nss_ldb_getpwnam(nctx, cctx->ev, cctx->nctx->lctx,
                            nctx->domain, nctx->name,
