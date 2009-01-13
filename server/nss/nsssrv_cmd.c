@@ -245,6 +245,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
     uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
+    const char *domain;
     int ret;
 
     if (status != LDB_SUCCESS) {
@@ -261,6 +262,12 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
         callback_fn = &nss_cmd_getpwuid_callback;
     }
 
+    if (nctx->domain) {
+        domain = nctx->domain;
+    } else {
+        domain = "*";
+    }
+
     if (res->count == 0 && nctx->check_expiration) {
 
         /* dont loop forever :-) */
@@ -268,7 +275,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
         timeout = SSS_NSS_SOCKET_TIMEOUT/2;
 
         ret = nss_dp_send_acct_req(cctx->nctx, nctx, callback_fn, nctx,
-                                   timeout, "*", NSS_DP_USER,
+                                   timeout, domain, NSS_DP_USER,
                                    nctx->name, nctx->id);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)",
@@ -314,7 +321,7 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
             timeout = SSS_NSS_SOCKET_TIMEOUT/2;
 
             ret = nss_dp_send_acct_req(cctx->nctx, nctx, callback_fn, nctx,
-                                       timeout, "*", NSS_DP_USER,
+                                       timeout, domain, NSS_DP_USER,
                                        nctx->name, nctx->id);
             if (ret != EOK) {
                 DEBUG(3, ("Failed to dispatch request: %d(%s)",
@@ -331,7 +338,6 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
 
     if (nctx->name) {
         /* before returning results check if they match their domain */
-        /* FIXME: pass the current default domain in here */
         ret = nss_check_domain(res->msgs[0]->dn, cctx->nctx->domain_map,
                                cctx->nctx->default_domain, nctx->domain);
         if (ret != EOK) {
