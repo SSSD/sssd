@@ -686,9 +686,9 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
 
 respond:
     dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, dpret,
-                                     DBUS_TYPE_UINT32, ret,
-                                     DBUS_TYPE_STRING, errmsg,
+                                     DBUS_TYPE_UINT16, &dpret,
+                                     DBUS_TYPE_UINT32, &ret,
+                                     DBUS_TYPE_STRING, &errmsg,
                                      DBUS_TYPE_INVALID);
     if (!dbret) return EIO;
 

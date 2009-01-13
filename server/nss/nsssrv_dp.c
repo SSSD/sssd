@@ -99,6 +99,10 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
         return EINVAL;
     }
 
+    if (!domain) {
+        return EINVAL;
+    }
+
     switch (type) {
     case NSS_DP_USER:
         be_type = BE_REQ_USER;
