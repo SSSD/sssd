@@ -35,8 +35,6 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus_interfaces.h"
 
-static int start_service(const char *name, const char *command, pid_t *retpid);
-
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
 #define MONITOR_MIN_PING_TIME 10
@@ -72,6 +70,8 @@ struct mt_ctx {
     int service_id_timeout;
     int service_ping_time;
 };
+
+static int start_service(struct mt_svc *mt_svc);
 
 static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data);
 static void identity_check(DBusPendingCall *pending, void *data);
@@ -223,6 +223,7 @@ static void tasks_check_handler(struct event_context *ev,
     }
 
     if (!process_alive) {
+        DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
         if (svc->last_restart != 0) {
             if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
                 /* it was long ago reset restart threshold */
@@ -237,7 +238,7 @@ static void tasks_check_handler(struct event_context *ev,
             return;
         }
 
-        ret = start_service(svc->name, svc->command, &svc->pid);
+        ret = start_service(svc);
         if (ret != EOK) {
             DEBUG(0,("Failed to restart service '%s'\n", svc->name));
             talloc_free(svc);
@@ -246,7 +247,7 @@ static void tasks_check_handler(struct event_context *ev,
 
         svc->restarts++;
         svc->last_restart = now;
-        svc->last_pong = 0;
+        return;
     }
 
     /* all fine, set up the task checker again */
@@ -356,16 +357,15 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         }
         talloc_free(path);
 
-        ret = start_service(svc->name, svc->command, &svc->pid);
+        /* Add this service to the queue to be started once the monitor
+         * enters its mainloop.
+         */
+        ret = start_service(svc);
         if (ret != EOK) {
             DEBUG(0,("Failed to start service '%s'\n", svc->name));
             talloc_free(svc);
             continue;
         }
-
-        DLIST_ADD(ctx->svc_list, svc);
-
-        set_tasks_checker(svc);
     }
 
     /* now start the data providers */
@@ -407,7 +407,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             continue;
         }
 
-        ret = start_service(doms[i], svc->command, &svc->pid);
+        ret = start_service(svc);
         if (ret != EOK) {
             DEBUG(0,("Failed to start provider for '%s'\n", doms[i]));
             talloc_free(svc);
@@ -862,32 +862,68 @@ fail:
     return NULL;
 }
 
-static int start_service(const char *name, const char *command, pid_t *retpid)
+static void service_startup_handler(struct event_context *ev,
+                                    struct timed_event *te,
+                                    struct timeval t, void *ptr);
+
+static int start_service(struct mt_svc *svc)
 {
+    struct timed_event *te;
+    struct timeval tv;
+
+    DEBUG(4,("Queueing service %s for startup\n", svc->name));
+
+    /* Add a timed event to start up the service.
+     * We have to do this in order to avoid a race
+     * condition where the service being started forks
+     * and attempts to connect to the SBUS before
+     * the monitor is serving it.
+     */
+    gettimeofday(&tv, NULL);
+    te = event_add_timed(svc->mt_ctx->ev, svc, tv,
+                         service_startup_handler, svc);
+    if (te == NULL) {
+        DEBUG(0, ("Unable to queue service %s for startup\n", svc->name));
+        return ENOMEM;
+    }
+    return EOK;
+}
+
+static void service_startup_handler(struct event_context *ev,
+                                    struct timed_event *te,
+                                    struct timeval t, void *ptr)
+{
+    struct mt_svc *mt_svc;
     char **args;
-    pid_t pid;
 
-    DEBUG(4,("Starting service %s\n", name));
+    mt_svc = talloc_get_type(ptr, struct mt_svc);
+    if (mt_svc == NULL) {
+        return;
+    }
 
-    pid = fork();
-    if (pid != 0) {
-        if (pid == -1) {
-            return ECHILD;
+    mt_svc->pid = fork();
+    if (mt_svc->pid != 0) {
+        if (mt_svc->pid == -1) {
+            DEBUG(0, ("Could not fork child to start service [%s]. Continuing.\n", mt_svc->name))
+            return;
         }
 
-        *retpid = pid;
+        /* Parent */
+        mt_svc->last_pong = time(NULL);
+        DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
+        set_tasks_checker(mt_svc);
 
-        return EOK;
+        return;
     }
 
     /* child */
 
-    args = parse_args(command);
+    args = parse_args(mt_svc->command);
     execvp(args[0], args);
 
     /* If we are here, exec() has failed
      * Print errno and abort quickly */
-    DEBUG(0,("Could not exec %s, reason: %s\n", command, strerror(errno)));
+    DEBUG(0,("Could not exec %s, reason: %s\n", mt_svc->command, strerror(errno)));
 
     /* We have to call _exit() instead of exit() here
      * because a bug in D-BUS will cause the server to
