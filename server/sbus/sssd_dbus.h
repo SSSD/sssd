@@ -89,6 +89,7 @@ void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data);
 void *sbus_conn_get_private_data(struct sbus_conn_ctx *conn_ctx);
 int sbus_conn_add_method_ctx(struct sbus_conn_ctx *conn_ctx,
                              struct sbus_method_ctx *method_ctx);
+bool sbus_conn_disconnecting(struct sbus_conn_ctx *conn_ctx);
 
 /* Default message handler
  * Should be usable for most cases */

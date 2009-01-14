@@ -25,6 +25,8 @@ int dp_sbus_cli_init(TALLOC_CTX *mem_ctx,
                      struct event_context *ev,
                      struct confdb_ctx *cdb,
                      struct sbus_method *methods,
+                     void *conn_pvt_data,
+                     sbus_conn_destructor_fn destructor,
                      struct service_sbus_ctx **srvs_ctx)
 {
     struct service_sbus_ctx *ss_ctx;
@@ -86,6 +88,14 @@ int dp_sbus_cli_init(TALLOC_CTX *mem_ctx,
 
     sm_ctx->message_handler = sbus_message_handler;
     sbus_conn_add_method_ctx(ss_ctx->scon_ctx, sm_ctx);
+
+    if (conn_pvt_data) {
+        sbus_conn_set_private_data(ss_ctx->scon_ctx, conn_pvt_data);
+    }
+
+    if (destructor) {
+        sbus_conn_set_destructor(ss_ctx->scon_ctx, destructor);
+    }
 
     talloc_steal(mem_ctx, ss_ctx);
     *srvs_ctx = ss_ctx;

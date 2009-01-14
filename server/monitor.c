@@ -37,7 +37,7 @@
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
-#define MONITOR_MIN_PING_TIME 10
+#define MONITOR_DEF_PING_TIME 10
 
 struct mt_conn {
     struct sbus_conn_ctx *conn_ctx;
@@ -55,6 +55,8 @@ struct mt_svc {
     char *name;
     pid_t pid;
 
+    int ping_time;
+
     int restarts;
     time_t last_restart;
     time_t last_pong;
@@ -68,7 +70,6 @@ struct mt_ctx {
     struct sbus_srv_ctx *sbus_srv;
 
     int service_id_timeout;
-    int service_ping_time;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -260,7 +261,7 @@ static void set_tasks_checker(struct mt_svc *svc)
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
-    tv.tv_sec += svc->mt_ctx->service_ping_time;
+    tv.tv_sec += svc->ping_time;
     tv.tv_usec = 0;
     te = event_add_timed(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
     if (te == NULL) {
@@ -280,15 +281,6 @@ int get_monitor_config(struct mt_ctx *ctx)
     if (ret != EOK) {
         return ret;
     }
-
-    ret = confdb_get_int(ctx->cdb, ctx,
-                         "config/services/monitor", "servicePingTime",
-                         MONITOR_MIN_PING_TIME, &ctx->service_ping_time);
-    if (ret != EOK) {
-        return ret;
-    }
-    if (ctx->service_ping_time < MONITOR_MIN_PING_TIME)
-        ctx->service_ping_time = MONITOR_MIN_PING_TIME;
 
     ret = confdb_get_param(ctx->cdb, ctx,
                            "config/services", "activeServices",
@@ -355,6 +347,15 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             talloc_free(svc);
             continue;
         }
+
+        ret = confdb_get_int(cdb, svc, path, "timeout",
+                             MONITOR_DEF_PING_TIME, &svc->ping_time);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to start service '%s'\n", svc->name));
+            talloc_free(svc);
+            continue;
+        }
+
         talloc_free(path);
 
         /* Add this service to the queue to be started once the monitor
@@ -396,6 +397,16 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             talloc_free(svc);
             continue;
         }
+
+        ret = confdb_get_int(cdb, svc, path, "timeout",
+                             MONITOR_DEF_PING_TIME, &svc->ping_time);
+        if (ret != EOK) {
+            DEBUG(0,("Failed to start service '%s'\n", svc->name));
+            talloc_free(svc);
+            continue;
+        }
+
+        talloc_free(path);
 
         /* if no command is present do not run the domain */
         if (svc->command == NULL) {

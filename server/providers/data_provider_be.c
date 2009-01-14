@@ -308,21 +308,9 @@ static int mon_cli_init(struct be_ctx *ctx)
  * sbus channel to the data provider daemon */
 static int be_cli_init(struct be_ctx *ctx)
 {
-    struct service_sbus_ctx *dp_ctx;
-    int ret;
-
-    ret = dp_sbus_cli_init(ctx, ctx->ev, ctx->cdb,
-                           be_methods, &dp_ctx);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    ctx->dp_ctx = dp_ctx;
-
-    /* attach be context to the connection */
-    sbus_conn_set_private_data(dp_ctx->scon_ctx, ctx);
-
-    return EOK;
+    return dp_sbus_cli_init(ctx, ctx->ev, ctx->cdb,
+                            be_methods, ctx, NULL,
+                            &ctx->dp_ctx);
 }
 
 static int load_backend(struct be_ctx *ctx)

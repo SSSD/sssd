@@ -20,6 +20,7 @@
 */
 
 #include <sys/time.h>
+#include <time.h>
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "providers/data_provider.h"
@@ -292,19 +293,101 @@ struct sbus_method nss_dp_methods[] = {
     { NULL, NULL }
 };
 
-int nss_dp_init(struct nss_ctx *nctx)
+struct nss_dp_pvt_ctx {
+    struct nss_ctx *nctx;
+    struct sbus_method *methods;
+    time_t last_retry;
+    int retries;
+};
+
+static int nss_dp_conn_destructor(void *data);
+static void nss_dp_reconnect(struct event_context *ev,
+                             struct timed_event *te,
+                             struct timeval tv, void *data);
+
+static void nss_dp_conn_reconnect(struct nss_dp_pvt_ctx *pvt)
 {
+    struct nss_ctx *nctx;
+    struct timed_event *te;
+    struct timeval tv;
+    time_t now;
     int ret;
 
-    /* Set up SBUS connection to the data provider */
-    ret = dp_sbus_cli_init(nctx, nctx->ev, nctx->cdb,
-                           nss_dp_methods, &nctx->dp_ctx);
-    if (ret != EOK) {
-        return ret;
+    now = time(NULL);
+
+    /* reset retry if last reconnect was > 60 sec. ago */
+    if (pvt->last_retry + 60 < now) pvt->retries = 0;
+    if (pvt->retries >= 3) {
+        DEBUG(4, ("Too many reconnect retries! Giving up\n"));
+        return;
     }
 
-    /* attach context to the connection */
-    sbus_conn_set_private_data(nctx->dp_ctx->scon_ctx, nctx);
+    pvt->last_retry = now;
+    pvt->retries++;
+
+    nctx = pvt->nctx;
+
+    ret = dp_sbus_cli_init(nctx, nctx->ev, nctx->cdb,
+                           pvt->methods, pvt,
+                           nss_dp_conn_destructor,
+                           &nctx->dp_ctx);
+    if (ret != EOK) {
+        DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
+
+        tv.tv_sec = now +5;
+        tv.tv_usec = 0;
+        te = event_add_timed(nctx->ev, nctx, tv, nss_dp_reconnect, pvt);
+        if (te == NULL) {
+            DEBUG(4, ("Failed to add timed event! Giving up\n"));
+        } else {
+            DEBUG(4, ("Retrying in 5 seconds\n"));
+        }
+    }
+}
+
+static void nss_dp_reconnect(struct event_context *ev,
+                             struct timed_event *te,
+                             struct timeval tv, void *data)
+{
+    struct nss_dp_pvt_ctx *pvt;
+
+    pvt = talloc_get_type(data, struct nss_dp_pvt_ctx);
+
+    nss_dp_conn_reconnect(pvt);
+}
+
+int nss_dp_conn_destructor(void *data)
+{
+    struct nss_dp_pvt_ctx *pvt;
+    struct sbus_conn_ctx *scon;
+
+    scon = talloc_get_type(data, struct sbus_conn_ctx);
+    if (!scon) return 0;
+
+    /* if this is a regular disconnect just quit */
+    if (sbus_conn_disconnecting(scon)) return 0;
+
+    pvt = talloc_get_type(sbus_conn_get_private_data(scon),
+                          struct nss_dp_pvt_ctx);
+    if (pvt) return 0;
+
+    nss_dp_conn_reconnect(pvt);
+
+    return 0;
+}
+
+int nss_dp_init(struct nss_ctx *nctx)
+{
+    struct nss_dp_pvt_ctx *pvt;
+    int ret;
+
+    pvt = talloc_zero(nctx, struct nss_dp_pvt_ctx);
+    if (!pvt) return ENOMEM;
+
+    pvt->nctx = nctx;
+    pvt->methods = nss_dp_methods;
+
+    nss_dp_conn_reconnect(pvt);
 
     return EOK;
 }
