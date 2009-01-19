@@ -36,10 +36,11 @@
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "sbus_interfaces.h"
 #include "util/btreemap.h"
-#include "util/service_helpers.h"
 #include "providers/data_provider.h"
+#include "monitor/monitor_sbus.h"
+#include "monitor/monitor_interfaces.h"
+#include "sbus/sbus_client.h"
 
 #define SSS_NSS_PIPE_NAME "nss"
 
@@ -276,14 +277,32 @@ static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
 
 static int nss_sbus_init(struct nss_ctx *nctx)
 {
+    int ret;
+    char *sbus_address;
     struct service_sbus_ctx *ss_ctx;
+    struct sbus_method_ctx *sm_ctx;
 
     /* Set up SBUS connection to the monitor */
-    ss_ctx = sssd_service_sbus_init(nctx, nctx->ev, nctx->cdb,
-                                    nss_sbus_methods, NULL);
-    if (ss_ctx == NULL) {
-        DEBUG(0, ("Could not initialize D-BUS.\n"));
-        return ENOMEM;
+    ret = monitor_get_sbus_address(nctx, nctx->cdb, &sbus_address);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not locate monitor address.\n"));
+        return ret;
+    }
+
+    ret = monitor_init_sbus_methods(nctx, nss_sbus_methods, &sm_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not initialize SBUS methods.\n"));
+        return ret;
+    }
+
+    ret = sbus_client_init(nctx, nctx->ev,
+                           sbus_address, sm_ctx,
+                           NULL /* Private Data */,
+                           NULL /* Destructor */,
+                           &ss_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        return ret;
     }
 
     /* Set up NSS-specific listeners */

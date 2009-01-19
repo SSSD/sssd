@@ -24,6 +24,8 @@
 #include "util/util.h"
 #include "nss/nsssrv.h"
 #include "providers/data_provider.h"
+#include "sbus/sbus_client.h"
+#include "providers/dp_sbus.h"
 
 struct nss_dp_req {
     nss_dp_callback_t callback;
@@ -310,6 +312,8 @@ static void nss_dp_conn_reconnect(struct nss_dp_pvt_ctx *pvt)
     struct nss_ctx *nctx;
     struct timed_event *te;
     struct timeval tv;
+    struct sbus_method_ctx *sm_ctx;
+    char *sbus_address;
     time_t now;
     int ret;
 
@@ -327,9 +331,21 @@ static void nss_dp_conn_reconnect(struct nss_dp_pvt_ctx *pvt)
 
     nctx = pvt->nctx;
 
-    ret = dp_sbus_cli_init(nctx, nctx->ev, nctx->cdb,
-                           pvt->methods, pvt,
-                           nss_dp_conn_destructor,
+    ret = dp_get_sbus_address(nctx, nctx->cdb, &sbus_address);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not locate data provider address.\n"));
+        return;
+    }
+
+    ret = dp_init_sbus_methods(nctx, pvt->methods, &sm_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not initialize SBUS methods.\n"));
+        return;
+    }
+
+    ret = sbus_client_init(nctx, nctx->ev,
+                           sbus_address, sm_ctx,
+                           pvt, nss_dp_conn_destructor,
                            &nctx->dp_ctx);
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
@@ -379,7 +395,6 @@ int nss_dp_conn_destructor(void *data)
 int nss_dp_init(struct nss_ctx *nctx)
 {
     struct nss_dp_pvt_ctx *pvt;
-    int ret;
 
     pvt = talloc_zero(nctx, struct nss_dp_pvt_ctx);
     if (!pvt) return ENOMEM;

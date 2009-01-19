@@ -4,16 +4,17 @@ UTIL_OBJ = \
     util/server.o \
     util/memory.o \
     util/btreemap.o \
-    util/service_helpers.o \
+    monitor/monitor_sbus.o \
+    providers/dp_sbus.o \
     sbus/sssd_dbus_common.o \
     sbus/sssd_dbus_connection.o \
     sbus/sssd_dbus_server.o \
-    providers/dp_helpers.o \
+    sbus/sbus_client.o \
     confdb/confdb.o \
 	db/sysdb.o
 
 SERVER_OBJ = \
-    monitor.o
+    monitor/monitor.o
 
 DP_OBJ = \
 	providers/data_provider.o

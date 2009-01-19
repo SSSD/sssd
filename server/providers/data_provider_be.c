@@ -35,10 +35,11 @@
 #include "db/sysdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "sbus_interfaces.h"
 #include "util/btreemap.h"
 #include "providers/dp_backend.h"
-#include "util/service_helpers.h"
+#include "providers/dp_sbus.h"
+#include "monitor/monitor_sbus.h"
+#include "monitor/monitor_interfaces.h"
 
 
 typedef int (*be_init_fn_t)(TALLOC_CTX *, struct be_mod_ops **, void **);
@@ -286,20 +287,35 @@ done:
  * sbus channel to the monitor daemon */
 static int mon_cli_init(struct be_ctx *ctx)
 {
+    int ret;
+    char *sbus_address;
     struct service_sbus_ctx *ss_ctx;
+    struct sbus_method_ctx *sm_ctx;
 
-   /* Set up SBUS connection to the monitor */
-    ss_ctx = sssd_service_sbus_init(ctx, ctx->ev, ctx->cdb,
-                                    mon_sbus_methods, NULL);
-    if (ss_ctx == NULL) {
-        DEBUG(0, ("Could not initialize D-BUS.\n"));
-        return ENOMEM;
+    /* Set up SBUS connection to the monitor */
+    ret = monitor_get_sbus_address(ctx, ctx->cdb, &sbus_address);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not locate monitor address.\n"));
+        return ret;
+    }
+
+    ret = monitor_init_sbus_methods(ctx, mon_sbus_methods, &sm_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not initialize SBUS methods.\n"));
+        return ret;
+    }
+
+    ret = sbus_client_init(ctx, ctx->ev,
+                           sbus_address, sm_ctx,
+                           ctx /* Private Data */,
+                           NULL /* Destructor */,
+                           &ss_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        return ret;
     }
 
     ctx->ss_ctx = ss_ctx;
-
-    /* attach be context to the connection */
-    sbus_conn_set_private_data(ss_ctx->scon_ctx, ctx);
 
     return EOK;
 }
@@ -308,6 +324,38 @@ static int mon_cli_init(struct be_ctx *ctx)
  * sbus channel to the data provider daemon */
 static int be_cli_init(struct be_ctx *ctx)
 {
+    int ret;
+    char *sbus_address;
+    struct service_sbus_ctx *ss_ctx;
+    struct sbus_method_ctx *sm_ctx;
+
+    /* Set up SBUS connection to the data provider */
+    ret = dp_get_sbus_address(ctx, ctx->cdb, &sbus_address);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not locate data provider address.\n"));
+        return ret;
+    }
+
+    ret = dp_init_sbus_methods(ctx, mon_sbus_methods, &sm_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not initialize SBUS methods.\n"));
+        return ret;
+    }
+
+    ret = sbus_client_init(ctx, ctx->ev,
+                           sbus_address, sm_ctx,
+                           ctx /* Private Data */,
+                           NULL /* Destructor */,
+                           &ss_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to data provider services.\n"));
+        return ret;
+    }
+
+    ctx->ss_ctx = ss_ctx;
+
+    return EOK;
+
     return dp_sbus_cli_init(ctx, ctx->ev, ctx->cdb,
                             be_methods, ctx, NULL,
                             &ctx->dp_ctx);

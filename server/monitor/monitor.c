@@ -30,10 +30,10 @@
 #include "tevent.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
-#include "monitor.h"
+#include "monitor/monitor.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "sbus_interfaces.h"
+#include "monitor/monitor_interfaces.h"
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */

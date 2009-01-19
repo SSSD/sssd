@@ -40,10 +40,3 @@
 #define SERVICE_METHOD_RELOAD "reloadConfig"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
-
-/* Data Provider */
-
-#define DATA_PROVIDER_INTERFACE "org.freeipa.sssd.dataprovider"
-#define DATA_PROVIDER_PATH "/org/freeipa/sssd/dataprovider"
-
-#define DP_METHOD_CHECK_ONLINE "isOnline"

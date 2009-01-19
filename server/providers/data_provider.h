@@ -32,8 +32,8 @@
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "sbus_interfaces.h"
-#include "util/service_helpers.h"
+#include "sbus/sbus_client.h"
+#include "providers/dp_interfaces.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"
