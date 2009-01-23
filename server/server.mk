@@ -33,7 +33,9 @@ NSSSRV_OBJ = \
 
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
-	${INSTALLCMD} -m 755 sssd $(DESTDIR)$(sbindir)
+	${INSTALLCMD} -m 700 sbin/sssd $(DESTDIR)$(sbindir)
+	${INSTALLCMD} -d $(libexecdir)
+	${INSTALLCMD} -m 700 $(LIBEXECBINS) $(libexecdir)
 
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)

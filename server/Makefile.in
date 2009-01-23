@@ -6,6 +6,7 @@ exec_prefix = @exec_prefix@
 datarootdir = @datarootdir@
 includedir = @includedir@
 libdir = @libdir@
+libexecdir = @libexecdir@
 bindir = @bindir@
 sbindir = @sbindir@
 mandir = @mandir@
@@ -57,9 +58,10 @@ MDLD_FLAGS = @MDLD_FLAGS@
 
 OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 
-headers = .h
+headers =
 
-BINS = sbin/sssd sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
+LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
+BINS = sbin/sssd $(LIBEXECBINS)
 SOLIBS = lib/libsss_proxy.$(SHLIBEXT)
 
 DIRS = sbin lib
@@ -93,10 +95,14 @@ installdirs::
 	mkdir -p $(DESTDIR)$(includedir) $(DESTDIR)$(libdir) $(DESTDIR)$(sbindir)
 
 installheaders:: installdirs
+ifneq (x$(headers), x)
 	cp $(headers) $(DESTDIR)$(includedir)
+endif
 
 installlibs:: installdirs
+ifneq (x$(STATICLIB)$(LIBSOLIB), x)
 	cp $(STATICLIB) $(LIBSOLIB) $(DESTDIR)$(libdir)
+endif
 
 installbin:: installdirs
 
