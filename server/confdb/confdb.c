@@ -408,19 +408,96 @@ static int confdb_test(struct confdb_ctx *cdb)
 
 static int confdb_init_db(struct confdb_ctx *cdb)
 {
-    const char *verval[] = { CONFDB_VERSION, NULL };
+    const char *val[2];
     int ret;
+    TALLOC_CTX *tmp_ctx;
 
+    tmp_ctx = talloc_new(cdb);
+    if(tmp_ctx == NULL) return ENOMEM;
+
+    val[0] = CONFDB_VERSION;
+    val[1] = NULL;
+
+    /* Add the confdb version */
     ret = confdb_add_param(cdb,
                            false,
                            "config",
                            "version",
-                            verval);
-    if (ret != EOK) {
-        return ret;
-    }
+                            val);
+    if (ret != EOK) goto done;
 
-    return EOK;
+    /* Set up default monitored services */
+    val[0] = "Local service configuration";
+    ret = confdb_add_param(cdb, false, "config/services", "description", val);
+    if (ret != EOK) goto done;
+
+#if 0 /* Not yet implemented */
+/* PAM */
+#endif /* PAM */
+
+/* NSS */
+    /* set the sssd_nss description */
+    val[0] = "NSS Responder Configuration";
+    ret = confdb_add_param(cdb, false, "config/services/nss", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_nss command path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", SSSD_LIBEXEC_PATH);
+    ret = confdb_add_param(cdb, false, "config/services/nss", "command", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_nss socket path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", PIPE_PATH);
+    ret = confdb_add_param(cdb, false, "config/services/nss", "unixSocket", val);
+    if (ret != EOK) goto done;
+
+    /* Add NSS to the list of active services */
+    val[0] = "nss";
+    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
+    if (ret != EOK) goto done;
+
+/* Data Provider */
+    /* set the sssd_dp description */
+    val[0] = "Data Provider Configuration";
+    ret = confdb_add_param(cdb, false, "config/services/dp", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_dp command path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_dp", SSSD_LIBEXEC_PATH);
+    ret = confdb_add_param(cdb, false, "config/services/dp", "command", val);
+    if (ret != EOK) goto done;
+
+    /* Add the Data Provider to the list of active services */
+    val[0] = "dp";
+    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
+    if (ret != EOK) goto done;
+
+#if 0 /* Not yet implemented */
+/* InfoPipe */
+#endif
+
+/* Domains */
+    val[0] = "Domains served by SSSD";
+    ret = confdb_add_param(cdb, false, "config/domains", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Default LOCAL domain */
+    val[0] = "Reserved domain for local configurations";
+    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "description", val);
+    if (ret != EOK) goto done;
+
+    val[0] = "local";
+    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "provider", val);
+    if (ret != EOK) goto done;
+
+    val[0] = "cn=local,dc=sysdb";
+    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "basedn", val);
+    if (ret != EOK) goto done;
+
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 int confdb_init(TALLOC_CTX *mem_ctx,

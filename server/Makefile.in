@@ -16,6 +16,7 @@ builddir = @builddir@
 sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 EXTRA_OBJ=@EXTRA_OBJ@
+SSSD_LIBEXEC_PATH = @SSSD_LIBEXEC_PATH@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 srvdir = $(srcdir)
 
@@ -51,7 +52,7 @@ LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS) $(LDB_LIBS)
 PICFLAG = @PICFLAG@
 CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
        $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) $(LDB_CFLAGS) $(DBUS_CFLAGS)\
-	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DUSE_MMAP=1 @CFLAGS@
+	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\" -DUSE_MMAP=1 @CFLAGS@
 
 MDLD = @MDLD@
 MDLD_FLAGS = @MDLD_FLAGS@

@@ -11,7 +11,7 @@ AC_DEFUN([SMB_MODULE_DEFAULT], [echo -n ""])
 AC_DEFUN([SMB_LIBRARY_ENABLE], [echo -n ""])
 AC_DEFUN([SMB_EXT_LIB], [echo -n ""])
 AC_DEFUN([SMB_ENABLE], [echo -n ""])
-AC_INIT(ldb, 0.9.2)
+AC_INIT(sssd, 0.1.0)
 AC_CONFIG_SRCDIR([autogen.sh])
 
 AC_LIBREPLACE_ALL_CHECKS
@@ -25,6 +25,9 @@ AC_CONFIG_HEADER(config.h)
 
 TESTS=""
 EXTRA_OBJ=""
+
+SSSD_LIBEXEC_PATH=$libexecdir/$PACKAGE_NAME
+AC_SUBST(SSSD_LIBEXEC_PATH)
 
 m4_include(build_macros.m4)
 BUILD_WITH_SHARED_BUILD_DIR
