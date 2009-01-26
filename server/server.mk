@@ -34,6 +34,9 @@ NSSSRV_OBJ = \
 INFOPIPE_OBJ = \
     infopipe/infopipe.o
 
+POLKIT_OBJ = \
+    polkit/sssd_polkit.o
+
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 700 sbin/sssd $(DESTDIR)$(sbindir)
@@ -54,6 +57,9 @@ sbin/sssd_be: $(DP_BE_OBJ) $(UTIL_OBJ)
 
 sbin/sssd_info: $(INFOPIPE_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd_info $(INFOPIPE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+
+sbin/sssd_pk: $(POLKIT_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sssd_pk $(POLKIT_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
 lib/libsss_proxy.$(SHLIBEXT): $(PROXY_BE_OBJ)
 	$(SHLD) $(SHLD_FLAGS) -o $@ $(PROXY_BE_OBJ) $(LDFLAGS) $(LIBS)

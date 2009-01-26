@@ -488,6 +488,22 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
     if (ret != EOK) goto done;
 
+/* PolicyKit */
+    /* Set the sssd_pk description */
+    val[0] = "PolicyKit Backend Configuration";
+    ret = confdb_add_param(cdb, false, "config/services/spk", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_info command path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_pk", SSSD_LIBEXEC_PATH);
+    ret = confdb_add_param(cdb, false, "config/services/spk", "command", val);
+    if (ret != EOK) goto done;
+
+    /* Add the InfoPipe to the list of active services */
+    val[0] = "spk";
+    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
+    if (ret != EOK) goto done;
+
 /* Domains */
     val[0] = "Domains served by SSSD";
     ret = confdb_add_param(cdb, false, "config/domains", "description", val);
