@@ -457,7 +457,7 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     if (ret != EOK) goto done;
 
 /* Data Provider */
-    /* set the sssd_dp description */
+    /* Set the sssd_dp description */
     val[0] = "Data Provider Configuration";
     ret = confdb_add_param(cdb, false, "config/services/dp", "description", val);
     if (ret != EOK) goto done;
@@ -472,9 +472,21 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
     if (ret != EOK) goto done;
 
-#if 0 /* Not yet implemented */
 /* InfoPipe */
-#endif
+    /* Set the sssd_info description */
+    val[0] = "InfoPipe Configuration";
+    ret = confdb_add_param(cdb, false, "config/services/infp", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_info command path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_info", SSSD_LIBEXEC_PATH);
+    ret = confdb_add_param(cdb, false, "config/services/infp", "command", val);
+    if (ret != EOK) goto done;
+
+    /* Add the InfoPipe to the list of active services */
+    val[0] = "infp";
+    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
+    if (ret != EOK) goto done;
 
 /* Domains */
     val[0] = "Domains served by SSSD";

@@ -61,7 +61,7 @@ OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 
 headers =
 
-LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
+LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_info
 BINS = sbin/sssd $(LIBEXECBINS)
 SOLIBS = lib/libsss_proxy.$(SHLIBEXT)
 

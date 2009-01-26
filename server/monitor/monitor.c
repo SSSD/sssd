@@ -595,6 +595,8 @@ static void identity_check(DBusPendingCall *pending, void *data)
         svc->mt_conn = fake_svc->mt_conn;
         talloc_free(fake_svc);
 
+        DEBUG(1, ("Service %s connected\n", svc->name));
+
         /* Set up the destructor for this service */
         break;
 

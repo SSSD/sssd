@@ -31,6 +31,9 @@ NSSSRV_OBJ = \
     nss/nsssrv_cmd.o \
     nss/nsssrv_dp.o
 
+INFOPIPE_OBJ = \
+    infopipe/infopipe.o
+
 install:: all
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 700 sbin/sssd $(DESTDIR)$(sbindir)
@@ -48,6 +51,9 @@ sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ)
 
 sbin/sssd_be: $(DP_BE_OBJ) $(UTIL_OBJ)
 	$(CC) -Wl,-E -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+
+sbin/sssd_info: $(INFOPIPE_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sssd_info $(INFOPIPE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
 lib/libsss_proxy.$(SHLIBEXT): $(PROXY_BE_OBJ)
 	$(SHLD) $(SHLD_FLAGS) -o $@ $(PROXY_BE_OBJ) $(LDFLAGS) $(LIBS)
