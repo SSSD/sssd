@@ -32,7 +32,8 @@ NSSSRV_OBJ = \
     nss/nsssrv_dp.o
 
 INFOPIPE_OBJ = \
-    infopipe/infopipe.o
+    infopipe/infopipe.o \
+    infopipe/sysbus.o
 
 POLKIT_OBJ = \
     polkit/sssd_polkit.o

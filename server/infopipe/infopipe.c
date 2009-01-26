@@ -24,15 +24,22 @@
 #include "popt.h"
 #include "infopipe.h"
 #include "util/util.h"
+#include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
+#include "infopipe/sysbus.h"
 
 struct infp_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
     struct service_sbus_ctx *ss_ctx;
-    struct sbus_srv_ctx *sbus_srv;
+    struct sysbus_ctx *sysbus;
+};
+
+struct sbus_method infp_methods[] = {
+    { SYSBUS_GET_PARAM, sysbus_get_param },
+    { NULL, NULL }
 };
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
@@ -142,10 +149,15 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
     infp_ctx->ev = ev;
     infp_ctx->cdb = cdb;
 
+    /* Connect to the monitor */
     ret = infp_monitor_init(infp_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Fatal error setting up monitor bus\n"));
     }
+
+    /* Connect to the D-BUS system bus */
+    ret = sysbus_init(infp_ctx, &infp_ctx->sysbus, infp_methods);
+
     return ret;
 }
 

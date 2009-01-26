@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   InfoPipe
+   SystemBus Helpers
 
    Copyright (C) Stephen Gallagher <sgallagh@redhat.com>	2009
 
@@ -19,11 +19,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef INFOPIPE_H_
-#define INFOPIPE_H_
+#ifndef SYSBUS_H_
+#define SYSBUS_H_
 
-#define INFOPIPE_DBUS_NAME "org.freeipa.sssd.infopipe"
-#define INFOPIPE_VERSION 0x0001
-#define INFOPIPE_SERVICE_NAME "infp"
+#define SYSBUS_GET_PARAM "getParam"
 
-#endif /* INFOPIPE_H_ */
+struct sysbus_ctx;
+
+int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus, struct sbus_method *methods);
+
+int sysbus_get_param(DBusMessage *message, void *data, DBusMessage **r);
+
+#endif /* SYSBUS_H_ */

@@ -57,3 +57,17 @@ AC_DEFUN(WITH_PIPE_PATH,
     AC_SUBST(pipepath)
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
+
+AC_DEFUN(WITH_DBUS_SYSBUS_PATH,
+  [ AC_ARG_WITH([dbus-sysbus-path],
+                [AC_HELP_STRING([--with-dbus-sysbus-path=PATH],
+                                [Where to store policy files for the D-BUS system bus [/etc/dbus-1/system.d]]
+                               )
+                ]
+               )
+    sysbuspath="/etc/dbus-1/system.d"
+    if test x"$with_dbus_sysbus_path" != x; then
+        sysbuspath=$with_dbus_sysbus_path
+    fi
+    AC_SUBST(sysbuspath)
+  ])
