@@ -94,6 +94,10 @@ realdistclean:: distclean
 	rm -f configure config.h.in
 
 install:: all installdirs installheaders installlibs installbin installsupport
+	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
+	${INSTALLCMD} -m 700 sbin/sssd $(DESTDIR)$(sbindir)
+	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
+	${INSTALLCMD} -m 700 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 
 installdirs::
 	mkdir -p $(DESTDIR)$(includedir) $(DESTDIR)$(libdir) $(DESTDIR)$(sbindir) $(DBUS_SYSBUS_POLICY_DIR)

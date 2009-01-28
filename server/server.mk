@@ -38,12 +38,6 @@ INFOPIPE_OBJ = \
 POLKIT_OBJ = \
     polkit/sssd_polkit.o
 
-install:: all
-	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
-	${INSTALLCMD} -m 700 sbin/sssd $(DESTDIR)$(sbindir)
-	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
-	${INSTALLCMD} -m 700 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
-
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
