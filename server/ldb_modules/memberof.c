@@ -37,16 +37,6 @@ struct mbof_dn {
     struct ldb_dn *dn;
 };
 
-struct mbof_array_entry {
-    struct ldb_dn *dn;
-    struct ldb_message *pmsg;
-};
-
-struct mbof_array {
-    struct mbof_array_entry *entries;
-    int num;
-};
-
 struct mbof_ctx {
 	struct ldb_module *module;
 	struct ldb_request *req;
@@ -73,11 +63,11 @@ struct mbof_add_ctx {
 };
 
 struct mbof_del_ancestors_ctx {
-    struct mbof_dn_array *orig_list;
-    struct mbof_array *new_list;
+    struct mbof_dn_array *new_list;
+    int num_direct;
+    int cur;
 
     struct ldb_message *entry;
-    int cur;
 };
 
 struct mbof_del_operation {
@@ -88,7 +78,6 @@ struct mbof_del_operation {
     int cur_child;
 
     struct ldb_dn *entry_dn;
-    struct mbof_dn_array *rm_list;
 
     struct ldb_message *entry;
     struct ldb_message **parents;
@@ -635,9 +624,8 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
  *
  * Then we proceed to calculate the new memberof list that we are going to set
  * on the target object.
- * The new memberof list starts with including the original memberof list
- * excluding each entry in the parent remove list. Then we readd any object that
- * has the target as a direct member.
+ * The new memberof list starts with including all the objects that have the
+ * target as their direct member.
  * Finally for each entry in this provisional new memberof list we add all its
  * memberof elements to the new memberof list (taking care of excluding
  * duplicates). This way we are certain all direct and indirect membership are
@@ -668,8 +656,6 @@ static int mbof_del_cleanup_parents(struct mbof_del_ctx *del_ctx);
 static int mbof_del_clean_par_callback(struct ldb_request *req,
                                        struct ldb_reply *ares);
 static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx);
-static int mbof_build_first_rm_list(struct ldb_context *ldb,
-                                    struct mbof_del_operation *first);
 static int mbof_append_delop(struct mbof_del_operation *parent,
                              struct ldb_dn *entry_dn);
 static int mbof_del_execute_op(struct mbof_del_operation *delop);
@@ -1036,11 +1022,6 @@ static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx)
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
-    ret = mbof_build_first_rm_list(ldb, first);
-    if (ret != LDB_SUCCESS) {
-        return ret;
-    }
-
     el = ldb_msg_find_element(first->entry, "member");
 
     /* prepare del sets */
@@ -1057,58 +1038,6 @@ static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx)
 
     /* now that sets are built, start processing */
     return mbof_del_execute_op(first->children[0]);
-}
-
-static int mbof_build_first_rm_list(struct ldb_context *ldb,
-                                    struct mbof_del_operation *first)
-{
-    const struct ldb_message_element *el;
-    struct mbof_dn_array *rm_list;
-    struct ldb_dn *valdn;
-    int i;
-
-    rm_list = talloc_zero(first, struct mbof_dn_array);
-    if (!rm_list) {
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-
-    /* create memberof removal list if part of any group */
-    el = ldb_msg_find_element(first->entry, "memberof");
-    if (el) {
-        rm_list->dns = talloc_array(rm_list, struct ldb_dn *,
-                                    el->num_values + 1);
-        if (!rm_list->dns) {
-            return LDB_ERR_OPERATIONS_ERROR;
-        }
-        rm_list->num = el->num_values + 1;
-
-        for (i = 0; i < el->num_values; i++) {
-            valdn = ldb_dn_from_ldb_val(rm_list, ldb, &el->values[i]);
-            if (!valdn || !ldb_dn_validate(valdn)) {
-                return LDB_ERR_OPERATIONS_ERROR;
-            }
-
-            rm_list->dns[i] = valdn;
-        }
-    }
-
-    if (!rm_list->dns) {
-        rm_list->dns = talloc_array(rm_list, struct ldb_dn *, 1);
-        if (!rm_list->dns) {
-            return LDB_ERR_OPERATIONS_ERROR;
-        }
-        rm_list->num = 1;
-        i = 0;
-    }
-
-    rm_list->dns[i] = first->entry_dn;
-    if (!rm_list->dns[i]) {
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-
-    first->rm_list = rm_list;
-
-    return LDB_SUCCESS;
 }
 
 static int mbof_append_delop(struct mbof_del_operation *parent,
@@ -1261,7 +1190,6 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
-/* FIXME: very inefficient */
 static int mbof_del_execute_cont(struct mbof_del_operation *delop)
 {
     struct mbof_del_ancestors_ctx *anc_ctx;
@@ -1269,12 +1197,8 @@ static int mbof_del_execute_cont(struct mbof_del_operation *delop)
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
     struct ldb_context *ldb;
-    const struct ldb_message_element *el;
-    struct mbof_dn_array *orig_list;
-    struct mbof_array *new_list;
-    struct ldb_dn *valdn;
-    int i, j;
-    bool found;
+    struct mbof_dn_array *new_list;
+    int i;
 
     del_ctx = delop->del_ctx;
     parent = delop->parent;
@@ -1287,104 +1211,37 @@ static int mbof_del_execute_cont(struct mbof_del_operation *delop)
     }
     delop->anc_ctx = anc_ctx;
 
-    orig_list = talloc_zero(anc_ctx, struct mbof_dn_array);
-    if (!orig_list) {
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-    anc_ctx->orig_list = orig_list;
-
-    new_list = talloc_zero(anc_ctx, struct mbof_array);
+    new_list = talloc_zero(anc_ctx, struct mbof_dn_array);
     if (!new_list) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* create new memberof list */
-    el = ldb_msg_find_element(delop->entry, "memberof");
-    if (!el) {
-        /* can't be, if we get there it is because this entry
-         * had at least one parent */
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-
-    orig_list->num = el->num_values;
-    orig_list->dns = talloc_zero_array(orig_list,
-                                       struct ldb_dn *,
-                                       orig_list->num);
-    if (!orig_list->dns) {
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-    new_list->entries = talloc_zero_array(new_list,
-                                          struct mbof_array_entry,
-                                          orig_list->num);
-    if (!new_list->entries) {
-        return LDB_ERR_OPERATIONS_ERROR;
-    }
-
-    /* add to the list only the values that are not on the rm_list */
-    for (i = 0; i < el->num_values; i++) {
-        valdn = ldb_dn_from_ldb_val(orig_list, ldb, &el->values[i]);
-        if (!valdn) {
-            return LDB_ERR_OPERATIONS_ERROR;
-        }
-        orig_list->dns[i] = valdn;
-        for (j = 0; j < parent->rm_list->num; j++) {
-            if (ldb_dn_compare(valdn, parent->rm_list->dns[j]) == 0)
-                break;
-        }
-        if (j < parent->rm_list->num) {
-            continue;
-        }
-        new_list->entries[new_list->num].dn = valdn;
-        new_list->num++;
-    }
-
-    /* now check that we have the right memberof for all direct parents */
-    for (i = 0; i < delop->num_parents; i++) {
-        found = false;
-        for (j = 0; j < orig_list->num; j++) {
-            if (new_list->entries[j].pmsg) {
-                /* parent has already been paired, try next */
-                continue;
-            }
-            if (new_list->entries[j].dn == NULL) {
-                /* we reached the end of current entries, pair new parent */
-                new_list->entries[j].dn = delop->parents[i]->dn;
-                new_list->entries[j].pmsg = delop->parents[i];
-                /* update also the number tracking the entries */
-                new_list->num++;
-                /* mark we found an entry; */
-                found = true;
-                break;
-            }
-            if (ldb_dn_compare(delop->parents[i]->dn,
-                               new_list->entries[j].dn) == 0) {
-                /* pair parent and move to next */
-                new_list->entries[j].pmsg = delop->parents[i];
-                /* mark we found an entry; */
-                found = true;
-                break;
-            }
-        }
-        if (!found && j == orig_list->num) {
-            /* houston we have a problem here */
-            /* it seem we have more parents then allotted slots which is
-             * impossible because we have slots for a number of parents equal to
-             * the original number minus 1 and we are only potentially removing
-             * parents not adding. Return a bogus error, this must be an error
-             * somewhere else or the database has been corrupted */
-            return LDB_ERR_UNWILLING_TO_PERFORM;
-        }
-    }
+    /* at the very least we have a number of memberof elements
+     * equal to the number of objects that have this entry as
+     * direct member */
+    new_list->num = delop->num_parents;
 
     /* attach the list to the operation */
     delop->anc_ctx->new_list = new_list;
+    delop->anc_ctx->num_direct = new_list->num;
 
-    /* do we have any member in the list at all ? */
+    /* do we have any direct parent at all ? */
     if (new_list->num == 0) {
         /* no entries at all, entry ended up being orphaned */
         /* skip to directly set the new memberof list for this entry */
 
         return mbof_del_mod_entry(delop);
+    }
+
+    /* fill in the list if we have parents */
+    new_list->dns = talloc_zero_array(new_list,
+                                      struct ldb_dn *,
+                                      new_list->num);
+    if (!new_list->dns) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    for (i = 0; i < delop->num_parents; i++) {
+        new_list->dns[i] = delop->parents[i]->dn;
     }
 
     /* before proceeding we also need to fetch the ancestors (anew as some may
@@ -1398,7 +1255,7 @@ static int mbof_del_ancestors(struct mbof_del_operation *delop)
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
     struct ldb_context *ldb;
-    struct mbof_array *new_list;
+    struct mbof_dn_array *new_list;
     static const char *attrs[] = {"memberof", NULL};
     struct ldb_request *search;
     int ret;
@@ -1410,7 +1267,7 @@ static int mbof_del_ancestors(struct mbof_del_operation *delop)
     new_list = anc_ctx->new_list;
 
     ret = ldb_build_search_req(&search, ldb, anc_ctx,
-                               new_list->entries[anc_ctx->cur].dn,
+                               new_list->dns[anc_ctx->cur],
                                LDB_SCOPE_BASE, NULL, attrs, NULL,
                                delop, mbof_del_anc_callback,
                                ctx->req);
@@ -1431,7 +1288,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
     struct ldb_context *ldb;
     struct ldb_message *msg;
     const struct ldb_message_element *el;
-    struct mbof_array *new_list;
+    struct mbof_dn_array *new_list;
     struct ldb_dn *valdn;
     int i, j, ret;
 
@@ -1490,22 +1347,22 @@ static int mbof_del_anc_callback(struct ldb_request *req,
                                            LDB_ERR_OPERATIONS_ERROR);
                 }
                 for (j = 0; j < new_list->num; j++) {
-                    if (ldb_dn_compare(valdn, new_list->entries[j].dn) == 0)
+                    if (ldb_dn_compare(valdn, new_list->dns[j]) == 0)
                         break;
                 }
                 if (j < new_list->num) {
                     talloc_free(valdn);
                     continue;
                 }
-                new_list->entries = talloc_realloc(new_list,
-                                                   new_list->entries,
-                                                   struct mbof_array_entry,
-                                                   new_list->num + 1);
-                if (!new_list->entries) {
+                new_list->dns = talloc_realloc(new_list,
+                                               new_list->dns,
+                                               struct ldb_dn *,
+                                               new_list->num + 1);
+                if (!new_list->dns) {
                     return ldb_module_done(ctx->req, NULL, NULL,
                                            LDB_ERR_OPERATIONS_ERROR);
                 }
-                new_list->entries[new_list->num].dn = valdn;
+                new_list->dns[new_list->num] = valdn;
                 new_list->num++;
             }
         }
@@ -1516,7 +1373,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
         anc_ctx->cur++;
 
         /* check if we need to process any more */
-        if (anc_ctx->cur >= new_list->num) {
+        if (anc_ctx->cur == anc_ctx->num_direct) {
             /* ok, end of the story, proceed to modify the entry */
             ret = mbof_del_mod_entry(delop);
         } else {
@@ -1539,7 +1396,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
     struct ldb_context *ldb;
-    struct mbof_array *new_list;
+    struct mbof_dn_array *new_list;
     struct ldb_request *mod_req;
     struct ldb_message *msg;
     struct ldb_message_element *el;
@@ -1568,9 +1425,9 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
             return LDB_ERR_OPERATIONS_ERROR;
         }
         for (i = 0, j = 0; i < new_list->num; i++) {
-            if (ldb_dn_compare(new_list->entries[i].dn, msg->dn) == 0)
+            if (ldb_dn_compare(new_list->dns[i], msg->dn) == 0)
                 continue;
-            val = ldb_dn_get_linearized(new_list->entries[i].dn);
+            val = ldb_dn_get_linearized(new_list->dns[i]);
             if (!val) {
                 return LDB_ERR_OPERATIONS_ERROR;
             }
@@ -1655,14 +1512,11 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
     struct mbof_del_ctx *del_ctx;
     struct mbof_del_operation *nextop;
     const struct ldb_message_element *el;
-    struct mbof_dn_array *rm_list;
-    struct mbof_dn_array *orig_list;
-    struct mbof_array *new_list;
+    struct mbof_dn_array *new_list;
     struct ldb_context *ldb;
     struct ldb_dn *valdn;
-    int i, j, ret;
+    int i, ret;
 
-    orig_list = delop->anc_ctx->orig_list;
     new_list = delop->anc_ctx->new_list;
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
@@ -1673,35 +1527,6 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
 
     el = ldb_msg_find_element(delop->entry, "member");
     if (el) {
-        /* build rm_list for children */
-        rm_list = talloc_zero(delop, struct mbof_dn_array);
-        if (!rm_list) {
-            return LDB_ERR_OPERATIONS_ERROR;
-        }
-
-        rm_list->dns = talloc_zero_array(rm_list,
-                                         struct ldb_dn *,
-                                         orig_list->num);
-        if (!rm_list->dns) {
-            return LDB_ERR_OPERATIONS_ERROR;
-        }
-
-        for (i = 0; i < orig_list->num; i++) {
-            for (j = 0; j < new_list->num; j++) {
-                if (ldb_dn_compare(orig_list->dns[i],
-                                   new_list->entries[j].dn) == 0)
-                    break;
-            }
-            /* present in both, therefoire not deleted */
-            if (j < new_list->num) continue;
-
-            /* this was removed, add to the rm_list */
-            rm_list->dns[rm_list->num] = orig_list->dns[i];
-            rm_list->num++;
-        }
-
-        delop->rm_list = rm_list;
-
         for (i = 0; i < el->num_values; i++) {
             valdn = ldb_dn_from_ldb_val(delop, ldb, &el->values[i]);
             if (!valdn || !ldb_dn_validate(valdn)) {
@@ -2204,11 +2029,6 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
     first->del_ctx = del_ctx;
     first->entry = mod_ctx->entry;
     first->entry_dn = mod_ctx->entry->dn;
-
-    ret = mbof_build_first_rm_list(ldb, first);
-    if (ret != LDB_SUCCESS) {
-        return ret;
-    }
 
     /* prepare del sets */
     for (i = 0; i < del->num; i++) {
