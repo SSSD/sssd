@@ -120,5 +120,3 @@ installbin:: installdirs
 
 installsupport:: installdirs
 	cp $(DBUS_SYSBUS_POLICIES) $(DBUS_SYSBUS_POLICY_DIR)
-
-include $(srvdir)/server.mk
