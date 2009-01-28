@@ -1,5 +1,5 @@
 dn: @MODULES
-@LIST: asq
+@LIST: asq,memberof
 
 dn: cn=sysdb
 cn: sysdb

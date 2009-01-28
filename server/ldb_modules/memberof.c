@@ -138,6 +138,26 @@ static struct mbof_ctx *mbof_init(struct ldb_module *module,
 
 /* add operation */
 
+/* An add operation is quite simple.
+ * First of all a new object cannot yet have parents, so the only memberof
+ * attribute that can be added to any member contains just one object DN.
+ *
+ * Once the add operation has been performed to assure nothing else fails, then
+ * on return we list all members and for each member we create an "add
+ * operation" for each member of the object we just added and we pass it a
+ * parent list of one member (the object we just added).
+ *
+ * For each add operation we lookup the object we want to operate on (children
+ * or descendant of a previously added/changed object).
+ * We take the list of memberof attributes and sort out which parents are still
+ * missing from the parent list we have been provided.
+ * We modify the object memberof attributes to reflect the new memberships.
+ * Then we list all members of this object, and for each once again we create an
+ * "add operation" as we did in the initial object.
+ * Processing stops when the target object does not have members or when it
+ * already has all the parents (can happen if nested groups create loops).
+ */
+
 static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
                              struct mbof_dn_array *parents,
                              struct ldb_dn *entry_dn)
@@ -572,6 +592,72 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
 
 
 /* delete operations */
+
+/* The implementation of delete operations is a bit more complex than an add
+ * operation. This is because we need to recompute, memberships of potentially
+ * quite far descendants and we also have to account for loops and how to break
+ * them without ending in an endless loop ourselves.
+ * The difficulty is in the fact that while the member -> memberof link is quite
+ * direct, memberof -> member is not as membership ius transitive.
+ *
+ * Ok, first of all, contrary to the add operation, a delete operation involves
+ * an existing object that may have existing parents. So forst thing we search
+ * the object itself to get the original membership lists (member and memberof)
+ * for this object, and we also search for any object that has it as one of its
+ * members.
+ * Once we have the results, we store object and parents and proceed with the
+ * original operation to make sure it is valid.
+ *
+ * Once the original op returns we proceed fixing parents (parents being each
+ * object that has the delete operation target object as member), if any.
+ *
+ * For each parent we retrieved we proceed to delete the member attribute that
+ * points to the object we just deleted. Once done for all parents (or if no
+ * parents exists), we proceed with the children and descendants.
+ *
+ * To handle the children we create a first ancestor operation that reflects the
+ * delete we just made. We set as parents of this object the parents just
+ * retrieved with the first search. Then we create a remove list.
+ *
+ * The remove list contains all objects in the original memberof list and the
+ * object dn itself of the original delete operation target object (the first
+ * ancestor).
+ *
+ * An operation is identified by an object that contains a tre of descendants,
+ * The remove list for the children, the immediate parent, and the dn and entry
+ * of the object this operation is about.
+ *
+ * We now proceed with adding a new operatoin for each original member of the
+ * first ancestor.
+ *
+ * In each operation we must first lookup the target object and each immediate
+ * parent (all the objects in the tree that have target as a "member").
+ *
+ * Then we proceed to calculate the new memberof list that we are going to set
+ * on the target object.
+ * The new memberof list starts with including the original memberof list
+ * excluding each entry in the parent remove list. Then we readd any object that
+ * has the target as a direct member.
+ * Finally for each entry in this provisional new memberof list we add all its
+ * memberof elements to the new memberof list (taking care of excluding
+ * duplicates). This way we are certain all direct and indirect membership are
+ * accounted for.
+ *
+ * At this point we have the final new memberof list for this operation  and we
+ * can proceed to modify the entry.
+ *
+ * Once the entry has been modified we proceed again to check if there are any
+ * children of this entry (the entry has "member"s).
+ * We create a new remove list that is the difference between the original entry
+ * memberof list and the new memberof list we just stored back in the object.
+ * Then for each member we create a new operation.
+ *
+ * We continue to process operations until no new operations need to be
+ * performed.
+ *
+ * Ordering is important here, se the mbof_del_get_next() function to understand
+ * how we proceed to select which new operation to process.
+ */
 
 static int mbof_del_search_callback(struct ldb_request *req,
                                     struct ldb_reply *ares);
@@ -1706,6 +1792,16 @@ static int mbof_del_get_next(struct mbof_del_operation *delop,
 
 
 /* mod operation */
+
+/* A modify operation just implements either an add operation, or a delete
+ * operation or both (replace) in turn.
+ * The only difference between a modify and a pure add or a pure delete is that
+ * the object is not created a new or not completely removed, but the setup just
+ * treats it in the same way children objects are treated in a pure add or delete
+ * operation. A list of appropriate parents and objects to modify is built, then
+ * we jump directly in the add or delete code.
+ * If both add and delete are necessary, delete operations are performed first
+ * and then a followup add operation is concatenated */
 
 static int mbof_mod_callback(struct ldb_request *req,
                              struct ldb_reply *ares);
