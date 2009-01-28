@@ -38,6 +38,9 @@ INFOPIPE_OBJ = \
 POLKIT_OBJ = \
     polkit/sssd_polkit.o
 
+MEMBEROF_OBJ = \
+	ldb_modules/memberof.o
+
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
@@ -58,3 +61,6 @@ sbin/sssd_pk: $(POLKIT_OBJ) $(UTIL_OBJ)
 
 lib/libsss_proxy.$(SHLIBEXT): $(PROXY_BE_OBJ)
 	$(SHLD) $(SHLD_FLAGS) -o $@ $(PROXY_BE_OBJ) $(LDFLAGS) $(LIBS)
+
+lib/memberof.$(SHLIBEXT): $(MEMBEROF_OBJ)
+	$(SHLD) $(SHLD_FLAGS) -o $@ $(MEMBEROF_OBJ) $(LDFLAGS) $(LDB_LIBS)

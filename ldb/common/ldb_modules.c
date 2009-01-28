@@ -486,6 +486,12 @@ int ldb_load_modules(struct ldb_context *ldb, const char *options[])
 } while (0)
 
 
+
+struct ldb_context *ldb_module_get_ctx(struct ldb_module *module)
+{
+    return module->ldb;
+}
+
 /*
    helper functions to call the next module in chain
 */
