@@ -17,6 +17,7 @@ sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 EXTRA_OBJ=@EXTRA_OBJ@
 SSSD_LIBEXEC_PATH = @SSSD_LIBEXEC_PATH@
+SSSD_LIBDIR = $(libdir)/@PACKAGE_NAME@
 SSSD_INTROSPECT_PATH = @SSSD_INTROSPECT_PATH@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 srvdir = $(srcdir)
@@ -49,6 +50,7 @@ SHLIBEXT = @SHLIBEXT@
 LD_EXPORT_DYNAMIC = @LD_EXPORT_DYNAMIC@
 SHLD = @SHLD@
 SHLD_FLAGS = @SHLD_FLAGS@
+SONAMEFLAG = @SONAMEFLAG@
 
 LDFLAGS += @LDFLAGS@ -L$(srcdir)/lib
 LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS) $(LDB_LIBS) $(DBUS_LIBS)
@@ -62,6 +64,17 @@ CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
 MDLD = @MDLD@
 MDLD_FLAGS = @MDLD_FLAGS@
 
+HAVE_INFOPIPE = @HAVE_INFOPIPE@
+HAVE_POLICYKIT = @HAVE_POLICYKIT@
+
+MEMBEROF_SOBASE=memberof.$(SHLIBEXT)
+MEMBEROF_SONAME=$(MEMBEROF_SOBASE).0
+MEMBEROF_SOLIB=$(MEMBEROF_SOBASE).$(PACKAGE_VERSION)
+
+PROXY_BE_SOBASE=libsss_proxy.$(SHLIBEXT)
+PROXY_BE_SONAME=$(PROXY_BE_SOBASE).0
+PROXY_BE_SOLIB=$(PROXY_BE_SOBASE).$(PACKAGE_VERSION)
+
 default: all
 
 include $(srvdir)/rules.mk
@@ -71,18 +84,27 @@ OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
 
 headers =
 
-DBUS_SYSBUS_POLICY_DIR = @sysbuspath@
+DBUS_SYSBUS_POLICY_DIR = @sysconfdir@/dbus-1/system.d
 
-LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_info sbin/sssd_pk
-DBUS_SYSBUS_POLICIES = infopipe/org.freeipa.sssd.infopipe.conf
-INFP_INTROSPECT_XML = infopipe/org.freeipa.sssd.infopipe.Introspect.xml
+LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be
+ifneq (x$(HAVE_INFOPIPE), x)
+    LIBEXECBINS += sbin/sssd_info
+    DBUS_SYSBUS_POLICIES = infopipe/org.freeipa.sssd.infopipe.conf
+    INFP_INTROSPECT_XML = infopipe/org.freeipa.sssd.infopipe.Introspect.xml
+endif
+ifneq (x$(HAVE_POLICYKIT), x)
+    LIBEXECBINS += sbin/sssd_pk
+endif
 BINS = sbin/sssd $(LIBEXECBINS)
-SOLIBS = lib/libsss_proxy.$(SHLIBEXT) lib/memberof.$(SHLIBEXT)
 TESTS = tests/sysdb-tests
+
+SOLIBS = lib/$(MEMBEROF_SOLIB) lib/$(PROXY_BE_SOLIB)
+SONAMELIBS = lib/$(PROXY_BE_SONAME) lib/$(MEMBEROF_SONAME)
+SOBASELIBS = lib/$(PROXY_BE_SOBASE) lib/$(MEMBEROF_SOBASE)
 
 DIRS = sbin lib
 
-all: showflags dirs $(OBJS) $(SOLIBS) $(BINS)
+all: showflags dirs $(OBJS) $(BINS) $(SOBASELIBS)
 
 shared-build: all
 
@@ -94,7 +116,9 @@ dirs:
 clean::
 	rm -f $(OBJS) $(BINS) $(MODULES)
 	rm -f *.o */*.o */*/*.o
-	rm -f $(BINS) $(SOLIBS) $(TESTS)
+	rm -f $(BINS) $(TESTS)
+	rm -f $(BINS) $(TESTS)
+	rm -f $(SOBASELIBS) $(SONAMELIBS) $(SOLIBS)
 
 distclean:: clean
 	rm -rf $(DIRS)
@@ -109,15 +133,13 @@ install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -m 755 sbin/sssd $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 	${INSTALLCMD} -m 755 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
-	${INSTALLCMD} -m 755 lib/libsss_proxy.$(SHLIBEXT) $(DESTDIR)$(libdir)
-	${INSTALLCMD} -m 755 lib/memberof.$(SHLIBEXT) $(DESTDIR)$(libdir)
 
 installdirs::
 	mkdir -p $(DESTDIR)$(includedir) \
 	          $(DESTDIR)$(libdir) \
 	          $(DESTDIR)$(sbindir) \
-	          $(DBUS_SYSBUS_POLICY_DIR) \
-	          $(SSSD_INTROSPECT_PATH)/infopipe
+	          $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR) \
+	          $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe
 
 installheaders:: installdirs
 ifneq (x$(headers), x)
@@ -126,11 +148,18 @@ endif
 
 installlibs:: installdirs
 ifneq (x$(STATICLIB)$(LIBSOLIB), x)
-	cp $(STATICLIB) $(LIBSOLIB) $(DESTDIR)$(libdir)
+	cp $(STATICLIB) $(LIBSOLIB) $(DESTDIR)$(SSSD_LIBDIR)
 endif
+	${INSTALLCMD} -m 755 $(SOLIBS) $(DESTDIR)$(SSSD_LIBDIR)
+	ln -fs $(PROXY_BE_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(PROXY_BE_SONAME)
+	ln -fs $(PROXY_BE_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(PROXY_BE_SOBASE)
+	ln -fs $(MEMBEROF_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(MEMBEROF_SONAME)
+	ln -fs $(MEMBEROF_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(MEMBEROF_SOBASE)
 
 installbin:: installdirs
 
 installsupport:: installdirs
-	cp $(DBUS_SYSBUS_POLICIES) $(DBUS_SYSBUS_POLICY_DIR)
-	cp $(INFP_INTROSPECT_XML) $(SSSD_INTROSPECT_PATH)/infopipe
+ifneq (x$(HAVE_INFOPIPE), x)
+	cp $(DBUS_SYSBUS_POLICIES) $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR)
+	cp $(INFP_INTROSPECT_XML) $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe
+endif
