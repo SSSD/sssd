@@ -58,16 +58,35 @@ AC_DEFUN(WITH_PIPE_PATH,
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
-AC_DEFUN(WITH_DBUS_SYSBUS_PATH,
-  [ AC_ARG_WITH([dbus-sysbus-path],
-                [AC_HELP_STRING([--with-dbus-sysbus-path=PATH],
-                                [Where to store policy files for the D-BUS system bus [/etc/dbus-1/system.d]]
+AC_DEFUN(WITH_POLICYKIT,
+  [ AC_ARG_WITH([policykit],
+                [AC_HELP_STRING([--with-policykit],
+                                [Whether to include PolicyKit support [yes]]
                                )
-                ]
+                ],
+                [],
+                with_policykit=yes
                )
-    sysbuspath="/etc/dbus-1/system.d"
-    if test x"$with_dbus_sysbus_path" != x; then
-        sysbuspath=$with_dbus_sysbus_path
+    if test x"$with_policykit" == xyes; then
+        AC_DEFINE(HAVE_POLICYKIT, 1, [Include PolicyKit support])
+        HAVE_POLICYKIT=1
+        AC_SUBST(HAVE_POLICYKIT)
     fi
-    AC_SUBST(sysbuspath)
   ])
+
+AC_DEFUN(WITH_INFOPIPE,
+  [ AC_ARG_WITH([infopipe],
+                [AC_HELP_STRING([--with-infopipe],
+                                [Whether to include InfoPipe support [yes]]
+                               )
+                ],
+                [],
+                with_infopipe=yes
+               )
+    if test x"$with_infopipe" == xyes; then
+        AC_DEFINE(HAVE_INFOPIPE, 1, [Include InfoPipe support])
+        HAVE_INFOPIPE=1
+        AC_SUBST(HAVE_INFOPIPE)
+    fi
+  ])
+

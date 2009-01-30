@@ -515,6 +515,7 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     if (ret != EOK) goto done;
 
 /* InfoPipe */
+#ifdef HAVE_INFOPIPE
     /* Set the sssd_info description */
     val[0] = "InfoPipe Configuration";
     ret = confdb_add_param(cdb, false, "config/services/infp", "description", val);
@@ -529,8 +530,10 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     val[0] = "infp";
     ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
     if (ret != EOK) goto done;
+#endif
 
 /* PolicyKit */
+#ifdef HAVE_POLICYKIT
     /* Set the sssd_pk description */
     val[0] = "PolicyKit Backend Configuration";
     ret = confdb_add_param(cdb, false, "config/services/spk", "description", val);
@@ -545,6 +548,7 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     val[0] = "spk";
     ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
     if (ret != EOK) goto done;
+#endif
 
 /* Domains */
     val[0] = "Domains served by SSSD";

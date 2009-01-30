@@ -23,7 +23,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
-#include "../talloc/talloc.h"
+#include "talloc.h"
 #include "util/util.h"
 #include "nss/nsssrv.h"
 

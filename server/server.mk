@@ -65,11 +65,13 @@ sbin/sssd_info: $(INFOPIPE_OBJ) $(UTIL_OBJ)
 sbin/sssd_pk: $(POLKIT_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd_pk $(POLKIT_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
-lib/libsss_proxy.$(SHLIBEXT): $(PROXY_BE_OBJ)
-	$(SHLD) $(SHLD_FLAGS) -o $@ $(PROXY_BE_OBJ) $(LDFLAGS) $(LIBS)
+lib/$(PROXY_BE_SOBASE): $(PROXY_BE_OBJ)
+	$(SHLD) $(SHLD_FLAGS) $(SONAMEFLAG)$(PROXY_BE_SONAME) -o lib/$(PROXY_BE_SOLIB) $(PROXY_BE_OBJ) $(LDFLAGS) $(LIBS)
+	ln -fs $(PROXY_BE_SOLIB) $@
 
-lib/memberof.$(SHLIBEXT): $(MEMBEROF_OBJ)
-	$(SHLD) $(SHLD_FLAGS) -o $@ $(MEMBEROF_OBJ) $(LDFLAGS) $(LDB_LIBS)
+lib/$(MEMBEROF_SOBASE): $(MEMBEROF_OBJ)
+	$(SHLD) $(SHLD_FLAGS) $(SONAMEFLAG)$(MEMBEROF_SONAME) -o lib/$(MEMBEROF_SOLIB) $(MEMBEROF_OBJ) $(LDFLAGS) $(LDB_LIBS)
+	ln -fs $(MEMBEROF_SOLIB) $@
 
 #Tests
 tests/sysdb-tests: $(SYSDB_TEST_OBJ) $(UTIL_OBJ)
