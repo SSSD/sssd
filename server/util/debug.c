@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 const char *debug_prg_name = "sssd";
-int debug_level = 3;
+int debug_level = 0;
 
 void debug_fn(const char *format, ...)
 {

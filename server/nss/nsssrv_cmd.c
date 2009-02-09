@@ -106,7 +106,7 @@ static int nss_check_domain(struct ldb_dn *dn,
         key = "LOCAL";
     }
 
-    basedn = btreemap_get_value(domain_map, (void *)key);
+    basedn = btreemap_get_value(domain_map, key);
     if (!basedn) {
         DEBUG(4, ("Domain (%s) not found in map!\n", domain));
         return EINVAL;

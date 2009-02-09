@@ -97,7 +97,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct event_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
-                   uint64_t uid,
+                   uid_t uid,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
@@ -116,7 +116,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct event_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
-                   uint64_t gid,
+                   gid_t gid,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
@@ -135,7 +135,7 @@ int sysdb_store_account_posix(TALLOC_CTX *memctx,
                               struct sysdb_ctx *sysdb,
                               const char *domain,
                               char *name, char *pwd,
-                              uint64_t uid, uint64_t gid,
+                              uid_t uid, gid_t gid,
                               char *gecos, char *homedir, char *shell);
 
 int sysdb_remove_account_posix(TALLOC_CTX *memctx,
@@ -145,4 +145,9 @@ int sysdb_remove_account_posix(TALLOC_CTX *memctx,
 int sysdb_remove_account_posix_by_uid(TALLOC_CTX *memctx,
                                       struct sysdb_ctx *sysdb,
                                       const char *domain, uid_t uid);
+
+int sysdb_store_group_posix(TALLOC_CTX *memctx,
+                            struct sysdb_ctx *sysdb,
+                            const char *domain,
+                            const char *name, gid_t gid);
 #endif /* __SYS_DB_H__ */

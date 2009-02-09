@@ -203,7 +203,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct event_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
-                   uint64_t uid,
+                   uid_t uid,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -497,7 +497,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct event_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
-                   uint64_t gid,
+                   gid_t gid,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -734,7 +734,7 @@ int sysdb_store_account_posix(TALLOC_CTX *memctx,
                               struct sysdb_ctx *sysdb,
                               const char *domain,
                               char *name, char *pwd,
-                              uint64_t uid, uint64_t gid,
+                              uid_t uid, gid_t gid,
                               char *gecos, char *homedir, char *shell)
 {
     TALLOC_CTX *tmp_ctx;
@@ -1091,6 +1091,172 @@ done:
         }
     }
 
+    talloc_free(tmp_ctx);
+    return ret;
+}
+int sysdb_store_group_posix(TALLOC_CTX *memctx,
+                            struct sysdb_ctx *sysdb,
+                            const char *domain,
+                            const char *name, gid_t gid)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *attrs[] = { SYSDB_GR_NAME, NULL };
+    struct ldb_dn *group_dn;
+    struct ldb_result *res;
+    struct ldb_request *req;
+    struct ldb_message *msg;
+    int ret, lret;
+    int flags;
+
+    tmp_ctx = talloc_new(memctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                           "gid=%s,"SYSDB_TMPL_GROUP_BASE,
+                           name, domain);
+    if (group_dn == NULL) {
+        ret = ENOMEM;
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+
+    /* Start a transaction to ensure that nothing changes
+     * underneath us while we're working
+     */
+    lret = ldb_transaction_start(sysdb->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+        talloc_free(tmp_ctx);
+        return EIO;
+    }
+
+    /* Determine if the group already exists */
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, group_dn,
+                      LDB_SCOPE_BASE, attrs, SYSDB_GRENT_FILTER);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\b",
+                ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    req = NULL;
+
+    switch(res->count) {
+    case 0:
+        flags = LDB_FLAG_MOD_ADD;
+        DEBUG(3, ("Adding new entry\n"));
+        break;
+    case 1:
+        flags = LDB_FLAG_MOD_REPLACE;
+        DEBUG(3, ("Replacing existing entry\n"));
+        break;
+    default:
+        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
+                  res->count));
+        ret = EIO;
+        goto done;
+    }
+    talloc_free(res);
+    res = NULL;
+
+    /* Set up the add/replace request */
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = group_dn;
+
+    if (flags == LDB_FLAG_MOD_ADD) {
+        /* TODO: retrieve group objectclass list from configuration */
+        lret = ldb_msg_add_empty(msg, "objectClass", flags, NULL);
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_msg_add_string(msg, "objectClass", "group");
+        }
+        if (lret != LDB_SUCCESS) {
+            ret = errno;
+            goto done;
+        }
+
+        /* TODO: retrieve groupname attribute from configuration */
+        lret = ldb_msg_add_empty(msg, SYSDB_GR_NAME, flags, NULL);
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_msg_add_string(msg, SYSDB_GR_NAME, name);
+        }
+        if (lret != LDB_SUCCESS) {
+            ret = errno;
+            goto done;
+        }
+    }
+
+    /* TODO: retrieve attribute name mappings from configuration */
+    /* gid */
+    if (gid) {
+        lret = ldb_msg_add_empty(msg, SYSDB_GR_GIDNUM, flags, NULL);
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_msg_add_fmt(msg, SYSDB_GR_GIDNUM,
+                                   "%lu", (unsigned long)gid);
+        }
+        if (lret != LDB_SUCCESS) {
+            ret = errno;
+            goto done;
+        }
+    } else {
+        DEBUG(0, ("Cached groups can't have GID == 0\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* modification time */
+    lret = ldb_msg_add_empty(msg, SYSDB_LAST_UPDATE, flags, NULL);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_msg_add_fmt(msg, SYSDB_LAST_UPDATE,
+                               "%ld", (long int)time(NULL));
+    }
+    if (lret != LDB_SUCCESS) {
+        ret = errno;
+        goto done;
+    }
+
+    if (flags == LDB_FLAG_MOD_ADD) {
+        lret = ldb_build_add_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
+                                 NULL, ldb_op_default_callback, NULL);
+    } else {
+        lret = ldb_build_mod_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
+                                 NULL, ldb_op_default_callback, NULL);
+    }
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_request(sysdb->ldb, req);
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_wait(req->handle, LDB_WAIT_ALL);
+        }
+    }
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make modify request: %s(%d)[%s]\n",
+                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_transaction_commit(sysdb->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        lret = ldb_transaction_cancel(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+        }
+    }
     talloc_free(tmp_ctx);
     return ret;
 }

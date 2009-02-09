@@ -38,6 +38,9 @@ LDB_CFLAGS = @LDB_CFLAGS@
 DBUS_LIBS = @DBUS_LIBS@
 DBUS_CFLAGS = @DBUS_CFLAGS@
 
+CHECK_LIBS = @CHECK_LIBS@
+CHECK_CFLAGS = @CHECK_CFLAGS@
+
 LIBDL = @LIBDL@
 
 SHLIBEXT = @SHLIBEXT@
@@ -46,12 +49,12 @@ LD_EXPORT_DYNAMIC = @LD_EXPORT_DYNAMIC@
 SHLD = @SHLD@
 SHLD_FLAGS = @SHLD_FLAGS@
 
-LDFLAGS += @LDFLAGS@
+LDFLAGS += @LDFLAGS@ -L$(srcdir)/lib
 LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS) $(LDB_LIBS) $(DBUS_LIBS)
 
 PICFLAG = @PICFLAG@
 CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
-       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) $(LDB_CFLAGS) $(DBUS_CFLAGS)\
+       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) $(LDB_CFLAGS) $(DBUS_CFLAGS) $(CHECK_CFLAGS)\
 	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\" -DUSE_MMAP=1 @CFLAGS@
 
 MDLD = @MDLD@
@@ -71,13 +74,16 @@ DBUS_SYSBUS_POLICY_DIR = @sysbuspath@
 LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_info sbin/sssd_pk
 DBUS_SYSBUS_POLICIES = infopipe/org.freeipa.sssd.infopipe.conf
 BINS = sbin/sssd $(LIBEXECBINS)
-SOLIBS = lib/libsss_proxy.$(SHLIBEXT) lib/memberof.$(SHLIBEXT)
+SOLIBS = lib/libsysdb.$(SHLIBEXT) lib/libsss_proxy.$(SHLIBEXT) lib/memberof.$(SHLIBEXT)
+TESTS = tests/sysdb-tests
 
 DIRS = sbin lib
 
-all: showflags dirs $(OBJS) $(BINS) $(SOLIBS)
+all: showflags dirs $(OBJS) $(SOLIBS) $(BINS)
 
 shared-build: all
+
+tests: all $(TESTS)
 
 dirs:
 	@mkdir -p $(DIRS)
@@ -85,7 +91,7 @@ dirs:
 clean::
 	rm -f $(OBJS) $(BINS) $(MODULES)
 	rm -f *.o */*.o */*/*.o
-	rm -f $(BINS) $(SOLIBS)
+	rm -f $(BINS) $(SOLIBS) $(TESTS)
 
 distclean:: clean
 	rm -rf $(DIRS)
@@ -100,6 +106,7 @@ install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -m 755 sbin/sssd $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 	${INSTALLCMD} -m 755 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
+	${INSTALLCMD} -m 755 lib/sysdb.$(SHLIBEXT) $(DESTDIR)$(libdir)
 	${INSTALLCMD} -m 755 lib/libsss_proxy.$(SHLIBEXT) $(DESTDIR)$(libdir)
 	${INSTALLCMD} -m 755 lib/memberof.$(SHLIBEXT) $(DESTDIR)$(libdir)
 

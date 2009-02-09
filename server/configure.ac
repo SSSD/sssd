@@ -47,7 +47,8 @@ m4_include(libevents.m4)
 m4_include(libldb.m4)
 m4_include(util/signal.m4)
 
-PKG_CHECK_MODULES(DBUS,dbus-1)
+PKG_CHECK_MODULES([DBUS],[dbus-1])
+PKG_CHECK_MODULES([CHECK],[check])
 
 AC_SUBST(TESTS)
 AC_SUBST(EXTRA_OBJ)
