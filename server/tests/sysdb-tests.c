@@ -110,6 +110,7 @@ START_TEST (test_sysdb_store_local_group_posix)
 {
     int ret;
     struct sysdb_test_ctx *test_ctx;
+    char *group_name;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -118,8 +119,11 @@ START_TEST (test_sysdb_store_local_group_posix)
         return;
     }
 
+    group_name = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
+    fail_if(group_name == NULL, "Could not allocate group name");
+
     ret = sysdb_store_group_posix(test_ctx, test_ctx->sysdb,
-                            "LOCAL", SYSDB_POSIX_TEST_GROUP, _i);
+                            "LOCAL", group_name, _i);
     fail_if(ret != EOK, "Could not store POSIX group");
 
     talloc_free(test_ctx);
@@ -134,6 +138,7 @@ START_TEST (test_sysdb_get_local_group_posix)
     struct ldb_dn *base_group_dn;
     const char *attrs[] = { SYSDB_GR_NAME, SYSDB_GR_GIDNUM, NULL };
     const char *name;
+    char *expected_group;
     gid_t test_gid;
 
     /* Setup */
@@ -142,6 +147,9 @@ START_TEST (test_sysdb_get_local_group_posix)
         fail("Could not set up the test");
         return;
     }
+
+    expected_group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
+    fail_if(expected_group == NULL, "Could not allocate expected_group");
 
     /* Set up the base DN */
     base_group_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb,
@@ -170,26 +178,26 @@ START_TEST (test_sysdb_get_local_group_posix)
     }
 
     name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_GR_NAME, NULL);
-    fail_unless(strcmp(name, SYSDB_POSIX_TEST_GROUP) == 0,
+    fail_unless(strcmp(name, expected_group) == 0,
                 "Returned group name was %s, expecting %s",
-                name, SYSDB_POSIX_TEST_GROUP);
+                name, expected_group);
     talloc_free(res);
 
     /* Look up the group by name */
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx,
                      &res, base_group_dn, LDB_SCOPE_ONELEVEL,
-                     attrs, SYSDB_GRNAM_FILTER, SYSDB_POSIX_TEST_GROUP);
+                     attrs, SYSDB_GRNAM_FILTER, expected_group);
     if (ret != LDB_SUCCESS) {
         fail("Could not locate group %d", _i);
         return;
     }
 
     if (res->count < 1) {
-        fail("Local group %s doesn't exist.", SYSDB_POSIX_TEST_GROUP);
+        fail("Local group %s doesn't exist.", expected_group);
         return;
     }
     else if (res->count > 1) {
-        fail("More than one group shared name %s", SYSDB_POSIX_TEST_GROUP);
+        fail("More than one group shared name %s", expected_group);
         return;
     }
 
@@ -207,6 +215,7 @@ START_TEST (test_sysdb_add_acct_to_posix_group)
     int ret;
     struct sysdb_test_ctx *test_ctx;
     char *username;
+    char *group;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -217,14 +226,16 @@ START_TEST (test_sysdb_add_acct_to_posix_group)
 
     /* Add user to test group */
     username = talloc_asprintf(test_ctx, "testuser%d", _i);
+    group = talloc_asprintf(test_ctx, "%s%d",SYSDB_POSIX_TEST_GROUP, _i);
+
     ret = sysdb_add_acct_to_posix_group(test_ctx,
                                         test_ctx->sysdb,
                                         "LOCAL",
-                                        SYSDB_POSIX_TEST_GROUP,
+                                        group,
                                         username);
     fail_if(ret != EOK,
-            "Failed to add user %s to group %s. Error was: %d",
-            username, SYSDB_POSIX_TEST_GROUP, ret);
+            "Failed to add user %s to group %s.",
+            username, group, ret);
 
     talloc_free(test_ctx);
 }
@@ -238,6 +249,7 @@ START_TEST (test_sysdb_verify_posix_group_members)
     char *username;
     char *member;
     char *group;
+    char *group_name;
     struct ldb_dn *group_dn;
     struct ldb_dn *user_dn;
     struct ldb_result *res;
@@ -263,9 +275,10 @@ START_TEST (test_sysdb_verify_posix_group_members)
     user_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, member);
     fail_if(user_dn == NULL, "Could not create user_dn object");
 
+    group_name = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
     group = talloc_asprintf(test_ctx,
                             SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                            SYSDB_POSIX_TEST_GROUP, "LOCAL");
+                            group_name, "LOCAL");
     fail_if(group == NULL, "Could not allocate group dn");
 
     group_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, group);
@@ -274,14 +287,14 @@ START_TEST (test_sysdb_verify_posix_group_members)
     /* Look up the group by name */
     ret = ldb_search(test_ctx->sysdb->ldb, test_ctx,
                      &res, group_dn, LDB_SCOPE_BASE,
-                     group_attrs, SYSDB_GRNAM_FILTER, SYSDB_POSIX_TEST_GROUP);
+                     group_attrs, SYSDB_GRNAM_FILTER, group_name);
     if (ret != LDB_SUCCESS) {
         fail("Could not locate group %d", _i);
         return;
     }
 
     if (res->count < 1) {
-        fail("Local group %s doesn't exist.", SYSDB_POSIX_TEST_GROUP);
+        fail("Local group %s doesn't exist.", group_name);
         return;
     }
     else if (res->count > 1) {
@@ -351,6 +364,125 @@ START_TEST (test_sysdb_verify_posix_group_members)
 }
 END_TEST
 
+START_TEST (test_sysdb_add_invalid_member)
+{
+    char found_group;
+    int ret, i;
+    struct sysdb_test_ctx *test_ctx;
+    char *username;
+    char *member;
+    char *group;
+    char *group_name;
+    struct ldb_dn *group_dn;
+    struct ldb_result *res;
+    struct ldb_message_element *el;
+    const char *group_attrs[] = { SYSDB_GR_MEMBER, NULL };
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    /* Add nonexistent user to test group */
+    username = talloc_asprintf(test_ctx, "nonexistentuser%d", _i);
+    ret = sysdb_add_acct_to_posix_group(test_ctx,
+                                        test_ctx->sysdb,
+                                        "LOCAL",
+                                        SYSDB_POSIX_TEST_GROUP,
+                                        username);
+    fail_if(ret == EOK,
+            "Unexpected success adding user %s to group %s. Error was: %d",
+            username, SYSDB_POSIX_TEST_GROUP, ret);
+
+/* Verify that the member wasn't added anyway */
+
+    member = talloc_asprintf(test_ctx,
+                             SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
+                             username, "LOCAL");
+    fail_if(member == NULL, "Could not allocate member dn");
+
+    group_name = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
+    group = talloc_asprintf(test_ctx,
+                            SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
+                            group_name, "LOCAL");
+    fail_if(group == NULL, "Could not allocate group dn");
+
+    group_dn = ldb_dn_new_fmt(test_ctx, test_ctx->sysdb->ldb, group);
+    fail_if(group_dn == NULL, "Could not create group_dn object");
+
+    /* Look up the group by name */
+    ret = ldb_search(test_ctx->sysdb->ldb, test_ctx,
+                     &res, group_dn, LDB_SCOPE_BASE,
+                     group_attrs, SYSDB_GRNAM_FILTER, group_name);
+    if (ret != LDB_SUCCESS) {
+        fail("Could not locate group %d", _i);
+        return;
+    }
+
+    if (res->count < 1) {
+        fail("Local group %s doesn't exist.", group_name);
+        return;
+    }
+    else if (res->count > 1) {
+        fail("More than one group shared name %s", group_name);
+        return;
+    }
+
+    /* Check the members for the requested user */
+    found_group = i = 0;
+    el = ldb_msg_find_element(res->msgs[0], SYSDB_GR_MEMBER);
+    if (el && el->num_values > 0) {
+        while (i < el->num_values && !found_group) {
+            struct ldb_val v = el->values[i];
+            char *value = talloc_strndup(test_ctx, (char *)v.data, v.length);
+            if (strcmp(value, member) == 0) {
+                found_group = 1;
+            }
+            talloc_free(value);
+            i++;
+        }
+    }
+    else {
+        fail("No member attributes for group %s", SYSDB_POSIX_TEST_GROUP);
+    }
+
+    fail_if(found_group == 1, "%s has added %s as a member", SYSDB_POSIX_TEST_GROUP, username);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_add_group_to_posix_group)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+    char *member_group;
+    char *group;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    /* Add user to test group */
+    member_group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i-1);
+    group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
+    ret = sysdb_add_group_to_posix_group(test_ctx,
+                                         test_ctx->sysdb,
+                                         "LOCAL",
+                                         group,
+                                         member_group);
+    fail_if(ret != EOK,
+            "Failed to add group %s to group %s. Error was: %d",
+            member_group, group, ret);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -359,16 +491,16 @@ Suite *create_sysdb_suite(void)
     TCase *tc_posix_users = tcase_create("\tPOSIX Users");
 
     /* Create a new user */
-    tcase_add_loop_test(tc_posix_users, test_sysdb_store_local_account_posix,26000,26010);
+    tcase_add_loop_test(tc_posix_users, test_sysdb_store_local_account_posix,27000,27010);
 
 /* POSIX Group test case */
     TCase *tc_posix_gr = tcase_create("\tPOSIX Groups");
 
     /* Create a new group */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_store_local_group_posix,27000,27001);
+    tcase_add_loop_test(tc_posix_gr, test_sysdb_store_local_group_posix,27000,27010);
 
     /* Verify that the new group exists */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_get_local_group_posix,27000,27001);
+    tcase_add_loop_test(tc_posix_gr, test_sysdb_get_local_group_posix,27000,27010);
 
     /* Change the gid of the group we created */
     tcase_add_loop_test(tc_posix_gr, test_sysdb_store_local_group_posix,27001,27002);
@@ -377,10 +509,16 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_posix_gr, test_sysdb_get_local_group_posix,27001,27002);
 
     /* Add users to the group */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_acct_to_posix_group, 26000, 26010);
+    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_acct_to_posix_group, 27000, 27010);
 
     /* Verify member and memberOf */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_verify_posix_group_members, 26000, 26010);
+    tcase_add_loop_test(tc_posix_gr, test_sysdb_verify_posix_group_members, 27000, 27010);
+
+    /* A negative test: add nonexistent users as members of a group */
+    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_invalid_member, 27000, 27010);
+
+    /* Add groups as members of groups */
+    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_group_to_posix_group, 27001, 27010);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_posix_users);

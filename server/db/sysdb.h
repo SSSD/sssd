@@ -160,4 +160,15 @@ int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
                                   const char *domain,
                                   const char *gname,
                                   const char *username);
+
+int sysdb_add_group_to_posix_group(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  const char *domain,
+                                  const char *group,
+                                  const char *member_group);
+
+int sysdb_add_member_to_posix_group(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct ldb_dn *member_dn,
+                                    struct ldb_dn *group_dn);
 #endif /* __SYS_DB_H__ */

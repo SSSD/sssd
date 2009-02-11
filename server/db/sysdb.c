@@ -1263,24 +1263,21 @@ done:
     return ret;
 }
 
+/* Wrapper around adding a user account to a POSIX group */
 int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
                                   struct sysdb_ctx *sysdb,
                                   const char *domain,
-                                  const char *gname,
+                                  const char *group,
                                   const char *username)
 {
     TALLOC_CTX *tmp_ctx;
-    int ret, lret;
+    int ret;
     char *account;
     struct ldb_dn *acct_dn;
     struct ldb_dn *group_dn;
-    struct ldb_message *msg;
-    struct ldb_result *res;
-    struct ldb_request *req;
-    const char *acct_attrs[] = { SYSDB_PW_NAME, NULL };
-    const char *group_attrs[] = { SYSDB_GR_MEMBER, NULL };
 
-    if (!sysdb || !domain || !gname || !username) {
+
+    if (!sysdb || !domain || !group || !username) {
         return EINVAL;
     }
 
@@ -1292,24 +1289,78 @@ int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
     account = talloc_asprintf(tmp_ctx,
                               SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
                               username, domain);
-    if (account == NULL) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
+    if (account == NULL) goto done;
+
     acct_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, account);
-    if (acct_dn == NULL) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
+    if (acct_dn == NULL) goto done;
 
     group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                               SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                              gname, domain);
-    if (group_dn == NULL) {
-        talloc_free(tmp_ctx);
+                              group, domain);
+    if (group_dn == NULL) goto done;
+
+    ret = sysdb_add_member_to_posix_group(tmp_ctx, sysdb, acct_dn, group_dn);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/* Wrapper around adding a POSIX group to a POSIX group */
+int sysdb_add_group_to_posix_group(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  const char *domain,
+                                  const char *group,
+                                  const char *member_group)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    char *member_group_canonical;
+    struct ldb_dn *member_group_dn;
+    struct ldb_dn *group_dn;
+
+
+    if (!sysdb || !domain || !group || !member_group) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
         return ENOMEM;
     }
-    ret = EOK;
+
+    member_group_canonical = talloc_asprintf(tmp_ctx,
+                                             SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
+                                             member_group, domain);
+    if (member_group_canonical == NULL) goto done;
+
+    member_group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, member_group_canonical);
+    if (member_group_dn == NULL) goto done;
+
+    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
+                              group, domain);
+    if (group_dn == NULL) goto done;
+
+    ret = sysdb_add_member_to_posix_group(tmp_ctx, sysdb, member_group_dn, group_dn);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_add_member_to_posix_group(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct ldb_dn *member_dn,
+                                    struct ldb_dn *group_dn)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret, lret;
+    struct ldb_message *msg;
+    struct ldb_request *req;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) return ENOMEM;
 
     /* Start LDB Transaction */
     lret = ldb_transaction_start(sysdb->ldb);
@@ -1318,62 +1369,6 @@ int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
         talloc_free(tmp_ctx);
         return EIO;
     }
-
-    /* Verify the existence of the user */
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, acct_dn,
-                      LDB_SCOPE_BASE, acct_attrs, SYSDB_PWENT_FILTER);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\b",
-                ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    switch(res->count) {
-    case 0:
-        DEBUG(1, ("No such user to add to group.\n"));
-        goto done;
-        break;
-
-    case 1:
-        /* Exactly one user returned. Proceed */
-        break;
-
-    default:
-        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                  res->count));
-        ret = EIO;
-        goto done;
-    }
-    talloc_free(res);
-
-    /* Verify the existence of the group */
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, group_dn,
-                      LDB_SCOPE_BASE, group_attrs, SYSDB_GRENT_FILTER);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\b",
-                ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    switch(res->count) {
-    case 0:
-        DEBUG(1, ("No such group.\n"));
-        goto done;
-        break;
-
-    case 1:
-        /* Exactly one user returned. Proceed */
-        break;
-
-    default:
-        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                  res->count));
-        ret = EIO;
-        goto done;
-    }
-    talloc_free(res);
 
     /* Add the user as a member of the group */
     msg = ldb_msg_new(tmp_ctx);
@@ -1384,7 +1379,7 @@ int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
     msg->dn = group_dn;
     lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER, LDB_FLAG_MOD_ADD, NULL);
     if (lret == LDB_SUCCESS) {
-        lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s", account);
+        lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s", ldb_dn_alloc_linearized(tmp_ctx, member_dn));
     }
     if (lret != LDB_SUCCESS) {
         ret = errno;
