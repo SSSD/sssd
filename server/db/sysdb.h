@@ -50,6 +50,7 @@
 #define SYSDB_PW_FULLNAME "fullName"
 #define SYSDB_PW_HOMEDIR "homeDirectory"
 #define SYSDB_PW_SHELL "loginShell"
+#define SYSDB_PW_MEMBEROF "memberOf"
 
 #define SYSDB_GR_NAME "cn"
 #define SYSDB_GR_GIDNUM "gidNumber"
@@ -134,9 +135,12 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 int sysdb_store_account_posix(TALLOC_CTX *memctx,
                               struct sysdb_ctx *sysdb,
                               const char *domain,
-                              char *name, char *pwd,
+                              const char *name,
+                              const char *pwd,
                               uid_t uid, gid_t gid,
-                              char *gecos, char *homedir, char *shell);
+                              const char *gecos,
+                              const char *homedir,
+                              const char *shell);
 
 int sysdb_remove_account_posix(TALLOC_CTX *memctx,
                                struct sysdb_ctx *sysdb,
@@ -150,4 +154,10 @@ int sysdb_store_group_posix(TALLOC_CTX *memctx,
                             struct sysdb_ctx *sysdb,
                             const char *domain,
                             const char *name, gid_t gid);
+
+int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  const char *domain,
+                                  const char *gname,
+                                  const char *username);
 #endif /* __SYS_DB_H__ */

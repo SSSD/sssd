@@ -733,9 +733,12 @@ done:
 int sysdb_store_account_posix(TALLOC_CTX *memctx,
                               struct sysdb_ctx *sysdb,
                               const char *domain,
-                              char *name, char *pwd,
+                              const char *name,
+                              const char *pwd,
                               uid_t uid, gid_t gid,
-                              char *gecos, char *homedir, char *shell)
+                              const char *gecos,
+                              const char *homedir,
+                              const char *shell)
 {
     TALLOC_CTX *tmp_ctx;
     const char *attrs[] = { SYSDB_PW_NAME, NULL };
@@ -1114,10 +1117,9 @@ int sysdb_store_group_posix(TALLOC_CTX *memctx,
     }
 
     group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                           "gid=%s,"SYSDB_TMPL_GROUP_BASE,
+                           SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                            name, domain);
     if (group_dn == NULL) {
-        ret = ENOMEM;
         talloc_free(tmp_ctx);
         return ENOMEM;
     }
@@ -1257,6 +1259,171 @@ done:
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
         }
     }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  const char *domain,
+                                  const char *gname,
+                                  const char *username)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret, lret;
+    char *account;
+    struct ldb_dn *acct_dn;
+    struct ldb_dn *group_dn;
+    struct ldb_message *msg;
+    struct ldb_result *res;
+    struct ldb_request *req;
+    const char *acct_attrs[] = { SYSDB_PW_NAME, NULL };
+    const char *group_attrs[] = { SYSDB_GR_MEMBER, NULL };
+
+    if (!sysdb || !domain || !gname || !username) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    account = talloc_asprintf(tmp_ctx,
+                              SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
+                              username, domain);
+    if (account == NULL) {
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+    acct_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, account);
+    if (acct_dn == NULL) {
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+
+    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
+                              gname, domain);
+    if (group_dn == NULL) {
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+    ret = EOK;
+
+    /* Start LDB Transaction */
+    lret = ldb_transaction_start(sysdb->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+        talloc_free(tmp_ctx);
+        return EIO;
+    }
+
+    /* Verify the existence of the user */
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, acct_dn,
+                      LDB_SCOPE_BASE, acct_attrs, SYSDB_PWENT_FILTER);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\b",
+                ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    switch(res->count) {
+    case 0:
+        DEBUG(1, ("No such user to add to group.\n"));
+        goto done;
+        break;
+
+    case 1:
+        /* Exactly one user returned. Proceed */
+        break;
+
+    default:
+        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
+                  res->count));
+        ret = EIO;
+        goto done;
+    }
+    talloc_free(res);
+
+    /* Verify the existence of the group */
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, group_dn,
+                      LDB_SCOPE_BASE, group_attrs, SYSDB_GRENT_FILTER);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\b",
+                ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    switch(res->count) {
+    case 0:
+        DEBUG(1, ("No such group.\n"));
+        goto done;
+        break;
+
+    case 1:
+        /* Exactly one user returned. Proceed */
+        break;
+
+    default:
+        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
+                  res->count));
+        ret = EIO;
+        goto done;
+    }
+    talloc_free(res);
+
+    /* Add the user as a member of the group */
+    msg = ldb_msg_new(tmp_ctx);
+    if(msg == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = group_dn;
+    lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER, LDB_FLAG_MOD_ADD, NULL);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s", account);
+    }
+    if (lret != LDB_SUCCESS) {
+        ret = errno;
+        goto done;
+    }
+
+    lret = ldb_build_mod_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
+                             NULL, ldb_op_default_callback, NULL);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_request(sysdb->ldb, req);
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_wait(req->handle, LDB_WAIT_ALL);
+        }
+    }
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make modify request: %s(%d)[%s]\n",
+                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    /* Commit LDB Transaction */
+    lret = ldb_transaction_commit(sysdb->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    /* Cancel LDB Transaction */
+    if (ret != EOK) {
+        lret = ldb_transaction_cancel(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+        }
+    }
+
     talloc_free(tmp_ctx);
     return ret;
 }
