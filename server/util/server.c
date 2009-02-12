@@ -311,7 +311,7 @@ int server_setup(const char *name, int flags,
 
 void server_loop(struct main_context *main_ctx)
 {
-    /* wait for events - this is where smbd sits for most of its
+    /* wait for events - this is where the server sits for most of its
        life */
     event_loop_wait(main_ctx->event_ctx);
 
