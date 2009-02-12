@@ -326,17 +326,16 @@ static int be_cli_init(struct be_ctx *ctx)
 {
     int ret;
     char *sbus_address;
-    struct service_sbus_ctx *ss_ctx;
     struct sbus_method_ctx *sm_ctx;
 
-    /* Set up SBUS connection to the data provider */
+    /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(ctx, ctx->cdb, &sbus_address);
     if (ret != EOK) {
-        DEBUG(0, ("Could not locate data provider address.\n"));
+        DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
     }
 
-    ret = dp_init_sbus_methods(ctx, mon_sbus_methods, &sm_ctx);
+    ret = dp_init_sbus_methods(ctx, be_methods, &sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return ret;
@@ -346,19 +345,13 @@ static int be_cli_init(struct be_ctx *ctx)
                            sbus_address, sm_ctx,
                            ctx /* Private Data */,
                            NULL /* Destructor */,
-                           &ss_ctx);
+                           &ctx->dp_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to data provider services.\n"));
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
     }
 
-    ctx->ss_ctx = ss_ctx;
-
     return EOK;
-
-    return dp_sbus_cli_init(ctx, ctx->ev, ctx->cdb,
-                            be_methods, ctx, NULL,
-                            &ctx->dp_ctx);
 }
 
 static int load_backend(struct be_ctx *ctx)
