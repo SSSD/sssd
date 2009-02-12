@@ -94,7 +94,7 @@ START_TEST (test_sysdb_store_local_account_posix)
     const char *username = talloc_asprintf(test_ctx, "testuser%d", _i);
     const char *home = talloc_asprintf(test_ctx, "/home/testuser%d", _i);
 
-    ret = sysdb_store_account_posix(test_ctx, test_ctx->sysdb,
+    ret = sysdb_posix_store_user(test_ctx, test_ctx->sysdb,
                             "LOCAL", username, "password",
                             _i, _i,
                             "Test User",
@@ -122,8 +122,8 @@ START_TEST (test_sysdb_store_local_group_posix)
     group_name = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
     fail_if(group_name == NULL, "Could not allocate group name");
 
-    ret = sysdb_store_group_posix(test_ctx, test_ctx->sysdb,
-                            "LOCAL", group_name, _i);
+    ret = sysdb_posix_store_group(test_ctx, test_ctx->sysdb,
+                            "LOCAL", group_name, _i, NULL);
     fail_if(ret != EOK, "Could not store POSIX group");
 
     talloc_free(test_ctx);
@@ -228,9 +228,8 @@ START_TEST (test_sysdb_add_acct_to_posix_group)
     username = talloc_asprintf(test_ctx, "testuser%d", _i);
     group = talloc_asprintf(test_ctx, "%s%d",SYSDB_POSIX_TEST_GROUP, _i);
 
-    ret = sysdb_add_remove_posix_group_acct(test_ctx,
+    ret = sysdb_posix_add_user_to_group(test_ctx,
                                             test_ctx->sysdb,
-                                            SYSDB_FLAG_MOD_ADD,
                                             "LOCAL",
                                             group,
                                             username);
@@ -394,9 +393,8 @@ START_TEST (test_sysdb_add_invalid_member)
 
     /* Add nonexistent user to test group */
     username = talloc_asprintf(test_ctx, "nonexistentuser%d", _i);
-    ret = sysdb_add_remove_posix_group_acct(test_ctx,
+    ret = sysdb_posix_add_user_to_group(test_ctx,
                                             test_ctx->sysdb,
-                                            SYSDB_FLAG_MOD_ADD,
                                             "LOCAL",
                                             group,
                                             username);
@@ -455,37 +453,6 @@ START_TEST (test_sysdb_add_invalid_member)
 }
 END_TEST
 
-START_TEST (test_sysdb_add_group_to_posix_group)
-{
-    int ret;
-    struct sysdb_test_ctx *test_ctx;
-    char *member_group;
-    char *group;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    /* Add user to test group */
-    member_group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i-1);
-    group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
-    ret = sysdb_add_remove_posix_group_group(test_ctx,
-                                             test_ctx->sysdb,
-                                             SYSDB_FLAG_MOD_ADD,
-                                             "LOCAL",
-                                             group,
-                                             member_group);
-    fail_if(ret != EOK,
-            "Failed to add group %s to group %s. Error was: %d",
-            member_group, group, ret);
-
-    talloc_free(test_ctx);
-}
-END_TEST
-
 START_TEST (test_sysdb_remove_acct_from_posix_group)
 {
     int ret;
@@ -500,54 +467,18 @@ START_TEST (test_sysdb_remove_acct_from_posix_group)
         return;
     }
 
-    /* Add user to test group */
+    /* Remove user from test group */
     username = talloc_asprintf(test_ctx, "testuser%d", _i);
     group = talloc_asprintf(test_ctx, "%s%d",SYSDB_POSIX_TEST_GROUP, _i);
 
-    ret = sysdb_add_remove_posix_group_acct(test_ctx,
+    ret = sysdb_posix_remove_user_from_group(test_ctx,
                                             test_ctx->sysdb,
-                                            SYSDB_FLAG_MOD_DELETE,
                                             "LOCAL",
                                             group,
                                             username);
     fail_if(ret != EOK,
             "Failed to remove user %s from group %s.",
             username, group, ret);
-
-    talloc_free(test_ctx);
-}
-END_TEST
-
-START_TEST (test_sysdb_remove_group_from_posix_group)
-{
-    int ret;
-    struct sysdb_test_ctx *test_ctx;
-    char *member_group;
-    char *group;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    /* Add user to test group */
-    member_group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i-1);
-    fail_if(member_group == NULL, "Could not allocate member_group");
-
-    group = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
-    fail_if(member_group == NULL, "Could not allocate group");
-
-    ret = sysdb_add_remove_posix_group_group(test_ctx,
-                                             test_ctx->sysdb,
-                                             SYSDB_FLAG_MOD_DELETE,
-                                             "LOCAL",
-                                             group,
-                                             member_group);
-    fail_if(ret != EOK,
-            "Failed to remove group %s from group %s. Error was: %d",
-            member_group, group, ret);
 
     talloc_free(test_ctx);
 }
@@ -570,8 +501,7 @@ START_TEST (test_sysdb_remove_local_acct_posix)
      */
     const char *username = talloc_asprintf(test_ctx, "testuser%d", _i);
 
-    ret = sysdb_remove_account_posix(test_ctx, test_ctx->sysdb,
-                                     "LOCAL", username);
+    ret = sysdb_posix_remove_user(test_ctx, test_ctx->sysdb, "LOCAL", username);
     fail_if(ret != EOK, "Could not remove POSIX user %s", username);
 
     talloc_free(test_ctx);
@@ -590,8 +520,7 @@ START_TEST (test_sysdb_remove_local_acct_posix_by_uid)
         return;
     }
 
-    ret = sysdb_remove_account_posix_by_uid(test_ctx, test_ctx->sysdb,
-                                            "LOCAL", _i);
+    ret = sysdb_posix_remove_user_by_uid(test_ctx, test_ctx->sysdb, "LOCAL", _i);
     fail_if(ret != EOK, "Could not remove POSIX group");
 
     talloc_free(test_ctx);
@@ -614,7 +543,7 @@ START_TEST (test_sysdb_remove_local_group_posix)
     group_name = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
     fail_if(group_name == NULL, "Could not allocate group name");
 
-    ret = sysdb_remove_group_posix(test_ctx, test_ctx->sysdb,
+    ret = sysdb_posix_remove_group(test_ctx, test_ctx->sysdb,
                                    "LOCAL", group_name);
     fail_if(ret != EOK, "Could not remove POSIX group");
 
@@ -634,7 +563,7 @@ START_TEST (test_sysdb_remove_local_group_posix_by_gid)
         return;
     }
 
-    ret = sysdb_remove_group_posix_by_gid(test_ctx, test_ctx->sysdb,
+    ret = sysdb_posix_remove_group_by_gid(test_ctx, test_ctx->sysdb,
                                           "LOCAL", _i);
     fail_if(ret != EOK, "Could not remove POSIX group");
 
@@ -665,12 +594,6 @@ Suite *create_sysdb_suite(void)
 
     /* A negative test: add nonexistent users as members of a group */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_invalid_member, 27000, 27010);
-
-    /* Add groups as members of groups */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_group_to_posix_group, 27001, 27010);
-
-    /* Remove groups from their groups */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_group_from_posix_group, 27001, 27010);
 
     /* Remove users from their groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_acct_from_posix_group, 27000, 27010);

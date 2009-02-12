@@ -70,13 +70,13 @@ static int get_pw_name(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, char 
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_remove_account_posix(be_ctx, be_ctx->sysdb,
-                                         be_ctx->domain, name);
+        ret = sysdb_posix_remove_user(be_ctx, be_ctx->sysdb,
+                                      be_ctx->domain, name);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_store_account_posix(be_ctx, be_ctx->sysdb, be_ctx->domain,
-                                        result.pw_name, result.pw_passwd,
-                                        result.pw_uid, result.pw_gid,
+        ret = sysdb_posix_store_user(be_ctx, be_ctx->sysdb, be_ctx->domain,
+                                     result.pw_name, result.pw_passwd,
+                                     result.pw_uid, result.pw_gid,
                                         result.pw_gecos, result.pw_dir,
                                         result.pw_shell);
         break;
@@ -111,15 +111,15 @@ static int get_pw_uid(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, uid_t 
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_remove_account_posix_by_uid(be_ctx, be_ctx->sysdb,
-                                                be_ctx->domain,uid);
+        ret = sysdb_posix_remove_user_by_uid(be_ctx, be_ctx->sysdb,
+                                             be_ctx->domain,uid);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_store_account_posix(be_ctx, be_ctx->sysdb, be_ctx->domain,
-                                        result.pw_name, result.pw_passwd,
-                                        result.pw_uid, result.pw_gid,
-                                        result.pw_gecos, result.pw_dir,
-                                        result.pw_shell);
+        ret = sysdb_posix_store_user(be_ctx, be_ctx->sysdb, be_ctx->domain,
+                                     result.pw_name, result.pw_passwd,
+                                     result.pw_uid, result.pw_gid,
+                                     result.pw_gecos, result.pw_dir,
+                                     result.pw_shell);
         break;
     default:
         DEBUG(2, ("proxy -> getpwuid_r failed for '%lu' (%d)[%s]\n",

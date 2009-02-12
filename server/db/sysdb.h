@@ -82,13 +82,6 @@ struct confdb_ctx;
 
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 
-enum sysdb_flags {
-    SYSDB_FLAG_MOD_NONE = 0,
-    SYSDB_FLAG_MOD_ADD,
-    SYSDB_FLAG_MOD_DELETE,
-    SYSDB_FLAG_MOD_MODIFY
-};
-
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct event_context *ev,
                struct confdb_ctx *cdb,
@@ -139,55 +132,59 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      const char *name,
                      sysdb_callback_t fn, void *ptr);
 
-int sysdb_store_account_posix(TALLOC_CTX *memctx,
+
+/* the following are all SYNCHRONOUS calls
+ * TODO: make these asynchronous */
+
+int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *sysdb,
+                           struct ldb_dn *member_dn,
+                           struct ldb_dn *group_dn);
+
+int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
                               struct sysdb_ctx *sysdb,
-                              const char *domain,
-                              const char *name,
-                              const char *pwd,
-                              uid_t uid, gid_t gid,
-                              const char *gecos,
-                              const char *homedir,
-                              const char *shell);
+                              struct ldb_dn *member_dn,
+                              struct ldb_dn *group_dn);
 
-int sysdb_remove_account_posix(TALLOC_CTX *memctx,
-                               struct sysdb_ctx *sysdb,
-                               const char *domain, const char *name);
+int sysdb_posix_store_user(TALLOC_CTX *memctx,
+                           struct sysdb_ctx *sysdb,
+                           const char *domain,
+                           const char *name, const char *pwd,
+                           uid_t uid, gid_t gid, const char *gecos,
+                           const char *homedir, const char *shell);
 
-int sysdb_remove_account_posix_by_uid(TALLOC_CTX *memctx,
-                                      struct sysdb_ctx *sysdb,
-                                      const char *domain, uid_t uid);
+int sysdb_posix_remove_user(TALLOC_CTX *memctx,
+                            struct sysdb_ctx *sysdb,
+                            const char *domain, const char *name);
 
-int sysdb_store_group_posix(TALLOC_CTX *memctx,
+int sysdb_posix_remove_user_by_uid(TALLOC_CTX *memctx,
+                                   struct sysdb_ctx *sysdb,
+                                   const char *domain, uid_t uid);
+
+int sysdb_posix_store_group(TALLOC_CTX *memctx,
                             struct sysdb_ctx *sysdb,
                             const char *domain,
-                            const char *name, gid_t gid);
+                            const char *name, gid_t gid,
+                            char **members);
 
-int sysdb_add_remove_posix_group_acct(TALLOC_CTX *mem_ctx,
-                                     struct sysdb_ctx *sysdb,
-                                     int flag,
-                                     const char *domain,
-                                     const char *group,
-                                     const char *username);
+int sysdb_posix_add_user_to_group(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *sysdb,
+                                  const char *domain,
+                                  const char *group,
+                                  const char *username);
 
-/* Wrapper around adding a POSIX group to a POSIX group */
-int sysdb_add_remove_posix_group_group(TALLOC_CTX *mem_ctx,
-                                      struct sysdb_ctx *sysdb,
-                                      int flag,
-                                      const char *domain,
-                                      const char *group,
-                                      const char *member_group);
+int sysdb_posix_remove_user_from_group(TALLOC_CTX *mem_ctx,
+                                       struct sysdb_ctx *sysdb,
+                                       const char *domain,
+                                       const char *group,
+                                       const char *username);
 
-int sysdb_add_remove_posix_group_member(TALLOC_CTX *mem_ctx,
-                                        struct sysdb_ctx *sysdb,
-                                        int flag,
-                                        struct ldb_dn *member_dn,
-                                        struct ldb_dn *group_dn);
-
-int sysdb_remove_group_posix(TALLOC_CTX *memctx,
+int sysdb_posix_remove_group(TALLOC_CTX *memctx,
                              struct sysdb_ctx *sysdb,
                              const char *domain, const char *name);
 
-int sysdb_remove_group_posix_by_gid(TALLOC_CTX *memctx,
+int sysdb_posix_remove_group_by_gid(TALLOC_CTX *memctx,
                                     struct sysdb_ctx *sysdb,
                                     const char *domain, gid_t gid);
+
 #endif /* __SYS_DB_H__ */
