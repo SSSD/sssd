@@ -41,11 +41,34 @@ struct be_ctx {
     void *pvt_data;
 };
 
+struct be_req;
+
+typedef void (*be_async_callback_t)(struct be_req *, int, const char *);
+
+struct be_req {
+    struct be_ctx *be_ctx;
+    void *req_data;
+
+    be_async_callback_t fn;
+    void *pvt;
+};
+
+struct be_acct_req {
+    int entry_type;
+    int attr_type;
+    int filter_type;
+    char *filter_value;
+};
+
+struct be_online_req {
+    int online;
+};
+
+typedef void (*be_req_fn_t)(struct be_req *);
+
 struct be_mod_ops {
-    int (*check_online)(struct be_ctx *, int *reply);
-    int (*get_account_info)(struct be_ctx *,
-                            int entry_type, int attr_type,
-                            int filter_type, char *filter_value);
+    be_req_fn_t check_online;
+    be_req_fn_t get_account_info;
 };
 
 #endif /* __DP_BACKEND_H___ */

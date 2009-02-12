@@ -55,67 +55,82 @@ struct proxy_ctx {
     struct proxy_nss_ops ops;
 };
 
-static int get_pw_name(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, char *name)
+static void proxy_reply(struct be_req *req, int error, const char *errstr)
 {
-    struct proxy_nss_ops *ops = &proxy_ctx->ops;
+    return req->fn(req, error, errstr);
+}
+
+static void get_pw_name(struct be_req *req, char *name)
+{
+    struct proxy_ctx *ctx;
     enum nss_status status;
     struct passwd result;
     char *buffer;
     int ret;
 
-    buffer = talloc_size(NULL, 4096);
-    if (!buffer) return ENOMEM;
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
-    status = ops->getpwnam_r(name, &result, buffer, 4096, &ret);
+    buffer = talloc_size(NULL, 4096);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.getpwnam_r(name, &result, buffer, 4096, &ret);
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_posix_remove_user(be_ctx, be_ctx->sysdb,
-                                      be_ctx->domain, name);
+        ret = sysdb_posix_remove_user(req, req->be_ctx->sysdb,
+                                      req->be_ctx->domain, name);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_posix_store_user(be_ctx, be_ctx->sysdb, be_ctx->domain,
+        ret = sysdb_posix_store_user(req, req->be_ctx->sysdb,
+                                     req->be_ctx->domain,
                                      result.pw_name, result.pw_passwd,
                                      result.pw_uid, result.pw_gid,
-                                        result.pw_gecos, result.pw_dir,
-                                        result.pw_shell);
+                                     result.pw_gecos, result.pw_dir,
+                                     result.pw_shell);
         break;
     default:
         DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
                   name, ret, strerror(ret)));
         talloc_free(buffer);
-        return ret;
+        return proxy_reply(req, ret, "Operation failed");
     }
 
     if (ret != EOK) {
         DEBUG(1, ("Failed to update LDB Cache for '%s' (%d) !?\n",
                    name, ret));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
     }
 
     talloc_free(buffer);
-    return ret;
+    return proxy_reply(req, EOK, NULL);
 }
 
-static int get_pw_uid(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, uid_t uid)
+static void get_pw_uid(struct be_req *req, uid_t uid)
 {
-    struct proxy_nss_ops *ops = &proxy_ctx->ops;
+    struct proxy_ctx *ctx;
     enum nss_status status;
     struct passwd result;
     char *buffer;
     int ret;
 
-    buffer = talloc_size(NULL, 4096);
-    if (!buffer) return ENOMEM;
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
-    status = ops->getpwuid_r(uid, &result, buffer, 4096, &ret);
+    buffer = talloc_size(NULL, 4096);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.getpwuid_r(uid, &result, buffer, 4096, &ret);
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_posix_remove_user_by_uid(be_ctx, be_ctx->sysdb,
-                                             be_ctx->domain,uid);
+        ret = sysdb_posix_remove_user_by_uid(req, req->be_ctx->sysdb,
+                                             req->be_ctx->domain,uid);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_posix_store_user(be_ctx, be_ctx->sysdb, be_ctx->domain,
+        ret = sysdb_posix_store_user(req, req->be_ctx->sysdb,
+                                     req->be_ctx->domain,
                                      result.pw_name, result.pw_passwd,
                                      result.pw_uid, result.pw_gid,
                                      result.pw_gecos, result.pw_dir,
@@ -125,82 +140,368 @@ static int get_pw_uid(struct be_ctx *be_ctx, struct proxy_ctx *proxy_ctx, uid_t 
         DEBUG(2, ("proxy -> getpwuid_r failed for '%lu' (%d)[%s]\n",
                   (unsigned long)uid, ret, strerror(ret)));
         talloc_free(buffer);
-        return ret;
+        return proxy_reply(req, ret, "Operation failed");
     }
 
     if (ret != EOK) {
         DEBUG(1, ("Failed to update LDB Cache for '%lu' (%d) !?\n",
                    (unsigned long)uid, ret));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
     }
 
     talloc_free(buffer);
-    return ret;
+    return proxy_reply(req, EOK, NULL);
 }
 
-static int proxy_check_online(struct be_ctx *be_ctx, int *reply)
-{
-    *reply = MOD_ONLINE;
-    return EOK;
-}
+#define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
 
-static int proxy_get_account_info(struct be_ctx *be_ctx,
-                                 int entry_type, int attr_type,
-                                 int filter_type, char *filter_value)
+static void enum_users(struct be_req *req)
 {
     struct proxy_ctx *ctx;
+    enum nss_status status;
+    struct passwd result;
+    char *buffer, *newb;
+    size_t buflen;
+    const char *errstr;
+    int ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+
+    buflen = 4096;
+    buffer = talloc_size(NULL, buflen);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.setpwent();
+    if (status != NSS_STATUS_SUCCESS)
+        return proxy_reply(req, EIO, "Operation failed");
+
+    while (status == NSS_STATUS_SUCCESS) {
+
+        status = ctx->ops.getpwent_r(&result, buffer, buflen, &ret);
+
+        switch (status) {
+        case NSS_STATUS_TRYAGAIN:
+            /* buffer too small ? */
+            if (buflen < MAX_BUF_SIZE) {
+                buflen *= 2;
+            }
+            if (buflen > MAX_BUF_SIZE) {
+                buflen = MAX_BUF_SIZE;
+            }
+            newb = talloc_realloc_size(NULL, buffer, buflen);
+            if (!newb) {
+                errstr = "Out of memory";
+                ret = ENOMEM;
+                goto done;
+            }
+            buffer = newb;
+            status = NSS_STATUS_SUCCESS;
+            break;
+
+        case NSS_STATUS_NOTFOUND:
+            /* we got last one */
+            break;
+
+        case NSS_STATUS_SUCCESS:
+            ret = sysdb_posix_store_user(req, req->be_ctx->sysdb,
+                                         req->be_ctx->domain,
+                                         result.pw_name, result.pw_passwd,
+                                         result.pw_uid, result.pw_gid,
+                                         result.pw_gecos, result.pw_dir,
+                                         result.pw_shell);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
+                           (unsigned long)result.pw_name, ret, strerror(ret)));
+            }
+            break;
+
+        default:
+            DEBUG(2, ("proxy -> getpwent_r failed (%d)[%s]\n",
+                      ret, strerror(ret)));
+            errstr = "Operation failed";
+            goto done;
+        }
+    }
+
+    errstr = NULL;
+    ret = EOK;
+
+done:
+    talloc_free(buffer);
+    ctx->ops.endpwent();
+    return proxy_reply(req, ret, errstr);
+}
+
+static void get_gr_name(struct be_req *req, char *name)
+{
+    struct proxy_ctx *ctx;
+    enum nss_status status;
+    struct group result;
+    char *buffer;
+    int ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+
+    buffer = talloc_size(NULL, 4096);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.getgrnam_r(name, &result, buffer, 4096, &ret);
+
+    switch (status) {
+    case NSS_STATUS_NOTFOUND:
+        ret = sysdb_posix_remove_group(req, req->be_ctx->sysdb,
+                                       req->be_ctx->domain, name);
+        break;
+    case NSS_STATUS_SUCCESS:
+        /* FIXME: check members are all available or fetch them */
+        ret = sysdb_posix_store_group(req, req->be_ctx->sysdb,
+                                      req->be_ctx->domain, result.gr_name,
+                                      result.gr_gid, result.gr_mem);
+        break;
+    default:
+        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
+                  name, ret, strerror(ret)));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
+    }
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d) !?\n",
+                   name, ret));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
+    }
+
+    talloc_free(buffer);
+    return proxy_reply(req, EOK, NULL);
+}
+
+static void get_gr_gid(struct be_req *req, gid_t gid)
+{
+    struct proxy_ctx *ctx;
+    enum nss_status status;
+    struct group result;
+    char *buffer;
+    int ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+
+    buffer = talloc_size(NULL, 4096);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.getgrgid_r(gid, &result, buffer, 4096, &ret);
+
+    switch (status) {
+    case NSS_STATUS_NOTFOUND:
+        ret = sysdb_posix_remove_group_by_gid(req, req->be_ctx->sysdb,
+                                              req->be_ctx->domain, gid);
+        break;
+    case NSS_STATUS_SUCCESS:
+        ret = sysdb_posix_store_group(req, req->be_ctx->sysdb,
+                                      req->be_ctx->domain, result.gr_name,
+                                      result.gr_gid, result.gr_mem);
+        break;
+    default:
+        DEBUG(2, ("proxy -> getgrgid_r failed for '%lu' (%d)[%s]\n",
+                  (unsigned long)gid, ret, strerror(ret)));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
+    }
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to update LDB Cache for '%lu' (%d) !?\n",
+                   (unsigned long)gid, ret));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
+    }
+
+    talloc_free(buffer);
+    return proxy_reply(req, EOK, NULL);
+}
+
+static void enum_groups(struct be_req *req)
+{
+    struct proxy_ctx *ctx;
+    enum nss_status status;
+    struct group result;
+    char *buffer, *newb;
+    size_t buflen;
+    const char * errstr;
+    int ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+
+    buflen = 4096;
+    buffer = talloc_size(NULL, buflen);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.setgrent();
+    if (status != NSS_STATUS_SUCCESS)
+        return proxy_reply(req, EIO, "Operation failed");
+
+    while (status == NSS_STATUS_SUCCESS) {
+
+        status = ctx->ops.getgrent_r(&result, buffer, buflen, &ret);
+
+        switch (status) {
+        case NSS_STATUS_TRYAGAIN:
+            /* buffer too small ? */
+            if (buflen < MAX_BUF_SIZE) {
+                buflen *= 2;
+            }
+            if (buflen > MAX_BUF_SIZE) {
+                buflen = MAX_BUF_SIZE;
+            }
+            newb = talloc_realloc_size(NULL, buffer, buflen);
+            if (!newb) {
+                errstr = "Out of memory";
+                ret = ENOMEM;
+                goto done;
+            }
+            buffer = newb;
+            status = NSS_STATUS_SUCCESS;
+            break;
+
+        case NSS_STATUS_NOTFOUND:
+            /* we got last one */
+            break;
+
+        case NSS_STATUS_SUCCESS:
+            ret = sysdb_posix_store_group(req, req->be_ctx->sysdb,
+                                          req->be_ctx->domain, result.gr_name,
+                                          result.gr_gid, result.gr_mem);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
+                           (unsigned long)result.gr_name, ret, strerror(ret)));
+            }
+            break;
+
+        default:
+            DEBUG(2, ("proxy -> getgrent_r failed (%d)[%s]\n",
+                      ret, strerror(ret)));
+            errstr = "Operation failed";
+            goto done;
+        }
+    }
+
+    errstr = NULL;
+    ret = EOK;
+
+done:
+    talloc_free(buffer);
+    ctx->ops.endgrent();
+    return proxy_reply(req, ret, errstr);
+}
+
+/* TODO: actually do check something */
+static void proxy_check_online(struct be_req *req)
+{
+    struct be_online_req *oreq;
+
+    oreq = talloc_get_type(req->req_data, struct be_online_req);
+
+    oreq->online = MOD_ONLINE;
+
+    req->fn(req, EOK, NULL);
+}
+
+/* TODO: See if we can use async_req code */
+static void proxy_get_account_info(struct be_req *req)
+{
+    struct be_acct_req *ar;
     uid_t uid;
+    gid_t gid;
 
-    ctx = talloc_get_type(be_ctx->pvt_data, struct proxy_ctx);
+    ar = talloc_get_type(req->req_data, struct be_acct_req);
 
-    switch (entry_type) {
+    switch (ar->entry_type) {
     case BE_REQ_USER: /* user */
-        switch (filter_type) {
+        switch (ar->filter_type) {
         case BE_FILTER_NAME:
-            switch (attr_type) {
+            switch (ar->attr_type) {
             case BE_ATTR_CORE:
-                if (strchr(filter_value, '*')) {
-                    /* TODO */
+                if (strchr(ar->filter_value, '*')) {
+                    return enum_users(req);
                 } else {
-                    return get_pw_name(be_ctx, ctx, filter_value);
+                    return get_pw_name(req, ar->filter_value);
                 }
                 break;
             default:
-                return EINVAL;
+                return proxy_reply(req, EINVAL, "Invalid attr type");
             }
             break;
         case BE_FILTER_IDNUM:
-            switch (attr_type) {
+            switch (ar->attr_type) {
             case BE_ATTR_CORE:
-                if (strchr(filter_value, '*')) {
-                    return EINVAL;
+                if (strchr(ar->filter_value, '*')) {
+                    return proxy_reply(req, EINVAL, "Invalid attr type");
                 } else {
                     char *endptr;
                     errno = 0;
-                    uid = (uid_t)strtol(filter_value, &endptr, 0);
-                    if (errno || *endptr || (filter_value == endptr)) {
-                        return EINVAL;
+                    uid = (uid_t)strtol(ar->filter_value, &endptr, 0);
+                    if (errno || *endptr || (ar->filter_value == endptr)) {
+                        return proxy_reply(req, EINVAL, "Invalid attr type");
                     }
-                    return get_pw_uid(be_ctx, ctx, uid);
+                    return get_pw_uid(req, uid);
                 }
                 break;
             default:
-                return EINVAL;
+                return proxy_reply(req, EINVAL, "Invalid attr type");
             }
             break;
         default:
-            return EINVAL;
+            return proxy_reply(req, EINVAL, "Invalid filter type");
         }
         break;
 
     case BE_REQ_GROUP: /* group */
-        /* TODO */
-        return EOK;
+        switch (ar->filter_type) {
+        case BE_FILTER_NAME:
+            switch (ar->attr_type) {
+            case BE_ATTR_CORE:
+                if (strchr(ar->filter_value, '*')) {
+                    return enum_groups(req);
+                } else {
+                    return get_gr_name(req, ar->filter_value);
+                }
+                break;
+            default:
+                return proxy_reply(req, EINVAL, "Invalid attr type");
+            }
+            break;
+        case BE_FILTER_IDNUM:
+            switch (ar->attr_type) {
+            case BE_ATTR_CORE:
+                if (strchr(ar->filter_value, '*')) {
+                    return proxy_reply(req, EINVAL, "Invalid attr type");
+                } else {
+                    char *endptr;
+                    errno = 0;
+                    gid = (gid_t)strtol(ar->filter_value, &endptr, 0);
+                    if (errno || *endptr || (ar->filter_value == endptr)) {
+                        return proxy_reply(req, EINVAL, "Invalid attr type");
+                    }
+                    return get_gr_gid(req, gid);
+                }
+                break;
+            default:
+                return proxy_reply(req, EINVAL, "Invalid attr type");
+            }
+            break;
+        default:
+            return proxy_reply(req, EINVAL, "Invalid filter type");
+        }
+        break;
+
 
     default: /*fail*/
-        return EINVAL;
+        return proxy_reply(req, EINVAL, "Invalid request type");
     }
-
-    return EOK;
 }
 
 struct be_mod_ops proxy_mod_ops = {

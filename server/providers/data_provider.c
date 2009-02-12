@@ -194,7 +194,6 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
 }
 
 static void be_identity_check(DBusPendingCall *pending, void *data);
-static void be_online_check(DBusPendingCall *pending, void *data);
 static void be_got_account_info(DBusPendingCall *pending, void *data);
 
 static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
@@ -383,11 +382,6 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
 done:
     dbus_pending_call_unref(pending);
     dbus_message_unref(reply);
-}
-
-static void be_online_check(DBusPendingCall *pending, void *data)
-{
-    return;
 }
 
 static void be_got_account_info(DBusPendingCall *pending, void *data)
