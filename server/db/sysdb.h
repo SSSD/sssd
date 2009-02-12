@@ -82,6 +82,13 @@ struct confdb_ctx;
 
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 
+enum sysdb_flags {
+    SYSDB_FLAG_MOD_NONE = 0,
+    SYSDB_FLAG_MOD_ADD,
+    SYSDB_FLAG_MOD_DELETE,
+    SYSDB_FLAG_MOD_MODIFY
+};
+
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct event_context *ev,
                struct confdb_ctx *cdb,
@@ -155,20 +162,24 @@ int sysdb_store_group_posix(TALLOC_CTX *memctx,
                             const char *domain,
                             const char *name, gid_t gid);
 
-int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
-                                  const char *domain,
-                                  const char *gname,
-                                  const char *username);
+int sysdb_add_remove_posix_group_acct(TALLOC_CTX *mem_ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     int flag,
+                                     const char *domain,
+                                     const char *group,
+                                     const char *username);
 
-int sysdb_add_group_to_posix_group(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
-                                  const char *domain,
-                                  const char *group,
-                                  const char *member_group);
+/* Wrapper around adding a POSIX group to a POSIX group */
+int sysdb_add_remove_posix_group_group(TALLOC_CTX *mem_ctx,
+                                      struct sysdb_ctx *sysdb,
+                                      int flag,
+                                      const char *domain,
+                                      const char *group,
+                                      const char *member_group);
 
-int sysdb_add_member_to_posix_group(TALLOC_CTX *mem_ctx,
-                                    struct sysdb_ctx *sysdb,
-                                    struct ldb_dn *member_dn,
-                                    struct ldb_dn *group_dn);
+int sysdb_add_remove_posix_group_member(TALLOC_CTX *mem_ctx,
+                                        struct sysdb_ctx *sysdb,
+                                        int flag,
+                                        struct ldb_dn *member_dn,
+                                        struct ldb_dn *group_dn);
 #endif /* __SYS_DB_H__ */

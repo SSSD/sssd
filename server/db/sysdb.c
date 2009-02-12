@@ -1264,11 +1264,12 @@ done:
 }
 
 /* Wrapper around adding a user account to a POSIX group */
-int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
-                                  const char *domain,
-                                  const char *group,
-                                  const char *username)
+int sysdb_add_remove_posix_group_acct(TALLOC_CTX *mem_ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     int flag,
+                                     const char *domain,
+                                     const char *group,
+                                     const char *username)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -1289,17 +1290,26 @@ int sysdb_add_acct_to_posix_group(TALLOC_CTX *mem_ctx,
     account = talloc_asprintf(tmp_ctx,
                               SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
                               username, domain);
-    if (account == NULL) goto done;
+    if (account == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     acct_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, account);
-    if (acct_dn == NULL) goto done;
+    if (acct_dn == NULL) {
+        ret = errno;
+        goto done;
+    }
 
     group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                               SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                               group, domain);
-    if (group_dn == NULL) goto done;
+    if (group_dn == NULL) {
+        ret = errno;
+        goto done;
+    }
 
-    ret = sysdb_add_member_to_posix_group(tmp_ctx, sysdb, acct_dn, group_dn);
+    ret = sysdb_add_remove_posix_group_member(tmp_ctx, sysdb, flag, acct_dn, group_dn);
 
 done:
     talloc_free(tmp_ctx);
@@ -1307,11 +1317,12 @@ done:
 }
 
 /* Wrapper around adding a POSIX group to a POSIX group */
-int sysdb_add_group_to_posix_group(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
-                                  const char *domain,
-                                  const char *group,
-                                  const char *member_group)
+int sysdb_add_remove_posix_group_group(TALLOC_CTX *mem_ctx,
+                                      struct sysdb_ctx *sysdb,
+                                      int flag,
+                                      const char *domain,
+                                      const char *group,
+                                      const char *member_group)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
@@ -1332,35 +1343,57 @@ int sysdb_add_group_to_posix_group(TALLOC_CTX *mem_ctx,
     member_group_canonical = talloc_asprintf(tmp_ctx,
                                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                                              member_group, domain);
-    if (member_group_canonical == NULL) goto done;
+    if (member_group_canonical == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     member_group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb, member_group_canonical);
-    if (member_group_dn == NULL) goto done;
+    if (member_group_dn == NULL) {
+        ret = errno;
+        goto done;
+    }
 
     group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
                               SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                               group, domain);
-    if (group_dn == NULL) goto done;
+    if (group_dn == NULL) {
+        ret = errno;
+        goto done;
+    }
 
-    ret = sysdb_add_member_to_posix_group(tmp_ctx, sysdb, member_group_dn, group_dn);
+    ret = sysdb_add_remove_posix_group_member(tmp_ctx, sysdb, flag, member_group_dn, group_dn);
 
 done:
     talloc_free(tmp_ctx);
     return ret;
 }
 
-int sysdb_add_member_to_posix_group(TALLOC_CTX *mem_ctx,
-                                    struct sysdb_ctx *sysdb,
-                                    struct ldb_dn *member_dn,
-                                    struct ldb_dn *group_dn)
+int sysdb_add_remove_posix_group_member(TALLOC_CTX *mem_ctx,
+                                        struct sysdb_ctx *sysdb,
+                                        int flag,
+                                        struct ldb_dn *member_dn,
+                                        struct ldb_dn *group_dn)
 {
     TALLOC_CTX *tmp_ctx;
-    int ret, lret;
+    int ret, lret, ldb_flag;
     struct ldb_message *msg;
     struct ldb_request *req;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
+
+    switch (flag) {
+    case SYSDB_FLAG_MOD_ADD:
+        ldb_flag = LDB_FLAG_MOD_ADD;
+        break;
+    case SYSDB_FLAG_MOD_DELETE:
+        ldb_flag = LDB_FLAG_MOD_DELETE;
+        break;
+    default:
+        DEBUG(0, ("Group modification requested with invalid flag\n"));
+        return EINVAL;
+    }
 
     /* Start LDB Transaction */
     lret = ldb_transaction_start(sysdb->ldb);
@@ -1370,14 +1403,14 @@ int sysdb_add_member_to_posix_group(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    /* Add the user as a member of the group */
+    /* Add or remove the member_dn as a member of the group */
     msg = ldb_msg_new(tmp_ctx);
     if(msg == NULL) {
         ret = ENOMEM;
         goto done;
     }
     msg->dn = group_dn;
-    lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER, LDB_FLAG_MOD_ADD, NULL);
+    lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER, ldb_flag, NULL);
     if (lret == LDB_SUCCESS) {
         lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s", ldb_dn_alloc_linearized(tmp_ctx, member_dn));
     }
@@ -1410,9 +1443,11 @@ int sysdb_add_member_to_posix_group(TALLOC_CTX *mem_ctx,
     }
 
     ret = EOK;
+
 done:
     /* Cancel LDB Transaction */
     if (ret != EOK) {
+        DEBUG(1, ("Cancelling ldb transaction (%d)\n", ret));
         lret = ldb_transaction_cancel(sysdb->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
