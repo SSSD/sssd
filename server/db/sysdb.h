@@ -182,4 +182,12 @@ int sysdb_add_remove_posix_group_member(TALLOC_CTX *mem_ctx,
                                         int flag,
                                         struct ldb_dn *member_dn,
                                         struct ldb_dn *group_dn);
+
+int sysdb_remove_group_posix(TALLOC_CTX *memctx,
+                             struct sysdb_ctx *sysdb,
+                             const char *domain, const char *name);
+
+int sysdb_remove_group_posix_by_gid(TALLOC_CTX *memctx,
+                                    struct sysdb_ctx *sysdb,
+                                    const char *domain, gid_t gid);
 #endif /* __SYS_DB_H__ */

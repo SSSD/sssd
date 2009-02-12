@@ -755,7 +755,7 @@ int sysdb_store_account_posix(TALLOC_CTX *memctx,
     }
 
     account_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                "uid=%s,"SYSDB_TMPL_USER_BASE,
+                                SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
                                 name, domain);
     if (!account_dn) {
         talloc_free(tmp_ctx);
@@ -988,7 +988,7 @@ int sysdb_remove_account_posix(TALLOC_CTX *memctx,
     }
 
     account_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                "uid=%s,"SYSDB_TMPL_USER_BASE,
+                                SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
                                 name, domain);
     if (!account_dn) {
         talloc_free(tmp_ctx);
@@ -1038,7 +1038,7 @@ int sysdb_remove_account_posix_by_uid(TALLOC_CTX *memctx,
     }
 
     lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_BASE, attrs,
+                      LDB_SCOPE_ONELEVEL, attrs,
                       SYSDB_PWUID_FILTER,
                       (unsigned long)uid);
     if (lret != LDB_SUCCESS) {
@@ -1049,6 +1049,8 @@ int sysdb_remove_account_posix_by_uid(TALLOC_CTX *memctx,
     }
 
     if (res->count == 0) {
+        DEBUG(0, ("Base search returned %d results\n",
+                          res->count));
         ret = EOK;
         goto done;
     }
@@ -1097,6 +1099,7 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
 int sysdb_store_group_posix(TALLOC_CTX *memctx,
                             struct sysdb_ctx *sysdb,
                             const char *domain,
@@ -1448,6 +1451,132 @@ done:
     /* Cancel LDB Transaction */
     if (ret != EOK) {
         DEBUG(1, ("Cancelling ldb transaction (%d)\n", ret));
+        lret = ldb_transaction_cancel(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+        }
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_remove_group_posix(TALLOC_CTX *memctx,
+                             struct sysdb_ctx *sysdb,
+                             const char *domain, const char *name)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *group_dn;
+    int ret;
+
+    tmp_ctx = talloc_new(memctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
+                              name, domain);
+    if (!group_dn) {
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+
+    ret = ldb_delete(sysdb->ldb, group_dn);
+
+    if (ret != LDB_SUCCESS) {
+        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+    }
+
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysdb_remove_group_posix_by_gid(TALLOC_CTX *memctx,
+                                    struct sysdb_ctx *sysdb,
+                                    const char *domain, gid_t gid)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *attrs[] = { SYSDB_GR_NAME, SYSDB_GR_GIDNUM, NULL };
+    struct ldb_dn *base_dn;
+    struct ldb_dn *group_dn;
+    struct ldb_result *res;
+    int lret, ret;
+
+    tmp_ctx = talloc_new(memctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
+                             SYSDB_TMPL_GROUP_BASE, domain);
+    if (!base_dn) {
+        talloc_free(tmp_ctx);
+        return ENOMEM;
+    }
+
+    lret = ldb_transaction_start(sysdb->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
+                      LDB_SCOPE_ONELEVEL, attrs,
+                      SYSDB_GRGID_FILTER,
+                      (unsigned long)gid);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
+                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count == 0) {
+        DEBUG(0, ("Base search returned %d results\n",
+                          res->count));
+        ret = EOK;
+        goto done;
+    }
+    if (res->count > 1) {
+        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
+                  res->count));
+        ret = EOK;
+        goto done;
+    }
+
+    group_dn = ldb_dn_copy(tmp_ctx, res->msgs[0]->dn);
+    if (!group_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    talloc_free(res);
+    res = NULL;
+
+    ret = ldb_delete(sysdb->ldb, group_dn);
+
+    if (ret != LDB_SUCCESS) {
+        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
+              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
+        ret = EIO;
+        goto done;
+    }
+
+    lret = ldb_transaction_commit(sysdb->ldb);
+    if (lret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
         lret = ldb_transaction_cancel(sysdb->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));

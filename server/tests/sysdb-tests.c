@@ -553,46 +553,143 @@ START_TEST (test_sysdb_remove_group_from_posix_group)
 }
 END_TEST
 
+START_TEST (test_sysdb_remove_local_acct_posix)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    /* Store a user account with username, password,
+     * uid, gid, gecos, homedir and shell
+     */
+    const char *username = talloc_asprintf(test_ctx, "testuser%d", _i);
+
+    ret = sysdb_remove_account_posix(test_ctx, test_ctx->sysdb,
+                                     "LOCAL", username);
+    fail_if(ret != EOK, "Could not remove POSIX user %s", username);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_remove_local_acct_posix_by_uid)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    ret = sysdb_remove_account_posix_by_uid(test_ctx, test_ctx->sysdb,
+                                            "LOCAL", _i);
+    fail_if(ret != EOK, "Could not remove POSIX group");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_remove_local_group_posix)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+    char *group_name;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    group_name = talloc_asprintf(test_ctx, "%s%d", SYSDB_POSIX_TEST_GROUP, _i);
+    fail_if(group_name == NULL, "Could not allocate group name");
+
+    ret = sysdb_remove_group_posix(test_ctx, test_ctx->sysdb,
+                                   "LOCAL", group_name);
+    fail_if(ret != EOK, "Could not remove POSIX group");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_remove_local_group_posix_by_gid)
+{
+    int ret;
+    struct sysdb_test_ctx *test_ctx;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    ret = sysdb_remove_group_posix_by_gid(test_ctx, test_ctx->sysdb,
+                                          "LOCAL", _i);
+    fail_if(ret != EOK, "Could not remove POSIX group");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
 
-/* POSIX User test case */
-    TCase *tc_posix_users = tcase_create("\tPOSIX Users");
+    TCase *tc_sysdb = tcase_create("SYSDB Tests");
 
     /* Create a new user */
-    tcase_add_loop_test(tc_posix_users, test_sysdb_store_local_account_posix,27000,27010);
-
-/* POSIX Group test case */
-    TCase *tc_posix_gr = tcase_create("\tPOSIX Groups");
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_local_account_posix,27000,27010);
 
     /* Create a new group */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_store_local_group_posix,27000,27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_local_group_posix,27000,27010);
 
     /* Verify that the new group exists */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_get_local_group_posix,27000,27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_get_local_group_posix,27000,27010);
 
     /* Add users to the group */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_acct_to_posix_group, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_acct_to_posix_group, 27000, 27010);
 
     /* Verify member and memberOf */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_verify_posix_group_members, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_verify_posix_group_members, 27000, 27010);
 
     /* A negative test: add nonexistent users as members of a group */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_invalid_member, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_invalid_member, 27000, 27010);
 
     /* Add groups as members of groups */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_add_group_to_posix_group, 27001, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_group_to_posix_group, 27001, 27010);
 
     /* Remove groups from their groups */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_remove_group_from_posix_group, 27001, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_group_from_posix_group, 27001, 27010);
 
     /* Remove users from their groups */
-    tcase_add_loop_test(tc_posix_gr, test_sysdb_remove_acct_from_posix_group, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_acct_from_posix_group, 27000, 27010);
+
+    /* Remove half of the groups by name */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_posix, 27000, 27005);
+
+    /* Remove the other half by gid */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_posix_by_gid, 27005, 27010);
+
+
+    /* Remove half of the users by name */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_acct_posix, 27000, 27005);
+
+    /* Remove the other half by uid */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_acct_posix_by_uid, 27005, 27010);
 
 /* Add all test cases to the test suite */
-    suite_add_tcase(s, tc_posix_users);
-    suite_add_tcase(s, tc_posix_gr);
+    suite_add_tcase(s, tc_sysdb);
 
     return s;
 }
