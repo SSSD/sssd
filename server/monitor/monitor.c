@@ -83,6 +83,7 @@ static void ping_check(DBusPendingCall *pending, void *data);
 static int service_check_alive(struct mt_svc *svc);
 
 static void set_tasks_checker(struct mt_svc *srv);
+static void set_global_checker(struct mt_ctx *ctx);
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -164,6 +165,37 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     return ret;
 }
 
+static void svc_try_restart(struct mt_svc *svc, time_t now)
+{
+    int ret;
+
+    DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
+    if (svc->last_restart != 0) {
+        if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
+            /* it was long ago reset restart threshold */
+            svc->restarts = 0;
+        }
+    }
+
+    /* restart the process */
+    if (svc->restarts > 3) { /* TODO: get val from config */
+        DEBUG(0, ("Process [%s], definitely stopped!\n", svc->name));
+        talloc_free(svc);
+        return;
+    }
+
+    ret = start_service(svc);
+    if (ret != EOK) {
+        DEBUG(0,("Failed to restart service '%s'\n", svc->name));
+        talloc_free(svc);
+        return;
+    }
+
+    svc->restarts++;
+    svc->last_restart = now;
+    return;
+}
+
 static void tasks_check_handler(struct event_context *ev,
                                 struct timed_event *te,
                                 struct timeval t, void *ptr)
@@ -224,30 +256,7 @@ static void tasks_check_handler(struct event_context *ev,
     }
 
     if (!process_alive) {
-        DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
-        if (svc->last_restart != 0) {
-            if ((now - svc->last_restart) > 30) { /* TODO: get val from config */
-                /* it was long ago reset restart threshold */
-                svc->restarts = 0;
-            }
-        }
-
-        /* restart the process */
-        if (svc->restarts > 3) { /* TODO: get val from config */
-            DEBUG(0, ("Process [%s], definitely stopped!\n", svc->name));
-            talloc_free(svc);
-            return;
-        }
-
-        ret = start_service(svc);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to restart service '%s'\n", svc->name));
-            talloc_free(svc);
-            return;
-        }
-
-        svc->restarts++;
-        svc->last_restart = now;
+        svc_try_restart(svc, now);
         return;
     }
 
@@ -268,6 +277,59 @@ static void set_tasks_checker(struct mt_svc *svc)
         DEBUG(0, ("failed to add event, monitor offline for [%s]!\n",
                   svc->name));
         /* FIXME: shutdown ? */
+    }
+}
+
+static void global_checks_handler(struct event_context *ev,
+                                  struct timed_event *te,
+                                  struct timeval t, void *ptr)
+{
+    struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
+    struct mt_svc *svc;
+    int status;
+    pid_t pid;
+
+    errno = 0;
+    pid = waitpid(0, &status, WNOHANG);
+    if (pid == 0) {
+        goto done;
+    }
+
+    if (pid == -1) {
+        DEBUG(0, ("waitpid returned -1 (errno:%d[%s])\n",
+                  errno, strerror(errno)));
+        goto done;
+    }
+
+    /* let's see if it is a known servicei, and try to restart it */
+    for (svc = ctx->svc_list; svc; svc = svc->next) {
+        if (svc->pid == pid) {
+            time_t now = time(NULL);
+            DEBUG(1, ("Service [%s] did exit\n", svc->name));
+            svc_try_restart(svc, now);
+        }
+    }
+    if (svc == NULL) {
+        DEBUG(0, ("Unknown child (%d) did exit\n", pid));
+    }
+
+done:
+    set_global_checker(ctx);
+}
+
+static void set_global_checker(struct mt_ctx *ctx)
+{
+    struct timed_event *te = NULL;
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    tv.tv_sec += 1; /* once a second */
+    tv.tv_usec = 0;
+    te = event_add_timed(ctx->ev, ctx, tv, global_checks_handler, ctx);
+    if (te == NULL) {
+        DEBUG(0, ("failed to add global checker event! PANIC TIME!\n"));
+        /* FIXME: is this right ? shoulkd we try to clean up first ?*/
+        exit(-1);
     }
 }
 
@@ -424,11 +486,10 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             talloc_free(svc);
             continue;
         }
-
-        DLIST_ADD(ctx->svc_list, svc);
-
-        set_tasks_checker(svc);
     }
+
+    /* now start checking for global events */
+    set_global_checker(ctx);
 
     return EOK;
 }
@@ -743,6 +804,8 @@ done:
     dbus_pending_call_unref(pending);
     dbus_message_unref(reply);
 }
+
+
 
 /* service_check_alive
  * This function checks if the service child is still alive
