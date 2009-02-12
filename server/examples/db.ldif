@@ -1,3 +1,21 @@
+dn: @ATTRIBUTES
+userPrincipalName: CASE_INSENSITIVE
+cn: CASE_INSENSITIVE
+dc: CASE_INSENSITIVE
+dn: CASE_INSENSITIVE
+name: CASE_INSENSITIVE
+objectclass: CASE_INSENSITIVE
+
+dn: @INDEXLIST
+@IDXATTR: cn
+@IDXATTR: objectclass
+@IDXATTR: member
+@IDXATTR: memberof
+@IDXATTR: uid
+@IDXATTR: uidNumber
+@IDXATTR: gidNumber
+@IDXATTR: lastUpdate
+
 dn: @MODULES
 @LIST: asq,memberof
 
