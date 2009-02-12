@@ -2091,6 +2091,14 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
 
 static int memberof_init(struct ldb_module *module)
 {
+    struct ldb_context *ldb = ldb_module_get_ctx(module);
+    int ret;
+
+    /* set syntaxes for member and memberof so that comparisons in filters and
+     * such are done right */
+    ret = ldb_schema_attribute_add(ldb, "member", 0, LDB_SYNTAX_DN);
+    ret = ldb_schema_attribute_add(ldb, "memberof", 0, LDB_SYNTAX_DN);
+
     return ldb_next_init(module);
 }
 
