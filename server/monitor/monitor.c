@@ -301,12 +301,13 @@ static void global_checks_handler(struct event_context *ev,
         goto done;
     }
 
-    /* let's see if it is a known servicei, and try to restart it */
+    /* let's see if it is a known service, and try to restart it */
     for (svc = ctx->svc_list; svc; svc = svc->next) {
         if (svc->pid == pid) {
             time_t now = time(NULL);
             DEBUG(1, ("Service [%s] did exit\n", svc->name));
             svc_try_restart(svc, now);
+            goto done;
         }
     }
     if (svc == NULL) {
