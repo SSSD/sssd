@@ -436,7 +436,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = sysdb_init(ctx, ev, cdb, &ctx->sysdb);
+    ret = sysdb_init(ctx, ev, cdb, NULL, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error opening cache database\n"));
         return ret;

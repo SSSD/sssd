@@ -39,6 +39,7 @@ struct sysdb_test_ctx {
 static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 {
     struct sysdb_test_ctx *test_ctx;
+    char *conf_db;
     int ret;
 
     test_ctx = talloc_zero(NULL, struct sysdb_test_ctx);
@@ -57,15 +58,24 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return EIO;
     }
 
+    conf_db = talloc_asprintf(test_ctx, "tests_conf.ldb");
+    if (conf_db == NULL) {
+        fail("Out of memory, aborting!");
+        talloc_free(test_ctx);
+        return ENOMEM;
+    }
+    DEBUG(3, ("CONFDB: %s\n", conf_db));
+
     /* Connect to the conf db */
-    ret = confdb_init(test_ctx, test_ctx->ev, &test_ctx->confdb);
+    ret = confdb_init(test_ctx, test_ctx->ev, &test_ctx->confdb, conf_db);
     if(ret != EOK) {
         fail("Could not initialize connection to the confdb");
         talloc_free(test_ctx);
         return ret;
     }
 
-    ret = sysdb_init(test_ctx, test_ctx->ev, test_ctx->confdb, &test_ctx->sysdb);
+    ret = sysdb_init(test_ctx, test_ctx->ev, test_ctx->confdb, "tests.ldb",
+                     &test_ctx->sysdb);
     if(ret != EOK) {
         fail("Could not initialize connection to the sysdb");
         talloc_free(test_ctx);

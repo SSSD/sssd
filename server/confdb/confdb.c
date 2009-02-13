@@ -26,8 +26,8 @@
 #include "ldb.h"
 #include "ldb_errors.h"
 #include "util/util.h"
+#include "confdb/confdb.h"
 #define CONFDB_VERSION "0.1"
-#define CONFDB_FILE "config.ldb"
 #define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
 #define CONFDB_DOMAIN_ATTR "cn"
 
@@ -530,10 +530,10 @@ done:
 
 int confdb_init(TALLOC_CTX *mem_ctx,
                 struct event_context *ev,
-                struct confdb_ctx **cdb_ctx)
+                struct confdb_ctx **cdb_ctx,
+                char *confdb_location)
 {
     struct confdb_ctx *cdb;
-    char *confdb_location;
     int ret;
 
     cdb = talloc_zero(mem_ctx, struct confdb_ctx);
@@ -546,20 +546,11 @@ int confdb_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    confdb_location = talloc_asprintf(cdb,"%s/%s", DB_PATH,CONFDB_FILE);
-    if (confdb_location == NULL) {
-        talloc_free(cdb);
-        return ENOMEM;
-    }
-    DEBUG(3, ("CONFDB: %s\n",confdb_location));
-
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
     if (ret != LDB_SUCCESS) {
         talloc_free(cdb);
         return EIO;
     }
-
-    talloc_free(confdb_location);
 
     ret = confdb_test(cdb);
     if (ret == ENOENT) {

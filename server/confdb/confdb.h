@@ -19,6 +19,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define CONFDB_FILE "config.ldb"
+
 struct confdb_ctx;
 
 int confdb_add_param(struct confdb_ctx *cdb,
@@ -44,7 +46,8 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
 int confdb_init(TALLOC_CTX *mem_ctx,
                 struct event_context *ev,
-                struct confdb_ctx **cdb_ctx);
+                struct confdb_ctx **cdb_ctx,
+                char *confdb_location);
 
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,

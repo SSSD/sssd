@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
+#include "db/sysdb_internal.h"
 #include "confdb/confdb.h"
 #include <time.h>
 
@@ -667,50 +668,41 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
     return LDB_SUCCESS;
 }
 
-static int sysdb_read_var(TALLOC_CTX *tmp_ctx,
+static int sysdb_read_var(TALLOC_CTX *mem_ctx,
                           struct confdb_ctx *cdb,
-                          struct sysdb_ctx *ctx,
                           const char *name,
                           const char *def_value,
-                          const char **target)
+                          char **target)
 {
     int ret;
-    char *t;
     char **values;
 
-    ret = confdb_get_param(cdb, tmp_ctx,
+    ret = confdb_get_param(cdb, mem_ctx,
                            SYSDB_CONF_SECTION,
                            name, &values);
     if (ret != EOK)
         return ret;
 
     if (values[0])
-        t = talloc_steal(ctx, values[0]);
+        *target = values[0];
     else
-        t = talloc_strdup(ctx, def_value);
+        *target = talloc_strdup(mem_ctx, def_value);
 
-    *target = t;
     return EOK;
 }
 
-static int sysdb_read_conf(TALLOC_CTX *mem_ctx,
-                           struct confdb_ctx *cdb,
-                           struct sysdb_ctx **dbctx)
+static int sysdb_get_db_path(TALLOC_CTX *mem_ctx,
+                             struct confdb_ctx *cdb,
+                             char **db_path)
 {
-    struct sysdb_ctx *ctx;
     TALLOC_CTX *tmp_ctx;
     char *default_ldb_path;
+    char *path;
     int ret;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx)
         return ENOMEM;
-
-    ctx = talloc(mem_ctx, struct sysdb_ctx);
-    if (!ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
 
     default_ldb_path = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, SYSDB_FILE);
     if (default_ldb_path == NULL) {
@@ -718,11 +710,10 @@ static int sysdb_read_conf(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sysdb_read_var(tmp_ctx, cdb, ctx, "ldbFile",
-                     default_ldb_path, &ctx->ldb_file);
-    DEBUG(3, ("NSS LDB Cache Path: %s\n", ctx->ldb_file));
+    sysdb_read_var(tmp_ctx, cdb, "ldbFile",
+                     default_ldb_path, &path);
 
-    *dbctx = ctx;
+    *db_path = talloc_steal(mem_ctx, path);
     ret = EOK;
 
 done:
@@ -1598,19 +1589,116 @@ done:
     return ret;
 }
 
+static int sysdb_check_init(struct sysdb_ctx *ctx)
+{
+    TALLOC_CTX *tmp_ctx;
+    const char *base_ldif;
+	struct ldb_ldif *ldif;
+    struct ldb_message_element *el;
+    struct ldb_result *res;
+    struct ldb_dn *verdn;
+    char *version = NULL;
+    int ret;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx)
+        return ENOMEM;
+
+    verdn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    if (!verdn) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_search(ctx->ldb, tmp_ctx, &res,
+                     verdn, LDB_SCOPE_BASE,
+                     NULL, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+    if (res->count > 1) {
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count == 1) {
+        el = ldb_msg_find_element(res->msgs[0], "version");
+        if (el) {
+            if (el->num_values != 1) {
+                ret = EINVAL;
+                goto done;
+            }
+            version = talloc_strndup(tmp_ctx,
+                                     (char *)(el->values[0].data),
+                                     el->values[0].length);
+            if (!version) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            if (strcmp(version, SYSDB_VERSION) == 0) {
+                /* all fine, return */
+                ret = EOK;
+                goto done;
+            }
+        }
+
+        DEBUG(0,("Unknown DB version [%s], expected [%s], aborting!\n",
+                 version?version:"not found", SYSDB_VERSION));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* cn=sysdb does not exists, means db is empty, populate */
+    base_ldif = SYSDB_BASE_LDIF;
+    while ((ldif = ldb_ldif_read_string(ctx->ldb, &base_ldif))) {
+        ret = ldb_add(ctx->ldb, ldif->msg);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(0, ("Failed to inizialiaze DB (%d,[%s]), aborting!\n",
+                      ret, ldb_errstring(ctx->ldb)));
+            ret = EIO;
+            goto done;
+        }
+        ldb_ldif_read_free(ctx->ldb, ldif);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct event_context *ev,
                struct confdb_ctx *cdb,
+               const char *alt_db_path,
                struct sysdb_ctx **dbctx)
 {
     struct sysdb_ctx *ctx;
     int ret;
 
-    ret = sysdb_read_conf(mem_ctx, cdb, &ctx);
-    if (ret != EOK)
-        return ret;
+    ctx = talloc_zero(mem_ctx, struct sysdb_ctx);
+    if (!ctx) {
+        return ENOMEM;
+    }
 
-    ctx->ldb = ldb_init(mem_ctx, ev);
+    if (!alt_db_path) {
+        ret = sysdb_get_db_path(ctx, cdb, &ctx->ldb_file);
+        if (ret != EOK) {
+            return ret;
+        }
+    } else {
+        ctx->ldb_file = talloc_strdup(ctx, alt_db_path);
+    }
+    if (ctx->ldb_file == NULL) {
+        return ENOMEM;
+    }
+
+    DEBUG(3, ("DB Path is: %s\n", ctx->ldb_file));
+
+    ctx->ldb = ldb_init(ctx, ev);
     if (!ctx->ldb) {
         talloc_free(ctx);
         return EIO;
@@ -1620,6 +1708,12 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
     if (ret != LDB_SUCCESS) {
         talloc_free(ctx);
         return EIO;
+    }
+
+    ret = sysdb_check_init(ctx);
+    if (ret != EOK) {
+        talloc_free(ctx);
+        return ret;
     }
 
     *dbctx = ctx;

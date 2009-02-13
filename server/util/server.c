@@ -240,6 +240,7 @@ int server_setup(const char *name, int flags,
     struct event_context *event_ctx;
     struct main_context *ctx;
     uint16_t stdin_event_flags;
+    char *conf_db;
     int ret = EOK;
 
     debug_prg_name = strdup(name);
@@ -284,7 +285,14 @@ int server_setup(const char *name, int flags,
 
     ctx->event_ctx = event_ctx;
 
-    ret = confdb_init(ctx, event_ctx, &ctx->confdb_ctx);
+    conf_db = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    if (conf_db == NULL) {
+        DEBUG(0,("Out of memory, aborting!\n"));
+        return ENOMEM;
+    }
+    DEBUG(3, ("CONFDB: %s\n", conf_db));
+
+    ret = confdb_init(ctx, event_ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
         DEBUG(0,("The confdb initialization failed\n"));
         return ret;

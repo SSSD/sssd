@@ -467,7 +467,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sysdb_init(nctx, ev, cdb, &nctx->sysdb);
+    ret = sysdb_init(nctx, ev, cdb, NULL, &nctx->sysdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing nss_ctx\n"));
         return ret;

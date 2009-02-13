@@ -21,6 +21,7 @@ dn: @MODULES
 
 dn: cn=sysdb
 cn: sysdb
+version: 0.1
 description: base object
 
 dn: cn=local,cn=sysdb

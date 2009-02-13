@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   System Databse Header
+   System Database Header
 
    Copyright (C) Simo Sorce <ssorce@redhat.com>	2008
 
@@ -75,7 +75,7 @@
 
 struct sysdb_ctx {
     struct ldb_context *ldb;
-    const char *ldb_file;
+    char *ldb_file;
 };
 
 struct confdb_ctx;
@@ -85,7 +85,8 @@ typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct event_context *ev,
                struct confdb_ctx *cdb,
-               struct sysdb_ctx **nlctx);
+               const char *alt_db_path,
+               struct sysdb_ctx **dbctx);
 
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct event_context *ev,
