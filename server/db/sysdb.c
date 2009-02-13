@@ -752,6 +752,12 @@ int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
         goto done;
     }
     msg->dn = group_dn;
+    lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
+                             LDB_FLAG_MOD_ADD, NULL);
+    if (lret != LDB_SUCCESS) {
+        ret = errno;
+        goto done;
+    }
     lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s",
                            ldb_dn_get_linearized(member_dn));
     if (lret != LDB_SUCCESS) {
