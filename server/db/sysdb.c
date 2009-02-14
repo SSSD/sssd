@@ -1071,7 +1071,7 @@ int sysdb_posix_remove_user(TALLOC_CTX *memctx,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *user_dn;
-    int ret;
+    int lret, ret = EOK;
 
     tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
@@ -1086,9 +1086,9 @@ int sysdb_posix_remove_user(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-    ret = ldb_delete(sysdb->ldb, user_dn);
+    lret = ldb_delete(sysdb->ldb, user_dn);
 
-    if (ret != LDB_SUCCESS) {
+    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
         DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
         ret = EIO;
@@ -1161,9 +1161,9 @@ int sysdb_posix_remove_user_by_uid(TALLOC_CTX *memctx,
     talloc_free(res);
     res = NULL;
 
-    ret = ldb_delete(sysdb->ldb, user_dn);
+    lret = ldb_delete(sysdb->ldb, user_dn);
 
-    if (ret != LDB_SUCCESS) {
+    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
         DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
         ret = EIO;
@@ -1469,7 +1469,7 @@ int sysdb_posix_remove_group(TALLOC_CTX *memctx,
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *group_dn;
-    int ret;
+    int lret, ret = EOK;
 
     tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
@@ -1484,9 +1484,9 @@ int sysdb_posix_remove_group(TALLOC_CTX *memctx,
         return ENOMEM;
     }
 
-    ret = ldb_delete(sysdb->ldb, group_dn);
+    lret = ldb_delete(sysdb->ldb, group_dn);
 
-    if (ret != LDB_SUCCESS) {
+    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
         DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
         ret = EIO;
@@ -1559,9 +1559,9 @@ int sysdb_posix_remove_group_by_gid(TALLOC_CTX *memctx,
     talloc_free(res);
     res = NULL;
 
-    ret = ldb_delete(sysdb->ldb, group_dn);
+    lret = ldb_delete(sysdb->ldb, group_dn);
 
-    if (ret != LDB_SUCCESS) {
+    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
         DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
               ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
         ret = EIO;
