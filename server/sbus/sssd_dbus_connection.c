@@ -485,6 +485,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
     const char *msg_interface;
     DBusMessage *reply = NULL;
     int i, ret;
+    int found;
 
     if (!user_data) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -504,17 +505,24 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
 
     /* Validate the D-BUS path */
     if (strcmp(path, ctx->method_ctx->path) == 0) {
+        found = 0;
         for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
             if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
+                found = 1;
                 ret = ctx->method_ctx->methods[i].fn(message, ctx, &reply);
                 if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
                 break;
             }
         }
-        /* FIXME: check if we didn't find any matching method */
+
+        if (!found) {
+            /* Reply DBUS_ERROR_UNKNOWN_METHOD */
+            DEBUG(1, ("No matching method found for %s.\n", method));
+            reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
+        }
     }
 
-    DEBUG(5, ("Method %s complete. Reply was %srequested.\n", method, reply?"":"not "));
+    DEBUG(5, ("Method %s complete. Reply was %ssent.\n", method, reply?"":"not "));
 
     if (reply) {
         dbus_connection_send(conn, reply, NULL);
