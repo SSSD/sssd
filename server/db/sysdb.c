@@ -746,7 +746,7 @@ int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
     lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
                              LDB_FLAG_MOD_ADD, NULL);
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
     lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s",
@@ -793,7 +793,7 @@ int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
     lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
                              LDB_FLAG_MOD_DELETE, NULL);
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
     lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s",
@@ -902,7 +902,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
             lret = ldb_msg_add_string(msg, "objectClass", "user");
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
 
@@ -912,7 +912,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
             lret = ldb_msg_add_string(msg, SYSDB_PW_NAME, name);
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
     }
@@ -930,7 +930,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -942,7 +942,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                    "%lu", (unsigned long)uid);
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
     } else {
@@ -959,7 +959,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                    "%lu", (unsigned long)gid);
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
     } else {
@@ -979,7 +979,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -994,7 +994,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1009,7 +1009,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                  LDB_FLAG_MOD_DELETE, NULL);
     }
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1020,7 +1020,7 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
                                "%ld", (long int)time(NULL));
     }
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1044,20 +1044,20 @@ int sysdb_posix_store_user(TALLOC_CTX *memctx,
         goto done;
     }
 
-    lret = ldb_transaction_commit(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
     ret = EOK;
 
 done:
-    if (ret != EOK) {
+    if (ret == EOK) {
+        lret = ldb_transaction_commit(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+            ret = EIO;
+        }
+    } else {
         lret = ldb_transaction_cancel(sysdb->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+            ret = EIO;
         }
     }
 
@@ -1277,7 +1277,7 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
             lret = ldb_msg_add_string(msg, "objectClass", "group");
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
 
@@ -1286,7 +1286,7 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
             lret = ldb_msg_add_string(msg, SYSDB_GR_NAME, name);
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
     }
@@ -1299,7 +1299,7 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
                                    "%lu", (unsigned long)gid);
         }
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
     } else {
@@ -1315,7 +1315,7 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
                                "%ld", (long int)time(NULL));
     }
     if (lret != LDB_SUCCESS) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1323,7 +1323,7 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
     if (members && members[0]) {
         lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER, flags, NULL);
         if (lret != LDB_SUCCESS) {
-            ret = errno;
+            ret = ENOMEM;
             goto done;
         }
         for (i = 0; members[i]; i++) {
@@ -1353,20 +1353,20 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
         goto done;
     }
 
-    lret = ldb_transaction_commit(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
     ret = EOK;
 
 done:
-    if (ret != EOK) {
+    if (ret == EOK) {
+        lret = ldb_transaction_commit(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
+            ret = EIO;
+        }
+    } else {
         lret = ldb_transaction_cancel(sysdb->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+            ret = EIO;
         }
     }
     talloc_free(tmp_ctx);
@@ -1407,7 +1407,7 @@ int sysdb_posix_add_user_to_group(TALLOC_CTX *mem_ctx,
                               SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                               group, domain);
     if (group_dn == NULL) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
@@ -1452,7 +1452,7 @@ int sysdb_posix_remove_user_from_group(TALLOC_CTX *mem_ctx,
                               SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                               group, domain);
     if (group_dn == NULL) {
-        ret = errno;
+        ret = ENOMEM;
         goto done;
     }
 
