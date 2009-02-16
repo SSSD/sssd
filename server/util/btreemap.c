@@ -26,7 +26,7 @@
 struct btreemap
 {
     /* NULL keys are not allowed */
-    void *key;
+    const void *key;
 
     /* NULL values are permitted */
     void *value;
@@ -50,7 +50,7 @@ struct btreemap
  * BTREEMAP_CREATE_LEFT: A new node created should use node->left
  * BTREEMAP_CREATE_RIGHT: A new node created should use node->right
  */
-int btreemap_search_key(struct btreemap *map, void *key, struct btreemap **node)
+int btreemap_search_key(struct btreemap *map, const void *key, struct btreemap **node)
 {
     struct btreemap *tempnode;
     int result;
@@ -92,7 +92,7 @@ int btreemap_search_key(struct btreemap *map, void *key, struct btreemap **node)
     return found;
 }
 
-void *btreemap_get_value(struct btreemap *map, void *key)
+void *btreemap_get_value(struct btreemap *map, const void *key)
 {
     struct btreemap *node;
     int found;
@@ -113,7 +113,11 @@ void *btreemap_get_value(struct btreemap *map, void *key)
     return NULL;
 }
 
-int btreemap_set_value(struct btreemap **map, void *key, void *value,
+/* Keys and values must be talloc contexts
+ * comparator must return -1, 0 or 1
+ */
+int btreemap_set_value(TALLOC_CTX *mem_ctx,
+                       struct btreemap **map, const void *key, void *value,
                        btreemap_comparison_fn comparator)
 {
     struct btreemap *node;
@@ -127,6 +131,7 @@ int btreemap_set_value(struct btreemap **map, void *key, void *value,
 
     /* Search for the key */
     found = btreemap_search_key(*map, key, &node);
+
     if (found == BTREEMAP_FOUND)
     {
         /* Update existing value */
@@ -135,14 +140,16 @@ int btreemap_set_value(struct btreemap **map, void *key, void *value,
     }
 
     /* Need to add a value to the tree */
-    new_node = talloc_zero(node, struct btreemap);
+    new_node = talloc_zero(mem_ctx, struct btreemap);
+
     if (!new_node)
     {
         return ENOMEM;
     }
-    new_node->key = talloc_steal(*map, key);
-    new_node->value = talloc_steal(*map, value);
+    new_node->key = talloc_steal(new_node, key);
+    new_node->value = talloc_steal(new_node, value);
     new_node->comparator = comparator;
+
 
     if (found == BTREEMAP_EMPTY)
     {
@@ -158,18 +165,21 @@ int btreemap_set_value(struct btreemap **map, void *key, void *value,
     return EOK;
 }
 
-struct btreemap *btreemap_new(void *key, void *value,
-                              btreemap_comparison_fn comparator)
+/* Return an array of keys in sort order
+ * count should be initialized to zero before calling this function.
+ */
+void btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count)
 {
-    struct btreemap *map;
-    int result;
+    if (map == NULL) return;
 
-    map = NULL;
-    result = btreemap_set_value(&map, key, value, comparator);
-    if (result != EOK)
-    {
-        return NULL;
-    }
+    /* Left Node */
+    btreemap_get_keys(mem_ctx, map->left, array, count);
 
-    return map;
+    /* Current Node */
+    (*count)++;
+    *array = talloc_realloc(mem_ctx, *array, const void *, *count);
+    (*array)[(*count)-1] = map->key;
+
+    /* Right Node */
+    btreemap_get_keys(mem_ctx, map->right, array, count);
 }

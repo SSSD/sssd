@@ -48,7 +48,7 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
 static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
 static int service_reload(DBusMessage *message, void *data, DBusMessage **r);
 static int nss_init_domains(struct nss_ctx *nctx);
-static int _domain_comparator(void *key1, void *key2);
+static int _domain_comparator(const void *key1, const void *key2);
 
 struct sbus_method nss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, service_identity},
@@ -381,9 +381,9 @@ failed:
 /* domain names are case insensitive for now
  * NOTE: this function is not utf-8 safe,
  * only ASCII names for now */
-static int _domain_comparator(void *key1, void *key2)
+static int _domain_comparator(const void *key1, const void *key2)
 {
-    return strcasecmp((char *)key1, (char *)key2);
+    return strcasecmp((const char *)key1, (const char *)key2);
 }
 
 static int nss_init_domains(struct nss_ctx *nctx)
@@ -407,7 +407,7 @@ static int nss_init_domains(struct nss_ctx *nctx)
         /* Look up the appropriate basedn for this domain */
         ret = confdb_get_domain_basedn(nctx->cdb, tmp_ctx, domains[i], &basedn);
         DEBUG(3, ("BaseDN: %s\n", basedn));
-        btreemap_set_value(&nctx->domain_map, domains[i], basedn, _domain_comparator);
+        btreemap_set_value(nctx, &nctx->domain_map, domains[i], basedn, _domain_comparator);
         i++;
     }
     if (i == 0) {

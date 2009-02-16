@@ -28,12 +28,14 @@ enum {
     BTREEMAP_CREATE_RIGHT
 };
 
-typedef int (*btreemap_comparison_fn)(void *first, void *second);
+typedef int (*btreemap_comparison_fn)(const void *first, const void *second);
 struct btreemap;
-int btreemap_search_key(struct btreemap *map, void *key, struct btreemap **node);
-void *btreemap_get_value(struct btreemap *map, void *key);
-int btreemap_set_value(struct btreemap **map, void *key, void *value,
+int btreemap_search_key(struct btreemap *map, const void *key, struct btreemap **node);
+void *btreemap_get_value(struct btreemap *map, const void *key);
+int btreemap_set_value(TALLOC_CTX *mem_ctx,
+                       struct btreemap **map, const void *key, void *value,
                        btreemap_comparison_fn comparator);
+void btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count);
 
 
 #endif /*BTREEMAP_H_*/
