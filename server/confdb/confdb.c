@@ -635,18 +635,3 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
-
-int confdb_get_domain_basedn(struct confdb_ctx *cdb,
-                             TALLOC_CTX *mem_ctx,
-                             const char *domain,
-                             char **basedn)
-{
-    char *section;
-    int ret;
-
-    section = talloc_asprintf(mem_ctx, "config/domains/%s", domain);
-    ret = confdb_get_string(cdb, mem_ctx, section, "basedn", "cn=local", basedn);
-
-    talloc_free(section);
-    return ret;
-}

@@ -72,5 +72,6 @@
 
 #define BE_REQ_USER 1
 #define BE_REQ_GROUP 2
+#define BE_REQ_INITGROUPS 3
 
 #endif /* __DATA_PROVIDER_ */

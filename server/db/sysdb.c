@@ -1247,11 +1247,11 @@ int sysdb_posix_store_group(TALLOC_CTX *memctx,
     switch(res->count) {
     case 0:
         flags = LDB_FLAG_MOD_ADD;
-        DEBUG(3, ("Adding new entry\n"));
+        DEBUG(7, ("Adding new entry\n"));
         break;
     case 1:
         flags = LDB_FLAG_MOD_REPLACE;
-        DEBUG(3, ("Replacing existing entry\n"));
+        DEBUG(7, ("Replacing existing entry\n"));
         break;
     default:
         DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",

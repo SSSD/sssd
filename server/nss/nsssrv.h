@@ -41,6 +41,10 @@
 #define NSS_DOMAIN_DELIM '@'
 #endif
 
+#define NSS_ENUM_USERS 0x01
+#define NSS_ENUM_GROUPS 0x02
+#define NSS_ENUM_ALL 0x03
+
 struct sysdb_ctx;
 struct getent_ctx;
 
@@ -67,6 +71,13 @@ struct cli_ctx {
     struct sockaddr_un addr;
     struct cli_request *creq;
     struct getent_ctx *gctx;
+};
+
+struct nss_domain_info {
+    char *basedn;
+    int enumerate;
+    bool has_provider;
+    bool legacy;
 };
 
 struct nss_packet;
@@ -97,6 +108,7 @@ int nss_cmd_execute(struct cli_ctx *cctx);
 /* from nsssrv_dp.c */
 #define NSS_DP_USER 1
 #define NSS_DP_GROUP 2
+#define NSS_DP_INITGROUPS 3
 
 typedef void (*nss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);

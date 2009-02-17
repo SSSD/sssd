@@ -27,10 +27,12 @@
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
-    const char *domain;
     const char *name;
     uid_t id;
-    bool check_expiration;
+
+    bool immediate;
+    bool done;
+    int nr;
 };
 
 struct getent_ctx {
@@ -40,24 +42,31 @@ struct getent_ctx {
     int grp_cur;
 };
 
+struct nss_dom_ctx {
+    struct nss_cmd_ctx *cmdctx;
+    const char *domain;
+    bool check_provider;
+    bool legacy;
+};
+
 struct nss_cmd_table {
     enum sss_nss_command cmd;
     int (*fn)(struct cli_ctx *cctx);
 };
 
-static void nss_cmd_done(struct nss_cmd_ctx *nctx)
+static void nss_cmd_done(struct nss_cmd_ctx *cmdctx)
 {
     /* now that the packet is in place, unlock queue
      * making the event writable */
-    EVENT_FD_WRITEABLE(nctx->cctx->cfde);
+    EVENT_FD_WRITEABLE(cmdctx->cctx->cfde);
 
     /* free all request related data through the talloc hierarchy */
-    talloc_free(nctx);
+    talloc_free(cmdctx);
 }
 
-static int nss_cmd_send_error(struct nss_cmd_ctx *nctx, int err)
+static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 {
-    struct cli_ctx *cctx = nctx->cctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
 
     /* create response packet */
@@ -69,8 +78,6 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *nctx, int err)
     }
 
     nss_packet_set_error(cctx->creq->out, err);
-
-    nss_cmd_done(nctx);
     return EOK;
 }
 
@@ -80,62 +87,63 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *nctx, int err)
     return; \
 } while(0)
 
-static int nss_check_domain(struct ldb_dn *dn,
-                            struct btreemap *domain_map,
-                            const char *def_domain, const char *domain)
+static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
 {
-    /* FIXME: it would be better to use ldb_dn_compare() */
-    const char *lineardn;
-    const char *basedn;
-    const char *key;
-    int blen, llen;
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct nss_ctx *nctx = cmdctx->cctx->nctx;
+    struct nss_domain_info *info;
+    struct btreemap *domain_map;
+    char *delim;
+    char *domain;
 
-    lineardn = ldb_dn_get_linearized(dn);
-    if (!lineardn || !*lineardn) {
-        DEBUG(4, ("Invalid DN (empty)\n"));
-        return EINVAL;
-    }
-    llen = strlen(lineardn);
+    domain_map = nctx->domain_map;
 
-    /* if domain is NULL check if it is the default domain or LOCAL */
-    if (domain) {
-        key = domain;
-    } else if (def_domain) {
-        key = def_domain;
+    if ((delim = strchr(fullname, NSS_DOMAIN_DELIM)) != NULL) {
+        domain = delim+1;
     } else {
-        key = "LOCAL";
+        domain = nctx->default_domain;
     }
 
-    basedn = btreemap_get_value(domain_map, key);
-    if (!basedn) {
-        DEBUG(4, ("Domain (%s) not found in map!\n", domain));
+    /* Check for registered domain */
+    info = btreemap_get_value(domain_map, (void *)domain);
+    if (!info) {
+        /* No such domain was registered. Return EINVAL.
+         * TODO: alternative approach?
+         * Alternatively, we could simply fail down to
+         * below, treating the entire construct as the
+         * full name if the domain is unspecified.
+         */
         return EINVAL;
     }
 
-    blen = strlen(basedn);
-    if (blen < llen) {
-        if (strcasecmp(basedn, &lineardn[llen-blen]) == 0)
-            return EOK;
+    dctx->check_provider = info->has_provider;
+    dctx->legacy = info->legacy;
+
+    dctx->domain = talloc_strdup(dctx, domain);
+    if (!dctx->domain) return ENOMEM;
+
+    if (delim) {
+        cmdctx->name = talloc_strndup(cmdctx, fullname, delim-fullname);
+    } else {
+        cmdctx->name = talloc_strdup(cmdctx, fullname);
     }
+    if (!cmdctx->name) return ENOMEM;
 
-    DEBUG(4, ("DN %s, does not match domain %s (or %s (or LOCAL))\n",
-              ldb_dn_get_linearized(dn), domain, def_domain));
-
-    return EINVAL;
+    return EOK;
 }
 
 static int nss_cmd_get_version(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
     uint8_t *body;
     size_t blen;
     int ret;
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
+    cmdctx->cctx = cctx;
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, sizeof(uint32_t),
@@ -147,7 +155,7 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
     nss_packet_get_body(cctx->creq->out, &body, &blen);
     ((uint32_t *)body)[0] = SSS_NSS_VERSION;
 
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
     return EOK;
 }
 
@@ -230,74 +238,83 @@ done:
     return EOK;
 }
 
-static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr);
-static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr);
+static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                        const char *err_msg, void *ptr);
 
-static void nss_cmd_getpw_callback(void *ptr, int status,
+static void nss_cmd_getpwnam_callback(void *ptr, int status,
                                    struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
-    nss_dp_callback_t callback_fn;
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
-    const char *domain;
+    bool call_provider = false;
     int ret;
 
     if (status != LDB_SUCCESS) {
-        ret = nss_cmd_send_error(nctx, status);
+        ret = nss_cmd_send_error(cmdctx, status);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        return;
+        goto done;
     }
 
-    if (nctx->name) {
-        callback_fn = &nss_cmd_getpwnam_callback;
-    } else {
-        callback_fn = &nss_cmd_getpwuid_callback;
+    if (dctx->check_provider) {
+        switch (res->count) {
+        case 0:
+            call_provider = true;
+            break;
+
+        case 1:
+            timeout = cmdctx->cctx->nctx->cache_timeout;
+
+            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                     SYSDB_LAST_UPDATE, 0);
+            if (lastUpdate + timeout < time(NULL)) {
+                call_provider = true;
+            }
+            break;
+
+        default:
+            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
     }
 
-    if (nctx->domain) {
-        domain = nctx->domain;
-    } else {
-        domain = "*";
-    }
-
-    if (res->count == 0 && nctx->check_expiration) {
+    if (call_provider) {
 
         /* dont loop forever :-) */
-        nctx->check_expiration = false;
+        dctx->check_provider = false;
         timeout = SSS_NSS_SOCKET_TIMEOUT/2;
 
-        ret = nss_dp_send_acct_req(cctx->nctx, nctx, callback_fn, nctx,
-                                   timeout, domain, NSS_DP_USER,
-                                   nctx->name, nctx->id);
+        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                   nss_cmd_getpwnam_dp_callback, dctx,
+                                   timeout, dctx->domain, NSS_DP_USER,
+                                   cmdctx->name, 0);
         if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)",
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
                       ret, strerror(ret)));
-            ret = nss_cmd_send_error(nctx, ret);
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
         }
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-
         return;
     }
 
-    if (res->count != 1) {
-        if (res->count > 1) {
-            /* FIXME: when multiple domains are configured this is possible.
-             * Add logic to select which result to return */
-            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
-        }
-        if (res->count == 0) {
-            DEBUG(2, ("No results for getpwnam call\n"));
-        }
+    switch (res->count) {
+    case 0:
+
+        DEBUG(2, ("No results for getpwnam call\n"));
+
         ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              nss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
@@ -307,100 +324,40 @@ static void nss_cmd_getpw_callback(void *ptr, int status,
         nss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
-        goto done;
-    }
+        break;
 
-    if (nctx->check_expiration) {
-        timeout = nctx->cctx->nctx->cache_timeout;
-
-        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_LAST_UPDATE, 0);
-        if (lastUpdate + timeout < time(NULL)) {
-
-            /* dont loop forever :-) */
-            nctx->check_expiration = false;
-            timeout = SSS_NSS_SOCKET_TIMEOUT/2;
-
-            ret = nss_dp_send_acct_req(cctx->nctx, nctx, callback_fn, nctx,
-                                       timeout, domain, NSS_DP_USER,
-                                       nctx->name, nctx->id);
-            if (ret != EOK) {
-                DEBUG(3, ("Failed to dispatch request: %d(%s)",
-                          ret, strerror(ret)));
-                ret = nss_cmd_send_error(nctx, ret);
-            }
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-
-            return;
-        }
-    }
-
-    if (nctx->name) {
-        /* before returning results check if they match their domain */
-        ret = nss_check_domain(res->msgs[0]->dn, cctx->nctx->domain_map,
-                               cctx->nctx->default_domain, nctx->domain);
+    case 1:
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
         if (ret != EOK) {
-            ret = nss_cmd_send_error(nctx, ret);
+            NSS_CMD_FATAL_ERROR(cctx);
         }
+
+        ret = fill_pwent(cctx->creq->out, res->msgs, res->count);
+        nss_packet_set_error(cctx->creq->out, ret);
+
+        break;
+
+    default:
+        DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
+        ret = nss_cmd_send_error(cmdctx, ret);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
     }
 
-    /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret != EOK) {
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-
-    ret = fill_pwent(cctx->creq->out, res->msgs, res->count);
-    nss_packet_set_error(cctx->creq->out, ret);
-
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
 }
 
-static int nss_parse_name(TALLOC_CTX *memctx,
-                          const char *fullname,
-                          struct btreemap *domain_map,
-                          const char **domain, const char **name) {
-    char *delim;
-    struct btreemap *node;
-    int ret;
-
-    if ((delim = strchr(fullname, NSS_DOMAIN_DELIM)) != NULL) {
-
-        /* Check for registered domain */
-        ret = btreemap_search_key(domain_map, (void *)(delim+1), &node);
-        if (ret != BTREEMAP_FOUND) {
-            /* No such domain was registered. Return EINVAL.
-             * TODO: alternative approach?
-             * Alternatively, we could simply fail down to
-             * below, treating the entire construct as the
-             * full name if the domain is unspecified.
-             */
-            return EINVAL;
-        }
-
-        *name = talloc_strndup(memctx, fullname, delim-fullname);
-        *domain = talloc_strdup(memctx, delim+1);
-    }
-    else {
-        *name = talloc_strdup(memctx, fullname);
-        *domain = NULL;
-    }
-
-    return EOK;
-}
-
-static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
+static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
 
     if (err_maj) {
@@ -410,72 +367,216 @@ static void nss_cmd_getpwnam_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getpwnam(nctx, cctx->ev, cctx->nctx->sysdb,
-                         nctx->domain, nctx->name,
-                         nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->name,
+                         dctx->legacy,
+                         nss_cmd_getpwnam_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
-        ret = nss_cmd_send_error(nctx, ret);
+        ret = nss_cmd_send_error(cmdctx, ret);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
+        nss_cmd_done(cmdctx);
     }
 }
 
 static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
     uint8_t *body;
     size_t blen;
     int ret;
 
-    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
-    nctx->check_expiration = true;
+    cmdctx->cctx = cctx;
+
+    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+    if (!dctx) return ENOMEM;
+    dctx->cmdctx = cmdctx;
 
     /* get user name to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
-        talloc_free(nctx);
+        talloc_free(cmdctx);
         return EINVAL;
     }
 
-    ret = nss_parse_name(nctx, (const char *)body,
-                         cctx->nctx->domain_map,
-                         &nctx->domain, &nctx->name);
+    ret = nss_parse_name(dctx, (const char *)body);
     if (ret != EOK) {
         DEBUG(1, ("Invalid name received\n"));
-        talloc_free(nctx);
+        talloc_free(cmdctx);
         return ret;
     }
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
-              nctx->name, nctx->domain?nctx->domain:"all domains"));
+              cmdctx->name, dctx->domain));
 
-    ret = sysdb_getpwnam(nctx, cctx->ev, cctx->nctx->sysdb,
-                         nctx->domain, nctx->name,
-                         nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->name,
+                         dctx->legacy,
+                         nss_cmd_getpwnam_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
-        ret = nss_cmd_send_error(nctx, ret);
-        if (ret != EOK) {
-            return ret;
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret == EOK) {
+            nss_cmd_done(cmdctx);
         }
+        return ret;
     }
 
     return EOK;
 }
 
-static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
+static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                        const char *err_msg, void *ptr);
+
+static void nss_cmd_getpwuid_callback(void *ptr, int status,
+                                      struct ldb_result *res)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int timeout;
+    uint64_t lastUpdate;
+    uint8_t *body;
+    size_t blen;
+    bool call_provider = false;
+    int ret;
+
+    /* one less to go */
+    cmdctx->nr--;
+
+    /* check if another callback already replied */
+    if (cmdctx->done) {
+        /* now check if this is the last callback */
+        if (cmdctx->nr == 0) {
+            /* ok we are really done with this request */
+            goto done;
+        }
+    }
+
+    if (status != LDB_SUCCESS) {
+        ret = nss_cmd_send_error(cmdctx, status);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        goto done;
+    }
+
+    if (dctx->check_provider) {
+        switch (res->count) {
+        case 0:
+            call_provider = true;
+            break;
+
+        case 1:
+            timeout = cmdctx->cctx->nctx->cache_timeout;
+
+            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                     SYSDB_LAST_UPDATE, 0);
+            if (lastUpdate + timeout < time(NULL)) {
+                call_provider = true;
+            }
+            break;
+
+        default:
+            DEBUG(1, ("getpwuid call returned more than one result !?!\n"));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
+    }
+
+    if (call_provider) {
+
+        /* yet one more call to go */
+        cmdctx->nr++;
+
+        /* dont loop forever :-) */
+        dctx->check_provider = false;
+        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+
+        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                   nss_cmd_getpwuid_dp_callback, dctx,
+                                   timeout, dctx->domain, NSS_DP_USER,
+                                   NULL, cmdctx->id);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
+        return;
+    }
+
+    switch (res->count) {
+    case 0:
+        if (cmdctx->nr != 0) {
+            /* nothing to do */
+            return;
+        }
+
+        DEBUG(2, ("No results for getpwuid call\n"));
+
+        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        ((uint32_t *)body)[0] = 0; /* 0 results */
+        ((uint32_t *)body)[1] = 0; /* reserved */
+        break;
+
+    case 1:
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+
+        ret = fill_pwent(cctx->creq->out, res->msgs, res->count);
+        nss_packet_set_error(cctx->creq->out, ret);
+
+        break;
+
+    default:
+        DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+    }
+
+done:
+    if (cmdctx->nr != 0) {
+        cmdctx->done = true; /* signal that we are done */
+        return;
+    }
+    nss_cmd_done(cmdctx);
+}
+
+static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
 
     if (err_maj) {
@@ -485,32 +586,40 @@ static void nss_cmd_getpwuid_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getpwuid(nctx, cctx->ev, cctx->nctx->sysdb,
-                         nctx->domain, nctx->id,
-                         nss_cmd_getpw_callback, nctx);
+    ret = sysdb_getpwuid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->id,
+                         dctx->legacy,
+                         nss_cmd_getpwuid_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
-        ret = nss_cmd_send_error(nctx, ret);
+        ret = nss_cmd_send_error(cmdctx, ret);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
+        if (cmdctx->nr != 0) {
+            cmdctx->done = true; /* signal that we are done */
+            return;
+        }
+        nss_cmd_done(cmdctx);
     }
 }
 
 static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
+    struct nss_domain_info *info;
+    const char **domains;
     uint8_t *body;
     size_t blen;
-    int ret;
+    int i, num, ret;
 
-    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
-    nctx->check_expiration = true;
+    cmdctx->cctx = cctx;
 
     /* get uid to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
@@ -519,21 +628,46 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         return EINVAL;
     }
 
-    nctx->id = (uid_t)*((uint64_t *)body);
+    cmdctx->id = (uid_t)*((uint64_t *)body);
 
     /* FIXME: Just ask all backends for now, until we check for ranges */
-    nctx->domain = NULL;
+    dctx = NULL;
+    domains = NULL;
+    num = 0;
+    /* get domains list */
+    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                      (const void ***)&domains, &num);
 
-    DEBUG(4, ("Requesting info for [%lu]@[%s]\n", nctx->id, nctx->domain));
+    cmdctx->nr = num;
 
-    ret = sysdb_getpwuid(nctx, cctx->ev, cctx->nctx->sysdb,
-                         nctx->domain, nctx->id,
-                         nss_cmd_getpw_callback, nctx);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
+    for (i = 0; i < num; i++) {
+        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
 
-        ret = nss_cmd_send_error(nctx, ret);
+        dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+        if (!dctx) return ENOMEM;
+
+        dctx->cmdctx = cmdctx;
+        dctx->domain = talloc_strdup(dctx, domains[i]);
+        if (!dctx->domain) return ENOMEM;
+        dctx->check_provider = info->has_provider;
+        dctx->legacy = info->legacy;
+
+
+        DEBUG(4, ("Requesting info for [%lu@%s]\n",
+                  cmdctx->id, dctx->domain));
+
+        ret = sysdb_getpwuid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                             dctx->domain, cmdctx->id,
+                             dctx->legacy,
+                             nss_cmd_getpwuid_callback, dctx);
         if (ret != EOK) {
+            DEBUG(1, ("Failed to make request to our cache!\n"));
+            /* shutdown ? */
+
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret == EOK) {
+                nss_cmd_done(cmdctx);
+            }
             return ret;
         }
     }
@@ -546,19 +680,71 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
  * and we also block on setpwent() for the full time needed
  * to retrieve the data. And endpwent() frees all the data.
  * Next steps are:
- * - use and nsssrv wide cache with data already structured
+ * - use an nsssrv wide cache with data already structured
  *   so that it can be immediately returned (see nscd way)
  * - use mutexes so that setpwent() can return immediately
  *   even if the data is still being fetched
  * - make getpwent() wait on the mutex
  */
+static void nss_cmd_getpwent_callback(void *ptr, int status,
+                                      struct ldb_result *res);
+
 static void nss_cmd_setpwent_callback(void *ptr, int status,
-                                     struct ldb_result *res)
+                                        struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_cmd_ctx *cmdctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = cmdctx->cctx;
     struct getent_ctx *gctx = cctx->gctx;
-    int ret;
+    struct ldb_result *store = gctx->pwds;
+    int i, j, c, ret;
+
+    cmdctx->nr--;
+
+    if (cmdctx->done) {
+        /* do not reply until all domain searches are done */
+        if (cmdctx->nr != 0) return;
+        else goto done;
+    }
+
+    if (status != LDB_SUCCESS) {
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_packet_set_error(cctx->creq->out, status);
+        cmdctx->done = true;
+        return;
+    }
+
+    if (store) {
+            c = store->count + res->count;
+            store->msgs = talloc_realloc(store, store->msgs,
+                                         struct ldb_message *, c);
+            if (!store->msgs) NSS_CMD_FATAL_ERROR(cctx);
+
+            for (i = store->count, j = 0; i < c; i++, j++) {
+                store->msgs[i] = talloc_steal(store->msgs, res->msgs[j]);
+                if (!store->msgs[i]) NSS_CMD_FATAL_ERROR(cctx);
+            }
+            store->count = c;
+            talloc_free(res);
+    } else {
+        gctx->pwds = talloc_steal(gctx, res);
+    }
+
+    /* do not reply until all domain searches are done */
+    if (cmdctx->nr) return;
+
+    if (cmdctx->immediate) {
+        /* this was a getpwent call w/o setpwent,
+         * return immediately one result */
+        nss_cmd_getpwent_callback(ptr, status, res);
+
+        return;
+    }
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, 0,
@@ -568,35 +754,61 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
         NSS_CMD_FATAL_ERROR(cctx);
     }
 
-    if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
-        goto done;
-    }
-
-    gctx->pwds = talloc_steal(gctx, res);
-
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
 }
 
-static int nss_cmd_setpwent(struct cli_ctx *cctx)
+static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
 {
-    struct nss_cmd_ctx *nctx;
-    struct getent_ctx *gctx;
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
 
-    DEBUG(4, ("Requesting info for all accounts\n"));
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    ret = sysdb_enumpwent(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                          dctx->domain, dctx->legacy,
+                          nss_cmd_setpwent_callback, cmdctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+    }
+}
+
+static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
+{
+    struct nss_domain_info *info;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
+    struct getent_ctx *gctx;
+    const char **domains;
+    int timeout;
+    int i, ret, num;
+
+    DEBUG(4, ("Requesting info for all users\n"));
+
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
+    cmdctx->cctx = cctx;
 
     if (cctx->gctx == NULL) {
         gctx = talloc_zero(cctx, struct getent_ctx);
         if (!gctx) {
-            talloc_free(nctx);
+            talloc_free(cmdctx);
             return ENOMEM;
         }
         cctx->gctx = gctx;
@@ -607,11 +819,78 @@ static int nss_cmd_setpwent(struct cli_ctx *cctx)
         cctx->gctx->pwd_cur = 0;
     }
 
-    ret = sysdb_enumpwent(nctx, cctx->ev, cctx->nctx->sysdb,
-                          nss_cmd_setpwent_callback, nctx);
+    cmdctx->immediate = immediate;
+
+    domains = NULL;
+    num = 0;
+    /* get domains list */
+    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                      (const void ***)&domains, &num);
+
+    /* check if enumeration is enabled in any domain */
+    for (i = 0; i < num; i++) {
+        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
+
+        if ((info->enumerate & NSS_ENUM_USERS) == 0) {
+            continue;
+        }
+
+        /* TODO: enabled, check if we have a recent cached enumeration */
+
+        /* ok no cache, go and ask the backend to enumerate */
+        dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+        if (!dctx) return ENOMEM;
+
+        dctx->cmdctx = cmdctx;
+        dctx->domain = talloc_strdup(dctx, domains[i]);
+        if (!dctx->domain) return ENOMEM;
+        dctx->check_provider = info->has_provider;
+        dctx->legacy = info->legacy;
+
+        if (dctx->check_provider) {
+            timeout = SSS_NSS_SOCKET_TIMEOUT/(i+2);
+            ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                       nss_cmd_setpw_dp_callback, dctx,
+                                       timeout, domains[i], NSS_DP_USER,
+                                       NULL, 0);
+        } else {
+            ret = sysdb_enumpwent(dctx, cctx->ev, cctx->nctx->sysdb,
+                                  dctx->domain, dctx->legacy,
+                                  nss_cmd_setpwent_callback, cmdctx);
+        }
+        if (ret != EOK) {
+            /* FIXME: shutdown ? */
+            DEBUG(1, ("Failed to send enumeration request for domain [%s]!\n",
+                      domains[i]));
+            continue;
+        }
+
+        /* number of replies to wait for before setpwent is done */
+        cmdctx->nr++;
+    }
+
+    if (cmdctx->nr == 0) {
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        nss_packet_set_error(cctx->creq->out, ret);
+        nss_cmd_done(cmdctx);
+        return EOK;
+    }
 
     return ret;
 }
+
+static int nss_cmd_setpwent(struct cli_ctx *cctx)
+{
+    return nss_cmd_setpwent_ext(cctx, false);
+}
+
 
 static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 {
@@ -629,12 +908,12 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 }
 
 /* used only if a process calls getpwent() without first calling setpwent()
- * in this case we basically trigger an implicit setpwent() */
+ */
 static void nss_cmd_getpwent_callback(void *ptr, int status,
                                       struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_cmd_ctx *cmdctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = cmdctx->cctx;
     struct getent_ctx *gctx = cctx->gctx;
     uint8_t *body;
     size_t blen;
@@ -667,12 +946,12 @@ static void nss_cmd_getpwent_callback(void *ptr, int status,
     nss_packet_set_error(cctx->creq->out, ret);
 
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
 }
 
 static int nss_cmd_getpwent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
     struct getent_ctx *gctx;
     uint8_t *body;
     size_t blen;
@@ -688,28 +967,26 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
     }
     num = *((uint32_t *)body);
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
-        return ENOMEM;
-    }
-    nctx->cctx = cctx;
-
     /* see if we need to trigger an implicit setpwent() */
     if (cctx->gctx == NULL || cctx->gctx->pwds == NULL) {
         if (cctx->gctx == NULL) {
             gctx = talloc_zero(cctx, struct getent_ctx);
             if (!gctx) {
-                talloc_free(nctx);
                 return ENOMEM;
             }
             cctx->gctx = gctx;
         }
         if (cctx->gctx->pwds == NULL) {
-            ret = sysdb_enumpwent(nctx, cctx->ev, cctx->nctx->sysdb,
-                                  nss_cmd_getpwent_callback, nctx);
+            ret = nss_cmd_setpwent_ext(cctx, true);
             return ret;
         }
     }
+
+    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, 0,
@@ -721,22 +998,22 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
 
     ret = nss_cmd_retpwent(cctx, num);
     nss_packet_set_error(cctx->creq->out, ret);
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
     return EOK;
 }
 
 static int nss_cmd_endpwent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
     int ret;
 
     DEBUG(4, ("Terminating request info for all accounts\n"));
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
+    cmdctx->cctx = cctx;
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, 0,
@@ -752,7 +1029,7 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
     cctx->gctx->pwd_cur = 0;
 
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
     return EOK;
 }
 
@@ -764,13 +1041,15 @@ static int fill_grent(struct nss_packet *packet,
                       struct ldb_message **msgs,
                       int count)
 {
+    struct ldb_message_element *el;
     struct ldb_message *msg;
     uint8_t *body;
     const char *name;
     uint64_t gid;
     size_t rsize, rp, blen, mnump;
-    int i, ret, num, memnum;
+    int i, j, ret, num, memnum;
     bool get_group = true;
+    bool memnum_set = false;
 
     /* first 2 fields (len and reserved), filled up later */
     ret = nss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -800,15 +1079,44 @@ static int fill_grent(struct nss_packet *packet,
             ((uint64_t *)(&body[rp]))[0] = gid;
             rp += sizeof(uint64_t);
             ((uint32_t *)(&body[rp]))[0] = 0; /* init members num to 0 */
-            mnump = rp; /* keep around pointer to set members num later */
+            mnump = rp; /* keep around members num pointer to set later */
             rp += sizeof(uint32_t);
             memcpy(&body[rp], name, strlen(name)+1);
             body[blen-2] = 'x'; /* group passwd field */
             body[blen-1] = '\0';
 
-            get_group = false;
+            memnum_set = false;
             memnum = 0;
             num++;
+
+            /* legacy style group, members are in SYSDB_LEGACY_MEMBER */
+            el = ldb_msg_find_element(msg, SYSDB_LEGACY_MEMBER);
+            if (el) {
+                /* legacy */
+                memnum = el->num_values;
+
+                for (j = 0; j < memnum; j++) {
+                    rsize = el->values[j].length + 1;
+                    ret = nss_packet_grow(packet, rsize);
+                    if (ret != EOK) {
+                        num = 0;
+                        goto done;
+                    }
+
+                    nss_packet_get_body(packet, &body, &blen);
+                    rp = blen - rsize;
+                    memcpy(&body[rp], el->values[j].data, el->values[j].length);
+                    body[blen-1] = '\0';
+                }
+
+                nss_packet_get_body(packet, &body, &blen);
+                ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+                memnum_set = true;
+
+            }  else {
+                get_group = false;
+            }
+
             continue;
         }
 
@@ -822,6 +1130,7 @@ static int fill_grent(struct nss_packet *packet,
             i--;
             nss_packet_get_body(packet, &body, &blen);
             ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+            memnum_set = true;
             continue;
         }
 
@@ -839,10 +1148,12 @@ static int fill_grent(struct nss_packet *packet,
         memnum++;
     }
 
-    /* fill in the last group member count */
-    if (mnump != 0) {
-        nss_packet_get_body(packet, &body, &blen);
-        ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+    if (!memnum_set) {
+        /* fill in the last group member count */
+        if (mnump != 0) {
+            nss_packet_get_body(packet, &body, &blen);
+            ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+        }
     }
 
 done:
@@ -853,30 +1164,75 @@ done:
     return EOK;
 }
 
-static void nss_cmd_getgr_callback(void *ptr, int status,
+static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr);
+
+static void nss_cmd_getgrnam_callback(void *ptr, int status,
                                    struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int timeout;
+    uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
+    bool call_provider = false;
     int ret;
 
-    /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret != EOK) {
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-
     if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
-        goto done;
+        ret = nss_cmd_send_error(cmdctx, status);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+        return;
     }
 
-    if (res->count == 0) {
-        DEBUG(2, ("No results for getpwnam call"));
+    if (dctx->check_provider) {
+        switch (res->count) {
+        case 0:
+            call_provider = true;
+            break;
+
+        default:
+            timeout = cmdctx->cctx->nctx->cache_timeout;
+
+            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                     SYSDB_LAST_UPDATE, 0);
+            if (lastUpdate + timeout < time(NULL)) {
+                call_provider = true;
+            }
+        }
+    }
+
+    if (call_provider) {
+
+        /* dont loop forever :-) */
+        dctx->check_provider = false;
+        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+
+        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                   nss_cmd_getgrnam_dp_callback, dctx,
+                                   timeout, dctx->domain, NSS_DP_GROUP,
+                                   cmdctx->name, 0);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
+
+        return;
+    }
+
+    switch (res->count) {
+    case 0:
+
+        DEBUG(2, ("No results for getgrnam call\n"));
 
         ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              nss_packet_get_cmd(cctx->creq->in),
@@ -887,102 +1243,400 @@ static void nss_cmd_getgr_callback(void *ptr, int status,
         nss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
-        goto done;
+        break;
+
+    default:
+
+        DEBUG(6, ("Returning info for group [%s]\n", cmdctx->name));
+
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+
+        ret = fill_grent(cctx->creq->out, res->msgs, res->count);
+        nss_packet_set_error(cctx->creq->out, ret);
     }
 
-    ret = fill_grent(cctx->creq->out, res->msgs, res->count);
-    nss_packet_set_error(cctx->creq->out, ret);
-
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
+}
+
+static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
+
+    ret = sysdb_getgrnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->name,
+                         dctx->legacy,
+                         nss_cmd_getgrnam_callback, dctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+    }
 }
 
 static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
     uint8_t *body;
     size_t blen;
     int ret;
 
-    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
-    nctx->check_expiration = true;
+    cmdctx->cctx = cctx;
 
-    /* get group name to query */
+    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+    if (!dctx) return ENOMEM;
+    dctx->cmdctx = cmdctx;
+
+    /* get user name to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
-    nctx->name = (const char *)body;
     /* if not terminated fail */
-    if (nctx->name[blen -1] != '\0') {
+    if (body[blen -1] != '\0') {
+        talloc_free(cmdctx);
         return EINVAL;
     }
 
-    /* FIXME: Just ask all backends for now, until Steve provides for name
-     * parsing code */
-    nctx->domain = NULL;
+    ret = nss_parse_name(dctx, (const char *)body);
+    if (ret != EOK) {
+        DEBUG(1, ("Invalid name received\n"));
+        talloc_free(cmdctx);
+        return ret;
+    }
+    DEBUG(4, ("Requesting info for [%s] from [%s]\n",
+              cmdctx->name, dctx->domain));
 
-    DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
+    ret = sysdb_getgrnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->name,
+                         dctx->legacy,
+                         nss_cmd_getgrnam_callback, dctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
 
-    ret = sysdb_getgrnam(nctx, cctx->ev, cctx->nctx->sysdb,
-                         nctx->domain, nctx->name,
-                         nss_cmd_getgr_callback, nctx);
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret == EOK) {
+            nss_cmd_done(cmdctx);
+        }
+        return ret;
+    }
 
-    return ret;
+    return EOK;
+}
+
+static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr);
+
+static void nss_cmd_getgrgid_callback(void *ptr, int status,
+                                      struct ldb_result *res)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int timeout;
+    uint64_t lastUpdate;
+    uint8_t *body;
+    size_t blen;
+    bool call_provider = false;
+    int ret;
+
+    /* one less to go */
+    cmdctx->nr--;
+
+    /* check if another callback already replied */
+    if (cmdctx->done) {
+        /* now check if this is the last callback */
+        if (cmdctx->nr == 0) {
+            /* ok we are really done with this request */
+            goto done;
+        }
+    }
+
+    if (status != LDB_SUCCESS) {
+        ret = nss_cmd_send_error(cmdctx, status);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        goto done;
+    }
+
+    if (dctx->check_provider) {
+        switch (res->count) {
+        case 0:
+            call_provider = true;
+            break;
+
+        default:
+            timeout = cmdctx->cctx->nctx->cache_timeout;
+
+            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                     SYSDB_LAST_UPDATE, 0);
+            if (lastUpdate + timeout < time(NULL)) {
+                call_provider = true;
+            }
+        }
+    }
+
+    if (call_provider) {
+
+        /* yet one more call to go */
+        cmdctx->nr++;
+
+        /* dont loop forever :-) */
+        dctx->check_provider = false;
+        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+
+        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                   nss_cmd_getgrgid_dp_callback, dctx,
+                                   timeout, dctx->domain, NSS_DP_GROUP,
+                                   NULL, cmdctx->id);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
+        return;
+    }
+
+    switch (res->count) {
+    case 0:
+        if (cmdctx->nr != 0) {
+            /* nothing to do */
+            return;
+        }
+
+        DEBUG(2, ("No results for getgrgid call\n"));
+
+        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        ((uint32_t *)body)[0] = 0; /* 0 results */
+        ((uint32_t *)body)[1] = 0; /* reserved */
+        break;
+
+    default:
+
+        DEBUG(6, ("Returning info for group [%u]\n", (unsigned)cmdctx->id));
+
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+
+        ret = fill_grent(cctx->creq->out, res->msgs, res->count);
+        nss_packet_set_error(cctx->creq->out, ret);
+    }
+
+done:
+    if (cmdctx->nr != 0) {
+        cmdctx->done = true; /* signal that we are done */
+        return;
+    }
+    nss_cmd_done(cmdctx);
+}
+
+static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
+
+    ret = sysdb_getgrgid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->id,
+                         dctx->legacy,
+                         nss_cmd_getgrgid_callback, dctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+    }
 }
 
 static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
+    struct nss_domain_info *info;
+    const char **domains;
     uint8_t *body;
     size_t blen;
-    int ret;
+    int i, num, ret;
 
-    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
-    nctx->check_expiration = true;
+    cmdctx->cctx = cctx;
 
-    /* get gid to query */
+    /* get uid to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
+
     if (blen != sizeof(uint64_t)) {
         return EINVAL;
     }
-    nctx->id = (uid_t)*((uint64_t *)body);
+
+    cmdctx->id = (gid_t)*((uint64_t *)body);
 
     /* FIXME: Just ask all backends for now, until we check for ranges */
-    nctx->domain = NULL;
+    dctx = NULL;
+    domains = NULL;
+    num = 0;
+    /* get domains list */
+    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                      (const void ***)&domains, &num);
 
-    DEBUG(4, ("Requesting info for [%lu]@[%s]\n", nctx->id, nctx->domain));
+    cmdctx->nr = num;
 
-    ret = sysdb_getgrgid(nctx, cctx->ev, cctx->nctx->sysdb,
-                         nctx->domain, nctx->id,
-                         nss_cmd_getgr_callback, nctx);
+    for (i = 0; i < num; i++) {
+        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
 
-    return ret;
+        dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+        if (!dctx) return ENOMEM;
+
+        dctx->cmdctx = cmdctx;
+        dctx->domain = talloc_strdup(dctx, domains[i]);
+        if (!dctx->domain) return ENOMEM;
+        dctx->check_provider = info->has_provider;
+        dctx->legacy = info->legacy;
+
+        DEBUG(4, ("Requesting info for [%lu@%s]\n",
+                  cmdctx->id, dctx->domain));
+
+        ret = sysdb_getgrgid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                             dctx->domain, cmdctx->id,
+                             dctx->legacy,
+                             nss_cmd_getgrgid_callback, dctx);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to make request to our cache!\n"));
+            /* shutdown ? */
+
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret == EOK) {
+                nss_cmd_done(cmdctx);
+            }
+            return ret;
+        }
+    }
+
+    return EOK;
 }
 
 /* to keep it simple at this stage we are retrieving the
  * full enumeration again for each request for each process
- * and we also block on setpwent() for the full time needed
- * to retrieve the data. And endpwent() frees all the data.
+ * and we also block on setgrent() for the full time needed
+ * to retrieve the data. And endgrent() frees all the data.
  * Next steps are:
  * - use and nsssrv wide cache with data already structured
  *   so that it can be immediately returned (see nscd way)
- * - use mutexes so that setpwent() can return immediately
+ * - use mutexes so that setgrent() can return immediately
  *   even if the data is still being fetched
- * - make getpwent() wait on the mutex
+ * - make getgrent() wait on the mutex
  */
+static void nss_cmd_getgrent_callback(void *ptr, int status,
+                                      struct ldb_result *res);
+
 static void nss_cmd_setgrent_callback(void *ptr, int status,
                                      struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_cmd_ctx *cmdctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = cmdctx->cctx;
     struct getent_ctx *gctx = cctx->gctx;
-    int ret;
+    struct ldb_result *store = gctx->grps;
+    int i, j, c, ret;
+
+    cmdctx->nr--;
+
+    if (cmdctx->done) {
+        /* do not reply until all domain searches are done */
+        if (cmdctx->nr != 0) return;
+        else goto done;
+    }
+
+    if (status != LDB_SUCCESS) {
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_packet_set_error(cctx->creq->out, status);
+        cmdctx->done = true;
+        return;
+    }
+
+    if (store) {
+            c = store->count + res->count;
+            store->msgs = talloc_realloc(store, store->msgs,
+                                         struct ldb_message *, c);
+            if (!store->msgs) NSS_CMD_FATAL_ERROR(cctx);
+
+            for (i = store->count, j = 0; i < c; i++, j++) {
+                store->msgs[i] = talloc_steal(store->msgs, res->msgs[j]);
+                if (!store->msgs[i]) NSS_CMD_FATAL_ERROR(cctx);
+            }
+            store->count = c;
+            talloc_free(res);
+    } else {
+        gctx->grps = talloc_steal(gctx, res);
+    }
+
+    /* do not reply until all domain searches are done */
+    if (cmdctx->nr) return;
+
+    if (cmdctx->immediate) {
+        /* this was a getgrent call w/o setgrent,
+         * return immediately one result */
+        nss_cmd_getgrent_callback(ptr, status, res);
+        return;
+    }
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, 0,
@@ -992,35 +1646,61 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
         NSS_CMD_FATAL_ERROR(cctx);
     }
 
-    if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
-        goto done;
-    }
-
-    gctx->grps = talloc_steal(gctx, res);
-
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
 }
 
-static int nss_cmd_setgrent(struct cli_ctx *cctx)
+static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                      const char *err_msg, void *ptr)
 {
-    struct nss_cmd_ctx *nctx;
-    struct getent_ctx *gctx;
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
     int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
+
+    ret = sysdb_enumgrent(dctx, cctx->ev, cctx->nctx->sysdb,
+                          dctx->domain, dctx->legacy,
+                          nss_cmd_setgrent_callback, cmdctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+    }
+}
+
+static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
+{
+    struct nss_domain_info *info;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
+    struct getent_ctx *gctx;
+    const char **domains;
+    int timeout;
+    int i, ret, num;
 
     DEBUG(4, ("Requesting info for all groups\n"));
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
+    cmdctx->cctx = cctx;
 
     if (cctx->gctx == NULL) {
         gctx = talloc_zero(cctx, struct getent_ctx);
         if (!gctx) {
-            talloc_free(nctx);
+            talloc_free(cmdctx);
             return ENOMEM;
         }
         cctx->gctx = gctx;
@@ -1031,10 +1711,75 @@ static int nss_cmd_setgrent(struct cli_ctx *cctx)
         cctx->gctx->grp_cur = 0;
     }
 
-    ret = sysdb_enumgrent(nctx, cctx->ev, cctx->nctx->sysdb,
-                          nss_cmd_setgrent_callback, nctx);
+    cmdctx->immediate = immediate;
+
+    domains = NULL;
+    num = 0;
+    /* get domains list */
+    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                      (const void ***)&domains, &num);
+
+    /* check if enumeration is enabled in any domain */
+    for (i = 0; i < num; i++) {
+        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
+
+        if ((info->enumerate & NSS_ENUM_GROUPS) == 0) {
+            continue;
+        }
+
+        /* TODO: enabled, check if we have a recent cached enumeration */
+
+        /* ok no cache, go and ask the backend to enumerate */
+        dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+        if (!dctx) return ENOMEM;
+
+        dctx->cmdctx = cmdctx;
+        dctx->domain = talloc_strdup(dctx, domains[i]);
+        if (!dctx->domain) return ENOMEM;
+        dctx->check_provider = info->has_provider;
+        dctx->legacy = info->legacy;
+
+        if (dctx->check_provider) {
+            timeout = SSS_NSS_SOCKET_TIMEOUT/(i+2);
+            ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                       nss_cmd_setgr_dp_callback, dctx,
+                                       timeout, domains[i], NSS_DP_GROUP,
+                                       NULL, 0);
+        } else {
+            ret = sysdb_enumgrent(dctx, cctx->ev, cctx->nctx->sysdb,
+                                  dctx->domain, dctx->legacy,
+                                  nss_cmd_setgrent_callback, cmdctx);
+        }
+        if (ret != EOK) {
+            /* FIXME: shutdown ? */
+            DEBUG(1, ("Failed to send enumeration request for domain [%s]!\n",
+                      domains[i]));
+            continue;
+        }
+
+        cmdctx->nr++;
+    }
+
+    if (cmdctx->nr == 0) {
+        /* create response packet */
+        ret = nss_packet_new(cctx->creq, 0,
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            return ret;
+        }
+
+        nss_packet_set_error(cctx->creq->out, ret);
+        nss_cmd_done(cmdctx);
+        return EOK;
+    }
 
     return ret;
+}
+
+static int nss_cmd_setgrent(struct cli_ctx *cctx)
+{
+    return nss_cmd_setgrent_ext(cctx, false);
 }
 
 static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
@@ -1057,8 +1802,8 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 static void nss_cmd_getgrent_callback(void *ptr, int status,
                                      struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_cmd_ctx *cmdctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = cmdctx->cctx;
     struct getent_ctx *gctx = cctx->gctx;
     uint8_t *body;
     size_t blen;
@@ -1068,10 +1813,11 @@ static void nss_cmd_getgrent_callback(void *ptr, int status,
     /* get max num of entries to return in one call */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
-        ret = nss_cmd_send_error(nctx, EIO);
+        ret = nss_cmd_send_error(cmdctx, EIO);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
+        nss_cmd_done(cmdctx);
     }
     num = *((uint32_t *)body);
 
@@ -1094,12 +1840,12 @@ static void nss_cmd_getgrent_callback(void *ptr, int status,
     nss_packet_set_error(cctx->creq->out, ret);
 
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
 }
 
 static int nss_cmd_getgrent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
     struct getent_ctx *gctx;
     uint8_t *body;
     size_t blen;
@@ -1115,28 +1861,26 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     }
     num = *((uint32_t *)body);
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
-        return ENOMEM;
-    }
-    nctx->cctx = cctx;
-
     /* see if we need to trigger an implicit setpwent() */
     if (cctx->gctx == NULL || cctx->gctx->grps == NULL) {
         if (cctx->gctx == NULL) {
             gctx = talloc_zero(cctx, struct getent_ctx);
             if (!gctx) {
-                talloc_free(nctx);
                 return ENOMEM;
             }
             cctx->gctx = gctx;
         }
         if (cctx->gctx->grps == NULL) {
-            ret = sysdb_enumgrent(nctx, cctx->ev, cctx->nctx->sysdb,
-                                  nss_cmd_getgrent_callback, nctx);
+            ret = nss_cmd_setgrent_ext(cctx, true);
             return ret;
         }
     }
+
+    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, 0,
@@ -1148,22 +1892,22 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
 
     ret = nss_cmd_retgrent(cctx, num);
     nss_packet_set_error(cctx->creq->out, ret);
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
     return EOK;
 }
 
 static int nss_cmd_endgrent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
     int ret;
 
     DEBUG(4, ("Terminating request info for all groups\n"));
 
-    nctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
+    cmdctx->cctx = cctx;
 
     /* create response packet */
     ret = nss_packet_new(cctx->creq, 0,
@@ -1179,15 +1923,15 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
     cctx->gctx->grp_cur = 0;
 
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
     return EOK;
 }
 
 static void nss_cmd_initgr_callback(void *ptr, int status,
                                    struct ldb_result *res)
 {
-    struct nss_cmd_ctx *nctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = nctx->cctx;
+    struct nss_cmd_ctx *cmdctx = talloc_get_type(ptr, struct nss_cmd_ctx);
+    struct cli_ctx *cctx = cmdctx->cctx;
     uint8_t *body;
     size_t blen;
     uint64_t gid;
@@ -1232,43 +1976,231 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     ((uint32_t *)body)[1] = 0; /* reserved */
 
 done:
-    nss_cmd_done(nctx);
+    nss_cmd_done(cmdctx);
 }
 
+static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
+                                       const char *err_msg, void *ptr)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
+
+    ret = sysdb_initgroups(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                           dctx->domain, cmdctx->name,
+                           dctx->legacy,
+                           nss_cmd_initgr_callback, cmdctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+    }
+}
+
+static void nss_cmd_getinit_callback(void *ptr, int status,
+                                     struct ldb_result *res);
+
+static void nss_cmd_getinitnam_callback(uint16_t err_maj, uint32_t err_min,
+                                        const char *err_msg, void *ptr)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+    }
+
+    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->name,
+                         dctx->legacy,
+                         nss_cmd_getinit_callback, dctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_cmd_done(cmdctx);
+    }
+}
+
+static void nss_cmd_getinit_callback(void *ptr, int status,
+                                     struct ldb_result *res)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    int timeout;
+    uint64_t lastUpdate;
+    uint8_t *body;
+    size_t blen;
+    bool call_provider = false;
+    int ret;
+
+    if (status != LDB_SUCCESS) {
+        ret = nss_cmd_send_error(cmdctx, status);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        goto done;
+    }
+
+    if (dctx->check_provider) {
+        switch (res->count) {
+        case 0:
+            call_provider = true;
+            break;
+
+        default:
+            timeout = cmdctx->cctx->nctx->cache_timeout;
+
+            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                     SYSDB_LAST_UPDATE, 0);
+            if (lastUpdate + timeout < time(NULL)) {
+                call_provider = true;
+            }
+        }
+    }
+
+    if (call_provider) {
+
+        /* dont loop forever :-) */
+        dctx->check_provider = false;
+        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+
+        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                   nss_cmd_getinitnam_callback, dctx,
+                                   timeout, dctx->domain, NSS_DP_USER,
+                                   cmdctx->name, 0);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
+
+        return;
+    }
+
+    switch (res->count) {
+    case 0:
+
+        DEBUG(2, ("No results for initgroups call\n"));
+
+        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             nss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        ((uint32_t *)body)[0] = 0; /* 0 results */
+        ((uint32_t *)body)[1] = 0; /* reserved */
+        break;
+
+    case 1:
+
+        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+                                   nss_cmd_getinitgr_callback, dctx,
+                                   timeout, dctx->domain, NSS_DP_INITGROUPS,
+                                   cmdctx->name, 0);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            goto done;
+        }
+
+        return;
+
+    default:
+        DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+    }
+
+done:
+    nss_cmd_done(cmdctx);
+}
+
+/* for now, if we are online, try to always query the backend */
 static int nss_cmd_initgroups(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *nctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct nss_dom_ctx *dctx;
     uint8_t *body;
     size_t blen;
     int ret;
 
-    nctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!nctx) {
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
         return ENOMEM;
     }
-    nctx->cctx = cctx;
-    nctx->check_expiration = true;
+    cmdctx->cctx = cctx;
+
+    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
+    if (!dctx) return ENOMEM;
+    dctx->cmdctx = cmdctx;
 
     /* get user name to query */
     nss_packet_get_body(cctx->creq->in, &body, &blen);
-    nctx->name = (const char *)body;
+    cmdctx->name = (const char *)body;
     /* if not terminated fail */
-    if (nctx->name[blen -1] != '\0') {
+    if (cmdctx->name[blen -1] != '\0') {
         return EINVAL;
     }
 
-    /* FIXME: Just ask all backends for now, until Steve provides for name
-     * parsing code */
-    nctx->domain = NULL;
+    ret = nss_parse_name(dctx, (const char *)body);
+    if (ret != EOK) {
+        DEBUG(1, ("Invalid name received\n"));
+        talloc_free(cmdctx);
+        return ret;
+    }
+    DEBUG(4, ("Requesting info for [%s] from [%s]\n",
+              cmdctx->name, dctx->domain));
 
-    DEBUG(4, ("Requesting info for [%s]@[%s]\n", nctx->name, nctx->domain));
+    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+                         dctx->domain, cmdctx->name,
+                         dctx->legacy,
+                         nss_cmd_getinit_callback, dctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
 
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret == EOK) {
+            nss_cmd_done(cmdctx);
+        }
+        return ret;
+    }
 
-    ret = sysdb_initgroups(nctx, cctx->ev, cctx->nctx->sysdb,
-                           nctx->domain, nctx->name,
-                           nss_cmd_initgr_callback, nctx);
-
-    return ret;
+    return EOK;
 }
 
 struct nss_cmd_table nss_cmds[] = {

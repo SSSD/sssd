@@ -52,7 +52,3 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
                        char ***values);
-int confdb_get_domain_basedn(struct confdb_ctx *cdb,
-                             TALLOC_CTX *mem_ctx,
-                             const char *domain,
-                             char **basedn);

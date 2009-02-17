@@ -30,9 +30,20 @@
 struct nss_dp_req {
     nss_dp_callback_t callback;
     void *callback_ctx;
-    bool replied;
     struct timed_event *te;
+    DBusPendingCall *pending_reply;
 };
+
+static int nss_dp_req_destructor(void *ptr)
+{
+    struct nss_dp_req *req = talloc_get_type(ptr, struct nss_dp_req);
+
+    if (req->pending_reply) {
+        dbus_pending_call_cancel(req->pending_reply);
+    }
+
+    return 0;
+}
 
 static void nss_dp_send_acct_timeout(struct event_context *ev,
                                      struct timed_event *te,
@@ -44,9 +55,10 @@ static void nss_dp_send_acct_timeout(struct event_context *ev,
     const char *err_msg = "Request timed out";
 
     ndp_req = talloc_get_type(data, struct nss_dp_req);
-    ndp_req->replied = true;
 
     ndp_req->callback(err_maj, err_min, err_msg, ndp_req->callback_ctx);
+
+    talloc_free(ndp_req);
 }
 
 static int nss_dp_get_reply(DBusPendingCall *pending,
@@ -63,11 +75,10 @@ static void nss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
     int ret;
 
     ndp_req = talloc_get_type(ptr, struct nss_dp_req);
-    if (ndp_req->replied) {
-        DEBUG(5, ("Callback called, but the request was already timed out!\n"));
-        talloc_free(ndp_req);
-        return;
-    }
+
+    /* free timeout event and remove request destructor */
+    talloc_free(ndp_req->te);
+    talloc_set_destructor(ndp_req, NULL);
 
     ret = nss_dp_get_reply(pending, &err_maj, &err_min, &err_msg);
     if (ret != EOK) {
@@ -76,9 +87,9 @@ static void nss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
         err_msg = "Failed to get reply from Data Provider";
     }
 
-    talloc_free(ndp_req->te);
-
     ndp_req->callback(err_maj, err_min, err_msg, ndp_req->callback_ctx);
+
+    talloc_free(ndp_req);
 }
 
 int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
@@ -112,6 +123,9 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
         break;
     case NSS_DP_GROUP:
         be_type = BE_REQ_GROUP;
+        break;
+    case NSS_DP_INITGROUPS:
+        be_type = BE_REQ_INITGROUPS;
         break;
     default:
         return EINVAL;
@@ -169,15 +183,19 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
         return EIO;
     }
 
-    /* setup the timeout handler */
-    ndp_req = talloc(memctx, struct nss_dp_req);
+    ndp_req = talloc_zero(memctx, struct nss_dp_req);
     if (!ndp_req) {
         dbus_message_unref(msg);
         return ENOMEM;
     }
     ndp_req->callback = callback;
     ndp_req->callback_ctx = callback_ctx;
-    ndp_req->replied = false;
+
+    /* set up destructor */
+    ndp_req->pending_reply = pending_reply;
+    talloc_set_destructor((TALLOC_CTX *)ndp_req, nss_dp_req_destructor);
+
+    /* setup the timeout handler */
     gettimeofday(&tv, NULL);
     tv.tv_sec += timeout/1000;
     tv.tv_usec += (timeout%1000) * 1000;

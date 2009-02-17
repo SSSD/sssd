@@ -70,7 +70,7 @@ static void get_pw_name(struct be_req *req, char *name)
 
     ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
-    buffer = talloc_size(NULL, 4096);
+    buffer = talloc_size(req, 4096);
     if (!buffer)
         return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -78,11 +78,11 @@ static void get_pw_name(struct be_req *req, char *name)
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_posix_remove_user(req, req->be_ctx->sysdb,
-                                      req->be_ctx->domain, name);
+        ret = sysdb_delete_user(req, req->be_ctx->sysdb,
+                                req->be_ctx->domain, name);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_posix_store_user(req, req->be_ctx->sysdb,
+        ret = sysdb_legacy_store_user(req, req->be_ctx->sysdb,
                                      req->be_ctx->domain,
                                      result.pw_name, result.pw_passwd,
                                      result.pw_uid, result.pw_gid,
@@ -117,7 +117,7 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
 
     ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
-    buffer = talloc_size(NULL, 4096);
+    buffer = talloc_size(req, 4096);
     if (!buffer)
         return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -125,11 +125,11 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_posix_remove_user_by_uid(req, req->be_ctx->sysdb,
-                                             req->be_ctx->domain,uid);
+        ret = sysdb_delete_user_by_uid(req, req->be_ctx->sysdb,
+                                       req->be_ctx->domain,uid);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_posix_store_user(req, req->be_ctx->sysdb,
+        ret = sysdb_legacy_store_user(req, req->be_ctx->sysdb,
                                      req->be_ctx->domain,
                                      result.pw_name, result.pw_passwd,
                                      result.pw_uid, result.pw_gid,
@@ -169,7 +169,7 @@ static void enum_users(struct be_req *req)
     ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
     buflen = 4096;
-    buffer = talloc_size(NULL, buflen);
+    buffer = talloc_size(req, buflen);
     if (!buffer)
         return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -205,7 +205,7 @@ static void enum_users(struct be_req *req)
             break;
 
         case NSS_STATUS_SUCCESS:
-            ret = sysdb_posix_store_user(req, req->be_ctx->sysdb,
+            ret = sysdb_legacy_store_user(req, req->be_ctx->sysdb,
                                          req->be_ctx->domain,
                                          result.pw_name, result.pw_passwd,
                                          result.pw_uid, result.pw_gid,
@@ -252,17 +252,16 @@ static void get_gr_name(struct be_req *req, char *name)
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_posix_remove_group(req, req->be_ctx->sysdb,
-                                       req->be_ctx->domain, name);
+        ret = sysdb_delete_group(req, req->be_ctx->sysdb,
+                                 req->be_ctx->domain, name);
         break;
     case NSS_STATUS_SUCCESS:
-        /* FIXME: check members are all available or fetch them */
-        ret = sysdb_posix_store_group(req, req->be_ctx->sysdb,
-                                      req->be_ctx->domain, result.gr_name,
-                                      result.gr_gid, result.gr_mem);
+        ret = sysdb_legacy_store_group(req, req->be_ctx->sysdb,
+                                       req->be_ctx->domain, result.gr_name,
+                                       result.gr_gid, result.gr_mem);
         break;
     default:
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
+        DEBUG(2, ("proxy -> getgrnam_r failed for '%s' (%d)[%s]\n",
                   name, ret, strerror(ret)));
         talloc_free(buffer);
         return proxy_reply(req, ret, "Operation failed");
@@ -289,7 +288,7 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
 
     ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
-    buffer = talloc_size(NULL, 4096);
+    buffer = talloc_size(req, 4096);
     if (!buffer)
         return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -297,13 +296,13 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
-        ret = sysdb_posix_remove_group_by_gid(req, req->be_ctx->sysdb,
-                                              req->be_ctx->domain, gid);
+        ret = sysdb_delete_group_by_gid(req, req->be_ctx->sysdb,
+                                        req->be_ctx->domain, gid);
         break;
     case NSS_STATUS_SUCCESS:
-        ret = sysdb_posix_store_group(req, req->be_ctx->sysdb,
-                                      req->be_ctx->domain, result.gr_name,
-                                      result.gr_gid, result.gr_mem);
+        ret = sysdb_legacy_store_group(req, req->be_ctx->sysdb,
+                                       req->be_ctx->domain, result.gr_name,
+                                       result.gr_gid, result.gr_mem);
         break;
     default:
         DEBUG(2, ("proxy -> getgrgid_r failed for '%lu' (%d)[%s]\n",
@@ -331,12 +330,12 @@ static void enum_groups(struct be_req *req)
     char *buffer, *newb;
     size_t buflen;
     const char * errstr;
-    int ret;
+    int ret, c;
 
     ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
 
     buflen = 4096;
-    buffer = talloc_size(NULL, buflen);
+    buffer = talloc_size(req, buflen);
     if (!buffer)
         return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -344,12 +343,21 @@ static void enum_groups(struct be_req *req)
     if (status != NSS_STATUS_SUCCESS)
         return proxy_reply(req, EIO, "Operation failed");
 
+    c = 0;
     while (status == NSS_STATUS_SUCCESS) {
 
         status = ctx->ops.getgrent_r(&result, buffer, buflen, &ret);
 
         switch (status) {
         case NSS_STATUS_TRYAGAIN:
+            DEBUG(20, ("Try Again\n"));
+
+            if (ret != ERANGE) {
+                DEBUG(2, ("getgrent_r failed (TRYAGAIN)(%d)[%s]\n",
+                          ret, strerror(ret)));
+                errstr = "Operation failed";
+                goto done;
+            }
             /* buffer too small ? */
             if (buflen < MAX_BUF_SIZE) {
                 buflen *= 2;
@@ -357,8 +365,9 @@ static void enum_groups(struct be_req *req)
             if (buflen > MAX_BUF_SIZE) {
                 buflen = MAX_BUF_SIZE;
             }
-            newb = talloc_realloc_size(NULL, buffer, buflen);
+            newb = talloc_realloc_size(req, buffer, buflen);
             if (!newb) {
+                DEBUG(4, ("Out of memory\n"));
                 errstr = "Out of memory";
                 ret = ENOMEM;
                 goto done;
@@ -368,13 +377,16 @@ static void enum_groups(struct be_req *req)
             break;
 
         case NSS_STATUS_NOTFOUND:
+            DEBUG(6, ("No more entries\n"));
             /* we got last one */
             break;
 
         case NSS_STATUS_SUCCESS:
-            ret = sysdb_posix_store_group(req, req->be_ctx->sysdb,
-                                          req->be_ctx->domain, result.gr_name,
-                                          result.gr_gid, result.gr_mem);
+            c++;
+            DEBUG(20, ("Storing group [%s](%d)\n", result.gr_name, c));
+            ret = sysdb_legacy_store_group(req, req->be_ctx->sysdb,
+                                           req->be_ctx->domain, result.gr_name,
+                                           result.gr_gid, result.gr_mem);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
                            (unsigned long)result.gr_name, ret, strerror(ret)));
@@ -382,8 +394,7 @@ static void enum_groups(struct be_req *req)
             break;
 
         default:
-            DEBUG(2, ("proxy -> getgrent_r failed (%d)[%s]\n",
-                      ret, strerror(ret)));
+            DEBUG(2, ("getgrent_r failed (%d)[%s]\n", ret, strerror(ret)));
             errstr = "Operation failed";
             goto done;
         }
@@ -396,6 +407,142 @@ done:
     talloc_free(buffer);
     ctx->ops.endgrent();
     return proxy_reply(req, ret, errstr);
+}
+
+static int save_initgroups(struct be_req *req, gid_t *gids, long int num)
+{
+    struct proxy_ctx *ctx;
+    struct sysdb_ctx *sysdb;
+    enum nss_status status;
+    struct group result;
+    char *buffer;
+    int i, ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    sysdb = req->be_ctx->sysdb;
+
+    buffer = talloc_size(req, 4096);
+    if (!buffer) {
+        return ENOMEM;
+    }
+
+    for (i = 0; i < num; i++) {
+
+        status = ctx->ops.getgrgid_r(gids[i], &result, buffer, 4096, &ret);
+
+        switch (status) {
+            case NSS_STATUS_NOTFOUND:
+                DEBUG(4, ("gid [%lu] not found, removing group\n"));
+                ret = sysdb_delete_group_by_gid(req, sysdb,
+                                                req->be_ctx->domain,
+                                                gids[i]);
+            break;
+
+        case NSS_STATUS_SUCCESS:
+                ret = sysdb_legacy_store_group(req, sysdb,
+                                               req->be_ctx->domain,
+                                               result.gr_name,
+                                               result.gr_gid,
+                                               result.gr_mem);
+            break;
+
+        default:
+            DEBUG(2, ("proxy -> getgrgid_r failed for '%lu' (%d)[%s]\n",
+                      (unsigned long)(gids[i]), ret, strerror(ret)));
+            break;
+        }
+    }
+
+    talloc_free(buffer);
+    return EOK;
+}
+
+static void get_user_groups(struct be_req *req, char *name)
+{
+    struct proxy_ctx *ctx;
+    enum nss_status status;
+    struct passwd result;
+    char *buffer;
+    gid_t *groups;
+    long int limit;
+    long int start;
+    long int size;
+    long int num;
+    int ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+
+    buffer = talloc_size(req, 4096);
+    if (!buffer)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+
+    status = ctx->ops.getpwnam_r(name, &result, buffer, 4096, &ret);
+
+    switch (status) {
+    case NSS_STATUS_NOTFOUND:
+        ret = sysdb_delete_user(req, req->be_ctx->sysdb,
+                                req->be_ctx->domain, name);
+        break;
+    case NSS_STATUS_SUCCESS:
+        ret = sysdb_legacy_store_user(req, req->be_ctx->sysdb,
+                                     req->be_ctx->domain,
+                                     result.pw_name, result.pw_passwd,
+                                     result.pw_uid, result.pw_gid,
+                                     result.pw_gecos, result.pw_dir,
+                                     result.pw_shell);
+        if (ret != EOK) break;
+
+        /* FIXME: let's start with 4k entries */
+        start = 0;
+        limit = 4096;
+        num = 4096;
+
+        size = num*sizeof(gid_t);
+        groups = talloc_size(req, size);
+        if (!groups) {
+            talloc_free(buffer);
+            return proxy_reply(req, ENOMEM, "Out of memory");
+        }
+
+        status = ctx->ops.initgroups_dyn(result.pw_name, result.pw_gid,
+                                         &start, &num, &groups, limit, &ret);
+        switch (status) {
+        case NSS_STATUS_SUCCESS:
+
+            if (ret == EOK) {
+                DEBUG(4, ("User [%s] appears to be member of %lu groups\n",
+                          result.pw_name, start));
+                /* start is moved up by the number of groups retrieved,
+                 * therefore represents the number of users to pass on */
+                ret = save_initgroups(req, groups, start);
+            }
+
+            break;
+
+        default:
+            DEBUG(2, ("proxy -> initgroups_dyn failed for '%s' (%d)[%s]\n",
+                      name, ret, strerror(ret)));
+            talloc_free(buffer);
+            return proxy_reply(req, ret, "Operation failed");
+        }
+        break;
+
+    default:
+        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
+                  name, ret, strerror(ret)));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
+    }
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d) !?\n",
+                   name, ret));
+        talloc_free(buffer);
+        return proxy_reply(req, ret, "Operation failed");
+    }
+
+    talloc_free(buffer);
+    return proxy_reply(req, EOK, NULL);
 }
 
 /* TODO: actually do check something */
@@ -498,6 +645,17 @@ static void proxy_get_account_info(struct be_req *req)
         }
         break;
 
+    case BE_REQ_INITGROUPS: /* init groups for user */
+        if (ar->filter_type != BE_FILTER_NAME) {
+            return proxy_reply(req, EINVAL, "Invalid filter type");
+        }
+        if (ar->attr_type != BE_ATTR_CORE) {
+            return proxy_reply(req, EINVAL, "Invalid attr type");
+        }
+        if (strchr(ar->filter_value, '*')) {
+            return proxy_reply(req, EINVAL, "Invalid filter value");
+        }
+        return get_user_groups(req, ar->filter_value);
 
     default: /*fail*/
         return proxy_reply(req, EINVAL, "Invalid request type");
