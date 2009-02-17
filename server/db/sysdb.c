@@ -1140,15 +1140,14 @@ int sysdb_posix_remove_user_by_uid(TALLOC_CTX *memctx,
     }
 
     if (res->count == 0) {
-        DEBUG(0, ("Base search returned %d results\n",
-                          res->count));
+        DEBUG(0, ("Base search returned no results\n"));
         ret = EOK;
         goto done;
     }
     if (res->count > 1) {
         DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
                   res->count));
-        ret = EOK;
+        ret = EIO;
         goto done;
     }
 
@@ -1170,20 +1169,20 @@ int sysdb_posix_remove_user_by_uid(TALLOC_CTX *memctx,
         goto done;
     }
 
-    lret = ldb_transaction_commit(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
     ret = EOK;
 
 done:
-    if (ret != EOK) {
+    if (ret == EOK) {
+        lret = ldb_transaction_commit(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
+            ret = EIO;
+        }
+    } else {
         lret = ldb_transaction_cancel(sysdb->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+            ret = EIO;
         }
     }
 
@@ -1538,15 +1537,14 @@ int sysdb_posix_remove_group_by_gid(TALLOC_CTX *memctx,
     }
 
     if (res->count == 0) {
-        DEBUG(0, ("Base search returned %d results\n",
-                          res->count));
+        DEBUG(0, ("Base search returned no results\n"));
         ret = EOK;
         goto done;
     }
     if (res->count > 1) {
         DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
                   res->count));
-        ret = EOK;
+        ret = EIO;
         goto done;
     }
 
@@ -1568,20 +1566,20 @@ int sysdb_posix_remove_group_by_gid(TALLOC_CTX *memctx,
         goto done;
     }
 
-    lret = ldb_transaction_commit(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
     ret = EOK;
 
 done:
-    if (ret != EOK) {
+    if (ret == EOK) {
+        lret = ldb_transaction_commit(sysdb->ldb);
+        if (lret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
+            ret = EIO;
+        }
+    } else {
         lret = ldb_transaction_cancel(sysdb->ldb);
         if (lret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
+            ret = EIO;
         }
     }
 
