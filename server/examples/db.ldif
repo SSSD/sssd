@@ -11,7 +11,9 @@ dn: @INDEXLIST
 @IDXATTR: objectclass
 @IDXATTR: member
 @IDXATTR: memberof
+@IDXATTR: memberUid
 @IDXATTR: uid
+@IDXATTR: gid
 @IDXATTR: uidNumber
 @IDXATTR: gidNumber
 @IDXATTR: lastUpdate
@@ -32,8 +34,8 @@ dn: cn=groups,cn=local,cn=sysdb
 cn: groups
 description: Local POSIX groups
 
-dn: cn=foousers,cn=groups,cn=local,cn=sysdb
-cn: foousers
+dn: gid=foousers,cn=groups,cn=local,cn=sysdb
+gid: foousers
 description: Local user accounts
 member: uid=foobar,cn=users,cn=local,cn=sysdb
 objectclass: group
