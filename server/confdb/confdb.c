@@ -371,6 +371,48 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
     return EOK;
 }
 
+int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                    const char *section, const char *attribute,
+                    bool defval, bool *result)
+{
+    char **values;
+    bool val;
+    int ret;
+
+    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (values[0]) {
+        if (values[1] != NULL) {
+            /* too many values */
+            talloc_free(values);
+            return EINVAL;
+        }
+
+        if (strcasecmp(values[0], "FALSE") == 0) {
+            val = false;
+
+        } else if (strcasecmp(values[0], "TRUE") == 0) {
+            val = true;
+
+        } else {
+
+            DEBUG(2, ("Value is not a boolean!\n"));
+            return EINVAL;
+        }
+
+    } else {
+        val = defval;
+    }
+
+    talloc_free(values);
+
+    *result = val;
+    return EOK;
+}
+
 static int confdb_test(struct confdb_ctx *cdb)
 {
     char **values;
@@ -513,15 +555,6 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     val[0] = "Reserved domain for local configurations";
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "description", val);
     if (ret != EOK) goto done;
-
-    val[0] = "local";
-    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "provider", val);
-    if (ret != EOK) goto done;
-
-    val[0] = "cn=local,dc=sysdb";
-    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "basedn", val);
-    if (ret != EOK) goto done;
-
 
 done:
     talloc_free(tmp_ctx);
