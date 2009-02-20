@@ -127,8 +127,8 @@ struct sss_nss_req_data {
     const void *data;
 };
 
-/* this is in milliseconds, wait up to 30 seconds */
-#define SSS_NSS_SOCKET_TIMEOUT 30000
+/* this is in milliseconds, wait up to 300 seconds */
+#define SSS_NSS_SOCKET_TIMEOUT 300000
 
 
 enum nss_status sss_nss_make_request(enum sss_nss_command cmd,

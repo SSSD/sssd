@@ -76,7 +76,8 @@ struct sss_nss_gr_rep {
 static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
                                  uint8_t *buf, size_t *len)
 {
-    size_t i, l, slen, dlen, ptmem;
+    size_t i, l, slen, ptmem;
+    ssize_t dlen;
     char *sbuf;
     uint32_t mem_num;
     int err;
@@ -94,33 +95,33 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
 
     pr->result->gr_name = &(pr->buffer[0]);
     i = 0;
-    while (i < slen && 0 < dlen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
         dlen--;
     }
-    if (i >= slen) { /* premature end of buf */
+    if (slen <= i) { /* premature end of buf */
         return EBADMSG;
     }
-    if (0 >= dlen) { /* not enough memory */
-        return ENOMEM;
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
     }
     i++;
     dlen--;
 
     pr->result->gr_passwd = &(pr->buffer[i]);
-    while (i < slen && 0 < dlen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
         dlen--;
     }
-    if (i >= slen) { /* premature end of buf */
+    if (slen <= i) { /* premature end of buf */
         return EBADMSG;
     }
-    if (0 >= dlen) { /* not enough memory */
-        return ENOMEM;
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
     }
     i++;
     dlen--;
@@ -130,26 +131,26 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     ptmem = sizeof(char *) * (mem_num + 1);
     dlen -= ptmem;
     if (0 > dlen) { /* not enough mem in buffer */
-        return ENOMEM;
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
     }
     ptmem += i;
     pr->result->gr_mem[mem_num] = NULL; /* terminate array */
 
     for (l = 0; l < mem_num; l++) {
         pr->result->gr_mem[l] = &(pr->buffer[ptmem]);
-        while ((i < slen) && (0 < dlen)) {
+        while ((slen > i) && (dlen > 0)) {
             pr->buffer[ptmem] = sbuf[i];
             i++;
-            dlen --;
+            dlen--;
             if (pr->buffer[ptmem] == '\0') break;
             ptmem++;
         }
         if (pr->buffer[ptmem] != '\0') {
-            if (i > slen) { /* premature end of buf */
+            if (slen <= i) { /* premature end of buf */
                 return EBADMSG;
             }
-            if (0 > dlen) { /* not enough memory */
-                return ENOMEM;
+            if (dlen <= 0) { /* not enough memory */
+                return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
             }
         }
         ptmem++;
