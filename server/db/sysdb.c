@@ -27,7 +27,8 @@
 
 struct sysdb_search_ctx {
     struct sysdb_ctx *dbctx;
-    const char *base_dn;
+    const char *domain;
+    bool legacy;
     sysdb_callback_t callback;
     void *ptr;
     struct ldb_result *res;
@@ -114,7 +115,8 @@ static int get_gen_callback(struct ldb_request *req,
 }
 
 static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
-                                             const char *base_dn,
+                                             const char *domain,
+                                             bool legacy,
                                              struct sysdb_ctx *ctx,
                                              sysdb_callback_t fn,
                                              void *ptr)
@@ -126,7 +128,6 @@ static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     sctx->dbctx = ctx;
-    sctx->base_dn = base_dn;
     sctx->callback = fn;
     sctx->ptr = ptr;
     sctx->res = talloc_zero(sctx, struct ldb_result);
@@ -134,6 +135,12 @@ static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
         talloc_free(sctx);
         return NULL;
     }
+    sctx->domain = talloc_strdup(sctx, domain);
+    if (!sctx->domain) {
+        talloc_free(sctx);
+        return NULL;
+    }
+    sctx->legacy = legacy;
 
     return sctx;
 }
@@ -146,11 +153,17 @@ static int pwd_search(struct sysdb_search_ctx *sctx,
 {
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct ldb_request *req;
+    struct ldb_dn *base_dn;
     int ret;
 
+    base_dn = ldb_dn_new_fmt(sctx, ctx->ldb,
+                             SYSDB_TMPL_USER_BASE, sctx->domain);
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               ldb_dn_new(sctx, ctx->ldb, sctx->base_dn),
-                               LDB_SCOPE_SUBTREE,
+                               base_dn, LDB_SCOPE_SUBTREE,
                                expression, attrs, NULL,
                                sctx, get_gen_callback,
                                NULL);
@@ -171,22 +184,17 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    const char *name,
+                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
-    const char *base_dn;
     char *expression;
 
-    if (domain) {
-        base_dn = talloc_asprintf(mem_ctx, SYSDB_TMPL_USER_BASE, domain);
-    } else {
-        base_dn = SYSDB_BASE;
-    }
-    if (!base_dn) {
-        return ENOMEM;
+    if (!domain) {
+        return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -205,23 +213,18 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    uid_t uid,
+                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
     unsigned long int filter_uid = uid;
-    const char *base_dn;
     char *expression;
 
-    if (domain) {
-        base_dn = talloc_asprintf(mem_ctx, SYSDB_TMPL_USER_BASE, domain);
-    } else {
-        base_dn = SYSDB_BASE;
-    }
-    if (!base_dn) {
-        return ENOMEM;
+    if (!domain) {
+        return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -238,11 +241,17 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct event_context *ev,
                     struct sysdb_ctx *ctx,
+                    const char *domain,
+                    bool legacy,
                     sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
 
-    sctx = init_src_ctx(mem_ctx, SYSDB_BASE, ctx, fn, ptr);
+    if (!domain) {
+        return EINVAL;
+    }
+
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -267,6 +276,7 @@ static void get_members(void *ptr, int status, struct ldb_result *res)
     struct ldb_request *req;
     struct ldb_message *msg;
     struct ldb_result *ret_res;
+    struct ldb_dn *dn;
     static const char *attrs[] = SYSDB_GRPW_ATTRS;
     const char *expression;
     int ret, i;
@@ -297,7 +307,8 @@ static void get_members(void *ptr, int status, struct ldb_result *res)
         return request_done(gmctx->ret_sctx);
     }
 
-    mem_sctx = init_src_ctx(gmctx, SYSDB_BASE, ctx, get_members, sctx);
+    mem_sctx = init_src_ctx(gmctx, sctx->domain, sctx->legacy,
+                            ctx, get_members, sctx);
     if (!mem_sctx) {
         return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
     }
@@ -325,9 +336,14 @@ static void get_members(void *ptr, int status, struct ldb_result *res)
         return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
     }
 
+    dn = ldb_dn_new_fmt(mem_sctx, ctx->ldb,
+                        SYSDB_TMPL_USER_BASE, sctx->domain);
+    if (!dn) {
+        return request_error(gmctx->ret_sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
     ret = ldb_build_search_req(&req, ctx->ldb, mem_sctx,
-                               ldb_dn_new(mem_sctx, ctx->ldb, sctx->base_dn),
-                               LDB_SCOPE_SUBTREE,
+                               dn, LDB_SCOPE_SUBTREE,
                                expression, attrs, NULL,
                                mem_sctx, get_gen_callback,
                                NULL);
@@ -419,7 +435,9 @@ static int get_grp_callback(struct ldb_request *req,
 
             /* re-use sctx to create a fake handler for the first call to
              * get_members() */
-            sctx = init_src_ctx(gmctx, SYSDB_BASE, ctx, get_members, gmctx);
+            sctx = init_src_ctx(gmctx,
+                                sctx->domain, sctx->legacy,
+                                ctx, get_members, gmctx);
 
             get_members(sctx, LDB_SUCCESS, NULL);
             return LDB_SUCCESS;
@@ -438,15 +456,28 @@ static int grp_search(struct sysdb_search_ctx *sctx,
                       struct sysdb_ctx *ctx,
                       const char *expression)
 {
+    ldb_request_callback_t callback;
     static const char *attrs[] = SYSDB_GRNAM_ATTRS;
     struct ldb_request *req;
+    struct ldb_dn *base_dn;
     int ret;
 
+    if (sctx->legacy) {
+        callback = get_gen_callback;
+    } else {
+        callback = get_grp_callback;
+    }
+
+    base_dn = ldb_dn_new_fmt(sctx, ctx->ldb,
+                             SYSDB_TMPL_GROUP_BASE, sctx->domain);
+    if (!base_dn) {
+        return ENOMEM;
+    }
+
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               ldb_dn_new(sctx, ctx->ldb, sctx->base_dn),
-                               LDB_SCOPE_SUBTREE,
+                               base_dn, LDB_SCOPE_SUBTREE,
                                expression, attrs, NULL,
-                               sctx, get_grp_callback,
+                               sctx, callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
         return sysdb_error_to_errno(ret);
@@ -465,22 +496,17 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    const char *name,
+                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
-    const char *base_dn;
     char *expression;
 
-    if (domain) {
-        base_dn = talloc_asprintf(mem_ctx, SYSDB_TMPL_GROUP_BASE, domain);
-    } else {
-        base_dn = SYSDB_BASE;
-    }
-    if (!base_dn) {
-        return ENOMEM;
+    if (!domain) {
+        return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -499,23 +525,18 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    gid_t gid,
+                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
     unsigned long int filter_gid = gid;
-    const char *base_dn;
     char *expression;
 
-    if (domain) {
-        base_dn = talloc_asprintf(mem_ctx, SYSDB_TMPL_GROUP_BASE, domain);
-    } else {
-        base_dn = SYSDB_BASE;
-    }
-    if (!base_dn) {
-        return ENOMEM;
+    if (!domain) {
+        return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, base_dn, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -532,16 +553,75 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct event_context *ev,
                     struct sysdb_ctx *ctx,
+                    const char *domain,
+                    bool legacy,
                     sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
 
-    sctx = init_src_ctx(mem_ctx, SYSDB_BASE, ctx, fn, ptr);
+    if (!domain) {
+        return EINVAL;
+    }
+
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
 
     return grp_search(sctx, ctx, SYSDB_GRENT_FILTER);
+}
+
+static void sysdb_initgr_legacy(void *ptr, int status,
+                                struct ldb_result *res)
+{
+    struct sysdb_ctx *ctx;
+    struct sysdb_search_ctx *sctx;
+    char *expression;
+    struct ldb_request *req;
+    struct ldb_dn *base_dn;
+    static const char *attrs[] = SYSDB_INITGR_ATTRS;
+    const char *userid;
+    int ret;
+
+    sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
+    ctx = sctx->dbctx;
+
+    if (res->count == 0) {
+        return request_done(sctx);
+    }
+    if (res->count > 1) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    userid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PW_NAME, NULL);
+    if (!userid) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    expression = talloc_asprintf(sctx, SYSDB_INITGR_LEGACY_FILTER, userid);
+    if (!expression) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    base_dn = ldb_dn_new_fmt(sctx, ctx->ldb,
+                             SYSDB_TMPL_GROUP_BASE, sctx->domain);
+    if (!base_dn) {
+        return request_error(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    ret = ldb_build_search_req(&req, ctx->ldb, sctx,
+                               base_dn, LDB_SCOPE_SUBTREE,
+                               expression, attrs, NULL,
+                               sctx, get_gen_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+        return request_error(sctx, ret);
+    }
+
+    ret = ldb_request(ctx->ldb, req);
+    if (ret != LDB_SUCCESS) {
+        return request_error(sctx, ret);
+    }
 }
 
 static void sysdb_initgr_search(void *ptr, int status,
@@ -615,44 +695,54 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *ctx,
                      const char *domain,
                      const char *name,
+                     bool legacy,
                      sysdb_callback_t fn, void *ptr)
 {
+    sysdb_callback_t second_callback;
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *ret_sctx;
     struct sysdb_search_ctx *sctx;
-    const char *base_dn;
     char *expression;
     struct ldb_request *req;
+    struct ldb_dn *base_dn;
     int ret;
 
-    if (domain) {
-        base_dn = talloc_asprintf(mem_ctx, SYSDB_TMPL_USER_BASE, domain);
-    } else {
-        base_dn = SYSDB_BASE;
-    }
-    if (!base_dn) {
-        return ENOMEM;
+    if (!domain) {
+        return EINVAL;
     }
 
-    ret_sctx = init_src_ctx(mem_ctx, SYSDB_BASE, ctx, fn, ptr);
+    ret_sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!ret_sctx) {
         return ENOMEM;
     }
-    sctx = init_src_ctx(ret_sctx, base_dn, ctx, sysdb_initgr_search, ret_sctx);
+
+    if (legacy) {
+        second_callback = sysdb_initgr_legacy;
+    } else {
+        second_callback = sysdb_initgr_search;
+    }
+
+    sctx = init_src_ctx(ret_sctx, domain, legacy,
+                        ctx, second_callback, ret_sctx);
     if (!sctx) {
-        talloc_free(sctx);
+        talloc_free(ret_sctx);
         return ENOMEM;
     }
 
     expression = talloc_asprintf(sctx, SYSDB_PWNAM_FILTER, name);
     if (!expression) {
-        talloc_free(sctx);
+        talloc_free(ret_sctx);
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(sctx, ctx->ldb, SYSDB_TMPL_USER_BASE, domain);
+    if (!base_dn) {
+        talloc_free(ret_sctx);
         return ENOMEM;
     }
 
     ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               ldb_dn_new(sctx, ctx->ldb, sctx->base_dn),
-                               LDB_SCOPE_SUBTREE,
+                               base_dn, LDB_SCOPE_SUBTREE,
                                expression, attrs, NULL,
                                sctx, get_gen_callback,
                                NULL);
@@ -717,872 +807,6 @@ static int sysdb_get_db_path(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-/* the following are all SYNCHRONOUS calls
- * TODO: make these asynchronous */
-
-int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
-                           struct ldb_dn *member_dn,
-                           struct ldb_dn *group_dn)
-{
-    TALLOC_CTX *tmp_ctx;
-    int ret, lret;
-    struct ldb_message *msg;
-
-    tmp_ctx = talloc_new(mem_ctx);
-    if (!tmp_ctx) return ENOMEM;
-
-    /* Add the member_dn as a member of the group */
-    msg = ldb_msg_new(tmp_ctx);
-    if(msg == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = group_dn;
-    lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
-                             LDB_FLAG_MOD_ADD, NULL);
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-    lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s",
-                           ldb_dn_get_linearized(member_dn));
-    if (lret != LDB_SUCCESS) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    lret = ldb_modify(sysdb->ldb, msg);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make modify request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *sysdb,
-                              struct ldb_dn *member_dn,
-                              struct ldb_dn *group_dn)
-{
-    TALLOC_CTX *tmp_ctx;
-    int ret, lret;
-    struct ldb_message *msg;
-
-    tmp_ctx = talloc_new(mem_ctx);
-    if (!tmp_ctx) return ENOMEM;
-
-    /* Add the member_dn as a member of the group */
-    msg = ldb_msg_new(tmp_ctx);
-    if(msg == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = group_dn;
-    lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
-                             LDB_FLAG_MOD_DELETE, NULL);
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-    lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s",
-                           ldb_dn_get_linearized(member_dn));
-    if (lret != LDB_SUCCESS) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    lret = ldb_modify(sysdb->ldb, msg);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make modify request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-/* "sysdb_posix_" functions
- * the set of functions named sysdb_posix_* are used by modules
- * that only have access to strictly posix like databases where
- * user and groups names are retrieved as strings, groups can't
- * be nested and can't reference foreign sources */
-
-int sysdb_posix_store_user(TALLOC_CTX *memctx,
-                           struct sysdb_ctx *sysdb,
-                           const char *domain,
-                           const char *name, const char *pwd,
-                           uid_t uid, gid_t gid, const char *gecos,
-                           const char *homedir, const char *shell)
-{
-    TALLOC_CTX *tmp_ctx;
-    const char *attrs[] = { SYSDB_PW_NAME, NULL };
-    struct ldb_dn *user_dn;
-    struct ldb_message *msg;
-    struct ldb_request *req;
-	struct ldb_result *res;
-    int lret, ret;
-    int flags;
-
-    tmp_ctx = talloc_new(memctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    user_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
-                                name, domain);
-    if (!user_dn) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    lret = ldb_transaction_start(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, user_dn,
-                      LDB_SCOPE_BASE, attrs, SYSDB_PWENT_FILTER);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    req = NULL;
-
-    msg = ldb_msg_new(tmp_ctx);
-    if (!msg) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = user_dn;
-
-    switch (res->count) {
-    case 0:
-        flags = LDB_FLAG_MOD_ADD;
-        break;
-    case 1:
-        flags = LDB_FLAG_MOD_REPLACE;
-        break;
-    default:
-        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                  res->count));
-        ret = EIO;
-        goto done;
-    }
-
-    talloc_free(res);
-    res = NULL;
-
-    if (flags == LDB_FLAG_MOD_ADD) {
-        /* TODO: retrieve user objectclass list from configuration */
-        lret = ldb_msg_add_empty(msg, "objectClass", flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "objectClass", "user");
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* TODO: retrieve user name attribute from configuration */
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_NAME, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, SYSDB_PW_NAME, name);
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    /* TODO: retrieve attribute name mappings from configuration */
-
-    /* pwd */
-    if (pwd && *pwd) {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_PWD, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, SYSDB_PW_PWD, pwd);
-        }
-    } else {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_PWD,
-                                 LDB_FLAG_MOD_DELETE, NULL);
-    }
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* uid */
-    if (uid) {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_UIDNUM, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_fmt(msg, SYSDB_PW_UIDNUM,
-                                   "%lu", (unsigned long)uid);
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        DEBUG(0, ("Cached users can't have UID == 0\n"));
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* gid */
-    if (gid) {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_GIDNUM, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_fmt(msg, SYSDB_PW_GIDNUM,
-                                   "%lu", (unsigned long)gid);
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        DEBUG(0, ("Cached users can't have GID == 0\n"));
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* gecos */
-    if (gecos && *gecos) {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_FULLNAME, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, SYSDB_PW_FULLNAME, gecos);
-        }
-    } else {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_FULLNAME,
-                                 LDB_FLAG_MOD_DELETE, NULL);
-    }
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* homedir */
-    if (homedir && *homedir) {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_HOMEDIR, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, SYSDB_PW_HOMEDIR, homedir);
-        }
-    } else {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_HOMEDIR,
-                                 LDB_FLAG_MOD_DELETE, NULL);
-    }
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* shell */
-    if (shell && *shell) {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_SHELL, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, SYSDB_PW_SHELL, shell);
-        }
-    } else {
-        lret = ldb_msg_add_empty(msg, SYSDB_PW_SHELL,
-                                 LDB_FLAG_MOD_DELETE, NULL);
-    }
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* modification time */
-    lret = ldb_msg_add_empty(msg, SYSDB_LAST_UPDATE, flags, NULL);
-    if (lret == LDB_SUCCESS) {
-        lret = ldb_msg_add_fmt(msg, SYSDB_LAST_UPDATE,
-                               "%ld", (long int)time(NULL));
-    }
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    if (flags == LDB_FLAG_MOD_ADD) {
-        lret = ldb_build_add_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
-                                 NULL, ldb_op_default_callback, NULL);
-    } else {
-        lret = ldb_build_mod_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
-                                 NULL, ldb_op_default_callback, NULL);
-    }
-    if (lret == LDB_SUCCESS) {
-        lret = ldb_request(sysdb->ldb, req);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_wait(req->handle, LDB_WAIT_ALL);
-        }
-    }
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make modify request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        lret = ldb_transaction_commit(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-            ret = EIO;
-        }
-    } else {
-        lret = ldb_transaction_cancel(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
-            ret = EIO;
-        }
-    }
-
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-int sysdb_posix_remove_user(TALLOC_CTX *memctx,
-                            struct sysdb_ctx *sysdb,
-                            const char *domain, const char *name)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_dn *user_dn;
-    int lret, ret = EOK;
-
-    tmp_ctx = talloc_new(memctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    user_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                                SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
-                                name, domain);
-    if (!user_dn) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    lret = ldb_delete(sysdb->ldb, user_dn);
-
-    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
-        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
-              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-    }
-
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-int sysdb_posix_remove_user_by_uid(TALLOC_CTX *memctx,
-                                   struct sysdb_ctx *sysdb,
-                                   const char *domain, uid_t uid)
-{
-    TALLOC_CTX *tmp_ctx;
-    const char *attrs[] = { SYSDB_PW_NAME, SYSDB_PW_UIDNUM, NULL };
-    struct ldb_dn *base_dn;
-    struct ldb_dn *user_dn;
-	struct ldb_result *res;
-    int lret, ret;
-
-    tmp_ctx = talloc_new(memctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_USER_BASE, domain);
-    if (!base_dn) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    lret = ldb_transaction_start(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_ONELEVEL, attrs,
-                      SYSDB_PWUID_FILTER,
-                      (unsigned long)uid);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    if (res->count == 0) {
-        DEBUG(0, ("Base search returned no results\n"));
-        ret = EOK;
-        goto done;
-    }
-    if (res->count > 1) {
-        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                  res->count));
-        ret = EIO;
-        goto done;
-    }
-
-    user_dn = ldb_dn_copy(tmp_ctx, res->msgs[0]->dn);
-    if (!user_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    talloc_free(res);
-    res = NULL;
-
-    lret = ldb_delete(sysdb->ldb, user_dn);
-
-    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
-        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
-              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        lret = ldb_transaction_commit(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
-            ret = EIO;
-        }
-    } else {
-        lret = ldb_transaction_cancel(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
-            ret = EIO;
-        }
-    }
-
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-/* this function does not check that all user members are actually present,
- * the caller must verify the members list is valid and exists in the
- * database before calling this function */
-
-int sysdb_posix_store_group(TALLOC_CTX *memctx,
-                            struct sysdb_ctx *sysdb,
-                            const char *domain,
-                            const char *name, gid_t gid,
-                            char **members)
-{
-    TALLOC_CTX *tmp_ctx;
-    const char *attrs[] = { SYSDB_GR_NAME, NULL };
-    struct ldb_dn *group_dn;
-    struct ldb_result *res;
-    struct ldb_request *req;
-    struct ldb_message *msg;
-    int i, ret, lret;
-    int flags;
-
-    tmp_ctx = talloc_new(memctx);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                           SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                           name, domain);
-    if (group_dn == NULL) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    /* Start a transaction to ensure that nothing changes
-     * underneath us while we're working
-     */
-    lret = ldb_transaction_start(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-        talloc_free(tmp_ctx);
-        return EIO;
-    }
-
-    /* Determine if the group already exists */
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, group_dn,
-                      LDB_SCOPE_BASE, attrs, SYSDB_GRENT_FILTER);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\b",
-                ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    req = NULL;
-
-    switch(res->count) {
-    case 0:
-        flags = LDB_FLAG_MOD_ADD;
-        DEBUG(7, ("Adding new entry\n"));
-        break;
-    case 1:
-        flags = LDB_FLAG_MOD_REPLACE;
-        DEBUG(7, ("Replacing existing entry\n"));
-        break;
-    default:
-        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                  res->count));
-        ret = EIO;
-        goto done;
-    }
-    talloc_free(res);
-    res = NULL;
-
-    /* Set up the add/replace request */
-    msg = ldb_msg_new(tmp_ctx);
-    if (msg == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    msg->dn = group_dn;
-
-    if (flags == LDB_FLAG_MOD_ADD) {
-        lret = ldb_msg_add_empty(msg, "objectClass", flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, "objectClass", "group");
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        lret = ldb_msg_add_empty(msg, SYSDB_GR_NAME, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_string(msg, SYSDB_GR_NAME, name);
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    /* gid */
-    if (gid) {
-        lret = ldb_msg_add_empty(msg, SYSDB_GR_GIDNUM, flags, NULL);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_msg_add_fmt(msg, SYSDB_GR_GIDNUM,
-                                   "%lu", (unsigned long)gid);
-        }
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        DEBUG(0, ("Cached groups can't have GID == 0\n"));
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* modification time */
-    lret = ldb_msg_add_empty(msg, SYSDB_LAST_UPDATE, flags, NULL);
-    if (lret == LDB_SUCCESS) {
-        lret = ldb_msg_add_fmt(msg, SYSDB_LAST_UPDATE,
-                               "%ld", (long int)time(NULL));
-    }
-    if (lret != LDB_SUCCESS) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* members */
-    if (members && members[0]) {
-        lret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER, flags, NULL);
-        if (lret != LDB_SUCCESS) {
-            ret = ENOMEM;
-            goto done;
-        }
-        for (i = 0; members[i]; i++) {
-            lret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER,
-                                   "uid=%s,"SYSDB_TMPL_USER_BASE,
-                                   members[i], domain);
-        }
-    }
-
-    if (flags == LDB_FLAG_MOD_ADD) {
-        lret = ldb_build_add_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
-                                 NULL, ldb_op_default_callback, NULL);
-    } else {
-        lret = ldb_build_mod_req(&req, sysdb->ldb, tmp_ctx, msg, NULL,
-                                 NULL, ldb_op_default_callback, NULL);
-    }
-    if (lret == LDB_SUCCESS) {
-        lret = ldb_request(sysdb->ldb, req);
-        if (lret == LDB_SUCCESS) {
-            lret = ldb_wait(req->handle, LDB_WAIT_ALL);
-        }
-    }
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make modify request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        lret = ldb_transaction_commit(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-            ret = EIO;
-        }
-    } else {
-        lret = ldb_transaction_cancel(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
-            ret = EIO;
-        }
-    }
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-/* Wrapper around adding a user to a POSIX group */
-int sysdb_posix_add_user_to_group(TALLOC_CTX *mem_ctx,
-                                  struct sysdb_ctx *sysdb,
-                                  const char *domain,
-                                  const char *group,
-                                  const char *username)
-{
-    TALLOC_CTX *tmp_ctx;
-    int ret;
-    struct ldb_dn *user_dn;
-    struct ldb_dn *group_dn;
-
-
-    if (!sysdb || !domain || !group || !username) {
-        return EINVAL;
-    }
-
-    tmp_ctx = talloc_new(mem_ctx);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    user_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
-                             username, domain);
-    if (!user_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                              group, domain);
-    if (group_dn == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_add_group_member(tmp_ctx, sysdb, user_dn, group_dn);
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-/* Wrapper around adding a user to a POSIX group */
-int sysdb_posix_remove_user_from_group(TALLOC_CTX *mem_ctx,
-                                       struct sysdb_ctx *sysdb,
-                                       const char *domain,
-                                       const char *group,
-                                       const char *username)
-{
-    TALLOC_CTX *tmp_ctx;
-    int ret;
-    struct ldb_dn *user_dn;
-    struct ldb_dn *group_dn;
-
-
-    if (!sysdb || !domain || !group || !username) {
-        return EINVAL;
-    }
-
-    tmp_ctx = talloc_new(mem_ctx);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    user_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
-                             username, domain);
-    if (!user_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                              group, domain);
-    if (group_dn == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = sysdb_remove_group_member(tmp_ctx, sysdb, user_dn, group_dn);
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-int sysdb_posix_remove_group(TALLOC_CTX *memctx,
-                             struct sysdb_ctx *sysdb,
-                             const char *domain, const char *name)
-{
-    TALLOC_CTX *tmp_ctx;
-    struct ldb_dn *group_dn;
-    int lret, ret = EOK;
-
-    tmp_ctx = talloc_new(memctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    group_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                              SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                              name, domain);
-    if (!group_dn) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    lret = ldb_delete(sysdb->ldb, group_dn);
-
-    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
-        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
-              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-    }
-
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-int sysdb_posix_remove_group_by_gid(TALLOC_CTX *memctx,
-                                    struct sysdb_ctx *sysdb,
-                                    const char *domain, gid_t gid)
-{
-    TALLOC_CTX *tmp_ctx;
-    const char *attrs[] = { SYSDB_GR_NAME, SYSDB_GR_GIDNUM, NULL };
-    struct ldb_dn *base_dn;
-    struct ldb_dn *group_dn;
-    struct ldb_result *res;
-    int lret, ret;
-
-    tmp_ctx = talloc_new(memctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    base_dn = ldb_dn_new_fmt(tmp_ctx, sysdb->ldb,
-                             SYSDB_TMPL_GROUP_BASE, domain);
-    if (!base_dn) {
-        talloc_free(tmp_ctx);
-        return ENOMEM;
-    }
-
-    lret = ldb_transaction_start(sysdb->ldb);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed ldb transaction start !? (%d)\n", lret));
-        ret = EIO;
-        goto done;
-    }
-
-    lret = ldb_search(sysdb->ldb, tmp_ctx, &res, base_dn,
-                      LDB_SCOPE_ONELEVEL, attrs,
-                      SYSDB_GRGID_FILTER,
-                      (unsigned long)gid);
-    if (lret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to make search request: %s(%d)[%s]\n",
-                  ldb_strerror(lret), lret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    if (res->count == 0) {
-        DEBUG(0, ("Base search returned no results\n"));
-        ret = EOK;
-        goto done;
-    }
-    if (res->count > 1) {
-        DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                  res->count));
-        ret = EIO;
-        goto done;
-    }
-
-    group_dn = ldb_dn_copy(tmp_ctx, res->msgs[0]->dn);
-    if (!group_dn) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    talloc_free(res);
-    res = NULL;
-
-    lret = ldb_delete(sysdb->ldb, group_dn);
-
-    if (lret != LDB_SUCCESS && lret != LDB_ERR_NO_SUCH_OBJECT) {
-        DEBUG(2, ("LDB Error: %s(%d)\nError Message: [%s]\n",
-              ldb_strerror(ret), ret, ldb_errstring(sysdb->ldb)));
-        ret = EIO;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (ret == EOK) {
-        lret = ldb_transaction_commit(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed ldb transaction commit !! (%d)\n", lret));
-            ret = EIO;
-        }
-    } else {
-        lret = ldb_transaction_cancel(sysdb->ldb);
-        if (lret != LDB_SUCCESS) {
-            DEBUG(1, ("Failed to cancel ldb transaction (%d)\n", lret));
-            ret = EIO;
-        }
-    }
-
     talloc_free(tmp_ctx);
     return ret;
 }

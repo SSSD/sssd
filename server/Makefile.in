@@ -74,7 +74,7 @@ DBUS_SYSBUS_POLICY_DIR = @sysbuspath@
 LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_info sbin/sssd_pk
 DBUS_SYSBUS_POLICIES = infopipe/org.freeipa.sssd.infopipe.conf
 BINS = sbin/sssd $(LIBEXECBINS)
-SOLIBS = lib/libsysdb.$(SHLIBEXT) lib/libsss_proxy.$(SHLIBEXT) lib/memberof.$(SHLIBEXT)
+SOLIBS = lib/libsss_proxy.$(SHLIBEXT) lib/memberof.$(SHLIBEXT)
 TESTS = tests/sysdb-tests
 
 DIRS = sbin lib
@@ -106,7 +106,6 @@ install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -m 755 sbin/sssd $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 	${INSTALLCMD} -m 755 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
-	${INSTALLCMD} -m 755 lib/sysdb.$(SHLIBEXT) $(DESTDIR)$(libdir)
 	${INSTALLCMD} -m 755 lib/libsss_proxy.$(SHLIBEXT) $(DESTDIR)$(libdir)
 	${INSTALLCMD} -m 755 lib/memberof.$(SHLIBEXT) $(DESTDIR)$(libdir)
 

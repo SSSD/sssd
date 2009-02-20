@@ -39,7 +39,9 @@
      "@IDXATTR: objectclass\n" \
      "@IDXATTR: member\n" \
      "@IDXATTR: memberof\n" \
+     "@IDXATTR: memberuid\n" \
      "@IDXATTR: uid\n" \
+     "@IDXATTR: gid\n" \
      "@IDXATTR: uidNumber\n" \
      "@IDXATTR: gidNumber\n" \
      "@IDXATTR: lastUpdate\n" \
