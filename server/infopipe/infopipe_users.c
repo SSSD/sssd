@@ -22,38 +22,38 @@
 #include "util/util.h"
 #include "infopipe.h"
 
-int infp_users_get_cached(DBusMessage *message, void *data, DBusMessage **r)
+int infp_users_get_cached(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_users_create(DBusMessage *message, void *data, DBusMessage **r)
+int infp_users_create(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_users_delete(DBusMessage *message, void *data, DBusMessage **r)
+int infp_users_delete(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_users_get_attr(DBusMessage *message, void *data, DBusMessage **r)
+int infp_users_get_attr(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_users_set_attr(DBusMessage *message, void *data, DBusMessage **r)
+int infp_users_set_attr(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_users_set_uid(DBusMessage *message, void *data, DBusMessage **r)
+int infp_users_set_uid(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }

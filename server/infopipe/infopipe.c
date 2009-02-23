@@ -38,17 +38,16 @@ struct infp_ctx {
     struct sysbus_ctx *sysbus;
 };
 
-static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
+static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply)
 {
     dbus_uint16_t version = INFOPIPE_VERSION;
     const char *name = INFOPIPE_SERVICE_NAME;
-    DBusMessage *reply;
     dbus_bool_t ret;
 
     DEBUG(4, ("Sending identity data [%s,%d]\n", name, version));
 
-    reply = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply,
+    reply->reply_message = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply->reply_message,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
@@ -56,33 +55,30 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
         return EIO;
     }
 
-    *r = reply;
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
+static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    DBusMessage *reply;
     dbus_bool_t ret;
 
-    reply = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
+    reply->reply_message = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply->reply_message, DBUS_TYPE_INVALID);
     if (!ret) {
         return EIO;
     }
 
-    *r = reply;
     return EOK;
 }
 
-static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
+static int service_reload(DBusMessage *message, struct sbus_message_ctx *reply) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
      * are needed to update the configuration objects.
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, data, r);
+    return service_pong(message, reply);
 }
 
 struct sbus_method mon_sbus_methods[] = {
@@ -136,12 +132,10 @@ struct sbus_method infp_methods[] = {
     { NULL, NULL }
 };
 
-int infp_introspect(DBusMessage *message, void *data, DBusMessage **r)
+int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    /* Return the Introspection XML */
-
     /* TODO: actually return the file */
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
@@ -185,9 +179,9 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-int infp_check_permissions(DBusMessage *message, void *data, DBusMessage **r)
+int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 

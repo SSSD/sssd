@@ -483,7 +483,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
     const char *method;
     const char *path;
     const char *msg_interface;
-    DBusMessage *reply = NULL;
+    struct sbus_message_ctx *reply = NULL;
     int i, ret;
     int found;
 
@@ -503,14 +503,22 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
     if (strcmp(path, ctx->method_ctx->path) != 0)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
+    reply = talloc_zero(ctx, struct sbus_message_ctx);
+    if (!reply) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    reply->mh_ctx = ctx;
+    reply->reply_message = NULL;
+
     /* Validate the method interface */
     if (strcmp(msg_interface, ctx->method_ctx->interface) == 0) {
         found = 0;
         for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
             if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
                 found = 1;
-                ret = ctx->method_ctx->methods[i].fn(message, ctx, &reply);
-                if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+                ret = ctx->method_ctx->methods[i].fn(message, reply);
+                if (ret != EOK) {
+                    talloc_free(reply);
+                    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+                }
                 break;
             }
         }
@@ -518,7 +526,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
         if (!found) {
             /* Reply DBUS_ERROR_UNKNOWN_METHOD */
             DEBUG(1, ("No matching method found for %s.\n", method));
-            reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
+            reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
         }
     }
     else {
@@ -532,20 +540,24 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
                 /* If we have been asked for introspection data and we have
                  * an introspection function registered, user that.
                  */
-                ret = ctx->method_ctx->introspect_fn(message, ctx, &reply);
-                if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+                ret = ctx->method_ctx->introspect_fn(message, reply);
+                if (ret != EOK) {
+                    talloc_free(reply);
+                    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+                }
             }
         }
         else
             return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
-    DEBUG(5, ("Method %s complete. Reply was %ssent.\n", method, reply?"":"not "));
+    DEBUG(5, ("Method %s complete. Reply was %ssent.\n", method, reply->reply_message?"":"not "));
 
-    if (reply) {
-        dbus_connection_send(conn, reply, NULL);
-        dbus_message_unref(reply);
+    if (reply->reply_message) {
+        dbus_connection_send(conn, reply->reply_message, NULL);
+        dbus_message_unref(reply->reply_message);
     }
+    talloc_free(reply);
 
     return DBUS_HANDLER_RESULT_HANDLED;
 }

@@ -22,6 +22,9 @@
 #ifndef INFOPIPE_H_
 #define INFOPIPE_H_
 
+#include <dbus/dbus.h>
+#include "sbus/sssd_dbus.h"
+
 #define INFOPIPE_DBUS_NAME "org.freeipa.sssd.infopipe1"
 #define INFOPIPE_INTERFACE "org.freeipa.sssd.infopipe1"
 #define INFOPIPE_PATH "/org/freeipa/sssd/infopipe1"
@@ -42,34 +45,34 @@
  * org.freedesktop.DBus.Introspectable interface
  */
 #define INFP_INTROSPECT "Introspect"
-int infp_introspect(DBusMessage *message, void *data, DBusMessage **r);
+int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply);
 
 /**********************************************************
  * Permission Methods (from infopipe.c)                   *
  **********************************************************/
 #define INFP_CHECK_PERMISSIONS "CheckPermissions1"
-int infp_check_permissions(DBusMessage *message, void *data, DBusMessage **r);
+int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply);
 
 /**********************************************************
  * User Methods (from infopipe_users.c)                   *
  **********************************************************/
 #define INFP_USERS_GET_CACHED "GetCachedUsers1"
-int infp_users_get_cached(DBusMessage *message, void *data, DBusMessage **r);
+int infp_users_get_cached(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_USERS_CREATE "CreateUser1"
-int infp_users_create(DBusMessage *message, void *data, DBusMessage **r);
+int infp_users_create(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_USERS_DELETE "DeleteUser1"
-int infp_users_delete(DBusMessage *message, void *data, DBusMessage **r);
+int infp_users_delete(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_USERS_GET_ATTR "GetUserAttributes1"
-int infp_users_get_attr(DBusMessage *message, void *data, DBusMessage **r);
+int infp_users_get_attr(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_USERS_SET_ATTR "SetUserAttributes1"
-int infp_users_set_attr(DBusMessage *message, void *data, DBusMessage **r);
+int infp_users_set_attr(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_USERS_SET_UID "Set_YouReallyDoNotWantToUseThisFunction_UserUID1"
-int infp_users_set_uid(DBusMessage *message, void *data, DBusMessage **r);
+int infp_users_set_uid(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_USER_METHODS \
     {INFP_USERS_GET_CACHED, infp_users_get_cached}, \
@@ -84,19 +87,19 @@ int infp_users_set_uid(DBusMessage *message, void *data, DBusMessage **r);
  **********************************************************/
 
 #define INFP_GROUPS_CREATE "CreateGroup1"
-int infp_groups_create(DBusMessage *message, void *data, DBusMessage **r);
+int infp_groups_create(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_GROUPS_DELETE "DeleteGroup1"
-int infp_groups_delete(DBusMessage *message, void *data, DBusMessage **r);
+int infp_groups_delete(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_GROUPS_ADD_MEMBERS "AddGroupMembers1"
-int infp_groups_add_members(DBusMessage *message, void *data, DBusMessage **r);
+int infp_groups_add_members(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_GROUPS_REMOVE_MEMBERS "RemoveGroupMembers1"
-int infp_groups_remove_members(DBusMessage *message, void *data, DBusMessage **r);
+int infp_groups_remove_members(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_GROUPS_SET_GID "Set_YouReallyDoNotWantToUseThisFunction_GroupGID1"
-int infp_groups_set_gid(DBusMessage *message, void *data, DBusMessage **r);
+int infp_groups_set_gid(DBusMessage *message, struct sbus_message_ctx *reply);
 
 #define INFP_GROUP_METHODS \
     {INFP_GROUPS_CREATE, infp_groups_create}, \

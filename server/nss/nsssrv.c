@@ -44,9 +44,9 @@
 
 #define SSS_NSS_PIPE_NAME "nss"
 
-static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
-static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
-static int service_reload(DBusMessage *message, void *data, DBusMessage **r);
+static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply);
+static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply);
+static int service_reload(DBusMessage *message, struct sbus_message_ctx *reply);
 static int nss_init_domains(struct nss_ctx *nctx);
 static int _domain_comparator(const void *key1, const void *key2);
 
@@ -227,18 +227,17 @@ static void accept_fd_handler(struct event_context *ev,
     return;
 }
 
-static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
+static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply)
 {
     dbus_uint16_t version = NSS_SBUS_SERVICE_VERSION;
-    const char *name = NSS_SBUS_SERVICE_NAME;
-    DBusMessage *reply;
+    const char *name = NSS_SBUS_SERVICE_NAME;\
     dbus_bool_t ret;
 
     DEBUG(4,("Sending ID reply: (%s,%d)\n",
              name, version));
 
-    reply = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply,
+    reply->reply_message = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply->reply_message,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
@@ -246,33 +245,30 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
         return EIO;
     }
 
-    *r = reply;
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
+static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    DBusMessage *reply;
     dbus_bool_t ret;
 
-    reply = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
+    reply->reply_message = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply->reply_message, DBUS_TYPE_INVALID);
     if (!ret) {
         return EIO;
     }
 
-    *r = reply;
     return EOK;
 }
 
-static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
+static int service_reload(DBusMessage *message, struct sbus_message_ctx *reply) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
      * are needed to update the configuration objects.
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, data, r);
+    return service_pong(message, reply);
 }
 
 static int nss_sbus_init(struct nss_ctx *nctx)

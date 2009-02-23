@@ -88,22 +88,19 @@ static void set_global_checker(struct mt_ctx *ctx);
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
 static int dbus_get_monitor_version(DBusMessage *message,
-                                    void *data,
-                                    DBusMessage **r)
+                                    struct sbus_message_ctx *reply)
 {
     const char *version = MONITOR_VERSION;
-    DBusMessage *reply;
     dbus_bool_t ret;
 
-    reply = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply, DBUS_TYPE_STRING,
+    reply->reply_message = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply->reply_message, DBUS_TYPE_STRING,
                                    &version, DBUS_TYPE_INVALID);
 
     if (!ret) {
         return EIO;
     }
 
-    *r = reply;
     return EOK;
 }
 
