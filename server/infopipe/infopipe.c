@@ -132,11 +132,82 @@ struct sbus_method infp_methods[] = {
     { NULL, NULL }
 };
 
+#define INTROSPECT_CHUNK_SIZE 128
+
 int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    /* TODO: actually return the file */
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
-    return EOK;
+    FILE *xml_stream;
+    char *introspect_xml;
+    char *chunk;
+    TALLOC_CTX *tmp_ctx;
+    unsigned long xml_size;
+    size_t chunk_size;
+    int ret;
+    dbus_bool_t dbret;
+
+    tmp_ctx = talloc_new(reply);
+    if(tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    if (reply->mh_ctx->introspection_xml == NULL) {
+        /* Read in the Introspection XML the first time */
+        xml_stream = fopen(SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML, "r");
+        if(xml_stream == NULL) {
+            DEBUG(0, ("Could not open the introspection XML for reading: [%d] [%s].\n", errno, SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML));
+            return errno;
+        }
+
+        chunk = talloc_size(tmp_ctx, INTROSPECT_CHUNK_SIZE);
+        if (chunk == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        xml_size = 0;
+        introspect_xml = NULL;
+        do {
+            chunk_size = fread(chunk, 1, INTROSPECT_CHUNK_SIZE, xml_stream);
+            introspect_xml = talloc_realloc_size(tmp_ctx, introspect_xml, xml_size+chunk_size+1);
+            if (introspect_xml == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+            memcpy(introspect_xml+xml_size, chunk, chunk_size);
+            xml_size += chunk_size;
+        } while(chunk_size == INTROSPECT_CHUNK_SIZE);
+        introspect_xml[xml_size] = '\0';
+        talloc_free(chunk);
+
+        /* Store the instrospection XML for future calls */
+        reply->mh_ctx->introspection_xml = introspect_xml;
+        talloc_steal(reply->mh_ctx, introspect_xml);
+    }
+    else {
+        /* Subsequent calls should just reuse the saved value */
+        introspect_xml = reply->mh_ctx->introspection_xml;
+    }
+
+    /* Return the Introspection XML */
+    reply->reply_message = dbus_message_new_method_return(message);
+    if (reply->reply_message == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    dbret = dbus_message_append_args(reply->reply_message,
+                                     DBUS_TYPE_STRING, &introspect_xml,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    DEBUG(9, ("%s\n", introspect_xml));
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 static int infp_process_init(TALLOC_CTX *mem_ctx,

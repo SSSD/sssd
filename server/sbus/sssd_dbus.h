@@ -70,6 +70,7 @@ struct sbus_method_ctx {
 struct sbus_message_handler_ctx {
     struct sbus_conn_ctx *conn_ctx;
     struct sbus_method_ctx *method_ctx;
+    char *introspection_xml;
 };
 
 struct sbus_message_ctx {

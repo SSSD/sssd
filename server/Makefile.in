@@ -17,6 +17,7 @@ sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 EXTRA_OBJ=@EXTRA_OBJ@
 SSSD_LIBEXEC_PATH = @SSSD_LIBEXEC_PATH@
+SSSD_INTROSPECT_PATH = @SSSD_INTROSPECT_PATH@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 srvdir = $(srcdir)
 
@@ -55,7 +56,8 @@ LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(EVENTS_LIBS) $(POPT_LIBS) $(LDB_LIBS)
 PICFLAG = @PICFLAG@
 CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
        $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(EVENTS_CFLAGS) $(LDB_CFLAGS) $(DBUS_CFLAGS) $(CHECK_CFLAGS)\
-	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\" -DUSE_MMAP=1 @CFLAGS@
+	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\" -DSSSD_INTROSPECT_PATH=\"$(SSSD_INTROSPECT_PATH)\"\
+	-DUSE_MMAP=1 @CFLAGS@
 
 MDLD = @MDLD@
 MDLD_FLAGS = @MDLD_FLAGS@
@@ -73,6 +75,7 @@ DBUS_SYSBUS_POLICY_DIR = @sysbuspath@
 
 LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_info sbin/sssd_pk
 DBUS_SYSBUS_POLICIES = infopipe/org.freeipa.sssd.infopipe.conf
+INFP_INTROSPECT_XML = infopipe/org.freeipa.sssd.infopipe.Introspect.xml
 BINS = sbin/sssd $(LIBEXECBINS)
 SOLIBS = lib/libsss_proxy.$(SHLIBEXT) lib/memberof.$(SHLIBEXT)
 TESTS = tests/sysdb-tests
@@ -110,7 +113,11 @@ install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -m 755 lib/memberof.$(SHLIBEXT) $(DESTDIR)$(libdir)
 
 installdirs::
-	mkdir -p $(DESTDIR)$(includedir) $(DESTDIR)$(libdir) $(DESTDIR)$(sbindir) $(DBUS_SYSBUS_POLICY_DIR)
+	mkdir -p $(DESTDIR)$(includedir) \
+	          $(DESTDIR)$(libdir) \
+	          $(DESTDIR)$(sbindir) \
+	          $(DBUS_SYSBUS_POLICY_DIR) \
+	          $(SSSD_INTROSPECT_PATH)/infopipe
 
 installheaders:: installdirs
 ifneq (x$(headers), x)
@@ -126,3 +133,4 @@ installbin:: installdirs
 
 installsupport:: installdirs
 	cp $(DBUS_SYSBUS_POLICIES) $(DBUS_SYSBUS_POLICY_DIR)
+	cp $(INFP_INTROSPECT_XML) $(SSSD_INTROSPECT_PATH)/infopipe

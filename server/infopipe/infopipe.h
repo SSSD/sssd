@@ -25,6 +25,8 @@
 #include <dbus/dbus.h>
 #include "sbus/sssd_dbus.h"
 
+#define INFP_INTROSPECT_XML "infopipe/org.freeipa.sssd.infopipe.Introspect.xml"
+
 #define INFOPIPE_DBUS_NAME "org.freeipa.sssd.infopipe1"
 #define INFOPIPE_INTERFACE "org.freeipa.sssd.infopipe1"
 #define INFOPIPE_PATH "/org/freeipa/sssd/infopipe1"
