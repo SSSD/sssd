@@ -22,8 +22,87 @@
 #ifndef INFOPIPE_H_
 #define INFOPIPE_H_
 
-#define INFOPIPE_DBUS_NAME "org.freeipa.sssd.infopipe"
+#define INFOPIPE_DBUS_NAME "org.freeipa.sssd.infopipe1"
+#define INFOPIPE_INTERFACE "org.freeipa.sssd.infopipe1"
+#define INFOPIPE_PATH "/org/freeipa/sssd/infopipe1"
 #define INFOPIPE_VERSION 0x0001
 #define INFOPIPE_SERVICE_NAME "infp"
+
+/* InfoPipe Methods
+ * NOTE: Any changes to the method names and arguments for these calls
+ * must also be updated in the org.freeipa.sssd.infopipe.Introspect.xml
+ * or clients may not behave properly.
+ */
+
+/**********************************************************
+ * Introspection Methods (from infopipe.c)                *
+ **********************************************************/
+
+/* This function must be exposed through the
+ * org.freedesktop.DBus.Introspectable interface
+ */
+#define INFP_INTROSPECT "Introspect"
+int infp_introspect(DBusMessage *message, void *data, DBusMessage **r);
+
+/**********************************************************
+ * Permission Methods (from infopipe.c)                   *
+ **********************************************************/
+#define INFP_CHECK_PERMISSIONS "CheckPermissions1"
+int infp_check_permissions(DBusMessage *message, void *data, DBusMessage **r);
+
+/**********************************************************
+ * User Methods (from infopipe_users.c)                   *
+ **********************************************************/
+#define INFP_USERS_GET_CACHED "GetCachedUsers1"
+int infp_users_get_cached(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_USERS_CREATE "CreateUser1"
+int infp_users_create(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_USERS_DELETE "DeleteUser1"
+int infp_users_delete(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_USERS_GET_ATTR "GetUserAttributes1"
+int infp_users_get_attr(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_USERS_SET_ATTR "SetUserAttributes1"
+int infp_users_set_attr(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_USERS_SET_UID "Set_YouReallyDoNotWantToUseThisFunction_UserUID1"
+int infp_users_set_uid(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_USER_METHODS \
+    {INFP_USERS_GET_CACHED, infp_users_get_cached}, \
+    {INFP_USERS_CREATE, infp_users_create}, \
+    {INFP_USERS_DELETE, infp_users_delete}, \
+    {INFP_USERS_GET_ATTR, infp_users_get_attr}, \
+    {INFP_USERS_SET_ATTR, infp_users_set_attr}, \
+    {INFP_USERS_SET_UID, infp_users_set_uid},
+
+/**********************************************************
+ * Group Methods (from infopipe_groups.c)                 *
+ **********************************************************/
+
+#define INFP_GROUPS_CREATE "CreateGroup1"
+int infp_groups_create(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_GROUPS_DELETE "DeleteGroup1"
+int infp_groups_delete(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_GROUPS_ADD_MEMBERS "AddGroupMembers1"
+int infp_groups_add_members(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_GROUPS_REMOVE_MEMBERS "RemoveGroupMembers1"
+int infp_groups_remove_members(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_GROUPS_SET_GID "Set_YouReallyDoNotWantToUseThisFunction_GroupGID1"
+int infp_groups_set_gid(DBusMessage *message, void *data, DBusMessage **r);
+
+#define INFP_GROUP_METHODS \
+    {INFP_GROUPS_CREATE, infp_groups_create}, \
+    {INFP_GROUPS_DELETE, infp_groups_delete}, \
+    {INFP_GROUPS_ADD_MEMBERS, infp_groups_add_members}, \
+    {INFP_GROUPS_REMOVE_MEMBERS, infp_groups_remove_members}, \
+    {INFP_GROUPS_SET_GID, infp_groups_set_gid},
 
 #endif /* INFOPIPE_H_ */

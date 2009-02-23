@@ -22,24 +22,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "popt.h"
-#include "infopipe.h"
 #include "util/util.h"
+#include "util/btreemap.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "infopipe/sysbus.h"
+#include "infopipe.h"
 
 struct infp_ctx {
     struct event_context *ev;
     struct confdb_ctx *cdb;
     struct service_sbus_ctx *ss_ctx;
     struct sysbus_ctx *sysbus;
-};
-
-struct sbus_method infp_methods[] = {
-    { SYSBUS_GET_PARAM, sysbus_get_param },
-    { NULL, NULL }
 };
 
 static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
@@ -134,6 +130,21 @@ static int infp_monitor_init(struct infp_ctx *infp_ctx)
     return EOK;
 }
 
+struct sbus_method infp_methods[] = {
+    INFP_USER_METHODS
+    INFP_GROUP_METHODS
+    { NULL, NULL }
+};
+
+int infp_introspect(DBusMessage *message, void *data, DBusMessage **r)
+{
+    /* Return the Introspection XML */
+
+    /* TODO: actually return the file */
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    return EOK;
+}
+
 static int infp_process_init(TALLOC_CTX *mem_ctx,
                              struct event_context *ev,
                              struct confdb_ctx *cdb)
@@ -153,12 +164,31 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
     ret = infp_monitor_init(infp_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Fatal error setting up monitor bus\n"));
+        return EIO;
     }
 
-    /* Connect to the D-BUS system bus */
-    ret = sysbus_init(infp_ctx, &infp_ctx->sysbus, infp_methods);
+    /* Connect to the D-BUS system bus and set up methods */
+    ret = sysbus_init(infp_ctx, &infp_ctx->sysbus,
+                      infp_ctx->ev, INFOPIPE_DBUS_NAME,
+                      INFOPIPE_INTERFACE, INFOPIPE_PATH,
+                      infp_methods, infp_introspect);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to the system message bus\n"));
+        return EIO;
+    }
+
+    /* Add the infp_ctx to the sbus_conn_ctx private data
+     * so we can pass it into message handler functions
+     */
+    sbus_conn_set_private_data(sysbus_get_sbus_conn(infp_ctx->sysbus), infp_ctx);
 
     return ret;
+}
+
+int infp_check_permissions(DBusMessage *message, void *data, DBusMessage **r)
+{
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    return EOK;
 }
 
 int main(int argc, const char *argv[])

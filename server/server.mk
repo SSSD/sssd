@@ -34,6 +34,8 @@ NSSSRV_OBJ = \
 
 INFOPIPE_OBJ = \
     infopipe/infopipe.o \
+    infopipe/infopipe_users.o \
+    infopipe/infopipe_groups.o \
     infopipe/sysbus.o
 
 POLKIT_OBJ = \

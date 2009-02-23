@@ -48,6 +48,10 @@ enum {
     SBUS_CONN_TYPE_SHARED
 };
 
+/* Special interface and method for D-BUS introspection */
+#define DBUS_INTROSPECT_INTERFACE "org.freedesktop.DBus.Introspectable"
+#define DBUS_INTROSPECT_METHOD "Introspect"
+
 struct sbus_method {
     const char *method;
     sbus_msg_handler_fn fn;
@@ -59,6 +63,7 @@ struct sbus_method_ctx {
     char *path;
     DBusObjectPathMessageFunction message_handler;
     struct sbus_method *methods;
+    sbus_msg_handler_fn introspect_fn;
 };
 
 struct sbus_message_handler_ctx {
@@ -73,10 +78,36 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 
 /* Connection Functions */
+
+/* sbus_new_connection
+ * Use this function when connecting a new process to
+ * the standard SSSD interface.
+ * This will connect to the address specified and then
+ * call sbus_add_connection to integrate with the main
+ * loop.
+ */
 int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
                         const char *address,
                         struct sbus_conn_ctx **conn_ctx,
                         sbus_conn_destructor_fn destructor);
+
+/* sbus_add_connection
+ * Integrates a D-BUS connection with the TEvent main
+ * loop. Use this function when you already have a
+ * DBusConnection object (for example from dbus_bus_get)
+ * Connection type can be either:
+ * SBUS_CONN_TYPE_PRIVATE: Used only from within a D-BUS
+ *     server such as the Monitor in the
+ *     new_connection_callback
+ * SBUS_CONN_TYPE_SHARED: Used for all D-BUS client
+ *     connections, including those retrieved from
+ *     dbus_bus_get
+ */
+int sbus_add_connection(TALLOC_CTX *ctx,
+                             struct event_context *ev,
+                             DBusConnection *dbus_conn,
+                             struct sbus_conn_ctx **dct_ctx,
+                             int connection_type);
 
 void sbus_conn_set_destructor(struct sbus_conn_ctx *conn_ctx,
                               sbus_conn_destructor_fn destructor);

@@ -22,12 +22,14 @@
 #ifndef SYSBUS_H_
 #define SYSBUS_H_
 
-#define SYSBUS_GET_PARAM "getParam"
-
 struct sysbus_ctx;
 
-int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus, struct sbus_method *methods);
+int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
+                struct event_context *ev, const char *dbus_name,
+                const char *interface, const char *path,
+                struct sbus_method *methods,
+                sbus_msg_handler_fn introspect_method);
 
-int sysbus_get_param(DBusMessage *message, void *data, DBusMessage **r);
+struct sbus_conn_ctx *sysbus_get_sbus_conn(struct sysbus_ctx *sysbus);
 
 #endif /* SYSBUS_H_ */

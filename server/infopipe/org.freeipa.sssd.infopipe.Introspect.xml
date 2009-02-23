@@ -1,0 +1,275 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+    "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/org/freeipa/sssd/infopipe1">
+    <interface name="org.freeipa.sssd.infopipe">
+        <annotation
+            name="org.freeipa.sssd.infopipe.DocString.Summary"
+            value="InfoPipe Interface version 1"
+        />
+        <annotation
+            name="org.freeipa.sssd.infopipe.DocString"
+            value="This is a D-BUS interface used for reading and writing POSIX and extended user attributes within the System Security Services Daemon."
+        />
+
+<!--
+**************************************************************************
+* Permission Methods                                                     *
+**************************************************************************
+-->
+        <method name="CheckPermissions1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Determine whether the caller has permissions on one or more instances of domain objects
+                       @param domain The domain to query
+                       @param object An object type in the domain
+                           Object Types:
+                            user
+                            group
+                       @param instance A particular instance of an object (a username or group name). An empty string will be interpreted as all instances.
+                       @param actions A list of actions to check the permissions of. Each action is described as a pair of (action_type, attribute). If attribute is left as an empty string, the query is for a global value (such as create or delete user) If the attribute value does not make sense for a particular object/instance/action, it will be ignored. Action types not applicable to an object/instance will return false (such as addmember on users).
+                           Available action types:
+                            create
+                            delete
+                            modify
+                            addmember
+                            removemember
+                       @return permissions A list of boolean values returned in the same order as the action list, one for each requested action. True means permission on that action is granted.
+                       @note some examples:
+                           Can I create new users in domain LOCAL?:
+                               CheckPermissions(domain=>'LOCAL', object=>'user', instance=>'', actions=>[('create','')])
+                               returns permissions=>[0]
+                           Can I create new groups in domain LOCAL?
+                               CheckPermissions(domain=>'LOCAL', object=>'group', instance=>'', actions=>[('create','')])
+                               returns permissions=>[0]
+                           Can I modify user testuser1's userpic and full name?
+                               CheckPermissions(domain=>'LOCAL', object=>'user', instance=>'testuser1', actions=>[('modify','userpic'),('modify','fullname')])
+                               returns permissions=>[1,0]
+                           Can I add members to group wheel?
+                               CheckPermissions(domain=>'LOCAL', object=>'user', instance=>'wheel', actions=>[('addmember','somearg')])
+                               returns permissions=>[1]
+                               The argument 'somearg' is ignored, since it does not apply to addmember."
+            />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="object" type="s" direction="in" />
+            <arg name="instance" type="s" direction="in" />
+            <arg name="actions" type="a(ss)" direction="in" />
+            <arg name="permissions" type="ab" direction="out" />
+        </method>
+<!--
+**************************************************************************
+* User Methods                                                           *
+**************************************************************************
+-->
+        <method name="GetCachedUsers1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Get a list of users stored locally in SSSD for this system. This is not a complete user listing for remote domains, only a listing of domain members that have logged in locally.
+                       @param domain The domain to query.
+                       @param minlastlogin Return only users who have logged in successfully since this UNIX timestamp. For all cached users in a domain, set to 0.
+                       @return users Returns a string array of usernames.
+                       @error DBUS_ERROR_INVALID_ARGS One or more specified domains do not exist."
+            />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="minlastlogin" type="t" direction="in" />
+            <arg name="users" type="as" />
+        </method>
+
+        <method name="CreateUser1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Create a new user in a particular domain. User will initially have a disabled password.
+                       @param domain The domain in which to add the user
+                       @param username Username for the new user. Must be unique within a domain.
+                       @param defaultgroup Default group name for the user.
+                       @param fullname Full (display) name for the user. Will set both 'fullname' and 'gecos' to this value initially.
+                       @param homedir Home directory path for the user. Must be a parsable path, but does not need to exist or be mounted.
+                       @param shell Login shell. Must exist in /etc/shells.
+                       @return Returns an empty D-BUS reply to indicate success. Failure will return an error.
+                       @error DBUS_ERROR_INVALID_ARGS See parameter requirements. Reason will be included in the error message.
+                       @error DBUS_ERROR_ACCESS_DENIED Caller did not have permission to create a new user on the specified domain
+                       @note CreateUser will ignore users that already exist.
+                       @note This function will automatically generate an appropriate UID for the user."
+            />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="username" type="s" direction="in" />
+            <arg name="defaultgroup" type="s" direction="in" />
+            <arg name="fullname" type="s" direction="in" />
+            <arg name="homedir" type="s" direction="in" />
+            <arg name="shell" type="s" direction="in" />
+        </method>
+
+        <method name="DeleteUser1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Delete a user by UID from a specified domain.
+                       @param username The user to delete.
+                       @param domain The domain from which to delete the user.
+                       @return Returns an empty D-BUS reply if the deletion was successful. Failure will return an error.
+                       @error DBUS_ERROR_INVALID_ARGS No such username or domain. See error message for details.
+                       @error DBUS_ACCESS_DENIED Caller did not have permission to delete this user."
+            />
+            <arg name="username" type="s" direction="in" />
+            <arg name="domain" type="s" direction="in" />
+        </method>
+
+        <method name="GetUserAttributes1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Get user information
+                       @param usernames An array of unique usernames.
+                       @param domain The domain from which to query user information.
+                       @param filter An array of strings containing a list of requested attributes. A zero-length array will indicate to return all authorized parameters.
+                              attributes(value type):
+                               defaultgroup(STRING)
+                               gecos(STRING)
+                               homedir(STRING)
+                               shell(STRSING)
+                               fullname(STRING)
+                               locale(STRING)
+                               keyboard(STRING)
+                               session(STRING)
+                               last_login(UINT64)
+                               userpic(BYTE ARRAY)
+                       @return attributes An array of extended user information dicts, one for each requested username. Only attributes that the caller had read authorization for will be returned.
+                       @error DBUS_ERROR_INVALID_ARGS Usernames or filter entries were not unique or one or more filter entries were invalid.
+                       @note For standard POSIX attributes, use getpwnam().
+                       @note The attribute userpic may contain very large binary data. It is advisable to request this data separately from other attributes to avoid D-BUS message size limits."
+            />
+            <arg name="usernames" type="as" direction="in" />
+            <arg name="domain" type="as" direction="in" />
+            <arg name="filter" type="as" direction="in" />
+            <arg name="attributes" type="a{sv}" direction="out" />
+        </method>
+
+        <method name="SetUserAttributes1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Set user attributes for one or more users
+                       @param usernames An array of unique usernames.
+                       @param domain The domain of the users to edit.
+                       @param attributes An array of dict(string, variant), either exactly one dict (meaning use the same values for all UIDs), or one dict for each username. An empty value for the variant means delete the attribute.
+                              attributes(value type):
+                               defaultgroup(STRING)
+                               gecos(STRING)
+                               homedir(STRING)
+                               shell(STRING)
+                               fullname(STRING)
+                               locale(STRING)
+                               keyboard(STRING)
+                               session(STRING)
+                               last_login(UINT64)
+                               userpic(BYTE ARRAY)
+                       @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                       @error DBUS_ERROR_INVALID_ARGS Usernames were not unique
+                       @note The attribute userpic may contain very large binary data. It is advisable to set this data separately from other attributes to avoid D-BUS message size limits."
+            />
+            <arg name="usernames" type="as" direction="in" />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="attributes" type="a{sv}" direction="in" />
+        </method>
+
+        <method name="Set_YouReallyDoNotWantToUseThisFunction_UserUID1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Change the User ID for a user.
+                       @param username The username
+                       @param domain The user's domain
+                       @param uid The new UID
+                       @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                       @error DBUS_ERROR_INVALID_ARGS Domain or user did not exist
+                       @error DBUS_ERROR_ACCESS_DENIED Caller did not have permission to edit this user
+                       @note This function should be used sparingly. The automatically-generated user id from CreateUser should be sufficient for most cases."
+            />
+            <arg name="username" type="s" direction="in" />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="uid" type="t" direction="in" />
+        </method>
+
+<!--
+**************************************************************************
+* Group Methods                                                          *
+**************************************************************************
+-->
+        <method name="CreateGroup1">
+             <annotation
+                 name="org.freeipa.sssd.infopipe.DocString"
+                 value="Create new user groups
+                        @param groupnames A list of new groups to add.
+                        @param domain The domain in which to create the groups.
+                        @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                        @error DBUS_ERROR_INVALID_ARGS Domain does not exist.
+                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to create groups in the specified domain.
+                        @note CreateGroup ignores groups that already exist.
+                        @note This function will automatically generate an appropriate group ID for this group."
+             />
+             <arg name="groupnames" type="as" direction="in" />
+             <arg name="domain" type="s" direction="in" />
+        </method>
+
+        <method name="DeleteGroup1">
+             <annotation
+                 name="org.freeipa.sssd.infopipe.DocString"
+                 value="Delete a user group
+                        @param groupname A group to delete.
+                        @param domain The domain from which to delete the group.
+                        @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                        @error DBUS_ERROR_INVALID_ARGS Domain does not exist.
+                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to delete groups from the specified domain.
+                        @note DeleteGroup ignores groups that don't exist."
+             />
+             <arg name="groupname" type="s" direction="in" />
+             <arg name="domain" type="s" direction="out" />
+        </method>
+
+        <method name="AddGroupMembers1">
+            <annotation
+                 name="org.freeipa.sssd.infopipe.DocString"
+                 value="Add members to a group
+                        @param group Group being modified.
+                        @domain The domain the group belongs to.
+                        @members Array of member strings to add to the group.
+                        @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                        @error DBUS_ERROR_INVALID_ARGS The domain does not exist
+                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to modify the group.
+                        @note AddGroupMembers ignores members that don't exist"
+            />
+            <arg name="group" type="s" direction="in" />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="members" type="as" direction="in" />
+        </method>
+
+        <method name="RemoveGroupMembers1">
+            <annotation
+                 name="org.freeipa.sssd.infopipe.DocString"
+                 value="Remove members from a group
+                        @param group Group being modified.
+                        @domain The domain the group belongs to.
+                        @members Array of member strings to remove from the group.
+                        @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                        @error DBUS_ERROR_INVALID_ARGS The domain does not exist
+                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to modify the group.
+                        @note RemoveGroupMembers ignores members that don't exist"
+            />
+            <arg name="group" type="s" direction="in" />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="members" type="as" direction="in" />
+        </method>
+
+        <method name="Set_YouReallyDoNotWantToUseThisFunction_GroupGID1">
+            <annotation
+                name="org.freeipa.sssd.infopipe.DocString"
+                value="Change the User ID for a user.
+                       @param group The group name
+                       @param domain The group's domain
+                       @param gid The new GID
+                       @return Returns an empty D-BUS reply on success. Will return an error on failure.
+                       @error DBUS_ERROR_INVALID_ARGS Domain or group did not exist
+                       @error DBUS_ERROR_ACCESS_DENIED Caller did not have permission to edit this group
+                       @note This function should be used sparingly. The automatically-generated group id from CreateGroup should be sufficient for most cases."
+            />
+            <arg name="group" type="s" direction="in" />
+            <arg name="domain" type="s" direction="in" />
+            <arg name="guid" type="t" direction="in" />
+        </method>
+    </interface>
+</node>

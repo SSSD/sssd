@@ -28,20 +28,73 @@
 #include "infopipe/infopipe.h"
 
 struct sysbus_ctx {
-    DBusConnection *conn;
-    struct sbus_method_ctx *method_ctx_list;
+    struct sbus_conn_ctx *sconn;
+    struct sbus_method_ctx *service_methods;
     void *pvt_data;
 };
 
 static int sysbus_destructor(TALLOC_CTX *ctx) {
     struct sysbus_ctx *system_bus = talloc_get_type(ctx, struct sysbus_ctx);
-    dbus_connection_unref(system_bus->conn);
+    dbus_connection_unref(sbus_get_connection(system_bus->sconn));
     return EOK;
 }
 
-int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus, struct sbus_method *methods)
+static int sysbus_init_methods(TALLOC_CTX *mem_ctx,
+                               struct sysbus_ctx *sysbus,
+                               const char *interface,
+                               const char *path,
+                               struct sbus_method *methods,
+                               sbus_msg_handler_fn introspect_method,
+                               struct sbus_method_ctx **sm_ctx)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+    struct sbus_method_ctx *method_ctx;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if(!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    method_ctx = talloc_zero(tmp_ctx, struct sbus_method_ctx);
+    if (!method_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    method_ctx->interface = talloc_strdup(method_ctx, interface);
+    if (method_ctx->interface == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    method_ctx->path = talloc_strdup(method_ctx, path);
+    if (method_ctx->path == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    method_ctx->methods = methods;
+    method_ctx->introspect_fn = introspect_method;
+    method_ctx->message_handler = sbus_message_handler;
+
+    *sm_ctx = method_ctx;
+    talloc_steal(mem_ctx, method_ctx);
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
+                struct event_context *ev, const char *dbus_name,
+                const char *interface, const char *path,
+                struct sbus_method *methods,
+                sbus_msg_handler_fn introspect_method)
 {
     DBusError dbus_error;
+    DBusConnection *conn;
     struct sysbus_ctx *system_bus;
     int ret;
 
@@ -53,18 +106,18 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus, struct sbus_met
     dbus_error_init(&dbus_error);
 
     /* Connect to the well-known system bus */
-    system_bus->conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
-    if (system_bus->conn == NULL) {
+    conn = dbus_bus_get(DBUS_BUS_SYSTEM, &dbus_error);
+    if (conn == NULL) {
         DEBUG(0, ("Failed to connect to D-BUS system bus.\n"));
         talloc_free(system_bus);
         return EIO;
     }
-    dbus_connection_set_exit_on_disconnect(system_bus->conn, FALSE);
+    dbus_connection_set_exit_on_disconnect(conn, FALSE);
     talloc_set_destructor((TALLOC_CTX *)system_bus,
                           sysbus_destructor);
 
-    ret = dbus_bus_request_name(system_bus->conn,
-                                INFOPIPE_DBUS_NAME,
+    ret = dbus_bus_request_name(conn,
+                                dbus_name,
                                 /* We want exclusive access */
                                 DBUS_NAME_FLAG_DO_NOT_QUEUE,
                                 &dbus_error
@@ -76,14 +129,38 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus, struct sbus_met
         return EIO;
     }
 
-    DEBUG(1, ("Listening on %s\n", INFOPIPE_DBUS_NAME));
+    DEBUG(1, ("Listening on %s\n", dbus_name));
+
+    /* Integrate with TEvent loop */
+    ret = sbus_add_connection(system_bus, ev, conn, &system_bus->sconn, SBUS_CONN_TYPE_SHARED);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not integrate D-BUS into mainloop.\n"));
+        talloc_free(system_bus);
+        return ret;
+    }
+
+    /* Set up methods */
+    ret = sysbus_init_methods(system_bus, system_bus, interface, path,
+                              methods, introspect_method,
+                              &system_bus->service_methods);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not set up service methods.\n"));
+        talloc_free(system_bus);
+        return ret;
+    }
+
+    ret = sbus_conn_add_method_ctx(system_bus->sconn, system_bus->service_methods);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not add service methods to the connection.\n"));
+        talloc_free(system_bus);
+        return ret;
+    }
 
     *sysbus = system_bus;
     return EOK;
 }
 
-int sysbus_get_param(DBusMessage *message, void *data, DBusMessage **r) {
-    /* TODO: remove this */
-    DEBUG(0, ("Received message. Printing this garbage.\n"));
-    return EOK;
+struct sbus_conn_ctx *sysbus_get_sbus_conn(struct sysbus_ctx *sysbus)
+{
+    return sysbus->sconn;
 }

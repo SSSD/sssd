@@ -499,12 +499,12 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
     if (!method || !path || !msg_interface)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-    /* Validate the method interface */
-    if (strcmp(msg_interface, ctx->method_ctx->interface) != 0)
+    /* Validate the D-BUS path */
+    if (strcmp(path, ctx->method_ctx->path) != 0)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
-    /* Validate the D-BUS path */
-    if (strcmp(path, ctx->method_ctx->path) == 0) {
+    /* Validate the method interface */
+    if (strcmp(msg_interface, ctx->method_ctx->interface) == 0) {
         found = 0;
         for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
             if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
@@ -520,6 +520,24 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
             DEBUG(1, ("No matching method found for %s.\n", method));
             reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
         }
+    }
+    else {
+        /* Special case: check for Introspection request
+         * This is usually only useful for system bus connections
+         */
+        if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
+            strcmp(method, DBUS_INTROSPECT_METHOD) == 0)
+        {
+            if (ctx->method_ctx->introspect_fn) {
+                /* If we have been asked for introspection data and we have
+                 * an introspection function registered, user that.
+                 */
+                ret = ctx->method_ctx->introspect_fn(message, ctx, &reply);
+                if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+            }
+        }
+        else
+            return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 
     DEBUG(5, ("Method %s complete. Reply was %ssent.\n", method, reply?"":"not "));
@@ -548,6 +566,7 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
     }
 
     if (_method_list_contains_path(dct_ctx->method_ctx_list, method_ctx)) {
+        DEBUG(0, ("Cannot add method context with identical path.\n"));
         return EINVAL;
     }
 
@@ -579,6 +598,7 @@ int sbus_conn_add_method_ctx(struct sbus_conn_ctx *dct_ctx,
     dbret = dbus_connection_register_object_path(dct_ctx->conn, method_ctx->path,
                                                  connection_vtable, msg_handler_ctx);
     if (!dbret) {
+        DEBUG(0, ("Could not register object path to the connection.\n"));
         return ENOMEM;
     }
 
