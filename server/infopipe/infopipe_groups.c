@@ -23,32 +23,32 @@
 #include "util/util.h"
 #include "infopipe.h"
 
-int infp_groups_create(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_groups_create(DBusMessage *message, void *data, DBusMessage **r)
 {
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_groups_delete(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_groups_delete(DBusMessage *message, void *data, DBusMessage **r)
 {
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_groups_add_members(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_groups_add_members(DBusMessage *message, void *data, DBusMessage **r)
 {
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_groups_remove_members(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_groups_remove_members(DBusMessage *message, void *data, DBusMessage **r)
 {
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }
 
-int infp_groups_set_gid(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_groups_set_gid(DBusMessage *message, void *data, DBusMessage **r)
 {
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    *r = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
     return EOK;
 }

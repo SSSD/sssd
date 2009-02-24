@@ -281,19 +281,20 @@ done:
     return err;
 }
 
-static int nss_dp_identity(DBusMessage *message, struct sbus_message_ctx *reply)
+static int nss_dp_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_FRONTEND;
     const char *cliname = "NSS";
     const char *nullname = "";
+    DBusMessage *reply;
     dbus_bool_t ret;
 
     DEBUG(4,("Sending ID reply: (%d,%d,%s)\n",
              clitype, version, cliname));
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message,
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_UINT16, &clitype,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_STRING, &cliname,
@@ -303,6 +304,7 @@ static int nss_dp_identity(DBusMessage *message, struct sbus_message_ctx *reply)
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 

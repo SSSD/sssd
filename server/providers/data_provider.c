@@ -76,9 +76,9 @@ struct dp_frontend {
 static int dp_backend_destructor(void *ctx);
 static int dp_frontend_destructor(void *ctx);
 
-static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply);
-static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply);
-static int service_reload(DBusMessage *message, struct sbus_message_ctx *reply);
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
+static int service_reload(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method mon_sbus_methods[] = {
     { SERVICE_METHOD_IDENTITY, service_identity },
@@ -87,7 +87,7 @@ struct sbus_method mon_sbus_methods[] = {
     { NULL, NULL }
 };
 
-static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *reply);
+static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method dp_sbus_methods[] = {
     { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
@@ -108,16 +108,17 @@ struct dp_be_request {
     struct dp_backend *be;
 };
 
-static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply)
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     const char *name = DATA_PROVIDER_SERVICE_NAME;
+    DBusMessage *reply;
     dbus_bool_t ret;
 
     DEBUG(4, ("Sending identity data [%s,%d]\n", name, version));
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message,
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
@@ -125,30 +126,33 @@ static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply)
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 {
+    DBusMessage *reply;
     dbus_bool_t ret;
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message, DBUS_TYPE_INVALID);
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
     if (!ret) {
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
-static int service_reload(DBusMessage *message, struct sbus_message_ctx *reply) {
+static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
      * are needed to update the configuration objects.
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, reply);
+    return service_pong(message, data, r);
 }
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
@@ -534,13 +538,14 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
     return EOK;
 }
 
-static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *reply)
+static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r)
 {
     struct sbus_message_handler_ctx *smh_ctx;
     struct dp_client *dpcli;
     struct dp_be_request *bereq;
     struct dp_request *dpreq = NULL;
     struct dp_backend *dpbe;
+    DBusMessage *reply;
     DBusError dbus_error;
     dbus_bool_t dbret;
     void *user_data;
@@ -549,11 +554,9 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
     const char *errmsg = NULL;
     int dpret = 0, ret = 0;
 
-    if (!reply) return EINVAL;
-
-    smh_ctx = reply->mh_ctx;
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
     if (!smh_ctx) return EINVAL;
-
     user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
     if (!user_data) return EINVAL;
     dpcli = talloc_get_type(user_data, struct dp_client);
@@ -575,7 +578,7 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
     DEBUG(4, ("Got request for [%s][%u][%s][%s]\n",
               domain, type, attrs, filter));
 
-    reply->reply_message = dbus_message_new_method_return(message);
+    reply = dbus_message_new_method_return(message);
 
     /* search for domain */
     if (!domain) {
@@ -603,7 +606,7 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
             goto respond;
         }
 
-        dpreq->reply = reply->reply_message;
+        dpreq->reply = reply;
         dpreq->src_cli = dpcli;
         dpreq->pending_replies = 0;
 
@@ -659,7 +662,7 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
             goto respond;
         }
 
-        dpreq->reply = reply->reply_message;
+        dpreq->reply = reply;
         dpreq->src_cli = dpcli;
         dpreq->pending_replies = 1;
 
@@ -695,13 +698,14 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
     return EOK;
 
 respond:
-    dbret = dbus_message_append_args(reply->reply_message,
+    dbret = dbus_message_append_args(reply,
                                      DBUS_TYPE_UINT16, &dpret,
                                      DBUS_TYPE_UINT32, &ret,
                                      DBUS_TYPE_STRING, &errmsg,
                                      DBUS_TYPE_INVALID);
     if (!dbret) return EIO;
 
+    *r = reply;
     return EOK;
 }
 

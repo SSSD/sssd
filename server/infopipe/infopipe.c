@@ -39,16 +39,17 @@ struct infp_ctx {
     struct sysbus_ctx *sysbus;
 };
 
-static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply)
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = INFOPIPE_VERSION;
     const char *name = INFOPIPE_SERVICE_NAME;
+    DBusMessage *reply;
     dbus_bool_t ret;
 
     DEBUG(4, ("Sending identity data [%s,%d]\n", name, version));
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message,
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
@@ -56,30 +57,33 @@ static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply)
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 {
+    DBusMessage *reply;
     dbus_bool_t ret;
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message, DBUS_TYPE_INVALID);
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
     if (!ret) {
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
-static int service_reload(DBusMessage *message, struct sbus_message_ctx *reply) {
+static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
      * are needed to update the configuration objects.
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, reply);
+    return service_pong(message, data, r);
 }
 
 struct sbus_method mon_sbus_methods[] = {
@@ -136,8 +140,10 @@ struct sbus_method infp_methods[] = {
 
 #define INTROSPECT_CHUNK_SIZE 4096 /* Read in one memory page at a time */
 
-int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_introspect(DBusMessage *message, void *data, DBusMessage **r)
 {
+    struct sbus_message_handler_ctx *mh_ctx;
+    DBusMessage *reply;
     FILE *xml_stream;
     char *introspect_xml;
     char *chunk;
@@ -147,12 +153,14 @@ int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply)
     int ret;
     dbus_bool_t dbret;
 
-    tmp_ctx = talloc_new(reply);
+    mh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
+
+    tmp_ctx = talloc_new(NULL);
     if(tmp_ctx == NULL) {
         return ENOMEM;
     }
 
-    if (reply->mh_ctx->introspection_xml == NULL) {
+    if (mh_ctx->introspection_xml == NULL) {
         /* Read in the Introspection XML the first time */
         xml_stream = fopen(SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML, "r");
         if(xml_stream == NULL) {
@@ -182,21 +190,20 @@ int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply)
         talloc_free(chunk);
 
         /* Store the instrospection XML for future calls */
-        reply->mh_ctx->introspection_xml = introspect_xml;
-        talloc_steal(reply->mh_ctx, introspect_xml);
+        mh_ctx->introspection_xml = introspect_xml;
     }
     else {
         /* Subsequent calls should just reuse the saved value */
-        introspect_xml = reply->mh_ctx->introspection_xml;
+        introspect_xml = mh_ctx->introspection_xml;
     }
 
     /* Return the Introspection XML */
-    reply->reply_message = dbus_message_new_method_return(message);
-    if (reply->reply_message == NULL) {
+    reply = dbus_message_new_method_return(message);
+    if (reply == NULL) {
         ret = ENOMEM;
         goto done;
     }
-    dbret = dbus_message_append_args(reply->reply_message,
+    dbret = dbus_message_append_args(reply,
                                      DBUS_TYPE_STRING, &introspect_xml,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
@@ -339,8 +346,10 @@ bool infp_get_permissions(const char *username,
 /* CheckPermissions(STRING domain, STRING object, STRING instance
  *                  ARRAY(STRING action_type, STRING attribute) actions)
  */
-int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply)
+int infp_check_permissions(DBusMessage *message, void *data, DBusMessage **r)
 {
+    struct sbus_message_handler_ctx *mh_ctx;
+    DBusMessage *reply;
     TALLOC_CTX *tmp_ctx;
     int current_type;
     DBusConnection *conn;
@@ -362,13 +371,15 @@ int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply)
     dbus_bool_t *permissions;
     size_t count;
 
-    tmp_ctx = talloc_new(reply);
+    mh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
+
+    tmp_ctx = talloc_new(NULL);
     if(tmp_ctx == NULL) {
         return ENOMEM;
     }
 
     /* Get the connection UID */
-    conn = sbus_get_connection(reply->mh_ctx->conn_ctx);
+    conn = sbus_get_connection(mh_ctx->conn_ctx);
     conn_name = dbus_message_get_sender(message);
     if (conn_name == NULL) {
         DEBUG(0, ("Critical error: D-BUS client has no unique name\n"));
@@ -488,11 +499,10 @@ int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply)
     }
 
     /* Create response message */
-    reply->reply_message = dbus_message_new_method_return(message);
-    if (reply->reply_message == NULL) return ENOMEM;
+    reply = dbus_message_new_method_return(message);
+    if (reply == NULL) return ENOMEM;
 
-    talloc_steal(reply, permissions);
-    dbus_message_append_args(reply->reply_message,
+    dbus_message_append_args(reply,
                              DBUS_TYPE_ARRAY, DBUS_TYPE_BOOLEAN, &permissions, count,
                              DBUS_TYPE_INVALID);
 
@@ -500,8 +510,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply)
     return EOK;
 
 einval:
-    talloc_steal(reply, einval_msg);
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, einval_msg);
+    reply = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, einval_msg);
     talloc_free(tmp_ctx);
     return EOK;
 }

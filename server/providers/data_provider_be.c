@@ -44,8 +44,8 @@
 
 typedef int (*be_init_fn_t)(TALLOC_CTX *, struct be_mod_ops **, void **);
 
-static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply);
-static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply);
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method mon_sbus_methods[] = {
     { SERVICE_METHOD_IDENTITY, service_identity },
@@ -53,9 +53,9 @@ struct sbus_method mon_sbus_methods[] = {
     { NULL, NULL }
 };
 
-static int be_identity(DBusMessage *message, struct sbus_message_ctx *reply);
-static int be_check_online(DBusMessage *message, struct sbus_message_ctx *reply);
-static int be_get_account_info(DBusMessage *message, struct sbus_message_ctx *reply);
+static int be_identity(DBusMessage *message, void *data, DBusMessage **r);
+static int be_check_online(DBusMessage *message, void *data, DBusMessage **r);
+static int be_get_account_info(DBusMessage *message, void *data, DBusMessage **r);
 
 struct sbus_method be_methods[] = {
     { DP_CLI_METHOD_IDENTITY, be_identity },
@@ -64,16 +64,17 @@ struct sbus_method be_methods[] = {
     { NULL, NULL }
 };
 
-static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply)
+static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_ctx *ctx;
+    DBusMessage *reply;
     dbus_bool_t ret;
     void *user_data;
 
-    if (!reply) return EINVAL;
-    smh_ctx = reply->mh_ctx;
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
     if (!smh_ctx) return EINVAL;
     user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
     if (!user_data) return EINVAL;
@@ -82,8 +83,8 @@ static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply
 
     DEBUG(4,("Sending ID reply: (%s,%d)\n", ctx->identity, version));
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message,
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_STRING, &ctx->identity,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
@@ -91,33 +92,37 @@ static int service_identity(DBusMessage *message, struct sbus_message_ctx *reply
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, struct sbus_message_ctx *reply)
+static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
 {
+    DBusMessage *reply;
     dbus_bool_t ret;
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message, DBUS_TYPE_INVALID);
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
     if (!ret) {
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
-static int be_identity(DBusMessage *message, struct sbus_message_ctx *reply)
+static int be_identity(DBusMessage *message, void *data, DBusMessage **r)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_BACKEND;
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_ctx *ctx;
+    DBusMessage *reply;
     dbus_bool_t ret;
     void *user_data;
 
-    if (!reply) return EINVAL;
-    smh_ctx = reply->mh_ctx;
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
     if (!smh_ctx) return EINVAL;
     user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
     if (!user_data) return EINVAL;
@@ -127,8 +132,8 @@ static int be_identity(DBusMessage *message, struct sbus_message_ctx *reply)
     DEBUG(4,("Sending ID reply: (%d,%d,%s,%s)\n",
              clitype, version, ctx->name, ctx->domain));
 
-    reply->reply_message = dbus_message_new_method_return(message);
-    ret = dbus_message_append_args(reply->reply_message,
+    reply = dbus_message_new_method_return(message);
+    ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_UINT16, &clitype,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_STRING, &ctx->name,
@@ -138,6 +143,7 @@ static int be_identity(DBusMessage *message, struct sbus_message_ctx *reply)
         return EIO;
     }
 
+    *r = reply;
     return EOK;
 }
 
@@ -231,12 +237,13 @@ static void online_chk_callback(struct be_req *req, int status,
 }
 
 
-static int be_check_online(DBusMessage *message, struct sbus_message_ctx *reply)
+static int be_check_online(DBusMessage *message, void *data, DBusMessage **r)
 {
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_online_req *req;
     struct be_req *be_req;
     struct be_ctx *ctx;
+    DBusMessage *reply;
     dbus_bool_t dbret;
     void *user_data;
     int ret;
@@ -245,15 +252,15 @@ static int be_check_online(DBusMessage *message, struct sbus_message_ctx *reply)
     dbus_uint32_t err_min;
     const char *err_msg;
 
-    if (!reply) return EINVAL;
-    smh_ctx = reply->mh_ctx;
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
     if (!smh_ctx) return EINVAL;
     user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
 
-    reply->reply_message = dbus_message_new_method_return(message);
+    reply = dbus_message_new_method_return(message);
 
     /* process request */
     be_req = talloc(ctx, struct be_req);
@@ -266,7 +273,7 @@ static int be_check_online(DBusMessage *message, struct sbus_message_ctx *reply)
     }
     be_req->be_ctx = ctx;
     be_req->fn = online_chk_callback;
-    be_req->pvt = reply->reply_message;
+    be_req->pvt = reply;
 
     req = talloc(be_req, struct be_online_req);
     if (!req) {
@@ -296,7 +303,7 @@ done:
         talloc_free(be_req);
     }
 
-    dbret = dbus_message_append_args(reply->reply_message,
+    dbret = dbus_message_append_args(reply,
                                      DBUS_TYPE_UINT16, &online,
                                      DBUS_TYPE_UINT16, &err_maj,
                                      DBUS_TYPE_UINT32, &err_min,
@@ -304,6 +311,7 @@ done:
                                      DBUS_TYPE_INVALID);
     if (!dbret) return EIO;
 
+    *r = reply;
     return EOK;
 }
 
@@ -347,12 +355,13 @@ static void acctinfo_callback(struct be_req *req, int status,
     talloc_free(req);
 }
 
-static int be_get_account_info(DBusMessage *message, struct sbus_message_ctx *reply)
+static int be_get_account_info(DBusMessage *message, void *data, DBusMessage **r)
 {
     struct sbus_message_handler_ctx *smh_ctx;
     struct be_acct_req *req;
     struct be_req *be_req;
     struct be_ctx *ctx;
+    DBusMessage *reply;
     DBusError dbus_error;
     dbus_bool_t dbret;
     void *user_data;
@@ -366,9 +375,10 @@ static int be_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
     const char *err_msg;
 
     be_req = NULL;
+    *r = NULL;
 
-    if (!reply) return EINVAL;
-    smh_ctx = reply->mh_ctx;
+    if (!data) return EINVAL;
+    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
     if (!smh_ctx) return EINVAL;
     user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
     if (!user_data) return EINVAL;
@@ -389,7 +399,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
 
     DEBUG(4, ("Got request for [%u][%s][%s]\n", type, attrs, filter));
 
-    reply->reply_message = dbus_message_new_method_return(message);
+    reply = dbus_message_new_method_return(message);
 
     if (attrs) {
         if (strcmp(attrs, "core") == 0) attr_type = BE_ATTR_CORE;
@@ -438,7 +448,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_message_ctx *re
     }
     be_req->be_ctx = ctx;
     be_req->fn = acctinfo_callback;
-    be_req->pvt = reply->reply_message;
+    be_req->pvt = reply;
 
     req = talloc(be_req, struct be_acct_req);
     if (!req) {
@@ -469,7 +479,7 @@ done:
         talloc_free(be_req);
     }
 
-    dbret = dbus_message_append_args(reply->reply_message,
+    dbret = dbus_message_append_args(reply,
                                      DBUS_TYPE_UINT16, &err_maj,
                                      DBUS_TYPE_UINT32, &err_min,
                                      DBUS_TYPE_STRING, &err_msg,
@@ -479,6 +489,7 @@ done:
     DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
               err_maj, err_min, err_msg));
 
+    *r = reply;
     return EOK;
 }
 

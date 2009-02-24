@@ -27,8 +27,7 @@ struct sbus_srv_ctx;
 
 #include "dbus/dbus.h"
 
-struct sbus_message_ctx;
-typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_message_ctx *);
+typedef int (*sbus_msg_handler_fn)(DBusMessage *, void *, DBusMessage **);
 
 /*
  * sbus_conn_destructor_fn
@@ -71,11 +70,6 @@ struct sbus_message_handler_ctx {
     struct sbus_conn_ctx *conn_ctx;
     struct sbus_method_ctx *method_ctx;
     char *introspection_xml;
-};
-
-struct sbus_message_ctx {
-    struct sbus_message_handler_ctx *mh_ctx;
-    DBusMessage *reply_message;
 };
 
 /* Server Functions */
