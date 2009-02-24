@@ -272,6 +272,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     if (!dbus_server) {
         DEBUG(1,("dbus_server_listen failed! (name=%s, message=%s)\n",
                  dbus_error.name, dbus_error.message));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
 

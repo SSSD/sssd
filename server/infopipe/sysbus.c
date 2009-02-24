@@ -125,6 +125,7 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
     if (ret != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) {
         /* We were unable to register on the system bus */
         DEBUG(0, ("Unable to request name on the system bus. Error: %s\n", dbus_error.message));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         talloc_free(system_bus);
         return EIO;
     }

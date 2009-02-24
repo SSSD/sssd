@@ -101,7 +101,6 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
-    DBusError dbus_error;
     dbus_bool_t ret;
     uint32_t be_type;
     const char *attrs = "core";
@@ -144,7 +143,6 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
     }
 
     conn = sbus_get_connection(nctx->dp_ctx->scon_ctx);
-    dbus_error_init(&dbus_error);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -248,6 +246,7 @@ static int nss_dp_get_reply(DBusPendingCall *pending,
         if (!ret) {
             DEBUG(1,("Filed to parse message\n"));
             /* FIXME: Destroy this connection ? */
+            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             err = EIO;
             goto done;
         }
@@ -281,7 +280,7 @@ done:
     return err;
 }
 
-static int nss_dp_identity(DBusMessage *message, void *data, DBusMessage **r)
+static int nss_dp_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_FRONTEND;
@@ -294,6 +293,8 @@ static int nss_dp_identity(DBusMessage *message, void *data, DBusMessage **r)
              clitype, version, cliname));
 
     reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
+
     ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_UINT16, &clitype,
                                    DBUS_TYPE_UINT16, &version,
@@ -301,10 +302,14 @@ static int nss_dp_identity(DBusMessage *message, void *data, DBusMessage **r)
                                    DBUS_TYPE_STRING, &nullname,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
+        dbus_message_unref(reply);
         return EIO;
     }
 
-    *r = reply;
+    /* send reply back */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
     return EOK;
 }
 

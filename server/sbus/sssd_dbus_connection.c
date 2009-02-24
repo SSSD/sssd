@@ -18,6 +18,11 @@ struct sbus_conn_ctx {
     void *pvt_data; /* Private data for this connection */
 };
 
+struct sbus_message_handler_ctx {
+    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_method_ctx *method_ctx;
+};
+
 struct sbus_conn_watch_ctx {
     DBusWatch *watch;
     int fd;
@@ -354,6 +359,7 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
     if (!dbus_conn) {
         DEBUG(1, ("Failed to open connection: name=%s, message=%s\n",
                 dbus_error.name, dbus_error.message));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
 
@@ -509,7 +515,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
         for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
             if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
                 found = 1;
-                ret = ctx->method_ctx->methods[i].fn(message, ctx, &reply);
+                ret = ctx->method_ctx->methods[i].fn(message, ctx->conn_ctx);
                 if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
                 break;
             }
@@ -532,19 +538,12 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
                 /* If we have been asked for introspection data and we have
                  * an introspection function registered, user that.
                  */
-                ret = ctx->method_ctx->introspect_fn(message, ctx, &reply);
+                ret = ctx->method_ctx->introspect_fn(message, ctx->conn_ctx);
                 if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
             }
         }
         else
             return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-    }
-
-    DEBUG(5, ("Method %s complete. Reply was %ssent.\n", method, reply?"":"not "));
-
-    if (reply) {
-        dbus_connection_send(conn, reply, NULL);
-        dbus_message_unref(reply);
     }
 
     return DBUS_HANDLER_RESULT_HANDLED;
@@ -654,3 +653,9 @@ bool sbus_conn_disconnecting(struct sbus_conn_ctx *conn_ctx)
     if (conn_ctx->disconnect == 1) return true;
     return false;
 }
+
+void sbus_conn_send_reply(struct sbus_conn_ctx *conn_ctx, DBusMessage *reply)
+{
+    dbus_connection_send(conn_ctx->conn, reply, NULL);
+}
+

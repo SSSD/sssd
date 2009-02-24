@@ -27,7 +27,7 @@ struct sbus_srv_ctx;
 
 #include "dbus/dbus.h"
 
-typedef int (*sbus_msg_handler_fn)(DBusMessage *, void *, DBusMessage **);
+typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_conn_ctx *);
 
 /*
  * sbus_conn_destructor_fn
@@ -64,12 +64,6 @@ struct sbus_method_ctx {
     DBusObjectPathMessageFunction message_handler;
     struct sbus_method *methods;
     sbus_msg_handler_fn introspect_fn;
-};
-
-struct sbus_message_handler_ctx {
-    struct sbus_conn_ctx *conn_ctx;
-    struct sbus_method_ctx *method_ctx;
-    char *introspection_xml;
 };
 
 /* Server Functions */
@@ -128,5 +122,8 @@ bool sbus_conn_disconnecting(struct sbus_conn_ctx *conn_ctx);
 DBusHandlerResult sbus_message_handler(DBusConnection *conn,
                                   DBusMessage *message,
                                   void *user_data);
+
+void sbus_conn_send_reply(struct sbus_conn_ctx *conn_ctx,
+                          DBusMessage *reply);
 
 #endif /* _SSSD_DBUS_H_*/

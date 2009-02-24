@@ -88,22 +88,25 @@ static void set_global_checker(struct mt_ctx *ctx);
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
 static int dbus_get_monitor_version(DBusMessage *message,
-                                    void *data,
-                                    DBusMessage **r)
+                                    struct sbus_conn_ctx *sconn)
 {
     const char *version = MONITOR_VERSION;
     DBusMessage *reply;
     dbus_bool_t ret;
 
     reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
     ret = dbus_message_append_args(reply, DBUS_TYPE_STRING,
                                    &version, DBUS_TYPE_INVALID);
-
     if (!ret) {
+        dbus_message_unref(reply);
         return EIO;
     }
 
-    *r = reply;
+    /* send reply back */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
     return EOK;
 }
 
@@ -525,14 +528,12 @@ static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
-    DBusError dbus_error;
     dbus_bool_t dbret;
 
     DEBUG(3, ("Initializing D-BUS Service\n"));
 
     ctx = talloc_get_type(data, struct mt_ctx);
     conn = sbus_get_connection(conn_ctx);
-    dbus_error_init(&dbus_error);
 
     /* hang off this memory to the connection so that when the connection
      * is freed we can call a destructor to clear up the structure and
@@ -633,6 +634,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
                                     DBUS_TYPE_INVALID);
         if (!ret) {
             DEBUG(1,("Failed, to parse message, killing connection\n"));
+            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             sbus_disconnect(conn_ctx);
             goto done;
         }
@@ -694,7 +696,6 @@ static int service_send_ping(struct mt_svc *svc)
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
-    DBusError dbus_error;
     dbus_bool_t dbret;
 
     if (!svc->mt_conn) {
@@ -704,7 +705,6 @@ static int service_send_ping(struct mt_svc *svc)
     DEBUG(4,("Pinging %s\n", svc->name));
 
     conn = sbus_get_connection(svc->mt_conn->conn_ctx);
-    dbus_error_init(&dbus_error);
 
     /*
      * Set up identity request
@@ -746,13 +746,11 @@ static void ping_check(DBusPendingCall *pending, void *data)
     struct mt_svc *svc;
     struct sbus_conn_ctx *conn_ctx;
     DBusMessage *reply;
-    DBusError dbus_error;
     const char *dbus_error_name;
     int type;
 
     svc = talloc_get_type(data, struct mt_svc);
     conn_ctx = svc->mt_conn->conn_ctx;
-    dbus_error_init(&dbus_error);
 
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {

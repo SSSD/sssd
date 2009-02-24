@@ -76,9 +76,9 @@ struct dp_frontend {
 static int dp_backend_destructor(void *ctx);
 static int dp_frontend_destructor(void *ctx);
 
-static int service_identity(DBusMessage *message, void *data, DBusMessage **r);
-static int service_pong(DBusMessage *message, void *data, DBusMessage **r);
-static int service_reload(DBusMessage *message, void *data, DBusMessage **r);
+static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn);
 
 struct sbus_method mon_sbus_methods[] = {
     { SERVICE_METHOD_IDENTITY, service_identity },
@@ -87,7 +87,7 @@ struct sbus_method mon_sbus_methods[] = {
     { NULL, NULL }
 };
 
-static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r);
+static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn);
 
 struct sbus_method dp_sbus_methods[] = {
     { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
@@ -108,7 +108,7 @@ struct dp_be_request {
     struct dp_backend *be;
 };
 
-static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
+static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     const char *name = DATA_PROVIDER_SERVICE_NAME;
@@ -118,41 +118,54 @@ static int service_identity(DBusMessage *message, void *data, DBusMessage **r)
     DEBUG(4, ("Sending identity data [%s,%d]\n", name, version));
 
     reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
+
     ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
+        dbus_message_unref(reply);
         return EIO;
     }
 
-    *r = reply;
+    /* send reply back */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, void *data, DBusMessage **r)
+static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
     dbus_bool_t ret;
 
     reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
+
     ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
     if (!ret) {
+        dbus_message_unref(reply);
         return EIO;
     }
 
-    *r = reply;
+    /* send reply back */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
     return EOK;
 }
 
-static int service_reload(DBusMessage *message, void *data, DBusMessage **r) {
+static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
      * are needed to update the configuration objects.
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, data, r);
+    return service_pong(message, sconn);
 }
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
@@ -203,12 +216,10 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
-    DBusError dbus_error;
     dbus_bool_t dbret;
 
     dpctx = talloc_get_type(data, struct dp_ctx);
     conn = sbus_get_connection(conn_ctx);
-    dbus_error_init(&dbus_error);
 
     /* hang off this memory to the connection so that when the connection
      * is freed we can potentially call a destructor */
@@ -300,6 +311,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
                                     DBUS_TYPE_INVALID);
         if (!ret) {
             DEBUG(1,("be_identity_check failed, to parse message, killing connection\n"));
+            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             sbus_disconnect(dpcli->conn_ctx);
             goto done;
         }
@@ -422,6 +434,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
                                     DBUS_TYPE_INVALID);
         if (!ret) {
             DEBUG(1,("Failed to parse message, killing connection\n"));
+            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             sbus_disconnect(bereq->be->dpcli->conn_ctx);
             goto done;
         }
@@ -489,11 +502,9 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
-    DBusError dbus_error;
     dbus_bool_t ret;
 
     conn = sbus_get_connection(bereq->be->dpcli->conn_ctx);
-    dbus_error_init(&dbus_error);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -538,9 +549,8 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
     return EOK;
 }
 
-static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r)
+static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
-    struct sbus_message_handler_ctx *smh_ctx;
     struct dp_client *dpcli;
     struct dp_be_request *bereq;
     struct dp_request *dpreq = NULL;
@@ -554,10 +564,7 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
     const char *errmsg = NULL;
     int dpret = 0, ret = 0;
 
-    if (!data) return EINVAL;
-    smh_ctx = talloc_get_type(data, struct sbus_message_handler_ctx);
-    if (!smh_ctx) return EINVAL;
-    user_data = sbus_conn_get_private_data(smh_ctx->conn_ctx);
+    user_data = sbus_conn_get_private_data(sconn);
     if (!user_data) return EINVAL;
     dpcli = talloc_get_type(user_data, struct dp_client);
     if (!dpcli) return EINVAL;
@@ -572,6 +579,7 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
                                 DBUS_TYPE_INVALID);
     if (!ret) {
         DEBUG(1,("Failed, to parse message!\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
     }
 
@@ -579,6 +587,7 @@ static int dp_get_account_info(DBusMessage *message, void *data, DBusMessage **r
               domain, type, attrs, filter));
 
     reply = dbus_message_new_method_return(message);
+    if (!reply) return ENOMEM;
 
     /* search for domain */
     if (!domain) {
@@ -705,7 +714,10 @@ respond:
                                      DBUS_TYPE_INVALID);
     if (!dbret) return EIO;
 
-    *r = reply;
+    /* send reply back immediately */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
     return EOK;
 }
 
