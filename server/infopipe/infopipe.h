@@ -55,6 +55,9 @@ int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply);
 #define INFP_CHECK_PERMISSIONS "CheckPermissions1"
 int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply);
 
+#define INFP_PERMISSION_METHODS \
+    {INFP_CHECK_PERMISSIONS,infp_check_permissions},
+
 /**********************************************************
  * User Methods (from infopipe_users.c)                   *
  **********************************************************/

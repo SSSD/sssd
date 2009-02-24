@@ -29,7 +29,8 @@
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "infopipe/sysbus.h"
-#include "infopipe.h"
+#include "infopipe/infopipe.h"
+#include "infopipe/infopipe_private.h"
 
 struct infp_ctx {
     struct event_context *ev;
@@ -127,12 +128,13 @@ static int infp_monitor_init(struct infp_ctx *infp_ctx)
 }
 
 struct sbus_method infp_methods[] = {
+    INFP_PERMISSION_METHODS
     INFP_USER_METHODS
     INFP_GROUP_METHODS
     { NULL, NULL }
 };
 
-#define INTROSPECT_CHUNK_SIZE 128
+#define INTROSPECT_CHUNK_SIZE 4096 /* Read in one memory page at a time */
 
 int infp_introspect(DBusMessage *message, struct sbus_message_ctx *reply)
 {
@@ -250,9 +252,257 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
+int get_object_type(const char *obj)
+{
+    int object_type = INFP_OBJ_TYPE_INVALID;
+
+    if (strcasecmp(obj, "user") == 0)
+        object_type = INFP_OBJ_TYPE_USER;
+    else if (strcasecmp(obj, "group") == 0)
+        object_type = INFP_OBJ_TYPE_GROUP;
+
+    return object_type;
+}
+
+int get_action_type(const char *action)
+{
+    int action_type = INFP_ACTION_TYPE_INVALID;
+
+    if (strcasecmp(action, "create") == 0)
+        action_type = INFP_ACTION_TYPE_CREATE;
+    else if ((strcasecmp(action, "delete") == 0))
+        action_type = INFP_ACTION_TYPE_DELETE;
+    else if ((strcasecmp(action, "modify") == 0))
+        action_type = INFP_ACTION_TYPE_MODIFY;
+    else if ((strcasecmp(action, "addmember") == 0))
+            action_type = INFP_ACTION_TYPE_ADDMEMBER;
+    else if ((strcasecmp(action, "removemember") == 0))
+            action_type = INFP_ACTION_TYPE_REMOVEMEMBER;
+
+    return action_type;
+}
+
+int get_attribute_type(const char *attribute)
+{
+    int attribute_type = INFP_ATTR_TYPE_INVALID;
+
+    if(strcasecmp(attribute, "defaultgroup") == 0)
+        attribute_type = INFP_ATTR_TYPE_DEFAULTGROUP;
+    else if (strcasecmp(attribute, "gecos") == 0) {
+        attribute_type = INFP_ATTR_TYPE_GECOS;
+    }
+    else if (strcasecmp(attribute, "homedir") == 0) {
+        attribute_type = INFP_ATTR_TYPE_HOMEDIR;
+    }
+    else if (strcasecmp(attribute, "shell") == 0) {
+        attribute_type = INFP_ATTR_TYPE_SHELL;
+    }
+    else if (strcasecmp(attribute, "fullname") == 0) {
+        attribute_type = INFP_ATTR_TYPE_FULLNAME;
+    }
+    else if (strcasecmp(attribute, "locale") == 0) {
+        attribute_type = INFP_ATTR_TYPE_LOCALE;
+    }
+    else if (strcasecmp(attribute, "keyboard") == 0) {
+        attribute_type = INFP_ATTR_TYPE_KEYBOARD;
+    }
+    else if (strcasecmp(attribute, "session") == 0) {
+        attribute_type = INFP_ATTR_TYPE_SESSION;
+    }
+    else if (strcasecmp(attribute, "last_login") == 0) {
+        attribute_type = INFP_ATTR_TYPE_LAST_LOGIN;
+    }
+    else if (strcasecmp(attribute, "userpic") == 0) {
+        attribute_type = INFP_ATTR_TYPE_USERPIC;
+    }
+
+    return attribute_type;
+}
+
+bool infp_get_permissions(const char *username,
+                          const char *domain,
+                          int object_type,
+                          const char *instance,
+                          int action_type,
+                          int action_attribute)
+{
+    /* TODO: have a real ACL mechanism.
+     * For right now, root is God and no one else can do anything.
+     * Note: this is buggy. It will return true for ALL requests,
+     * even the nonsensical ones.
+     */
+    if (strcmp(username, "root") == 0)
+        return true;
+    return false;
+}
+
+/* CheckPermissions(STRING domain, STRING object, STRING instance
+ *                  ARRAY(STRING action_type, STRING attribute) actions)
+ */
 int infp_check_permissions(DBusMessage *message, struct sbus_message_ctx *reply)
 {
-    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    TALLOC_CTX *tmp_ctx;
+    int current_type;
+    DBusConnection *conn;
+    const char *conn_name;
+    uid_t uid;
+    char *username;
+    DBusMessageIter iter;
+    DBusMessageIter action_array_iter;
+    DBusMessageIter action_struct_iter;
+    DBusError error;
+    int object_type;
+    const char *einval_msg;
+    const char *domain;
+    const char *object;
+    const char *instance;
+    const char *action;
+    const char *attribute;
+    int action_type, attribute_type;
+    dbus_bool_t *permissions;
+    size_t count;
+
+    tmp_ctx = talloc_new(reply);
+    if(tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    /* Get the connection UID */
+    conn = sbus_get_connection(reply->mh_ctx->conn_ctx);
+    conn_name = dbus_message_get_sender(message);
+    if (conn_name == NULL) {
+        DEBUG(0, ("Critical error: D-BUS client has no unique name\n"));
+        return EIO;
+    }
+    dbus_error_init(&error);
+    uid = dbus_bus_get_unix_user(conn, conn_name, &error);
+    if (uid == -1) {
+        DEBUG(0, ("Could not identify unix user. Error message was '%s:%s'\n", error.name, error.message));
+        dbus_error_free(&error);
+        return EIO;
+    }
+    username = get_username_from_uid(tmp_ctx, uid);
+    if (username == NULL) {
+        DEBUG(0, ("No username matched the connected UID\n"));
+        return EIO;
+    }
+
+    if (!dbus_message_iter_init(message, &iter)) {
+        einval_msg = talloc_strdup(tmp_ctx, "No arguments received.");
+        goto einval;
+    }
+
+    /* domain */
+    current_type = dbus_message_iter_get_arg_type (&iter);
+    if (current_type != DBUS_TYPE_STRING) {
+        einval_msg = talloc_strdup(tmp_ctx, "Expected domain");
+        goto einval;
+    }
+    dbus_message_iter_get_basic(&iter, &domain);
+    DEBUG(9, ("Domain: %s\n", domain));
+
+    /* Object */
+    dbus_message_iter_next(&iter);
+    current_type = dbus_message_iter_get_arg_type (&iter);
+    if (current_type != DBUS_TYPE_STRING) {
+        einval_msg = talloc_strdup(tmp_ctx, "Expected object");
+        goto einval;
+    }
+    dbus_message_iter_get_basic(&iter, &object);
+    DEBUG(9, ("Object: %s\n", object));
+    object_type = get_object_type(object);
+    if (object_type == INFP_OBJ_TYPE_INVALID) {
+        einval_msg = talloc_strdup(tmp_ctx, "Invalid object type");
+        goto einval;
+    }
+
+    /* Instance */
+    dbus_message_iter_next(&iter);
+    current_type = dbus_message_iter_get_arg_type (&iter);
+    if (current_type != DBUS_TYPE_STRING) {
+        einval_msg = talloc_strdup(tmp_ctx, "Expected instance");
+        goto einval;
+    }
+    dbus_message_iter_get_basic(&iter, &instance);
+    DEBUG(9, ("Instance: %s\n", instance));
+    if(strcmp(instance,"")==0) {
+        instance = NULL;
+    }
+
+    /* Actions */
+    dbus_message_iter_next(&iter);
+    current_type = dbus_message_iter_get_arg_type (&iter);
+    if (current_type != DBUS_TYPE_ARRAY) {
+        einval_msg = talloc_strdup(tmp_ctx, "Expected array of actions");
+        goto einval;
+    }
+
+    dbus_message_iter_recurse(&iter, &action_array_iter);
+    count = 0;
+    while((current_type=dbus_message_iter_get_arg_type(&action_array_iter)) != DBUS_TYPE_INVALID) {
+        if (current_type != DBUS_TYPE_STRUCT) {
+            einval_msg = talloc_strdup(tmp_ctx, "Action array entry was not a struct");
+            goto einval;
+        }
+        dbus_message_iter_recurse(&action_array_iter, &action_struct_iter);
+        /* action_type */
+        if (dbus_message_iter_get_arg_type(&action_struct_iter) != DBUS_TYPE_STRING) {
+           einval_msg = talloc_strdup(tmp_ctx, "Missing action_type");
+           goto einval;
+        }
+        dbus_message_iter_get_basic(&action_struct_iter, &action);
+        DEBUG(9, ("Action type: %s\n", action));
+        action_type = get_action_type(action);
+        if(action_type == INFP_ACTION_TYPE_INVALID) {
+            einval_msg = talloc_asprintf(tmp_ctx, "Action type [%s] is not valid", action);
+            goto einval;
+        }
+
+        /* attribute */
+        dbus_message_iter_next(&action_struct_iter);
+        if (dbus_message_iter_get_arg_type(&action_struct_iter) != DBUS_TYPE_STRING) {
+           einval_msg = talloc_strdup(tmp_ctx, "Missing attribute");
+           goto einval;
+        }
+        dbus_message_iter_get_basic(&action_struct_iter, &attribute);
+        DEBUG(9, ("Action attribute: %s\n", attribute));
+        attribute_type = get_attribute_type(attribute);
+        if(attribute_type == INFP_ATTR_TYPE_INVALID) {
+            einval_msg = talloc_asprintf(tmp_ctx, "Attribute [%s] is not valid", attribute);
+            goto einval;
+        }
+
+        if (dbus_message_iter_has_next(&action_struct_iter)) {
+            einval_msg = talloc_strdup(tmp_ctx, "Unexpected value in action struct");
+            goto einval;
+        }
+
+        /* Process the actions */
+        count++;
+        permissions=talloc_realloc(tmp_ctx, permissions,dbus_bool_t, count);
+        permissions[count-1] = infp_get_permissions(username, domain,
+                                                    object_type, instance,
+                                                    action_type, attribute_type);
+
+        dbus_message_iter_next(&action_array_iter);
+    }
+
+    /* Create response message */
+    reply->reply_message = dbus_message_new_method_return(message);
+    if (reply->reply_message == NULL) return ENOMEM;
+
+    talloc_steal(reply, permissions);
+    dbus_message_append_args(reply->reply_message,
+                             DBUS_TYPE_ARRAY, DBUS_TYPE_BOOLEAN, &permissions, count,
+                             DBUS_TYPE_INVALID);
+
+    talloc_free(tmp_ctx);
+    return EOK;
+
+einval:
+    talloc_steal(reply, einval_msg);
+    reply->reply_message = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, einval_msg);
+    talloc_free(tmp_ctx);
     return EOK;
 }
 

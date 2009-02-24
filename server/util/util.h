@@ -65,4 +65,7 @@ TALLOC_CTX *sssd_mem_takeover(TALLOC_CTX *mem_ctx,
                               void *ptr,
                               int (*destructor)(void **));
 
+/* from usertools.c */
+char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);
+
 #endif /* __SSSD_UTIL_H__ */

@@ -4,6 +4,7 @@ UTIL_OBJ = \
     util/server.o \
     util/memory.o \
     util/btreemap.o \
+    util/usertools.o \
     monitor/monitor_sbus.o \
     providers/dp_sbus.o \
     sbus/sssd_dbus_common.o \
@@ -47,6 +48,9 @@ MEMBEROF_OBJ = \
 SYSDB_TEST_OBJ = \
 	tests/sysdb-tests.o
 
+INFP_TEST_OBJ = \
+	tests/infopipe-tests.o
+
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
@@ -76,3 +80,6 @@ lib/$(MEMBEROF_SOBASE): $(MEMBEROF_OBJ)
 #Tests
 tests/sysdb-tests: $(SYSDB_TEST_OBJ) $(UTIL_OBJ)
 	$(CC) -o tests/sysdb-tests $(SYSDB_TEST_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(CHECK_LIBS)
+
+tests/infopipe-tests: $(INFP_TEST_OBJ) $(UTIL_OBJ)
+	$(CC) -o tests/infopipe-tests $(INFP_TEST_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(CHECK_LIBS)

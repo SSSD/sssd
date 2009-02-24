@@ -96,7 +96,9 @@ ifneq (x$(HAVE_POLICYKIT), x)
     LIBEXECBINS += sbin/sssd_pk
 endif
 BINS = sbin/sssd $(LIBEXECBINS)
-TESTS = tests/sysdb-tests
+
+TESTS = tests/sysdb-tests tests/infopipe-tests
+TESTS_DATA = tests/tests.ldb tests/tests_conf.ldb tests/introspect.ref
 
 SOLIBS = lib/$(MEMBEROF_SOLIB) lib/$(PROXY_BE_SOLIB)
 SONAMELIBS = lib/$(PROXY_BE_SONAME) lib/$(MEMBEROF_SONAME)
@@ -109,15 +111,15 @@ all: showflags dirs $(OBJS) $(BINS) $(SOBASELIBS)
 shared-build: all
 
 tests: all $(TESTS)
+	cp $(INFP_INTROSPECT_XML) tests/introspect.ref
 
 dirs:
 	@mkdir -p $(DIRS)
 
-clean::
+clean:: testclean
 	rm -f $(OBJS) $(BINS) $(MODULES)
 	rm -f *.o */*.o */*/*.o
-	rm -f $(BINS) $(TESTS)
-	rm -f $(BINS) $(TESTS)
+	rm -f $(BINS)
 	rm -f $(SOBASELIBS) $(SONAMELIBS) $(SOLIBS)
 
 distclean:: clean
@@ -127,6 +129,9 @@ distclean:: clean
 
 realdistclean:: distclean
 	rm -f configure config.h.in
+
+testclean::
+	rm -f $(TESTS) $(TESTS_DATA)
 
 install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
