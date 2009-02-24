@@ -460,6 +460,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     dbus_message_iter_recurse(&iter, &action_array_iter);
     count = 0;
+    permissions = NULL;
     while((current_type=dbus_message_iter_get_arg_type(&action_array_iter)) != DBUS_TYPE_INVALID) {
         if (current_type != DBUS_TYPE_STRUCT) {
             einval_msg = talloc_strdup(tmp_ctx, "Action array entry was not a struct");
@@ -500,7 +501,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
         /* Process the actions */
         count++;
-        permissions=talloc_realloc(tmp_ctx, permissions,dbus_bool_t, count);
+        permissions=talloc_realloc(tmp_ctx, permissions, dbus_bool_t, count);
         permissions[count-1] = infp_get_permissions(username, domain,
                                                     object_type, instance,
                                                     action_type, attribute_type);
