@@ -2,6 +2,8 @@
 configure
 config.log
 config.status
+config.h
+config.h.in
 Makefile
 cscope.out
 *.so
