@@ -29,7 +29,7 @@
 struct be_mod_ops;
 
 struct be_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct confdb_ctx *cdb;
     struct sysdb_ctx *sysdb;
     struct service_sbus_ctx *ss_ctx;

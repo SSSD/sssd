@@ -20,15 +20,13 @@
 */
 
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <time.h>
+#include "util/util.h"
 #include "popt.h"
 #include "tevent.h"
-#include "util/util.h"
 #include "confdb/confdb.h"
 #include "monitor/monitor.h"
 #include "dbus/dbus.h"
@@ -63,7 +61,7 @@ struct mt_svc {
 };
 
 struct mt_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct confdb_ctx *cdb;
     char **services;
     struct mt_svc *svc_list;
@@ -199,8 +197,8 @@ static void svc_try_restart(struct mt_svc *svc, time_t now)
     return;
 }
 
-static void tasks_check_handler(struct event_context *ev,
-                                struct timed_event *te,
+static void tasks_check_handler(struct tevent_context *ev,
+                                struct tevent_timer *te,
                                 struct timeval t, void *ptr)
 {
     struct mt_svc *svc = talloc_get_type(ptr, struct mt_svc);
@@ -269,13 +267,13 @@ static void tasks_check_handler(struct event_context *ev,
 
 static void set_tasks_checker(struct mt_svc *svc)
 {
-    struct timed_event *te = NULL;
+    struct tevent_timer *te = NULL;
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
     tv.tv_sec += svc->ping_time;
     tv.tv_usec = 0;
-    te = event_add_timed(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
+    te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
     if (te == NULL) {
         DEBUG(0, ("failed to add event, monitor offline for [%s]!\n",
                   svc->name));
@@ -283,8 +281,8 @@ static void set_tasks_checker(struct mt_svc *svc)
     }
 }
 
-static void global_checks_handler(struct event_context *ev,
-                                  struct timed_event *te,
+static void global_checks_handler(struct tevent_context *ev,
+                                  struct tevent_timer *te,
                                   struct timeval t, void *ptr)
 {
     struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
@@ -323,13 +321,13 @@ done:
 
 static void set_global_checker(struct mt_ctx *ctx)
 {
-    struct timed_event *te = NULL;
+    struct tevent_timer *te = NULL;
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
     tv.tv_sec += 1; /* once a second */
     tv.tv_usec = 0;
-    te = event_add_timed(ctx->ev, ctx, tv, global_checks_handler, ctx);
+    te = tevent_add_timer(ctx->ev, ctx, tv, global_checks_handler, ctx);
     if (te == NULL) {
         DEBUG(0, ("failed to add global checker event! PANIC TIME!\n"));
         /* FIXME: is this right ? shoulkd we try to clean up first ?*/
@@ -361,7 +359,7 @@ int get_monitor_config(struct mt_ctx *ctx)
 }
 
 int monitor_process_init(TALLOC_CTX *mem_ctx,
-                         struct event_context *event_ctx,
+                         struct tevent_context *event_ctx,
                          struct confdb_ctx *cdb)
 {
     struct mt_ctx *ctx;
@@ -937,13 +935,13 @@ fail:
     return NULL;
 }
 
-static void service_startup_handler(struct event_context *ev,
-                                    struct timed_event *te,
+static void service_startup_handler(struct tevent_context *ev,
+                                    struct tevent_timer *te,
                                     struct timeval t, void *ptr);
 
 static int start_service(struct mt_svc *svc)
 {
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct timeval tv;
 
     DEBUG(4,("Queueing service %s for startup\n", svc->name));
@@ -955,7 +953,7 @@ static int start_service(struct mt_svc *svc)
      * the monitor is serving it.
      */
     gettimeofday(&tv, NULL);
-    te = event_add_timed(svc->mt_ctx->ev, svc, tv,
+    te = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
                          service_startup_handler, svc);
     if (te == NULL) {
         DEBUG(0, ("Unable to queue service %s for startup\n", svc->name));
@@ -964,8 +962,8 @@ static int start_service(struct mt_svc *svc)
     return EOK;
 }
 
-static void service_startup_handler(struct event_context *ev,
-                                    struct timed_event *te,
+static void service_startup_handler(struct tevent_context *ev,
+                                    struct tevent_timer *te,
                                     struct timeval t, void *ptr)
 {
     struct mt_svc *mt_svc;

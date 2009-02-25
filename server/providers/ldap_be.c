@@ -68,16 +68,16 @@ struct ldap_req {
     LDAP *ldap;
     struct ldap_ops *ops;
     char *user_dn;
-    event_fd_handler_t next_task;
+    tevent_fd_handler_t next_task;
     enum ldap_be_ops next_op;
     int msgid;
 };
 
 static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
-                              event_timed_handler_t task)
+                              tevent_timer_handler_t task)
 {
     int ret;
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct timeval timeout;
 
     ret = gettimeofday(&timeout, NULL);
@@ -89,7 +89,7 @@ static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
     timeout.tv_usec += tv.tv_usec;
 
 
-    te = event_add_timed(lr->req->be_ctx->ev, lr, timeout, task, lr); 
+    te = tevent_add_timer(lr->req->be_ctx->ev, lr, timeout, task, lr); 
     if (te == NULL) {
         return EIO;
     }
@@ -101,7 +101,7 @@ static int wait_for_fd(struct ldap_req *lr)
 {
     int ret;
     int fd;
-    struct fd_event *fde;
+    struct tevent_fd *fde;
 
     ret = ldap_get_option(lr->ldap, LDAP_OPT_DESC, &fd);
     if (ret != LDAP_OPT_SUCCESS) {
@@ -109,7 +109,7 @@ static int wait_for_fd(struct ldap_req *lr)
         return ret;
     }
 
-    fde = event_add_fd(lr->req->be_ctx->ev, lr, fd, EVENT_FD_READ, lr->next_task, lr);
+    fde = tevent_add_fd(lr->req->be_ctx->ev, lr, fd, TEVENT_FD_READ, lr->next_task, lr);
     if (fde == NULL) {
         return EIO;
     }
@@ -257,8 +257,8 @@ static int ldap_be_bind(struct ldap_req *lr)
     return LDAP_SUCCESS;
 }
 
-static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
-                     uint16_t fd, void *pvt)
+static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
+                         uint16_t fd, void *pvt)
 {
     int ret;
     int pam_status=PAM_SUCCESS;
@@ -534,8 +534,8 @@ done:
     req->fn(req, pam_status, NULL);
 }
 
-static void ldap_start(struct event_context *ev, struct timed_event *te,
-                     struct timeval tv, void *pvt)
+static void ldap_start(struct tevent_context *ev, struct tevent_timer *te,
+                       struct timeval tv, void *pvt)
 {
     int ret;
     int pam_status;

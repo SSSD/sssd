@@ -24,6 +24,7 @@
 
 #include <stdint.h>
 #include <sys/un.h>
+#include "config.h"
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"
@@ -38,7 +39,6 @@
 #define NSS_PACKET_MAX_RECV_SIZE 1024
 
 /* NSS_DOMAIN_DELIM can be specified in config.h */
-#include "config.h"
 #ifndef NSS_DOMAIN_DELIM
 #define NSS_DOMAIN_DELIM '@'
 #endif
@@ -51,8 +51,8 @@ struct sysdb_ctx;
 struct getent_ctx;
 
 struct nss_ctx {
-    struct event_context *ev;
-    struct fd_event *lfde;
+    struct tevent_context *ev;
+    struct tevent_fd *lfde;
     int lfd;
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *cdb;
@@ -72,10 +72,10 @@ struct nss_ctx {
 };
 
 struct cli_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct nss_ctx *nctx;
     int cfd;
-    struct fd_event *cfde;
+    struct tevent_fd *cfde;
     struct sockaddr_un addr;
     struct cli_request *creq;
     struct getent_ctx *gctx;

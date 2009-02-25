@@ -37,7 +37,7 @@ struct sbus_srv_ctx {
      * There should only be one global object path (for
      * simplicity's sake)
      */
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct sbus_method_ctx *sd_ctx;
     sbus_server_conn_init_fn init_fn;
     void *init_pvt_data;
@@ -46,13 +46,13 @@ struct sbus_srv_ctx {
 struct sbus_srv_watch_ctx {
     DBusWatch *watch;
     int fd;
-    struct fd_event *fde;
+    struct tevent_fd *fde;
     struct sbus_srv_ctx *top;
 };
 
 struct dbus_srv_timeout_ctx {
     DBusTimeout *timeout;
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct sbus_srv_ctx *top;
 };
 
@@ -62,18 +62,18 @@ static int sbus_server_destructor(void *ctx);
  * dbus_server_read_write_handler
  * Callback for D-BUS to handle messages on a file-descriptor
  */
-static void sbus_srv_read_write_handler(struct event_context *ev,
-                                           struct fd_event *fde,
-                                           uint16_t flags, void *data)
+static void sbus_srv_read_write_handler(struct tevent_context *ev,
+                                        struct tevent_fd *fde,
+                                        uint16_t flags, void *data)
 {
     struct sbus_srv_watch_ctx *svw_ctx;
     svw_ctx = talloc_get_type(data, struct sbus_srv_watch_ctx);
 
     dbus_server_ref(svw_ctx->top->server);
-    if (flags & EVENT_FD_READ) {
+    if (flags & TEVENT_FD_READ) {
         dbus_watch_handle(svw_ctx->watch, DBUS_WATCH_READABLE);
     }
-    if (flags & EVENT_FD_WRITE) {
+    if (flags & TEVENT_FD_WRITE) {
         dbus_watch_handle(svw_ctx->watch, DBUS_WATCH_WRITABLE);
     }
     dbus_server_unref(svw_ctx->top->server);
@@ -107,15 +107,15 @@ static dbus_bool_t sbus_add_srv_watch(DBusWatch *watch, void *data)
     event_flags = 0;
 
     if (flags & DBUS_WATCH_READABLE) {
-        event_flags |= EVENT_FD_READ;
+        event_flags |= TEVENT_FD_READ;
     }
 
     if (flags & DBUS_WATCH_WRITABLE) {
-        event_flags |= EVENT_FD_WRITE;
+        event_flags |= TEVENT_FD_WRITE;
     }
-    DEBUG(5,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==EVENT_FD_READ?"READ":"WRITE"));
+    DEBUG(5,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==TEVENT_FD_READ?"READ":"WRITE"));
 
-    svw_ctx->fde = event_add_fd(dt_ctx->ev, svw_ctx, svw_ctx->fd,
+    svw_ctx->fde = tevent_add_fd(dt_ctx->ev, svw_ctx, svw_ctx->fd,
                                 event_flags, sbus_srv_read_write_handler,
                                 svw_ctx);
 
@@ -139,9 +139,9 @@ static void sbus_toggle_srv_watch(DBusWatch *watch, void *data)
     }
 }
 
-static void sbus_srv_timeout_handler(struct event_context *ev,
-                                        struct timed_event *te,
-                                        struct timeval t, void *data)
+static void sbus_srv_timeout_handler(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval t, void *data)
 {
     struct dbus_srv_timeout_ctx *svt_ctx;
     svt_ctx = talloc_get_type(data, struct dbus_srv_timeout_ctx);
@@ -169,7 +169,7 @@ static dbus_bool_t sbus_add_srv_timeout(DBusTimeout *timeout, void *data)
 
     tv = _dbus_timeout_get_interval_tv(dbus_timeout_get_interval(timeout));
 
-    svt_ctx->te = event_add_timed(dt_ctx->ev, svt_ctx, tv,
+    svt_ctx->te = tevent_add_timer(dt_ctx->ev, svt_ctx, tv,
                                   sbus_srv_timeout_handler, svt_ctx);
 
     /* Save the event to the watch object so it can be removed later */
@@ -254,7 +254,7 @@ static void sbus_server_init_new_connection(DBusServer *server,
  * for handling file descriptor and timed events
  */
 int sbus_new_server(TALLOC_CTX *mem_ctx,
-                    struct event_context *ev, struct sbus_method_ctx *ctx,
+                    struct tevent_context *ev, struct sbus_method_ctx *ctx,
                     struct sbus_srv_ctx **server_ctx, const char *address,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data)
 {

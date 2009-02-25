@@ -33,7 +33,7 @@
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
-    struct event_context *ev;
+    struct tevent_context *ev;
 };
 
 static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
@@ -51,7 +51,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     /* Create an event context
      * It will not be used except in confdb_init and sysdb_init
      */
-    test_ctx->ev = event_context_init(test_ctx);
+    test_ctx->ev = tevent_context_init(test_ctx);
     if (test_ctx->ev == NULL) {
         fail("Could not create event context");
         talloc_free(test_ctx);

@@ -41,10 +41,10 @@ struct cli_request {
 };
 
 struct cli_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct nss_ctx *nctx;
     int cfd;
-    struct fd_event *cfde;
+    struct tevent_fd *cfde;
     struct sockaddr_un addr;
     struct cli_request *creq;
     struct getent_ctx *gctx;

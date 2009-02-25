@@ -19,6 +19,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include "talloc.h"
 #include "util/btreemap.h"
 #include "util/util.h"

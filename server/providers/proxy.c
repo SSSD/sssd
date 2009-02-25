@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
+#include <dlfcn.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>

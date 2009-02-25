@@ -65,7 +65,7 @@ static int client_destructor(struct cli_ctx *ctx)
     return 0;
 }
 
-static void client_send(struct event_context *ev, struct cli_ctx *cctx)
+static void client_send(struct tevent_context *ev, struct cli_ctx *cctx)
 {
     int ret;
 
@@ -81,14 +81,14 @@ static void client_send(struct event_context *ev, struct cli_ctx *cctx)
     }
 
     /* ok all sent */
-    EVENT_FD_NOT_WRITEABLE(cctx->cfde);
-    EVENT_FD_READABLE(cctx->cfde);
+    TEVENT_FD_NOT_WRITEABLE(cctx->cfde);
+    TEVENT_FD_READABLE(cctx->cfde);
     talloc_free(cctx->creq);
     cctx->creq = NULL;
     return;
 }
 
-static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
+static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
 {
     int ret;
 
@@ -115,7 +115,7 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
     switch (ret) {
     case EOK:
         /* do not read anymore */
-        EVENT_FD_NOT_READABLE(cctx->cfde);
+        TEVENT_FD_NOT_READABLE(cctx->cfde);
         /* execute command */
         ret = sss_cmd_execute(cctx, cctx->nctx->sss_cmds);
         if (ret != EOK) {
@@ -148,24 +148,24 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
     return;
 }
 
-static void client_fd_handler(struct event_context *ev,
-                              struct fd_event *fde,
+static void client_fd_handler(struct tevent_context *ev,
+                              struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
-    if (flags & EVENT_FD_READ) {
+    if (flags & TEVENT_FD_READ) {
         client_recv(ev, cctx);
         return;
     }
-    if (flags & EVENT_FD_WRITE) {
+    if (flags & TEVENT_FD_WRITE) {
         client_send(ev, cctx);
         return;
     }
 }
 
-static void accept_fd_handler(struct event_context *ev,
-                              struct fd_event *fde,
+static void accept_fd_handler(struct tevent_context *ev,
+                              struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
     /* accept and attach new event handler */
@@ -197,8 +197,8 @@ static void accept_fd_handler(struct event_context *ev,
         return;
     }
 
-    cctx->cfde = event_add_fd(ev, cctx, cctx->cfd,
-                              EVENT_FD_READ, client_fd_handler, cctx);
+    cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
+                               TEVENT_FD_READ, client_fd_handler, cctx);
     if (!cctx->cfde) {
         close(cctx->cfd);
         talloc_free(cctx);
@@ -303,8 +303,8 @@ static int set_unix_socket(struct nss_ctx *nctx)
         goto failed;
     }
 
-    nctx->lfde = event_add_fd(nctx->ev, nctx, nctx->lfd,
-                              EVENT_FD_READ, accept_fd_handler, nctx);
+    nctx->lfde = tevent_add_fd(nctx->ev, nctx, nctx->lfd,
+                               TEVENT_FD_READ, accept_fd_handler, nctx);
 
     /* we want default permissions on created files to be very strict,
        so set our umask to 0177 */
@@ -422,7 +422,7 @@ done:
 }
 
 int sss_process_init(TALLOC_CTX *mem_ctx,
-                     struct event_context *ev,
+                     struct tevent_context *ev,
                      struct confdb_ctx *cdb,
                      struct sbus_method sss_sbus_methods[],
                      struct sss_cmd_table sss_cmds[],

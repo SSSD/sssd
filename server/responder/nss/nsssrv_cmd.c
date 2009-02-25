@@ -59,7 +59,7 @@ static void nss_cmd_done(struct nss_cmd_ctx *cmdctx)
 {
     /* now that the packet is in place, unlock queue
      * making the event writable */
-    EVENT_FD_WRITEABLE(cmdctx->cctx->cfde);
+    TEVENT_FD_WRITEABLE(cmdctx->cctx->cfde);
 
     /* free all request related data through the talloc hierarchy */
     talloc_free(cmdctx);

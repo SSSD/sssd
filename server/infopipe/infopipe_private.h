@@ -23,7 +23,7 @@
 #define INFOPIPE_PRIVATE_H_
 
 struct infp_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct confdb_ctx *cdb;
     struct service_sbus_ctx *ss_ctx;
     struct sysbus_ctx *sysbus;

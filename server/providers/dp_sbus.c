@@ -19,7 +19,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "util/util.h"
+#include "config.h"
+#include "talloc.h"
+#include "tevent.h"
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/data_provider.h"

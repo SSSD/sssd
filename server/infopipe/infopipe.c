@@ -246,7 +246,7 @@ done:
 }
 
 static int infp_process_init(TALLOC_CTX *mem_ctx,
-                             struct event_context *ev,
+                             struct tevent_context *ev,
                              struct confdb_ctx *cdb)
 {
     struct infp_ctx *infp_ctx;

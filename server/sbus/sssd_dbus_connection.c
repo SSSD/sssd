@@ -1,5 +1,4 @@
 #include <sys/time.h>
-#include "tevent.h"
 #include "util/util.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
@@ -10,7 +9,7 @@ struct dbus_ctx_list;
 
 struct sbus_conn_ctx {
     DBusConnection *conn;
-    struct event_context *ev;
+    struct tevent_context *ev;
     int connection_type;
     int disconnect;
     struct sbus_method_ctx *method_ctx_list;
@@ -26,13 +25,13 @@ struct sbus_message_handler_ctx {
 struct sbus_conn_watch_ctx {
     DBusWatch *watch;
     int fd;
-    struct fd_event *fde;
+    struct tevent_fd *fde;
     struct sbus_conn_ctx *top;
 };
 
 struct sbus_conn_timeout_ctx {
     DBusTimeout *timeout;
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct sbus_conn_ctx *top;
 };
 
@@ -40,11 +39,11 @@ static int _method_list_contains_path(struct sbus_method_ctx *list,
                                       struct sbus_method_ctx *method);
 static void sbus_unreg_object_paths(struct sbus_conn_ctx *dct_ctx);
 
-static void sbus_dispatch(struct event_context *ev,
-                               struct timed_event *te,
+static void sbus_dispatch(struct tevent_context *ev,
+                               struct tevent_timer *te,
                                struct timeval tv, void *data)
 {
-    struct timed_event *new_event;
+    struct tevent_timer *new_event;
     struct sbus_conn_ctx *dct_ctx;
     DBusConnection *conn;
     int ret;
@@ -81,7 +80,7 @@ static void sbus_dispatch(struct event_context *ev,
      */
     ret = dbus_connection_get_dispatch_status(conn);
     if (ret != DBUS_DISPATCH_COMPLETE) {
-        new_event = event_add_timed(ev, dct_ctx, tv, sbus_dispatch, dct_ctx);
+        new_event = tevent_add_timer(ev, dct_ctx, tv, sbus_dispatch, dct_ctx);
         if (new_event == NULL) {
             DEBUG(2,("Could not add dispatch event!\n"));
 
@@ -95,19 +94,19 @@ static void sbus_dispatch(struct event_context *ev,
  * dbus_connection_read_write_handler
  * Callback for D-BUS to handle messages on a file-descriptor
  */
-static void sbus_conn_read_write_handler(struct event_context *ev,
-                                               struct fd_event *fde,
-                                               uint16_t flags, void *data)
+static void sbus_conn_read_write_handler(struct tevent_context *ev,
+                                         struct tevent_fd *fde,
+                                         uint16_t flags, void *data)
 {
     struct sbus_conn_watch_ctx *conn_w_ctx;
     conn_w_ctx = talloc_get_type(data, struct sbus_conn_watch_ctx);
 
     DEBUG(6,("Connection is open for read/write.\n"));
     dbus_connection_ref(conn_w_ctx->top->conn);
-    if (flags & EVENT_FD_READ) {
+    if (flags & TEVENT_FD_READ) {
         dbus_watch_handle(conn_w_ctx->watch, DBUS_WATCH_READABLE);
     }
-    if (flags & EVENT_FD_WRITE) {
+    if (flags & TEVENT_FD_WRITE) {
         dbus_watch_handle(conn_w_ctx->watch, DBUS_WATCH_WRITABLE);
     }
     dbus_connection_unref(conn_w_ctx->top->conn);
@@ -141,20 +140,20 @@ static dbus_bool_t sbus_add_conn_watch(DBusWatch *watch, void *data)
     event_flags = 0;
 
     if (flags & DBUS_WATCH_READABLE)
-        event_flags |= EVENT_FD_READ;
+        event_flags |= TEVENT_FD_READ;
 
     if (flags & DBUS_WATCH_WRITABLE)
-        event_flags |= EVENT_FD_WRITE;
+        event_flags |= TEVENT_FD_WRITE;
 
     if (event_flags == 0)
         return FALSE;
 
     DEBUG(5,("%lX: %d, %d=%s\n",
              watch, conn_w_ctx->fd, event_flags,
-             event_flags==EVENT_FD_READ?"READ":"WRITE"));
+             event_flags==TEVENT_FD_READ?"READ":"WRITE"));
 
     /* Add the file descriptor to the event loop */
-    conn_w_ctx->fde = event_add_fd(conn_w_ctx->top->ev, conn_w_ctx,
+    conn_w_ctx->fde = tevent_add_fd(conn_w_ctx->top->ev, conn_w_ctx,
                                    conn_w_ctx->fd, event_flags,
                                    sbus_conn_read_write_handler,
                                    conn_w_ctx);
@@ -183,8 +182,8 @@ static void sbus_toggle_conn_watch(DBusWatch *watch, void *data)
  * dbus_connection_timeout_handler
  * Callback for D-BUS to handle timed events
  */
-static void sbus_conn_timeout_handler(struct event_context *ev,
-                                            struct timed_event *te,
+static void sbus_conn_timeout_handler(struct tevent_context *ev,
+                                            struct tevent_timer *te,
                                             struct timeval t, void *data)
 {
     struct sbus_conn_timeout_ctx *conn_t_ctx;
@@ -218,7 +217,7 @@ static dbus_bool_t sbus_add_conn_timeout(DBusTimeout *timeout, void *data)
     struct timeval rightnow;
     gettimeofday(&rightnow, NULL);
 
-    conn_t_ctx->te = event_add_timed(conn_t_ctx->top->ev, conn_t_ctx, tv,
+    conn_t_ctx->te = tevent_add_timer(conn_t_ctx->top->ev, conn_t_ctx, tv,
             sbus_conn_timeout_handler, conn_t_ctx);
 
     /* Save the event to the watch object so it can be removed later */
@@ -252,13 +251,13 @@ static void sbus_conn_wakeup_main(void *data)
 {
     struct sbus_conn_ctx *dct_ctx;
     struct timeval tv;
-    struct timed_event *te;
+    struct tevent_timer *te;
 
     dct_ctx = talloc_get_type(data, struct sbus_conn_ctx);
     gettimeofday(&tv, NULL);
 
     /* D-BUS calls this function when it is time to do a dispatch */
-    te = event_add_timed(dct_ctx->ev, dct_ctx,
+    te = tevent_add_timer(dct_ctx->ev, dct_ctx,
                          tv, sbus_dispatch, dct_ctx);
     if (te == NULL) {
         DEBUG(2,("Could not add dispatch event!\n"));
@@ -273,7 +272,7 @@ static void sbus_conn_wakeup_main(void *data)
  * for handling file descriptor and timed events
  */
 int sbus_add_connection(TALLOC_CTX *ctx,
-                        struct event_context *ev,
+                        struct tevent_context *ev,
                         DBusConnection *dbus_conn,
                         struct sbus_conn_ctx **dct_ctx,
                         int connection_type)
@@ -343,7 +342,7 @@ int sbus_add_connection(TALLOC_CTX *ctx,
 /*int sbus_new_connection(struct sbus_method_ctx *ctx, const char *address,
                              DBusConnection **connection,
                              sbus_conn_destructor_fn destructor)*/
-int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
+int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
                         const char *address,
                         struct sbus_conn_ctx **dct_ctx,
                         sbus_conn_destructor_fn destructor)

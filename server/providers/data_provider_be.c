@@ -29,6 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <dlfcn.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
@@ -168,8 +169,8 @@ struct be_async_req {
     struct be_req *req;
 };
 
-static void be_async_req_handler(struct event_context *ev,
-                                 struct timed_event *te,
+static void be_async_req_handler(struct tevent_context *ev,
+                                 struct tevent_timer *te,
                                  struct timeval tv, void *pvt)
 {
     struct be_async_req *async_req;
@@ -184,7 +185,7 @@ static int be_file_request(struct be_ctx *ctx,
                            struct be_req *req)
 {
     struct be_async_req *areq;
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct timeval tv;
 
     areq = talloc(req, struct be_async_req);
@@ -198,7 +199,7 @@ static int be_file_request(struct be_ctx *ctx,
     tv.tv_sec = 0;
     tv.tv_usec = 0;
 
-    te = event_add_timed(ctx->ev, req, tv, be_async_req_handler, areq);
+    te = tevent_add_timer(ctx->ev, req, tv, be_async_req_handler, areq);
     if (te == NULL) {
         return EIO;
     }
@@ -769,7 +770,7 @@ done:
 int be_process_init(TALLOC_CTX *mem_ctx,
                     const char *be_name,
                     const char *be_domain,
-                    struct event_context *ev,
+                    struct tevent_context *ev,
                     struct confdb_ctx *cdb)
 {
     struct be_ctx *ctx;

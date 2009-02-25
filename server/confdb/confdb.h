@@ -19,6 +19,10 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdbool.h>
+#include "talloc.h"
+#include "tevent.h"
+
 #define CONFDB_FILE "config.ldb"
 
 struct confdb_ctx;
@@ -49,7 +53,7 @@ int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                     bool defval, bool *result);
 
 int confdb_init(TALLOC_CTX *mem_ctx,
-                struct event_context *ev,
+                struct tevent_context *ev,
                 struct confdb_ctx **cdb_ctx,
                 char *confdb_location);
 

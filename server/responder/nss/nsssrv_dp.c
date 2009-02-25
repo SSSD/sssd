@@ -31,7 +31,7 @@
 struct nss_dp_req {
     nss_dp_callback_t callback;
     void *callback_ctx;
-    struct timed_event *te;
+    struct tevent_timer *te;
     DBusPendingCall *pending_reply;
 };
 
@@ -46,8 +46,8 @@ static int nss_dp_req_destructor(void *ptr)
     return 0;
 }
 
-static void nss_dp_send_acct_timeout(struct event_context *ev,
-                                     struct timed_event *te,
+static void nss_dp_send_acct_timeout(struct tevent_context *ev,
+                                     struct tevent_timer *te,
                                      struct timeval t, void *data)
 {
     struct nss_dp_req *ndp_req;
@@ -198,7 +198,7 @@ int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
     gettimeofday(&tv, NULL);
     tv.tv_sec += timeout/1000;
     tv.tv_usec += (timeout%1000) * 1000;
-    ndp_req->te = event_add_timed(nctx->ev, memctx, tv,
+    ndp_req->te = tevent_add_timer(nctx->ev, memctx, tv,
                                   nss_dp_send_acct_timeout, ndp_req);
 
     /* Set up the reply handler */
@@ -327,14 +327,14 @@ struct nss_dp_pvt_ctx {
 };
 
 static int nss_dp_conn_destructor(void *data);
-static void nss_dp_reconnect(struct event_context *ev,
-                             struct timed_event *te,
+static void nss_dp_reconnect(struct tevent_context *ev,
+                             struct tevent_timer *te,
                              struct timeval tv, void *data);
 
 static void nss_dp_conn_reconnect(struct nss_dp_pvt_ctx *pvt)
 {
     struct nss_ctx *nctx;
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct timeval tv;
     struct sbus_method_ctx *sm_ctx;
     char *sbus_address;
@@ -376,7 +376,7 @@ static void nss_dp_conn_reconnect(struct nss_dp_pvt_ctx *pvt)
 
         tv.tv_sec = now +5;
         tv.tv_usec = 0;
-        te = event_add_timed(nctx->ev, nctx, tv, nss_dp_reconnect, pvt);
+        te = tevent_add_timer(nctx->ev, nctx, tv, nss_dp_reconnect, pvt);
         if (te == NULL) {
             DEBUG(4, ("Failed to add timed event! Giving up\n"));
         } else {
@@ -385,8 +385,8 @@ static void nss_dp_conn_reconnect(struct nss_dp_pvt_ctx *pvt)
     }
 }
 
-static void nss_dp_reconnect(struct event_context *ev,
-                             struct timed_event *te,
+static void nss_dp_reconnect(struct tevent_context *ev,
+                             struct tevent_timer *te,
                              struct timeval tv, void *data)
 {
     struct nss_dp_pvt_ctx *pvt;

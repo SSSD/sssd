@@ -26,13 +26,13 @@
 #include "sbus/sssd_dbus.h"
 
 struct service_sbus_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct sbus_conn_ctx *scon_ctx;
     struct sbus_method_ctx *sm_ctx;
 };
 
 int sbus_client_init(TALLOC_CTX *mem_ctx,
-                     struct event_context *ev,
+                     struct tevent_context *ev,
                      const char *server_address,
                      struct sbus_method_ctx *sm_ctx,
                      void *conn_pvt_data,

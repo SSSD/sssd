@@ -2,9 +2,15 @@
 #define __SSSD_UTIL_H__
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdbool.h>
-#include "replace.h"
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
+#include <limits.h>
+#include "config.h"
 #include "talloc.h"
+#include "tevent.h"
 
 extern const char *debug_prg_name;
 extern int debug_level;
@@ -42,7 +48,7 @@ void debug_fn(const char *format, ...);
 #define FLAGS_PID_FILE 0x0004
 
 struct main_context {
-    struct event_context *event_ctx;
+    struct tevent_context *event_ctx;
     struct confdb_ctx *confdb_ctx;
 };
 

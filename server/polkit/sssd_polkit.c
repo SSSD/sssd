@@ -29,7 +29,7 @@
 #include "monitor/monitor_interfaces.h"
 
 struct spk_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct confdb_ctx *cdb;
     struct service_sbus_ctx *ss_ctx;
     struct sbus_srv_ctx *sbus_srv;
@@ -141,7 +141,7 @@ static int spk_monitor_init(struct spk_ctx *spk_ctx)
 }
 
 static int spk_process_init(TALLOC_CTX *mem_ctx,
-                            struct event_context *ev,
+                            struct tevent_context *ev,
                             struct confdb_ctx *cdb)
 {
     struct spk_ctx *spk_ctx;

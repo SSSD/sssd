@@ -23,7 +23,7 @@
 #define _MONITOR_H_
 
 int monitor_process_init(TALLOC_CTX *mem_ctx,
-                         struct event_context *event_ctx,
+                         struct tevent_context *event_ctx,
                          struct confdb_ctx *cdb);
 
 #endif /* _MONITOR_H */

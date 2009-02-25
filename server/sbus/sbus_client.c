@@ -24,7 +24,7 @@
 #include "sbus_client.h"
 
 int sbus_client_init(TALLOC_CTX *mem_ctx,
-                     struct event_context *ev,
+                     struct tevent_context *ev,
                      const char *server_address,
                      struct sbus_method_ctx *sm_ctx,
                      void *conn_pvt_data,

@@ -28,7 +28,7 @@ void sss_cmd_done(struct sss_cmd_ctx *nctx)
 {
     /* now that the packet is in place, unlock queue
      * making the event writable */
-    EVENT_FD_WRITEABLE(nctx->cctx->cfde);
+    TEVENT_FD_WRITEABLE(nctx->cctx->cfde);
 
     /* free all request related data through the talloc hierarchy */
     talloc_free(nctx);

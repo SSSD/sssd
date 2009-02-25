@@ -20,9 +20,6 @@
 */
 
 #define _GNU_SOURCE
-#include "config.h"
-#include <string.h>
-#include <errno.h>
 #include "ldb.h"
 #include "ldb_errors.h"
 #include "util/util.h"
@@ -566,7 +563,7 @@ done:
 }
 
 int confdb_init(TALLOC_CTX *mem_ctx,
-                struct event_context *ev,
+                struct tevent_context *ev,
                 struct confdb_ctx **cdb_ctx,
                 char *confdb_location)
 {

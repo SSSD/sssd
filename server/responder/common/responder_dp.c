@@ -17,14 +17,14 @@ struct sss_dp_pvt_ctx {
 };
 
 static int sss_dp_conn_destructor(void *data);
-static void sss_dp_reconnect(struct event_context *ev,
-                             struct timed_event *te,
+static void sss_dp_reconnect(struct tevent_context *ev,
+                             struct tevent_timer *te,
                              struct timeval tv, void *data);
 
 static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
 {
     struct nss_ctx *nctx;
-    struct timed_event *te;
+    struct tevent_timer *te;
     struct timeval tv;
     struct sbus_method_ctx *sm_ctx;
     char *sbus_address;
@@ -66,7 +66,7 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
 
         tv.tv_sec = now +5;
         tv.tv_usec = 0;
-        te = event_add_timed(nctx->ev, nctx, tv, sss_dp_reconnect, pvt);
+        te = tevent_add_timer(nctx->ev, nctx, tv, sss_dp_reconnect, pvt);
         if (te == NULL) {
             DEBUG(4, ("Failed to add timed event! Giving up\n"));
         } else {
@@ -75,8 +75,8 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
     }
 }
 
-static void sss_dp_reconnect(struct event_context *ev,
-                             struct timed_event *te,
+static void sss_dp_reconnect(struct tevent_context *ev,
+                             struct tevent_timer *te,
                              struct timeval tv, void *data)
 {
     struct sss_dp_pvt_ctx *pvt;

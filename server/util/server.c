@@ -24,16 +24,12 @@
 */
 
 #define _GNU_SOURCE
-#include <stdio.h>
-#include <stdbool.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "tevent.h"
+#include "util/util.h"
 #include "ldb.h"
 #include "confdb/confdb.h"
-#include "util/util.h"
 
 /*******************************************************************
  Close the low 3 fd's and open dev/null in their place.
@@ -215,8 +211,9 @@ static void setup_signals(void)
 /*
   handle io on stdin
 */
-static void server_stdin_handler(struct event_context *event_ctx, struct fd_event *fde,
-				 uint16_t flags, void *private)
+static void server_stdin_handler(struct tevent_context *event_ctx,
+                                 struct tevent_fd *fde,
+                                 uint16_t flags, void *private)
 {
 	const char *binary_name = (const char *)private;
 	uint8_t c;
@@ -237,7 +234,7 @@ static void server_stdin_handler(struct event_context *event_ctx, struct fd_even
 int server_setup(const char *name, int flags,
                  struct main_context **main_ctx)
 {
-    struct event_context *event_ctx;
+    struct tevent_context *event_ctx;
     struct main_context *ctx;
     uint16_t stdin_event_flags;
     char *conf_db;
@@ -271,7 +268,7 @@ int server_setup(const char *name, int flags,
 
     /* the event context is the top level structure.
      * Everything else should hang off that */
-    event_ctx = event_context_init(talloc_autofree_context());
+    event_ctx = tevent_context_init(talloc_autofree_context());
     if (event_ctx == NULL) {
         DEBUG(0,("The event context initialiaziton failed\n"));
         return 1;
@@ -300,7 +297,7 @@ int server_setup(const char *name, int flags,
 
     if (flags & FLAGS_INTERACTIVE) {
         /* terminate when stdin goes away */
-        stdin_event_flags = EVENT_FD_READ;
+        stdin_event_flags = TEVENT_FD_READ;
     } else {
         /* stay alive forever */
         stdin_event_flags = 0;
@@ -310,7 +307,7 @@ int server_setup(const char *name, int flags,
 #ifdef SIGTTIN
     signal(SIGTTIN, SIG_IGN);
 #endif
-    event_add_fd(event_ctx, event_ctx, 0, stdin_event_flags,
+    tevent_add_fd(event_ctx, event_ctx, 0, stdin_event_flags,
                  server_stdin_handler, discard_const(name));
 
     *main_ctx = ctx;
@@ -321,7 +318,7 @@ void server_loop(struct main_context *main_ctx)
 {
     /* wait for events - this is where the server sits for most of its
        life */
-    event_loop_wait(main_ctx->event_ctx);
+    tevent_loop_wait(main_ctx->event_ctx);
 
     /* as everything hangs off this event context, freeing it
        should initiate a clean shutdown of all services */

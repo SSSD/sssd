@@ -87,13 +87,13 @@ struct confdb_ctx;
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct event_context *ev,
+               struct tevent_context *ev,
                struct confdb_ctx *cdb,
                const char *alt_db_path,
                struct sysdb_ctx **dbctx);
 
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
-                   struct event_context *ev,
+                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    const char *name,
@@ -101,7 +101,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
-                   struct event_context *ev,
+                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    uid_t uid,
@@ -109,14 +109,14 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
-                    struct event_context *ev,
+                    struct tevent_context *ev,
                     struct sysdb_ctx *ctx,
                     const char *domain,
                     bool legacy,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
-                   struct event_context *ev,
+                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    const char *name,
@@ -124,7 +124,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
-                   struct event_context *ev,
+                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    gid_t gid,
@@ -132,14 +132,14 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
-                    struct event_context *ev,
+                    struct tevent_context *ev,
                     struct sysdb_ctx *ctx,
                     const char *domain,
                     bool legacy,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
-                     struct event_context *ev,
+                     struct tevent_context *ev,
                      struct sysdb_ctx *ctx,
                      const char *domain,
                      const char *name,

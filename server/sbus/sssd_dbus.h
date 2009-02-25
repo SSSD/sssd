@@ -68,7 +68,7 @@ struct sbus_method_ctx {
 
 /* Server Functions */
 int sbus_new_server(TALLOC_CTX *mem_ctx,
-                    struct event_context *ev, struct sbus_method_ctx *ctx,
+                    struct tevent_context *ev, struct sbus_method_ctx *ctx,
                     struct sbus_srv_ctx **server_ctx, const char *address,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 
@@ -81,7 +81,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
  * call sbus_add_connection to integrate with the main
  * loop.
  */
-int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
+int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
                         const char *address,
                         struct sbus_conn_ctx **conn_ctx,
                         sbus_conn_destructor_fn destructor);
@@ -99,7 +99,7 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct event_context *ev,
  *     dbus_bus_get
  */
 int sbus_add_connection(TALLOC_CTX *ctx,
-                             struct event_context *ev,
+                             struct tevent_context *ev,
                              DBusConnection *dbus_conn,
                              struct sbus_conn_ctx **dct_ctx,
                              int connection_type);

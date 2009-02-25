@@ -17,11 +17,8 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "replace.h"
-#include "talloc.h"
-#include "ldb.h"
-#include "ldb_errors.h"
-#include "ldb_modules/ldb_module.h"
+#include <string.h>
+#include "ldb_module.h"
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))

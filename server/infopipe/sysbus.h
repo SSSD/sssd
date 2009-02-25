@@ -25,7 +25,7 @@
 struct sysbus_ctx;
 
 int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
-                struct event_context *ev, const char *dbus_name,
+                struct tevent_context *ev, const char *dbus_name,
                 const char *interface, const char *path,
                 struct sbus_method *methods,
                 sbus_msg_handler_fn introspect_method);

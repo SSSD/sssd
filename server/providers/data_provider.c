@@ -47,7 +47,7 @@ struct dp_backend;
 struct dp_frontend;
 
 struct dp_ctx {
-    struct event_context *ev;
+    struct tevent_context *ev;
     struct confdb_ctx *cdb;
     struct service_sbus_ctx *ss_ctx;
     struct sbus_srv_ctx *sbus_srv;
@@ -1081,7 +1081,7 @@ done:
 }
 
 static int dp_process_init(TALLOC_CTX *mem_ctx,
-                           struct event_context *ev,
+                           struct tevent_context *ev,
                            struct confdb_ctx *cdb)
 {
     struct dp_ctx *dpctx;
