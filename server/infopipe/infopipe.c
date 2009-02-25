@@ -32,12 +32,7 @@
 #include "infopipe/infopipe.h"
 #include "infopipe/infopipe_private.h"
 
-struct infp_ctx {
-    struct event_context *ev;
-    struct confdb_ctx *cdb;
-    struct service_sbus_ctx *ss_ctx;
-    struct sysbus_ctx *sysbus;
-};
+struct infp_ctx;
 
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
@@ -157,7 +152,8 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
     FILE *xml_stream;
-    char *introspect_xml = NULL;
+    struct infp_ctx *infp;
+    char *introspect_xml;
     char *chunk;
     TALLOC_CTX *tmp_ctx;
     unsigned long xml_size;
@@ -170,8 +166,8 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
         return ENOMEM;
     }
 
-    /* currently always null, to be retrieved form a private pointer later */
-    if (introspect_xml == NULL) {
+    infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+    if (infp->introspect_xml == NULL) {
         /* Read in the Introspection XML the first time */
         xml_stream = fopen(SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML, "r");
         if(xml_stream == NULL) {
@@ -189,7 +185,7 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
         introspect_xml = NULL;
         do {
             chunk_size = fread(chunk, 1, INTROSPECT_CHUNK_SIZE, xml_stream);
-            introspect_xml = talloc_realloc_size(tmp_ctx, introspect_xml, xml_size+chunk_size+1);
+            introspect_xml = talloc_realloc_size(infp, introspect_xml, xml_size+chunk_size+1);
             if (introspect_xml == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -200,7 +196,8 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
         introspect_xml[xml_size] = '\0';
         talloc_free(chunk);
 
-        /* TODO: Store the instrospection XML for future calls */
+        /* Copy the introspection XML to the infp_ctx */
+        infp->introspect_xml = introspect_xml;
     }
 
     /* Return the Introspection XML */
@@ -210,7 +207,7 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
         goto done;
     }
     dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_STRING, &introspect_xml,
+                                     DBUS_TYPE_STRING, &infp->introspect_xml,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
         ret = ENOMEM;
@@ -221,7 +218,7 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
     sbus_conn_send_reply(sconn, reply);
     dbus_message_unref(reply);
 
-    DEBUG(9, ("%s\n", introspect_xml));
+    DEBUG(9, ("%s\n", infp->introspect_xml));
     ret = EOK;
 
 done:

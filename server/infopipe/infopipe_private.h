@@ -22,6 +22,14 @@
 #ifndef INFOPIPE_PRIVATE_H_
 #define INFOPIPE_PRIVATE_H_
 
+struct infp_ctx {
+    struct event_context *ev;
+    struct confdb_ctx *cdb;
+    struct service_sbus_ctx *ss_ctx;
+    struct sysbus_ctx *sysbus;
+    char *introspect_xml;
+};
+
 enum object_types {
     INFP_OBJ_TYPE_INVALID = 0,
     INFP_OBJ_TYPE_USER,
