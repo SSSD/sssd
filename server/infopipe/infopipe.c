@@ -146,58 +146,77 @@ struct sbus_method infp_methods[] = {
     { NULL, NULL }
 };
 
-#define INTROSPECT_CHUNK_SIZE 4096 /* Read in one memory page at a time */
-
 int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
-    FILE *xml_stream;
+    FILE *xml_stream = NULL;
     struct infp_ctx *infp;
-    char *introspect_xml;
-    char *chunk;
-    TALLOC_CTX *tmp_ctx;
-    unsigned long xml_size;
-    size_t chunk_size;
+    long xml_size, read_size;
     int ret;
     dbus_bool_t dbret;
 
-    tmp_ctx = talloc_new(NULL);
-    if(tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
     infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+
     if (infp->introspect_xml == NULL) {
+
         /* Read in the Introspection XML the first time */
         xml_stream = fopen(SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML, "r");
         if(xml_stream == NULL) {
-            DEBUG(0, ("Could not open the introspection XML for reading: [%d] [%s].\n", errno, SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML));
-            return errno;
+            ret = errno;
+            DEBUG(0, ("Could not open [%s] for reading. [%d:%s]\n",
+                      SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML,
+                      ret, strerror(ret)));
+            return ret;
         }
 
-        chunk = talloc_size(tmp_ctx, INTROSPECT_CHUNK_SIZE);
-        if (chunk == NULL) {
+        if (fseek(xml_stream, 0L, SEEK_END) != 0) {
+            ret = errno;
+            DEBUG(0, ("Could not seek into [%s]. [%d:%s]\n",
+                      SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML,
+                      ret, strerror(ret)));
+            goto done;
+        }
+
+        errno = 0;
+        xml_size = ftell(xml_stream);
+        if (xml_size <= 0) {
+            ret = errno;
+            DEBUG(0, ("Could not get [%s] length (or file is empty). [%d:%s]\n",
+                      SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML,
+                      ret, strerror(ret)));
+            goto done;
+        }
+
+        if (fseek(xml_stream, 0L, SEEK_SET) != 0) {
+            ret = errno;
+            DEBUG(0, ("Could not seek into [%s]. [%d:%s]\n",
+                      SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML,
+                      ret, strerror(ret)));
+            goto done;
+        }
+
+        infp->introspect_xml = talloc_size(infp, xml_size+1);
+        if (!(infp->introspect_xml)) {
             ret = ENOMEM;
             goto done;
         }
 
-        xml_size = 0;
-        introspect_xml = NULL;
-        do {
-            chunk_size = fread(chunk, 1, INTROSPECT_CHUNK_SIZE, xml_stream);
-            introspect_xml = talloc_realloc_size(infp, introspect_xml, xml_size+chunk_size+1);
-            if (introspect_xml == NULL) {
-                ret = ENOMEM;
+        read_size = fread(infp->introspect_xml, 1, xml_size, xml_stream);
+        if (read_size < xml_size) {
+            if (!feof(xml_stream)) {
+                ret = ferror(xml_stream);
+                DEBUG(0, ("Error occurred while reading [%s]. [%d:%s]\n",
+                          SSSD_INTROSPECT_PATH"/"INFP_INTROSPECT_XML,
+                          ret, strerror(ret)));
+
+                talloc_free(infp->introspect_xml);
+                infp->introspect_xml = NULL;
                 goto done;
             }
-            memcpy(introspect_xml+xml_size, chunk, chunk_size);
-            xml_size += chunk_size;
-        } while(chunk_size == INTROSPECT_CHUNK_SIZE);
-        introspect_xml[xml_size] = '\0';
-        talloc_free(chunk);
+        }
 
         /* Copy the introspection XML to the infp_ctx */
-        infp->introspect_xml = introspect_xml;
+        infp->introspect_xml[xml_size+1] = '\0';
     }
 
     /* Return the Introspection XML */
@@ -222,7 +241,7 @@ int infp_introspect(DBusMessage *message, struct sbus_conn_ctx *sconn)
     ret = EOK;
 
 done:
-    talloc_free(tmp_ctx);
+    if (xml_stream) fclose(xml_stream);
     return ret;
 }
 
