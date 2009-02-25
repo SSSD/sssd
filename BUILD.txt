@@ -19,7 +19,7 @@ I use the following steps to build all pieces.
 export LD_LIBRARY_PATH=/tmp/foo/lib
 pushd talloc; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
 pushd tdb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd events; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd tevent; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
 pushd ldb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
 pushd server; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make; popd
 
@@ -32,12 +32,26 @@ export LD_LIBRARY_PATH=/tmp/foo/lib
 This will start the sssd daemon in interactive mode.
 
 
-The nss_client doesn't need any dependency nor supports the shared-build option.
+The nss and pam client doesn't need any dependency nor supports the
+shared-build option.
 
-pushd nss_client; ./autogen.sh && ./configure && make; popd
+pushd sss_client; ./autogen.sh && ./configure && make; popd
 
 Now you have to copy libnss_sss* into /lib (or /lib64) and add the 'sss' traget
 to nsswitch.conf passwd database
+
+For pam copy pam_sss.so into /lib/security (or /lib64/security) and add
+pam_sss.so to your pam configuration. To use the pam_test_client from
+sss_client create the following file:
+
+/etc/pam.d/sss_test:
+auth     required pam_sss.so
+account  required pam_sss.so
+password required pam_sss.so
+session  required pam_sss.so
+
+Now you can call pam_test_client:
+./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
 
 ~~~~~
 Simo.

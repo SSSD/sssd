@@ -1,5 +1,5 @@
 /*
- * System Security Services Daemon. NSS Interface
+ * System Security Services Daemon. Client Interface for NSS and PAM.
  *
  * Copyright (C) Simo Sorce 2007
  *
@@ -8,8 +8,8 @@
  *
  */
 
-#ifndef _SSSNSS_H
-#define _SSSNSS_H
+#ifndef _SSSCLI_H
+#define _SSSCLI_H
 
 #include <nss.h>
 #include <pwd.h>
@@ -18,15 +18,16 @@
 /* SELinux will have a better way to regulate access if they are seprate
  * Also a change in one of the pipes will not affect the others */
 #define SSS_NSS_SOCKET_NAME "/var/lib/sss/pipes/nss"
+#define SSS_PAM_SOCKET_NAME "/var/lib/sss/pipes/pam"
 
-#define SSS_NSS_VERSION 0
+#define SSS_PROTOCOL_VERSION 0
 
-enum sss_nss_command {
+enum sss_cli_command {
 /* null */
-    SSS_NSS_NULL           = 0x0000,
+    SSS_CLI_NULL           = 0x0000,
 
 /* version */
-    SSS_NSS_GET_VERSION    = 0x0001,
+    SSS_GET_VERSION    = 0x0001,
 
 /* passwd */
 
@@ -118,25 +119,50 @@ enum sss_nss_command {
     SSS_NSS_GETSPENT       = 0x00B4,
     SSS_NSS_ENDSPENT       = 0x00B5,
 #endif
+
+/* PAM related calls */
+    SSS_PAM_AUTHENTICATE   = 0x00F1,
+    SSS_PAM_SETCRED        = 0x00F2,
+    SSS_PAM_ACCT_MGMT      = 0x00F3,
+    SSS_PAM_OPEN_SESSION   = 0x00F4,
+    SSS_PAM_CLOSE_SESSION  = 0x00F5,
+    SSS_PAM_CHAUTHTOK      = 0x00F6,
+
 };
+
+enum sss_authtok_type {
+    SSS_AUTHTOK_TYPE_EMPTY    =  0x0000,
+    SSS_AUTHTOK_TYPE_PASSWORD =  0x0001,
+};
+
+#define END_OF_PAM_REQUEST 0x4950414d
 
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)
-struct sss_nss_req_data {
+struct sss_cli_req_data {
     size_t len;
     const void *data;
 };
 
 /* this is in milliseconds, wait up to 300 seconds */
-#define SSS_NSS_SOCKET_TIMEOUT 300000
+#define SSS_CLI_SOCKET_TIMEOUT 300000
 
+enum sss_status {
+    SSS_STATUS_UNAVAIL,
+    SSS_STATUS_SUCCESS
+};
 
-enum nss_status sss_nss_make_request(enum sss_nss_command cmd,
-                                     struct sss_nss_req_data *rd,
+enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
+                                     struct sss_cli_req_data *rd,
                                      uint8_t **repbuf, size_t *replen,
                                      int *errnop);
 
-#endif /* _SSSNSS_H */
+int sss_pam_make_request(enum sss_cli_command cmd,
+                                     struct sss_cli_req_data *rd,
+                                     uint8_t **repbuf, size_t *replen,
+                                     int *errnop);
+
+#endif /* _SSSCLI_H */
 
 #if 0
 

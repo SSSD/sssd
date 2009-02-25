@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "sss_nss.h"
+#include "sss_cli.h"
 
 static struct sss_nss_getpwent_data {
     size_t len;
@@ -155,7 +155,7 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
 enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
                                     char *buffer, size_t buflen, int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     struct sss_nss_pw_rep pwrep;
     uint8_t *repbuf;
     size_t replen, len;
@@ -201,7 +201,7 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
 enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
                                     char *buffer, size_t buflen, int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     struct sss_nss_pw_rep pwrep;
     uint8_t *repbuf;
     size_t replen, len;
@@ -268,7 +268,7 @@ enum nss_status _nss_sss_getpwent_r(struct passwd *result,
                                     char *buffer, size_t buflen,
                                     int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     struct sss_nss_pw_rep pwrep;
     uint8_t *repbuf;
     size_t replen;

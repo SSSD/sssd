@@ -28,6 +28,14 @@ NSS_SSS_SONAME = libnss_sss.$(SHLIBEXT).2
 
 NSS_SSS_OBJS = common.o passwd.o group.o
 
+PAM_SSS_SOLIB = pam_sss.$(SHLIBEXT)
+PAM_SSS_OBJS = pam_sss.o common.o 
+PAM_LIBS = -lpam -lpam_misc
+PAM_CFLAGS = -DDEBUG -g -Wall -Werror
+
+PAM_CLIENT = pam_test_client
+PAM_CLIENT_OBJS = pam_test_client.o
+
 default: all
 
 showflags:
@@ -49,7 +57,17 @@ $(NSS_SSS_SOLIB): $(NSS_SSS_OBJS)
 $(NSS_SSS_SONAME): $(NSS_SSS_SOLIB)
 	ln -fs $< $@
 
-all: showflags $(NSS_SSS_OBJS) $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME)
+pam_sss.o: pam_sss.c
+	@echo Compiling $*.c
+	@$(CC) $(PICFLAG) $(CFLAGS) $(PAM_CFLAGS) -c $< -o $@
+
+$(PAM_CLIENT): $(PAM_CLIENT_OBJS)
+	@$(CC) $(CFLAGS) $(PAM_CFLAGS) $< -o $@ $(PAM_LIBS) 
+
+$(PAM_SSS_SOLIB): $(PAM_SSS_OBJS)
+	$(SHLD) $(SHLD_FLAGS) -o $@ $(PAM_SSS_OBJS) $(PAM_LIBS)
+
+all: showflags $(NSS_SSS_OBJS) $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME) $(PAM_SSS_SOLIB) $(PAM_CLIENT)
 
 install: all
 	$(INSTALLCMD) -m 755 $(NSS_SSS_SOLIB) /lib
@@ -57,7 +75,7 @@ install: all
 
 clean:
 	rm -f *.o *.a */*.o
-	rm -f $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME)
+	rm -f $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME) $(PAM_SSS_SOLIB) $(PAM_CLIENT)
 
 distclean: clean
 	rm -f config.log config.status config.h config.cache

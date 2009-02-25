@@ -27,7 +27,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "sss_nss.h"
+#include "sss_cli.h"
 
 static struct sss_nss_getgrent_data {
     size_t len;
@@ -174,7 +174,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
                                         gid_t **groups, long int limit,
                                         int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     uint8_t *repbuf;
     size_t replen;
     enum nss_status nret;
@@ -233,7 +233,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
 enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
                                     char *buffer, size_t buflen, int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
     size_t replen, len;
@@ -279,7 +279,7 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
 enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
                                     char *buffer, size_t buflen, int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
     size_t replen, len;
@@ -345,7 +345,7 @@ enum nss_status _nss_sss_setgrent(void)
 enum nss_status _nss_sss_getgrent_r(struct group *result,
                                     char *buffer, size_t buflen, int *errnop)
 {
-    struct sss_nss_req_data rd;
+    struct sss_cli_req_data rd;
     struct sss_nss_gr_rep grrep;
     uint8_t *repbuf;
     size_t replen;
