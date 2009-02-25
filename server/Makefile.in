@@ -157,6 +157,7 @@ installdirs::
 	mkdir -p $(DESTDIR)$(includedir) \
 	          $(DESTDIR)$(libdir) \
 	          $(DESTDIR)$(sbindir) \
+		  $(DESTDIR)$(SSSD_LIBDIR) \
 	          $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR) \
 	          $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe
 

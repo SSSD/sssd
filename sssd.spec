@@ -69,6 +69,7 @@ rm -rf $RPM_BUILD_ROOT
 # infopipe files
 %{_libexecdir}/sssd/sssd_info
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freeipa.sssd.infopipe.conf
+%{_datadir}/%{name}/introspect/infopipe/org.freeipa.sssd.infopipe.Introspect.xml
 
 %changelog
 * Mon Feb 23 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-2
