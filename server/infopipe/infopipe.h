@@ -31,7 +31,7 @@
 #define INFOPIPE_INTERFACE "org.freeipa.sssd.infopipe1"
 #define INFOPIPE_PATH "/org/freeipa/sssd/infopipe1"
 #define INFOPIPE_VERSION 0x0001
-#define INFOPIPE_SERVICE_NAME "infp"
+#define INFOPIPE_SERVICE_NAME "info"
 
 /* InfoPipe Methods
  * NOTE: Any changes to the method names and arguments for these calls

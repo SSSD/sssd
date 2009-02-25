@@ -1,6 +1,7 @@
 *.[oa]
-config.*
 configure
+config.log
+config.status
 Makefile
 cscope.out
 *.so

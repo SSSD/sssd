@@ -10,6 +10,7 @@ description: Local service configuration
 activeServices: nss
 activeServices: dp
 activeServices: pam
+activeServices: info
 
 dn: cn=nss,cn=services,cn=config
 cn: nss
@@ -34,6 +35,11 @@ cn: pam
 command: /usr/libexec/sssd/sssd_pam
 description: PAM Responder Configuration
 unixSocket: /var/lib/sss/pipes/pam
+
+dn: cn=info,cn=services,cn=config
+cn: infp
+description: InfoPipe Configuration
+command: ./sbin/sssd_info
 
 dn: cn=domains,cn=config
 cn: domains
