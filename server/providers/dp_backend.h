@@ -24,6 +24,7 @@
 
 #include "providers/data_provider.h"
 #include "db/sysdb.h"
+#include "responder/pam/pamsrv.h"
 
 struct be_mod_ops;
 
@@ -64,11 +65,18 @@ struct be_online_req {
     int online;
 };
 
+struct be_pam_handler {
+    int pam_status; 
+    const char *domain;
+    struct pam_data *pd;
+};
+
 typedef void (*be_req_fn_t)(struct be_req *);
 
 struct be_mod_ops {
     be_req_fn_t check_online;
     be_req_fn_t get_account_info;
+    be_req_fn_t pam_handler;
 };
 
 #endif /* __DP_BACKEND_H___ */

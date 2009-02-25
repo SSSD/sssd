@@ -29,6 +29,8 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <security/pam_modules.h>
+
 #include "popt.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -39,6 +41,7 @@
 #include "dp_interfaces.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
+#include "responder/pam/pamsrv.h"
 
 struct dp_backend;
 struct dp_frontend;
@@ -88,9 +91,11 @@ struct sbus_method mon_sbus_methods[] = {
 };
 
 static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int dp_pamhandler(DBusMessage *message, struct sbus_conn_ctx *sconn);
 
 struct sbus_method dp_sbus_methods[] = {
     { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
+    { DP_SRV_METHOD_PAMHANDLER, dp_pamhandler },
     { NULL, NULL }
 };
 
@@ -718,6 +723,275 @@ respond:
     sbus_conn_send_reply(sconn, reply);
     dbus_message_unref(reply);
 
+    return EOK;
+}
+
+static void be_got_pam_reply(DBusPendingCall *pending, void *data)
+{
+    struct dp_be_request *bereq;
+    DBusMessage *reply;
+    DBusConnection *conn;
+    DBusError dbus_error;
+    dbus_bool_t ret;
+    uint32_t pam_status;
+    char *domain;
+    int type;
+
+    bereq = talloc_get_type(data, struct dp_be_request);
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
+
+        /* Destroy this connection */
+        sbus_disconnect(bereq->be->dpcli->conn_ctx);
+        goto done;
+    }
+
+    type = dbus_message_get_type(reply);
+    switch (type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        ret = dbus_message_get_args(reply, &dbus_error,
+                                    DBUS_TYPE_UINT32, &pam_status,
+                                    DBUS_TYPE_STRING, &domain,
+                                    DBUS_TYPE_INVALID);
+        if (!ret) {
+            DEBUG(1,("Failed to parse message, killing connection\n"));
+            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+            sbus_disconnect(bereq->be->dpcli->conn_ctx);
+            pam_status = PAM_SYSTEM_ERR;
+            domain = "";
+            goto done;
+        }
+
+        DEBUG(4, ("Got reply (%d, %s) from %s(%s)\n", pam_status, domain,
+                  bereq->be->name, bereq->be->domain));
+
+        break;
+
+    case DBUS_MESSAGE_TYPE_ERROR:
+        DEBUG(0,("The Data Provider returned an error [%s], closing connection.\n",
+                 dbus_message_get_error_name(reply)));
+        /* Falling through to default intentionally*/
+    default:
+        /*
+         * Timeout or other error occurred or something
+         * unexpected happened.
+         * It doesn't matter which, because either way we
+         * know that this connection isn't trustworthy.
+         * We'll destroy it now.
+         */
+        DEBUG(1,("Maybe timeout?\n"));
+        sbus_disconnect(bereq->be->dpcli->conn_ctx);
+        goto done;
+    }
+
+    conn = sbus_get_connection(bereq->req->src_cli->conn_ctx);
+    ret = dbus_message_append_args(bereq->req->reply,
+                                   DBUS_TYPE_UINT32, &pam_status,
+                                   DBUS_TYPE_STRING, &domain,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1, ("Failed to build reply ... frontend will wait for timeout ...\n"));
+        talloc_free(bereq->req);
+        goto done;
+    }
+
+    /* finally send it */
+    dbus_connection_send(conn, bereq->req->reply, NULL);
+    dbus_message_unref(bereq->req->reply);
+    talloc_free(bereq->req);
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+}
+
+static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
+{
+    DBusMessage *msg;
+    DBusPendingCall *pending_reply;
+    DBusConnection *conn;
+    dbus_bool_t ret;
+
+    conn = sbus_get_connection(bereq->be->dpcli->conn_ctx);
+
+    /* create the message */
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_CLI_PATH,
+                                       DP_CLI_INTERFACE,
+                                       DP_CLI_METHOD_PAMHANDLER);
+    if (msg == NULL) {
+        DEBUG(0,("Out of memory?!\n"));
+        return ENOMEM;
+    }
+
+    DEBUG(4, ("Sending request with to following data\n"));
+    DEBUG_PAM_DATA(4, pd);
+
+    ret = dbus_message_append_args(msg,
+                                   DBUS_TYPE_INT32,  &(pd->cmd),
+                                   DBUS_TYPE_STRING, &(pd->domain),
+                                   DBUS_TYPE_STRING, &(pd->user),
+                                   DBUS_TYPE_STRING, &(pd->service),
+                                   DBUS_TYPE_STRING, &(pd->tty),
+                                   DBUS_TYPE_STRING, &(pd->ruser),
+                                   DBUS_TYPE_STRING, &(pd->rhost),
+                                   DBUS_TYPE_INT32, &(pd->authtok_type),
+                                   DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                       &(pd->authtok),
+                                       (pd->authtok_size),
+                                   DBUS_TYPE_INT32, &(pd->newauthtok_type),
+                                   DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                       &(pd->newauthtok),
+                                       pd->newauthtok_size,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1,("Failed to build message\n"));
+        return EIO;
+    }
+
+    ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            600000 /* TODO: set timeout */);
+    if (!ret) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         * We'll drop it using the default destructor.
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        dbus_message_unref(msg);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, be_got_pam_reply,
+                                 bereq, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+
+static int dp_pamhandler(DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
+    DBusMessage *reply;
+    DBusError dbus_error;
+    struct dp_client *dpcli;
+    struct dp_backend *dpbe;
+    struct dp_be_request *bereq;
+    struct dp_request *dpreq = NULL;
+    dbus_bool_t dbret;
+    void *user_data;
+    int ret;
+    struct pam_data *pd;
+    int pam_status=PAM_SUCCESS;
+    int domain_found=0;
+
+    user_data = sbus_conn_get_private_data(sconn);
+    if (!user_data) return EINVAL;
+    dpcli = talloc_get_type(user_data, struct dp_client);
+    if (!dpcli) return EINVAL;
+
+/* FIXME: free arrays returned by dbus_message_get_args() */
+    pd = talloc(NULL, struct pam_data);
+    if (!pd) return ENOMEM;
+
+    dbus_error_init(&dbus_error);
+
+    ret = dbus_message_get_args(message, &dbus_error,
+                                DBUS_TYPE_INT32,  &(pd->cmd),
+                                DBUS_TYPE_STRING, &(pd->domain),
+                                DBUS_TYPE_STRING, &(pd->user),
+                                DBUS_TYPE_STRING, &(pd->service),
+                                DBUS_TYPE_STRING, &(pd->tty),
+                                DBUS_TYPE_STRING, &(pd->ruser),
+                                DBUS_TYPE_STRING, &(pd->rhost),
+                                DBUS_TYPE_INT32, &(pd->authtok_type),
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(pd->authtok),
+                                    &(pd->authtok_size),
+                                DBUS_TYPE_INT32, &(pd->newauthtok_type),
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(pd->newauthtok),
+                                    &(pd->newauthtok_size),
+                                DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(0,("Failed, to parse message!\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        talloc_free(pd);
+        return EIO;
+    }
+
+    DEBUG(4, ("Got the following data:\n"));
+    DEBUG_PAM_DATA(4, pd);
+
+    reply = dbus_message_new_method_return(message);
+    if (!reply) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_free(pd);
+        return ENOMEM;
+    }
+
+    dpreq = talloc(dpcli->dpctx, struct dp_request);
+    if (!dpreq) {
+        ret = ENOMEM;
+        pam_status = PAM_ABORT;
+        goto respond;
+    }
+
+    dpreq->reply = reply;
+    dpreq->src_cli = dpcli;
+    dpreq->pending_replies = 0;
+    /* FIXME: add handling of default domain */
+    dpbe = dpcli->dpctx->be_list;
+    while (dpbe) {
+        DEBUG(4, ("Checking [%s][%s]\n", pd->domain, dpbe->domain));
+        if (strcasecmp(dpbe->domain, pd->domain) == 0 ) {
+            domain_found=1;
+            bereq = talloc(dpreq, struct dp_be_request);
+            if (!bereq) {
+                DEBUG(1, ("Out of memory while sending requests\n"));
+                dpbe = dpbe->next;
+                continue;
+            }
+            bereq->req = dpreq;
+            bereq->be = dpbe;
+            DEBUG(4, ("Sending wildcard request to [%s]\n", dpbe->domain));
+            ret = dp_call_pamhandler(bereq, pd);
+            if (ret != EOK) {
+                DEBUG(2,("Failed to dispatch request to %s\n", dpbe->domain));
+                dpbe = dpbe->next;
+                continue;
+            }
+            dpreq->pending_replies++;
+        }
+        dpbe = dpbe->next;
+    }
+
+    if (domain_found) {
+        talloc_free(pd);
+        return EOK;
+    }
+
+    pam_status = PAM_MODULE_UNKNOWN;
+
+respond:
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT32, &pam_status,
+                                     DBUS_TYPE_STRING, &(pd->domain),
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) return EIO;
+
+    /* send reply back immediately */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
+    talloc_free(pd);
     return EOK;
 }
 

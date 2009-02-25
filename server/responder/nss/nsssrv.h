@@ -27,8 +27,10 @@
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"
-#include "../nss_client/sss_nss.h"
+#include "../sss_client/sss_cli.h"
 #include "dbus/dbus.h"
+#include "sbus/sssd_dbus.h"
+#include "responder/common/responder_cmd.h"
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define NSS_SBUS_SERVICE_NAME "nss"
@@ -61,6 +63,12 @@ struct nss_ctx {
     char *default_domain;
 
     int cache_timeout;
+
+    struct sbus_method *sss_sbus_methods;
+    struct sss_cmd_table *sss_cmds; 
+    const char *sss_pipe_name;
+    const char *confdb_socket_path;
+    struct sbus_method *dp_methods;
 };
 
 struct cli_ctx {
@@ -85,24 +93,12 @@ struct nss_packet;
 struct cli_request {
 
     /* original request from the wire */
-    struct nss_packet *in;
+    struct sss_packet *in;
 
     /* reply data */
-    struct nss_packet *out;
+    struct sss_packet *out;
 };
 
-/* from nsssrv_packet.c */
-int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
-                   enum sss_nss_command cmd,
-                   struct nss_packet **rpacket);
-int nss_packet_grow(struct nss_packet *packet, size_t size);
-int nss_packet_recv(struct nss_packet *packet, int fd);
-int nss_packet_send(struct nss_packet *packet, int fd);
-enum sss_nss_command nss_packet_get_cmd(struct nss_packet *packet);
-void nss_packet_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen);
-void nss_packet_set_error(struct nss_packet *packet, int error);
-
-/* from nsssrv_cmd.c */
 int nss_cmd_execute(struct cli_ctx *cctx);
 
 /* from nsssrv_dp.c */

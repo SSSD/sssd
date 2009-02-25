@@ -31,12 +31,13 @@
 #include <errno.h>
 #include "popt.h"
 #include "util/util.h"
-#include "nss/nsssrv.h"
+#include "responder/nss/nsssrv.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "util/btreemap.h"
+#include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
@@ -81,7 +82,7 @@ static void client_send(struct event_context *ev, struct cli_ctx *cctx)
 {
     int ret;
 
-    ret = nss_packet_send(cctx->creq->out, cctx->cfd);
+    ret = sss_packet_send(cctx->creq->out, cctx->cfd);
     if (ret == EAGAIN) {
         /* not all data was sent, loop again */
         return;
@@ -114,7 +115,7 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
     }
 
     if (!cctx->creq->in) {
-        ret = nss_packet_new(cctx->creq, NSS_PACKET_MAX_RECV_SIZE,
+        ret = sss_packet_new(cctx->creq, NSS_PACKET_MAX_RECV_SIZE,
                              0, &cctx->creq->in);
         if (ret != EOK) {
             DEBUG(0, ("Failed to alloc request, aborting client!\n"));
@@ -123,7 +124,7 @@ static void client_recv(struct event_context *ev, struct cli_ctx *cctx)
         }
     }
 
-    ret = nss_packet_recv(cctx->creq->in, cctx->cfd);
+    ret = sss_packet_recv(cctx->creq->in, cctx->cfd);
     switch (ret) {
     case EOK:
         /* do not read anymore */

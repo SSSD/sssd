@@ -50,6 +50,8 @@ m4_include(libtalloc.m4)
 m4_include(libtdb.m4)
 m4_include(libevents.m4)
 m4_include(libldb.m4)
+m4_include(pam.m4)
+m4_include(ldap.m4)
 m4_include(util/signal.m4)
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])

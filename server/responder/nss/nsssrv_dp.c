@@ -22,7 +22,8 @@
 #include <sys/time.h>
 #include <time.h>
 #include "util/util.h"
-#include "nss/nsssrv.h"
+#include "responder/common/responder_packet.h"
+#include "responder/nss/nsssrv.h"
 #include "providers/data_provider.h"
 #include "sbus/sbus_client.h"
 #include "providers/dp_sbus.h"

@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   NSS Responder, command parser
+   SSS Client Responder, command parser
 
    Copyright (C) Simo Sorce <ssorce@redhat.com>	2008
 
@@ -25,11 +25,11 @@
 #include <errno.h>
 #include "talloc.h"
 #include "util/util.h"
-#include "nss/nsssrv.h"
+#include "responder/common/responder_packet.h"
 
-#define NSSSRV_PACKET_MEM_SIZE 512
+#define SSSSRV_PACKET_MEM_SIZE 512
 
-struct nss_packet {
+struct sss_packet {
     size_t memsize;
     uint8_t *buffer;
 
@@ -49,22 +49,22 @@ struct nss_packet {
  * Allocate a new packet structure
  *
  * - if size is defined use it otherwise the default packet will be
- *   NSSSRV_PACKET_MEM_SIZE bytes.
+ *   SSSSRV_PACKET_MEM_SIZE bytes.
  */
-int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
-                   enum sss_nss_command cmd,
-                   struct nss_packet **rpacket)
+int sss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
+                   enum sss_cli_command cmd,
+                   struct sss_packet **rpacket)
 {
-    struct nss_packet *packet;
+    struct sss_packet *packet;
 
-    packet = talloc(mem_ctx, struct nss_packet);
+    packet = talloc(mem_ctx, struct sss_packet);
     if (!packet) return ENOMEM;
 
     if (size) {
-        int n = (size + SSS_NSS_HEADER_SIZE) % NSSSRV_PACKET_MEM_SIZE;
-        packet->memsize = (n + 1) * NSSSRV_PACKET_MEM_SIZE;
+        int n = (size + SSS_NSS_HEADER_SIZE) % SSSSRV_PACKET_MEM_SIZE;
+        packet->memsize = (n + 1) * SSSSRV_PACKET_MEM_SIZE;
     } else {
-        packet->memsize = NSSSRV_PACKET_MEM_SIZE;
+        packet->memsize = SSSSRV_PACKET_MEM_SIZE;
     }
 
     packet->buffer = talloc_size(packet, packet->memsize);
@@ -90,8 +90,8 @@ int nss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
     return EOK;
 }
 
-/* grows a packet size only in NSSSRV_PACKET_MEM_SIZE chunks */
-int nss_packet_grow(struct nss_packet *packet, size_t size)
+/* grows a packet size only in SSSSRV_PACKET_MEM_SIZE chunks */
+int sss_packet_grow(struct sss_packet *packet, size_t size)
 {
     size_t totlen, len;
     uint8_t *newmem;
@@ -105,8 +105,8 @@ int nss_packet_grow(struct nss_packet *packet, size_t size)
 
     /* make sure we do not overflow */
     if (totlen < len) {
-        int n = len % NSSSRV_PACKET_MEM_SIZE + 1;
-        totlen += n * NSSSRV_PACKET_MEM_SIZE;
+        int n = len % SSSSRV_PACKET_MEM_SIZE + 1;
+        totlen += n * SSSSRV_PACKET_MEM_SIZE;
         if (totlen < len) {
             return EINVAL;
         }
@@ -132,7 +132,7 @@ int nss_packet_grow(struct nss_packet *packet, size_t size)
     return 0;
 }
 
-int nss_packet_recv(struct nss_packet *packet, int fd)
+int sss_packet_recv(struct sss_packet *packet, int fd)
 {
     size_t rb;
     size_t len;
@@ -174,7 +174,7 @@ int nss_packet_recv(struct nss_packet *packet, int fd)
     return EOK;
 }
 
-int nss_packet_send(struct nss_packet *packet, int fd)
+int sss_packet_send(struct sss_packet *packet, int fd)
 {
     size_t rb;
     size_t len;
@@ -203,18 +203,18 @@ int nss_packet_send(struct nss_packet *packet, int fd)
     return EOK;
 }
 
-enum sss_nss_command nss_packet_get_cmd(struct nss_packet *packet)
+enum sss_cli_command sss_packet_get_cmd(struct sss_packet *packet)
 {
-    return (enum sss_nss_command)(*packet->cmd);
+    return (enum sss_cli_command)(*packet->cmd);
 }
 
-void nss_packet_get_body(struct nss_packet *packet, uint8_t **body, size_t *blen)
+void sss_packet_get_body(struct sss_packet *packet, uint8_t **body, size_t *blen)
 {
     *body = packet->body;
     *blen = *packet->len - SSS_NSS_HEADER_SIZE;
 }
 
-void nss_packet_set_error(struct nss_packet *packet, int error)
+void sss_packet_set_error(struct sss_packet *packet, int error)
 {
     *(packet->status) = error;
 }

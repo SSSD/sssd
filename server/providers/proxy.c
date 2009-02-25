@@ -23,9 +23,14 @@
 #include <errno.h>
 #include <pwd.h>
 #include <grp.h>
+
+#include <security/pam_appl.h>
+#include <security/pam_modules.h>
+
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
+#include "../sss_client/sss_cli.h"
 
 struct proxy_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
@@ -152,6 +157,130 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
 
     talloc_free(buffer);
     return proxy_reply(req, EOK, NULL);
+}
+
+struct authtok_conv {
+    char *authtok;
+    char *oldauthtok;
+};
+
+static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
+                            struct pam_response **response,
+                            void *appdata_ptr) {
+    int i;
+    struct pam_response *reply;
+    struct authtok_conv *auth_data;
+
+    auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
+
+    if (num_msg <= 0) return PAM_CONV_ERR;
+
+    reply = (struct pam_response *) calloc(num_msg,
+                                           sizeof(struct pam_response));
+    if (reply == NULL) return PAM_CONV_ERR;
+
+    for (i=0; i < num_msg; i++) {
+        switch( msgm[i]->msg_style ) {
+            case PAM_PROMPT_ECHO_OFF:
+                DEBUG(4, ("Conversation message: %s.\n", msgm[i]->msg));
+                reply[i].resp_retcode = 0; 
+                reply[i].resp = strdup(auth_data->authtok); 
+                break;
+            default:
+                DEBUG(1, ("Conversation style %d not supported.\n",
+                           msgm[i]->msg_style));
+                goto failed;
+        }
+    }
+
+    *response = reply;
+    reply = NULL;
+
+    return PAM_SUCCESS;
+
+failed:
+    free(reply);
+    return PAM_CONV_ERR;
+}
+
+static void proxy_pam_handler(struct be_req *req) {
+    int ret;
+    int pam_status;
+    pam_handle_t *pamh=NULL;
+    struct authtok_conv *auth_data;
+    struct pam_conv conv;
+    struct be_pam_handler *ph;
+    struct pam_data *pd;
+
+    ph = talloc_get_type(req->req_data, struct be_pam_handler);
+    pd = ph->pd;
+
+    conv.conv=proxy_internal_conv;
+    auth_data = talloc_zero(req->be_ctx, struct authtok_conv);
+    conv.appdata_ptr=auth_data;
+
+    ret = pam_start("sssd_be_test", pd->user, &conv, &pamh);
+    if (ret == PAM_SUCCESS) {
+        DEBUG(1, ("Pam transaction started.\n"));
+        pam_set_item(pamh, PAM_TTY, pd->tty);
+        if (ret != PAM_SUCCESS) {
+            DEBUG(1, ("Setting PAM_TTY failed: %s.\n", pam_strerror(pamh, ret)));
+        }
+        pam_set_item(pamh, PAM_RUSER, pd->ruser);
+        if (ret != PAM_SUCCESS) {
+            DEBUG(1, ("Setting PAM_RUSER failed: %s.\n", pam_strerror(pamh, ret)));
+        }
+        pam_set_item(pamh, PAM_RHOST, pd->rhost);
+        if (ret != PAM_SUCCESS) {
+            DEBUG(1, ("Setting PAM_RHOST failed: %s.\n", pam_strerror(pamh, ret)));
+        }
+        switch (pd->cmd) {
+            case SSS_PAM_AUTHENTICATE:
+/* FIXME: \0 missing at the end */
+                auth_data->authtok=(char *) pd->authtok;
+                auth_data->oldauthtok=NULL;
+                pam_status=pam_authenticate(pamh, 0);
+                break;
+            case SSS_PAM_SETCRED:
+                pam_status=pam_setcred(pamh, 0);
+                break;
+            case SSS_PAM_ACCT_MGMT:
+                pam_status=pam_acct_mgmt(pamh, 0);
+                break;
+            case SSS_PAM_OPEN_SESSION:
+                pam_status=pam_open_session(pamh, 0);
+                break;
+            case SSS_PAM_CLOSE_SESSION:
+                pam_status=pam_close_session(pamh, 0);
+                break;
+            case SSS_PAM_CHAUTHTOK:
+/* FIXME: \0 missing at the end */
+                auth_data->authtok=(char *) pd->newauthtok;
+                auth_data->oldauthtok=(char *) pd->authtok;
+                pam_status=pam_chauthtok(pamh, 0);
+                break;
+            default:
+                DEBUG(1, ("unknown PAM call"));
+                pam_status=PAM_ABORT;
+        }
+
+        DEBUG(4, ("Pam result: [%d][%s]\n", pam_status, pam_strerror(pamh, pam_status)));
+
+        ret = pam_end(pamh, pam_status);
+        if (ret != PAM_SUCCESS) {
+            pamh=NULL;
+            DEBUG(1, ("Cannot terminate pam transaction.\n"));
+        }
+
+    } else {
+        DEBUG(1, ("Failed to initialize pam transaction.\n"));
+        pam_status = PAM_SYSTEM_ERR;
+    }
+
+    talloc_free(auth_data);
+
+    ph->pam_status = pam_status;
+    req->fn(req, EOK, NULL);
 }
 
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
@@ -664,7 +793,8 @@ static void proxy_get_account_info(struct be_req *req)
 
 struct be_mod_ops proxy_mod_ops = {
     .check_online = proxy_check_online,
-    .get_account_info = proxy_get_account_info
+    .get_account_info = proxy_get_account_info,
+    .pam_handler = proxy_pam_handler
 };
 
 static void *proxy_dlsym(void *handle, const char *functemp, char *libname)

@@ -21,7 +21,8 @@
 
 #include "util/util.h"
 #include "util/btreemap.h"
-#include "nss/nsssrv.h"
+#include "responder/common/responder_packet.h"
+#include "responder/nss/nsssrv.h"
 #include "db/sysdb.h"
 #include <time.h>
 
@@ -50,7 +51,7 @@ struct nss_dom_ctx {
 };
 
 struct nss_cmd_table {
-    enum sss_nss_command cmd;
+    enum sss_cli_command cmd;
     int (*fn)(struct cli_ctx *cctx);
 };
 
@@ -70,14 +71,14 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
     int ret;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
-    nss_packet_set_error(cctx->creq->out, err);
+    sss_packet_set_error(cctx->creq->out, err);
     return EOK;
 }
 
@@ -146,14 +147,14 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, sizeof(uint32_t),
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, sizeof(uint32_t),
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
-    nss_packet_get_body(cctx->creq->out, &body, &blen);
-    ((uint32_t *)body)[0] = SSS_NSS_VERSION;
+    sss_packet_get_body(cctx->creq->out, &body, &blen);
+    ((uint32_t *)body)[0] = SSS_PROTOCOL_VERSION;
 
     nss_cmd_done(cmdctx);
     return EOK;
@@ -163,7 +164,7 @@ static int nss_cmd_get_version(struct cli_ctx *cctx)
  * PASSWD db related functions
  ***************************************************************************/
 
-static int fill_pwent(struct nss_packet *packet,
+static int fill_pwent(struct sss_packet *packet,
                       struct ldb_message **msgs,
                       int count)
 {
@@ -180,7 +181,7 @@ static int fill_pwent(struct nss_packet *packet,
     int i, ret, num;
 
     /* first 2 fields (len and reserved), filled up later */
-    ret = nss_packet_grow(packet, 2*sizeof(uint32_t));
+    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
     rp = 2*sizeof(uint32_t);
 
     num = 0;
@@ -206,12 +207,12 @@ static int fill_pwent(struct nss_packet *packet,
         s4 = strlen(shell) + 1;
         rsize = 2*sizeof(uint64_t) +s1 + 2 + s2 + s3 +s4;
 
-        ret = nss_packet_grow(packet, rsize);
+        ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
             num = 0;
             goto done;
         }
-        nss_packet_get_body(packet, &body, &blen);
+        sss_packet_get_body(packet, &body, &blen);
 
         ((uint64_t *)(&body[rp]))[0] = uid;
         ((uint64_t *)(&body[rp]))[1] = gid;
@@ -231,7 +232,7 @@ static int fill_pwent(struct nss_packet *packet,
     }
 
 done:
-    nss_packet_get_body(packet, &body, &blen);
+    sss_packet_get_body(packet, &body, &blen);
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
 
@@ -292,7 +293,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
-        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getpwnam_dp_callback, dctx,
@@ -315,28 +316,27 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
         DEBUG(2, ("No results for getpwnam call\n"));
 
-        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        sss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
         break;
 
     case 1:
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-
         ret = fill_pwent(cctx->creq->out, res->msgs, res->count);
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
 
         break;
 
@@ -401,7 +401,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     dctx->cmdctx = cmdctx;
 
     /* get user name to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
         talloc_free(cmdctx);
@@ -503,7 +503,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
-        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getpwuid_dp_callback, dctx,
@@ -530,28 +530,28 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
         DEBUG(2, ("No results for getpwuid call\n"));
 
-        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        sss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
         break;
 
     case 1:
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
 
         ret = fill_pwent(cctx->creq->out, res->msgs, res->count);
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
 
         break;
 
@@ -622,7 +622,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* get uid to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
 
     if (blen != sizeof(uint64_t)) {
         return EINVAL;
@@ -708,13 +708,13 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
 
     if (status != LDB_SUCCESS) {
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_set_error(cctx->creq->out, status);
+        sss_packet_set_error(cctx->creq->out, status);
         cmdctx->done = true;
         return;
     }
@@ -747,8 +747,8 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     }
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         NSS_CMD_FATAL_ERROR(cctx);
@@ -848,7 +848,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         dctx->legacy = info->legacy;
 
         if (dctx->check_provider) {
-            timeout = SSS_NSS_SOCKET_TIMEOUT/(i+2);
+            timeout = SSS_CLI_SOCKET_TIMEOUT/(i+2);
             ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                        nss_cmd_setpw_dp_callback, dctx,
                                        timeout, domains[i], NSS_DP_USER,
@@ -871,14 +871,14 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 
     if (cmdctx->nr == 0) {
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             return ret;
         }
 
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
         nss_cmd_done(cmdctx);
         return EOK;
     }
@@ -921,29 +921,29 @@ static void nss_cmd_getpwent_callback(void *ptr, int status,
     int ret;
 
     /* get max num of entries to return in one call */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         NSS_CMD_FATAL_ERROR(cctx);
     }
     num = *((uint32_t *)body);
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
+        sss_packet_set_error(cctx->creq->out, status);
         goto done;
     }
 
     gctx->pwds = talloc_steal(gctx, res);
 
     ret = nss_cmd_retpwent(cctx, num);
-    nss_packet_set_error(cctx->creq->out, ret);
+    sss_packet_set_error(cctx->creq->out, ret);
 
 done:
     nss_cmd_done(cmdctx);
@@ -961,7 +961,7 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for all accounts\n"));
 
     /* get max num of entries to return in one call */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
@@ -989,15 +989,15 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
     ret = nss_cmd_retpwent(cctx, num);
-    nss_packet_set_error(cctx->creq->out, ret);
+    sss_packet_set_error(cctx->creq->out, ret);
     nss_cmd_done(cmdctx);
     return EOK;
 }
@@ -1016,8 +1016,8 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
 
     if (cctx->gctx == NULL) goto done;
@@ -1037,7 +1037,7 @@ done:
  * GROUP db related functions
  ***************************************************************************/
 
-static int fill_grent(struct nss_packet *packet,
+static int fill_grent(struct sss_packet *packet,
                       struct ldb_message **msgs,
                       int count)
 {
@@ -1052,7 +1052,7 @@ static int fill_grent(struct nss_packet *packet,
     bool memnum_set = false;
 
     /* first 2 fields (len and reserved), filled up later */
-    ret = nss_packet_grow(packet, 2*sizeof(uint32_t));
+    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
     rp = 2*sizeof(uint32_t);
 
     num = 0;
@@ -1073,8 +1073,8 @@ static int fill_grent(struct nss_packet *packet,
 
             /* fill in gid and name and set pointer for number of members */
             rsize = sizeof(uint64_t) + sizeof(uint32_t) + strlen(name)+1 +2;
-            ret = nss_packet_grow(packet, rsize);
-            nss_packet_get_body(packet, &body, &blen);
+            ret = sss_packet_grow(packet, rsize);
+            sss_packet_get_body(packet, &body, &blen);
             rp = blen - rsize;
             ((uint64_t *)(&body[rp]))[0] = gid;
             rp += sizeof(uint64_t);
@@ -1097,19 +1097,19 @@ static int fill_grent(struct nss_packet *packet,
 
                 for (j = 0; j < memnum; j++) {
                     rsize = el->values[j].length + 1;
-                    ret = nss_packet_grow(packet, rsize);
+                    ret = sss_packet_grow(packet, rsize);
                     if (ret != EOK) {
                         num = 0;
                         goto done;
                     }
 
-                    nss_packet_get_body(packet, &body, &blen);
+                    sss_packet_get_body(packet, &body, &blen);
                     rp = blen - rsize;
                     memcpy(&body[rp], el->values[j].data, el->values[j].length);
                     body[blen-1] = '\0';
                 }
 
-                nss_packet_get_body(packet, &body, &blen);
+                sss_packet_get_body(packet, &body, &blen);
                 ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
                 memnum_set = true;
 
@@ -1128,7 +1128,7 @@ static int fill_grent(struct nss_packet *packet,
              * fail there if here start bogus entries */
             get_group = true;
             i--;
-            nss_packet_get_body(packet, &body, &blen);
+            sss_packet_get_body(packet, &body, &blen);
             ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
             memnum_set = true;
             continue;
@@ -1136,12 +1136,12 @@ static int fill_grent(struct nss_packet *packet,
 
         rsize = strlen(name) + 1;
 
-        ret = nss_packet_grow(packet, rsize);
+        ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
             num = 0;
             goto done;
         }
-        nss_packet_get_body(packet, &body, &blen);
+        sss_packet_get_body(packet, &body, &blen);
         rp = blen - rsize;
         memcpy(&body[rp], name, rsize);
 
@@ -1151,13 +1151,13 @@ static int fill_grent(struct nss_packet *packet,
     if (!memnum_set) {
         /* fill in the last group member count */
         if (mnump != 0) {
-            nss_packet_get_body(packet, &body, &blen);
+            sss_packet_get_body(packet, &body, &blen);
             ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
         }
     }
 
 done:
-    nss_packet_get_body(packet, &body, &blen);
+    sss_packet_get_body(packet, &body, &blen);
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
 
@@ -1210,7 +1210,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
-        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getgrnam_dp_callback, dctx,
@@ -1234,13 +1234,13 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
         DEBUG(2, ("No results for getgrnam call\n"));
 
-        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        sss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
         break;
@@ -1250,15 +1250,15 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
         DEBUG(6, ("Returning info for group [%s]\n", cmdctx->name));
 
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
 
         ret = fill_grent(cctx->creq->out, res->msgs, res->count);
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
     }
 
 done:
@@ -1314,7 +1314,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     dctx->cmdctx = cmdctx;
 
     /* get user name to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     /* if not terminated fail */
     if (body[blen -1] != '\0') {
         talloc_free(cmdctx);
@@ -1407,7 +1407,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
-        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getgrgid_dp_callback, dctx,
@@ -1434,13 +1434,13 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
         DEBUG(2, ("No results for getgrgid call\n"));
 
-        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        sss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
         break;
@@ -1450,15 +1450,15 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         DEBUG(6, ("Returning info for group [%u]\n", (unsigned)cmdctx->id));
 
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
 
         ret = fill_grent(cctx->creq->out, res->msgs, res->count);
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
     }
 
 done:
@@ -1516,7 +1516,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* get uid to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
 
     if (blen != sizeof(uint64_t)) {
         return EINVAL;
@@ -1601,13 +1601,13 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
 
     if (status != LDB_SUCCESS) {
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_set_error(cctx->creq->out, status);
+        sss_packet_set_error(cctx->creq->out, status);
         cmdctx->done = true;
         return;
     }
@@ -1639,8 +1639,8 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     }
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         NSS_CMD_FATAL_ERROR(cctx);
@@ -1740,7 +1740,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         dctx->legacy = info->legacy;
 
         if (dctx->check_provider) {
-            timeout = SSS_NSS_SOCKET_TIMEOUT/(i+2);
+            timeout = SSS_CLI_SOCKET_TIMEOUT/(i+2);
             ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                        nss_cmd_setgr_dp_callback, dctx,
                                        timeout, domains[i], NSS_DP_GROUP,
@@ -1762,14 +1762,14 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     if (cmdctx->nr == 0) {
         /* create response packet */
-        ret = nss_packet_new(cctx->creq, 0,
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             return ret;
         }
 
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
         nss_cmd_done(cmdctx);
         return EOK;
     }
@@ -1811,7 +1811,7 @@ static void nss_cmd_getgrent_callback(void *ptr, int status,
     int ret;
 
     /* get max num of entries to return in one call */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         ret = nss_cmd_send_error(cmdctx, EIO);
         if (ret != EOK) {
@@ -1822,22 +1822,22 @@ static void nss_cmd_getgrent_callback(void *ptr, int status,
     num = *((uint32_t *)body);
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
+        sss_packet_set_error(cctx->creq->out, status);
         goto done;
     }
 
     gctx->grps = talloc_steal(gctx, res);
 
     ret = nss_cmd_retgrent(cctx, num);
-    nss_packet_set_error(cctx->creq->out, ret);
+    sss_packet_set_error(cctx->creq->out, ret);
 
 done:
     nss_cmd_done(cmdctx);
@@ -1855,7 +1855,7 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for all groups\n"));
 
     /* get max num of entries to return in one call */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
@@ -1883,15 +1883,15 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         return ret;
     }
 
     ret = nss_cmd_retgrent(cctx, num);
-    nss_packet_set_error(cctx->creq->out, ret);
+    sss_packet_set_error(cctx->creq->out, ret);
     nss_cmd_done(cmdctx);
     return EOK;
 }
@@ -1910,8 +1910,8 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
     cmdctx->cctx = cctx;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
 
     if (cctx->gctx == NULL) goto done;
@@ -1939,33 +1939,33 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     int ret, i;
 
     /* create response packet */
-    ret = nss_packet_new(cctx->creq, 0,
-                         nss_packet_get_cmd(cctx->creq->in),
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
         NSS_CMD_FATAL_ERROR(cctx);
     }
 
     if (status != LDB_SUCCESS) {
-        nss_packet_set_error(cctx->creq->out, status);
+        sss_packet_set_error(cctx->creq->out, status);
         goto done;
     }
 
     num = res->count;
     /* the first 64 bit uint is really 2 32 units used to hold the number of
      * results */
-    ret = nss_packet_grow(cctx->creq->out, (1 + num) * sizeof(uint64_t));
+    ret = sss_packet_grow(cctx->creq->out, (1 + num) * sizeof(uint64_t));
     if (ret != EOK) {
-        nss_packet_set_error(cctx->creq->out, ret);
+        sss_packet_set_error(cctx->creq->out, ret);
         goto done;
     }
-    nss_packet_get_body(cctx->creq->out, &body, &blen);
+    sss_packet_get_body(cctx->creq->out, &body, &blen);
 
     for (i = 0; i < num; i++) {
         gid = ldb_msg_find_attr_as_uint64(res->msgs[i], SYSDB_GR_GIDNUM, 0);
         if (!gid) {
             DEBUG(1, ("Incomplete group object for initgroups! Aborting\n"));
-            nss_packet_set_error(cctx->creq->out, EIO);
+            sss_packet_set_error(cctx->creq->out, EIO);
             num = 0;
             goto done;
         }
@@ -2084,7 +2084,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
-        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getinitnam_callback, dctx,
@@ -2108,20 +2108,20 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
 
         DEBUG(2, ("No results for initgroups call\n"));
 
-        ret = nss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             nss_packet_get_cmd(cctx->creq->in),
+        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
+                             sss_packet_get_cmd(cctx->creq->in),
                              &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_packet_get_body(cctx->creq->out, &body, &blen);
+        sss_packet_get_body(cctx->creq->out, &body, &blen);
         ((uint32_t *)body)[0] = 0; /* 0 results */
         ((uint32_t *)body)[1] = 0; /* reserved */
         break;
 
     case 1:
 
-        timeout = SSS_NSS_SOCKET_TIMEOUT/2;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getinitgr_callback, dctx,
                                    timeout, dctx->domain, NSS_DP_INITGROUPS,
@@ -2170,7 +2170,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     dctx->cmdctx = cmdctx;
 
     /* get user name to query */
-    nss_packet_get_body(cctx->creq->in, &body, &blen);
+    sss_packet_get_body(cctx->creq->in, &body, &blen);
     cmdctx->name = (const char *)body;
     /* if not terminated fail */
     if (cmdctx->name[blen -1] != '\0') {
@@ -2203,8 +2203,9 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     return EOK;
 }
 
+struct nss_cmd_table sss_cmds[] = {};
 struct nss_cmd_table nss_cmds[] = {
-    {SSS_NSS_GET_VERSION, nss_cmd_get_version},
+    {SSS_GET_VERSION, nss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},
     {SSS_NSS_GETPWUID, nss_cmd_getpwuid},
     {SSS_NSS_SETPWENT, nss_cmd_setpwent},
@@ -2216,17 +2217,17 @@ struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_GETGRENT, nss_cmd_getgrent},
     {SSS_NSS_ENDGRENT, nss_cmd_endgrent},
     {SSS_NSS_INITGR, nss_cmd_initgroups},
-    {SSS_NSS_NULL, NULL}
+    {SSS_CLI_NULL, NULL}
 };
 
 int nss_cmd_execute(struct cli_ctx *cctx)
 {
-    enum sss_nss_command cmd;
+    enum sss_cli_command cmd;
     int i;
 
-    cmd = nss_packet_get_cmd(cctx->creq->in);
+    cmd = sss_packet_get_cmd(cctx->creq->in);
 
-    for (i = 0; nss_cmds[i].cmd != SSS_NSS_NULL; i++) {
+    for (i = 0; nss_cmds[i].cmd != SSS_CLI_NULL; i++) {
         if (cmd == nss_cmds[i].cmd) {
             return nss_cmds[i].fn(cctx);
         }

@@ -29,6 +29,10 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+
+#include <security/pam_appl.h>
+#include <security/pam_modules.h>
+
 #include "popt.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -40,7 +44,7 @@
 #include "providers/dp_sbus.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
-
+#include "../sss_client/sss_cli.h"
 
 typedef int (*be_init_fn_t)(TALLOC_CTX *, struct be_mod_ops **, void **);
 
@@ -56,11 +60,13 @@ struct sbus_method mon_sbus_methods[] = {
 static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int be_check_online(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int be_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn);
 
 struct sbus_method be_methods[] = {
     { DP_CLI_METHOD_IDENTITY, be_identity },
     { DP_CLI_METHOD_ONLINE, be_check_online },
     { DP_CLI_METHOD_GETACCTINFO, be_get_account_info },
+    { DP_CLI_METHOD_PAMHANDLER, be_pam_handler },
     { NULL, NULL }
 };
 
@@ -503,7 +509,137 @@ done:
     return EOK;
 }
 
+static void be_pam_handler_callback(struct be_req *req, int status,
+                                const char *errstr) {
+    struct be_pam_handler *ph;
+    DBusMessage *reply;
+    DBusConnection *conn;
+    dbus_bool_t dbret;
 
+    ph = talloc_get_type(req->req_data, struct be_pam_handler);
+
+    DEBUG(4, ("Sending result [%d][%s]\n", ph->pam_status, ph->domain));
+    reply = (DBusMessage *)req->pvt;
+    dbret = dbus_message_append_args(reply,
+                                   DBUS_TYPE_UINT32, &(ph->pam_status),
+                                   DBUS_TYPE_STRING, &(ph->domain),
+                                   DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(1, ("Failed to generate dbus reply\n"));
+        return;
+    }
+
+    conn = sbus_get_connection(req->be_ctx->dp_ctx->scon_ctx);
+    dbus_connection_send(conn, reply, NULL);
+    dbus_message_unref(reply);
+
+    DEBUG(4, ("Sent result [%d][%s]\n", ph->pam_status, ph->domain));
+
+    talloc_free(req);
+}
+
+static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
+    DBusError dbus_error;
+    DBusMessage *reply;
+    struct be_ctx *ctx;
+    struct be_pam_handler *req;
+    struct be_req *be_req;
+    dbus_bool_t ret;
+    void *user_data;
+    struct pam_data *pd;
+    uint32_t pam_status=99;
+
+    user_data = sbus_conn_get_private_data(sconn);
+    if (!user_data) return EINVAL;
+    ctx = talloc_get_type(user_data, struct be_ctx);
+    if (!ctx) return EINVAL;
+
+    pd = talloc(NULL, struct pam_data);
+    if (!pd) return ENOMEM;
+
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_message_new_method_return(message);
+    if (!reply) {
+        DEBUG(1, ("dbus_message_new_method_return failed, cannot send reply.\n"));
+        talloc_free(pd);
+        return ENOMEM;
+    }
+
+
+    ret = dbus_message_get_args(message, &dbus_error,
+                                DBUS_TYPE_INT32,  &(pd->cmd),
+                                DBUS_TYPE_STRING, &(pd->domain),
+                                DBUS_TYPE_STRING, &(pd->user),
+                                DBUS_TYPE_STRING, &(pd->service),
+                                DBUS_TYPE_STRING, &(pd->tty),
+                                DBUS_TYPE_STRING, &(pd->ruser),
+                                DBUS_TYPE_STRING, &(pd->rhost),
+                                DBUS_TYPE_INT32, &(pd->authtok_type),
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(pd->authtok),
+                                    &(pd->authtok_size),
+                                DBUS_TYPE_INT32, &(pd->newauthtok_type),
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(pd->newauthtok),
+                                    &(pd->newauthtok_size),
+                                DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1,("Failed, to parse message!\n"));
+        talloc_free(pd);
+        return EIO;
+    }
+
+    DEBUG(4, ("Got request with the following data\n"));
+    DEBUG_PAM_DATA(4, pd);
+
+    be_req = talloc(ctx, struct be_req);
+    if (!be_req) {
+        pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+    be_req->be_ctx = ctx;
+    be_req->fn = be_pam_handler_callback;
+    be_req->pvt = reply;
+
+    req = talloc(be_req, struct be_pam_handler);
+    if (!req) {
+        pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+    req->domain = ctx->domain;
+    req->pd = pd;
+
+    be_req->req_data = req;
+
+    ret = be_file_request(ctx, ctx->ops->pam_handler, be_req);
+    if (ret != EOK) {
+        pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    return EOK;
+
+done:
+    if (be_req) {
+        talloc_free(be_req);
+    }
+
+    DEBUG(4, ("Sending result [%d][%s]\n", pam_status, ctx->domain));
+    ret = dbus_message_append_args(reply,
+                                   DBUS_TYPE_UINT32, &pam_status,
+                                   DBUS_TYPE_STRING, &ctx->domain,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) return EIO;
+
+    /* send reply back immediately */
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+
+    talloc_free(pd);
+    return EOK;
+}
 
 /* mon_cli_init
  * sbus channel to the monitor daemon */

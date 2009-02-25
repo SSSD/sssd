@@ -52,11 +52,17 @@
 #define DP_CLI_FRONTEND 0x0002
 #define DP_CLI_TYPE_MASK 0x0003
 
+#define DP_CLI_PROVIDE_ACC_INFO (1<<8)
+#define DP_CLI_PROVIDE_PAM (1<<9)
+#define DP_CLI_PROVIDE_POLICY (1<<10)
+
 #define DP_CLI_METHOD_IDENTITY "getIdentity"
 #define DP_CLI_METHOD_ONLINE "getOnline"
 #define DP_CLI_METHOD_GETACCTINFO "getAccountInfo"
+#define DP_CLI_METHOD_PAMHANDLER "pamHandler"
 
 #define DP_SRV_METHOD_GETACCTINFO "getAccountInfo"
+#define DP_SRV_METHOD_PAMHANDLER "pamHandler"
 
 #define DP_ERR_OK 0
 #define DP_ERR_OFFLINE 1
