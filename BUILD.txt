@@ -2,6 +2,20 @@ Very Quick Guide to build sssd components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use the following instructions to build the libraries and the binaries.
+
+sssd depends on 4 libraries originated in the samba project:
+talloc, tdb, tevent, ldb
+
+They are now available in major distribution development branches.
+
+If you have these libraries installed skip to <<Compiling sssd with system
+installed libraries>>
+
+If you want to build them from source download the latest samba master branch
+and use the following instructions
+
+Compiling libraries yourself
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 NOTE: these instructions are temporary and will most likely change agt some
 point but so far the process I describe here is the best one to get something up
 and working while developing this project.
@@ -17,10 +31,13 @@ its finally system library directory (ie build as user).
 I use the following steps to build all pieces.
 
 export LD_LIBRARY_PATH=/tmp/foo/lib
-pushd talloc; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd tdb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd tevent; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd ldb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd lib/talloc; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd lib/tdb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd lib/tevent; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+pushd source4/lib/ldb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
+
+Compiling sssd using shared-build
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pushd server; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make; popd
 
 At this point you can start testing the sssd daemon this way:
@@ -31,7 +48,12 @@ export LD_LIBRARY_PATH=/tmp/foo/lib
 
 This will start the sssd daemon in interactive mode.
 
+Compiling sssd with system installed libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+pushd server; ./autogen.sh && ./configure && make; popd
 
+Compiling client libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 The nss and pam client doesn't need any dependency nor supports the
 shared-build option.
 
