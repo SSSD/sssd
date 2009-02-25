@@ -9,6 +9,7 @@ cn: services
 description: Local service configuration
 activeServices: nss
 activeServices: dp
+activeServices: pam
 
 dn: cn=nss,cn=services,cn=config
 cn: nss
@@ -27,6 +28,12 @@ description: Monitor Configuration
 sbusTimeout: 10
 sbusAddress: unix:path=/var/lib/sss/pipes/private/dbus
 servicePingTime: 10
+
+dn: cn=pam,cn=services,cn=config
+cn: pam
+command: /usr/libexec/sssd/sssd_pam
+description: PAM Responder Configuration
+unixSocket: /var/lib/sss/pipes/pam
 
 dn: cn=domains,cn=config
 cn: domains
@@ -56,3 +63,11 @@ libName: ldap
 libPath: /usr/lib64/libnss_ldap.so.2
 legacy: TRUE
 enumerate: 0
+
+dn: cn=LDAPTEST,cn=domains,cn=config
+cn: LDAPTEST
+basedn: cn=LDAPTEST,sn=sysdb
+command: ./sbin/sssd_be --provider ldap --domain LDAPTEST
+description: TEST PAM Ldap domain
+provider: ldap
+userSearchBase: ou=user,dc=my-domain,dc=com

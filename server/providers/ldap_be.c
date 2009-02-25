@@ -36,6 +36,9 @@
 struct ldap_ctx {
     char *ldap_uri;
     char *default_bind_dn;
+    char *user_search_base;
+    char *user_name_attribute;
+    char *user_object_class;
     char *default_authtok_type;
     uint32_t default_authtok_size;
     char *default_authtok;
@@ -65,14 +68,14 @@ struct ldap_req {
     LDAP *ldap;
     struct ldap_ops *ops;
     char *user_dn;
-    /*event_timed_handler_t next_task;*/
     event_fd_handler_t next_task;
     enum ldap_be_ops next_op;
     int msgid;
 };
 
 static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
-                              event_timed_handler_t task) {
+                              event_timed_handler_t task)
+{
     int ret;
     struct timed_event *te;
     struct timeval timeout;
@@ -87,33 +90,35 @@ static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
 
 
     te = event_add_timed(lr->req->be_ctx->ev, lr, timeout, task, lr); 
-    if ( te == NULL ) {
+    if (te == NULL) {
         return EIO;
     }
 
     return EOK;
 }
 
-static int wait_for_fd(struct ldap_req *lr) {
+static int wait_for_fd(struct ldap_req *lr)
+{
     int ret;
     int fd;
     struct fd_event *fde;
 
     ret = ldap_get_option(lr->ldap, LDAP_OPT_DESC, &fd);
-    if ( ret != LDAP_OPT_SUCCESS ) {
+    if (ret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("ldap_get_option failed.\n"));
         return ret;
     }
 
     fde = event_add_fd(lr->req->be_ctx->ev, lr, fd, EVENT_FD_READ, lr->next_task, lr);
-    if ( fde == NULL ) {
+    if (fde == NULL) {
         return EIO;
     }
 
     return EOK;
 }
 
-static int ldap_pam_chauthtok(struct ldap_req *lr) {
+static int ldap_pam_chauthtok(struct ldap_req *lr)
+{
     BerElement *ber=NULL;
     int ret;
     int pam_status=PAM_SUCCESS;
@@ -123,7 +128,7 @@ static int ldap_pam_chauthtok(struct ldap_req *lr) {
     int ldap_ret;
 
     ber = ber_alloc_t( LBER_USE_DER );
-    if ( ber == NULL ) {
+    if (ber == NULL) {
         DEBUG(1, ("ber_alloc_t failed.\n"));
         return PAM_SYSTEM_ERR;
     }
@@ -132,14 +137,14 @@ static int ldap_pam_chauthtok(struct ldap_req *lr) {
                      lr->user_dn,
                      LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, lr->pd->authtok,
                      LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, lr->pd->newauthtok);
-    if ( ret == -1 ) {
+    if (ret == -1) {
         DEBUG(1, ("ber_printf failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto cleanup;
     }
 
     ret = ber_flatten(ber, &bv);
-    if ( ret == -1 ) {
+    if (ret == -1) {
         DEBUG(1, ("ber_flatten failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto cleanup;
@@ -147,21 +152,21 @@ static int ldap_pam_chauthtok(struct ldap_req *lr) {
 
     ret = ldap_extended_operation(lr->ldap, LDAP_EXOP_MODIFY_PASSWD, bv,
                                   NULL, NULL, &msgid);
-    if ( ret != LDAP_SUCCESS ) {
+    if (ret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_extended_operation failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto cleanup;
     }
 
     ret = ldap_result(lr->ldap, msgid, FALSE, NULL, &result);
-    if ( ret == -1 ) {
+    if (ret == -1) {
         DEBUG(1, ("ldap_result failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto cleanup;
     }
     ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, NULL, NULL,
                             NULL, 0);
-    if ( ret != LDAP_SUCCESS ) {
+    if (ret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_parse_result failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto cleanup;
@@ -171,7 +176,7 @@ static int ldap_pam_chauthtok(struct ldap_req *lr) {
 
     ldap_msgfree(result);
 
-    if ( ldap_ret != LDAP_SUCCESS ) pam_status = PAM_SYSTEM_ERR;
+    if (ldap_ret != LDAP_SUCCESS) pam_status = PAM_SYSTEM_ERR;
 
 cleanup:
     ber_bvfree(bv);
@@ -179,7 +184,8 @@ cleanup:
     return pam_status;
 }
 
-static int ldap_be_init(struct ldap_req *lr) {
+static int ldap_be_init(struct ldap_req *lr)
+{
     int ret;
     int status=EOK;
     int ldap_vers = LDAP_VERSION3;
@@ -193,7 +199,7 @@ static int ldap_be_init(struct ldap_req *lr) {
 
     /* LDAPv3 is needed for TLS */
     ret = ldap_set_option(lr->ldap, LDAP_OPT_PROTOCOL_VERSION, &ldap_vers);
-    if ( ret != LDAP_OPT_SUCCESS) {
+    if (ret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
         status = EIO;
         goto cleanup;
@@ -203,7 +209,7 @@ static int ldap_be_init(struct ldap_req *lr) {
      * configurable to allow people to expose their passwords over the
      * network. */
     ret = ldap_start_tls(lr->ldap, NULL, NULL, &msgid);
-    if ( ret != LDAP_SUCCESS) {
+    if (ret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_start_tls failed: %s\n", ldap_err2string(ret)));
         status = EIO;
         goto cleanup;
@@ -219,7 +225,8 @@ cleanup:
     return status;
 }
 
-static int ldap_be_bind(struct ldap_req *lr) {
+static int ldap_be_bind(struct ldap_req *lr)
+{
     int ret;
     int msgid;
     char *dn=NULL;
@@ -228,12 +235,12 @@ static int ldap_be_bind(struct ldap_req *lr) {
     pw.bv_len = 0;
     pw.bv_val = NULL;
 
-    if ( lr->user_dn != NULL ) {
+    if (lr->user_dn != NULL) {
         dn = lr->user_dn;
         pw.bv_len = lr->pd->authtok_size;
         pw.bv_val = (char *) lr->pd->authtok;
     }
-    if ( lr->user_dn == NULL && lr->ldap_ctx->default_bind_dn != NULL ) {
+    if (lr->user_dn == NULL && lr->ldap_ctx->default_bind_dn != NULL) {
         dn = lr->ldap_ctx->default_bind_dn;
         pw.bv_len = lr->ldap_ctx->default_authtok_size;
         pw.bv_val = lr->ldap_ctx->default_authtok;
@@ -242,7 +249,7 @@ static int ldap_be_bind(struct ldap_req *lr) {
     DEBUG(3, ("Trying to bind as [%s][%*s]\n", dn, pw.bv_len, pw.bv_val));
     ret = ldap_sasl_bind(lr->ldap, dn, LDAP_SASL_SIMPLE, &pw, NULL, NULL,
                          &msgid);
-    if ( ret == -1 || msgid == -1 ) {
+    if (ret == -1 || msgid == -1) {
         DEBUG(1, ("ldap_bind failed\n"));
         return LDAP_OTHER;
     }
@@ -251,7 +258,8 @@ static int ldap_be_bind(struct ldap_req *lr) {
 }
 
 static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
-                     uint16_t fd, void *pvt) {
+                     uint16_t fd, void *pvt)
+{
     int ret;
     int pam_status=PAM_SUCCESS;
     int ldap_ret;
@@ -268,7 +276,7 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
 
     lr = talloc_get_type(pvt, struct ldap_req); 
 
-    switch ( lr->next_op ) {
+    switch (lr->next_op) {
         case LDAP_OP_INIT:
             ret = ldap_be_init(lr);
             if (ret != EOK) {
@@ -279,17 +287,17 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
             }
         case LDAP_CHECK_INIT_RESULT:
             ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
-            if ( ret == -1 ) {
+            if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            if ( ret == 0 ) {
+            if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = ldap_be_loop;
                 lr->next_op = LDAP_CHECK_INIT_RESULT;
                 ret = wait_for_fd(lr);
-                if ( ret != EOK ) {
+                if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
                     pam_status = PAM_SYSTEM_ERR;
                     goto done;
@@ -298,14 +306,14 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
             }
 
             ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, NULL, NULL, NULL, 0);
-            if ( ret != LDAP_SUCCESS ) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_parse_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
             DEBUG(3, ("ldap_start_tls result: [%d][%s]\n", ldap_ret, ldap_err2string(ldap_ret)));
 
-            if ( ldap_ret != LDAP_SUCCESS ) {
+            if (ldap_ret != LDAP_SUCCESS) {
                 DEBUG(1, ("setting up TLS failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
@@ -313,31 +321,31 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
 
 /* FIXME: take care that ldap_install_tls might block */
             ret = ldap_install_tls(lr->ldap);
-            if ( ret != LDAP_SUCCESS ) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_install_tls failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
 
             ret = ldap_be_bind(lr);
-            if ( ret != LDAP_SUCCESS ) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_be_bind failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
         case LDAP_CHECK_STD_BIND:
             ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
-            if ( ret == -1 ) {
+            if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            if ( ret == 0 ) {
+            if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = ldap_be_loop;
                 lr->next_op = LDAP_CHECK_STD_BIND;
                 ret = wait_for_fd(lr);
-                if ( ret != EOK ) {
+                if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
                     pam_status = PAM_SYSTEM_ERR;
                     goto done;
@@ -347,26 +355,28 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
 
             ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, &errmsgp,
                                     NULL, NULL, 0);
-            if ( ret != LDAP_SUCCESS ) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_parse_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
             DEBUG(3, ("Bind result: [%d][%s][%s]\n", ldap_ret,
                       ldap_err2string(ldap_ret), errmsgp));
-            if ( ldap_ret != LDAP_SUCCESS ) {
+            if (ldap_ret != LDAP_SUCCESS) {
                 DEBUG(1, ("bind failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
 
             filter = talloc_asprintf(lr->ldap_ctx,
-                                     "(&(uid=%s)(objectclass=posixAccount))",
-                                     lr->pd->user);
+                                     "(&(%s=%s)(objectclass=%s))",
+                                     lr->ldap_ctx->user_name_attribute,
+                                     lr->pd->user,
+                                     lr->ldap_ctx->user_object_class);
 
             DEBUG(4, ("calling ldap_search_ext with [%s].\n", filter));
             ret = ldap_search_ext(lr->ldap,
-                                  "ou=user,dc=my-domain,dc=com",
+                                  lr->ldap_ctx->user_search_base,
                                   LDAP_SCOPE_SUBTREE,
                                   filter,
                                   attrs,
@@ -376,24 +386,24 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
                                   NULL,
                                   0,
                                   &(lr->msgid));
-            if ( ret != LDAP_SUCCESS) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_search_ext failed [%d][%s].\n", ret, ldap_err2string(ret)));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
         case LDAP_CHECK_SEARCH_DN_RESULT:
             ret = ldap_result(lr->ldap, lr->msgid, TRUE, &no_timeout, &result);
-            if ( ret == -1 ) {
+            if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            if ( ret == 0 ) {
+            if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = ldap_be_loop;
                 lr->next_op = LDAP_CHECK_SEARCH_DN_RESULT;
                 ret = wait_for_fd(lr);
-                if ( ret != EOK ) {
+                if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
                     pam_status = PAM_SYSTEM_ERR;
                     goto done;
@@ -402,7 +412,7 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
             }
 
             msg = ldap_first_message(lr->ldap, result);
-            if ( msg == NULL ) {
+            if (msg == NULL) {
                 DEBUG(1, ("ldap_first_message failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
@@ -411,14 +421,14 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
             do {
                 switch ( ldap_msgtype(msg) ) {
                     case LDAP_RES_SEARCH_ENTRY:
-                        if ( lr->user_dn != NULL ) {
+                        if (lr->user_dn != NULL) {
                             DEBUG(1, ("Found more than one object with filter [%s].\n",
                                       filter));
                             pam_status = PAM_SYSTEM_ERR;
                             goto done;
                         }
                         lr->user_dn = ldap_get_dn(lr->ldap, msg);
-                        if ( lr->user_dn == NULL ) {
+                        if (lr->user_dn == NULL) {
                             DEBUG(1, ("ldap_get_dn failed.\n"));
                             pam_status = PAM_SYSTEM_ERR;
                             goto done;
@@ -440,24 +450,24 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
             } while( (msg=ldap_next_message(lr->ldap, msg)) != NULL );
 
             ret = ldap_be_bind(lr);
-            if ( ret != LDAP_SUCCESS ) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_be_bind failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
         case LDAP_CHECK_USER_BIND:
             ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
-            if ( ret == -1 ) {
+            if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            if ( ret == 0 ) {
+            if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = ldap_be_loop;
                 lr->next_op = LDAP_CHECK_USER_BIND;
                 ret = wait_for_fd(lr);
-                if ( ret != EOK ) {
+                if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
                     pam_status = PAM_SYSTEM_ERR;
                     goto done;
@@ -467,7 +477,7 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
 
             ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, &errmsgp,
                                     NULL, NULL, 0);
-            if ( ret != LDAP_SUCCESS ) {
+            if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("ldap_parse_result failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
@@ -486,19 +496,6 @@ static void ldap_be_loop(struct event_context *ev, struct fd_event *te,
                     pam_status = PAM_SYSTEM_ERR;
                     goto done;
             }
-
-
-
-
-/*
-            ret = pam_setup_ldap_connection(lr);
-            if ( ret != PAM_SUCCESS ) {
-                DEBUG(1, ("pam_setup_ldap_connection failed.\n"));
-                pam_status = ret;
-                goto done;
-            }
-            DEBUG(3, ("Successfully connected as %s.\n", lr->user_dn));
-*/
 
             switch (lr->pd->cmd) {
                 case SSS_PAM_AUTHENTICATE:
@@ -527,7 +524,7 @@ done:
     ldap_memfree(errmsgp);
     ldap_msgfree(result);
     talloc_free(filter);
-    if (lr->ldap != NULL ) ldap_unbind_ext(lr->ldap, NULL, NULL);
+    if (lr->ldap != NULL) ldap_unbind_ext(lr->ldap, NULL, NULL);
     req = lr->req;
     ph = talloc_get_type(lr->req->req_data, struct be_pam_handler);
     ph->pam_status = pam_status;
@@ -538,7 +535,8 @@ done:
 }
 
 static void ldap_start(struct event_context *ev, struct timed_event *te,
-                     struct timeval tv, void *pvt) {
+                     struct timeval tv, void *pvt)
+{
     int ret;
     int pam_status;
     struct ldap_req *lr;
@@ -558,7 +556,7 @@ static void ldap_start(struct event_context *ev, struct timed_event *te,
     lr->next_task = ldap_be_loop;
     lr->next_op = LDAP_CHECK_INIT_RESULT;
     ret = wait_for_fd(lr);
-    if ( ret != EOK ) {
+    if (ret != EOK) {
         DEBUG(1, ("schedule_next_task failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto done;
@@ -576,7 +574,8 @@ done:
     req->fn(req, pam_status, NULL);
 }
 
-static void ldap_pam_handler(struct be_req *req) {
+static void ldap_pam_handler(struct be_req *req)
+{
     int ret;
     int pam_status=PAM_SUCCESS;
     struct ldap_req *lr;
@@ -603,7 +602,7 @@ static void ldap_pam_handler(struct be_req *req) {
     timeout.tv_sec=0;
     timeout.tv_usec=0;
     ret = schedule_next_task(lr, timeout, ldap_start);
-    if ( ret != EOK ) {
+    if (ret != EOK) {
         DEBUG(1, ("schedule_next_task failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
         goto done;
@@ -632,6 +631,9 @@ int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_dat
     char *default_bind_dn;
     char *default_authtok_type;
     char *default_authtok;
+    char *user_search_base;
+    char *user_name_attribute;
+    char *user_object_class;
     int ret;
 
     ctx = talloc(bectx, struct ldap_ctx);
@@ -639,6 +641,8 @@ int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_dat
         return ENOMEM;
     }
 
+/* TODO: add validation checks for ldapUri, user_search_base,
+ * user_name_attribute, etc */
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                            "ldapUri", "ldap://localhost", &ldap_uri);
     if (ret != EOK) goto done;
@@ -654,6 +658,26 @@ int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_dat
     if (ret != EOK) goto done;
     ctx->default_authtok_type = default_authtok_type;
 
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                           "userSearchBase", NULL, &user_search_base);
+    if (ret != EOK) goto done;
+    if (user_search_base == NULL) {
+        DEBUG(1, ("missing userSearchBase.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    ctx->user_search_base = user_search_base;
+
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                           "userNameAttribute", "uid", &user_name_attribute);
+    if (ret != EOK) goto done;
+    ctx->user_name_attribute = user_name_attribute;
+
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                           "userObjectClass", "posixAccount",
+                           &user_object_class);
+    if (ret != EOK) goto done;
+    ctx->user_object_class = user_object_class;
 
 /* TODO: better to have a blob object than a string here */
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
