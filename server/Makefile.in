@@ -94,7 +94,7 @@ default: all
 include $(srvdir)/rules.mk
 include $(srvdir)/server.mk
 
-OBJS = $(SERVER_OBJ) @LIBREPLACEOBJ@ $(EXTRA_OBJ)
+OBJS = $(SERVER_OBJ) $(EXTRA_OBJ)
 
 headers =
 
