@@ -20,7 +20,7 @@
 */
 
 #include "util/util.h"
-#include "db/sysdb.h"
+#include "db/sysdb_private.h"
 #include <time.h>
 
 /* the following are all SYNCHRONOUS calls

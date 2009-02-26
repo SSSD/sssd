@@ -97,6 +97,9 @@ static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
     char *delim;
     char *domain;
 
+    /* TODO: add list of names to filter to configuration */
+    if (strcmp(fullname, "root") == 0) return ECANCELED;
+
     domain_map = nctx->domain_map;
 
     if ((delim = strchr(fullname, NSS_DOMAIN_DELIM)) != NULL) {
@@ -367,7 +370,7 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          dctx->legacy,
                          nss_cmd_getpwnam_callback, dctx);
@@ -386,6 +389,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
+    const char *rawname;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -407,23 +411,27 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         talloc_free(cmdctx);
         return EINVAL;
     }
+    rawname = (const char *)body;
 
-    ret = nss_parse_name(dctx, (const char *)body);
+    ret = nss_parse_name(dctx, rawname);
     if (ret != EOK) {
-        DEBUG(1, ("Invalid name received\n"));
-        talloc_free(cmdctx);
-        return ret;
+        DEBUG(2, ("Invalid name received [%s]\n", rawname));
+        goto done;
     }
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               cmdctx->name, dctx->domain));
 
-    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          dctx->legacy,
                          nss_cmd_getpwnam_callback, dctx);
+
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
+    }
 
+done:
+    if (ret != EOK) {
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret == EOK) {
             nss_cmd_done(cmdctx);
@@ -586,7 +594,7 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getpwuid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->id,
                          dctx->legacy,
                          nss_cmd_getpwuid_callback, dctx);
@@ -656,7 +664,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain));
 
-        ret = sysdb_getpwuid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+        ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
                              dctx->domain, cmdctx->id,
                              dctx->legacy,
                              nss_cmd_getpwuid_callback, dctx);
@@ -773,7 +781,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_enumpwent(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_enumpwent(cmdctx, cctx->nctx->sysdb,
                           dctx->domain, dctx->legacy,
                           nss_cmd_setpwent_callback, cmdctx);
     if (ret != EOK) {
@@ -854,7 +862,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
                                        timeout, domains[i], NSS_DP_USER,
                                        NULL, 0);
         } else {
-            ret = sysdb_enumpwent(dctx, cctx->ev, cctx->nctx->sysdb,
+            ret = sysdb_enumpwent(dctx, cctx->nctx->sysdb,
                                   dctx->domain, dctx->legacy,
                                   nss_cmd_setpwent_callback, cmdctx);
         }
@@ -1280,7 +1288,7 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getgrnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          dctx->legacy,
                          nss_cmd_getgrnam_callback, dctx);
@@ -1299,6 +1307,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
+    const char *rawname;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -1320,23 +1329,26 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
         talloc_free(cmdctx);
         return EINVAL;
     }
+    rawname = (const char *)body;
 
-    ret = nss_parse_name(dctx, (const char *)body);
+    ret = nss_parse_name(dctx, rawname);
     if (ret != EOK) {
-        DEBUG(1, ("Invalid name received\n"));
-        talloc_free(cmdctx);
-        return ret;
+        DEBUG(2, ("Invalid name received [%s]\n", rawname));
+        goto done;
     }
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               cmdctx->name, dctx->domain));
 
-    ret = sysdb_getgrnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          dctx->legacy,
                          nss_cmd_getgrnam_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
+    }
 
+done:
+    if (ret != EOK) {
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret == EOK) {
             nss_cmd_done(cmdctx);
@@ -1484,7 +1496,7 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getgrgid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->id,
                          dctx->legacy,
                          nss_cmd_getgrgid_callback, dctx);
@@ -1549,7 +1561,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain));
 
-        ret = sysdb_getgrgid(cmdctx, cctx->ev, cctx->nctx->sysdb,
+        ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
                              dctx->domain, cmdctx->id,
                              dctx->legacy,
                              nss_cmd_getgrgid_callback, dctx);
@@ -1665,7 +1677,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_enumgrent(dctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_enumgrent(dctx, cctx->nctx->sysdb,
                           dctx->domain, dctx->legacy,
                           nss_cmd_setgrent_callback, cmdctx);
     if (ret != EOK) {
@@ -1746,7 +1758,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
                                        timeout, domains[i], NSS_DP_GROUP,
                                        NULL, 0);
         } else {
-            ret = sysdb_enumgrent(dctx, cctx->ev, cctx->nctx->sysdb,
+            ret = sysdb_enumgrent(dctx, cctx->nctx->sysdb,
                                   dctx->domain, dctx->legacy,
                                   nss_cmd_setgrent_callback, cmdctx);
         }
@@ -1994,7 +2006,7 @@ static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_initgroups(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_initgroups(cmdctx, cctx->nctx->sysdb,
                            dctx->domain, cmdctx->name,
                            dctx->legacy,
                            nss_cmd_initgr_callback, cmdctx);
@@ -2027,7 +2039,7 @@ static void nss_cmd_getinitnam_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          dctx->legacy,
                          nss_cmd_getinit_callback, dctx);
@@ -2155,6 +2167,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
+    const char *rawname;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -2171,28 +2184,30 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 
     /* get user name to query */
     sss_packet_get_body(cctx->creq->in, &body, &blen);
-    cmdctx->name = (const char *)body;
     /* if not terminated fail */
-    if (cmdctx->name[blen -1] != '\0') {
+    if (body[blen -1] != '\0') {
         return EINVAL;
     }
+    rawname = (const char *)body;
 
-    ret = nss_parse_name(dctx, (const char *)body);
+    ret = nss_parse_name(dctx, rawname);
     if (ret != EOK) {
-        DEBUG(1, ("Invalid name received\n"));
-        talloc_free(cmdctx);
-        return ret;
+        DEBUG(2, ("Invalid name received [%s]\n", rawname));
+        goto done;
     }
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               cmdctx->name, dctx->domain));
 
-    ret = sysdb_getpwnam(cmdctx, cctx->ev, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          dctx->legacy,
                          nss_cmd_getinit_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
+    }
 
+done:
+    if (ret != EOK) {
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret == EOK) {
             nss_cmd_done(cmdctx);

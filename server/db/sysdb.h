@@ -23,7 +23,6 @@
 #define __SYS_DB_H__
 
 #include "ldb.h"
-#include "ldb_errors.h"
 
 #define SYSDB_CONF_SECTION "config/sysdb"
 #define SYSDB_FILE "sssd.ldb"
@@ -77,12 +76,8 @@
 #define SYSDB_INITGR_ATTRS {SYSDB_GR_GIDNUM, SYSDB_LAST_UPDATE, \
                             NULL}
 
-struct sysdb_ctx {
-    struct ldb_context *ldb;
-    char *ldb_file;
-};
-
 struct confdb_ctx;
+struct sysdb_ctx;
 
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 
@@ -93,7 +88,6 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
                struct sysdb_ctx **dbctx);
 
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
-                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    const char *name,
@@ -101,7 +95,6 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
-                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    uid_t uid,
@@ -109,14 +102,12 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev,
                     struct sysdb_ctx *ctx,
                     const char *domain,
                     bool legacy,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
-                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    const char *name,
@@ -124,7 +115,6 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
-                   struct tevent_context *ev,
                    struct sysdb_ctx *ctx,
                    const char *domain,
                    gid_t gid,
@@ -132,14 +122,12 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev,
                     struct sysdb_ctx *ctx,
                     const char *domain,
                     bool legacy,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
-                     struct tevent_context *ev,
                      struct sysdb_ctx *ctx,
                      const char *domain,
                      const char *name,

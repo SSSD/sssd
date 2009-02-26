@@ -13,6 +13,8 @@ UTIL_OBJ = \
     sbus/sbus_client.o \
     confdb/confdb.o \
 	db/sysdb.o \
+	db/sysdb_req.o \
+	db/sysdb_search.o \
 	db/sysdb_sync.o
 
 RESPONDER_UTIL_OBJ = \

@@ -67,4 +67,29 @@
      "description: Local POSIX groups\n" \
      "\n"
 
+#include "db/sysdb.h"
+
+struct sysdb_req;
+
+struct sysdb_ctx {
+    struct tevent_context *ev;
+    struct ldb_context *ldb;
+    char *ldb_file;
+    struct sysdb_req *queue;
+};
+
+typedef void (*sysdb_req_fn_t)(struct sysdb_req *, void *pvt);
+
+int sysdb_error_to_errno(int ldberr);
+
+int sysdb_transaction(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      sysdb_req_fn_t fn, void *pvt);
+void sysdb_transaction_done(struct sysdb_req *req, int status);
+
+int sysdb_operation(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      sysdb_req_fn_t fn, void *pvt);
+void sysdb_operation_done(struct sysdb_req *req);
+
 #endif /* __INT_SYS_DB_H__ */

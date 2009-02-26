@@ -397,7 +397,15 @@ failed:
  * only ASCII names for now */
 static int _domain_comparator(const void *key1, const void *key2)
 {
-    return strcasecmp((const char *)key1, (const char *)key2);
+    int ret;
+
+    ret = strcasecmp((const char *)key1, (const char *)key2);
+    if (ret) {
+        /* special case LOCAL to be always the first domain */
+        if (strcmp(key1, "LOCAL") == 0) return 1;
+        if (strcmp(key2, "LOCAL") == 0) return -1;
+    }
+    return ret;
 }
 
 static int nss_init_domains(struct nss_ctx *nctx)
