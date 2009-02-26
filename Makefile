@@ -1,7 +1,7 @@
 PACKAGE_NAME = sssd
 PACKAGE_VERSION = 0.1.0
 TARGET ?= master
-SUBDIRS = server replace nss_client
+SUBDIRS = server replace sss_client
 TARBALL_PREFIX = $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 TARBALL = $(TARBALL_PREFIX).tar.gz
 LIBDIR ?= /usr/lib

@@ -62,10 +62,10 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_sbindir}/sssd
-%{_libexecdir}/sssd/sssd_nss
-%{_libexecdir}/sssd/sssd_dp
-%{_libexecdir}/sssd/sssd_be
+%{_libexecdir}/%{name}/
 %{_libdir}/%{name}/
+%{_libdir}/ldb/memberof.so*
+%{_sharedstatedir}/sss/
 # infopipe files
 %{_libexecdir}/sssd/sssd_info
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freeipa.sssd.infopipe.conf

@@ -10,6 +10,7 @@ libexecdir = @libexecdir@
 bindir = @bindir@
 sbindir = @sbindir@
 mandir = @mandir@
+localstatedir = @localstatedir@
 VPATH = @srcdir@:@libreplacedir@
 srcdir = @srcdir@
 builddir = @builddir@
@@ -18,9 +19,12 @@ INSTALLCMD = @INSTALL@
 EXTRA_OBJ=@EXTRA_OBJ@
 SSSD_LIBEXEC_PATH = @SSSD_LIBEXEC_PATH@
 SSSD_LIBDIR = $(libdir)/@PACKAGE_NAME@
+LDB_LIBDIR = $(libdir)/ldb
 SSSD_INTROSPECT_PATH = @SSSD_INTROSPECT_PATH@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 srvdir = $(srcdir)
+pipepath = @pipepath@
+dbpath = @dbpath@
 
 TALLOC_LIBS = @TALLOC_LIBS@
 TALLOC_CFLAGS = @TALLOC_CFLAGS@
@@ -117,7 +121,8 @@ BINS = sbin/sssd $(LIBEXECBINS)
 TESTS = tests/sysdb-tests tests/infopipe-tests
 TESTS_DATA = tests/tests.ldb tests/tests_conf.ldb tests/introspect.ref
 
-SOLIBS = lib/$(MEMBEROF_SOLIB) lib/$(PROXY_BE_SOLIB) lib/$(LDAP_BE_SOLIB)
+SOLIBS = lib/$(PROXY_BE_SOLIB) lib/$(LDAP_BE_SOLIB)
+LDBLIBS = lib/$(MEMBEROF_SOLIB)
 SONAMELIBS = lib/$(PROXY_BE_SONAME) lib/$(MEMBEROF_SONAME) lib/$(LDAP_BE_SONAME)
 SOBASELIBS = lib/$(PROXY_BE_SOBASE) lib/$(MEMBEROF_SOBASE) lib/$(LDAP_BE_SOBASE)
 
@@ -137,7 +142,7 @@ clean:: testclean
 	rm -f $(OBJS) $(BINS) $(MODULES)
 	rm -f *.o */*.o */*/*.o
 	rm -f $(BINS)
-	rm -f $(SOBASELIBS) $(SONAMELIBS) $(SOLIBS)
+	rm -f $(SOBASELIBS) $(SONAMELIBS) $(SOLIBS) $(LDBLIBS)
 
 distclean:: clean
 	rm -rf $(DIRS)
@@ -161,8 +166,11 @@ installdirs::
 	          $(DESTDIR)$(libdir) \
 	          $(DESTDIR)$(sbindir) \
 		  $(DESTDIR)$(SSSD_LIBDIR) \
+		  $(DESTDIR)$(LDB_LIBDIR) \
 	          $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR) \
-	          $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe
+	          $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe \
+		  $(DESTDIR)$(pipepath)/private \
+		  $(DESTDIR)$(dbpath)
 
 installheaders:: installdirs
 ifneq (x$(headers), x)
@@ -174,12 +182,13 @@ ifneq (x$(STATICLIB)$(LIBSOLIB), x)
 	cp $(STATICLIB) $(LIBSOLIB) $(DESTDIR)$(SSSD_LIBDIR)
 endif
 	${INSTALLCMD} -m 755 $(SOLIBS) $(DESTDIR)$(SSSD_LIBDIR)
+	${INSTALLCMD} -m 755 $(LDBLIBS) $(DESTDIR)$(LDB_LIBDIR)
 	ln -fs $(PROXY_BE_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(PROXY_BE_SONAME)
 	ln -fs $(PROXY_BE_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(PROXY_BE_SOBASE)
 	ln -fs $(LDAP_BE_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(LDAP_BE_SONAME)
 	ln -fs $(LDAP_BE_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(LDAP_BE_SOBASE)
-	ln -fs $(MEMBEROF_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(MEMBEROF_SONAME)
-	ln -fs $(MEMBEROF_SOLIB) $(DESTDIR)$(SSSD_LIBDIR)/$(MEMBEROF_SOBASE)
+	ln -fs $(MEMBEROF_SOLIB) $(DESTDIR)$(LDB_LIBDIR)/$(MEMBEROF_SONAME)
+	ln -fs $(MEMBEROF_SOLIB) $(DESTDIR)$(LDB_LIBDIR)/$(MEMBEROF_SOBASE)
 
 installbin:: installdirs
 
