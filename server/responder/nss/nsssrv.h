@@ -65,7 +65,7 @@ struct nss_ctx {
     int cache_timeout;
 
     struct sbus_method *sss_sbus_methods;
-    struct sss_cmd_table *sss_cmds; 
+    struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;
     const char *confdb_socket_path;
     struct sbus_method *dp_methods;
@@ -79,13 +79,6 @@ struct cli_ctx {
     struct sockaddr_un addr;
     struct cli_request *creq;
     struct getent_ctx *gctx;
-};
-
-struct nss_domain_info {
-    char *basedn;
-    int enumerate;
-    bool has_provider;
-    bool legacy;
 };
 
 struct nss_packet;

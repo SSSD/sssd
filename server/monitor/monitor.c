@@ -365,6 +365,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     struct mt_ctx *ctx;
     struct mt_svc *svc;
     char **doms;
+    int dom_count;
     char *path;
     int ret, i;
 
@@ -434,13 +435,13 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* now start the data providers */
-    ret = confdb_get_domains(cdb, ctx, &doms);
+    ret = confdb_get_domains_list(cdb, ctx, (const char ***)&doms, &dom_count);
     if (ret != EOK) {
         DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
         return ret;
     }
 
-    for (i = 0; doms[i]; i++) {
+    for (i = 0; i < dom_count; i++) {
         svc = talloc_zero(ctx, struct mt_svc);
         if (!svc) {
             talloc_free(ctx);

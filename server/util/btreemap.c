@@ -166,21 +166,51 @@ int btreemap_set_value(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-/* Return an array of keys in sort order
- * count should be initialized to zero before calling this function.
- */
-void btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count)
+static int _btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count, int depth)
 {
-    if (map == NULL) return;
+    int ret;
+    const void **tmp_array;
+
+    if (map == NULL) {
+        if (depth == 0) {
+            /* This is the top-level */
+            count = 0;
+            *array = NULL;
+        }
+        return EOK;
+    }
 
     /* Left Node */
-    btreemap_get_keys(mem_ctx, map->left, array, count);
+    ret = _btreemap_get_keys(mem_ctx, map->left, array, count, depth+1);
+    if (ret != EOK) {
+        return ret;
+    }
 
     /* Current Node */
     (*count)++;
-    *array = talloc_realloc(mem_ctx, *array, const void *, *count);
+    tmp_array = talloc_realloc(mem_ctx, *array, const void *, *count);
+    if (tmp_array == NULL) {
+        /* Out of memory */
+        *count = 0;
+        talloc_free(*array);
+        *array = NULL;
+        return ENOMEM;
+    }
+    *array = tmp_array;
     (*array)[(*count)-1] = map->key;
 
     /* Right Node */
-    btreemap_get_keys(mem_ctx, map->right, array, count);
+    ret = _btreemap_get_keys(mem_ctx, map->right, array, count, depth+1);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    return EOK;
+}
+/* Return an array of keys in sort order
+ */
+int btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count)
+{
+    *array = NULL;
+    return _btreemap_get_keys(mem_ctx, map, array, count, 0);
 }

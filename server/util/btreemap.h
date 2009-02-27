@@ -35,7 +35,7 @@ void *btreemap_get_value(struct btreemap *map, const void *key);
 int btreemap_set_value(TALLOC_CTX *mem_ctx,
                        struct btreemap **map, const void *key, void *value,
                        btreemap_comparison_fn comparator);
-void btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count);
+int btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count);
 
 
 #endif /*BTREEMAP_H_*/

@@ -25,6 +25,7 @@
 #include "responder/nss/nsssrv.h"
 #include "db/sysdb.h"
 #include <time.h>
+#include "confdb/confdb.h"
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
@@ -92,7 +93,7 @@ static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct nss_ctx *nctx = cmdctx->cctx->nctx;
-    struct nss_domain_info *info;
+    struct sss_domain_info *info;
     struct btreemap *domain_map;
     char *delim;
     char *domain;
@@ -617,7 +618,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct nss_domain_info *info;
+    struct sss_domain_info *info;
     const char **domains;
     uint8_t *body;
     size_t blen;
@@ -643,8 +644,10 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     domains = NULL;
     num = 0;
     /* get domains list */
-    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
-                      (const void ***)&domains, &num);
+    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                            (const void ***)&domains, &num);
+    if (ret != EOK)
+        return ret;
 
     cmdctx->nr = num;
 
@@ -797,7 +800,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
 
 static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 {
-    struct nss_domain_info *info;
+    struct sss_domain_info *info;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *gctx;
@@ -832,8 +835,11 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
     domains = NULL;
     num = 0;
     /* get domains list */
-    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
                       (const void ***)&domains, &num);
+    if (ret != EOK) {
+        return ret;
+    }
 
     /* check if enumeration is enabled in any domain */
     for (i = 0; i < num; i++) {
@@ -1515,7 +1521,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct nss_domain_info *info;
+    struct sss_domain_info *info;
     const char **domains;
     uint8_t *body;
     size_t blen;
@@ -1541,8 +1547,11 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     domains = NULL;
     num = 0;
     /* get domains list */
-    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
-                      (const void ***)&domains, &num);
+    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                            (const void ***)&domains, &num);
+    if (ret != EOK) {
+        return ret;
+    }
 
     cmdctx->nr = num;
 
@@ -1693,7 +1702,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
 
 static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 {
-    struct nss_domain_info *info;
+    struct sss_domain_info *info;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *gctx;
@@ -1728,8 +1737,11 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
     domains = NULL;
     num = 0;
     /* get domains list */
-    btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
-                      (const void ***)&domains, &num);
+    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+                            (const void ***)&domains, &num);
+    if(ret != EOK) {
+        return ret;
+    }
 
     /* check if enumeration is enabled in any domain */
     for (i = 0; i < num; i++) {

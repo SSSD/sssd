@@ -19,11 +19,24 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _CONF_DB_H
+#define _CONF_DB_H
+
 #include <stdbool.h>
 #include "talloc.h"
 #include "tevent.h"
+#include "util/btreemap.h"
 
 #define CONFDB_FILE "config.ldb"
+
+struct sss_domain_info {
+    char *name;
+    char *basedn;
+    int enumerate;
+    bool has_provider;
+    char *provider;
+    bool legacy;
+};
 
 struct confdb_ctx;
 
@@ -59,4 +72,11 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
-                       char ***values);
+                       struct btreemap **domains);
+
+int confdb_get_domains_list(struct confdb_ctx *cdb,
+                            TALLOC_CTX *mem_ctx,
+                            const char ***domain_names,
+                            int *count);
+
+#endif

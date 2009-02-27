@@ -49,7 +49,6 @@ static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int nss_init_domains(struct nss_ctx *nctx);
-static int _domain_comparator(const void *key1, const void *key2);
 
 struct sbus_method nss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, service_identity},
@@ -392,93 +391,18 @@ failed:
     return EIO;
 }
 
-/* domain names are case insensitive for now
- * NOTE: this function is not utf-8 safe,
- * only ASCII names for now */
-static int _domain_comparator(const void *key1, const void *key2)
-{
-    int ret;
-
-    ret = strcasecmp((const char *)key1, (const char *)key2);
-    if (ret) {
-        /* special case LOCAL to be always the first domain */
-        if (strcmp(key1, "LOCAL") == 0) return 1;
-        if (strcmp(key2, "LOCAL") == 0) return -1;
-    }
-    return ret;
-}
-
 static int nss_init_domains(struct nss_ctx *nctx)
 {
-    char *path;
-    char **domains;
-    char *provider;
-    TALLOC_CTX *tmp_ctx;
-    struct nss_domain_info *info;
-    int ret, i, c;
+    int ret;
     int retval;
 
-    tmp_ctx = talloc_new(nctx);
-    ret = confdb_get_domains(nctx->cdb, tmp_ctx, &domains);
+    ret = confdb_get_domains(nctx->cdb, nctx, &nctx->domain_map);
     if (ret != EOK) {
         retval = ret;
         goto done;
     }
 
-    i = 0;
-    c = 0;
-    while (domains[i] != NULL) {
-        DEBUG(3, ("Adding domain %s to the map\n", domains[i]));
-
-        path = talloc_asprintf(tmp_ctx, "config/domains/%s", domains[i]);
-        if (!path) {
-            retval = ENOMEM;
-            goto done;
-        }
-
-        /* alloc on tmp_ctx, it will be stolen by btreemap_set_value */
-        info = talloc_zero(tmp_ctx, struct nss_domain_info);
-        if (!info) {
-            retval = ENOMEM;
-            goto done;
-        }
-
-        /* Build the basedn for this domain */
-        info->basedn = talloc_asprintf(info, SYSDB_DOM_BASE, domains[i]);
-        DEBUG(3, ("BaseDN: %s\n", info->basedn));
-
-        ret = confdb_get_int(nctx->cdb, tmp_ctx, path,
-                             "enumerate", false, &(info->enumerate));
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to fetch enumerate for [%s]!\n", domains[i]));
-        }
-
-        ret = confdb_get_bool(nctx->cdb, tmp_ctx, path,
-                              "legacy", false, &(info->legacy));
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to fetch legacy for [%s]!\n", domains[i]));
-        }
-
-        ret = confdb_get_string(nctx->cdb, tmp_ctx, path, "provider",
-                                NULL, &provider);
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to fetch provider for [%s]!\n", domains[i]));
-        }
-        if (provider) info->has_provider = true;
-
-        ret = btreemap_set_value(nctx, &nctx->domain_map,
-                                 domains[i], info,
-                                 _domain_comparator);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to store domain info, aborting!\n"));
-            retval = ret;
-            goto done;
-        }
-
-        i++;
-        c++;
-    }
-    if (c == 0) {
+    if (nctx->domain_map == NULL) {
         /* No domains configured!
          * Note: this should never happen, since LOCAL should
          * always be configured */
@@ -498,7 +422,6 @@ static int nss_init_domains(struct nss_ctx *nctx)
     retval = EOK;
 
 done:
-    talloc_free(tmp_ctx);
     return retval;
 }
 
