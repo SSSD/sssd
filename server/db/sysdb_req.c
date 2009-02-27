@@ -34,6 +34,17 @@ struct sysdb_req {
     bool transaction_active;
 };
 
+bool sysdb_req_check_running(struct sysdb_req *req)
+{
+    if (req->ctx->queue == req) return true;
+    return false;
+}
+
+struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req)
+{
+    return req->ctx;
+}
+
 static void sysdb_req_run(struct tevent_context *ev,
                           struct tevent_timer *te,
                           struct timeval tv, void *ptr)

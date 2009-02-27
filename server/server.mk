@@ -15,7 +15,7 @@ UTIL_OBJ = \
 	db/sysdb.o \
 	db/sysdb_req.o \
 	db/sysdb_search.o \
-	db/sysdb_sync.o
+	db/sysdb_ops.o
 
 RESPONDER_UTIL_OBJ = \
     responder/common/responder_dp.o \

@@ -102,7 +102,7 @@ static void request_done(struct sysdb_search_ctx *sctx)
 }
 
 static int get_gen_callback(struct ldb_request *req,
-                            struct ldb_reply *ares)
+                            struct ldb_reply *rep)
 {
     struct sysdb_search_ctx *sctx;
     struct ldb_result *res;
@@ -111,16 +111,16 @@ static int get_gen_callback(struct ldb_request *req,
     sctx = talloc_get_type(req->context, struct sysdb_search_ctx);
     res = sctx->res;
 
-    if (!ares) {
+    if (!rep) {
         request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
         return LDB_ERR_OPERATIONS_ERROR;
     }
-    if (ares->error != LDB_SUCCESS) {
-        request_ldberror(sctx, ares->error);
-        return ares->error;
+    if (rep->error != LDB_SUCCESS) {
+        request_ldberror(sctx, rep->error);
+        return rep->error;
     }
 
-    switch (ares->type) {
+    switch (rep->type) {
     case LDB_REPLY_ENTRY:
         res->msgs = talloc_realloc(res, res->msgs,
                                    struct ldb_message *,
@@ -132,7 +132,7 @@ static int get_gen_callback(struct ldb_request *req,
 
         res->msgs[res->count + 1] = NULL;
 
-        res->msgs[res->count] = talloc_steal(res->msgs, ares->message);
+        res->msgs[res->count] = talloc_steal(res->msgs, rep->message);
         res->count++;
         break;
 
@@ -149,12 +149,12 @@ static int get_gen_callback(struct ldb_request *req,
             return LDB_ERR_OPERATIONS_ERROR;
         }
 
-        res->refs[n] = talloc_steal(res->refs, ares->referral);
+        res->refs[n] = talloc_steal(res->refs, rep->referral);
         res->refs[n + 1] = NULL;
         break;
 
     case LDB_REPLY_DONE:
-        res->controls = talloc_steal(res, ares->controls);
+        res->controls = talloc_steal(res, rep->controls);
 
         /* check if we need to call any aux function */
         if (sctx->gen_aux_fn) {
@@ -166,7 +166,7 @@ static int get_gen_callback(struct ldb_request *req,
         return LDB_SUCCESS;
     }
 
-    talloc_free(ares);
+    talloc_free(rep);
     return LDB_SUCCESS;
 }
 
@@ -351,7 +351,7 @@ static void get_members(struct sysdb_search_ctx *sctx)
 }
 
 static int get_grp_callback(struct ldb_request *req,
-                            struct ldb_reply *ares)
+                            struct ldb_reply *rep)
 {
     struct sysdb_search_ctx *sctx;
     struct sysdb_ctx *ctx;
@@ -362,16 +362,16 @@ static int get_grp_callback(struct ldb_request *req,
     ctx = sctx->ctx;
     res = sctx->res;
 
-    if (!ares) {
+    if (!rep) {
         request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
         return LDB_ERR_OPERATIONS_ERROR;
     }
-    if (ares->error != LDB_SUCCESS) {
-        request_ldberror(sctx, ares->error);
-        return ares->error;
+    if (rep->error != LDB_SUCCESS) {
+        request_ldberror(sctx, rep->error);
+        return rep->error;
     }
 
-    switch (ares->type) {
+    switch (rep->type) {
     case LDB_REPLY_ENTRY:
         res->msgs = talloc_realloc(res, res->msgs,
                                    struct ldb_message *,
@@ -383,7 +383,7 @@ static int get_grp_callback(struct ldb_request *req,
 
         res->msgs[res->count + 1] = NULL;
 
-        res->msgs[res->count] = talloc_steal(res->msgs, ares->message);
+        res->msgs[res->count] = talloc_steal(res->msgs, rep->message);
         res->count++;
         break;
 
@@ -400,12 +400,12 @@ static int get_grp_callback(struct ldb_request *req,
             return LDB_ERR_OPERATIONS_ERROR;
         }
 
-        res->refs[n] = talloc_steal(res->refs, ares->referral);
+        res->refs[n] = talloc_steal(res->refs, rep->referral);
         res->refs[n + 1] = NULL;
         break;
 
     case LDB_REPLY_DONE:
-        res->controls = talloc_steal(res, ares->controls);
+        res->controls = talloc_steal(res, rep->controls);
 
         /* no results, return */
         if (res->count == 0) {
@@ -434,7 +434,7 @@ static int get_grp_callback(struct ldb_request *req,
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    talloc_free(ares);
+    talloc_free(rep);
     return LDB_SUCCESS;
 }
 

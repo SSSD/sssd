@@ -24,6 +24,19 @@
 #include "confdb/confdb.h"
 #include <time.h>
 
+struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
+                             const char *domain, const char *name)
+{
+    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_USER, name, domain);
+}
+
+struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
+                              const char *domain, const char *name)
+{
+    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_GROUP, name, domain);
+}
+
+
 /************************************************
  * Initialiazation stuff
  */

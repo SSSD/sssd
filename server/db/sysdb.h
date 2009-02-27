@@ -32,18 +32,8 @@
 #define SYSDB_TMPL_USER_BASE "cn=users,cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_GROUP_BASE "cn=groups,cn=%s,"SYSDB_BASE
 
-#define SYSDB_PWNAM_FILTER "(&(objectclass=user)(uid=%s))"
-#define SYSDB_PWUID_FILTER "(&(objectclass=user)(uidNumber=%lu))"
-#define SYSDB_PWENT_FILTER "(objectclass=user)"
-
-#define SYSDB_GRNAM_FILTER "(&(objectclass=group)(gid=%s))"
-#define SYSDB_GRNA2_FILTER "(&(objectclass=user)(memberof=%s))"
-#define SYSDB_GRGID_FILTER "(&(objectclass=group)(gidNumber=%lu))"
-#define SYSDB_GRENT_FILTER "(objectclass=group)"
-
-#define SYSDB_INITGR_FILTER "(&(objectclass=group)(gidNumber=*))"
-
-#define SYSDB_INITGR_LEGACY_FILTER "(&(objectclass=group)(memberUid=%s))"
+#define SYSDB_USER_CLASS "user"
+#define SYSDB_GROUP_CLASS "group"
 
 #define SYSDB_PW_NAME "uid"
 #define SYSDB_PW_PWD "userPassword"
@@ -61,6 +51,19 @@
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
 
+#define SYSDB_PWNAM_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_NAME"=%s))"
+#define SYSDB_PWUID_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_UIDNUM"=%lu))"
+#define SYSDB_PWENT_FILTER "(objectclass="SYSDB_USER_CLASS")"
+
+#define SYSDB_GRNAM_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GR_NAME"=%s))"
+#define SYSDB_GRNA2_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_MEMBEROF"=%s))"
+#define SYSDB_GRGID_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GR_GIDNUM"=%lu))"
+#define SYSDB_GRENT_FILTER "(objectclass="SYSDB_GROUP_CLASS")"
+
+#define SYSDB_INITGR_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GR_GIDNUM"=*))"
+
+#define SYSDB_INITGR_LEGACY_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_LEGACY_MEMBER"=%s))"
+
 #define SYSDB_PW_ATTRS {SYSDB_PW_NAME, SYSDB_PW_UIDNUM, \
                         SYSDB_PW_GIDNUM, SYSDB_PW_FULLNAME, \
                         SYSDB_PW_HOMEDIR, SYSDB_PW_SHELL, \
@@ -76,10 +79,15 @@
 #define SYSDB_INITGR_ATTRS {SYSDB_GR_GIDNUM, SYSDB_LAST_UPDATE, \
                             NULL}
 
+#define SYSDB_TMPL_USER SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE
+#define SYSDB_TMPL_GROUP SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE
+
 struct confdb_ctx;
 struct sysdb_ctx;
+struct sysdb_req;
 
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
+typedef void (*sysdb_req_fn_t)(struct sysdb_req *, void *pvt);
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct tevent_context *ev,
@@ -135,60 +143,59 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      sysdb_callback_t fn, void *ptr);
 
 
-/* the following are all SYNCHRONOUS calls
- * TODO: make these asynchronous */
+struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
 
-int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
-                           struct sysdb_ctx *sysdb,
+int sysdb_transaction(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      sysdb_req_fn_t fn, void *pvt);
+void sysdb_transaction_done(struct sysdb_req *req, int status);
+
+int sysdb_operation(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      sysdb_req_fn_t fn, void *pvt);
+void sysdb_operation_done(struct sysdb_req *req);
+
+struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
+                             const char *domain, const char *name);
+
+struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
+                              const char *domain, const char *name);
+
+int sysdb_add_group_member(struct sysdb_req *sysreq,
                            struct ldb_dn *member_dn,
-                           struct ldb_dn *group_dn);
+                           struct ldb_dn *group_dn,
+                           sysdb_callback_t fn, void *pvt);
 
-int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
-                              struct sysdb_ctx *sysdb,
+int sysdb_remove_group_member(struct sysdb_req *sysreq,
                               struct ldb_dn *member_dn,
-                              struct ldb_dn *group_dn);
+                              struct ldb_dn *group_dn,
+                              sysdb_callback_t fn, void *pvt);
 
-int sysdb_delete_user(TALLOC_CTX *memctx,
-                      struct sysdb_ctx *sysdb,
-                      const char *domain, const char *name);
+int sysdb_delete_entry(struct sysdb_req *sysreq,
+                       struct ldb_dn *dn,
+                       sysdb_callback_t fn, void *pvt);
 
-int sysdb_delete_user_by_uid(TALLOC_CTX *memctx,
-                             struct sysdb_ctx *sysdb,
-                             const char *domain, uid_t uid);
+int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
+                             const char *domain, uid_t uid,
+                             sysdb_callback_t fn, void *pvt);
 
-int sysdb_add_user_to_group(TALLOC_CTX *mem_ctx,
-                            struct sysdb_ctx *sysdb,
-                            const char *domain,
-                            const char *group,
-                            const char *username);
+int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
+                              const char *domain, gid_t gid,
+                              sysdb_callback_t fn, void *pvt);
 
-int sysdb_remove_user_from_group(TALLOC_CTX *mem_ctx,
-                                 struct sysdb_ctx *sysdb,
-                                 const char *domain,
-                                 const char *group,
-                                 const char *username);
+/* legacy functions for proxy providers */
 
-int sysdb_delete_group(TALLOC_CTX *memctx,
-                       struct sysdb_ctx *sysdb,
-                       const char *domain, const char *name);
-
-int sysdb_delete_group_by_gid(TALLOC_CTX *memctx,
-                              struct sysdb_ctx *sysdb,
-                              const char *domain, gid_t gid);
-
-/* legacy synchronous functions for proxy providers */
-
-int sysdb_legacy_store_user(TALLOC_CTX *memctx,
-                            struct sysdb_ctx *sysdb,
+int sysdb_legacy_store_user(struct sysdb_req *sysreq,
                             const char *domain,
                             const char *name, const char *pwd,
                             uid_t uid, gid_t gid, const char *gecos,
-                            const char *homedir, const char *shell);
+                            const char *homedir, const char *shell,
+                            sysdb_callback_t fn, void *pvt);
 
-int sysdb_legacy_store_group(TALLOC_CTX *memctx,
-                             struct sysdb_ctx *sysdb,
+int sysdb_legacy_store_group(struct sysdb_req *sysreq,
                              const char *domain,
                              const char *name, gid_t gid,
-                             char **members);
+                             const char **members,
+                             sysdb_callback_t fn, void *pvt);
 
 #endif /* __SYS_DB_H__ */
