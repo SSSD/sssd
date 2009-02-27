@@ -61,14 +61,18 @@ SYSDB_TEST_OBJ = \
 INFP_TEST_OBJ = \
 	tests/infopipe-tests.o
 
+CRYPT_OBJ = util/nss_sha512crypt.o
+
 PAMSRV_OBJ = \
     responder/pam/pamsrv.o \
     responder/pam/pamsrv_cmd.o \
+    responder/pam/pam_LOCAL_domain.o \
     responder/pam/pamsrv_dp.o
 
 PAMSRV_UTIL_OBJ = responder/pam/pamsrv_util.o
 
-PAM = -lpam
+$(CRYPT_OBJ): CFLAGS += $(NSS_CFLAGS)
+
 
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
@@ -76,14 +80,14 @@ sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 sbin/sssd_nss: $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ)
 	$(CC) -o sbin/sssd_nss $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
-sbin/sssd_pam: $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(PAMSRV_UTIL_OBJ)
-	$(CC) -o sbin/sssd_pam $(PAMSRV_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(LDFLAGS) $(LIBS)
+sbin/sssd_pam: $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(CRYPT_OBJ)
+	$(CC) -o sbin/sssd_pam $(PAMSRV_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(CRYPT_OBJ) $(LDFLAGS) $(LIBS) $(NSS_LIBS)
 
 sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ)
 	$(CC) -o sbin/sssd_dp $(DP_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
 sbin/sssd_be: $(DP_BE_OBJ) $(UTIL_OBJ)
-	$(CC) -Wl,-E -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(LDFLAGS) $(LIBS) $(PAM)
+	$(CC) -Wl,-E -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(LDFLAGS) $(LIBS) $(PAM_LIBS)
 
 sbin/sssd_info: $(INFOPIPE_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd_info $(INFOPIPE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)

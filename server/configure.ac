@@ -56,6 +56,7 @@ m4_include(util/signal.m4)
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 PKG_CHECK_MODULES([CHECK],[check])
+PKG_CHECK_MODULES([NSS],[nss])
 
 AC_SUBST(TESTS)
 AC_SUBST(EXTRA_OBJ)

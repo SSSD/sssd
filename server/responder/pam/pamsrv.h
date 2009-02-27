@@ -1,3 +1,8 @@
+#ifndef __PAMSRV_H__
+#define __PAMSRV_H__
+
+
+#include "util/util.h"
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_cmd.h"
 
@@ -31,3 +36,5 @@ struct sbus_method *register_pam_dp_methods(void);
 struct sss_cmd_table *register_sss_cmds(void);
 int pam_dp_send_req(struct cli_ctx *cctx, pam_dp_callback_t callback,
                     int timeout, struct pam_data *pd);
+
+#endif /* __PAMSRV_H__ */

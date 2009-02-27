@@ -2,6 +2,8 @@
 #include <talloc.h>
 
 #include "util/util.h"
+#include "confdb/confdb.h"
+#include "responder/pam/pam_LOCAL_domain.h"
 #include "responder/common/responder_common.h"
 #include "responder/common/responder_cmd.h"
 #include "responder/common/responder_packet.h"
@@ -125,9 +127,10 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     size_t blen;
     int ret;
     struct pam_data *pd;
+    char *default_domain;
 
     pd = talloc(cctx, struct pam_data);
-    if (pd == NULL) return ENOMEM; 
+    if (pd == NULL) return ENOMEM;
 
     sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t) &&
@@ -144,10 +147,26 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         return EINVAL;
     }
 
+    if (pd->domain == NULL) {
+        ret = confdb_get_string(cctx->nctx->cdb, cctx, "config/domains",
+                                "defaultDomain", "LOCAL", &default_domain);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to call confdb.\n"));
+            talloc_free(pd);
+            return ret;
+        }
+        pd->domain = default_domain;
+        DEBUG(4, ("Using default domain [%s].\n", pd->domain));
+    }
+
+    if ( strncasecmp(pd->domain,"LOCAL",5) == 0 ) {
+        return LOCAL_schedule_request(cctx, pam_reply, pd);
+    };
+
     ret=pam_dp_send_req(cctx, pam_reply, PAM_DP_TIMEOUT, pd);
     DEBUG(4, ("pam_dp_send_req returned %d\n", ret));
 
-    return ret; 
+    return ret;
 }
 
 static int pam_cmd_authenticate(struct cli_ctx *cctx) {

@@ -43,6 +43,7 @@
 #define SYSDB_PW_HOMEDIR "homeDirectory"
 #define SYSDB_PW_SHELL "loginShell"
 #define SYSDB_PW_MEMBEROF "memberOf"
+#define SYSDB_PW_DISABLED "disabled"
 
 #define SYSDB_GR_NAME "gid"
 #define SYSDB_GR_GIDNUM "gidNumber"

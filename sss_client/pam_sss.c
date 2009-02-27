@@ -102,6 +102,12 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
 
     D(("Hello pam_sssd: %d", task));
 
+/* TODO: add useful prelim check */
+    if (task == SSS_PAM_CHAUTHTOK && (flags & PAM_PRELIM_CHECK)) {
+        D(("ignoring PAM_PRELIM_CHECK"));
+        return PAM_SUCCESS;
+    }
+
     ret = get_pam_items(pamh, &pi);
     if (ret != PAM_SUCCESS) {
         D(("get items returned error: %s", pam_strerror(pamh,ret)));

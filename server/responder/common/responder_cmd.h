@@ -40,6 +40,28 @@ struct cli_request {
     struct sss_packet *out;
 };
 
+struct nss_ctx {
+    struct tevent_context *ev;
+    struct tevent_fd *lfde;
+    int lfd;
+    struct sysdb_ctx *sysdb;
+    struct confdb_ctx *cdb;
+    char *sock_name;
+    struct service_sbus_ctx *ss_ctx;
+    struct service_sbus_ctx *dp_ctx;
+    struct btreemap *domain_map;
+    char *default_domain;
+
+    int cache_timeout;
+
+    struct sbus_method *sss_sbus_methods;
+    struct sss_cmd_table *sss_cmds;
+    const char *sss_pipe_name;
+    const char *confdb_socket_path;
+    struct sbus_method *dp_methods;
+};
+
+
 struct cli_ctx {
     struct tevent_context *ev;
     struct nss_ctx *nctx;
