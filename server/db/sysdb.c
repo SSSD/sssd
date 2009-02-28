@@ -36,6 +36,10 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
     return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_GROUP, name, domain);
 }
 
+struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx)
+{
+    return ctx->ldb;
+}
 
 /************************************************
  * Initialiazation stuff

@@ -142,7 +142,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      bool legacy,
                      sysdb_callback_t fn, void *ptr);
 
-
+struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
 struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
 
 int sysdb_transaction(TALLOC_CTX *mem_ctx,
@@ -198,4 +198,15 @@ int sysdb_legacy_store_group(struct sysdb_req *sysreq,
                              const char **members,
                              sysdb_callback_t fn, void *pvt);
 
+int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
+                                  const char *domain,
+                                  const char *group,
+                                  const char *member,
+                                  sysdb_callback_t fn, void *pvt);
+
+int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
+                                     const char *domain,
+                                     const char *group,
+                                     const char *member,
+                                     sysdb_callback_t fn, void *pvt);
 #endif /* __SYS_DB_H__ */

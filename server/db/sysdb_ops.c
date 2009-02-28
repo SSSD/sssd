@@ -936,3 +936,101 @@ static int legacy_group_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
+int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
+                                  const char *domain,
+                                  const char *group,
+                                  const char *member,
+                                  sysdb_callback_t fn, void *pvt)
+{
+    struct sysdb_ctx *ctx;
+    struct sysdb_cb_ctx *cbctx;
+    struct ldb_request *req;
+    struct ldb_message *msg;
+    int ret;
+
+    if (!sysdb_req_check_running(sysreq)) {
+        DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    ctx = sysdb_req_get_ctx(sysreq);
+
+    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    if (!cbctx) return ENOMEM;
+
+    cbctx->fn = fn;
+    cbctx->pvt = pvt;
+
+    /* Add the member_dn as a member of the group */
+    msg = ldb_msg_new(cbctx);
+    if(msg == NULL) return ENOMEM;
+
+    msg->dn = sysdb_group_dn(ctx, cbctx, domain, group);
+    if (!msg->dn) return ENOMEM;
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_LEGACY_MEMBER, member);
+    if (ret != LDB_SUCCESS) return ENOMEM;
+
+    ret = ldb_build_mod_req(&req, ctx->ldb, cbctx, msg,
+                            NULL, cbctx, sysdb_op_callback, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to build modify request: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        return sysdb_error_to_errno(ret);
+    }
+
+    ret = ldb_request(ctx->ldb, req);
+    if (ret != LDB_SUCCESS) return sysdb_error_to_errno(ret);
+
+    return EOK;
+}
+
+int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
+                                     const char *domain,
+                                     const char *group,
+                                     const char *member,
+                                     sysdb_callback_t fn, void *pvt)
+{
+    struct sysdb_ctx *ctx;
+    struct sysdb_cb_ctx *cbctx;
+    struct ldb_request *req;
+    struct ldb_message *msg;
+    int ret;
+
+    if (!sysdb_req_check_running(sysreq)) {
+        DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    ctx = sysdb_req_get_ctx(sysreq);
+
+    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    if (!cbctx) return ENOMEM;
+
+    cbctx->fn = fn;
+    cbctx->pvt = pvt;
+
+    /* Add the member_dn as a member of the group */
+    msg = ldb_msg_new(cbctx);
+    if(msg == NULL) return ENOMEM;
+
+    msg->dn = sysdb_group_dn(ctx, cbctx, domain, group);
+    if (!msg->dn) return ENOMEM;
+
+    ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_LEGACY_MEMBER, member);
+    if (ret != LDB_SUCCESS) return ENOMEM;
+
+    ret = ldb_build_mod_req(&req, ctx->ldb, cbctx, msg,
+                            NULL, cbctx, sysdb_op_callback, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to build modify request: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        return sysdb_error_to_errno(ret);
+    }
+
+    ret = ldb_request(ctx->ldb, req);
+    if (ret != LDB_SUCCESS) return sysdb_error_to_errno(ret);
+
+    return EOK;
+}
+
