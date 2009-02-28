@@ -121,7 +121,7 @@ static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
         return EINVAL;
     }
 
-    dctx->check_provider = info->has_provider;
+    dctx->check_provider = strcasecmp(domain, "LOCAL");
     dctx->legacy = info->legacy;
 
     dctx->domain = talloc_strdup(dctx, domain);
@@ -660,7 +660,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         dctx->cmdctx = cmdctx;
         dctx->domain = talloc_strdup(dctx, domains[i]);
         if (!dctx->domain) return ENOMEM;
-        dctx->check_provider = info->has_provider;
+        dctx->check_provider = strcasecmp(domains[i], "LOCAL");
         dctx->legacy = info->legacy;
 
 
@@ -858,7 +858,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         dctx->cmdctx = cmdctx;
         dctx->domain = talloc_strdup(dctx, domains[i]);
         if (!dctx->domain) return ENOMEM;
-        dctx->check_provider = info->has_provider;
+        dctx->check_provider = strcasecmp(domains[i], "LOCAL");
         dctx->legacy = info->legacy;
 
         if (dctx->check_provider) {
@@ -1564,7 +1564,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         dctx->cmdctx = cmdctx;
         dctx->domain = talloc_strdup(dctx, domains[i]);
         if (!dctx->domain) return ENOMEM;
-        dctx->check_provider = info->has_provider;
+        dctx->check_provider = strcasecmp(domains[i], "LOCAL");
         dctx->legacy = info->legacy;
 
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
@@ -1760,7 +1760,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         dctx->cmdctx = cmdctx;
         dctx->domain = talloc_strdup(dctx, domains[i]);
         if (!dctx->domain) return ENOMEM;
-        dctx->check_provider = info->has_provider;
+        dctx->check_provider = strcasecmp(domains[i], "LOCAL");
         dctx->legacy = info->legacy;
 
         if (dctx->check_provider) {

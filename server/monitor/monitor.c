@@ -63,6 +63,7 @@ struct mt_svc {
 struct mt_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
+    struct btreemap *dom_map;
     char **services;
     struct mt_svc *svc_list;
     struct sbus_srv_ctx *sbus_srv;
@@ -364,7 +365,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 {
     struct mt_ctx *ctx;
     struct mt_svc *svc;
-    char **doms;
+    const char **doms;
     int dom_count;
     char *path;
     int ret, i;
@@ -435,7 +436,8 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* now start the data providers */
-    ret = confdb_get_domains_list(cdb, ctx, (const char ***)&doms, &dom_count);
+    ret = confdb_get_domains_list(cdb, ctx,
+                                  &(ctx->dom_map), &doms, &dom_count);
     if (ret != EOK) {
         DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
         return ret;

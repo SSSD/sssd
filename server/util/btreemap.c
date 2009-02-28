@@ -166,19 +166,13 @@ int btreemap_set_value(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static int _btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count, int depth)
+static int _btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map,
+                              const void ***array, int *count, int depth)
 {
     int ret;
     const void **tmp_array;
 
-    if (map == NULL) {
-        if (depth == 0) {
-            /* This is the top-level */
-            count = 0;
-            *array = NULL;
-        }
-        return EOK;
-    }
+    if (map == NULL) return EOK;
 
     /* Left Node */
     ret = _btreemap_get_keys(mem_ctx, map->left, array, count, depth+1);
@@ -212,5 +206,6 @@ static int _btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const v
 int btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count)
 {
     *array = NULL;
+    *count = 0;
     return _btreemap_get_keys(mem_ctx, map, array, count, 0);
 }
