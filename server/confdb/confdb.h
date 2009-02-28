@@ -31,10 +31,8 @@
 
 struct sss_domain_info {
     char *name;
-    char *basedn;
+    int timeout;
     int enumerate;
-    bool has_provider;
-    char *provider;
     bool legacy;
 };
 
@@ -76,6 +74,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
 
 int confdb_get_domains_list(struct confdb_ctx *cdb,
                             TALLOC_CTX *mem_ctx,
+                            struct btreemap **domain_map,
                             const char ***domain_names,
                             int *count);
 
