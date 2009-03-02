@@ -160,7 +160,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
 
     if ( strncasecmp(pd->domain,"LOCAL",5) == 0 ) {
-        return LOCAL_schedule_request(cctx, pam_reply, pd);
+        return LOCAL_pam_handler(cctx, pam_reply, pd);
     };
 
     ret=pam_dp_send_req(cctx, pam_reply, PAM_DP_TIMEOUT, pd);
