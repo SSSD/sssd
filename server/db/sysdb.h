@@ -111,6 +111,11 @@ struct confdb_ctx;
 struct sysdb_ctx;
 struct sysdb_req;
 
+struct sysdb_attrs {
+    int num;
+    struct ldb_message_element *a;
+};
+
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 typedef void (*sysdb_req_fn_t)(struct sysdb_req *, void *pvt);
 
@@ -166,11 +171,13 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      const char *name,
                      bool legacy,
                      sysdb_callback_t fn, void *ptr);
+
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *ctx,
-                        struct sss_domain_info *domain,
+                        const char *domain,
                         const char *name,
                         const char **attributes,
+                        bool legacy,
                         sysdb_callback_t fn, void *ptr);
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
@@ -214,6 +221,19 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
 int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
                               const char *domain, gid_t gid,
                               sysdb_callback_t fn, void *pvt);
+
+struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx);
+int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
+                        const char *name, const struct ldb_val *val);
+int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
+                           const char *name, const char *str);
+
+int sysdb_set_user_attr(struct sysdb_req *sysreq,
+                        struct sysdb_ctx *ctx,
+                        const char *domain,
+                        const char *name,
+                        struct sysdb_attrs *attributes,
+                        sysdb_callback_t fn, void *ptr);
 
 /* legacy functions for proxy providers */
 

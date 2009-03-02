@@ -437,6 +437,62 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
     return EOK;
 }
 
+int sysdb_set_user_attr(struct sysdb_req *sysreq,
+                        struct sysdb_ctx *ctx,
+                        const char *domain,
+                        const char *name,
+                        struct sysdb_attrs *attrs,
+                        sysdb_callback_t fn, void *pvt)
+{
+    struct sysdb_cb_ctx *cbctx;
+    struct ldb_message *msg;
+    struct ldb_request *req;
+    int i, ret;
+
+    if (!sysdb_req_check_running(sysreq)) {
+        DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    if (attrs->num == 0) return EINVAL;
+
+    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    if (!cbctx) return ENOMEM;
+
+    cbctx->fn = fn;
+    cbctx->pvt = pvt;
+
+    msg = ldb_msg_new(cbctx);
+    if (!msg) return ENOMEM;
+
+    msg->dn = sysdb_user_dn(ctx, msg, domain, name);
+    if (!msg->dn) return ENOMEM;
+
+    msg->elements = talloc_array(msg, struct ldb_message_element, attrs->num);
+    if (!msg->elements) return ENOMEM;
+
+    for (i = 0; i < attrs->num; i++) {
+        msg->elements[i] = attrs->a[i];
+        msg->elements[i].flags = LDB_FLAG_MOD_REPLACE;
+    }
+
+    msg->num_elements = attrs->num;
+
+    ret = ldb_build_mod_req(&req, ctx->ldb, cbctx, msg, NULL,
+                             cbctx, sysdb_op_callback, NULL);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_request(ctx->ldb, req);
+    }
+    if (ret != LDB_SUCCESS) {
+        return sysdb_error_to_errno(ret);
+    }
+
+    return EOK;
+}
+
+
+
+
 /* "sysdb_legacy_" functions
  * the set of functions named sysdb_legacy_* are used by modules
  * that only have access to strictly posix like databases where

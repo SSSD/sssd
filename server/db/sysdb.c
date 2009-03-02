@@ -41,6 +41,81 @@ struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx)
     return ctx->ldb;
 }
 
+struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx)
+{
+    return talloc_zero(memctx, struct sysdb_attrs);
+}
+
+static int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
+                              struct ldb_message_element **el)
+{
+    struct ldb_message_element *e = NULL;
+    int i;
+
+    for (i = 0; i < attrs->num; i++) {
+        if (strcasecmp(name, attrs->a[i].name) == 0)
+            e = &(attrs->a[i]);
+    }
+
+    if (!e) {
+        e = talloc_realloc(attrs, attrs->a,
+                           struct ldb_message_element, attrs->num+1);
+        if (!e) return ENOMEM;
+        attrs->a = e;
+
+        e[attrs->num].name = talloc_strdup(e, name);
+        if (!e[attrs->num].name) return ENOMEM;
+
+        e[attrs->num].num_values = 0;
+        e[attrs->num].values = NULL;
+        e[attrs->num].flags = 0;
+
+        e = &(attrs->a[attrs->num]);
+        attrs->num++;
+    }
+
+    *el = e;
+
+    return EOK;
+}
+
+int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
+                        const char *name, const struct ldb_val *val)
+{
+    struct ldb_message_element *el;
+    struct ldb_val *vals;
+    int ret;
+
+    ret = sysdb_attrs_get_el(attrs, name, &el);
+
+
+    vals = talloc_realloc(attrs->a, el->values,
+                          struct ldb_val, el->num_values+1);
+    if (!vals) return ENOMEM;
+
+    vals[el->num_values] = ldb_val_dup(vals, val);
+    if (vals[el->num_values].data == NULL &&
+        vals[el->num_values].length != 0) {
+        return ENOMEM;
+    }
+
+    el->values = vals;
+    el->num_values++;
+
+    return EOK;
+}
+
+int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
+                           const char *name, const char *str)
+{
+    struct ldb_val v;
+
+    v.data = (uint8_t *)str;
+    v.length = strlen(str);
+
+    return sysdb_attrs_add_val(attrs, name, &v);
+}
+
 /************************************************
  * Initialiazation stuff
  */

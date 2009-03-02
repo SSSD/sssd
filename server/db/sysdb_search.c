@@ -740,9 +740,10 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *ctx,
-                        struct sss_domain_info *domain,
+                        const char *domain,
                         const char *name,
                         const char **attributes,
+                        bool legacy,
                         sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -751,7 +752,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain->name, domain->legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }

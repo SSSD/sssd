@@ -579,9 +579,10 @@ static int infp_get_attr_lookup(struct infp_getattr_ctx *infp_getattr_req)
     /* Call into the sysdb for the requested attributes */
     ret = sysdb_get_user_attr(infp_getattr_req,
                               infp_getattr_req->infp_req->infp->sysdb,
-                              infp_getattr_req->domain,
+                              infp_getattr_req->domain->name,
                               infp_getattr_req->usernames[infp_getattr_req->index],
                               (const char **)attributes,
+                              infp_getattr_req->domain->legacy,
                               infp_get_attr_lookup_callback, infp_getattr_req);
 
     return EOK;
