@@ -26,6 +26,8 @@
 #include "util/btreemap.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
+#include "db/sysdb.h"
+#include "confdb/confdb.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "infopipe/sysbus.h"
@@ -264,6 +266,7 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
     ret = infp_monitor_init(infp_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Fatal error setting up monitor bus\n"));
+        talloc_free(infp_ctx);
         return EIO;
     }
 
@@ -274,18 +277,48 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
                       infp_methods, infp_introspect);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to the system message bus\n"));
+        talloc_free(infp_ctx);
         return EIO;
     }
+
+    /* Connect to the sysdb */
+    ret = sysdb_init(infp_ctx, infp_ctx->ev, infp_ctx->cdb,
+                     NULL, &infp_ctx->sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to the cache database\n"));
+        talloc_free(infp_ctx);
+        return EIO;
+    }
+
+    /* Read in the domain map */
+    ret = confdb_get_domains(cdb, infp_ctx, &infp_ctx->domain_map);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to populate the domain map\n"));
+        talloc_free(infp_ctx);
+        return EIO;
+    }
+
+    if (infp_ctx->domain_map == NULL) {
+        /* No domains configured!
+         * Note: this should never happen, since LOCAL
+         * should always be configured
+         */
+        DEBUG(0, ("No domains configured on this client!\n"));
+        talloc_free(infp_ctx);
+        return EIO;
+    }
+
+    infp_ctx->cache_timeout = 600; /* FIXME: read from confdb */
 
     /* Add the infp_ctx to the sbus_conn_ctx private data
      * so we can pass it into message handler functions
      */
     sbus_conn_set_private_data(sysbus_get_sbus_conn(infp_ctx->sysbus), infp_ctx);
 
-    return ret;
+    return EOK;
 }
 
-int get_object_type(const char *obj)
+int infp_get_object_type(const char *obj)
 {
     int object_type = INFP_OBJ_TYPE_INVALID;
 
@@ -297,11 +330,13 @@ int get_object_type(const char *obj)
     return object_type;
 }
 
-int get_action_type(const char *action)
+int infp_get_action_type(const char *action)
 {
     int action_type = INFP_ACTION_TYPE_INVALID;
 
-    if (strcasecmp(action, "create") == 0)
+    if (strcasecmp(action, "read") == 0)
+        action_type = INFP_ACTION_TYPE_READ;
+    else if (strcasecmp(action, "create") == 0)
         action_type = INFP_ACTION_TYPE_CREATE;
     else if ((strcasecmp(action, "delete") == 0))
         action_type = INFP_ACTION_TYPE_DELETE;
@@ -315,7 +350,7 @@ int get_action_type(const char *action)
     return action_type;
 }
 
-int get_attribute_type(const char *attribute)
+int infp_get_attribute_type(const char *attribute)
 {
     int attribute_type = INFP_ATTR_TYPE_INVALID;
 
@@ -353,7 +388,7 @@ int get_attribute_type(const char *attribute)
 }
 
 bool infp_get_permissions(const char *username,
-                          const char *domain,
+                          struct sss_domain_info *domain,
                           int object_type,
                           const char *instance,
                           int action_type,
@@ -369,6 +404,11 @@ bool infp_get_permissions(const char *username,
     return false;
 }
 
+struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp, const char *domain_name)
+{
+    return talloc_get_type(btreemap_get_value(infp->domain_map, (const void *) domain_name), struct sss_domain_info);
+}
+
 /* CheckPermissions(STRING domain, STRING object, STRING instance
  *                  ARRAY(STRING action_type, STRING attribute) actions)
  */
@@ -376,18 +416,16 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
     TALLOC_CTX *tmp_ctx;
+    struct infp_ctx *infp;
     int current_type;
-    DBusConnection *conn;
-    const char *conn_name;
-    uid_t uid;
-    char *username;
+    char *caller;
     DBusMessageIter iter;
     DBusMessageIter action_array_iter;
     DBusMessageIter action_struct_iter;
-    DBusError error;
     int object_type;
     const char *einval_msg;
-    const char *domain;
+    const char *domain_name;
+    struct sss_domain_info *domain;
     const char *object;
     const char *instance;
     const char *action;
@@ -401,26 +439,11 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
         return ENOMEM;
     }
 
-    /* Get the connection UID */
-    conn = sbus_get_connection(sconn);
-    conn_name = dbus_message_get_sender(message);
-    if (conn_name == NULL) {
-        DEBUG(0, ("Critical error: D-BUS client has no unique name\n"));
-        talloc_free(tmp_ctx);
-        return EIO;
-    }
-    dbus_error_init(&error);
-    uid = dbus_bus_get_unix_user(conn, conn_name, &error);
-    if (uid == -1) {
-        DEBUG(0, ("Could not identify unix user. Error message was '%s:%s'\n", error.name, error.message));
-        dbus_error_free(&error);
-        talloc_free(tmp_ctx);
-        return EIO;
-    }
-    username = get_username_from_uid(tmp_ctx, uid);
-    if (username == NULL) {
-        DEBUG(0, ("No username matched the connected UID\n"));
-        talloc_free(tmp_ctx);
+    infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+
+    /* Get the caller */
+    caller = sysbus_get_caller(tmp_ctx, message, sconn);
+    if (caller == NULL) {
         return EIO;
     }
 
@@ -435,8 +458,9 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
         einval_msg = talloc_strdup(tmp_ctx, "Expected domain");
         goto einval;
     }
-    dbus_message_iter_get_basic(&iter, &domain);
-    DEBUG(9, ("Domain: %s\n", domain));
+    dbus_message_iter_get_basic(&iter, &domain_name);
+    DEBUG(9, ("Domain: %s\n", domain_name));
+    domain = infp_get_domain_obj(infp, domain_name);
 
     /* Object */
     dbus_message_iter_next(&iter);
@@ -447,7 +471,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
     dbus_message_iter_get_basic(&iter, &object);
     DEBUG(9, ("Object: %s\n", object));
-    object_type = get_object_type(object);
+    object_type = infp_get_object_type(object);
     if (object_type == INFP_OBJ_TYPE_INVALID) {
         einval_msg = talloc_strdup(tmp_ctx, "Invalid object type");
         goto einval;
@@ -490,7 +514,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
         }
         dbus_message_iter_get_basic(&action_struct_iter, &action);
         DEBUG(9, ("Action type: %s\n", action));
-        action_type = get_action_type(action);
+        action_type = infp_get_action_type(action);
         if(action_type == INFP_ACTION_TYPE_INVALID) {
             einval_msg = talloc_asprintf(tmp_ctx, "Action type [%s] is not valid", action);
             goto einval;
@@ -504,7 +528,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
         }
         dbus_message_iter_get_basic(&action_struct_iter, &attribute);
         DEBUG(9, ("Action attribute: %s\n", attribute));
-        attribute_type = get_attribute_type(attribute);
+        attribute_type = infp_get_attribute_type(attribute);
         if(attribute_type == INFP_ATTR_TYPE_INVALID) {
             einval_msg = talloc_asprintf(tmp_ctx, "Attribute [%s] is not valid", attribute);
             goto einval;
@@ -518,7 +542,7 @@ int infp_check_permissions(DBusMessage *message, struct sbus_conn_ctx *sconn)
         /* Process the actions */
         count++;
         permissions=talloc_realloc(tmp_ctx, permissions, dbus_bool_t, count);
-        permissions[count-1] = infp_get_permissions(username, domain,
+        permissions[count-1] = infp_get_permissions(caller, domain,
                                                     object_type, instance,
                                                     action_type, attribute_type);
 

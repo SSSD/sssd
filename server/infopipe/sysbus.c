@@ -165,3 +165,32 @@ struct sbus_conn_ctx *sysbus_get_sbus_conn(struct sysbus_ctx *sysbus)
 {
     return sysbus->sconn;
 }
+
+char *sysbus_get_caller(TALLOC_CTX *mem_ctx, DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
+    char *caller;
+    const char *conn_name;
+    DBusError error;
+    uid_t uid;
+
+    /* Get the connection UID */
+    conn_name = dbus_message_get_sender(message);
+    if (conn_name == NULL) {
+        DEBUG(0, ("Critical error: D-BUS client has no unique name\n"));
+        return NULL;
+    }
+    dbus_error_init(&error);
+    uid = dbus_bus_get_unix_user(sbus_get_connection(sconn), conn_name, &error);
+    if (uid == -1) {
+        DEBUG(0, ("Could not identify unix user. Error message was '%s:%s'\n", error.name, error.message));
+        dbus_error_free(&error);
+        return NULL;
+    }
+    caller = get_username_from_uid(mem_ctx, uid);
+    if (caller == NULL) {
+        DEBUG(0, ("No username matched the connected UID\n"));
+        return NULL;
+    }
+
+    return caller;
+}

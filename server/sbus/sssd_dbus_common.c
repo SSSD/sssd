@@ -2,6 +2,7 @@
 #include "tevent.h"
 #include "dbus/dbus.h"
 #include "util/util.h"
+#include "util/btreemap.h"
 
 struct timeval _dbus_timeout_get_interval_tv(int interval) {
     struct timeval tv;
@@ -42,4 +43,32 @@ void sbus_remove_timeout(DBusTimeout *timeout, void *data) {
     /* Freeing the event object will remove it from the event loop */
     talloc_free(te);
     dbus_timeout_set_data(timeout, NULL, NULL);
+}
+
+int sbus_is_dbus_fixed_type(int dbus_type)
+{
+    switch (dbus_type) {
+    case DBUS_TYPE_BYTE:
+    case DBUS_TYPE_BOOLEAN:
+    case DBUS_TYPE_INT16:
+    case DBUS_TYPE_UINT16:
+    case DBUS_TYPE_INT32:
+    case DBUS_TYPE_UINT32:
+    case DBUS_TYPE_INT64:
+    case DBUS_TYPE_UINT64:
+    case DBUS_TYPE_DOUBLE:
+        return true;
+    }
+    return false;
+}
+
+int sbus_is_dbus_string_type(int dbus_type)
+{
+    switch(dbus_type) {
+    case DBUS_TYPE_STRING:
+    case DBUS_TYPE_OBJECT_PATH:
+    case DBUS_TYPE_SIGNATURE:
+        return true;
+    }
+    return false;
 }

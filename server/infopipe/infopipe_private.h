@@ -27,27 +27,39 @@ struct infp_ctx {
     struct confdb_ctx *cdb;
     struct service_sbus_ctx *ss_ctx;
     struct sysbus_ctx *sysbus;
+    struct sysdb_ctx *sysdb;
+    struct btreemap *domain_map;
     char *introspect_xml;
+
+    int cache_timeout;
 };
 
-enum object_types {
+struct infp_req_ctx {
+    struct infp_ctx *infp;
+    struct sbus_conn_ctx *sconn;
+    DBusMessage *req_message;
+    bool check_provider;
+};
+
+enum infp_object_types {
     INFP_OBJ_TYPE_INVALID = 0,
     INFP_OBJ_TYPE_USER,
     INFP_OBJ_TYPE_GROUP
 };
-int get_object_type(const char *obj);
+int infp_get_object_type(const char *obj);
 
-enum action_types {
+enum infp_action_types {
     INFP_ACTION_TYPE_INVALID = 0,
+    INFP_ACTION_TYPE_READ,
     INFP_ACTION_TYPE_CREATE,
     INFP_ACTION_TYPE_DELETE,
     INFP_ACTION_TYPE_MODIFY,
     INFP_ACTION_TYPE_ADDMEMBER,
     INFP_ACTION_TYPE_REMOVEMEMBER
 };
-int get_action_type(const char *action);
+int infp_get_action_type(const char *action);
 
-enum attribute_types {
+enum infp_attribute_types {
     INFP_ATTR_TYPE_INVALID = 0,
     INFP_ATTR_TYPE_DEFAULTGROUP,
     INFP_ATTR_TYPE_GECOS,
@@ -60,13 +72,17 @@ enum attribute_types {
     INFP_ATTR_TYPE_LAST_LOGIN,
     INFP_ATTR_TYPE_USERPIC
 };
-int get_attribute_type(const char *attribute);
+int infp_get_attribute_type(const char *attribute);
+
+int infp_get_user_attr_dbus_type(int attr_type, int *subtype);
 
 bool infp_get_permissions(const char *username,
-                          const char *domain,
+                          struct sss_domain_info *domain,
                           int object_type,
                           const char *instance,
                           int action_type,
                           int action_attribute);
+
+struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp, const char *domain_name);
 
 #endif /* INFOPIPE_PRIVATE_H_ */

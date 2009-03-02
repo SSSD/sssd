@@ -32,4 +32,6 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
 
 struct sbus_conn_ctx *sysbus_get_sbus_conn(struct sysbus_ctx *sysbus);
 
+char *sysbus_get_caller(TALLOC_CTX *mem_ctx, DBusMessage *message, struct sbus_conn_ctx *sconn);
+
 #endif /* SYSBUS_H_ */

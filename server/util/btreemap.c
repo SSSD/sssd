@@ -65,7 +65,7 @@ int btreemap_search_key(struct btreemap *map, const void *key, struct btreemap *
 
     tempnode = map;
     while (found == BTREEMAP_EMPTY) {
-        result = tempnode->comparator(tempnode->key, key);
+        result = tempnode->comparator(key, tempnode->key);
         if (result > 0)
         {
             if (tempnode->right)
@@ -150,6 +150,8 @@ int btreemap_set_value(TALLOC_CTX *mem_ctx,
     new_node->key = talloc_steal(new_node, key);
     new_node->value = talloc_steal(new_node, value);
     new_node->comparator = comparator;
+    new_node->left = NULL;
+    new_node->right = NULL;
 
 
     if (found == BTREEMAP_EMPTY)

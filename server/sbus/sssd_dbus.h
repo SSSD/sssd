@@ -126,4 +126,6 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
 void sbus_conn_send_reply(struct sbus_conn_ctx *conn_ctx,
                           DBusMessage *reply);
 
+int sbus_is_dbus_fixed_type(int dbus_type);
+int sbus_is_dbus_string_type(int dbus_type);
 #endif /* _SSSD_DBUS_H_*/

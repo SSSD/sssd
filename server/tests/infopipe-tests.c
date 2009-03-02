@@ -151,8 +151,10 @@ START_TEST(test_infp_introspect)
                               DBUS_TYPE_INVALID);
 
         /* Verify that the reply matches the reference file */
-        if (strcmp(introspect_xml, returned_xml) != 0) {
-            fail("Verify Introspection XML: FAILED");
+        int c;
+        if ((c = strcmp(introspect_xml, returned_xml)) != 0) {
+            DEBUG(0, ("Verify Introspection XML: FAILED %d\nstrlen: %d, %d\n", c, strlen(introspect_xml), strlen(returned_xml)));
+            fail("");//"Verify Introspection XML: FAILED %d\n %s\nstrlen: %d", c, returned_xml, strlen(returned_xml));
         }
         break;
     case DBUS_MESSAGE_TYPE_ERROR:

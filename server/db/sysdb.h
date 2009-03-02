@@ -23,6 +23,7 @@
 #define __SYS_DB_H__
 
 #include "ldb.h"
+#include "confdb/confdb.h"
 
 #define SYSDB_CONF_SECTION "config/sysdb"
 #define SYSDB_FILE "sssd.ldb"
@@ -50,6 +51,17 @@
 #define SYSDB_GR_MEMBER "member"
 #define SYSDB_LEGACY_MEMBER "memberUid"
 
+#define SYSDB_USER_ATTR_DEFAULTGROUP "defaultGroup"
+#define SYSDB_USER_ATTR_GECOS "gecos"
+#define SYSDB_USER_ATTR_HOMEDIR "homeDirectory"
+#define SYSDB_USER_ATTR_SHELL "shell"
+#define SYSDB_USER_ATTR_FULLNAME "fullName"
+#define SYSDB_USER_ATTR_LOCALE "locale"
+#define SYSDB_USER_ATTR_KEYBOARD "keyboard"
+#define SYSDB_USER_ATTR_SESSION "session"
+#define SYSDB_USER_ATTR_LAST_LOGIN "lastLogin"
+#define SYSDB_USER_ATTR_USERPIC "userPicture"
+
 #define SYSDB_LAST_UPDATE "lastUpdate"
 
 #define SYSDB_PWNAM_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_NAME"=%s))"
@@ -70,6 +82,18 @@
                         SYSDB_PW_HOMEDIR, SYSDB_PW_SHELL, \
                         SYSDB_LAST_UPDATE, \
                         NULL}
+#define SYSDB_USER_ATTRS {SYSDB_USER_ATTR_DEFAULTGROUP, \
+                          SYSDB_USER_ATTR_GECOS, \
+                          SYSDB_USER_ATTR_HOMEDIR, \
+                          SYSDB_USER_ATTR_SHELL, \
+                          SYSDB_USER_ATTR_FULLNAME, \
+                          SYSDB_USER_ATTR_LOCALE, \
+                          SYSDB_USER_ATTR_KEYBOARD, \
+                          SYSDB_USER_ATTR_SESSION, \
+                          SYSDB_USER_ATTR_LAST_LOGIN, \
+                          SYSDB_USER_ATTR_USERPIC, \
+                          SYSDB_LAST_UPDATE, \
+                          NULL}
 #define SYSDB_GRNAM_ATTRS {SYSDB_GR_NAME, SYSDB_GR_GIDNUM, \
                            SYSDB_LAST_UPDATE, SYSDB_LEGACY_MEMBER, \
                            NULL}
@@ -142,9 +166,16 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      const char *name,
                      bool legacy,
                      sysdb_callback_t fn, void *ptr);
+int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *ctx,
+                        struct sss_domain_info *domain,
+                        const char *name,
+                        const char **attributes,
+                        sysdb_callback_t fn, void *ptr);
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
 struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
+
 
 int sysdb_transaction(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx *ctx,
