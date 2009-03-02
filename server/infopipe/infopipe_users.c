@@ -76,7 +76,7 @@ struct infp_getattr_ctx {
     struct infp_req_ctx *infp_req;
     char **usernames;
     uint32_t username_count;
-    char **attributes;
+    const char **attributes;
     uint32_t attr_count;
     uint32_t index;
     bool check_provider;
@@ -587,53 +587,30 @@ static int infp_get_attr_lookup(struct infp_getattr_ctx *infp_getattr_req)
     return EOK;
 }
 
-static char **infp_get_all_attributes(TALLOC_CTX *mem_ctx, uint32_t *attr_count)
+static const char **infp_get_all_attributes(TALLOC_CTX *mem_ctx,
+                                            uint32_t *attr_count)
 {
-    char **attributes;
+    const char **attributes;
     int offset = 0;
 
     *attr_count = 10;
-    attributes = talloc_array(mem_ctx, char *, *attr_count);
+    attributes = talloc_array(mem_ctx, const char *, *attr_count);
     if (attributes == NULL) {
         return NULL;
     }
 
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_DEFAULTGROUP);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_GECOS);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_HOMEDIR);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_SHELL);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_FULLNAME);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_LOCALE);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_KEYBOARD);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_SESSION);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_LAST_LOGIN);
-    if(!attributes[offset]) goto error;
-
-    attributes[offset++] = talloc_strdup(attributes, SYSDB_USER_ATTR_USERPIC);
-    if(!attributes[offset]) goto error;
+    attributes[offset++] = SYSDB_USER_ATTR_DEFAULTGROUP;
+    attributes[offset++] = SYSDB_USER_ATTR_GECOS;
+    attributes[offset++] = SYSDB_USER_ATTR_HOMEDIR;
+    attributes[offset++] = SYSDB_USER_ATTR_SHELL;
+    attributes[offset++] = SYSDB_USER_ATTR_FULLNAME;
+    attributes[offset++] = SYSDB_USER_ATTR_LOCALE;
+    attributes[offset++] = SYSDB_USER_ATTR_KEYBOARD;
+    attributes[offset++] = SYSDB_USER_ATTR_SESSION;
+    attributes[offset++] = SYSDB_USER_ATTR_LAST_LOGIN;
+    attributes[offset++] = SYSDB_USER_ATTR_USERPIC;
 
     return attributes;
-
-error:
-    talloc_free(attributes);
-    *attr_count = 0;
-    return NULL;
 }
 
 /* GetUserAttributes(ARRAY(STRING) usernames,
@@ -727,7 +704,8 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     /* Copy the attribute list */
     if (attr_count > 0) {
-        infp_getattr_req->attributes = talloc_array(infp_getattr_req, char *, attr_count);
+        infp_getattr_req->attributes = talloc_array(infp_getattr_req,
+                                                   const char *, attr_count);
         if (infp_getattr_req->attributes == NULL) {
             ret = ENOMEM;
             goto end;

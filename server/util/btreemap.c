@@ -51,7 +51,8 @@ struct btreemap
  * BTREEMAP_CREATE_LEFT: A new node created should use node->left
  * BTREEMAP_CREATE_RIGHT: A new node created should use node->right
  */
-int btreemap_search_key(struct btreemap *map, const void *key, struct btreemap **node)
+int btreemap_search_key(struct btreemap *map,
+                        const void *key, struct btreemap **node)
 {
     struct btreemap *tempnode;
     int result;
@@ -147,8 +148,8 @@ int btreemap_set_value(TALLOC_CTX *mem_ctx,
     {
         return ENOMEM;
     }
-    new_node->key = talloc_steal(new_node, key);
-    new_node->value = talloc_steal(new_node, value);
+    new_node->key = key;
+    new_node->value = value;
     new_node->comparator = comparator;
     new_node->left = NULL;
     new_node->right = NULL;
@@ -205,7 +206,9 @@ static int _btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map,
 }
 /* Return an array of keys in sort order
  */
-int btreemap_get_keys(TALLOC_CTX *mem_ctx, struct btreemap *map, const void ***array, int *count)
+int btreemap_get_keys(TALLOC_CTX *mem_ctx,
+                      struct btreemap *map,
+                      const void ***array, int *count)
 {
     *array = NULL;
     *count = 0;
