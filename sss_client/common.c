@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -594,6 +595,7 @@ int sss_pam_make_request(enum sss_cli_command cmd,
 {
     int ret;
     char *envval;
+    struct stat stat_buf;
 
     /* avoid looping in the pam daemon */
     envval = getenv("_SSS_LOOPS");
@@ -601,7 +603,20 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         return PAM_SERVICE_ERR;
     }
 
-    ret = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
+    /* only root shall use the privileged pipe */
+    if (getuid() == 0 && getgid() == 0) {
+        ret = stat(SSS_PAM_PRIV_SOCKET_NAME, &stat_buf);
+        if (ret != 0) return PAM_SERVICE_ERR;
+        if ( ! (stat_buf.st_uid == 0 &&
+                stat_buf.st_gid == 0 &&
+                (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
+            return PAM_SERVICE_ERR;
+        }
+
+        ret = sss_cli_check_socket(errnop, SSS_PAM_PRIV_SOCKET_NAME);
+    } else {
+        ret = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
+    }
     if (ret != NSS_STATUS_SUCCESS) {
         return PAM_SERVICE_ERR;
     }

@@ -27,7 +27,6 @@
 
 #include "util/util.h"
 #include "responder/common/responder_packet.h"
-#include "responder/nss/nsssrv.h"
 #include "providers/data_provider.h"
 #include "sbus/sbus_client.h"
 #include "providers/dp_sbus.h"
@@ -70,9 +69,9 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr) {
             if (!ret) {
                 DEBUG(0, ("Failed to parse reply.\n"));
                 pam_status = PAM_SYSTEM_ERR;
-                domain = ""; 
+                domain = "";
                 goto done;
-            } 
+            }
             DEBUG(4, ("received: [%d][%s]\n", pam_status, domain));
             break;
         case DBUS_MESSAGE_TYPE_ERROR:

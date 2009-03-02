@@ -31,12 +31,12 @@
 #include <errno.h>
 #include "popt.h"
 #include "util/util.h"
-#include "responder/nss/nsssrv.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "util/btreemap.h"
+#include "responder/common/responder_common.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder_cmd.h"
 #include "responder/common/responder_dp.h"
@@ -102,7 +102,7 @@ static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
     }
 
     if (!cctx->creq->in) {
-        ret = sss_packet_new(cctx->creq, NSS_PACKET_MAX_RECV_SIZE,
+        ret = sss_packet_new(cctx->creq, SSS_PACKET_MAX_RECV_SIZE,
                              0, &cctx->creq->in);
         if (ret != EOK) {
             DEBUG(0, ("Failed to alloc request, aborting client!\n"));
@@ -162,6 +162,78 @@ static void client_fd_handler(struct tevent_context *ev,
         client_send(ev, cctx);
         return;
     }
+}
+
+/* TODO: this is a copy of accept_fd_handler, maybe both can be put into on
+ * handler.  */
+static void accept_priv_fd_handler(struct tevent_context *ev,
+                              struct tevent_fd *fde,
+                              uint16_t flags, void *ptr)
+{
+    /* accept and attach new event handler */
+    struct nss_ctx *nctx = talloc_get_type(ptr, struct nss_ctx);
+    struct cli_ctx *cctx;
+    socklen_t len;
+    struct stat stat_buf;
+    int ret;
+
+    ret = stat(nctx->priv_sock_name, &stat_buf);
+    if (ret == -1) {
+        DEBUG(1, ("stat on privileged pipe failed: [%d][%s].\n", errno,
+                  strerror(errno)));
+        return;
+    }
+
+    if ( ! (stat_buf.st_uid == 0 && stat_buf.st_gid == 0 &&
+           (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
+        DEBUG(1, ("privileged pipe has an illegal status.\n"));
+/* TODO: what is the best response to this condition? Terminate? */
+        return;
+    }
+
+
+    cctx = talloc_zero(nctx, struct cli_ctx);
+    if (!cctx) {
+        struct sockaddr_un addr;
+        int fd;
+        DEBUG(0, ("Out of memory trying to setup client context on privileged pipe!\n"));
+        /* accept and close to signal the client we have a problem */
+        memset(&addr, 0, sizeof(addr));
+        len = sizeof(addr);
+        fd = accept(nctx->priv_lfd, (struct sockaddr *)&addr, &len);
+        if (fd == -1) {
+            return;
+        }
+        close(fd);
+        return;
+    }
+
+    len = sizeof(cctx->addr);
+    cctx->cfd = accept(nctx->priv_lfd, (struct sockaddr *)&cctx->addr, &len);
+    if (cctx->cfd == -1) {
+        DEBUG(1, ("Accept failed [%s]", strerror(errno)));
+        talloc_free(cctx);
+        return;
+    }
+
+    cctx->priv = 1;
+
+    cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
+                               TEVENT_FD_READ, client_fd_handler, cctx);
+    if (!cctx->cfde) {
+        close(cctx->cfd);
+        talloc_free(cctx);
+        DEBUG(2, ("Failed to queue client handler on privileged pipe\n"));
+    }
+
+    cctx->ev = ev;
+    cctx->nctx = nctx;
+
+    talloc_set_destructor(cctx, client_destructor);
+
+    DEBUG(4, ("Client connected to privileged pipe!\n"));
+
+    return;
 }
 
 static void accept_fd_handler(struct tevent_context *ev,
@@ -275,8 +347,29 @@ static int set_unix_socket(struct nss_ctx *nctx)
     }
     talloc_free(default_pipe);
 
+    default_pipe = talloc_asprintf(nctx, "%s/private/%s.priv", PIPE_PATH,
+                                   nctx->sss_pipe_name);
+    if (!default_pipe) {
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(nctx->cdb, nctx,
+                            nctx->confdb_socket_path, "privUnixSocket",
+                            default_pipe, &nctx->priv_sock_name);
+    if (ret != EOK) {
+        talloc_free(default_pipe);
+        return ret;
+    }
+    talloc_free(default_pipe);
+
     nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (nctx->lfd == -1) {
+        return EIO;
+    }
+
+    nctx->priv_lfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (nctx->priv_lfd == -1) {
+        close(nctx->lfd);
         return EIO;
     }
 
@@ -303,8 +396,40 @@ static int set_unix_socket(struct nss_ctx *nctx)
         goto failed;
     }
 
+    /* create privileged pipe */
+    umask(0177);
+
+    set_nonblocking(nctx->priv_lfd);
+    set_close_on_exec(nctx->priv_lfd);
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    strncpy(addr.sun_path, nctx->priv_sock_name, sizeof(addr.sun_path));
+
+    unlink(nctx->priv_sock_name);
+
+    if (bind(nctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        DEBUG(0,("Unable to bind on socket '%s'\n", nctx->priv_sock_name));
+        goto failed;
+    }
+    if (listen(nctx->priv_lfd, 10) != 0) {
+        DEBUG(0,("Unable to listen on socket '%s'\n", nctx->priv_sock_name));
+        goto failed;
+    }
+
     nctx->lfde = tevent_add_fd(nctx->ev, nctx, nctx->lfd,
                                TEVENT_FD_READ, accept_fd_handler, nctx);
+    if (!nctx->lfde) {
+        DEBUG(0, ("Failed to queue handler on pipe\n"));
+        goto failed;
+    }
+
+    nctx->priv_lfde = tevent_add_fd(nctx->ev, nctx, nctx->priv_lfd,
+                               TEVENT_FD_READ, accept_priv_fd_handler, nctx);
+    if (!nctx->priv_lfde) {
+        DEBUG(0, ("Failed to queue handler on privileged pipe\n"));
+        goto failed;
+    }
 
     /* we want default permissions on created files to be very strict,
        so set our umask to 0177 */
@@ -316,6 +441,7 @@ failed:
        so set our umask to 0177 */
     umask(0177);
     close(nctx->lfd);
+    close(nctx->priv_lfd);
     return EIO;
 }
 
@@ -427,7 +553,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
     struct btreemap *node;
     int ret;
 
-    if ((delim = strchr(fullname, NSS_DOMAIN_DELIM)) != NULL) {
+    if ((delim = strchr(fullname, SSS_DOMAIN_DELIM)) != NULL) {
 
         /* Check for registered domain */
         ret = btreemap_search_key(domain_map, (void *)(delim+1), &node);

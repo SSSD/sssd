@@ -44,9 +44,12 @@ struct nss_ctx {
     struct tevent_context *ev;
     struct tevent_fd *lfde;
     int lfd;
+    struct tevent_fd *priv_lfde;
+    int priv_lfd;
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *cdb;
     char *sock_name;
+    char *priv_sock_name;
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
     struct btreemap *domain_map;
@@ -70,6 +73,7 @@ struct cli_ctx {
     struct sockaddr_un addr;
     struct cli_request *creq;
     struct getent_ctx *gctx;
+    int priv;
 };
 #endif
 

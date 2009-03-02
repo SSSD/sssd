@@ -1,7 +1,6 @@
 
 #include <sys/time.h>
 #include <time.h>
-#include "responder/nss/nsssrv.h"
 #include "util/util.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder_common.h"

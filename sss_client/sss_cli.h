@@ -19,6 +19,7 @@
  * Also a change in one of the pipes will not affect the others */
 #define SSS_NSS_SOCKET_NAME "/var/lib/sss/pipes/nss"
 #define SSS_PAM_SOCKET_NAME "/var/lib/sss/pipes/pam"
+#define SSS_PAM_PRIV_SOCKET_NAME "/var/lib/sss/pipes/private/pam"
 
 #define SSS_PROTOCOL_VERSION 0
 
@@ -121,12 +122,13 @@ enum sss_cli_command {
 #endif
 
 /* PAM related calls */
-    SSS_PAM_AUTHENTICATE   = 0x00F1,
-    SSS_PAM_SETCRED        = 0x00F2,
-    SSS_PAM_ACCT_MGMT      = 0x00F3,
-    SSS_PAM_OPEN_SESSION   = 0x00F4,
-    SSS_PAM_CLOSE_SESSION  = 0x00F5,
-    SSS_PAM_CHAUTHTOK      = 0x00F6,
+    SSS_PAM_AUTHENTICATE     = 0x00F1,
+    SSS_PAM_SETCRED          = 0x00F2,
+    SSS_PAM_ACCT_MGMT        = 0x00F3,
+    SSS_PAM_OPEN_SESSION     = 0x00F4,
+    SSS_PAM_CLOSE_SESSION    = 0x00F5,
+    SSS_PAM_CHAUTHTOK        = 0x00F6,
+    SSS_PAM_CHAUTHTOK_PRELIM = 0x00F6,
 
 };
 

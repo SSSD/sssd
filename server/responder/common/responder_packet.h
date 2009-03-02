@@ -24,6 +24,8 @@
 
 #include "../sss_client/sss_cli.h"
 
+#define SSS_PACKET_MAX_RECV_SIZE 1024
+
 struct sss_packet;
 
 int sss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
