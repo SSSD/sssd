@@ -174,38 +174,6 @@ static int get_gen_callback(struct ldb_request *req,
 
 /* users */
 
-static void pwd_search(struct sysdb_req *sysreq, void *ptr)
-{
-    struct sysdb_search_ctx *sctx;
-    static const char *attrs[] = SYSDB_PW_ATTRS;
-    struct ldb_request *req;
-    struct ldb_dn *base_dn;
-    int ret;
-
-    sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->req = sysreq;
-
-    base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_USER_BASE, sctx->domain);
-    if (!base_dn) {
-        return request_error(sctx, ENOMEM);
-    }
-
-    ret = ldb_build_search_req(&req, sctx->ctx->ldb, sctx,
-                               base_dn, LDB_SCOPE_SUBTREE,
-                               sctx->expression, attrs, NULL,
-                               sctx, get_gen_callback,
-                               NULL);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-
-    ret = ldb_request(sctx->ctx->ldb, req);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-}
-
 static void user_search(struct sysdb_req *sysreq, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -244,6 +212,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
+    static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *sctx;
 
     if (!domain) {
@@ -261,7 +230,9 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    return sysdb_operation(mem_ctx, ctx, pwd_search, sctx);
+    sctx->attrs = attrs;
+
+    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
 }
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
@@ -271,6 +242,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
+    static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *sctx;
     unsigned long int filter_uid = uid;
 
@@ -289,7 +261,9 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    return sysdb_operation(mem_ctx, ctx, pwd_search, sctx);
+    sctx->attrs = attrs;
+
+    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
 }
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
@@ -298,6 +272,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     bool legacy,
                     sysdb_callback_t fn, void *ptr)
 {
+    static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *sctx;
 
     if (!domain) {
@@ -310,8 +285,9 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
     }
 
     sctx->expression = SYSDB_PWENT_FILTER;
+    sctx->attrs = attrs;
 
-    return sysdb_operation(mem_ctx, ctx, pwd_search, sctx);
+    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
 }
 
 /* groups */
