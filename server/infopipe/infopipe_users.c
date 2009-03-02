@@ -112,6 +112,7 @@ static int infp_user_getattr_append_dict(TALLOC_CTX *mem_ctx,
     DBusMessageIter array_iter;
     DBusMessageIter dict_iter;
     DBusMessageIter variant_iter;
+    DBusMessageIter fixed_array_iter;
     dbus_bool_t dbret;
 
     ret = btreemap_get_keys(mem_ctx, map, (const void ***)&attrs, &attr_count);
@@ -154,6 +155,8 @@ static int infp_user_getattr_append_dict(TALLOC_CTX *mem_ctx,
             ret = ENOMEM;
             goto error;
         }
+
+        DEBUG(99, ("DBUS_TYPE: [%c] for attribute [%s]\n", value->dbus_type, attrs[i]));
 
         vartype = NULL;
         subtype = NULL;
@@ -198,7 +201,47 @@ static int infp_user_getattr_append_dict(TALLOC_CTX *mem_ctx,
             talloc_free(vartype);
             vartype = NULL;
         }
-        /* FIXME: Need to support byte arrays for userpic and similar */
+
+        else if (value->dbus_type == DBUS_TYPE_ARRAY) {
+            DEBUG(99, ("Marshalling array, subtype [%c]\n", value->subtype));
+            if(sbus_is_dbus_fixed_type(value->subtype)) {
+                DEBUG(99, ("Marshalling fixed array\n"));
+                /* Only support adding arrays of fixed types or strings for now */
+
+                subtype = talloc_asprintf(mem_ctx, "a%c", value->subtype);
+                if (subtype == NULL) {
+                    ret = ENOMEM;
+                    goto error;
+                }
+                dbret = dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_VARIANT, subtype, &variant_iter);
+                if (!dbret) {
+                    ret = ENOMEM;
+                    goto error;
+                }
+
+                dbret = dbus_message_iter_open_container(&variant_iter, DBUS_TYPE_ARRAY, subtype, &fixed_array_iter);
+                if (!dbret) {
+                    ret = ENOMEM;
+                    goto error;
+                }
+
+                dbret = dbus_message_iter_append_fixed_array(&fixed_array_iter, value->subtype, &value->data, value->count);
+                if(!dbret) {
+                    ret = ENOMEM;
+                    goto error;
+                }
+
+                dbret = dbus_message_iter_close_container(&variant_iter, &fixed_array_iter);
+                if(!dbret) {
+                    ret = ENOMEM;
+                    goto error;
+                }
+            }
+            else {
+                ret = EINVAL;
+                goto error;
+            }
+        }
 
         else {
             /* Value type not yet supported */
@@ -243,9 +286,9 @@ static int create_getattr_result_map(TALLOC_CTX *mem_ctx, struct infp_getattr_ct
                                      struct ldb_result *res, struct btreemap **results)
 {
     int i, ret;
-    int attr_type, subtype;
+    int attr_type;
     struct infp_attr_variant *variant;
-    const char *tmp_string;
+    const struct ldb_val *val;
 
     /* Iterate through the requested attributes */
     for (i=0; i < infp_getattr_req->attr_count; i++) {
@@ -257,31 +300,18 @@ static int create_getattr_result_map(TALLOC_CTX *mem_ctx, struct infp_getattr_ct
                 ret = ENOMEM;
                 goto end;
             }
-            variant->dbus_type = infp_get_user_attr_dbus_type(attr_type, &subtype);
-            switch (variant->dbus_type) {
-            case DBUS_TYPE_STRING:
-                tmp_string = ldb_msg_find_attr_as_string(res->msgs[0], infp_getattr_req->attributes[i], NULL);
-                if (tmp_string == NULL) {
-                    /* Attribute was not found in the result list */
-                    talloc_free(variant);
-                    continue;
-                }
-                variant->data = (void *)talloc_strdup(variant, tmp_string);
+
+            variant->dbus_type = infp_get_user_attr_dbus_type(attr_type, &variant->subtype);
+            if (sbus_is_dbus_string_type(variant->dbus_type)) {
+                variant->data = (void *)talloc_strdup(variant, ldb_msg_find_attr_as_string(res->msgs[0],
+                                                                                           infp_getattr_req->attributes[i], NULL));
                 if (variant->data == NULL) {
                     talloc_free(variant);
                     continue;
                 }
-                break;
-
-            case DBUS_TYPE_BOOLEAN:
-            case DBUS_TYPE_BYTE:
-            case DBUS_TYPE_INT16:
-            case DBUS_TYPE_UINT16:
-            case DBUS_TYPE_INT32:
-            case DBUS_TYPE_UINT32:
-            case DBUS_TYPE_INT64:
-            case DBUS_TYPE_UINT64:
-                /* We'll treat all integral types as UINT64 internally
+            }
+            else if (sbus_is_dbus_fixed_type(variant->dbus_type)) {
+                /* We'll treat all fixed(numeric) types as UINT64 internally
                  * These will be correctly converted to their true types
                  * when being marshalled on the wire.
                  */
@@ -292,9 +322,33 @@ static int create_getattr_result_map(TALLOC_CTX *mem_ctx, struct infp_getattr_ct
                 }
 
                 *(uint64_t *)variant->data = ldb_msg_find_attr_as_uint64(res->msgs[0], infp_getattr_req->attributes[i], 0);
-                break;
+            }
+            else if (variant->dbus_type == DBUS_TYPE_ARRAY) {
+                switch(variant->subtype) {
+                case DBUS_TYPE_BYTE:
+                    /* Byte array (binary data) */
+                    val = ldb_msg_find_ldb_val(res->msgs[0], infp_getattr_req->attributes[i]);
+                    if (val == NULL || val->length <= 0) {
+                        talloc_free(variant);
+                        continue;
+                    }
+                    variant->data = talloc_memdup(variant, val->data, val->length);
+                    if (variant->data == NULL) {
+                        talloc_free(variant);
+                        continue;
+                    }
+                    variant->count = val->length;
+                    break;
 
-            default:
+                default:
+                    /* Unsupported array type */
+                    talloc_free(variant);
+                    continue;
+                }
+
+            }
+            else {
+                /* Unsupported type */
                 talloc_free(variant);
                 continue;
             }
@@ -303,7 +357,6 @@ static int create_getattr_result_map(TALLOC_CTX *mem_ctx, struct infp_getattr_ct
             ret = btreemap_set_value(mem_ctx, results, (const void *)infp_getattr_req->attributes[i], variant, attr_comparator);
             if (ret != EOK) {
                 talloc_free(variant);
-                continue;
             }
         }
     }
