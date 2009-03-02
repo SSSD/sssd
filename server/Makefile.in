@@ -83,6 +83,7 @@ MDLD_FLAGS = @MDLD_FLAGS@
 
 HAVE_INFOPIPE = @HAVE_INFOPIPE@
 HAVE_POLICYKIT = @HAVE_POLICYKIT@
+HAVE_TESTS = @HAVE_TESTS@
 
 MEMBEROF_SOBASE=memberof.$(SHLIBEXT)
 MEMBEROF_SONAME=$(MEMBEROF_SOBASE).0
@@ -118,8 +119,10 @@ ifneq (x$(HAVE_POLICYKIT), x)
 endif
 BINS = sbin/sssd $(LIBEXECBINS)
 
-TESTS = tests/sysdb-tests tests/infopipe-tests
-TESTS_DATA = tests/tests.ldb tests/tests_conf.ldb tests/introspect.ref
+ifneq (x$(HAVE_TESTS), x)
+    TESTS = tests/sysdb-tests tests/infopipe-tests
+    TESTS_DATA = tests/tests.ldb tests/tests_conf.ldb tests/introspect.ref
+endif
 
 SOLIBS = lib/$(PROXY_BE_SOLIB) lib/$(LDAP_BE_SOLIB)
 LDBLIBS = lib/$(MEMBEROF_SOLIB)

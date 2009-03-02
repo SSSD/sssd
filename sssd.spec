@@ -24,8 +24,6 @@ BuildRequires: libtdb-devel
 BuildRequires: libldb-devel
 BuildRequires: dbus-devel
 BuildRequires: dbus-libs
-BuildRequires: check
-BuildRequires: check-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -44,6 +42,7 @@ cd server
 ./autogen.sh
 %configure --prefix=%{_usr} \
            --sysconfdir=%{_sysconfdir} \
+           --without-tests     \
            --without-policykit \
            --with-infopipe
 

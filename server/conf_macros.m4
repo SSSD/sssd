@@ -90,3 +90,20 @@ AC_DEFUN(WITH_INFOPIPE,
     fi
   ])
 
+AC_DEFUN(WITH_TESTS,
+  [ AC_ARG_WITH([tests],
+                [AC_HELP_STRING([--with-tests],
+                                [Whether to build tests [no]]
+                               )
+                ],
+                [],
+                with_tests=no
+               )
+
+    if test x"$with_tests" == xyes; then
+        AC_DEFINE(HAVE_TESTS, 1, [Build tests])
+        HAVE_TESTS=1
+        AC_SUBST(HAVE_TESTS)
+    fi
+  ])
+

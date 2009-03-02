@@ -55,7 +55,9 @@ m4_include(ldap.m4)
 m4_include(util/signal.m4)
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
-PKG_CHECK_MODULES([CHECK],[check])
+if test xHAVE_TESTS != x; then
+    PKG_CHECK_MODULES([CHECK],[check])
+fi
 PKG_CHECK_MODULES([NSS],[nss])
 
 AC_SUBST(TESTS)
