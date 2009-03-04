@@ -374,7 +374,7 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
     bool call_provider = false;
     int timeout;
     uint64_t lastUpdate;
-    DBusMessage *reply;
+    DBusMessage *reply = NULL;
     DBusMessageIter iter;
     DBusMessageIter array_iter;
     struct infp_getattr_ctx *infp_getattr_req = talloc_get_type(ptr, struct infp_getattr_ctx);
@@ -467,6 +467,7 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
     sbus_conn_send_reply(infp_getattr_req->infp_req->sconn, reply);
 
 done:
+    if(reply) dbus_message_unref(reply);
     talloc_free(infp_getattr_req);
 }
 
