@@ -166,7 +166,7 @@
             />
             <arg name="usernames" type="as" direction="in" />
             <arg name="domain" type="s" direction="in" />
-            <arg name="attributes" type="a{sv}" direction="in" />
+            <arg name="attributes" type="aa{sv}" direction="in" />
         </method>
 
         <method name="Set_YouReallyDoNotWantToUseThisFunction_UserUID1">

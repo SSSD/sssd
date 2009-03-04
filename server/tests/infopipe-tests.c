@@ -29,6 +29,7 @@
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "infopipe/infopipe.h"
+#include "db/sysdb.h"
 
 #define INFP_TEST_DBUS_NAME "org.freeipa.sssd.infopipe1.test"
 #define TEST_TIMEOUT 30000 /* 30 seconds */
@@ -272,6 +273,87 @@ done:
 }
 END_TEST
 
+START_TEST(test_infp_set_user_attrs)
+{
+    TALLOC_CTX *tmp_ctx;
+    DBusConnection *bus;
+    DBusMessage *setattr_req;
+    const char *username = "testuser1";
+    const char *domain = "LOCAL";
+    const char *shell_attr = SYSDB_USER_ATTR_SHELL;
+    const char *shell_value = "/usr/bin/testshell";
+    DBusMessageIter iter, array_iter, dict_array_iter, dict_iter, variant_iter;
+    DBusError error;
+    DBusMessage *reply;
+
+    if (setup_infp_tests(&bus) != EOK) {
+        fail("Could not set up the tests");
+        return;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        fail("Could not create temporary talloc context");
+        goto done;
+    }
+
+    setattr_req = dbus_message_new_method_call(INFOPIPE_DBUS_NAME,
+                                               INFOPIPE_PATH,
+                                               INFOPIPE_INTERFACE,
+                                               INFP_USERS_SET_ATTR);
+    if (!setattr_req) {
+        fail("Could not create new method call message");
+        goto done;
+    }
+
+    /* Usernames */
+    dbus_message_iter_init_append(setattr_req, &iter);
+    dbus_message_iter_open_container(&iter,
+                                         DBUS_TYPE_ARRAY, "s",
+                                         &array_iter); /* Array of dict array of string->variant pairs */
+    dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_STRING, &username);
+    dbus_message_iter_close_container(&iter, &array_iter);
+
+    /* Domain */
+    dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &domain);
+
+    dbus_message_iter_open_container(&iter,
+                                     DBUS_TYPE_ARRAY, "a{sv}",
+                                     &array_iter); /* Array of dict array of string->variant pairs */
+    dbus_message_iter_open_container(&array_iter,
+                                     DBUS_TYPE_ARRAY, "{sv}",
+                                     &dict_array_iter); /* Array of dict of string->variant pairs */
+    dbus_message_iter_open_container(&dict_array_iter,
+                                     DBUS_TYPE_DICT_ENTRY, NULL,
+                                     &dict_iter); /* Dict entry of string->variant pair */
+    dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING, &shell_attr);
+    dbus_message_iter_open_container(&dict_iter,
+                                     DBUS_TYPE_VARIANT, "s",
+                                     &variant_iter); /* Variant */
+    dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_STRING, &shell_value);
+    dbus_message_iter_close_container(&dict_iter, &variant_iter);
+    dbus_message_iter_close_container(&dict_array_iter, &dict_iter);
+    dbus_message_iter_close_container(&array_iter, &dict_array_iter);
+    dbus_message_iter_close_container(&iter, &array_iter);
+
+    /* Send the message */
+    dbus_error_init(&error);
+    reply = dbus_connection_send_with_reply_and_block(bus,
+                                                      setattr_req,
+                                                      TEST_TIMEOUT,
+                                                      &error);
+    if(!reply) {
+        fail("Could not send message. Error: %s:%s", error.name, error.message);
+        dbus_error_free(&error);
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    teardown_infp_tests(bus);
+}
+END_TEST
+
 Suite *create_infopipe_suite(void)
 {
     Suite *s = suite_create("infopipe");
@@ -281,6 +363,7 @@ Suite *create_infopipe_suite(void)
     /* Test the Introspection XML */
     tcase_add_test(tc_infp, test_infp_introspect);
     tcase_add_test(tc_infp, test_infp_check_permissions);
+    tcase_add_test(tc_infp, test_infp_set_user_attrs);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_infp);

@@ -354,6 +354,9 @@ int infp_get_attribute_type(const char *attribute)
 {
     int attribute_type = INFP_ATTR_TYPE_INVALID;
 
+    if(attribute == NULL)
+        return INFP_ATTR_TYPE_INVALID;
+
     if(strcasecmp(attribute, "defaultgroup") == 0)
         attribute_type = INFP_ATTR_TYPE_DEFAULTGROUP;
     else if (strcasecmp(attribute, "gecos") == 0) {
@@ -574,6 +577,64 @@ einval:
 
     talloc_free(tmp_ctx);
     return EOK;
+}
+
+int infp_get_ldb_val_from_dbus(TALLOC_CTX *mem_ctx, DBusMessageIter *iter, struct ldb_val **value, int dbus_type, int subtype)
+{
+    struct ldb_val *val = NULL;
+    void *tmp;
+    size_t element_size;
+    int num_elements;
+    int ret;
+
+    val = talloc_zero(mem_ctx, struct ldb_val);
+    if (val == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* Fixed-size types */
+    if (sbus_is_dbus_fixed_type(dbus_type)) {
+        dbus_message_iter_get_basic(iter, &tmp);
+        val->length = sbus_get_dbus_type_size(dbus_type);
+    }
+
+    else if (sbus_is_dbus_string_type(dbus_type)) {
+        dbus_message_iter_get_basic(iter, &tmp);
+        val->length = strlen((const char *)tmp);
+    }
+
+    else if (dbus_type == DBUS_TYPE_ARRAY) {
+        if (!sbus_is_dbus_fixed_type(subtype)) {
+            ret = EINVAL;
+            goto done;
+        }
+
+        element_size = sbus_get_dbus_type_size(subtype);
+        dbus_message_iter_get_fixed_array(iter, &tmp, &num_elements);
+        val->length = num_elements * element_size;
+    }
+    else {
+        /* Unsupported type */
+        ret = EINVAL;
+        goto done;
+    }
+
+    val->data = talloc_memdup(val, tmp, val->length);
+    if (val->data == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *value = val;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(val);
+        *value = NULL;
+    }
+    return ret;
 }
 
 int main(int argc, const char *argv[])

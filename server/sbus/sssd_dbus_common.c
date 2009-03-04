@@ -72,3 +72,39 @@ int sbus_is_dbus_string_type(int dbus_type)
     }
     return false;
 }
+
+size_t sbus_get_dbus_type_size(int dbus_type)
+{
+    size_t ret;
+
+    switch(dbus_type) {
+    /* 1-byte types */
+    case DBUS_TYPE_BYTE:
+        ret = 1;
+        break;
+
+     /* 2-byte types */
+    case DBUS_TYPE_INT16:
+    case DBUS_TYPE_UINT16:
+        ret = 2;
+        break;
+
+    /* 4-byte types */
+    case DBUS_TYPE_BOOLEAN:
+    case DBUS_TYPE_INT32:
+    case DBUS_TYPE_UINT32:
+        ret = 4;
+        break;
+
+    /* 8-byte types */
+    case DBUS_TYPE_INT64:
+    case DBUS_TYPE_UINT64:
+    case DBUS_TYPE_DOUBLE:
+        ret = 8;
+        break;
+
+    default:
+        ret = 0;
+    }
+    return ret;
+}

@@ -30,6 +30,7 @@
 #include "db/sysdb.h"
 
 static int attr_comparator(const void *key1, const void *key2);
+static int username_comparator(const void *key1, const void *key2);
 
 int infp_users_get_cached(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
@@ -71,8 +72,6 @@ int infp_users_delete(DBusMessage *message, struct sbus_conn_ctx *sconn)
 }
 
 struct infp_getattr_ctx {
-    char *caller;
-    struct sss_domain_info *domain;
     struct infp_req_ctx *infp_req;
     char **usernames;
     uint32_t username_count;
@@ -156,8 +155,6 @@ static int infp_user_getattr_append_dict(TALLOC_CTX *mem_ctx,
             goto error;
         }
 
-        DEBUG(99, ("DBUS_TYPE: [%c] for attribute [%s]\n", value->dbus_type, attrs[i]));
-
         vartype = NULL;
         subtype = NULL;
         if (sbus_is_dbus_string_type(value->dbus_type)) {
@@ -203,9 +200,7 @@ static int infp_user_getattr_append_dict(TALLOC_CTX *mem_ctx,
         }
 
         else if (value->dbus_type == DBUS_TYPE_ARRAY) {
-            DEBUG(99, ("Marshalling array, subtype [%c]\n", value->subtype));
             if(sbus_is_dbus_fixed_type(value->subtype)) {
-                DEBUG(99, ("Marshalling fixed array\n"));
                 /* Only support adding arrays of fixed types or strings for now */
 
                 subtype = talloc_asprintf(mem_ctx, "a%c", value->subtype);
@@ -474,6 +469,7 @@ done:
 int infp_get_user_attr_dbus_type(int attr_type, int *subtype)
 {
     int dbus_type;
+    *subtype = DBUS_TYPE_INVALID;
 
     switch(attr_type) {
     case INFP_ATTR_TYPE_DEFAULTGROUP:
@@ -523,8 +519,8 @@ static int infp_get_attr_lookup(struct infp_getattr_ctx *infp_getattr_req)
     i=0;
     infp_getattr_req->results[infp_getattr_req->index] = NULL;
     while(i < infp_getattr_req->attr_count) {
-        if(infp_get_permissions(infp_getattr_req->caller,
-                                infp_getattr_req->domain,
+        if(infp_get_permissions(infp_getattr_req->infp_req->caller,
+                                infp_getattr_req->infp_req->domain,
                                 INFP_OBJ_TYPE_USER,
                                 infp_getattr_req->usernames[infp_getattr_req->index],
                                 INFP_ACTION_TYPE_READ,
@@ -580,10 +576,10 @@ static int infp_get_attr_lookup(struct infp_getattr_ctx *infp_getattr_req)
     /* Call into the sysdb for the requested attributes */
     ret = sysdb_get_user_attr(infp_getattr_req,
                               infp_getattr_req->infp_req->infp->sysdb,
-                              infp_getattr_req->domain->name,
+                              infp_getattr_req->infp_req->domain->name,
                               infp_getattr_req->usernames[infp_getattr_req->index],
                               (const char **)attributes,
-                              infp_getattr_req->domain->legacy,
+                              infp_getattr_req->infp_req->domain->legacy,
                               infp_get_attr_lookup_callback, infp_getattr_req);
 
     return EOK;
@@ -682,7 +678,7 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
     infp_getattr_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
     infp_getattr_req->infp_req->sconn = sconn;
     infp_getattr_req->infp_req->req_message = message;
-    infp_getattr_req->domain = btreemap_get_value(infp_getattr_req->infp_req->infp->domain_map, (const void *)domain);
+    infp_getattr_req->infp_req->domain = btreemap_get_value(infp_getattr_req->infp_req->infp->domain_map, (const void *)domain);
     infp_getattr_req->check_provider = strcasecmp(domain, "LOCAL");
 
     /* Copy the username list */
@@ -733,8 +729,8 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     infp_getattr_req->index = 0;
 
-    infp_getattr_req->caller = sysbus_get_caller(infp_getattr_req, message, sconn);
-    if (infp_getattr_req->caller == NULL) {
+    infp_getattr_req->infp_req->caller = sysbus_get_caller(infp_getattr_req->infp_req, message, sconn);
+    if (infp_getattr_req->infp_req->caller == NULL) {
         ret = EIO;
         goto end;
     }
@@ -761,16 +757,391 @@ end:
     return ret;
 }
 
-int infp_users_set_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int username_comparator(const void *key1, const void *key2)
+{
+    return strcmp((const char *)key1, (const char *)key2);
+}
+
+struct infp_setattr_ctx {
+    struct infp_req_ctx *infp_req;
+    const char **usernames;
+    int username_count;
+    uint32_t index;
+    struct sysdb_req *sysdb_req;
+
+    /* Array of sysdb_attrs objects
+     * The number of elements in this array
+     * is equal to the username count;
+     */
+    struct sysdb_attrs **changes;
+};
+static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt);
+static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb_result *res)
 {
     DBusMessage *reply;
+    struct infp_setattr_ctx *infp_setattr_req;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    infp_setattr_req = talloc_get_type(ptr, struct infp_setattr_ctx);
 
-    /* send reply */
+    /* Check the ldb_result */
+    if (ldb_status != LDB_SUCCESS) {
+        DEBUG(0, ("Failed to store user attributes to the sysdb\n"));
+        /* Cancel the transaction */
+        sysdb_transaction_done(infp_setattr_req->sysdb_req, sysdb_error_to_errno(ldb_status));
+        talloc_free(infp_setattr_req);
+        return;
+    }
+
+    /* Process any remaining users */
+    infp_setattr_req->index++;
+    if(infp_setattr_req->index < infp_setattr_req->username_count) {
+        infp_do_user_set_attr(infp_setattr_req->sysdb_req, infp_setattr_req);
+        return;
+    }
+
+    /* This was the last user. Commit the transaction */
+    sysdb_transaction_done(infp_setattr_req->sysdb_req, EOK);
+
+    /* Send reply ack */
+    reply = dbus_message_new_method_return(infp_setattr_req->infp_req->req_message);
+    sbus_conn_send_reply(infp_setattr_req->infp_req->sconn, reply);
+}
+
+static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt)
+{
+    int ret;
+    struct infp_setattr_ctx *infp_setattr_req;
+
+    infp_setattr_req = talloc_get_type(pvt, struct infp_setattr_ctx);
+    infp_setattr_req->sysdb_req = req;
+
+    DEBUG(9, ("Setting attributes for user [%s]\n", infp_setattr_req->usernames[infp_setattr_req->index]));
+    ret = sysdb_set_user_attr(infp_setattr_req->sysdb_req,
+                              infp_setattr_req->infp_req->infp->sysdb,
+                              infp_setattr_req->infp_req->domain->name,
+                              infp_setattr_req->usernames[infp_setattr_req->index],
+                              infp_setattr_req->changes[infp_setattr_req->index],
+                              infp_do_user_set_attr_callback, infp_setattr_req);
+    if(ret != EOK) {
+        DEBUG(0, ("Failed to set attributes for user [%s]. Cancelling transaction\n", infp_setattr_req->usernames[infp_setattr_req->index]));
+        sysdb_transaction_done(req, ret);
+        talloc_free(infp_setattr_req);
+    }
+}
+
+int infp_users_set_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
+    TALLOC_CTX *dict_ctx;
+    DBusMessage *reply;
+    DBusMessageIter iter, array_iter, dict_array_iter;
+    DBusMessageIter dict_iter, variant_iter;
+    dbus_bool_t dbret;
+    char *domain_name;
+    char *einval_msg;
+    const char *recv_username;
+    const char *dict_key;
+    char *username;
+    char *val_key;
+    char *values;
+    char **attributes;
+    int user_count, change_count;
+    int change_map_count, dict_entry_count;
+    int added_entries;
+    int current_type;
+    int attr_type, variant_type;
+    int subtype;
+    struct infp_setattr_ctx *infp_setattr_req;
+    struct btreemap *username_map;
+    struct btreemap *value_map;
+    struct btreemap *change_map;
+    struct btreemap **change_array;
+    struct btreemap **tmp_array;
+    struct ldb_val *val;
+    int ret, i, j;
+
+    /* Create a infp_setattr_ctx */
+    infp_setattr_req = talloc_zero(NULL, struct infp_setattr_ctx);
+    if(infp_setattr_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Create an infp_req_ctx */
+    infp_setattr_req->infp_req = talloc_zero(infp_setattr_req, struct infp_req_ctx);
+    if (infp_setattr_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    infp_setattr_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+    infp_setattr_req->infp_req->sconn = sconn;
+    infp_setattr_req->infp_req->req_message = message;
+
+    /* Get the caller's identity */
+    infp_setattr_req->infp_req->caller = sysbus_get_caller(infp_setattr_req->infp_req, message, sconn);
+    if (infp_setattr_req->infp_req->caller == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    /* Process the arguments to SetUserAttributes */
+    dbret = dbus_message_iter_init(message, &iter);
+    if (!dbret) {
+        einval_msg = talloc_strdup(infp_setattr_req, "No arguments received.");
+        goto einval;
+    }
+
+    /* Get the list of usernames to process */
+    current_type = dbus_message_iter_get_arg_type(&iter);
+    if (current_type != DBUS_TYPE_ARRAY) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Expected username list.");
+        goto einval;
+    }
+    if(dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_STRING) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Expected username list.");
+        goto einval;
+    }
+    /* Recurse into the array */
+    user_count = 0;
+    dbus_message_iter_recurse(&iter, &array_iter);
+    username_map = NULL;
+    while((current_type=dbus_message_iter_get_arg_type(&array_iter)) != DBUS_TYPE_INVALID) {
+        dbus_message_iter_get_basic(&array_iter, &recv_username);
+        username = talloc_strdup(infp_setattr_req, recv_username);
+        if (username == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+        ret = btreemap_set_value(infp_setattr_req, &username_map,
+                                 (const void *)username, NULL, username_comparator);
+        if (ret != EOK) goto error;
+
+        user_count++;
+        dbus_message_iter_next(&array_iter);
+    }
+
+    if (user_count == 0) {
+        /* No users passed in */
+        einval_msg = talloc_strdup(infp_setattr_req, "No usernames provided.");
+        goto einval;
+    }
+
+    ret = btreemap_get_keys(infp_setattr_req, username_map,
+                            (const void ***)&infp_setattr_req->usernames, &infp_setattr_req->username_count);
+    if (ret != EOK) goto error;
+
+    /* Verify that the usernames were all unique.
+     * If the count of usernames we added differs from the count we're
+     * getting back, then at least one was a duplicate.
+     */
+    if (infp_setattr_req->username_count != user_count) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Usernames were not unique.");
+        goto einval;
+    }
+
+    /* Get the domain name */
+    dbus_message_iter_next(&iter);
+    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
+        einval_msg = talloc_strdup(infp_setattr_req, "No domain provided.\n");
+        goto einval;
+    }
+    dbus_message_iter_get_basic(&iter, &domain_name);
+
+    infp_setattr_req->infp_req->domain = btreemap_get_value(infp_setattr_req->infp_req->infp->domain_map,
+                                                            (const void *)domain_name);
+    if(infp_setattr_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Invalid domain.");
+        goto einval;
+    }
+
+    /* Get the array of change DICT entries */
+    dbus_message_iter_next(&iter);
+    current_type = dbus_message_iter_get_arg_type(&iter);
+    if (current_type != DBUS_TYPE_ARRAY) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Expected change list.");
+        goto einval;
+    }
+    if(dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_ARRAY) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Expected array of DICT entry arrays.");
+        goto einval;
+    }
+
+    change_count = 0;
+    change_array = NULL;
+    dbus_message_iter_recurse(&iter, &array_iter);
+    if(dbus_message_iter_get_element_type(&array_iter) != DBUS_TYPE_DICT_ENTRY) {
+        einval_msg = talloc_strdup(infp_setattr_req, "Expected array of DICT entries.");
+        goto einval;
+    }
+    while((current_type=dbus_message_iter_get_arg_type(&array_iter)) != DBUS_TYPE_INVALID) {
+        /* Descend into the DICT array */
+        dbus_message_iter_recurse(&array_iter, &dict_array_iter);
+
+        /* Create a new talloc context to contain the values from this DICT array */
+        dict_ctx = talloc_new(infp_setattr_req);
+        if(dict_ctx == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+        value_map = NULL;
+        dict_entry_count = 0;
+
+        while((current_type=dbus_message_iter_get_arg_type(&dict_array_iter)) != DBUS_TYPE_INVALID) {
+            change_count++;
+            /* Descend into the DICT entry */
+            dbus_message_iter_recurse(&dict_array_iter, &dict_iter);
+            /* Key must be a string */
+            if (dbus_message_iter_get_arg_type(&dict_iter) != DBUS_TYPE_STRING) {
+                einval_msg = talloc_strdup(infp_setattr_req, "DICT entries must be keyed on strings.");
+                goto einval;
+            }
+            dbus_message_iter_get_basic(&dict_iter, &dict_key);
+            if((attr_type = infp_get_attribute_type(dict_key)) == INFP_ATTR_TYPE_INVALID) {
+                /* Continue to the next DICT entry (ignoring unrecognized attributes) */
+                change_count--; /* Don't include ignored values in the count */
+                dbus_message_iter_next(&dict_array_iter);
+                continue;
+            }
+            val_key = talloc_strdup(dict_ctx, dict_key);
+            if(val_key == NULL) {
+                ret = ENOMEM;
+                goto error;
+            }
+
+            /* Value is a variant */
+            variant_type = infp_get_user_attr_dbus_type(attr_type, &subtype);
+            if(variant_type == DBUS_TYPE_INVALID) {
+                /* This shouldn't happen since the attr_type is valid.
+                 * If this failed, it's a coding error.
+                 */
+                DEBUG(0, ("Critical error, valid attribute type could not be paired with a D-BUS type.\n"));
+                ret = EIO;
+                goto error;
+            }
+
+            dbus_message_iter_next(&dict_iter);
+            if (dbus_message_iter_get_arg_type(&dict_iter) != DBUS_TYPE_VARIANT) {
+                einval_msg = talloc_strdup(infp_setattr_req, "DICT value must be a variant.");
+                goto einval;
+            }
+            dbus_message_iter_recurse(&dict_iter, &variant_iter);
+
+            if (dbus_message_iter_get_arg_type(&variant_iter) != variant_type) {
+                einval_msg = talloc_asprintf(infp_setattr_req, "DICT value did not match required type of key [%s]. Expected [%c], received [%c]\n", dict_key, variant_type, dbus_message_iter_get_arg_type(&dict_iter));
+                goto einval;
+            }
+
+            if(variant_type == DBUS_TYPE_ARRAY) {
+                current_type=dbus_message_iter_get_element_type(&variant_iter);
+                if (!sbus_is_dbus_fixed_type(current_type)) {
+                    /* We only support fixed-type arrays right now */
+                    einval_msg = talloc_asprintf(infp_setattr_req, "Invalid array type.");
+                }
+            }
+
+            ret = infp_get_ldb_val_from_dbus(dict_ctx, &variant_iter, &val, variant_type, subtype);
+            if (ret != EOK) {
+                /* Could not create an LDB val from this variant */
+                DEBUG(0, ("Error, valid attribute type could not be converted to an ldb_val.\n"));
+                goto error;
+            }
+
+            ret = btreemap_set_value(dict_ctx, &value_map,
+                                     (const void *)val_key, val,
+                                     attr_comparator);
+            if (ret != EOK) {
+                DEBUG(0, ("Could not add change value to the value map.\n"));
+                goto error;
+            }
+
+            dict_entry_count++;
+            dbus_message_iter_next(&dict_array_iter);
+        }
+
+        /* Verify that all of the dict entries were unique */
+        ret = btreemap_get_keys(dict_ctx, value_map,
+                                (const void ***)&values, &added_entries);
+        if (ret != EOK) goto error;
+
+        if (added_entries != dict_entry_count) {
+            einval_msg = talloc_strdup(infp_setattr_req, "Attributes to change were not unique.");
+            goto einval;
+        }
+
+        /* Add the map to an array */
+        tmp_array = talloc_realloc(infp_setattr_req, change_array, struct btreemap *, change_count);
+        if(tmp_array == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+        change_array = tmp_array;
+        change_array[change_count-1] = value_map;
+
+        dbus_message_iter_next(&array_iter);
+    }
+
+    if (change_count != infp_setattr_req->username_count && change_count != 1) {
+        /* Change counts must be one-to-one with the number of users,
+         * or else exactly one for all users.
+         */
+        einval_msg = talloc_strdup(infp_setattr_req, "Count of change DICTs not equal to one or count of usernames.");
+        goto einval;
+    }
+
+    /* Check permissions and create the sysdb_attrs change list */
+    infp_setattr_req->changes = talloc_array(infp_setattr_req, struct sysdb_attrs *, infp_setattr_req->username_count);
+    for (i = 0; i < infp_setattr_req->username_count; i++) {
+        if (change_count == 1)
+            change_map = change_array[0];
+        else
+            change_map = change_array[i];
+
+        ret = btreemap_get_keys(dict_ctx, change_map,
+                                (const void ***)&attributes, &change_map_count);
+        if (ret != EOK) goto error;
+
+        infp_setattr_req->changes[i] = sysdb_new_attrs(infp_setattr_req);
+        if (infp_setattr_req->changes[i] == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+        for (j = 0; j < change_map_count; j++) {
+            /* Add it to the sydb_attrs change list if permission is granted */
+            if (infp_get_permissions(infp_setattr_req->infp_req->caller,
+                                     infp_setattr_req->infp_req->domain,
+                                     INFP_OBJ_TYPE_USER,
+                                     infp_setattr_req->usernames[i],
+                                     INFP_ACTION_TYPE_MODIFY,
+                                     infp_get_attribute_type(attributes[j])))
+            {
+                ret = sysdb_attrs_add_val(infp_setattr_req->changes[i], attributes[j],
+                                          btreemap_get_value(change_map, attributes[j]));
+                if (ret != EOK) {
+                    goto error;
+                }
+            }
+        }
+    }
+
+    infp_setattr_req->index = 0;
+    ret = sysdb_transaction(infp_setattr_req, infp_setattr_req->infp_req->infp->sysdb,
+                            infp_do_user_set_attr, infp_setattr_req);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not write to the cache database.\n"))
+        goto error;
+    }
+
+    return EOK;
+
+error:
+    talloc_free(infp_setattr_req);
+    return ret;
+
+einval:
+    reply = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, einval_msg);
     sbus_conn_send_reply(sconn, reply);
-
     dbus_message_unref(reply);
+
+    talloc_free(infp_setattr_req);
     return EOK;
 }
 

@@ -128,4 +128,5 @@ void sbus_conn_send_reply(struct sbus_conn_ctx *conn_ctx,
 
 int sbus_is_dbus_fixed_type(int dbus_type);
 int sbus_is_dbus_string_type(int dbus_type);
+size_t sbus_get_dbus_type_size(int dbus_type);
 #endif /* _SSSD_DBUS_H_*/

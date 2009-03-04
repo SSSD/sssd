@@ -39,6 +39,8 @@ struct infp_req_ctx {
     struct sbus_conn_ctx *sconn;
     DBusMessage *req_message;
     bool check_provider;
+    struct sss_domain_info *domain;
+    char *caller;
 };
 
 enum infp_object_types {
@@ -84,5 +86,7 @@ bool infp_get_permissions(const char *username,
                           int action_attribute);
 
 struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp, const char *domain_name);
+
+int infp_get_ldb_val_from_dbus(TALLOC_CTX *mem_ctx, DBusMessageIter *iter, struct ldb_val **value, int dbus_type, int subtype);
 
 #endif /* INFOPIPE_PRIVATE_H_ */
