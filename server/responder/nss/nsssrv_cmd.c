@@ -749,6 +749,9 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     /* do not reply until all domain searches are done */
     if (cmdctx->nr) return;
 
+    /* set cache mark */
+    cctx->nctx->last_user_enum = time(NULL);
+
     if (cmdctx->immediate) {
         /* this was a getpwent call w/o setpwent,
          * return immediately one result */
@@ -805,6 +808,8 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
     struct nss_dom_ctx *dctx;
     struct getent_ctx *gctx;
     const char **domains;
+    time_t now = time(NULL);
+    bool cached = false;
     int timeout;
     int i, ret, num;
 
@@ -841,6 +846,13 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         return ret;
     }
 
+    /* do not query backends if we have a recent enumeration */
+    if (cctx->nctx->expire_time) {
+        if (cctx->nctx->last_user_enum + cctx->nctx->expire_time > now) {
+            cached = true;
+        }
+    }
+
     /* check if enumeration is enabled in any domain */
     for (i = 0; i < num; i++) {
         info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
@@ -858,7 +870,11 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         dctx->cmdctx = cmdctx;
         dctx->domain = talloc_strdup(dctx, domains[i]);
         if (!dctx->domain) return ENOMEM;
-        dctx->check_provider = strcasecmp(domains[i], "LOCAL");
+        if (cached) {
+            dctx->check_provider = false;
+        } else {
+            dctx->check_provider = strcasecmp(domains[i], "LOCAL");
+        }
         dctx->legacy = info->legacy;
 
         if (dctx->check_provider) {
@@ -1652,6 +1668,9 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     /* do not reply until all domain searches are done */
     if (cmdctx->nr) return;
 
+    /* set cache mark */
+    cctx->nctx->last_group_enum = time(NULL);
+
     if (cmdctx->immediate) {
         /* this was a getgrent call w/o setgrent,
          * return immediately one result */
@@ -1707,6 +1726,8 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
     struct nss_dom_ctx *dctx;
     struct getent_ctx *gctx;
     const char **domains;
+    time_t now = time(NULL);
+    bool cached = false;
     int timeout;
     int i, ret, num;
 
@@ -1743,6 +1764,13 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         return ret;
     }
 
+    /* do not query backends if we have a recent enumeration */
+    if (cctx->nctx->expire_time) {
+        if (cctx->nctx->last_group_enum + cctx->nctx->expire_time > now) {
+            cached = true;
+        }
+    }
+
     /* check if enumeration is enabled in any domain */
     for (i = 0; i < num; i++) {
         info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
@@ -1760,7 +1788,11 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         dctx->cmdctx = cmdctx;
         dctx->domain = talloc_strdup(dctx, domains[i]);
         if (!dctx->domain) return ENOMEM;
-        dctx->check_provider = strcasecmp(domains[i], "LOCAL");
+        if (cached) {
+            dctx->check_provider = false;
+        } else {
+            dctx->check_provider = strcasecmp(domains[i], "LOCAL");
+        }
         dctx->legacy = info->legacy;
 
         if (dctx->check_provider) {

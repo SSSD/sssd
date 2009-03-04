@@ -64,6 +64,10 @@ struct nss_ctx {
 
     int cache_timeout;
 
+    int expire_time;
+    time_t last_user_enum;
+    time_t last_group_enum;
+
     struct sbus_method *sss_sbus_methods;
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;
