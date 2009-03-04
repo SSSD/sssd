@@ -78,8 +78,6 @@ struct sysdb_ctx {
     struct sysdb_req *queue;
 };
 
-int sysdb_error_to_errno(int ldberr);
-
 bool sysdb_req_check_running(struct sysdb_req *req);
 
 #endif /* __INT_SYS_DB_H__ */

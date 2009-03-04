@@ -116,6 +116,42 @@ int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
     return sysdb_attrs_add_val(attrs, name, &v);
 }
 
+int sysdb_attrs_add_long(struct sysdb_attrs *attrs,
+                         const char *name, long value)
+{
+    struct ldb_val v;
+    char *str;
+    int ret;
+
+    str = talloc_asprintf(attrs, "%ld", value);
+    if (!str) return ENOMEM;
+
+    v.data = (uint8_t *)str;
+    v.length = strlen(str);
+
+    ret = sysdb_attrs_add_val(attrs, name, &v);
+    talloc_free(str);
+
+    return ret;
+}
+
+/* TODO: make a more complete and precise mapping */
+int sysdb_error_to_errno(int ldberr)
+{
+    switch (ldberr) {
+    case LDB_SUCCESS:
+        return EOK;
+    case LDB_ERR_OPERATIONS_ERROR:
+        return EIO;
+    case LDB_ERR_NO_SUCH_OBJECT:
+        return ENOENT;
+    case LDB_ERR_BUSY:
+        return EBUSY;
+    default:
+        return EFAULT;
+    }
+}
+
 /************************************************
  * Initialiazation stuff
  */

@@ -79,12 +79,6 @@ static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
     return sctx;
 }
 
-int sysdb_error_to_errno(int ldberr)
-{
-    /* fake it up for now, requires a mapping table */
-    return EIO;
-}
-
 static void request_ldberror(struct sysdb_search_ctx *sctx, int error)
 {
     sysdb_operation_done(sctx->req);

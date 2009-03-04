@@ -116,8 +116,53 @@ struct sysdb_attrs {
     struct ldb_message_element *a;
 };
 
+/* sysdb_attrs helper functions */
+struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx);
+int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
+                        const char *name, const struct ldb_val *val);
+int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
+                           const char *name, const char *str);
+int sysdb_attrs_add_long(struct sysdb_attrs *attrs,
+                         const char *name, long value);
+
+/* convert an ldb error into an errno error */
+int sysdb_error_to_errno(int ldberr);
+
+/* callbacks */
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
 typedef void (*sysdb_req_fn_t)(struct sysdb_req *, void *pvt);
+
+/* service functions */
+struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
+struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
+
+/* function to start and finish a transaction
+ * After sysdb_transaction() is successfully called,
+ * it *MUST* be closed with a call to sysdb_transaction_done()
+ * if error is == 0 the transaction is committed otherwise it
+ * is canceled and all modifications to the db are thrown away
+ *
+ * Transactions are serialized, no other transaction or operation can be
+ * performed while a transaction is active.
+ */
+int sysdb_transaction(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      sysdb_req_fn_t fn, void *pvt);
+void sysdb_transaction_done(struct sysdb_req *req, int error);
+
+/* An operation blocks the transaction queue as well, but does not
+ * start a transaction, normally useful only for search type calls.
+ * Cannot be called within a transaction */
+int sysdb_operation(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      sysdb_req_fn_t fn, void *pvt);
+void sysdb_operation_done(struct sysdb_req *req);
+
+struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
+                             const char *domain, const char *name);
+
+struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
+                              const char *domain, const char *name);
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct tevent_context *ev,
@@ -125,6 +170,9 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
                const char *alt_db_path,
                struct sysdb_ctx **dbctx);
 
+/* functions to retrieve information from sysdb
+ * These functions automatically starts an operation
+ * therefore they cannot be called within a transaction */
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    const char *domain,
@@ -180,26 +228,10 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         bool legacy,
                         sysdb_callback_t fn, void *ptr);
 
-struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
-struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
 
-
-int sysdb_transaction(TALLOC_CTX *mem_ctx,
-                      struct sysdb_ctx *ctx,
-                      sysdb_req_fn_t fn, void *pvt);
-void sysdb_transaction_done(struct sysdb_req *req, int status);
-
-int sysdb_operation(TALLOC_CTX *mem_ctx,
-                      struct sysdb_ctx *ctx,
-                      sysdb_req_fn_t fn, void *pvt);
-void sysdb_operation_done(struct sysdb_req *req);
-
-struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
-                             const char *domain, const char *name);
-
-struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
-                              const char *domain, const char *name);
-
+/* functions that modify the databse
+ * they have to be called within a transaction
+ * See sysdb_transaction() */
 int sysdb_add_group_member(struct sysdb_req *sysreq,
                            struct ldb_dn *member_dn,
                            struct ldb_dn *group_dn,
@@ -221,12 +253,6 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
 int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
                               const char *domain, gid_t gid,
                               sysdb_callback_t fn, void *pvt);
-
-struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx);
-int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
-                        const char *name, const struct ldb_val *val);
-int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
-                           const char *name, const char *str);
 
 int sysdb_set_user_attr(struct sysdb_req *sysreq,
                         struct sysdb_ctx *ctx,
