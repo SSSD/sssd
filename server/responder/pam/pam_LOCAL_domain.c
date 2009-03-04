@@ -34,15 +34,9 @@ struct LOCAL_request {
     struct sysdb_attrs *mod_attrs;
     struct sysdb_req *sysdb_req;
     struct ldb_result *res;
-    int global_pam_status;
-    int callback_delay;
-};
-
-struct callback_ctx {
-    struct cli_ctx *cctx;
-    pam_dp_callback_t callback;
     int pam_status;
-    char *domain;
+    int error;
+    int callback_delay;
 };
 
 static int authtok2str(const void *mem_ctx, uint8_t *src, const int src_size, char **dest)
@@ -66,27 +60,22 @@ static void LOCAL_call_callback(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval tv, void *pvt) {
 
-    struct callback_ctx *callback_ctx;
-    struct cli_ctx *cctx;
-    pam_dp_callback_t callback;
+    struct LOCAL_request *lreq;
     int pam_status;
-    char *domain;
 
-    callback_ctx = talloc_get_type(pvt, struct callback_ctx);
-    cctx = callback_ctx->cctx;
-    callback = callback_ctx->callback;
-    pam_status = callback_ctx->pam_status;
-    domain = callback_ctx->domain;
+    lreq = talloc_get_type(pvt, struct LOCAL_request);
 
-    talloc_free(callback_ctx);
+    if (lreq->error != EOK) pam_status = PAM_SYSTEM_ERR;
+    else pam_status = lreq->pam_status;
 
-    callback(cctx, pam_status, domain);
+    lreq->callback(lreq->cctx, pam_status, "LOCAL");
+
+    talloc_free(lreq);
 }
 
-static void prepare_reply(struct LOCAL_request *lreq, const int pam_status)
+static void prepare_reply(struct LOCAL_request *lreq)
 {
     int ret;
-    struct callback_ctx *callback_ctx;
     struct timeval tv;
     struct tevent_timer *te;
 
@@ -102,23 +91,7 @@ static void prepare_reply(struct LOCAL_request *lreq, const int pam_status)
         tv.tv_usec = 0;
     }
 
-    callback_ctx = talloc(lreq->cctx, struct callback_ctx);
-    if (callback_ctx == NULL) {
-        DEBUG(1, ("Cannot prepare callback data.\n"));
-        return;
-    }
-
-    callback_ctx->cctx = lreq->cctx;
-    callback_ctx->callback = lreq->callback;
-    callback_ctx->pam_status = (lreq->global_pam_status!=PAM_SUCCESS) ?
-                                    lreq->global_pam_status :
-                                    pam_status;
-    callback_ctx->domain = "LOCAL";
-
-    talloc_free(lreq);
-
-    te = tevent_add_timer(callback_ctx->cctx->ev, callback_ctx->cctx, tv,
-                          LOCAL_call_callback, callback_ctx);
+    te = tevent_add_timer(lreq->cctx->ev, lreq, tv, LOCAL_call_callback, lreq);
     if (te == NULL) {
         DEBUG(1, ("Cannot add callback to event loop.\n"));
         return;
@@ -127,7 +100,6 @@ static void prepare_reply(struct LOCAL_request *lreq, const int pam_status)
 
 static void set_user_attr_callback(void *pvt, int ldb_status, struct ldb_result *res)
 {
-    int pam_status=PAM_SUCCESS;
     struct LOCAL_request *lreq;
 
     DEBUG(4, ("entering set_user_attr_callback, status [%d][%s]\n",
@@ -135,19 +107,18 @@ static void set_user_attr_callback(void *pvt, int ldb_status, struct ldb_result 
 
     lreq = talloc_get_type(pvt, struct LOCAL_request);
 
-    sysdb_transaction_done(lreq->sysdb_req, ldb_status);
+    sysdb_transaction_done(lreq->sysdb_req, sysdb_error_to_errno(ldb_status));
 
     NEQ_CHECK_OR_JUMP(ldb_status, LDB_SUCCESS, ("set_user_attr failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+                      lreq->error, sysdb_error_to_errno(ldb_status), done);
 
 done:
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 static void set_user_attr_req(struct sysdb_req *req, void *pvt)
 {
     int ret;
-    int pam_status=PAM_SUCCESS;
     struct LOCAL_request *lreq;
 
     DEBUG(4, ("entering set_user_attr_req\n"));
@@ -159,98 +130,84 @@ static void set_user_attr_req(struct sysdb_req *req, void *pvt)
     ret = sysdb_set_user_attr(req, lreq->dbctx, lreq->domain_info->name,
                               lreq->pd->user, lreq->mod_attrs,
                               set_user_attr_callback, lreq);
-    if (ret != EOK) sysdb_transaction_done(lreq->sysdb_req, ret);
+    if (ret != EOK)
+        sysdb_transaction_done(lreq->sysdb_req, ret);
+
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+                      lreq->error, ret, done);
 
     return;
 done:
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 static void do_successful_login(struct LOCAL_request *lreq)
 {
     int ret;
-    int pam_status;
-    char *buffer;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
-                       pam_status, PAM_SYSTEM_ERR, done);
+                       lreq->error, ENOMEM, done);
 
-    buffer = talloc_asprintf(lreq, "%d", (int) time(NULL));
-    NULL_CHECK_OR_JUMP(buffer, ("talloc_asprintf failed.\n"), pam_status,
-                       PAM_SYSTEM_ERR, done);
+    ret = sysdb_attrs_add_long(lreq->mod_attrs,
+                               SYSDB_USER_ATTR_LAST_LOGIN, (long)time(NULL));
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+                      lreq->error, ret, done);
 
-    ret = sysdb_attrs_add_string(lreq->mod_attrs, SYSDB_USER_ATTR_LAST_LOGIN, buffer);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
-    talloc_free(buffer);
-
-    buffer = talloc_asprintf(lreq, "0");
-    ret = sysdb_attrs_add_string(lreq->mod_attrs, "failedLoginAttempts", buffer);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
-    talloc_free(buffer);
+    ret = sysdb_attrs_add_long(lreq->mod_attrs, "failedLoginAttempts", 0L);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+                      lreq->error, ret, done);
 
     ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+                      lreq->error, ret, done);
     return;
 
 done:
 
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 static void do_failed_login(struct LOCAL_request *lreq)
 {
     int ret;
-    int pam_status;
-    char *buffer;
     int failedLoginAttempts;
 
-    lreq->global_pam_status = PAM_AUTH_ERR;
+    lreq->pam_status = PAM_AUTH_ERR;
 /* TODO: maybe add more inteligent delay calculation */
     lreq->callback_delay = 3;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
-                       pam_status, PAM_SYSTEM_ERR, done);
+                       lreq->error, ENOMEM, done);
 
-    buffer = talloc_asprintf(lreq, "%d", (int) time(NULL));
-    NULL_CHECK_OR_JUMP(buffer, ("talloc_asprintf failed.\n"), pam_status,
-                       PAM_SYSTEM_ERR, done);
-
-    ret = sysdb_attrs_add_string(lreq->mod_attrs, "lastFailedLogin", buffer);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
-    talloc_free(buffer);
+    ret = sysdb_attrs_add_long(lreq->mod_attrs,
+                               "lastFailedLogin", (long)time(NULL));
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+                      lreq->error, ret, done);
 
     failedLoginAttempts = ldb_msg_find_attr_as_int(lreq->res->msgs[0],
                                                    "failedLoginAttempts", 0);
-    buffer = talloc_asprintf(lreq, "%d", ++failedLoginAttempts);
-    NULL_CHECK_OR_JUMP(buffer, ("talloc_asprintf failed.\n"), pam_status,
-                       PAM_SYSTEM_ERR, done);
+    failedLoginAttempts++;
 
-    ret = sysdb_attrs_add_string(lreq->mod_attrs, "failedLoginAttempts", buffer);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
-    talloc_free(buffer);
+    ret = sysdb_attrs_add_long(lreq->mod_attrs,
+                               "failedLoginAttempts",
+                               (long)failedLoginAttempts);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+                      lreq->error, ret, done);
 
     ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+                      lreq->error, ret, done);
     return;
 
 done:
 
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
 {
-    int pam_status=PAM_SUCCESS;
     const char *disabled=NULL;
 
     disabled = ldb_msg_find_attr_as_string(lreq->res->msgs[0],
@@ -258,103 +215,93 @@ static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
     if (disabled != NULL &&
         strncasecmp(disabled, "false",5)!=0 &&
         strncasecmp(disabled, "no",2)!=0 ) {
-        lreq->global_pam_status = PAM_PERM_DENIED;
+        lreq->pam_status = PAM_PERM_DENIED;
     }
 
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 static void do_pam_chauthtok(struct LOCAL_request *lreq)
 {
     int ret;
-    int pam_status;
     char *newauthtok;
     char *salt;
     char *new_hash;
-    char *timestamp;
 
     ret = authtok2str(lreq, lreq->pd->newauthtok, lreq->pd->newauthtok_size,
                       &newauthtok);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("authtok2str failed.\n"), pam_status,
-                      PAM_SYSTEM_ERR, done);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("authtok2str failed.\n"),
+                      lreq->error, ret, done);
     memset(lreq->pd->newauthtok, 0, lreq->pd->newauthtok_size);
 
     salt = gen_salt();
-    NULL_CHECK_OR_JUMP(salt, ("Salt generation failed.\n"), pam_status,
-                       PAM_SYSTEM_ERR, done);
+    NULL_CHECK_OR_JUMP(salt, ("Salt generation failed.\n"),
+                       lreq->error, EFAULT, done);
     DEBUG(4, ("Using salt [%s]\n", salt));
 
     new_hash = nss_sha512_crypt(newauthtok, salt);
-    NULL_CHECK_OR_JUMP(new_hash, ("Hash generation failed.\n"), pam_status,
-                       PAM_SYSTEM_ERR, done);
+    NULL_CHECK_OR_JUMP(new_hash, ("Hash generation failed.\n"),
+                       lreq->error, EFAULT, done);
     DEBUG(4, ("New hash [%s]\n", new_hash));
     memset(newauthtok, 0, lreq->pd->newauthtok_size);
-    talloc_free(newauthtok);
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
-                       pam_status, PAM_SYSTEM_ERR, done);
+                       lreq->error, ENOMEM, done);
 
     ret = sysdb_attrs_add_string(lreq->mod_attrs, SYSDB_PW_PWD, new_hash);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+                      lreq->error, ret, done);
 
-    timestamp = talloc_asprintf(lreq, "%d", (int) time(NULL));
-    NULL_CHECK_OR_JUMP(timestamp, ("talloc_asprintf failed.\n"), pam_status,
-                       PAM_SYSTEM_ERR, done);
-
-    ret = sysdb_attrs_add_string(lreq->mod_attrs, "lastPasswordChange",
-                                 timestamp);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
-    talloc_free(timestamp);
+    ret = sysdb_attrs_add_long(lreq->mod_attrs,
+                               "lastPasswordChange", (long)time(NULL));
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
+                      lreq->error, ret, done);
 
     ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+                      lreq->error, ret, done);
     return;
 done:
 
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 static void pam_handler_callback(void *pvt, int ldb_status,
                                  struct ldb_result *res)
 {
-    int ret;
-    int pam_status = PAM_SUCCESS;
     struct LOCAL_request *lreq;
-    struct ldb_dn *user_base_dn=NULL;
-    char *authtok=NULL;
-    char *newauthtok=NULL;
-    const char *username=NULL;
-    const char *password=NULL;
-    char *new_hash=NULL;
+    const char *username = NULL;
+    const char *password = NULL;
+    char *newauthtok = NULL;
+    char *new_hash = NULL;
+    char *authtok = NULL;
+    int ret;
 
     lreq = talloc_get_type(pvt, struct LOCAL_request);
 
     DEBUG(4, ("pam_handler_callback called with ldb_status [%d].\n",
               ldb_status));
 
-    NEQ_CHECK_OR_JUMP(ldb_status,LDB_SUCCESS, ("ldb search failed.\n"),
-                      pam_status, PAM_SYSTEM_ERR, done);
+    NEQ_CHECK_OR_JUMP(ldb_status, LDB_SUCCESS, ("ldb search failed.\n"),
+                      lreq->error, sysdb_error_to_errno(ldb_status), done);
 
 
     if (res->count < 1) {
         DEBUG(4, ("No user found with filter ["SYSDB_PWNAM_FILTER"]\n",
                   lreq->pd->user));
-        pam_status = PAM_USER_UNKNOWN;
+        lreq->pam_status = PAM_USER_UNKNOWN;
         goto done;
     } else if (res->count > 1) {
         DEBUG(4, ("More than one object found with filter ["SYSDB_PWNAM_FILTER"]\n"));
-        pam_status = PAM_SYSTEM_ERR;
+        lreq->error = EFAULT;
         goto done;
     }
 
     username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PW_NAME, NULL);
     if (strcmp(username, lreq->pd->user) != 0) {
         DEBUG(1, ("Expected username [%s] get [%s].\n", lreq->pd->user, username));
-        pam_status = PAM_SYSTEM_ERR;
+        lreq->error = EINVAL;
         goto done;
     }
 
@@ -366,17 +313,20 @@ static void pam_handler_callback(void *pvt, int ldb_status,
             ret = authtok2str(lreq, lreq->pd->authtok,
                               lreq->pd->authtok_size, &authtok);
             NEQ_CHECK_OR_JUMP(ret, EOK, ("authtok2str failed.\n"),
-                              pam_status, PAM_SYSTEM_ERR, done);
+                              lreq->error, ret, done);
             memset(lreq->pd->authtok, 0, lreq->pd->authtok_size);
 
             password = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PW_PWD, NULL);
             NULL_CHECK_OR_JUMP(password, ("No password stored.\n"),
-                               pam_status, PAM_SYSTEM_ERR, done);
+                               lreq->error, ret, done);
             DEBUG(4, ("user: [%s], password hash: [%s]\n", username, password));
 
             new_hash = nss_sha512_crypt(authtok, password);
             memset(authtok, 0, lreq->pd->authtok_size);
-            talloc_free(authtok);
+            NULL_CHECK_OR_JUMP(new_hash, ("nss_sha512_crypt failed.\n"),
+                               lreq->error, EFAULT, done);
+
+            DEBUG(4, ("user: [%s], new hash: [%s]\n", username, new_hash));
 
             if (strcmp(new_hash, password) != 0) {
                 DEBUG(1, ("Passwords do not match.\n"));
@@ -384,7 +334,6 @@ static void pam_handler_callback(void *pvt, int ldb_status,
                 return;
             }
 
-            pam_status = PAM_SUCCESS;
             break;
     }
 
@@ -402,16 +351,13 @@ static void pam_handler_callback(void *pvt, int ldb_status,
             return;
             break;
         case SSS_PAM_SETCRED:
-            pam_status = PAM_SUCCESS;
             break;
         case SSS_PAM_OPEN_SESSION:
-            pam_status = PAM_SUCCESS;
             break;
         case SSS_PAM_CLOSE_SESSION:
-            pam_status = PAM_SUCCESS;
             break;
         default:
-            pam_status = PAM_SYSTEM_ERR;
+            lreq->error = EINVAL;
             DEBUG(1, ("Unknown PAM task [%d].\n"));
     }
 
@@ -424,10 +370,8 @@ done:
         memset(lreq->pd->newauthtok, 0, lreq->pd->newauthtok_size);
     if (newauthtok != NULL)
         memset(newauthtok, 0, lreq->pd->newauthtok_size);
-    talloc_free(res);
-    talloc_free(user_base_dn);
 
-    prepare_reply(lreq, pam_status);
+    prepare_reply(lreq);
 }
 
 int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
@@ -448,14 +392,15 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
                                   "lastFailedLogin",
                                   NULL};
 
-    lreq = talloc(cctx, struct LOCAL_request);
+    lreq = talloc_zero(cctx, struct LOCAL_request);
     if (!lreq) {
         return ENOMEM;
     }
     lreq->cctx = cctx;
     lreq->pd = pd;
     lreq->callback = callback;
-    lreq->global_pam_status = PAM_SUCCESS;
+    lreq->pam_status = PAM_SUCCESS;
+    lreq->error = EOK;
     lreq->callback_delay = 0;
 
 
@@ -478,6 +423,7 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
     }
 
     return EOK;
+
 done:
     talloc_free(lreq);
     return ret;

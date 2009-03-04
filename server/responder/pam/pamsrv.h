@@ -30,7 +30,8 @@ struct pam_data {
 
 void pam_print_data(int l, struct pam_data *pd);
 
-typedef void (*pam_dp_callback_t)(struct cli_ctx *cctx, int pam_status, char *domain);
+typedef void (*pam_dp_callback_t)(struct cli_ctx *cctx,
+                                  int pam_status, const char *domain);
 
 struct sbus_method *register_pam_dp_methods(void);
 struct sss_cmd_table *register_sss_cmds(void);

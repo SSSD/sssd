@@ -82,7 +82,9 @@ static int pam_parse_in_data(uint8_t *body, size_t blen, struct pam_data *pd) {
     return EOK;
 }
 
-static void pam_reply(struct cli_ctx *cctx, int pam_status, char *domain) {
+static void pam_reply(struct cli_ctx *cctx,
+                      int pam_status, const char *domain)
+{
     struct sss_cmd_ctx *nctx;
     int32_t ret_status = pam_status;
     uint8_t *body;
