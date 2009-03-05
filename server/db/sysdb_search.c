@@ -264,6 +264,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
                     const char *domain,
                     bool legacy,
+                    const char *expression,
                     sysdb_callback_t fn, void *ptr)
 {
     static const char *attrs[] = SYSDB_PW_ATTRS;
@@ -278,7 +279,11 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    sctx->expression = SYSDB_PWENT_FILTER;
+    if (expression)
+        sctx->expression = expression;
+    else
+        sctx->expression = SYSDB_PWENT_FILTER;
+
     sctx->attrs = attrs;
 
     return sysdb_operation(mem_ctx, ctx, user_search, sctx);

@@ -32,17 +32,173 @@
 static int attr_comparator(const void *key1, const void *key2);
 static int username_comparator(const void *key1, const void *key2);
 
+struct infp_getcached_ctx {
+    struct infp_req_ctx *infp_req;
+    struct sysdb_req *sysdb_req;
+    char **usernames;
+    uint64_t min_last_login;
+};
+static void infp_users_get_cached_callback(void *ptr,
+                                           int status,
+                                           struct ldb_result *res)
+{
+    DBusMessage *reply;
+    DBusMessageIter iter, array_iter;
+    dbus_bool_t dbret;
+    int i;
+    char *username;
+    struct infp_getcached_ctx *infp_getcached_req =
+        talloc_get_type(ptr, struct infp_getcached_ctx);
+
+    if (status != LDB_SUCCESS) {
+        DEBUG(0, ("Failed to enumerate users in the cache db.\n"));
+        talloc_free(infp_getcached_req);
+        return;
+    }
+
+    /* Construct a reply */
+    reply = dbus_message_new_method_return(infp_getcached_req->infp_req->req_message);
+    if(reply == NULL) {
+        talloc_free(infp_getcached_req);
+        return;
+    }
+
+    dbus_message_iter_init_append(reply, &iter);
+    dbret = dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY,
+                                             "s", &array_iter);
+    if (!dbret) goto error;
+
+    for (i = 0; i < res->count; i++) {
+        username = talloc_strdup(infp_getcached_req,
+                                 ldb_msg_find_attr_as_string(res->msgs[i],
+                                                             SYSDB_PW_NAME,
+                                                             NULL));
+        if (username != NULL) {
+            dbret = dbus_message_iter_append_basic(&array_iter,
+                                                   DBUS_TYPE_STRING, &username);
+            if (!dbret) goto error;
+        }
+    }
+    dbret = dbus_message_iter_close_container(&iter, &array_iter);
+    if(!dbret) goto error;
+
+    sbus_conn_send_reply(infp_getcached_req->infp_req->sconn, reply);
+    dbus_message_unref(reply);
+
+    talloc_free(infp_getcached_req);
+    return;
+
+error:
+    DEBUG(0,
+          ("Critical error constructing reply message for %s\n",
+            INFP_USERS_GET_CACHED));
+    dbus_message_unref(reply);
+    talloc_free(infp_getcached_req);
+    return;
+}
+
 int infp_users_get_cached(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
+    DBusError error;
+    dbus_bool_t dbret;
+    char *einval_msg;
+    char *search_expression;
+    struct infp_getcached_ctx *infp_getcached_req;
+    int ret;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    /* Arguments */
+    const char *arg_domain;
+    const uint64_t arg_minlastlogin;
 
-    /* send reply */
-    sbus_conn_send_reply(sconn, reply);
+    infp_getcached_req = talloc_zero(NULL, struct infp_getcached_ctx);
+    if (infp_getcached_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
 
-    dbus_message_unref(reply);
+    /* Create an infp_req_ctx */
+    infp_getcached_req->infp_req =
+        talloc_zero(infp_getcached_req, struct infp_req_ctx);
+    if (infp_getcached_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    infp_getcached_req->infp_req->infp =
+        talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+    infp_getcached_req->infp_req->sconn = sconn;
+    infp_getcached_req->infp_req->req_message = message;
+    infp_getcached_req->infp_req->caller =
+        sysbus_get_caller(infp_getcached_req->infp_req,
+                          infp_getcached_req->infp_req->req_message,
+                          infp_getcached_req->infp_req->sconn);
+    if (infp_getcached_req->infp_req->caller == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    dbus_error_init(&error);
+    dbret = dbus_message_get_args(message, &error,
+                                  DBUS_TYPE_STRING, &arg_domain,
+                                  DBUS_TYPE_UINT64, &arg_minlastlogin,
+                                  DBUS_TYPE_INVALID);
+    if(!dbret) {
+        DEBUG(0, ("Parsing arguments to %s failed: %s:%s\n",
+                INFP_USERS_GET_CACHED, error.name, error.message));
+        einval_msg = talloc_strdup(infp_getcached_req, error.message);
+        dbus_error_free(&error);
+        goto einval;
+    }
+
+    infp_getcached_req->min_last_login = arg_minlastlogin;
+
+    infp_getcached_req->infp_req->domain =
+        btreemap_get_value(infp_getcached_req->infp_req->infp->domain_map,
+                           (const void *)arg_domain);
+    /* Check for a valid domain */
+    if(infp_getcached_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(infp_getcached_req, "Invalid domain.");
+        goto einval;
+    }
+
+    /* NOTE: not checking permissions since the
+     * information here is all visible in NSS as well
+     */
+
+    /* Call sysdb_enumpwent with special search parameters */
+    search_expression = talloc_asprintf(infp_getcached_req,
+                                        SYSDB_GETCACHED_FILTER,
+                                        infp_getcached_req->min_last_login);
+    ret = sysdb_enumpwent(infp_getcached_req,
+                          infp_getcached_req->infp_req->infp->sysdb,
+                          infp_getcached_req->infp_req->domain->name,
+                          infp_getcached_req->infp_req->domain->legacy,
+                          search_expression,
+                          infp_users_get_cached_callback, infp_getcached_req);
+    if(ret != EOK) {
+        DEBUG(0, ("Could not read from the cache database.\n"));
+        goto error;
+    }
+
     return EOK;
+
+einval:
+    reply = dbus_message_new_error(message,
+                                   DBUS_ERROR_INVALID_ARGS,
+                                   einval_msg);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+    talloc_free(infp_getcached_req);
+    return EOK;
+
+error:
+    talloc_free(infp_getcached_req);
+    return ret;
 }
 
 int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
@@ -643,6 +799,9 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
         dbus_free_string_array(attributes);
 
         reply = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, error.message);
+        if (reply == NULL) {
+            return ENOMEM;
+        }
         sbus_conn_send_reply(sconn, reply);
 
         dbus_message_unref(reply);
@@ -654,12 +813,17 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
     if (username_count < 1) {
         /* No usernames received. Return an error */
         reply = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, "No usernames specified.");
+        if (reply == NULL) {
+            ret = ENOMEM;
+            goto end;
+        }
         sbus_conn_send_reply(sconn, reply);
 
         dbus_free_string_array(usernames);
         dbus_free_string_array(attributes);
         dbus_message_unref(reply);
         ret = EOK;
+        goto end;
     }
 
     /* Create a infp_getattr_ctx */
@@ -804,7 +968,12 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
 
     /* Send reply ack */
     reply = dbus_message_new_method_return(infp_setattr_req->infp_req->req_message);
+    if(reply == NULL) {
+        talloc_free(infp_setattr_req);
+        return;
+    }
     sbus_conn_send_reply(infp_setattr_req->infp_req->sconn, reply);
+    dbus_message_unref(reply);
     talloc_free(infp_setattr_req);
 }
 
@@ -1133,17 +1302,22 @@ int infp_users_set_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     return EOK;
 
-error:
-    talloc_free(infp_setattr_req);
-    return ret;
-
 einval:
     reply = dbus_message_new_error(message, DBUS_ERROR_INVALID_ARGS, einval_msg);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
     sbus_conn_send_reply(sconn, reply);
     dbus_message_unref(reply);
 
     talloc_free(infp_setattr_req);
     return EOK;
+
+error:
+    talloc_free(infp_setattr_req);
+    return ret;
 }
 
 struct infp_setuid_ctx {
@@ -1170,7 +1344,12 @@ static void infp_do_user_set_uid_callback(void *ptr, int ldb_status, struct ldb_
 
     /* Send reply ack */
     reply = dbus_message_new_method_return(infp_setuid_req->infp_req->req_message);
+    if(reply == NULL) {
+        talloc_free(infp_setuid_req);
+        return;
+    }
     sbus_conn_send_reply(infp_setuid_req->infp_req->sconn, reply);
+    dbus_message_unref(reply);
     talloc_free(infp_setuid_req);
 }
 
@@ -1270,6 +1449,10 @@ int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)
                              INFP_ATTR_TYPE_USERID))
     {
         reply = dbus_message_new_error(message, DBUS_ERROR_ACCESS_DENIED, NULL);
+        if(reply == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
         /* send reply */
         sbus_conn_send_reply(sconn, reply);
         dbus_message_unref(reply);
@@ -1296,6 +1479,10 @@ int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
 einval:
     reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, einval_msg);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
 
     /* send reply */
     sbus_conn_send_reply(sconn, reply);

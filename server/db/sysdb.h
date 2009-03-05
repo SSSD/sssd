@@ -84,6 +84,8 @@
 
 #define SYSDB_INITGR_LEGACY_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_LEGACY_MEMBER"=%s))"
 
+#define SYSDB_GETCACHED_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_USER_ATTR_LAST_LOGIN">=%llu))"
+
 #define SYSDB_PW_ATTRS {SYSDB_PW_NAME, SYSDB_PW_UIDNUM, \
                         SYSDB_PW_GIDNUM, SYSDB_PW_FULLNAME, \
                         SYSDB_PW_HOMEDIR, SYSDB_PW_SHELL, \
@@ -199,6 +201,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
                     const char *domain,
                     bool legacy,
+                    const char *expression,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,

@@ -788,7 +788,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_enumpwent(cmdctx, cctx->nctx->sysdb,
-                          dctx->domain, dctx->legacy,
+                          dctx->domain, dctx->legacy, NULL,
                           nss_cmd_setpwent_callback, cmdctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -885,7 +885,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
                                        NULL, 0);
         } else {
             ret = sysdb_enumpwent(dctx, cctx->nctx->sysdb,
-                                  dctx->domain, dctx->legacy,
+                                  dctx->domain, dctx->legacy, NULL,
                                   nss_cmd_setpwent_callback, cmdctx);
         }
         if (ret != EOK) {
