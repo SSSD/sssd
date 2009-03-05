@@ -36,6 +36,10 @@
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
 
+#define SYSDB_NEXTID "nextID"
+#define SYSDB_UIDNUM "uidNumber"
+#define SYSDB_GIDNUM "gidNumber"
+
 #define SYSDB_PW_NAME "uid"
 #define SYSDB_PW_PWD "userPassword"
 #define SYSDB_PW_UIDNUM "uidNumber"
@@ -63,6 +67,8 @@
 #define SYSDB_USER_ATTR_USERPIC "userPicture"
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
+
+#define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
 #define SYSDB_PWNAM_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_NAME"=%s))"
 #define SYSDB_PWUID_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_UIDNUM"=%lu))"
@@ -160,9 +166,10 @@ void sysdb_operation_done(struct sysdb_req *req);
 
 struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
                              const char *domain, const char *name);
-
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain, const char *name);
+struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
+                               const char *domain);
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
                struct tevent_context *ev,

@@ -50,6 +50,28 @@ static int add_ulong(struct ldb_message *msg, int flags,
     return ret;
 }
 
+static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
+{
+    const struct ldb_val *v = ldb_msg_find_ldb_val(msg, attr);
+    long long int l;
+
+    if (!v || !v->data) {
+        return 0;
+    }
+
+    errno = 0;
+    l = strtoll((const char *)v->data, NULL, 0);
+    if (errno) {
+        return (uint32_t)-1;
+    }
+
+    if (l < 0 || l > ((uint32_t)(-1))) {
+        return (uint32_t)-1;
+    }
+
+    return l;
+}
+
 /* the following are all SYNCHRONOUS calls
  * TODO: make these asynchronous */
 
@@ -268,19 +290,22 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
 
     switch (rep->type) {
     case LDB_REPLY_ENTRY:
-        res->msgs = talloc_realloc(res, res->msgs,
-                                   struct ldb_message *,
-                                   res->count + 2);
+        if (res->msgs != NULL) {
+            DEBUG(1, ("More than one reply for a base search ?! "
+                      "DB seems corrupted, aborting."));
+            return_error(cbctx, EFAULT);
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        res->msgs = talloc_realloc(res, res->msgs, struct ldb_message *, 2);
         if (!res->msgs) {
             ret = LDB_ERR_OPERATIONS_ERROR;
             return_error(cbctx, sysdb_error_to_errno(ret));
             return ret;
         }
 
-        res->msgs[res->count + 1] = NULL;
-
-        res->msgs[res->count] = talloc_steal(res->msgs, rep->message);
-        res->count++;
+        res->msgs[0] = talloc_steal(res->msgs, rep->message);
+        res->msgs[1] = NULL;
+        res->count = 1;
 
         break;
 
@@ -290,12 +315,6 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
             DEBUG(7, ("Base search returned no results\n"));
             return_done(cbctx);
             break;
-        }
-        if (res->count > 1) {
-            DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
-                      res->count));
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
         }
 
         dn = ldb_dn_copy(del_ctx, res->msgs[0]->dn);
@@ -488,6 +507,250 @@ int sysdb_set_user_attr(struct sysdb_req *sysreq,
     }
 
     return EOK;
+}
+
+struct next_id {
+    uint32_t id;
+};
+
+struct next_id_ctx {
+    struct sysdb_req *sysreq;
+    struct sss_domain_info *domain;
+    struct sysdb_cb_ctx *cbctx;
+
+    struct ldb_dn *base_dn;
+	struct ldb_result *res;
+    uint32_t tmp_id;
+
+    enum next_step { NEXTID_SEARCH=0, NEXTID_VERIFY, NEXTID_STORE } step;
+
+    struct next_id *result;
+};
+
+static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep);
+
+static int sysdb_get_next_available_id(struct sysdb_req *sysreq,
+                                       struct sss_domain_info *domain,
+                                       struct next_id *result,
+                                       sysdb_callback_t fn, void *pvt)
+{
+    static const char *attrs[] = { SYSDB_NEXTID, NULL };
+    struct sysdb_ctx *ctx;
+    struct next_id_ctx *idctx;
+    struct ldb_request *req;
+    int ret;
+
+    if (!sysdb_req_check_running(sysreq)) {
+        DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    ctx = sysdb_req_get_ctx(sysreq);
+
+    idctx = talloc_zero(sysreq, struct next_id_ctx);
+    if (!idctx) return ENOMEM;
+
+    idctx->domain = domain;
+    idctx->result = result;
+
+    idctx->cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    if (!idctx->cbctx) return ENOMEM;
+
+    idctx->cbctx->fn = fn;
+    idctx->cbctx->pvt = pvt;
+
+    idctx->base_dn = sysdb_domain_dn(ctx, idctx, domain->name);
+    if (!idctx->base_dn) return ENOMEM;
+
+    idctx->res = talloc_zero(idctx, struct ldb_result);
+    if (!idctx->res) return ENOMEM;
+
+    ret = ldb_build_search_req(&req, ctx->ldb, idctx,
+                               idctx->base_dn, LDB_SCOPE_BASE,
+                               SYSDB_NEXTID_FILTER, attrs, NULL,
+                               idctx, nextid_callback, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        return sysdb_error_to_errno(ret);
+    }
+
+    ret = ldb_request(ctx->ldb, req);
+    if (ret != LDB_SUCCESS) return sysdb_error_to_errno(ret);
+
+    return EOK;
+}
+
+static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
+{
+    static const char *attrs[] = { SYSDB_UIDNUM, SYSDB_GIDNUM, NULL };
+    struct next_id_ctx *idctx;
+    struct sysdb_cb_ctx *cbctx;
+    struct sysdb_ctx *ctx;
+    struct ldb_request *nreq;
+    struct ldb_message *msg;
+    struct ldb_result *res;
+    char *filter;
+    int ret;
+
+    idctx = talloc_get_type(req->context, struct next_id_ctx);
+    ctx = sysdb_req_get_ctx(idctx->sysreq);
+    cbctx = idctx->cbctx;
+    res = idctx->res;
+
+    if (!rep) {
+        return_error(cbctx, EIO);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    if (rep->error != LDB_SUCCESS) {
+        return_error(cbctx, sysdb_error_to_errno(rep->error));
+        return rep->error;
+    }
+
+    switch (rep->type) {
+    case LDB_REPLY_ENTRY:
+
+        if (idctx->step == NEXTID_VERIFY) {
+            res->count++;
+            break;
+        }
+
+        /* NEXTID_SEARCH */
+        if (res->msgs != NULL) {
+            DEBUG(1, ("More than one reply for a base search ?! "
+                      "DB seems corrupted, aborting."));
+            return_error(cbctx, EFAULT);
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        res->msgs = talloc_realloc(res, res->msgs, struct ldb_message *, 2);
+        if (!res->msgs) {
+            ret = LDB_ERR_OPERATIONS_ERROR;
+            return_error(cbctx, sysdb_error_to_errno(ret));
+            return ret;
+        }
+
+        res->msgs[0] = talloc_steal(res->msgs, rep->message);
+        res->msgs[1] = NULL;
+        res->count = 1;
+
+        break;
+
+    case LDB_REPLY_DONE:
+
+        switch (idctx->step) {
+        case NEXTID_SEARCH:
+            if (res->count == 0) {
+                DEBUG(4, ("Base search returned no results\n"));
+                return_done(cbctx);
+                break;
+            }
+
+            idctx->tmp_id = get_attr_as_uint32(res->msgs[0], SYSDB_NEXTID);
+            if (idctx->tmp_id == (uint32_t)(-1)) {
+                DEBUG(1, ("Invalid Next ID in domain %s\n",
+                          idctx->domain->name));
+                return_error(cbctx, ERANGE);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+
+            if (idctx->tmp_id < idctx->domain->id_min) {
+                DEBUG(2, ("Initializing domain next id to id min %u\n",
+                          idctx->domain->id_min));
+            }
+            if ((idctx->domain->id_max != 0) &&
+                (idctx->tmp_id > idctx->domain->id_max)) {
+                DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
+                          idctx->tmp_id, idctx->domain->id_max));
+                return_error(cbctx, ERANGE);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+
+            talloc_free(res->msgs);
+            res->msgs = NULL;
+
+            idctx->step = NEXTID_VERIFY;
+
+        case NEXTID_VERIFY:
+            if (res->count) {
+                /* actually something's using the id, try next */
+                idctx->tmp_id++;
+            } else {
+                /* ok store new next_id */
+                idctx->result->id = idctx->tmp_id;
+                idctx->tmp_id++;
+                idctx->step = NEXTID_STORE;
+            }
+
+        default:
+            DEBUG(1, ("Invalid step, aborting.\n"));
+            return_error(cbctx, EFAULT);
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        switch (idctx->step) {
+        case NEXTID_VERIFY:
+            filter = talloc_asprintf(idctx, "(|(%s=%u)(%s=%u))",
+                                     SYSDB_UIDNUM, idctx->tmp_id,
+                                     SYSDB_GIDNUM, idctx->tmp_id);
+            if (!filter) {
+                return_error(cbctx, ENOMEM);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+            ret = ldb_build_search_req(&nreq, ctx->ldb, idctx,
+                                       idctx->base_dn, LDB_SCOPE_SUBTREE,
+                                       filter, attrs, NULL,
+                                       idctx, nextid_callback, NULL);
+            break;
+
+        case NEXTID_STORE:
+            msg = ldb_msg_new(idctx);
+            if (!msg) {
+                return_error(cbctx, ENOMEM);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+
+            msg->dn = idctx->base_dn;
+
+            ret = add_ulong(msg, LDB_FLAG_MOD_REPLACE,
+                            SYSDB_NEXTID, idctx->tmp_id);
+            if (ret != LDB_SUCCESS) {
+                return_error(cbctx, ENOMEM);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+
+            ret = ldb_build_mod_req(&nreq, ctx->ldb, idctx, msg, NULL,
+                                    idctx, sysdb_op_callback, NULL);
+            break;
+
+        default:
+            DEBUG(1, ("Invalid step, aborting.\n"));
+            return_error(cbctx, EFAULT);
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        if (ret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
+                      ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+            return_error(cbctx, sysdb_error_to_errno(ret));
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        ret = ldb_request(ctx->ldb, nreq);
+        if (ret != LDB_SUCCESS) {
+            return_error(cbctx, sysdb_error_to_errno(ret));
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        break;
+
+    default:
+        return_error(cbctx, EINVAL);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    talloc_free(rep);
+    return LDB_SUCCESS;
 }
 
 

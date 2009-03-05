@@ -333,7 +333,7 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                    int defval, int *result)
 {
     char **values;
-    long int val;
+    long val;
     int ret;
 
     ret = confdb_get_param(cdb, ctx, section, attribute, &values);
@@ -367,6 +367,43 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
     talloc_free(values);
 
     *result = (int)val;
+    return EOK;
+}
+
+long confdb_get_long(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                     const char *section, const char *attribute,
+                     long defval, long *result)
+{
+    char **values;
+    long val;
+    int ret;
+
+    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (values[0]) {
+        if (values[1] != NULL) {
+            /* too many values */
+            talloc_free(values);
+            return EINVAL;
+        }
+
+        errno = 0;
+        val = strtol(values[0], NULL, 0);
+        if (errno) {
+            talloc_free(values);
+            return errno;
+        }
+
+    } else {
+        val = defval;
+    }
+
+    talloc_free(values);
+
+    *result = val;
     return EOK;
 }
 
@@ -679,6 +716,11 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         if (ldb_msg_find_attr_as_bool(res->msgs[i], "legacy", 0)) {
             domain->legacy = true;
         }
+
+        domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[i],
+                                                   "minId", SSSD_MIN_ID);
+        domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[i],
+                                                   "maxId", 0);
 
         ret = btreemap_set_value(mem_ctx, &domain_map,
                                  domain->name, domain,

@@ -28,12 +28,15 @@
 #include "util/btreemap.h"
 
 #define CONFDB_FILE "config.ldb"
+#define SSSD_MIN_ID 1000
 
 struct sss_domain_info {
     char *name;
     int timeout;
     int enumerate;
     bool legacy;
+    uint32_t id_min;
+    uint32_t id_max;
 };
 
 struct confdb_ctx;
