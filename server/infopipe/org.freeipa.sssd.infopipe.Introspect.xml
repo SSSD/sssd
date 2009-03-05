@@ -183,7 +183,7 @@
             />
             <arg name="username" type="s" direction="in" />
             <arg name="domain" type="s" direction="in" />
-            <arg name="uid" type="t" direction="in" />
+            <arg name="uid" type="u" direction="in" />
         </method>
 
 <!--

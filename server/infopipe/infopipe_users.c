@@ -805,6 +805,7 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
     /* Send reply ack */
     reply = dbus_message_new_method_return(infp_setattr_req->infp_req->req_message);
     sbus_conn_send_reply(infp_setattr_req->infp_req->sconn, reply);
+    talloc_free(infp_setattr_req);
 }
 
 static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt)
@@ -1145,15 +1146,165 @@ einval:
     return EOK;
 }
 
+struct infp_setuid_ctx {
+    struct infp_req_ctx *infp_req;
+    struct sysdb_req *sysdb_req;
+    struct sysdb_attrs *uid_attr;
+    char *username;
+};
+
+static void infp_do_user_set_uid_callback(void *ptr, int ldb_status, struct ldb_result *res)
+{
+    DBusMessage *reply;
+    struct infp_setuid_ctx *infp_setuid_req = talloc_get_type(ptr, struct infp_setuid_ctx);
+
+    /* Commit or cancel the transaction, based on the ldb_status */
+    sysdb_transaction_done(infp_setuid_req->sysdb_req, sysdb_error_to_errno(ldb_status));
+
+    /* Check the LDB result */
+    if (ldb_status != LDB_SUCCESS) {
+        DEBUG(0, ("Failed to store user uid to the sysdb\n"));
+        talloc_free(infp_setuid_req);
+        return;
+    }
+
+    /* Send reply ack */
+    reply = dbus_message_new_method_return(infp_setuid_req->infp_req->req_message);
+    sbus_conn_send_reply(infp_setuid_req->infp_req->sconn, reply);
+    talloc_free(infp_setuid_req);
+}
+
+static void infp_do_user_set_uid(struct sysdb_req *req, void *pvt)
+{
+    int ret;
+    struct infp_setuid_ctx *infp_setuid_req;
+
+    infp_setuid_req = talloc_get_type(pvt, struct infp_setuid_ctx);
+    infp_setuid_req->sysdb_req = req;
+
+    DEBUG(9, ("Setting UID for user [%s]\n", infp_setuid_req->username));
+    ret = sysdb_set_user_attr(infp_setuid_req->sysdb_req,
+                              infp_setuid_req->infp_req->infp->sysdb,
+                              infp_setuid_req->infp_req->domain->name,
+                              infp_setuid_req->username,
+                              infp_setuid_req->uid_attr,
+                              infp_do_user_set_uid_callback, infp_setuid_req);
+}
+
 int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
+    DBusError error;
+    dbus_bool_t dbret;
+    char *einval_msg;
+    struct infp_setuid_ctx *infp_setuid_req;
+    int ret;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    /* Arguments */
+    const char *arg_username;
+    const char *arg_domain;
+    const int arg_uid;
+
+    infp_setuid_req = talloc_zero(NULL, struct infp_setuid_ctx);
+    if (infp_setuid_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Create an infp_req_ctx */
+    infp_setuid_req->infp_req = talloc_zero(infp_setuid_req, struct infp_req_ctx);
+    if (infp_setuid_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    infp_setuid_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+    infp_setuid_req->infp_req->sconn = sconn;
+    infp_setuid_req->infp_req->req_message = message;
+    infp_setuid_req->infp_req->caller = sysbus_get_caller(infp_setuid_req->infp_req,
+                                                          infp_setuid_req->infp_req->req_message,
+                                                          infp_setuid_req->infp_req->sconn);
+    if (infp_setuid_req->infp_req->caller == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    dbus_error_init(&error);
+    dbret = dbus_message_get_args(message, &error,
+                                  DBUS_TYPE_STRING, &arg_username,
+                                  DBUS_TYPE_STRING, &arg_domain,
+                                  DBUS_TYPE_UINT32, &arg_uid,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(0, ("Parsing arguments to SetUserUID failed: %s:%s\n", error.name, error.message));
+        einval_msg = talloc_strdup(infp_setuid_req, error.message);
+        dbus_error_free(&error);
+        goto einval;
+    }
+
+    infp_setuid_req->username = talloc_strdup(infp_setuid_req, arg_username);
+
+    infp_setuid_req->infp_req->domain = btreemap_get_value(infp_setuid_req->infp_req->infp->domain_map,
+                                                           (const void *)arg_domain);
+    /* Check for a valid domain */
+    if(infp_setuid_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(infp_setuid_req, "Invalid domain.");
+        goto einval;
+    }
+
+    /* Check the domain MIN and MAX */
+    if((arg_uid < infp_setuid_req->infp_req->domain->id_min) || /* Requested UID < than minimum */
+            ((infp_setuid_req->infp_req->domain->id_max > infp_setuid_req->infp_req->domain->id_min) && /* Maximum exists and is greater than minimum */
+             (arg_uid > infp_setuid_req->infp_req->domain->id_max))) { /* Requested UID > maximum */
+        einval_msg = talloc_asprintf(infp_setuid_req, "UID out of range for this domain. Minimum: %u Maximum: %u\n",
+                                     infp_setuid_req->infp_req->domain->id_min,
+                                     infp_setuid_req->infp_req->domain->id_max?infp_setuid_req->infp_req->domain->id_max:(uid_t)-1);
+        goto einval;
+    }
+
+    /* Check permissions */
+    if(!infp_get_permissions(infp_setuid_req->infp_req->caller,
+                             infp_setuid_req->infp_req->domain,
+                             INFP_OBJ_TYPE_USER,
+                             infp_setuid_req->username,
+                             INFP_ACTION_TYPE_MODIFY,
+                             INFP_ATTR_TYPE_USERID))
+    {
+        reply = dbus_message_new_error(message, DBUS_ERROR_ACCESS_DENIED, NULL);
+        /* send reply */
+        sbus_conn_send_reply(sconn, reply);
+        dbus_message_unref(reply);
+
+        talloc_free(infp_setuid_req);
+        return EOK;
+    }
+
+    infp_setuid_req->uid_attr = sysdb_new_attrs(infp_setuid_req);
+    if (infp_setuid_req->uid_attr == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    sysdb_attrs_add_long(infp_setuid_req->uid_attr, SYSDB_PW_UIDNUM, arg_uid);
+
+    ret = sysdb_transaction(infp_setuid_req, infp_setuid_req->infp_req->infp->sysdb,
+                            infp_do_user_set_uid, infp_setuid_req);
+    if(ret != EOK) {
+        DEBUG(0, ("Could not write to the cache database.\n"));
+        goto error;
+    }
+
+    return EOK;
+
+einval:
+    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, einval_msg);
 
     /* send reply */
     sbus_conn_send_reply(sconn, reply);
-
     dbus_message_unref(reply);
+
+    talloc_free(infp_setuid_req);
     return EOK;
+
+error:
+    talloc_free(infp_setuid_req);
+    return ret;
 }

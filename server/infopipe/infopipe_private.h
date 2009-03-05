@@ -72,13 +72,14 @@ enum infp_attribute_types {
     INFP_ATTR_TYPE_KEYBOARD,
     INFP_ATTR_TYPE_SESSION,
     INFP_ATTR_TYPE_LAST_LOGIN,
-    INFP_ATTR_TYPE_USERPIC
+    INFP_ATTR_TYPE_USERPIC,
+    INFP_ATTR_TYPE_USERID
 };
 int infp_get_attribute_type(const char *attribute);
 
 int infp_get_user_attr_dbus_type(int attr_type, int *subtype);
 
-bool infp_get_permissions(const char *username,
+bool infp_get_permissions(const char *caller,
                           struct sss_domain_info *domain,
                           int object_type,
                           const char *instance,

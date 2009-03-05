@@ -390,7 +390,7 @@ int infp_get_attribute_type(const char *attribute)
     return attribute_type;
 }
 
-bool infp_get_permissions(const char *username,
+bool infp_get_permissions(const char *caller,
                           struct sss_domain_info *domain,
                           int object_type,
                           const char *instance,
@@ -402,7 +402,7 @@ bool infp_get_permissions(const char *username,
      * Note: this is buggy. It will return true for ALL requests,
      * even the nonsensical ones.
      */
-    if (strcmp(username, "root") == 0)
+    if (strcmp(caller, "root") == 0)
         return true;
     return false;
 }
