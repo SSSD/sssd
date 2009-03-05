@@ -70,9 +70,11 @@ $(PAM_SSS_SOLIB): $(PAM_SSS_OBJS)
 all: showflags $(NSS_SSS_OBJS) $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME) $(PAM_SSS_SOLIB) $(PAM_CLIENT)
 
 install: all
-	$(INSTALLCMD) -m 755 $(NSS_SSS_SOLIB) ${libdir}
-	ln -fs $(NSS_SSS_SOLIB) ${libdir}/$(NSS_SSS_SONAME)
-	$(INSTALLCMD) -m 755 $(PAM_SSS_SOLIB) ${libdir}/security
+	$(INSTALLCMD) -d $(DESTDIR)${libdir}
+	$(INSTALLCMD) -m 755 $(NSS_SSS_SOLIB) $(DESTDIR)${libdir}
+	ln -fs $(NSS_SSS_SOLIB) $(DESTDIR)${libdir}/$(NSS_SSS_SONAME)
+	$(INSTALLCMD) -d $(DESTDIR)${libdir}/security
+	$(INSTALLCMD) -m 755 $(PAM_SSS_SOLIB) $(DESTDIR)${libdir}/security
 
 clean:
 	rm -f *.o *.a */*.o

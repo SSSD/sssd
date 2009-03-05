@@ -1,5 +1,5 @@
 # XXX What version to call this?
-%define sssd_release 2%{?dist}
+%define sssd_release 3%{?dist}
 %define sssd_version 0.1.0
 
 Name: sssd
@@ -24,6 +24,8 @@ BuildRequires: libtdb-devel
 BuildRequires: libldb-devel
 BuildRequires: dbus-devel
 BuildRequires: dbus-libs
+BuildRequires: mozldap-devel
+BuildRequires: pam-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -38,7 +40,7 @@ services for projects like FreeIPA.
 %build
 
 # sssd
-cd server
+pushd server
 ./autogen.sh
 %configure --prefix=%{_usr} \
            --sysconfdir=%{_sysconfdir} \
@@ -47,13 +49,25 @@ cd server
            --with-infopipe
 
 make %{?_smp_mflags}
+popd
+
+pushd sss_client
+./autogen.sh
+%configure --libdir=/%{_lib}
+make %{?_smp_mflags}
+popd
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
 # sssd
-cd server
+pushd server
 make install DESTDIR=$RPM_BUILD_ROOT
+popd
+
+pushd sss_client
+make install DESTDIR=$RPM_BUILD_ROOT
+popd
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -65,12 +79,17 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
 %{_sharedstatedir}/sss/
-# infopipe files
-%{_libexecdir}/sssd/sssd_info
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freeipa.sssd.infopipe.conf
 %{_datadir}/%{name}/introspect/infopipe/org.freeipa.sssd.infopipe.Introspect.xml
+/%{_lib}/libnss_sss.so.0.0.1
+/%{_lib}/libnss_sss.so.2
+/%{_lib}/security/pam_sss.so
+
 
 %changelog
+* Thu Mar 05 2009 Sumit Bose <sbose@redhat.com> - 0.1.0-3
+- added sss_client
+
 * Mon Feb 23 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-2
 - Small cleanup and fixes in the spec file
 
