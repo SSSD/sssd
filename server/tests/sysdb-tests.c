@@ -32,6 +32,7 @@ struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
     struct tevent_context *ev;
+    struct btreemap *domain_map;
 };
 
 static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
@@ -66,7 +67,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     /* Connect to the conf db */
     ret = confdb_init(test_ctx, test_ctx->ev, &test_ctx->confdb, conf_db);
-    if(ret != EOK) {
+    if (ret != EOK) {
         fail("Could not initialize connection to the confdb");
         talloc_free(test_ctx);
         return ret;
@@ -74,8 +75,16 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     ret = sysdb_init(test_ctx, test_ctx->ev, test_ctx->confdb, "tests.ldb",
                      &test_ctx->sysdb);
-    if(ret != EOK) {
+    if (ret != EOK) {
         fail("Could not initialize connection to the sysdb");
+        talloc_free(test_ctx);
+        return ret;
+    }
+
+    ret = confdb_get_domains(test_ctx->confdb, test_ctx,
+                             &test_ctx->domain_map);
+    if (ret != EOK) {
+        fail("Could not initialize domains");
         talloc_free(test_ctx);
         return ret;
     }
@@ -86,6 +95,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
 struct test_data {
     struct sysdb_req *sysreq;
+    struct sss_domain_info *domain;
     struct sysdb_test_ctx *ctx;
 
     const char *username;
@@ -118,6 +128,27 @@ static void test_return(void *pvt, int error, struct ldb_result *ignore)
 
     data->error = error;
     data->finished = true;
+}
+
+static void test_add_user(struct sysdb_req *req, void *pvt)
+{
+    struct test_data *data = talloc_get_type(pvt, struct test_data);
+    struct sysdb_ctx *ctx;
+    char *homedir;
+    char *gecos;
+    int ret;
+
+    homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
+    gecos = talloc_asprintf(data, "Test User %d", data->uid);
+
+    data->sysreq = req;
+    ctx = sysdb_req_get_ctx(req);
+
+    ret = sysdb_add_user(req, data->domain,
+                         data->username, data->uid, data->gid,
+                         gecos, homedir, "/bin/bash",
+                         data->next_fn, data);
+    if (ret != EOK) test_return(data, ret, NULL);
 }
 
 static void test_add_legacy_user(struct sysdb_req *req, void *pvt)
@@ -169,6 +200,23 @@ static void test_remove_user_by_uid(struct sysdb_req *req, void *pvt)
     ret = sysdb_delete_user_by_uid(req, "LOCAL", data->uid,
                                    data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
+}
+
+static void test_add_group(struct sysdb_req *req, void *pvt)
+{
+    struct test_data *data = talloc_get_type(pvt, struct test_data);
+    struct sysdb_ctx *ctx;
+    int ret;
+
+    data->sysreq = req;
+    ctx = sysdb_req_get_ctx(req);
+
+    ret = sysdb_add_group(req, data->domain,
+                          data->groupname, data->gid,
+                          data->next_fn, data);
+    if (ret != EOK) {
+        test_return(data, ret, NULL);
+    }
 }
 
 static void test_add_legacy_group(struct sysdb_req *req, void *pvt)
@@ -304,6 +352,7 @@ START_TEST (test_sysdb_store_legacy_group)
     data->ctx = test_ctx;
     data->gid = _i;
     data->next_fn = test_return;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
 
     ret = sysdb_transaction(data, test_ctx->sysdb,
                             test_add_legacy_group, data);
@@ -738,16 +787,96 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
 }
 END_TEST
 
+START_TEST (test_sysdb_add_user)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    void *ptr;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+
+    ptr = btreemap_get_value(test_ctx->domain_map, "LOCAL");
+    data->domain = talloc_get_type(ptr, struct sss_domain_info);
+    if (!data->domain) {
+        fail("Could not set up the test (missing LOCAL domain)");
+        return;
+    }
+
+    data->uid = 0;
+    data->gid = 0;
+    data->next_fn = test_return;
+    data->username = talloc_asprintf(data, "testuser%d", _i);
+
+    ret = sysdb_transaction(data, test_ctx->sysdb,
+                            test_add_user, data);
+    if (ret == EOK) {
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not add user %s", data->username);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_add_group)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    void *ptr;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+
+    ptr = btreemap_get_value(test_ctx->domain_map, "LOCAL");
+    data->domain = talloc_get_type(ptr, struct sss_domain_info);
+    if (!data->domain) {
+        fail("Could not set up the test (missing LOCAL domain)");
+        return;
+    }
+
+    data->uid = 0;
+    data->gid = 0;
+    data->next_fn = test_return;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
+
+    ret = sysdb_transaction(data, test_ctx->sysdb,
+                            test_add_group, data);
+    if (ret == EOK) {
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not add group %s", data->groupname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
 
     TCase *tc_sysdb = tcase_create("SYSDB Tests");
 
-    /* Create a new user */
+    /* Create a new user (legacy) */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_legacy_user,27000,27010);
 
-    /* Create a new group */
+    /* Create a new group (legacy) */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_legacy_group,27000,27010);
 
     /* Verify that the new group exists */
@@ -765,19 +894,24 @@ Suite *create_sysdb_suite(void)
     /* Remove users from their groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_legacy_group_member, 27000, 27010);
 
-    /* Remove half of the groups by name */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group, 27000, 27005);
-
     /* Remove the other half by gid */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 27005, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 27000, 27005);
 
-
-    /* Remove half of the users by name */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user, 27000, 27005);
 
     /* Remove the other half by uid */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user_by_uid, 27005, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user_by_uid, 27000, 27005);
 
+    /* Create a new user */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_user, 27010, 27020);
+
+    /* Create a new group */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_group, 27010, 27020);
+
+    /* Remove half of the users by name */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user, 27005, 27020);
+
+    /* Remove half of the groups by name */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group, 27005, 27020);
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
 

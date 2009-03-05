@@ -39,6 +39,7 @@
 #define SYSDB_NEXTID "nextID"
 #define SYSDB_UIDNUM "uidNumber"
 #define SYSDB_GIDNUM "gidNumber"
+#define SYSDB_CREATE_TIME "createTimestamp"
 
 #define SYSDB_PW_NAME "uid"
 #define SYSDB_PW_PWD "userPassword"
@@ -267,6 +268,18 @@ int sysdb_set_user_attr(struct sysdb_req *sysreq,
                         const char *name,
                         struct sysdb_attrs *attributes,
                         sysdb_callback_t fn, void *ptr);
+
+int sysdb_add_user(struct sysdb_req *sysreq,
+                   struct sss_domain_info *domain,
+                   const char *name,
+                   uid_t uid, gid_t gid, const char *gecos,
+                   const char *homedir, const char *shell,
+                   sysdb_callback_t fn, void *pvt);
+
+int sysdb_add_group(struct sysdb_req *sysreq,
+                    struct sss_domain_info *domain,
+                    const char *name, gid_t gid,
+                    sysdb_callback_t fn, void *pvt);
 
 /* legacy functions for proxy providers */
 
