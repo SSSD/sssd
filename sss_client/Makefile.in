@@ -29,7 +29,7 @@ NSS_SSS_SONAME = libnss_sss.$(SHLIBEXT).2
 NSS_SSS_OBJS = common.o passwd.o group.o
 
 PAM_SSS_SOLIB = pam_sss.$(SHLIBEXT)
-PAM_SSS_OBJS = pam_sss.o common.o 
+PAM_SSS_OBJS = pam_sss.o common.o
 PAM_LIBS = -lpam -lpam_misc
 PAM_CFLAGS = -DDEBUG -g -Wall -Werror
 
@@ -62,7 +62,7 @@ pam_sss.o: pam_sss.c
 	@$(CC) $(PICFLAG) $(CFLAGS) $(PAM_CFLAGS) -c $< -o $@
 
 $(PAM_CLIENT): $(PAM_CLIENT_OBJS)
-	@$(CC) $(CFLAGS) $(PAM_CFLAGS) $< -o $@ $(PAM_LIBS) 
+	@$(CC) $(CFLAGS) $(PAM_CFLAGS) $< -o $@ $(PAM_LIBS)
 
 $(PAM_SSS_SOLIB): $(PAM_SSS_OBJS)
 	$(SHLD) $(SHLD_FLAGS) -o $@ $(PAM_SSS_OBJS) $(PAM_LIBS)
@@ -70,8 +70,9 @@ $(PAM_SSS_SOLIB): $(PAM_SSS_OBJS)
 all: showflags $(NSS_SSS_OBJS) $(NSS_SSS_SOLIB) $(NSS_SSS_SONAME) $(PAM_SSS_SOLIB) $(PAM_CLIENT)
 
 install: all
-	$(INSTALLCMD) -m 755 $(NSS_SSS_SOLIB) /lib
-	$(INSTALLCMD) -m 755 $(NSS_SSS_SONAME) /lib
+	$(INSTALLCMD) -m 755 $(NSS_SSS_SOLIB) ${libdir}
+	ln -fs $(NSS_SSS_SOLIB) ${libdir}/$(NSS_SSS_SONAME)
+	$(INSTALLCMD) -m 755 $(PAM_SSS_SOLIB) ${libdir}/security
 
 clean:
 	rm -f *.o *.a */*.o
