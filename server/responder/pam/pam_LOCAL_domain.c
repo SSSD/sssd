@@ -211,7 +211,7 @@ static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
     const char *disabled=NULL;
 
     disabled = ldb_msg_find_attr_as_string(lreq->res->msgs[0],
-                                           SYSDB_PW_DISABLED, NULL);
+                                           SYSDB_DISABLED, NULL);
     if (disabled != NULL &&
         strncasecmp(disabled, "false",5)!=0 &&
         strncasecmp(disabled, "no",2)!=0 ) {
@@ -249,7 +249,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
                        lreq->error, ENOMEM, done);
 
-    ret = sysdb_attrs_add_string(lreq->mod_attrs, SYSDB_PW_PWD, new_hash);
+    ret = sysdb_attrs_add_string(lreq->mod_attrs, SYSDB_PWD, new_hash);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_string failed.\n"),
                       lreq->error, ret, done);
 
@@ -298,7 +298,7 @@ static void pam_handler_callback(void *pvt, int ldb_status,
         goto done;
     }
 
-    username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PW_NAME, NULL);
+    username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     if (strcmp(username, lreq->pd->user) != 0) {
         DEBUG(1, ("Expected username [%s] get [%s].\n", lreq->pd->user, username));
         lreq->error = EINVAL;
@@ -321,7 +321,7 @@ static void pam_handler_callback(void *pvt, int ldb_status,
                               lreq->error, ret, done);
             memset(lreq->pd->authtok, 0, lreq->pd->authtok_size);
 
-            password = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PW_PWD, NULL);
+            password = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
             NULL_CHECK_OR_JUMP(password, ("No password stored.\n"),
                                lreq->error, ret, done);
             DEBUG(4, ("user: [%s], password hash: [%s]\n", username, password));
@@ -385,9 +385,9 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
     int ret;
     struct LOCAL_request *lreq=NULL;
 
-    static const char *attrs[] = {SYSDB_PW_NAME,
-                                  SYSDB_PW_PWD,
-                                  SYSDB_PW_DISABLED,
+    static const char *attrs[] = {SYSDB_NAME,
+                                  SYSDB_PWD,
+                                  SYSDB_DISABLED,
                                   SYSDB_USER_ATTR_LAST_LOGIN,
                                   "lastPasswordChange",
                                   "accountExpires",

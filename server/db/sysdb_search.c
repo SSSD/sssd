@@ -579,7 +579,7 @@ static void initgr_mem_legacy(struct sysdb_search_ctx *sctx)
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
 
-    userid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PW_NAME, NULL);
+    userid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     if (!userid) {
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
     }

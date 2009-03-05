@@ -36,24 +36,21 @@
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
 
+#define SYSDB_NAME "name"
+
 #define SYSDB_NEXTID "nextID"
 #define SYSDB_UIDNUM "uidNumber"
 #define SYSDB_GIDNUM "gidNumber"
 #define SYSDB_CREATE_TIME "createTimestamp"
 
-#define SYSDB_PW_NAME "uid"
-#define SYSDB_PW_PWD "userPassword"
-#define SYSDB_PW_UIDNUM "uidNumber"
-#define SYSDB_PW_GIDNUM "gidNumber"
-#define SYSDB_PW_FULLNAME "fullName"
-#define SYSDB_PW_HOMEDIR "homeDirectory"
-#define SYSDB_PW_SHELL "loginShell"
-#define SYSDB_PW_MEMBEROF "memberOf"
-#define SYSDB_PW_DISABLED "disabled"
+#define SYSDB_PWD "userPassword"
+#define SYSDB_FULLNAME "fullName"
+#define SYSDB_HOMEDIR "homeDirectory"
+#define SYSDB_SHELL "loginShell"
+#define SYSDB_MEMBEROF "memberOf"
+#define SYSDB_DISABLED "disabled"
 
-#define SYSDB_GR_NAME "gid"
-#define SYSDB_GR_GIDNUM "gidNumber"
-#define SYSDB_GR_MEMBER "member"
+#define SYSDB_MEMBER "member"
 #define SYSDB_LEGACY_MEMBER "memberUid"
 
 #define SYSDB_USER_ATTR_DEFAULTGROUP "defaultGroup"
@@ -71,24 +68,24 @@
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
-#define SYSDB_PWNAM_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_NAME"=%s))"
-#define SYSDB_PWUID_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_UIDNUM"=%lu))"
+#define SYSDB_PWNAM_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_NAME"=%s))"
+#define SYSDB_PWUID_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_UIDNUM"=%lu))"
 #define SYSDB_PWENT_FILTER "(objectclass="SYSDB_USER_CLASS")"
 
-#define SYSDB_GRNAM_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GR_NAME"=%s))"
-#define SYSDB_GRNA2_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_PW_MEMBEROF"=%s))"
-#define SYSDB_GRGID_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GR_GIDNUM"=%lu))"
+#define SYSDB_GRNAM_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_NAME"=%s))"
+#define SYSDB_GRNA2_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_MEMBEROF"=%s))"
+#define SYSDB_GRGID_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GIDNUM"=%lu))"
 #define SYSDB_GRENT_FILTER "(objectclass="SYSDB_GROUP_CLASS")"
 
-#define SYSDB_INITGR_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GR_GIDNUM"=*))"
+#define SYSDB_INITGR_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_GIDNUM"=*))"
 
 #define SYSDB_INITGR_LEGACY_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_LEGACY_MEMBER"=%s))"
 
 #define SYSDB_GETCACHED_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_USER_ATTR_LAST_LOGIN">=%llu))"
 
-#define SYSDB_PW_ATTRS {SYSDB_PW_NAME, SYSDB_PW_UIDNUM, \
-                        SYSDB_PW_GIDNUM, SYSDB_PW_FULLNAME, \
-                        SYSDB_PW_HOMEDIR, SYSDB_PW_SHELL, \
+#define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
+                        SYSDB_GIDNUM, SYSDB_FULLNAME, \
+                        SYSDB_HOMEDIR, SYSDB_SHELL, \
                         SYSDB_LAST_UPDATE, \
                         NULL}
 #define SYSDB_USER_ATTRS {SYSDB_USER_ATTR_DEFAULTGROUP, \
@@ -103,18 +100,18 @@
                           SYSDB_USER_ATTR_USERPIC, \
                           SYSDB_LAST_UPDATE, \
                           NULL}
-#define SYSDB_GRNAM_ATTRS {SYSDB_GR_NAME, SYSDB_GR_GIDNUM, \
+#define SYSDB_GRNAM_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_LAST_UPDATE, SYSDB_LEGACY_MEMBER, \
                            NULL}
-#define SYSDB_GRPW_ATTRS {SYSDB_PW_NAME, SYSDB_LAST_UPDATE, \
+#define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_LAST_UPDATE, \
                           NULL}
 
 #define SYSDB_INITGR_ATTR "memberof"
-#define SYSDB_INITGR_ATTRS {SYSDB_GR_GIDNUM, SYSDB_LAST_UPDATE, \
+#define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, SYSDB_LAST_UPDATE, \
                             NULL}
 
-#define SYSDB_TMPL_USER SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE
-#define SYSDB_TMPL_GROUP SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE
+#define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
+#define SYSDB_TMPL_GROUP SYSDB_NAME"=%s,"SYSDB_TMPL_GROUP_BASE
 
 struct confdb_ctx;
 struct sysdb_ctx;

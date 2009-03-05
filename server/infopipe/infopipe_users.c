@@ -71,7 +71,7 @@ static void infp_users_get_cached_callback(void *ptr,
     for (i = 0; i < res->count; i++) {
         username = talloc_strdup(infp_getcached_req,
                                  ldb_msg_find_attr_as_string(res->msgs[i],
-                                                             SYSDB_PW_NAME,
+                                                             SYSDB_NAME,
                                                              NULL));
         if (username != NULL) {
             dbret = dbus_message_iter_append_basic(&array_iter,
@@ -1466,7 +1466,7 @@ int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)
         ret = ENOMEM;
         goto error;
     }
-    sysdb_attrs_add_long(infp_setuid_req->uid_attr, SYSDB_PW_UIDNUM, arg_uid);
+    sysdb_attrs_add_long(infp_setuid_req->uid_attr, SYSDB_UIDNUM, arg_uid);
 
     ret = sysdb_transaction(infp_setuid_req, infp_setuid_req->infp_req->infp->sysdb,
                             infp_do_user_set_uid, infp_setuid_req);

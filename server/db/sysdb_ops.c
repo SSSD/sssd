@@ -141,14 +141,14 @@ int sysdb_add_group_member(struct sysdb_req *sysreq,
     if(msg == NULL) return ENOMEM;
 
     msg->dn = group_dn;
-    ret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
+    ret = ldb_msg_add_empty(msg, SYSDB_MEMBER,
                             LDB_FLAG_MOD_ADD, NULL);
     if (ret != LDB_SUCCESS) return ENOMEM;
 
     dn = ldb_dn_get_linearized(member_dn);
     if (!dn) return EINVAL;
 
-    ret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s", dn);
+    ret = ldb_msg_add_fmt(msg, SYSDB_MEMBER, "%s", dn);
     if (ret != LDB_SUCCESS) return EINVAL;
 
     ret = ldb_build_mod_req(&req, ctx->ldb, cbctx, msg,
@@ -195,14 +195,14 @@ int sysdb_remove_group_member(struct sysdb_req *sysreq,
     if(msg == NULL) return ENOMEM;
 
     msg->dn = group_dn;
-    ret = ldb_msg_add_empty(msg, SYSDB_GR_MEMBER,
+    ret = ldb_msg_add_empty(msg, SYSDB_MEMBER,
                             LDB_FLAG_MOD_DELETE, NULL);
     if (ret != LDB_SUCCESS) return ENOMEM;
 
     dn = ldb_dn_get_linearized(member_dn);
     if (!dn) return EINVAL;
 
-    ret = ldb_msg_add_fmt(msg, SYSDB_GR_MEMBER, "%s", dn);
+    ret = ldb_msg_add_fmt(msg, SYSDB_MEMBER, "%s", dn);
     if (ret != LDB_SUCCESS) return EINVAL;
 
     ret = ldb_build_mod_req(&req, ctx->ldb, cbctx, msg,
@@ -350,7 +350,7 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
                              const char *domain, uid_t uid,
                              sysdb_callback_t fn, void *pvt)
 {
-    static const char *attrs[] = { SYSDB_PW_NAME, SYSDB_PW_UIDNUM, NULL };
+    static const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     struct delete_ctx *del_ctx;
     struct sysdb_ctx *ctx;
     struct ldb_dn *base_dn;
@@ -405,7 +405,7 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
                               const char *domain, gid_t gid,
                               sysdb_callback_t fn, void *pvt)
 {
-    static const char *attrs[] = { SYSDB_GR_NAME, SYSDB_GR_GIDNUM, NULL };
+    static const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     struct delete_ctx *del_ctx;
     struct sysdb_ctx *ctx;
     struct ldb_dn *base_dn;
@@ -860,7 +860,7 @@ static int user_add_call(struct user_add_ctx *user_ctx)
     ret = add_string(msg, flags, "objectClass", SYSDB_USER_CLASS);
     if (ret != LDB_SUCCESS) return ENOMEM;
 
-    ret = add_string(msg, flags, SYSDB_PW_NAME, user_ctx->name);
+    ret = add_string(msg, flags, SYSDB_NAME, user_ctx->name);
     if (ret != LDB_SUCCESS) return ENOMEM;
 
     if (user_ctx->uid) {
@@ -882,17 +882,17 @@ static int user_add_call(struct user_add_ctx *user_ctx)
     }
 
     if (user_ctx->gecos && *user_ctx->gecos) {
-        ret = add_string(msg, flags, SYSDB_PW_FULLNAME, user_ctx->gecos);
+        ret = add_string(msg, flags, SYSDB_FULLNAME, user_ctx->gecos);
         if (ret != LDB_SUCCESS) return ENOMEM;
     }
 
     if (user_ctx->homedir && *user_ctx->homedir) {
-        ret = add_string(msg, flags, SYSDB_PW_HOMEDIR, user_ctx->homedir);
+        ret = add_string(msg, flags, SYSDB_HOMEDIR, user_ctx->homedir);
         if (ret != LDB_SUCCESS) return ENOMEM;
     }
 
     if (user_ctx->shell && *user_ctx->shell) {
-        ret = add_string(msg, flags, SYSDB_PW_SHELL, user_ctx->shell);
+        ret = add_string(msg, flags, SYSDB_SHELL, user_ctx->shell);
         if (ret != LDB_SUCCESS) return ENOMEM;
     }
 
@@ -997,7 +997,7 @@ static int group_add_call(struct group_add_ctx *group_ctx)
     ret = add_string(msg, flags, "objectClass", SYSDB_GROUP_CLASS);
     if (ret != LDB_SUCCESS) return ENOMEM;
 
-    ret = add_string(msg, flags, SYSDB_GR_NAME, group_ctx->name);
+    ret = add_string(msg, flags, SYSDB_NAME, group_ctx->name);
     if (ret != LDB_SUCCESS) return ENOMEM;
 
     if (group_ctx->gid) {
@@ -1061,7 +1061,7 @@ int sysdb_legacy_store_user(struct sysdb_req *sysreq,
                             const char *homedir, const char *shell,
                             sysdb_callback_t fn, void *pvt)
 {
-    static const char *attrs[] = { SYSDB_PW_NAME, NULL };
+    static const char *attrs[] = { SYSDB_NAME, NULL };
     struct legacy_user_ctx *user_ctx;
     struct sysdb_ctx *ctx;
     struct ldb_request *req;
@@ -1192,7 +1192,7 @@ static int legacy_user_callback(struct ldb_request *req,
                 return LDB_ERR_OPERATIONS_ERROR;
             }
 
-            ret = add_string(msg, flags, SYSDB_PW_NAME, user_ctx->name);
+            ret = add_string(msg, flags, SYSDB_NAME, user_ctx->name);
             if (ret != LDB_SUCCESS) {
                 return_error(cbctx, ENOMEM);
                 return LDB_ERR_OPERATIONS_ERROR;
@@ -1200,9 +1200,9 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->pwd && *user_ctx->pwd) {
-            ret = add_string(msg, flags, SYSDB_PW_PWD, user_ctx->pwd);
+            ret = add_string(msg, flags, SYSDB_PWD, user_ctx->pwd);
         } else {
-            ret = ldb_msg_add_empty(msg, SYSDB_PW_PWD,
+            ret = ldb_msg_add_empty(msg, SYSDB_PWD,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
@@ -1211,7 +1211,7 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->uid) {
-            ret = add_ulong(msg, flags, SYSDB_PW_UIDNUM,
+            ret = add_ulong(msg, flags, SYSDB_UIDNUM,
                                         (unsigned long)(user_ctx->uid));
             if (ret != LDB_SUCCESS) {
                 return_error(cbctx, ENOMEM);
@@ -1224,7 +1224,7 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->gid) {
-            ret = add_ulong(msg, flags, SYSDB_PW_GIDNUM,
+            ret = add_ulong(msg, flags, SYSDB_GIDNUM,
                                         (unsigned long)(user_ctx->gid));
             if (ret != LDB_SUCCESS) {
                 return_error(cbctx, ENOMEM);
@@ -1237,9 +1237,9 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->gecos && *user_ctx->gecos) {
-            ret = add_string(msg, flags, SYSDB_PW_FULLNAME, user_ctx->gecos);
+            ret = add_string(msg, flags, SYSDB_FULLNAME, user_ctx->gecos);
         } else {
-            ret = ldb_msg_add_empty(msg, SYSDB_PW_FULLNAME,
+            ret = ldb_msg_add_empty(msg, SYSDB_FULLNAME,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
@@ -1248,9 +1248,9 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->homedir && *user_ctx->homedir) {
-            ret = add_string(msg, flags, SYSDB_PW_HOMEDIR, user_ctx->homedir);
+            ret = add_string(msg, flags, SYSDB_HOMEDIR, user_ctx->homedir);
         } else {
-            ret = ldb_msg_add_empty(msg, SYSDB_PW_HOMEDIR,
+            ret = ldb_msg_add_empty(msg, SYSDB_HOMEDIR,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
@@ -1259,9 +1259,9 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->shell && *user_ctx->shell) {
-            ret = add_string(msg, flags, SYSDB_PW_SHELL, user_ctx->shell);
+            ret = add_string(msg, flags, SYSDB_SHELL, user_ctx->shell);
         } else {
-            ret = ldb_msg_add_empty(msg, SYSDB_PW_SHELL,
+            ret = ldb_msg_add_empty(msg, SYSDB_SHELL,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
@@ -1329,7 +1329,7 @@ int sysdb_legacy_store_group(struct sysdb_req *sysreq,
                              const char **members,
                              sysdb_callback_t fn, void *pvt)
 {
-    static const char *attrs[] = { SYSDB_GR_NAME, NULL };
+    static const char *attrs[] = { SYSDB_NAME, NULL };
     struct legacy_group_ctx *group_ctx;
     struct sysdb_ctx *ctx;
     struct ldb_request *req;
@@ -1456,7 +1456,7 @@ static int legacy_group_callback(struct ldb_request *req,
                 return LDB_ERR_OPERATIONS_ERROR;
             }
 
-            ret = add_string(msg, flags, SYSDB_GR_NAME, group_ctx->name);
+            ret = add_string(msg, flags, SYSDB_NAME, group_ctx->name);
             if (ret != LDB_SUCCESS) {
                 return_error(cbctx, ENOMEM);
                 return LDB_ERR_OPERATIONS_ERROR;
@@ -1464,7 +1464,7 @@ static int legacy_group_callback(struct ldb_request *req,
         }
 
         if (group_ctx->gid) {
-            ret = add_ulong(msg, flags, SYSDB_GR_GIDNUM,
+            ret = add_ulong(msg, flags, SYSDB_GIDNUM,
                                         (unsigned long)(group_ctx->gid));
             if (ret != LDB_SUCCESS) {
                 return_error(cbctx, ENOMEM);

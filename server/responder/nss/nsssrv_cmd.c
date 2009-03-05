@@ -192,12 +192,12 @@ static int fill_pwent(struct sss_packet *packet,
     for (i = 0; i < count; i++) {
         msg = msgs[i];
 
-        name = ldb_msg_find_attr_as_string(msg, SYSDB_PW_NAME, NULL);
-        fullname = ldb_msg_find_attr_as_string(msg, SYSDB_PW_FULLNAME, NULL);
-        homedir = ldb_msg_find_attr_as_string(msg, SYSDB_PW_HOMEDIR, NULL);
-        shell = ldb_msg_find_attr_as_string(msg, SYSDB_PW_SHELL, NULL);
-        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_PW_UIDNUM, 0);
-        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_PW_GIDNUM, 0);
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        fullname = ldb_msg_find_attr_as_string(msg, SYSDB_FULLNAME, NULL);
+        homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
+        shell = ldb_msg_find_attr_as_string(msg, SYSDB_SHELL, NULL);
+        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
 
         if (!name || !fullname || !homedir || !shell || !uid || !gid) {
             DEBUG(1, ("Incomplete user object for %s[%llu]! Skipping\n",
@@ -1092,8 +1092,8 @@ static int fill_grent(struct sss_packet *packet,
 
         if (get_group) {
             /* find group name/gid */
-            name = ldb_msg_find_attr_as_string(msg, SYSDB_GR_NAME, NULL);
-            gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GR_GIDNUM, 0);
+            name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+            gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
             if (!name || !gid) {
                 DEBUG(1, ("Incomplete group object for %s[%llu]! Aborting\n",
                           name?name:"<NULL>", (unsigned long long int)gid));
@@ -1150,7 +1150,7 @@ static int fill_grent(struct sss_packet *packet,
             continue;
         }
 
-        name = ldb_msg_find_attr_as_string(msg, SYSDB_PW_NAME, NULL);
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
 
         if (!name) {
             /* last member of previous group found, or error.
@@ -2018,7 +2018,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     sss_packet_get_body(cctx->creq->out, &body, &blen);
 
     for (i = 0; i < num; i++) {
-        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], SYSDB_GR_GIDNUM, 0);
+        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], SYSDB_GIDNUM, 0);
         if (!gid) {
             DEBUG(1, ("Incomplete group object for initgroups! Aborting\n"));
             sss_packet_set_error(cctx->creq->out, EIO);

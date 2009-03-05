@@ -371,7 +371,7 @@ START_TEST (test_sysdb_get_local_group)
     struct sysdb_test_ctx *test_ctx;
     struct ldb_result *res;
     struct ldb_dn *base_group_dn;
-    const char *attrs[] = { SYSDB_GR_NAME, SYSDB_GR_GIDNUM, NULL };
+    const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     const char *name;
     char *expected_group;
     gid_t test_gid;
@@ -412,7 +412,7 @@ START_TEST (test_sysdb_get_local_group)
         return;
     }
 
-    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_GR_NAME, NULL);
+    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     fail_unless(strcmp(name, expected_group) == 0,
                 "Returned group name was %s, expecting %s",
                 name, expected_group);
@@ -436,7 +436,7 @@ START_TEST (test_sysdb_get_local_group)
         return;
     }
 
-    test_gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GR_GIDNUM, 0);
+    test_gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
     fail_unless(test_gid == _i,
                 "Returned group id was %lu, expecting %lu",
                 test_gid, _i);
@@ -562,7 +562,7 @@ START_TEST (test_sysdb_add_invalid_member)
     struct ldb_dn *group_dn;
     struct ldb_result *res;
     struct ldb_message_element *el;
-    const char *group_attrs[] = { SYSDB_GR_MEMBER, NULL };
+    const char *group_attrs[] = { SYSDB_MEMBER, NULL };
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -573,7 +573,7 @@ START_TEST (test_sysdb_add_invalid_member)
 
     group_name = talloc_asprintf(test_ctx, "testgroup%d", _i);
     group = talloc_asprintf(test_ctx,
-                            SYSDB_GR_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
+                            SYSDB_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
                             group_name, "LOCAL");
     fail_if(group == NULL, "Could not allocate group dn");
 
@@ -591,7 +591,7 @@ START_TEST (test_sysdb_add_invalid_member)
 /* Verify that the member wasn't added anyway */
 
     member = talloc_asprintf(test_ctx,
-                             SYSDB_PW_NAME"=%s,"SYSDB_TMPL_USER_BASE,
+                             SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE,
                              username, "LOCAL");
     fail_if(member == NULL, "Could not allocate member dn");
 
@@ -618,7 +618,7 @@ START_TEST (test_sysdb_add_invalid_member)
 
     /* Check the members for the requested user */
     found_group = i = 0;
-    el = ldb_msg_find_element(res->msgs[0], SYSDB_GR_MEMBER);
+    el = ldb_msg_find_element(res->msgs[0], SYSDB_MEMBER);
     if (el && el->num_values > 0) {
         while (i < el->num_values && !found_group) {
             struct ldb_val v = el->values[i];
