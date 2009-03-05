@@ -88,6 +88,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
                    const char **argv) {
     int ret;
     int errnop;
+    int c;
     struct pam_items pi;
     struct sss_cli_req_data rd;
     uint8_t *repbuf=NULL;
@@ -99,6 +100,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
     struct pam_response *resp=NULL;
     int pam_status;
     char *domain;
+    char *newpwd[2];
 
     D(("Hello pam_sssd: %d", task));
 
@@ -123,7 +125,8 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
 /* according to pam_conv(3) only one message should be requested by conv to
  * keep compatibility to Solaris. Therefore we make separate calls to request
  * AUTHTOK and OLDAUTHTOK. */
-    if (task == SSS_PAM_AUTHENTICATE || task == SSS_PAM_CHAUTHTOK) {
+    if ( task == SSS_PAM_AUTHENTICATE ||
+        (task == SSS_PAM_CHAUTHTOK && getuid() != 0)) {
         ret=pam_get_item(pamh, PAM_CONV, (const void **) &conv);
         if (ret != PAM_SUCCESS) return ret;
 
@@ -168,25 +171,46 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
         mesg[0]->msg_style = PAM_PROMPT_ECHO_OFF;
         mesg[0]->msg = strdup("New Password: ");
 
-        ret=conv->conv(1, (const struct pam_message **) mesg, &resp,
-                       conv->appdata_ptr);
-        free((void *)mesg[0]->msg);
+        c = 0;
+        do {
+            ret=conv->conv(1, (const struct pam_message **) mesg, &resp,
+                           conv->appdata_ptr);
+            free((void *)mesg[0]->msg);
+            if (ret != PAM_SUCCESS) {
+                D(("Conversation failure: %s.\n",  pam_strerror(pamh,ret)));
+                pam_status = ret;
+                goto done;
+            }
+
+            newpwd[c++] = strdup(resp[0].resp);
+            _pam_overwrite((void *)resp[0].resp);
+            free(resp[0].resp);
+            free(resp);
+            resp = NULL;
+
+            mesg[0]->msg = strdup("Reenter new password: ");
+        } while(c < 2);
         free(mesg[0]);
-        if (ret != PAM_SUCCESS) {
-            D(("Conversation failure: %s.\n",  pam_strerror(pamh,ret)));
-            pam_status = ret;
+
+        if (strcmp(newpwd[0],newpwd[1]) != 0) {
+            pam_status = PAM_AUTHTOK_ERR;
             goto done;
         }
 
-        if (resp[0].resp == NULL) {
+        if (newpwd[0] == NULL) {
             D(("Empty password\n"));
             pi.pam_newauthtok = NULL;
             pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
         } else {
-            pi.pam_newauthtok = strdup(resp[0].resp);
+            pi.pam_newauthtok = strdup(newpwd[0]);
             pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         }
         pi.pam_newauthtok_size=strlen(pi.pam_newauthtok);
+
+        _pam_overwrite((void *)newpwd[0]);
+        free(newpwd[0]);
+        _pam_overwrite((void *)newpwd[1]);
+        free(newpwd[1]);
     }
 
     print_pam_items(pi);

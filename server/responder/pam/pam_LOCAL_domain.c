@@ -310,6 +310,11 @@ static void pam_handler_callback(void *pvt, int ldb_status,
     switch (lreq->pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK:
+            if (lreq->pd->cmd == SSS_PAM_CHAUTHTOK && lreq->cctx->priv == 1) {
+/* TODO: maybe this is a candiate for an explicit audit message. */
+                DEBUG(4, ("allowing root to reset a password.\n"));
+                break;
+            }
             ret = authtok2str(lreq, lreq->pd->authtok,
                               lreq->pd->authtok_size, &authtok);
             NEQ_CHECK_OR_JUMP(ret, EOK, ("authtok2str failed.\n"),
