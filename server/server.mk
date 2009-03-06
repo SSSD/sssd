@@ -136,3 +136,6 @@ sbin/sss_useradd: $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
 
 sbin/sss_userdel: $(USERDEL_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sss_userdel $(USERDEL_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+
+sbin/sss_groupadd: $(GROUPADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sss_groupadd $(GROUPADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
