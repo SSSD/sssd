@@ -118,21 +118,9 @@ int infp_users_get_cached(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* Create an infp_req_ctx */
-    infp_getcached_req->infp_req =
-        talloc_zero(infp_getcached_req, struct infp_req_ctx);
-    if (infp_getcached_req == NULL) {
-        ret = ENOMEM;
-        goto error;
-    }
-    infp_getcached_req->infp_req->infp =
-        talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
-    infp_getcached_req->infp_req->sconn = sconn;
-    infp_getcached_req->infp_req->req_message = message;
-    infp_getcached_req->infp_req->caller =
-        sysbus_get_caller(infp_getcached_req->infp_req,
-                          infp_getcached_req->infp_req->req_message,
-                          infp_getcached_req->infp_req->sconn);
-    if (infp_getcached_req->infp_req->caller == NULL) {
+    infp_getcached_req->infp_req = infp_req_init(infp_getcached_req,
+                                                 message, sconn);
+    if (infp_getcached_req->infp_req == NULL) {
         ret = EIO;
         goto error;
     }
@@ -301,18 +289,9 @@ int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* Create an infp_req_ctx */
-    infp_createuser_req->infp_req = talloc_zero(infp_createuser_req, struct infp_req_ctx);
-    if (infp_createuser_req == NULL) {
-        ret = ENOMEM;
-        goto error;
-    }
-    infp_createuser_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
-    infp_createuser_req->infp_req->sconn = sconn;
-    infp_createuser_req->infp_req->req_message = message;
-    infp_createuser_req->infp_req->caller = sysbus_get_caller(infp_createuser_req->infp_req,
-                                                              infp_createuser_req->infp_req->req_message,
-                                                              infp_createuser_req->infp_req->sconn);
-    if (infp_createuser_req->infp_req->caller == NULL) {
+    infp_createuser_req->infp_req = infp_req_init(infp_createuser_req,
+                                                  message, sconn);
+    if (infp_createuser_req->infp_req == NULL) {
         ret = EIO;
         goto error;
     }
@@ -1044,14 +1023,13 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* Create an infp_req_ctx */
-    infp_getattr_req->infp_req = talloc_zero(infp_getattr_req, struct infp_req_ctx);
-    if (infp_getattr_req == NULL) {
-        ret = ENOMEM;
+    infp_getattr_req->infp_req = infp_req_init(infp_getattr_req,
+                                               message, sconn);
+    if (infp_getattr_req->infp_req == NULL) {
+        ret = EIO;
         goto end;
     }
-    infp_getattr_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
-    infp_getattr_req->infp_req->sconn = sconn;
-    infp_getattr_req->infp_req->req_message = message;
+
     infp_getattr_req->infp_req->domain = btreemap_get_value(infp_getattr_req->infp_req->infp->domain_map, (const void *)domain);
     infp_getattr_req->check_provider = strcasecmp(domain, "LOCAL");
 
@@ -1102,12 +1080,6 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     infp_getattr_req->index = 0;
-
-    infp_getattr_req->infp_req->caller = sysbus_get_caller(infp_getattr_req->infp_req, message, sconn);
-    if (infp_getattr_req->infp_req->caller == NULL) {
-        ret = EIO;
-        goto end;
-    }
 
     /* Prepare the result list */
     infp_getattr_req->results = talloc_array(infp_getattr_req, struct btreemap *, attr_count);
@@ -1247,18 +1219,9 @@ int infp_users_set_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* Create an infp_req_ctx */
-    infp_setattr_req->infp_req = talloc_zero(infp_setattr_req, struct infp_req_ctx);
-    if (infp_setattr_req == NULL) {
-        ret = ENOMEM;
-        goto error;
-    }
-    infp_setattr_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
-    infp_setattr_req->infp_req->sconn = sconn;
-    infp_setattr_req->infp_req->req_message = message;
-
-    /* Get the caller's identity */
-    infp_setattr_req->infp_req->caller = sysbus_get_caller(infp_setattr_req->infp_req, message, sconn);
-    if (infp_setattr_req->infp_req->caller == NULL) {
+    infp_setattr_req->infp_req = infp_req_init(infp_setattr_req,
+                                               message, sconn);
+    if (infp_setattr_req->infp_req == NULL) {
         ret = EIO;
         goto error;
     }
@@ -1607,18 +1570,9 @@ int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* Create an infp_req_ctx */
-    infp_setuid_req->infp_req = talloc_zero(infp_setuid_req, struct infp_req_ctx);
-    if (infp_setuid_req == NULL) {
-        ret = ENOMEM;
-        goto error;
-    }
-    infp_setuid_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
-    infp_setuid_req->infp_req->sconn = sconn;
-    infp_setuid_req->infp_req->req_message = message;
-    infp_setuid_req->infp_req->caller = sysbus_get_caller(infp_setuid_req->infp_req,
-                                                          infp_setuid_req->infp_req->req_message,
-                                                          infp_setuid_req->infp_req->sconn);
-    if (infp_setuid_req->infp_req->caller == NULL) {
+    infp_setuid_req->infp_req = infp_req_init(infp_setuid_req,
+                                              message, sconn);
+    if (infp_setuid_req->infp_req == NULL) {
         ret = EIO;
         goto error;
     }

@@ -38,7 +38,6 @@ struct infp_req_ctx {
     struct infp_ctx *infp;
     struct sbus_conn_ctx *sconn;
     DBusMessage *req_message;
-    bool check_provider;
     struct sss_domain_info *domain;
     char *caller;
 };
@@ -89,5 +88,7 @@ bool infp_get_permissions(const char *caller,
 struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp, const char *domain_name);
 
 int infp_get_ldb_val_from_dbus(TALLOC_CTX *mem_ctx, DBusMessageIter *iter, struct ldb_val **value, int dbus_type, int subtype);
+
+struct infp_req_ctx *infp_req_init(TALLOC_CTX *mem_ctx, DBusMessage *message, struct sbus_conn_ctx *sconn);
 
 #endif /* INFOPIPE_PRIVATE_H_ */

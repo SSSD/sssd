@@ -247,6 +247,30 @@ done:
     return ret;
 }
 
+struct infp_req_ctx *infp_req_init(TALLOC_CTX *mem_ctx, DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
+    struct infp_req_ctx *infp_req;
+
+    /* Create an infp_req_ctx */
+    infp_req = talloc_zero(mem_ctx, struct infp_req_ctx);
+    if (infp_req == NULL) {
+        return NULL;
+    }
+
+    infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+    infp_req->sconn = sconn;
+    infp_req->req_message = message;
+    infp_req->caller = sysbus_get_caller(infp_req,
+                                         infp_req->req_message,
+                                         infp_req->sconn);
+    if (infp_req->caller == NULL) {
+        talloc_free(infp_req);
+        return NULL;
+    }
+
+    return infp_req;
+}
+
 static int infp_process_init(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct confdb_ctx *cdb)
