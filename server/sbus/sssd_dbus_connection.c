@@ -477,6 +477,16 @@ void sbus_disconnect (struct sbus_conn_ctx *dct_ctx)
     DEBUG(5,("Disconnected %lX\n", dct_ctx->conn));
 }
 
+static int sbus_reply_internal_error(DBusMessage *message, struct sbus_conn_ctx *sconn) {
+    DBusMessage *reply = dbus_message_new_error(message, DBUS_ERROR_IO_ERROR, "Internal Error");
+    if (reply) {
+        sbus_conn_send_reply(sconn, reply);
+        dbus_message_unref(reply);
+        return DBUS_HANDLER_RESULT_HANDLED;
+    }
+    return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+}
+
 /* messsage_handler
  * Receive messages and process them
  */
@@ -515,7 +525,8 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
             if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
                 found = 1;
                 ret = ctx->method_ctx->methods[i].fn(message, ctx->conn_ctx);
-                if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+                if (ret != EOK) return sbus_reply_internal_error(message,
+                                                                 ctx->conn_ctx);
                 break;
             }
         }
@@ -538,7 +549,8 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
                  * an introspection function registered, user that.
                  */
                 ret = ctx->method_ctx->introspect_fn(message, ctx->conn_ctx);
-                if (ret != EOK) return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+                if (ret != EOK) return sbus_reply_internal_error(message,
+                                                                 ctx->conn_ctx);
             }
         }
         else
