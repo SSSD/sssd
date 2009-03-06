@@ -24,8 +24,10 @@ BuildRequires: libtdb-devel
 BuildRequires: libldb-devel
 BuildRequires: dbus-devel
 BuildRequires: dbus-libs
-BuildRequires: mozldap-devel
+BuildRequires: openldap-devel
 BuildRequires: pam-devel
+BuildRequires: nss-devel
+BuildRequires: nspr-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -46,6 +48,7 @@ pushd server
            --sysconfdir=%{_sysconfdir} \
            --without-tests     \
            --without-policykit \
+           --with-openldap \
            --with-infopipe
 
 make %{?_smp_mflags}
@@ -74,6 +77,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
+%doc COPYING
 %{_sbindir}/sssd
 %{_libexecdir}/%{name}/
 %{_libdir}/%{name}/

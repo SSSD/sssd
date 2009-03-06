@@ -71,6 +71,7 @@ PAMSRV_OBJ = \
 
 PAMSRV_UTIL_OBJ = responder/pam/pamsrv_util.o
 
+$(LDAP_BE_OBJ): CFLAGS += $(LDAP_CFLAGS)
 $(CRYPT_OBJ): CFLAGS += $(NSS_CFLAGS)
 
 

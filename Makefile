@@ -6,6 +6,7 @@ TARBALL_PREFIX = $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 TARBALL = $(TARBALL_PREFIX).tar.gz
 LIBDIR ?= /usr/lib
 RPMBUILD ?= $(PWD)/rpmbuild
+DOC = BUILD.txt COPYING
 
 all:
 
@@ -28,6 +29,7 @@ local-archive: realdistclean
 	@for subdir in $(SUBDIRS); do \
 	    cp -pr $$subdir dist/$(TARBALL_PREFIX)/.; \
 	done
+	cp -p $(DOC) dist/$(TARBALL_PREFIX)/.
 
 tarballs: local-archive
 	-mkdir -p dist/sources

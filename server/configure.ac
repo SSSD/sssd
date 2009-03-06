@@ -43,6 +43,7 @@ WITH_PID_PATH
 WITH_PIPE_PATH
 WITH_INFOPIPE
 WITH_POLICYKIT
+WITH_TESTS
 
 m4_include(pkg.m4)
 m4_include(libpopt.m4)
@@ -55,7 +56,7 @@ m4_include(ldap.m4)
 m4_include(util/signal.m4)
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
-if test xHAVE_TESTS != x; then
+if test x$HAVE_TESTS != x; then
     PKG_CHECK_MODULES([CHECK],[check])
 fi
 PKG_CHECK_MODULES([NSS],[nss])

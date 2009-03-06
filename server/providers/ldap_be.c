@@ -22,6 +22,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifdef WITH_MOZLDAP
+#define LDAP_OPT_SUCCESS LDAP_SUCCESS
+#define LDAP_TAG_EXOP_MODIFY_PASSWD_ID  ((ber_tag_t) 0x80U)
+#define LDAP_TAG_EXOP_MODIFY_PASSWD_OLD ((ber_tag_t) 0x81U)
+#define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW ((ber_tag_t) 0x82U)
+#endif
+
 #include <errno.h>
 #include <ldap.h>
 #include <sys/time.h>
