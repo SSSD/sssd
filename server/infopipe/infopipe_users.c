@@ -403,17 +403,181 @@ error:
     return ret;
 }
 
+struct infp_deleteuser_ctx {
+    struct infp_req_ctx *infp_req;
+    char *username;
+    struct sysdb_req *sysdb_req;
+    struct ldb_dn *user_dn;
+};
+
+static void infp_do_user_delete_callback(void *pvt, int status,
+                                         struct ldb_result *res)
+{
+    DBusMessage *reply = NULL;
+    struct infp_deleteuser_ctx *infp_deleteuser_req =
+        talloc_get_type(pvt, struct infp_deleteuser_ctx);
+
+    /* Commit the transaction if it we got a successful response, or cancel it if we did not */
+    sysdb_transaction_done(infp_deleteuser_req->sysdb_req, status);
+
+    if (status != EOK) {
+        DEBUG(0, ("Failed to delete user from sysdb. Error code %d", status));
+        talloc_free(infp_deleteuser_req);
+        return;
+    }
+
+    reply = dbus_message_new_method_return(infp_deleteuser_req->infp_req->req_message);
+    if(reply) {
+        sbus_conn_send_reply(infp_deleteuser_req->infp_req->sconn,
+                             reply);
+        dbus_message_unref(reply);
+    }
+    talloc_free(infp_deleteuser_req);
+}
+
+static void infp_do_user_delete(struct sysdb_req *req, void *pvt)
+{
+    int ret;
+    struct infp_deleteuser_ctx *infp_deleteuser_req = talloc_get_type(pvt, struct infp_deleteuser_ctx);
+
+    infp_deleteuser_req->sysdb_req = req;
+
+    infp_deleteuser_req->user_dn = sysdb_user_dn(infp_deleteuser_req->infp_req->infp->sysdb,
+                                                 infp_deleteuser_req,
+                                                 infp_deleteuser_req->infp_req->domain->name,
+                                                 infp_deleteuser_req->username);
+    if(infp_deleteuser_req->user_dn == NULL) {
+        DEBUG(0, ("Could not construct a user_dn for deletion.\n"));
+        talloc_free(infp_deleteuser_req);
+        return;
+    }
+
+    ret = sysdb_delete_entry(infp_deleteuser_req->sysdb_req,
+                             infp_deleteuser_req->user_dn,
+                             infp_do_user_delete_callback,
+                             infp_deleteuser_req);
+    if(ret != EOK) {
+        DEBUG(0,("Could not delete user entry.\n"));
+        talloc_free(infp_deleteuser_req);
+        return;
+    }
+}
+
 int infp_users_delete(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
-    DBusMessage *reply;
+    DBusMessage *reply = NULL;
+    DBusError error;
+    dbus_bool_t dbret;
+    char *einval_msg = NULL;
+    struct infp_deleteuser_ctx *infp_deleteuser_req;
+    int ret;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    /* Arguments */
+    const char *arg_username;
+    const char *arg_domain;
 
+    infp_deleteuser_req = talloc_zero(NULL, struct infp_deleteuser_ctx);
+    if (infp_deleteuser_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Create an infp_req_ctx */
+    infp_deleteuser_req->infp_req = infp_req_init(infp_deleteuser_req,
+                                                  message,
+                                                  sconn);
+    if (infp_deleteuser_req->infp_req == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    /* Process the arguments */
+    dbus_error_init(&error);
+    dbret = dbus_message_get_args(message, &error,
+                                  DBUS_TYPE_STRING, &arg_username,
+                                  DBUS_TYPE_STRING, &arg_domain,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(0, ("Parsing arguments to %s failed: %s:%s\n",
+                INFP_USERS_DELETE, error.name, error.message));
+        einval_msg = talloc_strdup(infp_deleteuser_req, error.message);
+        dbus_error_free(&error);
+        goto einval;
+    }
+
+    /* FIXME: Allow deleting users from domains other than local */
+    if(strcasecmp(arg_domain, "LOCAL") != 0) {
+        goto denied;
+    }
+
+    infp_deleteuser_req->infp_req->domain =
+        btreemap_get_value(infp_deleteuser_req->infp_req->infp->domain_map,
+                           (const void *)arg_domain);
+    /* Check for a valid domain */
+    if(infp_deleteuser_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(infp_deleteuser_req, "Invalid domain.");
+        goto einval;
+    }
+
+    if (strlen(arg_username)) {
+        infp_deleteuser_req->username = talloc_strdup(infp_deleteuser_req, arg_username);
+        if (infp_deleteuser_req->username == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+    } else {
+        einval_msg = talloc_strdup(infp_deleteuser_req, "No username provided");
+        goto einval;
+    }
+
+    /* Check permissions */
+    if(!infp_get_permissions(infp_deleteuser_req->infp_req->caller,
+                             infp_deleteuser_req->infp_req->domain,
+                             INFP_OBJ_TYPE_USER,
+                             NULL,
+                             INFP_ACTION_TYPE_DELETE,
+                             INFP_ACTION_TYPE_INVALID)) goto denied;
+
+    ret = sysdb_transaction(infp_deleteuser_req,
+                            infp_deleteuser_req->infp_req->infp->sysdb,
+                            infp_do_user_delete,
+                            infp_deleteuser_req);
+    if (ret != EOK) {
+        DEBUG(0, ("Unable to start transaction to delete user\n"));
+        goto error;
+    }
+
+    return EOK;
+
+denied:
+    reply = dbus_message_new_error(message, DBUS_ERROR_ACCESS_DENIED, NULL);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
     /* send reply */
     sbus_conn_send_reply(sconn, reply);
-
     dbus_message_unref(reply);
+
+    talloc_free(infp_deleteuser_req);
     return EOK;
+
+einval:
+    reply = dbus_message_new_error(message,
+                                   DBUS_ERROR_INVALID_ARGS,
+                                   einval_msg);
+    if (reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+    talloc_free(infp_deleteuser_req);
+    return EOK;
+
+error:
+    talloc_free(infp_deleteuser_req);
+    return ret;
 }
 
 struct infp_getattr_ctx {
