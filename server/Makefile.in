@@ -117,7 +117,7 @@ endif
 ifneq (x$(HAVE_POLICYKIT), x)
     LIBEXECBINS += sbin/sssd_pk
 endif
-TOOLSBINS = sbin/sss_useradd
+TOOLSBINS = sbin/sss_useradd sbin/sss_userdel
 BINS = sbin/sssd $(LIBEXECBINS) $(TOOLSBINS)
 
 ifneq (x$(HAVE_TESTS), x)
@@ -162,6 +162,7 @@ testclean::
 install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 755 sbin/sssd $(DESTDIR)$(sbindir)
+	${INSTALLCMD} -m 755 $(TOOLSBINS) $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 	${INSTALLCMD} -m 755 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 

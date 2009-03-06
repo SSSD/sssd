@@ -132,5 +132,7 @@ tests/infopipe-tests: $(INFP_TEST_OBJ) $(UTIL_OBJ)
 
 #Tools
 sbin/sss_useradd: $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
-	$(CC) -o tools/sss_useradd $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+	$(CC) -o sbin/sss_useradd $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
+sbin/sss_userdel: $(USERDEL_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sss_userdel $(USERDEL_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)

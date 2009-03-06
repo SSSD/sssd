@@ -79,6 +79,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc COPYING
 %{_sbindir}/sssd
+%{_sbindir}/sss_useradd
+%{_sbindir}/sss_userdel
 %{_libexecdir}/%{name}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
