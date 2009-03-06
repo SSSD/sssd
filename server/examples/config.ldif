@@ -37,7 +37,7 @@ description: PAM Responder Configuration
 unixSocket: /var/lib/sss/pipes/pam
 
 dn: cn=info,cn=services,cn=config
-cn: infp
+cn: info
 description: InfoPipe Configuration
 command: ./sbin/sssd_info
 

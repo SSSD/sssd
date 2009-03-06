@@ -509,9 +509,28 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/services", "description", val);
     if (ret != EOK) goto done;
 
-#if 0 /* Not yet implemented */
 /* PAM */
-#endif /* PAM */
+    /* set the sssd_pam description */
+    val[0] = "PAM Responder Configuration";
+    ret = confdb_add_param(cdb, false, "config/services/pam", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_pam command path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_pam", SSSD_LIBEXEC_PATH);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
+    ret = confdb_add_param(cdb, false, "config/services/pam", "command", val);
+    if (ret != EOK) goto done;
+
+    /* Set the sssd_pam socket path */
+    val[0] = talloc_asprintf(tmp_ctx, "%s/pam", PIPE_PATH);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
+    ret = confdb_add_param(cdb, false, "config/services/pam", "unixSocket", val);
+    if (ret != EOK) goto done;
+
+    /* Add PAM to the list of active services */
+    val[0] = "pam";
+    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
+    if (ret != EOK) goto done;
 
 /* NSS */
     /* set the sssd_nss description */
@@ -521,11 +540,13 @@ static int confdb_init_db(struct confdb_ctx *cdb)
 
     /* Set the sssd_nss command path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", SSSD_LIBEXEC_PATH);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
     ret = confdb_add_param(cdb, false, "config/services/nss", "command", val);
     if (ret != EOK) goto done;
 
     /* Set the sssd_nss socket path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", PIPE_PATH);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
     ret = confdb_add_param(cdb, false, "config/services/nss", "unixSocket", val);
     if (ret != EOK) goto done;
 
@@ -542,6 +563,7 @@ static int confdb_init_db(struct confdb_ctx *cdb)
 
     /* Set the sssd_dp command path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_dp", SSSD_LIBEXEC_PATH);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
     ret = confdb_add_param(cdb, false, "config/services/dp", "command", val);
     if (ret != EOK) goto done;
 
@@ -554,16 +576,17 @@ static int confdb_init_db(struct confdb_ctx *cdb)
 #ifdef HAVE_INFOPIPE
     /* Set the sssd_info description */
     val[0] = "InfoPipe Configuration";
-    ret = confdb_add_param(cdb, false, "config/services/infp", "description", val);
+    ret = confdb_add_param(cdb, false, "config/services/info", "description", val);
     if (ret != EOK) goto done;
 
     /* Set the sssd_info command path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_info", SSSD_LIBEXEC_PATH);
-    ret = confdb_add_param(cdb, false, "config/services/infp", "command", val);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
+    ret = confdb_add_param(cdb, false, "config/services/info", "command", val);
     if (ret != EOK) goto done;
 
     /* Add the InfoPipe to the list of active services */
-    val[0] = "infp";
+    val[0] = "info";
     ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
     if (ret != EOK) goto done;
 #endif
@@ -577,6 +600,7 @@ static int confdb_init_db(struct confdb_ctx *cdb)
 
     /* Set the sssd_info command path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_pk", SSSD_LIBEXEC_PATH);
+    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
     ret = confdb_add_param(cdb, false, "config/services/spk", "command", val);
     if (ret != EOK) goto done;
 
@@ -594,6 +618,11 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     /* Default LOCAL domain */
     val[0] = "Reserved domain for local configurations";
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "description", val);
+    if (ret != EOK) goto done;
+
+    /* Set enumeration of LOCAL domain to 1 */
+    val[0] = "1";
+    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "enumerate", val);
     if (ret != EOK) goto done;
 
 done:
@@ -709,7 +738,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         domain->enumerate = ldb_msg_find_attr_as_int(res->msgs[i],
                                                      "enumerate", 0);
         if (domain->enumerate == 0) {
-            DEBUG(0, ("No enumeration for [%s]!\n", domain->name));
+            DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
         }
 
         /* Determine if this is a legacy domain */
