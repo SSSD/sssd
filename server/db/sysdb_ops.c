@@ -72,9 +72,6 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
     return l;
 }
 
-/* the following are all SYNCHRONOUS calls
- * TODO: make these asynchronous */
-
 struct sysdb_cb_ctx {
     sysdb_callback_t fn;
     void *pvt;
