@@ -87,6 +87,7 @@
                         SYSDB_GIDNUM, SYSDB_FULLNAME, \
                         SYSDB_HOMEDIR, SYSDB_SHELL, \
                         SYSDB_LAST_UPDATE, \
+                        "objectClass", \
                         NULL}
 #define SYSDB_USER_ATTRS {SYSDB_USER_ATTR_DEFAULTGROUP, \
                           SYSDB_USER_ATTR_GECOS, \
@@ -102,12 +103,15 @@
                           NULL}
 #define SYSDB_GRNAM_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_LAST_UPDATE, SYSDB_LEGACY_MEMBER, \
+                           "objectClass", \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_LAST_UPDATE, \
+                          "objectClass", \
                           NULL}
 
 #define SYSDB_INITGR_ATTR "memberof"
 #define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, SYSDB_LAST_UPDATE, \
+                            "objectClass", \
                             NULL}
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE

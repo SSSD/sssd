@@ -48,7 +48,8 @@
 #define NSS_ENUM_ALL 0x03
 
 struct sysdb_ctx;
-struct getent_ctx;
+struct getpwent_ctx;
+struct getgrent_ctx;
 
 struct nss_ctx {
     struct tevent_context *ev;
@@ -82,6 +83,7 @@ struct cli_ctx {
     struct tevent_fd *cfde;
     struct sockaddr_un addr;
     struct cli_request *creq;
+    struct getent_ctx *pctx;
     struct getent_ctx *gctx;
 };
 
