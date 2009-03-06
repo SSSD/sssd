@@ -421,7 +421,7 @@ static void infp_do_user_delete_callback(void *pvt, int status,
     sysdb_transaction_done(infp_deleteuser_req->sysdb_req, status);
 
     if (status != EOK) {
-        DEBUG(0, ("Failed to delete user from sysdb. Error code %d", status));
+        DEBUG(0, ("Failed to delete user from sysdb. Error code %d\n", status));
         talloc_free(infp_deleteuser_req);
         return;
     }

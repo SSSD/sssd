@@ -225,17 +225,164 @@ error:
     return ret;
 }
 
+struct infp_deletegroup_ctx {
+    struct infp_req_ctx *infp_req;
+    struct ldb_dn *gr_dn;
+    struct sysdb_req *sysdb_req;
+};
+
+static void infp_do_group_delete_callback(void *pvt, int status,
+                                          struct ldb_result *res)
+{
+    DBusMessage *reply = NULL;
+    struct infp_deletegroup_ctx *grdel_req =
+        talloc_get_type(pvt, struct infp_deletegroup_ctx);
+
+    /* Commit or cancel the transaction, based on the status */
+    sysdb_transaction_done(grdel_req->sysdb_req, status);
+
+    if (status != EOK) {
+        DEBUG(0, ("Failed to delete group from sysdb. Error code %d\n",
+                  status));
+        talloc_free(grdel_req);
+        return;
+    }
+
+    reply = dbus_message_new_method_return(grdel_req->infp_req->req_message);
+    if (reply) {
+        sbus_conn_send_reply(grdel_req->infp_req->sconn, reply);
+        dbus_message_unref(reply);
+    }
+    talloc_free(grdel_req);
+}
+
+static void infp_do_group_delete(struct sysdb_req *req, void *pvt)
+{
+    int ret;
+    struct infp_deletegroup_ctx *grdel_req =
+        talloc_get_type(pvt, struct infp_deletegroup_ctx);
+
+    grdel_req->sysdb_req = req;
+
+    ret = sysdb_delete_entry(grdel_req->sysdb_req,
+                             grdel_req->gr_dn,
+                             infp_do_group_delete_callback,
+                             grdel_req);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not delete group entry\n"));
+        talloc_free(grdel_req);
+        return;
+    }
+}
+
 int infp_groups_delete(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
+    DBusError error;
+    char *einval_msg;
+    int ret;
+    struct infp_deletegroup_ctx *grdel_req;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    /* Arguments */
+    const char *arg_grname;
+    const char *arg_domain;
 
+    grdel_req = talloc_zero(NULL, struct infp_deletegroup_ctx);
+    if(grdel_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Create an infp_req_ctx */
+    grdel_req->infp_req = infp_req_init(grdel_req, message, sconn);
+    if(grdel_req->infp_req == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    dbus_error_init(&error);
+    if(!dbus_message_get_args(message, &error,
+                              DBUS_TYPE_STRING, &arg_grname,
+                              DBUS_TYPE_STRING, &arg_domain,
+                              DBUS_TYPE_INVALID)) {
+        DEBUG(0, ("Parsing arguments to %s failed: %s:%s\n",
+                  INFP_GROUPS_DELETE, error.name, error.message));
+        einval_msg = talloc_strdup(grdel_req, error.message);
+        dbus_error_free(&error);
+        goto einval;
+    }
+
+    /* FIXME: Allow deleting groups from domains other than LOCAL */
+    if(strcasecmp(arg_domain, "LOCAL") != 0) {
+        goto denied;
+    }
+
+    grdel_req->infp_req->domain =
+        btreemap_get_value(grdel_req->infp_req->infp->domain_map,
+                           (const void *)arg_domain);
+    if(grdel_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(grdel_req, "Invalid domain.");
+        goto einval;
+    }
+
+    /* Check permissions */
+    if (!infp_get_permissions(grdel_req->infp_req->caller,
+                              grdel_req->infp_req->domain,
+                              INFP_OBJ_TYPE_GROUP,
+                              NULL,
+                              INFP_ACTION_TYPE_CREATE,
+                              INFP_ATTR_TYPE_INVALID)) goto denied;
+
+    grdel_req->gr_dn = sysdb_group_dn(grdel_req->infp_req->infp->sysdb,
+                                      grdel_req,
+                                      grdel_req->infp_req->domain->name,
+                                      arg_grname);
+    if(grdel_req->gr_dn == NULL) {
+        DEBUG(0, ("Could not construct a group_dn for deletion.\n"));
+        ret = EIO;
+        goto error;
+    }
+
+    ret = sysdb_transaction(grdel_req,
+                            grdel_req->infp_req->infp->sysdb,
+                            infp_do_group_delete,
+                            grdel_req);
+    if (ret != EOK) {
+        DEBUG(0, ("Unable to start transaction to delete group\n"));
+        goto error;
+    }
+
+    return EOK;
+
+denied:
+    reply = dbus_message_new_error(message, DBUS_ERROR_ACCESS_DENIED, NULL);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
     /* send reply */
     sbus_conn_send_reply(sconn, reply);
-
     dbus_message_unref(reply);
+
+    talloc_free(grdel_req);
     return EOK;
+
+einval:
+    reply = dbus_message_new_error(message,
+                                   DBUS_ERROR_INVALID_ARGS,
+                                   einval_msg);
+    if (reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+    talloc_free(grdel_req);
+    return EOK;
+
+error:
+    talloc_free(grdel_req);
+    return ret;
 }
 
 int infp_groups_add_members(DBusMessage *message, struct sbus_conn_ctx *sconn)
