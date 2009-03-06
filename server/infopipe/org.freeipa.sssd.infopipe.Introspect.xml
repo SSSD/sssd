@@ -46,7 +46,7 @@
                                CheckPermissions(domain=>'LOCAL', object=>'user', instance=>'testuser1', actions=>[('modify','userpic'),('modify','fullname')])
                                returns permissions=>[1,0]
                            Can I add members to group wheel?
-                               CheckPermissions(domain=>'LOCAL', object=>'user', instance=>'wheel', actions=>[('addmember','somearg')])
+                               CheckPermissions(domain=>'LOCAL', object=>'group', instance=>'wheel', actions=>[('addmember','somearg')])
                                returns permissions=>[1]
                                The argument 'somearg' is ignored, since it does not apply to addmember."
             />
@@ -79,9 +79,8 @@
             <annotation
                 name="org.freeipa.sssd.infopipe.DocString"
                 value="Create a new user in a particular domain. User will initially have a disabled password.
-                       @param domain The domain in which to add the user
                        @param username Username for the new user. Must be unique within a domain.
-                       @param defaultgroup Default group name for the user.
+                       @param domain The domain in which to add the user
                        @param fullname Full (display) name for the user. Will set both 'fullname' and 'gecos' to this value initially.
                        @param homedir Home directory path for the user. Must be a parsable path, but does not need to exist or be mounted.
                        @param shell Login shell. Must exist in /etc/shells.
@@ -91,9 +90,8 @@
                        @note CreateUser will ignore users that already exist.
                        @note This function will automatically generate an appropriate UID for the user."
             />
-            <arg name="domain" type="s" direction="in" />
             <arg name="username" type="s" direction="in" />
-            <arg name="defaultgroup" type="s" direction="in" />
+            <arg name="domain" type="s" direction="in" />
             <arg name="fullname" type="s" direction="in" />
             <arg name="homedir" type="s" direction="in" />
             <arg name="shell" type="s" direction="in" />

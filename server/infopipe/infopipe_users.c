@@ -201,17 +201,227 @@ error:
     return ret;
 }
 
+struct infp_createuser_ctx {
+    struct infp_req_ctx *infp_req;
+    struct sysdb_req *sysdb_req;
+
+    char *username;
+    char *fullname;
+    char *homedir;
+    char *shell;
+};
+
+static void infp_do_user_create_callback(void *pvt,
+                                         int status,
+                                         struct ldb_result *res)
+{
+    char *error_msg = NULL;
+    DBusMessage *reply = NULL;
+    struct infp_createuser_ctx *infp_createuser_req = talloc_get_type(pvt, struct infp_createuser_ctx);
+
+    /* Commit the transaction if it we got a successful response, or cancel it if we did not */
+    sysdb_transaction_done(infp_createuser_req->sysdb_req, status);
+
+    /* Verify that the addition completed successfully
+     * If LDB returned an error, run a search to determine
+     * if it was due the requested username already being
+     * in use
+     */
+    if (status == EOK) {
+        /* Return reply ack */
+        reply = dbus_message_new_method_return(infp_createuser_req->infp_req->req_message);
+    }
+    else if (status == EEXIST) {
+        /* Return error, user already exists */
+        error_msg = talloc_asprintf(infp_createuser_req,
+                                    "User [%s] already exists on domain [%s]",
+                                    infp_createuser_req->username,
+                                    infp_createuser_req->infp_req->domain->name);
+        reply = dbus_message_new_error(infp_createuser_req->infp_req->req_message,
+                                       DBUS_ERROR_FILE_EXISTS,
+                                       error_msg);
+    }
+    else {
+        /* Unknown error occurred. Print DEBUG message */
+        DEBUG(0, ("Failed to create user in the sysdb. Error code %d\n", status));
+        talloc_free(infp_createuser_req);
+        return;
+    }
+
+    if (reply) {
+        sbus_conn_send_reply(infp_createuser_req->infp_req->sconn, reply);
+        dbus_message_unref(reply);
+    }
+    talloc_free(infp_createuser_req);
+}
+
+static void infp_do_user_create(struct sysdb_req *req, void *pvt)
+{
+    int ret;
+    struct infp_createuser_ctx *infp_createuser_req = talloc_get_type(pvt, struct infp_createuser_ctx);
+    infp_createuser_req->sysdb_req = req;
+
+    ret = sysdb_add_user(infp_createuser_req->sysdb_req,
+                         infp_createuser_req->infp_req->domain,
+                         infp_createuser_req->username,
+                         0, 0,
+                         infp_createuser_req->fullname,
+                         infp_createuser_req->homedir,
+                         infp_createuser_req->shell,
+                         infp_do_user_create_callback,
+                         infp_createuser_req);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not invoke sysdb_add_user"));
+        sysdb_transaction_done(infp_createuser_req->sysdb_req, ret);
+        talloc_free(infp_createuser_req);
+        return;
+    }
+}
+
 int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
+    DBusError error;
+    dbus_bool_t dbret;
+    char *einval_msg;
+    struct infp_createuser_ctx *infp_createuser_req;
+    int ret;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    /* Arguments */
+    const char *arg_domain;
+    const char *arg_username;
+    const char *arg_fullname;
+    const char *arg_homedir;
+    const char *arg_shell;
 
+    infp_createuser_req = talloc_zero(NULL, struct infp_createuser_ctx);
+    if (infp_createuser_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Create an infp_req_ctx */
+    infp_createuser_req->infp_req = talloc_zero(infp_createuser_req, struct infp_req_ctx);
+    if (infp_createuser_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    infp_createuser_req->infp_req->infp = talloc_get_type(sbus_conn_get_private_data(sconn), struct infp_ctx);
+    infp_createuser_req->infp_req->sconn = sconn;
+    infp_createuser_req->infp_req->req_message = message;
+    infp_createuser_req->infp_req->caller = sysbus_get_caller(infp_createuser_req->infp_req,
+                                                              infp_createuser_req->infp_req->req_message,
+                                                              infp_createuser_req->infp_req->sconn);
+    if (infp_createuser_req->infp_req->caller == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    dbus_error_init(&error);
+    dbret = dbus_message_get_args(message, &error,
+                                  DBUS_TYPE_STRING, &arg_username,
+                                  DBUS_TYPE_STRING, &arg_domain,
+                                  DBUS_TYPE_STRING, &arg_fullname,
+                                  DBUS_TYPE_STRING, &arg_homedir,
+                                  DBUS_TYPE_STRING, &arg_shell,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(0, ("Parsing arguments to %s failed: %s:%s\n", INFP_USERS_CREATE, error.name, error.message));
+        einval_msg = talloc_strdup(infp_createuser_req, error.message);
+        dbus_error_free(&error);
+        goto einval;
+    }
+
+    /* FIXME: Allow creating users on domains other than LOCAL */
+    if (strcasecmp(arg_domain, "LOCAL") != 0) {
+        goto denied;
+    }
+
+    infp_createuser_req->infp_req->domain = btreemap_get_value(infp_createuser_req->infp_req->infp->domain_map,
+                                                               (const void *)arg_domain);
+    /* Check for a valid domain */
+    if(infp_createuser_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(infp_createuser_req, "Invalid domain.");
+        goto einval;
+    }
+
+    if (strlen(arg_username)) {
+        infp_createuser_req->username = talloc_strdup(infp_createuser_req, arg_username);
+        if (infp_createuser_req->username == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+    } else {
+        einval_msg = talloc_strdup(infp_createuser_req, "No username provided");
+        goto einval;
+    }
+
+    infp_createuser_req->fullname = NULL;
+    if (strlen(arg_fullname)) {
+        infp_createuser_req->fullname = talloc_strdup(infp_createuser_req, arg_username);
+        if(infp_createuser_req->fullname == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+    }
+
+    infp_createuser_req->homedir = NULL;
+    if (strlen(arg_homedir)) {
+        infp_createuser_req->homedir = talloc_strdup(infp_createuser_req, arg_username);
+        if(infp_createuser_req->homedir == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+    }
+
+    /* Check permissions */
+    if(!infp_get_permissions(infp_createuser_req->infp_req->caller,
+                             infp_createuser_req->infp_req->domain,
+                             INFP_OBJ_TYPE_USER,
+                             NULL,
+                             INFP_ACTION_TYPE_CREATE,
+                             INFP_ACTION_TYPE_INVALID)) goto denied;
+
+    ret = sysdb_transaction(infp_createuser_req,
+                            infp_createuser_req->infp_req->infp->sysdb,
+                            infp_do_user_create,
+                            infp_createuser_req);
+    if (ret != EOK) {
+        DEBUG(0,("Unable to start transaction to create user\n"));
+        goto error;
+    }
+
+    return EOK;
+
+denied:
+    reply = dbus_message_new_error(message, DBUS_ERROR_ACCESS_DENIED, NULL);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
     /* send reply */
     sbus_conn_send_reply(sconn, reply);
-
     dbus_message_unref(reply);
+
+    talloc_free(infp_createuser_req);
     return EOK;
+
+einval:
+    reply = dbus_message_new_error(message,
+                                   DBUS_ERROR_INVALID_ARGS,
+                                   einval_msg);
+    if (reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+    talloc_free(infp_createuser_req);
+    return EOK;
+
+error:
+    talloc_free(infp_createuser_req);
+    return ret;
 }
 
 int infp_users_delete(DBusMessage *message, struct sbus_conn_ctx *sconn)
@@ -1368,6 +1578,12 @@ static void infp_do_user_set_uid(struct sysdb_req *req, void *pvt)
                               infp_setuid_req->username,
                               infp_setuid_req->uid_attr,
                               infp_do_user_set_uid_callback, infp_setuid_req);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not invoke sysdb_set_user_attr"));
+        sysdb_transaction_done(infp_setuid_req->sysdb_req, ret);
+        talloc_free(infp_setuid_req);
+        return;
+    }
 }
 
 int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)

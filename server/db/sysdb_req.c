@@ -174,7 +174,7 @@ static void sysdb_transaction_end(struct sysdb_req *req)
             DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
         }
     } else {
-        DEBUG(4, ("Canceling transaction (%d[%s)\n",
+        DEBUG(4, ("Canceling transaction (%d[%s])\n",
                   req->status, strerror(req->status)));
         ret = ldb_transaction_cancel(req->ctx->ldb);
         if (ret != LDB_SUCCESS) {

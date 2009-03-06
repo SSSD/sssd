@@ -650,7 +650,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
             svc = svc->next;
         }
         if (!svc) {
-            DEBUG(0,("Unable to find peer in list of services, killing connection!\n"));
+            DEBUG(0,("Unable to find peer [%s] in list of services, killing connection!\n", svc_name));
             sbus_disconnect(conn_ctx);
             goto done;
         }
