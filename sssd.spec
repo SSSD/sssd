@@ -90,6 +90,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
 %{_sbindir}/sss_groupadd
+%{_sbindir}/sss_groupdel
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*

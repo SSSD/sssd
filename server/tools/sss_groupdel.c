@@ -1,7 +1,7 @@
 /*
    SSSD
 
-   sss_userdel
+   sss_groupdel
 
    Copyright (C) Jakub Hrozek <jhrozek@redhat.com>        2009
 
@@ -23,17 +23,18 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
+#include <sys/types.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 
-struct user_del_ctx {
+struct group_del_ctx {
     struct sysdb_req *sysreq;
     sysdb_callback_t next_fn;
 
-    const char *username;
-    struct ldb_dn *user_dn;
+    const char *groupname;
+    struct ldb_dn *group_dn;
 
     struct sss_domain_info *domain;
     struct tools_ctx *ctx;
@@ -43,9 +44,9 @@ struct user_del_ctx {
 };
 
 /* sysdb callback */
-static void userdel_done(void *pvt, int error, struct ldb_result *ignore)
+static void groupdel_done(void *pvt, int error, struct ldb_result *ignore)
 {
-    struct user_del_ctx *data = talloc_get_type(pvt, struct user_del_ctx);
+    struct group_del_ctx *data = talloc_get_type(pvt, struct group_del_ctx);
 
     data->done = true;
 
@@ -56,27 +57,27 @@ static void userdel_done(void *pvt, int error, struct ldb_result *ignore)
 }
 
 /* sysdb_req_fn_t */
-static void user_del(struct sysdb_req *req, void *pvt)
+static void group_del(struct sysdb_req *req, void *pvt)
 {
-    struct user_del_ctx *user_ctx;
+    struct group_del_ctx *group_ctx;
     int ret;
 
-    user_ctx = talloc_get_type(pvt, struct user_del_ctx);
-    user_ctx->sysreq = req;
+    group_ctx = talloc_get_type(pvt, struct group_del_ctx);
+    group_ctx->sysreq = req;
 
     ret = sysdb_delete_entry(req,
-                             user_ctx->user_dn,
-                             userdel_done,
-                             user_ctx);
+                             group_ctx->group_dn,
+                             groupdel_done,
+                             group_ctx);
 
     if(ret != EOK)
-        userdel_done(user_ctx, ret, NULL);
+        groupdel_done(group_ctx, ret, NULL);
 }
 
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
-    struct user_del_ctx *user_ctx = NULL;
+    struct group_del_ctx *group_ctx = NULL;
     struct tools_ctx *ctx = NULL;
 
 
@@ -95,14 +96,14 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    user_ctx = talloc_zero(NULL, struct user_del_ctx);
-    if (user_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for user_ctx context\n"));
+    group_ctx = talloc_zero(NULL, struct group_del_ctx);
+    if (group_ctx == NULL) {
+        DEBUG(0, ("Could not allocate memory for group_ctx context\n"));
         return ENOMEM;
     }
-    user_ctx->ctx = ctx;
+    group_ctx->ctx = ctx;
 
-    /* parse user_ctx */
+    /* parse group_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     if((ret = poptGetNextOpt(pc)) < -1) {
@@ -111,46 +112,45 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    user_ctx->username = poptGetArg(pc);
-    if(user_ctx->username == NULL) {
-        usage(pc, "Specify user to delete\n");
+    group_ctx->groupname = poptGetArg(pc);
+    if(group_ctx->groupname == NULL) {
+        usage(pc, "Specify group to delete\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* arguments processed, go on to actual work */
 
-    user_ctx->domain = btreemap_get_value(ctx->domains, "LOCAL");
-    if (user_ctx->domain == NULL) {
+    group_ctx->domain = btreemap_get_value(ctx->domains, "LOCAL");
+    if (group_ctx->domain == NULL) {
         DEBUG(0, ("Could not set default values\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    user_ctx->user_dn = sysdb_user_dn(ctx->sysdb, ctx,
-                                      user_ctx->domain->name,
-                                      user_ctx->username);
-    if(user_ctx->user_dn == NULL) {
-        DEBUG(0, ("Could not construct an user DN\n"));
+    group_ctx->group_dn = sysdb_group_dn(ctx->sysdb, ctx,
+                                         group_ctx->domain->name,
+                                         group_ctx->groupname);
+    if(group_ctx->group_dn == NULL) {
+        DEBUG(0, ("Could not construct a group DN\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-
-    /* userdel */
-    ret = sysdb_transaction(ctx, ctx->sysdb, user_del, user_ctx);
+    /* groupdel */
+    ret = sysdb_transaction(ctx, ctx->sysdb, group_del, group_ctx);
     if(ret != EOK) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    while (!user_ctx->done) {
+    while (!group_ctx->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (user_ctx->error) {
-        ret = user_ctx->error;
+    if (group_ctx->error) {
+        ret = group_ctx->error;
         DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
         ret = EXIT_FAILURE;
         goto fini;
@@ -160,7 +160,7 @@ int main(int argc, const char **argv)
 
 fini:
     talloc_free(ctx);
-    talloc_free(user_ctx);
+    talloc_free(group_ctx);
     poptFreeContext(pc);
     exit(ret);
 }
