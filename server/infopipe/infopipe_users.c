@@ -259,7 +259,7 @@ static void infp_do_user_create(struct sysdb_req *req, void *pvt)
                          infp_do_user_create_callback,
                          infp_createuser_req);
     if (ret != EOK) {
-        DEBUG(0, ("Could not invoke sysdb_add_user"));
+        DEBUG(0, ("Could not invoke sysdb_add_user\n"));
         sysdb_transaction_done(infp_createuser_req->sysdb_req, ret);
         talloc_free(infp_createuser_req);
         return;
@@ -359,7 +359,7 @@ int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
                              INFP_OBJ_TYPE_USER,
                              NULL,
                              INFP_ACTION_TYPE_CREATE,
-                             INFP_ACTION_TYPE_INVALID)) goto denied;
+                             INFP_ATTR_TYPE_INVALID)) goto denied;
 
     ret = sysdb_transaction(infp_createuser_req,
                             infp_createuser_req->infp_req->infp->sysdb,
