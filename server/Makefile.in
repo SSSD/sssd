@@ -11,6 +11,7 @@ bindir = @bindir@
 sbindir = @sbindir@
 mandir = @mandir@
 localstatedir = @localstatedir@
+initrddir = @initrddir@
 VPATH = @srcdir@:@libreplacedir@
 srcdir = @srcdir@
 builddir = @builddir@
@@ -163,6 +164,7 @@ install:: all installdirs installheaders installlibs installbin installsupport
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 755 sbin/sssd $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 755 $(TOOLSBINS) $(DESTDIR)$(sbindir)
+	${INSTALLCMD} -m 755 sysv/sssd $(DESTDIR)$(initrddir)
 	${INSTALLCMD} -d $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 	${INSTALLCMD} -m 755 $(LIBEXECBINS) $(DESTDIR)$(SSSD_LIBEXEC_PATH)
 
@@ -170,6 +172,7 @@ installdirs::
 	mkdir -p $(DESTDIR)$(includedir) \
 	          $(DESTDIR)$(libdir) \
 	          $(DESTDIR)$(sbindir) \
+		  $(DESTDIR)$(initrddir) \
 		  $(DESTDIR)$(SSSD_LIBDIR) \
 		  $(DESTDIR)$(LDB_LIBDIR) \
 	          $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR) \

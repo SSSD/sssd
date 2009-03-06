@@ -1,18 +1,24 @@
-# XXX What version to call this?
-%define sssd_release 3%{?dist}
-%define sssd_version 0.1.0
-
 Name: sssd
-Version: %{sssd_version}
-Release: %{sssd_release}
+Version: 0.1.0
+Release: 4%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
+# The entire source code is GPLv3+ except replace/ which is LGPLv3+
 License: GPLv3+ and LGPLv3+
 URL: http://www.freeipa.org/
-Source0: sssd-%{sssd_version}.tar.gz
+Source0: sssd-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 ### Patches ###
+
+### Dependencies ###
+
+Requires: libldb >= 0.9.3
+
+Requires(preun):  initscripts chkconfig
+Requires(postun): /sbin/service
+
+%define servicename sssd
 
 ### Build Dependencies ###
 
@@ -49,7 +55,8 @@ pushd server
            --without-tests     \
            --without-policykit \
            --with-openldap \
-           --with-infopipe
+           --with-infopipe \
+           --with-initrd-dir=%{_initrddir} \
 
 make %{?_smp_mflags}
 popd
@@ -78,10 +85,11 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %doc COPYING
+%{_initrddir}/%{name}
 %{_sbindir}/sssd
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
-%{_libexecdir}/%{name}/
+%{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
 %{_sharedstatedir}/sss/
@@ -91,8 +99,25 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 
+%post -p /sbin/ldconfig
+
+%preun
+if [ $1 = 0 ]; then
+    /sbin/service %{servicename} stop 2>&1 > /dev/null
+    /sbin/chkconfig --del %{servicename}
+fi
+
+%postun
+/sbin/ldconfig
+if [ $1 -ge 1 ] ; then
+    /sbin/service %{servicename} condrestart 2>&1 > /dev/null
+fi
 
 %changelog
+* Fri Mar 06 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-4
+- fixed items found during review
+- added initscript
+
 * Thu Mar 05 2009 Sumit Bose <sbose@redhat.com> - 0.1.0-3
 - added sss_client
 

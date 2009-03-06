@@ -107,3 +107,19 @@ AC_DEFUN(WITH_TESTS,
     fi
   ])
 
+AC_DEFUN(WITH_INITRD_DIR,
+  [ AC_ARG_WITH([initrd-dir],
+                [AC_HELP_STRING([--with-initrd-dir=DIR],
+                                [Where to store init script for sssd [/etc/rc.d/init.d]]
+                               )
+                ]
+               )
+    initrddir="/etc/rc.d/init.d"
+    if test x"$with_initrd_dir" != x; then
+        initrddir=$with_initrd_dir
+    fi
+    AC_SUBST(initrddir)
+    AC_DEFINE_UNQUOTED(INITRD_DIR, "$initrddir", [Where to store init script for sssd])
+  ])
+
+

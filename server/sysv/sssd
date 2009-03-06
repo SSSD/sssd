@@ -1,0 +1,106 @@
+#!/bin/sh
+#
+#
+# chkconfig: 2345 40 60
+# description: Provides a set of daemons to manage access to remote directories
+#              and authentication mechanisms. It provides an NSS and PAM
+#              interface toward the system and a pluggable backend system to
+#              connect to multiple different account sources. It is also the
+#              basis to provide client auditing and policy services for projects
+#              like FreeIPA.
+#
+
+RETVAL=0
+prog="sssd"
+
+# Source function library.
+. /etc/init.d/functions
+
+SSSD=/usr/sbin/sssd
+
+LOCK_FILE=/var/lock/subsys/sssd
+PID_FILE=/var/run/sssd.pid
+
+start() {
+    [ -x $SSSD ] || exit 5
+    echo -n $"Starting $prog: "
+    daemon $SSSD -D && success || failure
+    RETVAL=$?
+    [ "$RETVAL" = 0 ] && touch $LOCK_FILE
+    echo
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc -p $PID_FILE $SSSD -TERM
+    RETVAL=$?
+    [ "$RETVAL" = 0 ] && rm -f $LOCK_FILE
+    echo
+}
+
+reload() {
+    echo -n $"Reloading $prog: "
+    killproc $SSSD -HUP
+    echo
+}
+
+restart() {
+        stop
+        start
+}
+
+reload() {
+    restart
+}
+
+force_reload() {
+    restart
+}
+
+rh_status() {
+    # run checks to determine if the service is running or use generic status
+    status $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+
+    restart)
+        $1
+        ;;
+
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+
+    force-reload)
+        force_reload
+        ;;
+
+    status)
+        rh_status
+        ;;
+
+    condrestart|try-restart)
+        rh_status_q || exit 0
+        restart
+        ;;
+    *)
+    echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+    exit 2
+esac
+exit $?
+
