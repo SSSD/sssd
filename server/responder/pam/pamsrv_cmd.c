@@ -82,17 +82,58 @@ static int pam_parse_in_data(uint8_t *body, size_t blen, struct pam_data *pd) {
     return EOK;
 }
 
-static void pam_reply(struct cli_ctx *cctx,
-                      int pam_status, const char *domain)
+static void pam_reply(struct pam_data *pd);
+static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
+                            struct timeval tv, void *pvt)
 {
+    struct pam_data *pd;
+    DEBUG(4, ("pam_reply_delay get called.\n"));
+
+    pd = talloc_get_type(pvt, struct pam_data);
+
+    pam_reply(pd);
+}
+
+static void pam_reply(struct pam_data *pd)
+{
+    struct cli_ctx *cctx;
     struct sss_cmd_ctx *nctx;
-    int32_t ret_status = pam_status;
     uint8_t *body;
     size_t blen;
     int ret;
     int err = EOK;
+    int32_t resp_c;
+    int32_t resp_size;
+    struct response_data *resp;
+    int p;
+    struct timeval tv;
+    struct tevent_timer *te;
 
     DEBUG(4, ("pam_reply get called.\n"));
+
+    if (pd->response_delay > 0) {
+        ret = gettimeofday(&tv, NULL);
+        if (ret != EOK) {
+            DEBUG(0, ("gettimeofday failed [%d][%s].\n",
+                      errno, strerror(errno)));
+            err = ret;
+            goto done;
+        }
+        tv.tv_sec += pd->response_delay;
+        tv.tv_usec = 0;
+        pd->response_delay = 0;
+
+        te = tevent_add_timer(cctx->ev, cctx, tv, pam_reply_delay, pd);
+        if (te == NULL) {
+            DEBUG(0, ("Failed to add event pam_reply_delay.\n"));
+            err = ENOMEM;
+            goto done;
+        }
+
+        return;
+    }
+
+    cctx = pd->cctx;
     nctx = talloc_zero(cctx, struct sss_cmd_ctx);
     if (!nctx) {
         err = ENOMEM;
@@ -102,13 +143,30 @@ static void pam_reply(struct cli_ctx *cctx,
     nctx->check_expiration = true;
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out); 
+                         &cctx->creq->out);
     if (ret != EOK) {
         err = ret;
         goto done;
     }
 
-    ret = sss_packet_grow(cctx->creq->out, sizeof(int) + strlen(domain)+1 );
+    if (pd->domain != NULL) {
+        pam_add_response(pd, PAM_DOMAIN_NAME, strlen(pd->domain)+1,
+                         (uint8_t *) pd->domain);
+    }
+
+    resp_c = 0;
+    resp_size = 0;
+    resp = pd->resp_list;
+    while(resp != NULL) {
+        resp_c++;
+        resp_size += resp->len;
+        resp = resp->next;
+    }
+
+    ret = sss_packet_grow(cctx->creq->out, sizeof(int32_t) + strlen(pd->domain)+1 +
+                                           sizeof(int32_t) +
+                                           resp_c * 2* sizeof(int32_t) +
+                                           resp_size);
     if (ret != EOK) {
         err = ret;
         goto done;
@@ -116,10 +174,28 @@ static void pam_reply(struct cli_ctx *cctx,
 
     sss_packet_get_body(cctx->creq->out, &body, &blen);
     DEBUG(4, ("blen: %d\n", blen));
-    memcpy(body, &ret_status, sizeof(int32_t));
-    memcpy(body+sizeof(int32_t), domain, strlen(domain)+1);
+    p = 0;
+
+    memcpy(&body[p], &pd->pam_status, sizeof(int32_t));
+    p += sizeof(int32_t);
+
+    memcpy(&body[p], &resp_c, sizeof(int32_t));
+    p += sizeof(int32_t);
+
+    resp = pd->resp_list;
+    while(resp != NULL) {
+        memcpy(&body[p], &resp->type, sizeof(int32_t));
+        p += sizeof(int32_t);
+        memcpy(&body[p], &resp->len, sizeof(int32_t));
+        p += sizeof(int32_t);
+        memcpy(&body[p], resp->data, resp->len);
+        p += resp->len;
+
+        resp = resp->next;
+    }
 
 done:
+    talloc_free(pd);
     sss_cmd_done(nctx);
 }
 
@@ -143,11 +219,14 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
 
     pd->cmd = pam_cmd;
+    pd->cctx = cctx;
     ret=pam_parse_in_data(body, blen, pd);
     if( ret != 0 ) {
         talloc_free(pd);
         return EINVAL;
     }
+    pd->response_delay = 0;
+    pd->resp_list = NULL;
 
     if (pd->domain == NULL) {
         ret = confdb_get_string(cctx->nctx->cdb, cctx, "config/domains",

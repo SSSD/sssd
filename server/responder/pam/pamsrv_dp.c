@@ -34,10 +34,12 @@
 
 struct pam_reply_ctx {
     struct cli_ctx *cctx;
+    struct pam_data *pd;
     pam_dp_callback_t callback;
 };
 
-static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr) {
+static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr)
+{
     DBusError dbus_error;
     DBusMessage* msg;
     int ret;
@@ -54,7 +56,7 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr) {
     msg = dbus_pending_call_steal_reply(pending);
     if (msg == NULL) {
         DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
-        pam_status = PAM_SYSTEM_ERR;
+        rctx->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
 
@@ -68,11 +70,13 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr) {
                                         DBUS_TYPE_INVALID);
             if (!ret) {
                 DEBUG(0, ("Failed to parse reply.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                domain = "";
+                rctx->pd->pam_status = PAM_SYSTEM_ERR;
+                domain = NULL;
                 goto done;
             }
             DEBUG(4, ("received: [%d][%s]\n", pam_status, domain));
+            rctx->pd->pam_status = pam_status;
+            rctx->pd->domain = talloc_strdup(rctx->cctx, domain);
             break;
         case DBUS_MESSAGE_TYPE_ERROR:
             DEBUG(0, ("Reply error.\n"));
@@ -87,12 +91,15 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr) {
 done:
     dbus_pending_call_unref(pending);
     dbus_message_unref(msg);
-    rctx->callback(rctx->cctx, pam_status, domain);
+    rctx->callback(rctx->pd);
+
+    talloc_free(rctx);
 }
 
 int pam_dp_send_req(struct cli_ctx *cctx,
                          pam_dp_callback_t callback,
-                         int timeout, struct pam_data *pd) {
+                         int timeout, struct pam_data *pd)
+{
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
@@ -105,8 +112,9 @@ int pam_dp_send_req(struct cli_ctx *cctx,
         DEBUG(0,("Out of memory?!\n"));
         return ENOMEM;
     }
-    rctx->cctx=cctx;
-    rctx->callback=callback;
+    rctx->cctx = cctx;
+    rctx->callback = callback;
+    rctx->pd = pd;
 
     if (pd->domain==NULL ||
         pd->user==NULL ||
@@ -204,7 +212,8 @@ static int pam_dp_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     return EOK;
 }
 
-struct sbus_method *register_pam_dp_methods(void) {
+struct sbus_method *register_pam_dp_methods(void)
+{
     static struct sbus_method pam_dp_methods[] = {
             { DP_CLI_METHOD_IDENTITY, pam_dp_identity },
             { NULL, NULL }

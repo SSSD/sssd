@@ -350,7 +350,7 @@ static int set_unix_socket(struct nss_ctx *nctx)
     }
     talloc_free(default_pipe);
 
-    default_pipe = talloc_asprintf(nctx, "%s/private/%s.priv", PIPE_PATH,
+    default_pipe = talloc_asprintf(nctx, "%s/private/%s", PIPE_PATH,
                                    nctx->sss_pipe_name);
     if (!default_pipe) {
         return ENOMEM;

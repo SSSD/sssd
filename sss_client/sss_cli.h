@@ -154,6 +154,11 @@ enum sss_status {
     SSS_STATUS_SUCCESS
 };
 
+enum response_type {
+    PAM_USER_INFO = 0x01,
+    PAM_DOMAIN_NAME,
+};
+
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,
                                      uint8_t **repbuf, size_t *replen,

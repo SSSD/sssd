@@ -11,7 +11,8 @@
 #include <security/pam_modules.h>
 #include <security/pam_misc.h>
 
-#include "sss_cli.h" 
+#include "sss_cli.h"
+#include "sss/responder.h"
 
 struct pam_items {
     const char* pam_service;
@@ -34,8 +35,44 @@ struct pam_items {
     int pam_newauthtok_size;
 };
 
+static int eval_response(pam_handle_t *pamh, int buflen, uint8_t *buf)
+{
+    int p=0;
+    int32_t *c;
+    int32_t *type;
+    int32_t *len;
+    int32_t *pam_status;
 
-static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi) {
+    pam_status = ((int32_t *)(buf+p));
+    p += sizeof(int32_t);
+
+
+    c = ((int32_t *)(buf+p));
+    p += sizeof(int32_t);
+
+    while(*c>0) {
+        type = ((int32_t *)(buf+p));
+        p += sizeof(int32_t);
+        len = ((int32_t *)(buf+p));
+        p += sizeof(int32_t);
+        switch(*type) {
+            case PAM_USER_INFO:
+                D(("user info: [%s]", &buf[p]));
+                break;
+            case PAM_DOMAIN_NAME:
+                D(("domain name: [%s]", &buf[p]));
+                break;
+        }
+        p += *len;
+
+        --(*c);
+    }
+
+    return 0;
+}
+
+static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
+{
     int ret;
 
     ret = pam_get_item(pamh, PAM_SERVICE, (const void **) &(pi->pam_service));
@@ -74,7 +111,8 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi) {
     return PAM_SUCCESS;
 }
 
-static void print_pam_items(struct pam_items pi) {
+static void print_pam_items(struct pam_items pi)
+{
     D(("Service: %s", *pi.pam_service!='\0' ? pi.pam_service : "(not available)"));
     D(("User: %s", *pi.pam_user!='\0' ? pi.pam_user : "(not available)"));
     D(("Tty: %s", *pi.pam_tty!='\0' ? pi.pam_tty : "(not available)"));
@@ -85,7 +123,8 @@ static void print_pam_items(struct pam_items pi) {
 }
 
 static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
-                   const char **argv) {
+                   const char **argv)
+{
     int ret;
     int errnop;
     int c;
@@ -99,7 +138,6 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
     struct pam_message *mesg[1];
     struct pam_response *resp=NULL;
     int pam_status;
-    char *domain;
     char *newpwd[2];
 
     D(("Hello pam_sssd: %d", task));
@@ -277,16 +315,16 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
             goto done;
         }
 
-        if (replen<sizeof(int) || repbuf[replen-1]!='\0') {
+/* FIXME: add an end signature */
+        if (replen<sizeof(int)) {
             D(("response not in expected format."));
             pam_status=PAM_SYSTEM_ERR;
             goto done;
         }
 
         pam_status = ((int32_t *)repbuf)[0];
-        domain = (char *)(repbuf + sizeof(uint32_t));
+        eval_response(pamh, replen, repbuf);
         D(("received: %d (%s)", pam_status, pam_strerror(pamh,pam_status)));
-        D(("received: %s", domain));
     } else {
         D(("no user found, doing nothing"));
         return PAM_SUCCESS;
@@ -306,33 +344,39 @@ done:
 }
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc,
-                                   const char **argv ) {
+                                   const char **argv )
+{
     return pam_sss(SSS_PAM_AUTHENTICATE, pamh, flags, argc, argv);
 }
 
 
 PAM_EXTERN int pam_sm_setcred(pam_handle_t *pamh, int flags, int argc,
-                              const char **argv ) {
+                              const char **argv )
+{
     return pam_sss(SSS_PAM_SETCRED, pamh, flags, argc, argv);
 }
 
 PAM_EXTERN int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc,
-                                const char **argv ) {
+                                const char **argv )
+{
     return pam_sss(SSS_PAM_ACCT_MGMT, pamh, flags, argc, argv);
 }
 
 PAM_EXTERN int pam_sm_chauthtok(pam_handle_t *pamh, int flags, int argc,
-                                const char **argv ) {
+                                const char **argv )
+{
     return pam_sss(SSS_PAM_CHAUTHTOK, pamh, flags, argc, argv);
 }
 
 PAM_EXTERN int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc,
-                                   const char **argv ) {
+                                   const char **argv )
+{
     return pam_sss(SSS_PAM_OPEN_SESSION, pamh, flags, argc, argv);
 }
 
 PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
-                                    const char **argv ) {
+                                    const char **argv )
+{
     return pam_sss(SSS_PAM_CLOSE_SESSION, pamh, flags, argc, argv);
 }
 
@@ -341,7 +385,7 @@ PAM_EXTERN int pam_sm_close_session(pam_handle_t *pamh, int flags, int argc,
 
 /* static module data */
 
-struct pam_module _pam_sssd_modstruct = {
+struct pam_module _pam_sssd_modstruct ={
      "pam_sssd",
      pam_sm_authenticate,
      pam_sm_setcred,

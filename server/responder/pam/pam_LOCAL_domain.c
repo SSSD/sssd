@@ -34,9 +34,7 @@ struct LOCAL_request {
     struct sysdb_attrs *mod_attrs;
     struct sysdb_req *sysdb_req;
     struct ldb_result *res;
-    int pam_status;
     int error;
-    int callback_delay;
 };
 
 static int authtok2str(const void *mem_ctx, uint8_t *src, const int src_size, char **dest)
@@ -56,46 +54,14 @@ static int authtok2str(const void *mem_ctx, uint8_t *src, const int src_size, ch
     return EOK;
 }
 
-static void LOCAL_call_callback(struct tevent_context *ev,
-                                struct tevent_timer *te,
-                                struct timeval tv, void *pvt) {
-
-    struct LOCAL_request *lreq;
-    int pam_status;
-
-    lreq = talloc_get_type(pvt, struct LOCAL_request);
-
-    if (lreq->error != EOK) pam_status = PAM_SYSTEM_ERR;
-    else pam_status = lreq->pam_status;
-
-    lreq->callback(lreq->cctx, pam_status, "LOCAL");
-
-    talloc_free(lreq);
-}
-
 static void prepare_reply(struct LOCAL_request *lreq)
 {
-    int ret;
-    struct timeval tv;
-    struct tevent_timer *te;
+    if (lreq->error != EOK && lreq->pd->pam_status == PAM_SUCCESS)
+        lreq->pd->pam_status = PAM_SYSTEM_ERR;
 
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
+    lreq->callback(lreq->pd);
 
-    if (lreq->callback_delay > 0) {
-        ret = gettimeofday(&tv, NULL);
-        if (ret != 0) {
-            DEBUG(1, ("gettimeofday failed, continuing.\n"));
-        }
-        tv.tv_sec += lreq->callback_delay;
-        tv.tv_usec = 0;
-    }
-
-    te = tevent_add_timer(lreq->cctx->ev, lreq, tv, LOCAL_call_callback, lreq);
-    if (te == NULL) {
-        DEBUG(1, ("Cannot add callback to event loop.\n"));
-        return;
-    }
+    talloc_free(lreq);
 }
 
 static void set_user_attr_callback(void *pvt, int ldb_status, struct ldb_result *res)
@@ -161,6 +127,7 @@ static void do_successful_login(struct LOCAL_request *lreq)
     ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
                       lreq->error, ret, done);
+
     return;
 
 done:
@@ -173,9 +140,9 @@ static void do_failed_login(struct LOCAL_request *lreq)
     int ret;
     int failedLoginAttempts;
 
-    lreq->pam_status = PAM_AUTH_ERR;
+    lreq->pd->pam_status = PAM_AUTH_ERR;
 /* TODO: maybe add more inteligent delay calculation */
-    lreq->callback_delay = 3;
+    lreq->pd->response_delay = 3;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
     NULL_CHECK_OR_JUMP(lreq->mod_attrs, ("sysdb_new_attrs failed.\n"),
@@ -215,7 +182,7 @@ static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
     if (disabled != NULL &&
         strncasecmp(disabled, "false",5)!=0 &&
         strncasecmp(disabled, "no",2)!=0 ) {
-        lreq->pam_status = PAM_PERM_DENIED;
+        lreq->pd->pam_status = PAM_PERM_DENIED;
     }
 
     prepare_reply(lreq);
@@ -290,7 +257,7 @@ static void pam_handler_callback(void *pvt, int ldb_status,
     if (res->count < 1) {
         DEBUG(4, ("No user found with filter ["SYSDB_PWNAM_FILTER"]\n",
                   lreq->pd->user));
-        lreq->pam_status = PAM_USER_UNKNOWN;
+        lreq->pd->pam_status = PAM_USER_UNKNOWN;
         goto done;
     } else if (res->count > 1) {
         DEBUG(4, ("More than one object found with filter ["SYSDB_PWNAM_FILTER"]\n"));
@@ -404,9 +371,8 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
     lreq->cctx = cctx;
     lreq->pd = pd;
     lreq->callback = callback;
-    lreq->pam_status = PAM_SUCCESS;
+    lreq->pd->pam_status = PAM_SUCCESS;
     lreq->error = EOK;
-    lreq->callback_delay = 0;
 
 
     DEBUG(4, ("LOCAL pam handler.\n"));
