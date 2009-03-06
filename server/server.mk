@@ -75,6 +75,21 @@ $(LDAP_BE_OBJ): CFLAGS += $(LDAP_CFLAGS)
 $(CRYPT_OBJ): CFLAGS += $(NSS_CFLAGS)
 
 
+TOOLS_OBJ = \
+    tools/tools_util.o
+
+USERADD_OBJ = \
+	tools/sss_useradd.o
+
+USERDEL_OBJ = \
+	tools/sss_userdel.o
+
+GROUPADD_OBJ = \
+	tools/sss_groupadd.o
+
+GROUPDEL_OBJ = \
+	tools/sss_groupdel.o
+
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
@@ -114,3 +129,8 @@ tests/sysdb-tests: $(SYSDB_TEST_OBJ) $(UTIL_OBJ)
 
 tests/infopipe-tests: $(INFP_TEST_OBJ) $(UTIL_OBJ)
 	$(CC) -o tests/infopipe-tests $(INFP_TEST_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(CHECK_LIBS)
+
+#Tools
+sbin/sss_useradd: $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
+	$(CC) -o tools/sss_useradd $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+

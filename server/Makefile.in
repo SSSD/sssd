@@ -117,7 +117,8 @@ endif
 ifneq (x$(HAVE_POLICYKIT), x)
     LIBEXECBINS += sbin/sssd_pk
 endif
-BINS = sbin/sssd $(LIBEXECBINS)
+TOOLSBINS = sbin/sss_useradd
+BINS = sbin/sssd $(LIBEXECBINS) $(TOOLSBINS)
 
 ifneq (x$(HAVE_TESTS), x)
     TESTS = tests/sysdb-tests tests/infopipe-tests

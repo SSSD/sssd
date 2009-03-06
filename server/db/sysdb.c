@@ -153,6 +153,8 @@ int sysdb_error_to_errno(int ldberr)
         return ENOENT;
     case LDB_ERR_BUSY:
         return EBUSY;
+    case LDB_ERR_ENTRY_ALREADY_EXISTS:
+        return EEXIST;
     default:
         return EFAULT;
     }
