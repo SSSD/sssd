@@ -18,4 +18,6 @@ int setup_db(struct tools_ctx **ctx);
 
 void usage(poptContext pc, const char *error);
 
+int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out);
+
 #endif  /* __TOOLS_UTIL_H__ */

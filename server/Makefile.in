@@ -118,7 +118,7 @@ endif
 ifneq (x$(HAVE_POLICYKIT), x)
     LIBEXECBINS += sbin/sssd_pk
 endif
-TOOLSBINS = sbin/sss_useradd sbin/sss_userdel sbin/sss_groupadd sbin/sss_groupdel
+TOOLSBINS = sbin/sss_useradd sbin/sss_userdel sbin/sss_groupadd sbin/sss_groupdel sbin/sss_usermod
 BINS = sbin/sssd $(LIBEXECBINS) $(TOOLSBINS)
 
 ifneq (x$(HAVE_TESTS), x)

@@ -194,3 +194,47 @@ void usage(poptContext pc, const char *error)
     if (error) fprintf(stderr, "%s", error);
 }
 
+/* FIXME: avoid using strtok !! */
+int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
+{
+    char **out;
+    char *orig, *n, *o;
+    char delim = ',';
+    unsigned int tokens = 1;
+    int i;
+
+    orig = talloc_strdup(mem_ctx, optstr);
+    if (!orig) return ENOMEM;
+
+    n = orig;
+    tokens = 1;
+    while ((n = strchr(n, delim))) {
+        n++;
+        tokens++;
+    }
+
+    out = talloc_array(mem_ctx, char *, tokens+1);
+    if (!out) {
+        talloc_free(orig);
+        return ENOMEM;
+    }
+
+    n = orig;
+    for (i = 0; i < tokens; i++) {
+        o = n;
+        n = strchr(n, delim);
+        if (!n) {
+            break;
+        }
+        *n = '\0';
+        n++;
+        out[i] = talloc_strdup(out, o);
+    }
+    out[tokens-1] = talloc_strdup(out, o);
+    out[tokens] = NULL;
+
+    talloc_free(orig);
+    *_out = out;
+    return EOK;
+}
+
