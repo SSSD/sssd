@@ -28,6 +28,7 @@
 #include "popt.h"
 #include "tevent.h"
 #include "confdb/confdb.h"
+#include "db/sysdb.h"
 #include "monitor/monitor.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
@@ -365,6 +366,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 {
     struct mt_ctx *ctx;
     struct mt_svc *svc;
+    struct sysdb_ctx *sysdb;
     const char **doms;
     int dom_count;
     char *path;
@@ -381,6 +383,18 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     ret = get_monitor_config(ctx);
     if (ret != EOK)
         return ret;
+
+    /* Avoid a startup race condition between InfoPipe
+     * and NSS. If the sysdb doesn't exist yet, both
+     * will try to create it at the same time. So
+     * we'll have the monitor create it before either of
+     * those processes start.
+     */
+    ret = sysdb_init(mem_ctx, ctx->ev, ctx->cdb,
+                     NULL, &sysdb);
+    if (ret != EOK)
+        return ret;
+    talloc_free(sysdb);
 
     /* Initialize D-BUS Server
      * The monitor will act as a D-BUS server for all
