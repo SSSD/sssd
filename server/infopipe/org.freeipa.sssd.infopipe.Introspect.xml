@@ -225,16 +225,17 @@
                  name="org.freeipa.sssd.infopipe.DocString"
                  value="Add members to a group
                         @param group Group being modified.
-                        @domain The domain the group belongs to.
-                        @members Array of member strings to add to the group.
+                        @param domain The domain the group belongs to.
+                        @param members Array of member strings to add to the group.
+                        @param membertype 0: Users, 1: Groups
                         @return Returns an empty D-BUS reply on success. Will return an error on failure.
                         @error DBUS_ERROR_INVALID_ARGS The domain does not exist
-                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to modify the group.
-                        @note AddGroupMembers ignores members that don't exist"
+                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to modify the group."
             />
             <arg name="group" type="s" direction="in" />
             <arg name="domain" type="s" direction="in" />
             <arg name="members" type="as" direction="in" />
+            <arg name="membertype" type="y" direction="in" />
         </method>
 
         <method name="RemoveGroupMembers1">
@@ -242,12 +243,12 @@
                  name="org.freeipa.sssd.infopipe.DocString"
                  value="Remove members from a group
                         @param group Group being modified.
-                        @domain The domain the group belongs to.
-                        @members Array of member strings to remove from the group.
+                        @param domain The domain the group belongs to.
+                        @param members Array of member strings to remove from the group.
+                        @param membertype 0: Users, 1: Groups
                         @return Returns an empty D-BUS reply on success. Will return an error on failure.
                         @error DBUS_ERROR_INVALID_ARGS The domain does not exist
-                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to modify the group.
-                        @note RemoveGroupMembers ignores members that don't exist"
+                        @error DBUS_ERROR_ACCESS_DENIED The caller does not have authorization to modify the group."
             />
             <arg name="group" type="s" direction="in" />
             <arg name="domain" type="s" direction="in" />
