@@ -269,9 +269,9 @@ int main(int argc, const char **argv)
         { "groups", 'G', POPT_ARG_STRING, NULL, 0, "Groups", NULL },
         POPT_TABLEEND
     };
-    poptContext pc;
+    poptContext pc = NULL;
     struct user_add_ctx *user_ctx = NULL;
-    struct tools_ctx *ctx;
+    struct tools_ctx *ctx = NULL;
     char *groups;
     int ret;
 

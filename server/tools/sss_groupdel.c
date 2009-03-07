@@ -81,7 +81,7 @@ int main(int argc, const char **argv)
     struct tools_ctx *ctx = NULL;
 
 
-    poptContext pc;
+    poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         POPT_TABLEEND

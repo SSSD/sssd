@@ -84,19 +84,13 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
 
-    poptContext pc;
+    poptContext pc = NULL;
     struct tools_ctx *ctx = NULL;
     struct group_add_ctx *group_ctx = NULL;
     int ret = EXIT_SUCCESS;
 
     debug_prg_name = argv[0];
 
-    group_ctx = talloc_zero(NULL, struct group_add_ctx);
-    if (group_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for group_ctx context\n"));
-        return ENOMEM;
-    }
-    group_ctx->ctx = ctx;
 
     /* arguments processed, go on to actual work */
     ret = setup_db(&ctx);
@@ -105,6 +99,13 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
+
+    group_ctx = talloc_zero(NULL, struct group_add_ctx);
+    if (group_ctx == NULL) {
+        DEBUG(0, ("Could not allocate memory for group_ctx context\n"));
+        return ENOMEM;
+    }
+    group_ctx->ctx = ctx;
 
     /* parse params */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
