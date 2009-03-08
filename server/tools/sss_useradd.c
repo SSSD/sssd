@@ -65,7 +65,10 @@ static int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
 
     n = orig;
     tokens = 1;
-    while ((n = strchr(n, delim))) tokens++;
+    while ((n = strchr(n, delim))) {
+        n++;
+        tokens++;
+    }
 
     out = talloc_array(mem_ctx, char *, tokens+1);
     if (!out) {
@@ -78,13 +81,13 @@ static int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
         o = n;
         n = strchr(n, delim);
         if (!n) {
-            talloc_free(orig);
-            return ERANGE;
+            break;
         }
         *n = '\0';
         n++;
         out[i] = talloc_strdup(out, o);
     }
+    out[tokens-1] = talloc_strdup(out, o);
     out[tokens] = NULL;
 
     talloc_free(orig);
@@ -250,6 +253,9 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
                                  add_to_groups, user_ctx);
     if (ret != EOK)
         add_user_done(user_ctx, ret, NULL);
+
+    /* go on to next group */
+    user_ctx->cur++;
 }
 
 int main(int argc, const char **argv)
@@ -266,7 +272,7 @@ int main(int argc, const char **argv)
         { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, "The comment string", NULL },
         { "home",  'h', POPT_ARG_STRING, &pc_home, 0, "Home directory", NULL },
         { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, "Login shell", NULL },
-        { "groups", 'G', POPT_ARG_STRING, NULL, 0, "Groups", NULL },
+        { "groups", 'G', POPT_ARG_STRING, NULL, 'G', "Groups", NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
