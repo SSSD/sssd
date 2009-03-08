@@ -52,6 +52,7 @@ static void infp_users_get_cached_callback(void *ptr,
 
     if (status != LDB_SUCCESS) {
         DEBUG(0, ("Failed to enumerate users in the cache db.\n"));
+        infp_return_failure(infp_getcached_req->infp_req, NULL);
         talloc_free(infp_getcached_req);
         return;
     }
@@ -59,6 +60,7 @@ static void infp_users_get_cached_callback(void *ptr,
     /* Construct a reply */
     reply = dbus_message_new_method_return(infp_getcached_req->infp_req->req_message);
     if(reply == NULL) {
+        infp_return_failure(infp_getcached_req->infp_req, NULL);
         talloc_free(infp_getcached_req);
         return;
     }
@@ -93,6 +95,7 @@ error:
           ("Critical error constructing reply message for %s\n",
             INFP_USERS_GET_CACHED));
     dbus_message_unref(reply);
+    infp_return_failure(infp_getcached_req->infp_req, NULL);
     talloc_free(infp_getcached_req);
     return;
 }
@@ -185,6 +188,8 @@ einval:
     return EOK;
 
 error:
+    if (infp_getcached_req)
+        infp_return_failure(infp_getcached_req->infp_req, NULL);
     talloc_free(infp_getcached_req);
     return ret;
 }
@@ -217,7 +222,7 @@ static void infp_do_user_create_callback(void *pvt,
      */
     if (status == EOK) {
         /* Return reply ack */
-        reply = dbus_message_new_method_return(infp_createuser_req->infp_req->req_message);
+        infp_return_success(infp_createuser_req->infp_req);
     }
     else if (status == EEXIST) {
         /* Return error, user already exists */
@@ -228,18 +233,17 @@ static void infp_do_user_create_callback(void *pvt,
         reply = dbus_message_new_error(infp_createuser_req->infp_req->req_message,
                                        DBUS_ERROR_FILE_EXISTS,
                                        error_msg);
+        if (reply) {
+            sbus_conn_send_reply(infp_createuser_req->infp_req->sconn, reply);
+            dbus_message_unref(reply);
+        }
     }
     else {
         /* Unknown error occurred. Print DEBUG message */
         DEBUG(0, ("Failed to create user in the sysdb. Error code %d\n", status));
-        talloc_free(infp_createuser_req);
-        return;
+        infp_return_failure(infp_createuser_req->infp_req, NULL);
     }
 
-    if (reply) {
-        sbus_conn_send_reply(infp_createuser_req->infp_req->sconn, reply);
-        dbus_message_unref(reply);
-    }
     talloc_free(infp_createuser_req);
 }
 
@@ -261,6 +265,7 @@ static void infp_do_user_create(struct sysdb_req *req, void *pvt)
     if (ret != EOK) {
         DEBUG(0, ("Could not invoke sysdb_add_user\n"));
         sysdb_transaction_done(infp_createuser_req->sysdb_req, ret);
+        infp_return_failure(infp_createuser_req->infp_req, NULL);
         talloc_free(infp_createuser_req);
         return;
     }
@@ -399,6 +404,8 @@ einval:
     return EOK;
 
 error:
+    if(infp_createuser_req)
+        infp_return_failure(infp_createuser_req->infp_req, NULL);
     talloc_free(infp_createuser_req);
     return ret;
 }
@@ -413,7 +420,6 @@ struct infp_deleteuser_ctx {
 static void infp_do_user_delete_callback(void *pvt, int status,
                                          struct ldb_result *res)
 {
-    DBusMessage *reply = NULL;
     struct infp_deleteuser_ctx *infp_deleteuser_req =
         talloc_get_type(pvt, struct infp_deleteuser_ctx);
 
@@ -422,16 +428,12 @@ static void infp_do_user_delete_callback(void *pvt, int status,
 
     if (status != EOK) {
         DEBUG(0, ("Failed to delete user from sysdb. Error code %d\n", status));
+        infp_return_failure(infp_deleteuser_req->infp_req, NULL);
         talloc_free(infp_deleteuser_req);
         return;
     }
 
-    reply = dbus_message_new_method_return(infp_deleteuser_req->infp_req->req_message);
-    if(reply) {
-        sbus_conn_send_reply(infp_deleteuser_req->infp_req->sconn,
-                             reply);
-        dbus_message_unref(reply);
-    }
+    infp_return_success(infp_deleteuser_req->infp_req);
     talloc_free(infp_deleteuser_req);
 }
 
@@ -448,6 +450,7 @@ static void infp_do_user_delete(struct sysdb_req *req, void *pvt)
                                                  infp_deleteuser_req->username);
     if(infp_deleteuser_req->user_dn == NULL) {
         DEBUG(0, ("Could not construct a user_dn for deletion.\n"));
+        infp_return_failure(infp_deleteuser_req->infp_req, NULL);
         talloc_free(infp_deleteuser_req);
         return;
     }
@@ -458,6 +461,7 @@ static void infp_do_user_delete(struct sysdb_req *req, void *pvt)
                              infp_deleteuser_req);
     if(ret != EOK) {
         DEBUG(0,("Could not delete user entry.\n"));
+        infp_return_failure(infp_deleteuser_req->infp_req, NULL);
         talloc_free(infp_deleteuser_req);
         return;
     }
@@ -576,6 +580,8 @@ einval:
     return EOK;
 
 error:
+    if(infp_deleteuser_req)
+        infp_return_failure(infp_deleteuser_req->infp_req, NULL);
     talloc_free(infp_deleteuser_req);
     return ret;
 }
@@ -888,6 +894,7 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
     /* Process the current results */
     if (ldb_status != LDB_SUCCESS) {
         DEBUG(0, ("Critical error reading from sysdb.\n"));
+        infp_return_failure(infp_getattr_req->infp_req, NULL);
         goto done;
     }
 
@@ -908,6 +915,7 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
 
         default:
             DEBUG(0, ("GetUser call returned more than one result. This probably means the sysdb is corrupt!\n"));
+            infp_return_failure(infp_getattr_req->infp_req, NULL);
             goto done;
         }
     }
@@ -928,12 +936,14 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
                                         &infp_getattr_req->results[infp_getattr_req->index]);
         if (ret != EOK) {
             DEBUG(0, ("Unable to create result map!\n"));
+            infp_return_failure(infp_getattr_req->infp_req, NULL);
             goto done;
         }
         break;
     default:
         /* We received more than one result. This is bad */
         DEBUG(0, ("GetUser call returned more than one result. This probably means the sysdb is corrupt!\n"));
+        infp_return_failure(infp_getattr_req->infp_req, NULL);
         goto done;
     }
 
@@ -943,6 +953,7 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
         ret = infp_get_attr_lookup(infp_getattr_req);
         if (ret != EOK) {
             DEBUG(0, ("Could not read from cache database\n"));
+            infp_return_failure(infp_getattr_req->infp_req, NULL);
             goto done;
         }
         return;
@@ -951,6 +962,7 @@ static void infp_get_attr_lookup_callback(void *ptr, int ldb_status, struct ldb_
     /* No more names remain, return the result DICTs */
     reply = dbus_message_new_method_return(infp_getattr_req->infp_req->req_message);
     if (reply == NULL) {
+        infp_return_failure(infp_getattr_req->infp_req, NULL);
         goto done;
     }
 
@@ -1262,6 +1274,7 @@ end:
     dbus_free_string_array(usernames);
     dbus_free_string_array(attributes);
     if (ret != EOK) {
+        infp_return_failure(infp_getattr_req->infp_req, NULL);
         talloc_free(infp_getattr_req);
     }
     return ret;
@@ -1288,7 +1301,6 @@ struct infp_setattr_ctx {
 static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt);
 static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb_result *res)
 {
-    DBusMessage *reply;
     struct infp_setattr_ctx *infp_setattr_req;
 
     infp_setattr_req = talloc_get_type(ptr, struct infp_setattr_ctx);
@@ -1298,6 +1310,7 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
         DEBUG(0, ("Failed to store user attributes to the sysdb\n"));
         /* Cancel the transaction */
         sysdb_transaction_done(infp_setattr_req->sysdb_req, sysdb_error_to_errno(ldb_status));
+        infp_return_failure(infp_setattr_req->infp_req, NULL);
         talloc_free(infp_setattr_req);
         return;
     }
@@ -1313,13 +1326,8 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
     sysdb_transaction_done(infp_setattr_req->sysdb_req, EOK);
 
     /* Send reply ack */
-    reply = dbus_message_new_method_return(infp_setattr_req->infp_req->req_message);
-    if(reply == NULL) {
-        talloc_free(infp_setattr_req);
-        return;
-    }
-    sbus_conn_send_reply(infp_setattr_req->infp_req->sconn, reply);
-    dbus_message_unref(reply);
+    infp_return_success(infp_setattr_req->infp_req);
+
     talloc_free(infp_setattr_req);
 }
 
@@ -1341,6 +1349,7 @@ static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt)
     if(ret != EOK) {
         DEBUG(0, ("Failed to set attributes for user [%s]. Cancelling transaction\n", infp_setattr_req->usernames[infp_setattr_req->index]));
         sysdb_transaction_done(req, ret);
+        infp_return_failure(infp_setattr_req->infp_req, NULL);
         talloc_free(infp_setattr_req);
     }
 }
@@ -1653,6 +1662,8 @@ einval:
     return EOK;
 
 error:
+    if(infp_setattr_req)
+        infp_return_failure(infp_setattr_req->infp_req, NULL);
     talloc_free(infp_setattr_req);
     return ret;
 }
@@ -1666,7 +1677,6 @@ struct infp_setuid_ctx {
 
 static void infp_do_user_set_uid_callback(void *ptr, int ldb_status, struct ldb_result *res)
 {
-    DBusMessage *reply;
     struct infp_setuid_ctx *infp_setuid_req = talloc_get_type(ptr, struct infp_setuid_ctx);
 
     /* Commit or cancel the transaction, based on the ldb_status */
@@ -1675,18 +1685,14 @@ static void infp_do_user_set_uid_callback(void *ptr, int ldb_status, struct ldb_
     /* Check the LDB result */
     if (ldb_status != LDB_SUCCESS) {
         DEBUG(0, ("Failed to store user uid to the sysdb\n"));
+        infp_return_failure(infp_setuid_req->infp_req, NULL);
         talloc_free(infp_setuid_req);
         return;
     }
 
     /* Send reply ack */
-    reply = dbus_message_new_method_return(infp_setuid_req->infp_req->req_message);
-    if(reply == NULL) {
-        talloc_free(infp_setuid_req);
-        return;
-    }
-    sbus_conn_send_reply(infp_setuid_req->infp_req->sconn, reply);
-    dbus_message_unref(reply);
+    infp_return_success(infp_setuid_req->infp_req);
+
     talloc_free(infp_setuid_req);
 }
 
@@ -1708,6 +1714,7 @@ static void infp_do_user_set_uid(struct sysdb_req *req, void *pvt)
     if (ret != EOK) {
         DEBUG(0, ("Could not invoke sysdb_set_user_attr"));
         sysdb_transaction_done(infp_setuid_req->sysdb_req, ret);
+        infp_return_failure(infp_setuid_req->infp_req, NULL);
         talloc_free(infp_setuid_req);
         return;
     }
@@ -1826,6 +1833,8 @@ einval:
     return EOK;
 
 error:
+    if(infp_setuid_req)
+        infp_return_failure(infp_setuid_req->infp_req, NULL);
     talloc_free(infp_setuid_req);
     return ret;
 }

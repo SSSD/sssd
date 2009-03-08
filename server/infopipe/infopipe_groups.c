@@ -59,9 +59,12 @@ static void infp_do_group_create_callback(void *pvt, int status,
             reply = dbus_message_new_error(grcreate_req->infp_req->req_message,
                                            DBUS_ERROR_FILE_EXISTS,
                                            error_msg);
+            if (reply)
+                sbus_conn_send_reply(grcreate_req->infp_req->sconn, reply);
         }
-        if (reply)
-            sbus_conn_send_reply(grcreate_req->infp_req->sconn, reply);
+        else {
+            infp_return_failure(grcreate_req->infp_req, NULL);
+        }
         talloc_free(grcreate_req);
         return;
     }
@@ -75,9 +78,8 @@ static void infp_do_group_create_callback(void *pvt, int status,
 
     /* We have no more usernames to add, so commit the transaction */
     sysdb_transaction_done(grcreate_req->sysdb_req, status);
-    reply =
-        dbus_message_new_method_return(grcreate_req->infp_req->req_message);
-    if (reply) sbus_conn_send_reply(grcreate_req->infp_req->sconn, reply);
+
+    infp_return_success(grcreate_req->infp_req);
     talloc_free(grcreate_req);
     return;
 }
@@ -97,6 +99,7 @@ static void infp_do_group_create(struct sysdb_req *req, void *pvt)
     if (ret != EOK) {
         DEBUG(0, ("Could not invoke sysdb_add_group\n"));
         sysdb_transaction_done(grcreate_req->sysdb_req, ret);
+        infp_return_failure(grcreate_req->infp_req, NULL);
         talloc_free(grcreate_req);
         return;
     }
@@ -221,6 +224,7 @@ einval:
 
 error:
     if (arg_grnames) dbus_free_string_array(arg_grnames);
+    if(grcreate_req) infp_return_failure(grcreate_req->infp_req, NULL);
     talloc_free(grcreate_req);
     return ret;
 }
@@ -234,7 +238,6 @@ struct infp_deletegroup_ctx {
 static void infp_do_group_delete_callback(void *pvt, int status,
                                           struct ldb_result *res)
 {
-    DBusMessage *reply = NULL;
     struct infp_deletegroup_ctx *grdel_req =
         talloc_get_type(pvt, struct infp_deletegroup_ctx);
 
@@ -244,15 +247,12 @@ static void infp_do_group_delete_callback(void *pvt, int status,
     if (status != EOK) {
         DEBUG(0, ("Failed to delete group from sysdb. Error code %d\n",
                   status));
+        infp_return_failure(grdel_req->infp_req, NULL);
         talloc_free(grdel_req);
         return;
     }
 
-    reply = dbus_message_new_method_return(grdel_req->infp_req->req_message);
-    if (reply) {
-        sbus_conn_send_reply(grdel_req->infp_req->sconn, reply);
-        dbus_message_unref(reply);
-    }
+    infp_return_success(grdel_req->infp_req);
     talloc_free(grdel_req);
 }
 
@@ -270,6 +270,7 @@ static void infp_do_group_delete(struct sysdb_req *req, void *pvt)
                              grdel_req);
     if (ret != EOK) {
         DEBUG(0, ("Could not delete group entry\n"));
+        infp_return_failure(grdel_req->infp_req, NULL);
         talloc_free(grdel_req);
         return;
     }
@@ -381,6 +382,7 @@ einval:
     return EOK;
 
 error:
+    if (grdel_req) infp_return_failure(grdel_req->infp_req, NULL);
     talloc_free(grdel_req);
     return ret;
 }
@@ -437,11 +439,7 @@ static void infp_do_member_callback(void *pvt, int status,
 fail:
 sysdb_transaction_done(grmod_req->sysdb_req, status);
     fail_msg = talloc_asprintf(grmod_req, "Could not modify group");
-    reply = dbus_message_new_error(grmod_req->infp_req->req_message,
-                                   DBUS_ERROR_FAILED,
-                                   fail_msg);
-    sbus_conn_send_reply(grmod_req->infp_req->sconn, reply);
-    dbus_message_unref(reply);
+    infp_return_failure(grmod_req->infp_req, fail_msg);
     talloc_free(grmod_req);
     return;
 }
@@ -492,6 +490,7 @@ static void infp_do_member(struct sysdb_req *req, void *pvt)
     return;
 
 error:
+    infp_return_failure(grmod_req->infp_req, NULL);
     talloc_free(grmod_req);
     return;
 }
@@ -722,6 +721,7 @@ static void infp_do_gid(struct sysdb_req *req, void *pvt)
                                            error_msg);
             if (reply) sbus_conn_send_reply(grmod_req->infp_req->sconn, reply);
         }
+        infp_return_failure(grmod_req->infp_req, NULL);
         talloc_free(grmod_req);
         return;
     }
@@ -831,8 +831,7 @@ einval:
     return EOK;
 
 error:
+    if(grmod_req) infp_return_failure(grmod_req->infp_req, NULL);
     talloc_free(grmod_req);
     return ret;
-
-
 }
