@@ -1022,7 +1022,74 @@ static int group_add_call(struct group_add_ctx *group_ctx)
     return EOK;
 }
 
+/* This function is not safe, but is included for completeness
+ * It is much better to allow SSSD to internally manage the
+ * group GID values. sysdb_set_group_gid() will perform no
+ * validation that the new GID is unused. The only check it
+ * will perform is whether the requested GID is in the range
+ * of IDs allocated for the domain.
+ */
+int sysdb_set_group_gid(struct sysdb_req *sysreq,
+                        struct sss_domain_info *domain,
+                        const char *name, gid_t gid,
+                        sysdb_callback_t fn, void *pvt)
+{
+    struct group_add_ctx *group_ctx;
+    struct sysdb_ctx *sysdb;
+    struct ldb_message *msg;
+    struct ldb_request *req;
+    int flags = LDB_FLAG_MOD_REPLACE;
+    int ret;
 
+    if (!sysdb_req_check_running(sysreq)) {
+        DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    /* Validate that the target GID is within the domain range */
+    if((gid < domain->id_min) ||
+       (domain->id_max && (gid > domain->id_max))) {
+        DEBUG(2, ("Invalid request. Domain ID out of range"));
+        return EDOM;
+    }
+
+    group_ctx = talloc(sysreq, struct group_add_ctx);
+    if (!group_ctx) return ENOMEM;
+
+    group_ctx->cbctx = talloc_zero(group_ctx, struct sysdb_cb_ctx);
+    if (!group_ctx->cbctx) return ENOMEM;
+
+    group_ctx->sysreq = sysreq;
+    group_ctx->domain = domain;
+    group_ctx->cbctx->fn = fn;
+    group_ctx->cbctx->pvt = pvt;
+    group_ctx->name = name;
+    group_ctx->gid = gid;
+
+    sysdb = sysdb_req_get_ctx(group_ctx->sysreq);
+
+    msg = ldb_msg_new(group_ctx);
+    if (!msg) return ENOMEM;
+
+    msg->dn = sysdb_group_dn(sysdb, msg,
+                             group_ctx->domain->name,
+                             group_ctx->name);
+    if (!msg->dn) return ENOMEM;
+
+    ret = add_ulong(msg, flags, SYSDB_GIDNUM,
+                    (unsigned long)(group_ctx->gid));
+
+    ret = ldb_build_mod_req(&req, sysdb->ldb, group_ctx, msg, NULL,
+                            group_ctx->cbctx, sysdb_op_callback, NULL);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_request(sysdb->ldb, req);
+    }
+    if (ret != LDB_SUCCESS) {
+        return sysdb_error_to_errno(ret);
+    }
+
+    return EOK;
+}
 
 /* "sysdb_legacy_" functions
  * the set of functions named sysdb_legacy_* are used by modules

@@ -285,6 +285,11 @@ int sysdb_add_group(struct sysdb_req *sysreq,
                     const char *name, gid_t gid,
                     sysdb_callback_t fn, void *pvt);
 
+int sysdb_set_group_gid(struct sysdb_req *sysreq,
+                        struct sss_domain_info *domain,
+                        const char *name, gid_t gid,
+                        sysdb_callback_t fn, void *pvt);
+
 /* legacy functions for proxy providers */
 
 int sysdb_legacy_store_user(struct sysdb_req *sysreq,

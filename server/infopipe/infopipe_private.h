@@ -72,7 +72,8 @@ enum infp_attribute_types {
     INFP_ATTR_TYPE_SESSION,
     INFP_ATTR_TYPE_LAST_LOGIN,
     INFP_ATTR_TYPE_USERPIC,
-    INFP_ATTR_TYPE_USERID
+    INFP_ATTR_TYPE_USERID,
+    INFP_ATTR_TYPE_GROUPID
 };
 int infp_get_attribute_type(const char *attribute);
 
@@ -90,5 +91,8 @@ struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp, const char *d
 int infp_get_ldb_val_from_dbus(TALLOC_CTX *mem_ctx, DBusMessageIter *iter, struct ldb_val **value, int dbus_type, int subtype);
 
 struct infp_req_ctx *infp_req_init(TALLOC_CTX *mem_ctx, DBusMessage *message, struct sbus_conn_ctx *sconn);
+
+void infp_return_success(struct infp_req_ctx *infp_req);
+void infp_return_failure(struct infp_req_ctx *infp_req, const char *message);
 
 #endif /* INFOPIPE_PRIVATE_H_ */

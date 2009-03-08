@@ -141,6 +141,49 @@ static int infp_monitor_init(struct infp_ctx *infp_ctx)
     return EOK;
 }
 
+/* Helper function to return an immediate error message in the event
+ * of internal error in the InfoPipe to avoid forcing the clients to
+ * time out waiting for a reply.
+ */
+void infp_return_failure(struct infp_req_ctx *infp_req, const char *message)
+{
+    DBusMessage *reply;
+
+    reply = dbus_message_new_error(infp_req->req_message,
+                                   DBUS_ERROR_FAILED,
+                                   message);
+    /* If the reply was NULL, we ran out of memory, so we won't
+     * bother trying to queue the message to send. In this case,
+     * our safest move is to allow the client to time out waiting
+     * for a reply.
+     */
+    if(reply) {
+        sbus_conn_send_reply(infp_req->sconn, reply);
+        dbus_message_unref(reply);
+    }
+}
+
+/* Helper function to return an ack to the caller to indicate
+ * that the internal process completed succesfully. An ack in
+ * InfoPipe is simply an empty D-BUS method return (as opposed
+ * to a D-BUS error or signal)
+ */
+void infp_return_success(struct infp_req_ctx *infp_req)
+{
+    DBusMessage *reply;
+
+    reply = dbus_message_new_method_return(infp_req->req_message);
+    /* If the reply was NULL, we ran out of memory, so we won't
+     * bother trying to queue the message to send. In this case,
+     * our safest move is to allow the client to time out waiting
+     * for a reply.
+     */
+    if(reply) {
+        sbus_conn_send_reply(infp_req->sconn, reply);
+        dbus_message_unref(reply);
+    }
+}
+
 struct sbus_method infp_methods[] = {
     INFP_PERMISSION_METHODS
     INFP_USER_METHODS

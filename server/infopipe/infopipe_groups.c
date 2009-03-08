@@ -657,15 +657,182 @@ int infp_groups_remove_members(DBusMessage *message,
                                       INFP_ACTION_TYPE_REMOVEMEMBER);
 }
 
+struct infp_setgid_ctx {
+    struct infp_req_ctx *infp_req;
+    char *group_name;
+    gid_t gid;
+    struct sysdb_req *sysdb_req;
+};
+
+static void infp_do_gid_callback(void *ptr,
+                                 int status,
+                                 struct ldb_result *res)
+{
+    char *error_msg = NULL;
+    struct infp_setgid_ctx *grmod_req =
+        talloc_get_type(ptr, struct infp_setgid_ctx);
+
+    /* Commit or cancel the transaction, based on the
+     * return status
+     */
+    sysdb_transaction_done(grmod_req->sysdb_req, status);
+
+    if(status != EOK) {
+        if (status == ENOENT) {
+            error_msg = talloc_strdup(grmod_req, "No such group");
+        }
+        infp_return_failure(grmod_req->infp_req, error_msg);
+        talloc_free(grmod_req);
+        return;
+    }
+
+    infp_return_success(grmod_req->infp_req);
+    talloc_free(grmod_req);
+}
+
+static void infp_do_gid(struct sysdb_req *req, void *pvt)
+{
+    int ret;
+    DBusMessage *reply;
+    char *error_msg;
+    gid_t max;
+    struct infp_setgid_ctx *grmod_req =
+        talloc_get_type(pvt, struct infp_setgid_ctx);
+    grmod_req->sysdb_req = req;
+
+    ret = sysdb_set_group_gid(grmod_req->sysdb_req,
+                              grmod_req->infp_req->domain,
+                              grmod_req->group_name,
+                              grmod_req->gid,
+                              infp_do_gid_callback,
+                              grmod_req);
+    if (ret != EOK) {
+        if(ret == EDOM) {
+            /* GID was out of range */
+            max = grmod_req->infp_req->domain->id_max?
+                  grmod_req->infp_req->domain->id_max:
+                  (gid_t)-1;
+            error_msg = talloc_asprintf(grmod_req,
+                                        "GID %u outside the range [%u..%u]",
+                                        grmod_req->gid,
+                                        grmod_req->infp_req->domain->id_min,
+                                        max);
+            reply = dbus_message_new_error(grmod_req->infp_req->req_message,
+                                           DBUS_ERROR_LIMITS_EXCEEDED,
+                                           error_msg);
+            if (reply) sbus_conn_send_reply(grmod_req->infp_req->sconn, reply);
+        }
+        talloc_free(grmod_req);
+        return;
+    }
+}
+
 int infp_groups_set_gid(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     DBusMessage *reply;
+    DBusError error;
+    char *einval_msg;
+    struct infp_setgid_ctx *grmod_req;
+    int ret;
 
-    reply = dbus_message_new_error(message, DBUS_ERROR_NOT_SUPPORTED, "Not yet implemented");
+    /* Arguments */
+    const char *arg_group;
+    const char *arg_domain;
+    const gid_t arg_gid;
 
+    grmod_req = talloc_zero(NULL, struct infp_setgid_ctx);
+    if (grmod_req == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Create an infp_req_ctx */
+    grmod_req->infp_req = infp_req_init(grmod_req, message, sconn);
+    if(grmod_req->infp_req == NULL) {
+        ret = EIO;
+        goto error;
+    }
+
+    dbus_error_init(&error);
+    if (!dbus_message_get_args(message, &error,
+                               DBUS_TYPE_STRING, &arg_group,
+                               DBUS_TYPE_STRING, &arg_domain,
+                               DBUS_TYPE_UINT32, &arg_gid,
+                               DBUS_TYPE_INVALID)) {
+        DEBUG(0, ("Parsing arguments to %s failed: %s:%s\n",
+                  INFP_GROUPS_SET_GID, error.name, error.message));
+        einval_msg = talloc_strdup(grmod_req, error.message);
+        dbus_error_free(&error);
+        goto einval;
+    }
+
+    /* FIXME: Allow modifying groups on domains other than LOCAL */
+    if (strcasecmp(arg_domain, "LOCAL") != 0) {
+        goto denied;
+    }
+
+    grmod_req->infp_req->domain =
+        btreemap_get_value(grmod_req->infp_req->infp->domain_map,
+                           (const void *)arg_domain);
+
+    /* Check for a valid domain */
+    if(grmod_req->infp_req->domain == NULL) {
+        einval_msg = talloc_strdup(grmod_req, "Invalid domain.");
+        goto einval;
+    }
+
+    /* Check permissions */
+    if (!infp_get_permissions(grmod_req->infp_req->caller,
+                              grmod_req->infp_req->domain,
+                              INFP_OBJ_TYPE_GROUP,
+                              arg_group,
+                              INFP_ACTION_TYPE_MODIFY,
+                              INFP_ATTR_TYPE_GROUPID)) goto denied;
+
+    grmod_req->gid = arg_gid;
+    grmod_req->group_name = talloc_strdup(grmod_req, arg_group);
+    if (grmod_req->group_name == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    ret = sysdb_transaction(grmod_req,
+                            grmod_req->infp_req->infp->sysdb,
+                            infp_do_gid,
+                            grmod_req);
+    if (ret != EOK) goto error;
+
+    return EOK;
+
+denied:
+    reply = dbus_message_new_error(message, DBUS_ERROR_ACCESS_DENIED, NULL);
+    if(reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
     /* send reply */
     sbus_conn_send_reply(sconn, reply);
-
     dbus_message_unref(reply);
+
+    talloc_free(grmod_req);
     return EOK;
+
+einval:
+    reply = dbus_message_new_error(message,
+                                   DBUS_ERROR_INVALID_ARGS,
+                                   einval_msg);
+    if (reply == NULL) {
+        ret = ENOMEM;
+        goto error;
+    }
+    sbus_conn_send_reply(sconn, reply);
+    dbus_message_unref(reply);
+    talloc_free(grmod_req);
+    return EOK;
+
+error:
+    talloc_free(grmod_req);
+    return ret;
+
+
 }

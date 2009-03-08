@@ -269,7 +269,7 @@
             />
             <arg name="group" type="s" direction="in" />
             <arg name="domain" type="s" direction="in" />
-            <arg name="guid" type="t" direction="in" />
+            <arg name="gid" type="t" direction="in" />
         </method>
     </interface>
 </node>
