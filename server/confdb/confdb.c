@@ -620,6 +620,10 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "description", val);
     if (ret != EOK) goto done;
 
+    val[0] = "LOCAL";
+    ret = confdb_add_param(cdb, false, "config/domains", "default", val);
+    if(ret != EOK) goto done;
+
     /* Set enumeration of LOCAL domain to 1 */
     val[0] = "1";
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "enumerate", val);
