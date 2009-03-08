@@ -1,6 +1,6 @@
 Name: sssd
 Version: 0.1.0
-Release: 4%{dist}
+Release: 5%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -35,12 +35,21 @@ BuildRequires: pam-devel
 BuildRequires: nss-devel
 BuildRequires: nspr-devel
 
+%package client
+Summary:    SSSD client package
+Group:      Applications/System
+Requires:   %{name} = %{version}-%{release}
+
 %description
 Provides a set of daemons to manage access to remote directories and
 authentication mechanisms. It provides an NSS and PAM interface toward
 the system and a pluggable backend system to connect to multiple different
 account sources. It is also the basis to provide client auditing and policy
 services for projects like FreeIPA.
+
+%description client
+The sssd-client subpackage contains userspace tools for managing users as well
+as NSS and PAM libraries for use with SSSD.
 
 %prep
 %setup -q
@@ -87,21 +96,22 @@ rm -rf $RPM_BUILD_ROOT
 %doc COPYING
 %{_initrddir}/%{name}
 %{_sbindir}/sssd
-%{_sbindir}/sss_useradd
-%{_sbindir}/sss_userdel
-%{_sbindir}/sss_groupadd
-%{_sbindir}/sss_groupdel
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
 %{_sharedstatedir}/sss/
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freeipa.sssd.infopipe.conf
 %{_datadir}/%{name}/introspect/infopipe/org.freeipa.sssd.infopipe.Introspect.xml
+
+%files client
+%{_sbindir}/sss_useradd
+%{_sbindir}/sss_userdel
+%{_sbindir}/sss_groupadd
+%{_sbindir}/sss_groupdel
 /%{_lib}/libnss_sss.so.0.0.1
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 
-%post -p /sbin/ldconfig
 
 %preun
 if [ $1 = 0 ]; then
@@ -110,12 +120,18 @@ if [ $1 = 0 ]; then
 fi
 
 %postun
-/sbin/ldconfig
 if [ $1 -ge 1 ] ; then
     /sbin/service %{servicename} condrestart 2>&1 > /dev/null
 fi
 
+%post client -p /sbin/ldconfig
+
+%postun client -p /sbin/ldconfig
+
 %changelog
+* Sat Mar 07 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-5
+- split tools, PAM and NSS files into -client subpackage
+
 * Fri Mar 06 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-4
 - fixed items found during review
 - added initscript
