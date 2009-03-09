@@ -23,7 +23,7 @@ PICFLAG = @PICFLAG@
 SHLIBEXT = @SHLIBEXT@
 LIB_PATH_VAR = @LIB_PATH_VAR@
 
-NSS_SSS_SOLIB = libnss_sss.$(SHLIBEXT).$(PACKAGE_VERSION)
+NSS_SSS_SOLIB = libnss_sss.$(SHLIBEXT)
 NSS_SSS_SONAME = libnss_sss.$(SHLIBEXT).2
 
 NSS_SSS_OBJS = common.o passwd.o group.o
