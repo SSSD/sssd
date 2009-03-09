@@ -44,8 +44,8 @@
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
+#include "../sss_client/sss_cli.h"
 
-#define SSS_PAM_PIPE_NAME "pam"
 #define PAM_SBUS_SERVICE_VERSION 0x0001
 #define PAM_SBUS_SERVICE_NAME "pam"
 #define CONFDB_SOCKET_PATH "config/services/pam"
@@ -158,7 +158,8 @@ int main(int argc, const char *argv[])
                            main_ctx->confdb_ctx,
                            sss_sbus_methods,
                            sss_cmds,
-                           SSS_PAM_PIPE_NAME,
+                           SSS_PAM_SOCKET_NAME,
+                           SSS_PAM_PRIV_SOCKET_NAME,
                            CONFDB_SOCKET_PATH,
                            pam_dp_methods);
     if (ret != EOK) return 3;

@@ -48,8 +48,8 @@ struct nss_ctx {
     int priv_lfd;
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *cdb;
-    char *sock_name;
-    char *priv_sock_name;
+    const char *sock_name;
+    const char *priv_sock_name;
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
     struct btreemap *domain_map;

@@ -329,6 +329,9 @@ static int sss_sbus_init(struct nss_ctx *nctx)
 static int set_unix_socket(struct nss_ctx *nctx)
 {
     struct sockaddr_un addr;
+
+/* for future use */
+#if 0
     char *default_pipe;
     int ret;
 
@@ -361,74 +364,79 @@ static int set_unix_socket(struct nss_ctx *nctx)
         return ret;
     }
     talloc_free(default_pipe);
+#endif
 
-    nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (nctx->lfd == -1) {
-        return EIO;
+    if (nctx->sock_name != NULL ) {
+        nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (nctx->lfd == -1) {
+            return EIO;
+        }
+
+        /* Set the umask so that permissions are set right on the socket.
+         * It must be readable and writable by anybody on the system. */
+        umask(0111);
+
+        set_nonblocking(nctx->lfd);
+        set_close_on_exec(nctx->lfd);
+
+        memset(&addr, 0, sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, nctx->sock_name, sizeof(addr.sun_path));
+
+        /* make sure we have no old sockets around */
+        unlink(nctx->sock_name);
+
+        if (bind(nctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+            DEBUG(0,("Unable to bind on socket '%s'\n", nctx->sock_name));
+            goto failed;
+        }
+        if (listen(nctx->lfd, 10) != 0) {
+            DEBUG(0,("Unable to listen on socket '%s'\n", nctx->sock_name));
+            goto failed;
+        }
+
+        nctx->lfde = tevent_add_fd(nctx->ev, nctx, nctx->lfd,
+                                   TEVENT_FD_READ, accept_fd_handler, nctx);
+        if (!nctx->lfde) {
+            DEBUG(0, ("Failed to queue handler on pipe\n"));
+            goto failed;
+        }
     }
 
-    nctx->priv_lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (nctx->priv_lfd == -1) {
-        close(nctx->lfd);
-        return EIO;
-    }
+    if (nctx->priv_sock_name != NULL ) {
+        /* create privileged pipe */
+        nctx->priv_lfd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (nctx->priv_lfd == -1) {
+            close(nctx->lfd);
+            return EIO;
+        }
 
-    /* Set the umask so that permissions are set right on the socket.
-     * It must be readable and writable by anybody on the system. */
-    umask(0111);
+        umask(0177);
 
-    set_nonblocking(nctx->lfd);
-    set_close_on_exec(nctx->lfd);
+        set_nonblocking(nctx->priv_lfd);
+        set_close_on_exec(nctx->priv_lfd);
 
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, nctx->sock_name, sizeof(addr.sun_path));
+        memset(&addr, 0, sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, nctx->priv_sock_name, sizeof(addr.sun_path));
 
-    /* make sure we have no old sockets around */
-    unlink(nctx->sock_name);
+        unlink(nctx->priv_sock_name);
 
-    if (bind(nctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        DEBUG(0,("Unable to bind on socket '%s'\n", nctx->sock_name));
-        goto failed;
-    }
-    if (listen(nctx->lfd, 10) != 0) {
-        DEBUG(0,("Unable to listen on socket '%s'\n", nctx->sock_name));
-        goto failed;
-    }
+        if (bind(nctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+            DEBUG(0,("Unable to bind on socket '%s'\n", nctx->priv_sock_name));
+            goto failed;
+        }
+        if (listen(nctx->priv_lfd, 10) != 0) {
+            DEBUG(0,("Unable to listen on socket '%s'\n", nctx->priv_sock_name));
+            goto failed;
+        }
 
-    /* create privileged pipe */
-    umask(0177);
-
-    set_nonblocking(nctx->priv_lfd);
-    set_close_on_exec(nctx->priv_lfd);
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, nctx->priv_sock_name, sizeof(addr.sun_path));
-
-    unlink(nctx->priv_sock_name);
-
-    if (bind(nctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        DEBUG(0,("Unable to bind on socket '%s'\n", nctx->priv_sock_name));
-        goto failed;
-    }
-    if (listen(nctx->priv_lfd, 10) != 0) {
-        DEBUG(0,("Unable to listen on socket '%s'\n", nctx->priv_sock_name));
-        goto failed;
-    }
-
-    nctx->lfde = tevent_add_fd(nctx->ev, nctx, nctx->lfd,
-                               TEVENT_FD_READ, accept_fd_handler, nctx);
-    if (!nctx->lfde) {
-        DEBUG(0, ("Failed to queue handler on pipe\n"));
-        goto failed;
-    }
-
-    nctx->priv_lfde = tevent_add_fd(nctx->ev, nctx, nctx->priv_lfd,
-                               TEVENT_FD_READ, accept_priv_fd_handler, nctx);
-    if (!nctx->priv_lfde) {
-        DEBUG(0, ("Failed to queue handler on privileged pipe\n"));
-        goto failed;
+        nctx->priv_lfde = tevent_add_fd(nctx->ev, nctx, nctx->priv_lfd,
+                                   TEVENT_FD_READ, accept_priv_fd_handler, nctx);
+        if (!nctx->priv_lfde) {
+            DEBUG(0, ("Failed to queue handler on privileged pipe\n"));
+            goto failed;
+        }
     }
 
     /* we want default permissions on created files to be very strict,
@@ -488,6 +496,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct sbus_method sss_sbus_methods[],
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
+                     const char *sss_priv_pipe_name,
                      const char *confdb_socket_path,
                      struct sbus_method dp_methods[])
 {
@@ -503,7 +512,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     nctx->cdb = cdb;
     nctx->sss_sbus_methods = sss_sbus_methods;
     nctx->sss_cmds = sss_cmds;
-    nctx->sss_pipe_name = sss_pipe_name;
+    nctx->sock_name = sss_pipe_name;
+    nctx->priv_sock_name = sss_priv_pipe_name;
     nctx->confdb_socket_path = confdb_socket_path;
     nctx->dp_methods = dp_methods;
 

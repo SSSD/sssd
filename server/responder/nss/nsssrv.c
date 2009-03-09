@@ -330,6 +330,9 @@ static int nss_sbus_init(struct nss_ctx *nctx)
 static int set_unix_socket(struct nss_ctx *nctx)
 {
     struct sockaddr_un addr;
+
+/* for future use */
+#if 0
     char *default_pipe;
     int ret;
 
@@ -346,6 +349,8 @@ static int set_unix_socket(struct nss_ctx *nctx)
         return ret;
     }
     talloc_free(default_pipe);
+#endif
+    nctx->sock_name = SSS_NSS_SOCKET_NAME;
 
     nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (nctx->lfd == -1) {

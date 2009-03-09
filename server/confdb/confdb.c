@@ -522,11 +522,13 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/services/pam", "command", val);
     if (ret != EOK) goto done;
 
+#if 0 /* for future use */
     /* Set the sssd_pam socket path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/pam", PIPE_PATH);
     CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
     ret = confdb_add_param(cdb, false, "config/services/pam", "unixSocket", val);
     if (ret != EOK) goto done;
+#endif /* for future use */
 
     /* Add PAM to the list of active services */
     val[0] = "pam";
@@ -545,11 +547,13 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/services/nss", "command", val);
     if (ret != EOK) goto done;
 
+#if 0 /* for future use */
     /* Set the sssd_nss socket path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", PIPE_PATH);
     CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
     ret = confdb_add_param(cdb, false, "config/services/nss", "unixSocket", val);
     if (ret != EOK) goto done;
+#endif /* for future use */
 
     /* Add NSS to the list of active services */
     val[0] = "nss";
