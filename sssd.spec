@@ -50,9 +50,7 @@ services for projects like FreeIPA.
 # sssd
 pushd server
 ./autogen.sh
-%configure --prefix=%{_usr} \
-           --sysconfdir=%{_sysconfdir} \
-           --without-tests     \
+%configure --without-tests     \
            --without-policykit \
            --with-infopipe \
            --with-init-dir=%{_initrddir} \
@@ -91,17 +89,20 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_usermod
 %{_sbindir}/sss_groupadd
 %{_sbindir}/sss_groupdel
+%{_sbindir}/sss_groupmod
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
 %{_sharedstatedir}/sss/
 %config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freeipa.sssd.infopipe.conf
 %{_datadir}/%{name}/introspect/infopipe/org.freeipa.sssd.infopipe.Introspect.xml
-/%{_lib}/libnss_sss.so.0.0.1
+/%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 
-%post -p /sbin/ldconfig
+%post
+/sbin/ldconfig
+/sbin/chkconfig --add %{servicename}
 
 %preun
 if [ $1 = 0 ]; then
