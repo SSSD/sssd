@@ -56,7 +56,7 @@ pushd server
            --without-policykit \
            --with-openldap \
            --with-infopipe \
-           --with-initrd-dir=%{_initrddir} \
+           --with-init-dir=%{_initrddir} \
 
 make %{?_smp_mflags}
 popd
