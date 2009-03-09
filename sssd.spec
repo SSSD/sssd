@@ -104,7 +104,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/%{name}/introspect/infopipe/org.freeipa.sssd.infopipe.Introspect.xml
 
 %files client
-%defattr(-,root,root,-)
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
 %{_sbindir}/sss_groupadd
