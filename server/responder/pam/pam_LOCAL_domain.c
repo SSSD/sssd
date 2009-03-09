@@ -150,7 +150,7 @@ static void do_successful_login(struct LOCAL_request *lreq)
                        lreq->error, ENOMEM, done);
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
-                               SYSDB_USER_ATTR_LAST_LOGIN, (long)time(NULL));
+                               SYSDB_LAST_LOGIN, (long)time(NULL));
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
@@ -388,7 +388,7 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
     static const char *attrs[] = {SYSDB_NAME,
                                   SYSDB_PWD,
                                   SYSDB_DISABLED,
-                                  SYSDB_USER_ATTR_LAST_LOGIN,
+                                  SYSDB_LAST_LOGIN,
                                   "lastPasswordChange",
                                   "accountExpires",
                                   "failedLoginAttempts",

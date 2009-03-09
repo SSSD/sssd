@@ -280,7 +280,7 @@ START_TEST(test_infp_set_user_attrs)
     DBusMessage *setattr_req;
     const char *username = "testuser1";
     const char *domain = "LOCAL";
-    const char *shell_attr = SYSDB_USER_ATTR_SHELL;
+    const char *shell_attr = SYSDB_SHELL;
     const char *shell_value = "/usr/bin/testshell";
     DBusMessageIter iter, array_iter, dict_array_iter, dict_iter, variant_iter;
     DBusError error;

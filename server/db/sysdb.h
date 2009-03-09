@@ -53,16 +53,13 @@
 #define SYSDB_MEMBER "member"
 #define SYSDB_LEGACY_MEMBER "memberUid"
 
-#define SYSDB_USER_ATTR_DEFAULTGROUP "defaultGroup"
-#define SYSDB_USER_ATTR_GECOS "gecos"
-#define SYSDB_USER_ATTR_HOMEDIR "homeDirectory"
-#define SYSDB_USER_ATTR_SHELL "shell"
-#define SYSDB_USER_ATTR_FULLNAME "fullName"
-#define SYSDB_USER_ATTR_LOCALE "locale"
-#define SYSDB_USER_ATTR_KEYBOARD "keyboard"
-#define SYSDB_USER_ATTR_SESSION "session"
-#define SYSDB_USER_ATTR_LAST_LOGIN "lastLogin"
-#define SYSDB_USER_ATTR_USERPIC "userPicture"
+#define SYSDB_DEFAULTGROUP "defaultGroup"
+#define SYSDB_GECOS "gecos"
+#define SYSDB_LOCALE "locale"
+#define SYSDB_KEYBOARD "keyboard"
+#define SYSDB_SESSION "session"
+#define SYSDB_LAST_LOGIN "lastLogin"
+#define SYSDB_USERPIC "userPicture"
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
 
@@ -81,7 +78,7 @@
 
 #define SYSDB_INITGR_LEGACY_FILTER "(&(objectclass="SYSDB_GROUP_CLASS")("SYSDB_LEGACY_MEMBER"=%s))"
 
-#define SYSDB_GETCACHED_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_USER_ATTR_LAST_LOGIN">=%lu))"
+#define SYSDB_GETCACHED_FILTER "(&(objectclass="SYSDB_USER_CLASS")("SYSDB_LAST_LOGIN">=%lu))"
 
 #define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
                         SYSDB_GIDNUM, SYSDB_FULLNAME, \
@@ -89,16 +86,16 @@
                         SYSDB_LAST_UPDATE, \
                         "objectClass", \
                         NULL}
-#define SYSDB_USER_ATTRS {SYSDB_USER_ATTR_DEFAULTGROUP, \
-                          SYSDB_USER_ATTR_GECOS, \
-                          SYSDB_USER_ATTR_HOMEDIR, \
-                          SYSDB_USER_ATTR_SHELL, \
-                          SYSDB_USER_ATTR_FULLNAME, \
-                          SYSDB_USER_ATTR_LOCALE, \
-                          SYSDB_USER_ATTR_KEYBOARD, \
-                          SYSDB_USER_ATTR_SESSION, \
-                          SYSDB_USER_ATTR_LAST_LOGIN, \
-                          SYSDB_USER_ATTR_USERPIC, \
+#define SYSDB_USER_ATTRS {SYSDB_DEFAULTGROUP, \
+                          SYSDB_GECOS, \
+                          SYSDB_HOMEDIR, \
+                          SYSDB_SHELL, \
+                          SYSDB_FULLNAME, \
+                          SYSDB_LOCALE, \
+                          SYSDB_KEYBOARD, \
+                          SYSDB_SESSION, \
+                          SYSDB_LAST_LOGIN, \
+                          SYSDB_USERPIC, \
                           SYSDB_LAST_UPDATE, \
                           NULL}
 #define SYSDB_GRNAM_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \

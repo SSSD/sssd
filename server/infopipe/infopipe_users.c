@@ -1118,16 +1118,16 @@ static const char **infp_get_all_attributes(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    attributes[offset++] = SYSDB_USER_ATTR_DEFAULTGROUP;
-    attributes[offset++] = SYSDB_USER_ATTR_GECOS;
-    attributes[offset++] = SYSDB_USER_ATTR_HOMEDIR;
-    attributes[offset++] = SYSDB_USER_ATTR_SHELL;
-    attributes[offset++] = SYSDB_USER_ATTR_FULLNAME;
-    attributes[offset++] = SYSDB_USER_ATTR_LOCALE;
-    attributes[offset++] = SYSDB_USER_ATTR_KEYBOARD;
-    attributes[offset++] = SYSDB_USER_ATTR_SESSION;
-    attributes[offset++] = SYSDB_USER_ATTR_LAST_LOGIN;
-    attributes[offset++] = SYSDB_USER_ATTR_USERPIC;
+    attributes[offset++] = SYSDB_DEFAULTGROUP;
+    attributes[offset++] = SYSDB_GECOS;
+    attributes[offset++] = SYSDB_HOMEDIR;
+    attributes[offset++] = SYSDB_SHELL;
+    attributes[offset++] = SYSDB_FULLNAME;
+    attributes[offset++] = SYSDB_LOCALE;
+    attributes[offset++] = SYSDB_KEYBOARD;
+    attributes[offset++] = SYSDB_SESSION;
+    attributes[offset++] = SYSDB_LAST_LOGIN;
+    attributes[offset++] = SYSDB_USERPIC;
 
     return attributes;
 }
