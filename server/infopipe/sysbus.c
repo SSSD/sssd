@@ -113,8 +113,6 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
         return EIO;
     }
     dbus_connection_set_exit_on_disconnect(conn, FALSE);
-    talloc_set_destructor((TALLOC_CTX *)system_bus,
-                          sysbus_destructor);
 
     ret = dbus_bus_request_name(conn,
                                 dbus_name,
@@ -126,6 +124,7 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
         /* We were unable to register on the system bus */
         DEBUG(0, ("Unable to request name on the system bus. Error: %s\n", dbus_error.message));
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        dbus_connection_unref(conn);
         talloc_free(system_bus);
         return EIO;
     }
@@ -136,9 +135,12 @@ int sysbus_init(TALLOC_CTX *mem_ctx, struct sysbus_ctx **sysbus,
     ret = sbus_add_connection(system_bus, ev, conn, &system_bus->sconn, SBUS_CONN_TYPE_SHARED);
     if (ret != EOK) {
         DEBUG(0, ("Could not integrate D-BUS into mainloop.\n"));
+        dbus_connection_unref(conn);
         talloc_free(system_bus);
         return ret;
     }
+    talloc_set_destructor((TALLOC_CTX *)system_bus,
+                          sysbus_destructor);
 
     /* Set up methods */
     ret = sysbus_init_methods(system_bus, system_bus, interface, path,
