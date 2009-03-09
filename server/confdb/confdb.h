@@ -35,6 +35,7 @@ struct sss_domain_info {
     int timeout;
     int enumerate;
     bool legacy;
+    bool mpg;
     uint32_t id_min;
     uint32_t id_max;
 };

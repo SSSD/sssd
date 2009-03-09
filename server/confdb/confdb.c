@@ -29,6 +29,7 @@
 #define CONFDB_VERSION "0.1"
 #define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
 #define CONFDB_DOMAIN_ATTR "cn"
+#define CONFDB_MPG "magicPrivateGroups"
 
 #define CONFDB_ZERO_CHECK_OR_JUMP(var, ret, err, label) do { \
     if (!var) { \
@@ -629,6 +630,11 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "enumerate", val);
     if (ret != EOK) goto done;
 
+    /* LOCAL uses Magic Private Groups by default */
+    val[0] = "1";
+    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", CONFDB_MPG, val);
+    if (ret != EOK) goto done;
+
 done:
     talloc_free(tmp_ctx);
     return ret;
@@ -748,6 +754,11 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         /* Determine if this is a legacy domain */
         if (ldb_msg_find_attr_as_bool(res->msgs[i], "legacy", 0)) {
             domain->legacy = true;
+        }
+
+        /* Determine if this is domain uses MPG */
+        if (ldb_msg_find_attr_as_bool(res->msgs[i], CONFDB_MPG, 0)) {
+            domain->mpg = true;
         }
 
         domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[i],
