@@ -1,6 +1,6 @@
 Name: sssd
 Version: 0.1.0
-Release: 4%{dist}
+Release: 6%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -54,7 +54,6 @@ pushd server
            --sysconfdir=%{_sysconfdir} \
            --without-tests     \
            --without-policykit \
-           --with-openldap \
            --with-infopipe \
            --with-init-dir=%{_initrddir} \
 
