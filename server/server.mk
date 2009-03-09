@@ -93,6 +93,9 @@ GROUPDEL_OBJ = \
 USERMOD_OBJ = \
 	tools/sss_usermod.o
 
+GROUPMOD_OBJ = \
+	tools/sss_groupmod.o
+
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
@@ -148,4 +151,7 @@ sbin/sss_groupdel: $(GROUPDEL_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
 
 sbin/sss_usermod: $(USERMOD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sss_usermod $(USERMOD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+
+sbin/sss_groupmod: $(GROUPMOD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sss_groupmod $(GROUPMOD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
