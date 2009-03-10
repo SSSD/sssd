@@ -341,7 +341,7 @@ int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     infp_createuser_req->fullname = NULL;
     if (strlen(arg_fullname)) {
-        infp_createuser_req->fullname = talloc_strdup(infp_createuser_req, arg_username);
+        infp_createuser_req->fullname = talloc_strdup(infp_createuser_req, arg_fullname);
         if(infp_createuser_req->fullname == NULL) {
             ret = ENOMEM;
             goto error;
@@ -350,8 +350,17 @@ int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     infp_createuser_req->homedir = NULL;
     if (strlen(arg_homedir)) {
-        infp_createuser_req->homedir = talloc_strdup(infp_createuser_req, arg_username);
+        infp_createuser_req->homedir = talloc_strdup(infp_createuser_req, arg_homedir);
         if(infp_createuser_req->homedir == NULL) {
+            ret = ENOMEM;
+            goto error;
+        }
+    }
+
+    infp_createuser_req->shell = NULL;
+    if (strlen(arg_shell)) {
+        infp_createuser_req->shell = talloc_strdup(infp_createuser_req, arg_shell);
+        if(infp_createuser_req->shell == NULL) {
             ret = ENOMEM;
             goto error;
         }
