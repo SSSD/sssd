@@ -349,16 +349,42 @@ static void get_members(struct sysdb_search_ctx *sctx)
     }
 }
 
+static int mpg_convert(struct ldb_message *msg)
+{
+    struct ldb_message_element *el;
+    struct ldb_val *val;
+    int i;
+
+    el = ldb_msg_find_element(msg, "objectClass");
+    if (!el) return EINVAL;
+
+    /* see if this is a user to convert to a group */
+    for (i = 0; i < el->num_values; i++) {
+        val = &(el->values[i]);
+        if (strncasecmp(SYSDB_USER_CLASS,
+                        (char *)val->data, val->length) == 0) {
+            break;
+        }
+    }
+    /* no, leave as is */
+    if (i == el->num_values) return EOK;
+
+    /* yes, convert */
+    val->data = (uint8_t *)talloc_strdup(msg, SYSDB_GROUP_CLASS);
+    if (val->data == NULL) return ENOMEM;
+    val->length = strlen(SYSDB_GROUP_CLASS);
+
+    return EOK;
+}
+
 static int get_grp_callback(struct ldb_request *req,
                             struct ldb_reply *rep)
 {
     struct sysdb_search_ctx *sctx;
-    struct sysdb_ctx *ctx;
     struct ldb_result *res;
-    int n;
+    int n, ret;
 
     sctx = talloc_get_type(req->context, struct sysdb_search_ctx);
-    ctx = sctx->ctx;
     res = sctx->res;
 
     if (!rep) {
@@ -372,6 +398,15 @@ static int get_grp_callback(struct ldb_request *req,
 
     switch (rep->type) {
     case LDB_REPLY_ENTRY:
+
+        if (sctx->domain->mpg) {
+            ret = mpg_convert(rep->message);
+            if (ret != EOK) {
+                request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+        }
+
         res->msgs = talloc_realloc(res, res->msgs,
                                    struct ldb_message *,
                                    res->count + 2);
@@ -411,6 +446,12 @@ static int get_grp_callback(struct ldb_request *req,
             request_done(sctx);
             return LDB_SUCCESS;
         }
+
+        if (sctx->domain->legacy) {
+            request_done(sctx);
+            return LDB_SUCCESS;
+        }
+
         if (res->count > 0) {
 
             sctx->gmctx = talloc_zero(req, struct get_mem_ctx);
@@ -440,7 +481,6 @@ static int get_grp_callback(struct ldb_request *req,
 static void grp_search(struct sysdb_req *sysreq, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
-    ldb_request_callback_t callback;
     static const char *attrs[] = SYSDB_GRNAM_ATTRS;
     struct ldb_request *req;
     struct ldb_dn *base_dn;
@@ -449,14 +489,13 @@ static void grp_search(struct sysdb_req *sysreq, void *ptr)
     sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
     sctx->req = sysreq;
 
-    if (sctx->domain->legacy) {
-        callback = get_gen_callback;
+    if (sctx->domain->mpg) {
+        base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
+                                 SYSDB_DOM_BASE, sctx->domain->name);
     } else {
-        callback = get_grp_callback;
+        base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
+                                 SYSDB_TMPL_GROUP_BASE, sctx->domain->name);
     }
-
-    base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_GROUP_BASE, sctx->domain->name);
     if (!base_dn) {
         return request_error(sctx, ENOMEM);
     }
@@ -464,7 +503,7 @@ static void grp_search(struct sysdb_req *sysreq, void *ptr)
     ret = ldb_build_search_req(&req, sctx->ctx->ldb, sctx,
                                base_dn, LDB_SCOPE_SUBTREE,
                                sctx->expression, attrs, NULL,
-                               sctx, callback,
+                               sctx, get_grp_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
         return request_ldberror(sctx, ret);
@@ -493,7 +532,11 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_FILTER, name);
+    if (domain->mpg) {
+        sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_MPG_FILTER, name);
+    } else {
+        sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_FILTER, name);
+    }
     if (!sctx->expression) {
         talloc_free(sctx);
         return ENOMEM;
@@ -509,7 +552,6 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
-    unsigned long int filter_gid = gid;
 
     if (!domain) {
         return EINVAL;
@@ -520,7 +562,15 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    sctx->expression = talloc_asprintf(sctx, SYSDB_GRGID_FILTER, filter_gid);
+    if (domain->mpg) {
+        sctx->expression = talloc_asprintf(sctx,
+                                           SYSDB_GRGID_MPG_FILTER,
+                                           (unsigned long int)gid);
+    } else {
+        sctx->expression = talloc_asprintf(sctx,
+                                           SYSDB_GRGID_FILTER,
+                                           (unsigned long int)gid);
+    }
     if (!sctx->expression) {
         talloc_free(sctx);
         return ENOMEM;
@@ -545,7 +595,11 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    sctx->expression = SYSDB_GRENT_FILTER;
+    if (domain->mpg) {
+        sctx->expression = SYSDB_GRENT_MPG_FILTER;
+    } else {
+        sctx->expression = SYSDB_GRENT_FILTER;
+    }
 
     return sysdb_operation(mem_ctx, ctx, grp_search, sctx);
 }
