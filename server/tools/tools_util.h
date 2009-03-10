@@ -12,8 +12,6 @@ struct tools_ctx {
     struct btreemap *domains;
 };
 
-int check_user_name_unique(struct tools_ctx *ctx, const char *name);
-int check_group_name_unique(struct tools_ctx *ctx, const char *name);
 int setup_db(struct tools_ctx **ctx);
 
 void usage(poptContext pc, const char *error);

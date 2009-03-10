@@ -135,14 +135,6 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    /* Check MPG constraints */
-    ret = check_group_name_unique(ctx, group_ctx->groupname);
-    if(ret != EOK) {
-        DEBUG(1, ("Could not add group - name not unique\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     /* add_group */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_group, group_ctx);
     if(ret != EOK) {

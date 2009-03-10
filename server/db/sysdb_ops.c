@@ -753,6 +753,108 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
     return LDB_SUCCESS;
 }
 
+struct check_name_ctx {
+    struct sysdb_req *sysreq;
+
+    sysdb_callback_t fn;
+    void *pvt;
+
+    struct ldb_result *res;
+};
+
+static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep);
+
+int sysdb_check_name_unique(struct sysdb_req *sysreq,
+                            struct sss_domain_info *domain,
+                            TALLOC_CTX *mem_ctx, const char *name,
+                            sysdb_callback_t fn, void *pvt)
+{
+    static const char *attrs[] = { SYSDB_NAME, NULL };
+    struct check_name_ctx *cnctx;
+    struct sysdb_ctx *ctx;
+    struct ldb_dn *base_dn;
+    struct ldb_request *req;
+    char *filter;
+    int ret;
+
+    if (!sysdb_req_check_running(sysreq)) {
+        DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    ctx = sysdb_req_get_ctx(sysreq);
+
+    cnctx = talloc_zero(mem_ctx, struct check_name_ctx);
+    if (!cnctx) return ENOMEM;
+
+    cnctx->sysreq = sysreq;
+    cnctx->fn = fn;
+    cnctx->pvt = pvt;
+
+    base_dn = sysdb_domain_dn(ctx, cnctx, domain->name);
+    if (!base_dn) return ENOMEM;
+
+    filter = talloc_asprintf(cnctx, SYSDB_CHECK_FILTER, name);
+    if (!filter) return ENOMEM;
+
+    cnctx->res = talloc_zero(cnctx, struct ldb_result);
+    if (!cnctx->res) return ENOMEM;
+
+    ret = ldb_build_search_req(&req, ctx->ldb, mem_ctx,
+                               base_dn, LDB_SCOPE_SUBTREE,
+                               filter, attrs, NULL,
+                               cnctx, check_name_callback, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        return sysdb_error_to_errno(ret);
+    }
+
+    ret = ldb_request(ctx->ldb, req);
+    if (ret != LDB_SUCCESS) return sysdb_error_to_errno(ret);
+
+    return EOK;
+}
+
+static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep)
+{
+    struct check_name_ctx *cnctx;
+    struct sysdb_ctx *ctx;
+
+    cnctx = talloc_get_type(req->context, struct check_name_ctx);
+    ctx = sysdb_req_get_ctx(cnctx->sysreq);
+
+    if (!rep) {
+        return_error(cnctx, EIO);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    if (rep->error != LDB_SUCCESS) {
+        return_error(cnctx, sysdb_error_to_errno(rep->error));
+        return rep->error;
+    }
+
+    switch (rep->type) {
+    case LDB_REPLY_ENTRY:
+
+        /* one found, that means name is not available */
+        /* return EEXIST */
+        return_error(cnctx, EEXIST);
+        return LDB_ERR_ENTRY_ALREADY_EXISTS;
+        break;
+
+    case LDB_REPLY_DONE:
+
+        return_done(cnctx);
+        break;
+
+    default:
+        return_error(cnctx, EINVAL);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    return LDB_SUCCESS;
+}
+
 
 struct user_add_ctx {
     struct sysdb_req *sysreq;
@@ -769,6 +871,8 @@ struct user_add_ctx {
     struct next_id id;
 };
 
+static void user_check_callback(void *pvt, int error, struct ldb_result *res);
+static int user_add_id(struct user_add_ctx *user_ctx);
 static void user_add_id_callback(void *pvt, int error, struct ldb_result *res);
 static int user_add_call(struct user_add_ctx *user_ctx);
 
@@ -783,6 +887,13 @@ int sysdb_add_user(struct sysdb_req *sysreq,
 
     if (!sysdb_req_check_running(sysreq)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    if ((uid == 0 || gid == 0) && (uid != 0 || gid != 0)) {
+        /* you either set both or neither, we will not guess only one */
+        DEBUG(1, ("You have to either specify both uid and gid or neither"
+                  " (preferred) [passed in uid=%u, gid =%u]\n", uid, gid));
         return EINVAL;
     }
 
@@ -803,17 +914,42 @@ int sysdb_add_user(struct sysdb_req *sysreq,
     user_ctx->homedir = homedir;
     user_ctx->shell = shell;
 
-    if (uid == 0 && gid == 0) {
-        /* Must generate uid/gid pair */
-        return sysdb_get_next_available_id(sysreq, domain, &(user_ctx->id),
-                                          user_add_id_callback, user_ctx);
+    if (domain->mpg) {
+        /* if the domain is mpg we need to check we do not have there are no
+         * name conflicts */
+
+        return sysdb_check_name_unique(sysreq, domain, user_ctx, name,
+                                       user_check_callback, user_ctx);
     }
 
-    if (uid == 0 || gid == 0) {
-        /* you either set both or neither, we will not guess only one */
-        DEBUG(1, ("You have to either specify both uid and gid or neither"
-                  " (preferred) [passed in uid=%u, gid =%u]\n", uid, gid));
-        return EINVAL;
+    return user_add_id(user_ctx);
+}
+
+static void user_check_callback(void *pvt, int error, struct ldb_result *res)
+{
+    struct user_add_ctx *user_ctx;
+    int ret;
+
+    user_ctx = talloc_get_type(pvt, struct user_add_ctx);
+    if (error != EOK) {
+        return_error(user_ctx->cbctx, error);
+        return;
+    }
+
+    ret = user_add_id(user_ctx);
+    if (ret != EOK) {
+        return_error(user_ctx->cbctx, ret);
+    }
+}
+
+static int user_add_id(struct user_add_ctx *user_ctx)
+{
+    if (user_ctx->uid == 0 && user_ctx->gid == 0) {
+        /* Must generate uid/gid pair */
+        return sysdb_get_next_available_id(user_ctx->sysreq,
+                                           user_ctx->domain,
+                                           &(user_ctx->id),
+                                           user_add_id_callback, user_ctx);
     }
 
     return user_add_call(user_ctx);
@@ -835,7 +971,9 @@ static void user_add_id_callback(void *pvt, int error, struct ldb_result *res)
     user_ctx->gid = user_ctx->id.id;
 
     ret = user_add_call(user_ctx);
-    if (ret != EOK) return_error(user_ctx->cbctx, ret);
+    if (ret != EOK) {
+        return_error(user_ctx->cbctx, ret);
+    }
 }
 
 static int user_add_call(struct user_add_ctx *user_ctx)
@@ -920,6 +1058,8 @@ struct group_add_ctx {
     struct next_id id;
 };
 
+static void group_check_callback(void *pvt, int error, struct ldb_result *res);
+static int group_add_id(struct group_add_ctx *group_ctx);
 static void group_add_id_callback(void *pvt, int error, struct ldb_result *res);
 static int group_add_call(struct group_add_ctx *group_ctx);
 
@@ -948,9 +1088,41 @@ int sysdb_add_group(struct sysdb_req *sysreq,
     group_ctx->name = name;
     group_ctx->gid = gid;
 
-    if (gid == 0) {
+    if (domain->mpg) {
+        /* if the domain is mpg we need to check we do not have there are no
+         * name conflicts */
+
+        return sysdb_check_name_unique(sysreq, domain, group_ctx, name,
+                                       group_check_callback, group_ctx);
+    }
+
+    return group_add_id(group_ctx);
+}
+
+static void group_check_callback(void *pvt, int error, struct ldb_result *res)
+{
+    struct group_add_ctx *group_ctx;
+    int ret;
+
+    group_ctx = talloc_get_type(pvt, struct group_add_ctx);
+    if (error != EOK) {
+        return_error(group_ctx->cbctx, error);
+        return;
+    }
+
+    ret = group_add_id(group_ctx);
+    if (ret != EOK) {
+        return_error(group_ctx->cbctx, ret);
+    }
+}
+
+static int group_add_id(struct group_add_ctx *group_ctx)
+{
+    if (group_ctx->gid == 0) {
         /* Must generate uid/gid pair */
-        return sysdb_get_next_available_id(sysreq, domain, &(group_ctx->id),
+        return sysdb_get_next_available_id(group_ctx->sysreq,
+                                           group_ctx->domain,
+                                           &(group_ctx->id),
                                            group_add_id_callback, group_ctx);
     }
 

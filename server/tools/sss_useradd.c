@@ -338,14 +338,6 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    /* Check MPG constraints */
-    ret = check_user_name_unique(ctx, user_ctx->username);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not add user - name not unique\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     /* useradd */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_user, user_ctx);
     if (ret != EOK) {
