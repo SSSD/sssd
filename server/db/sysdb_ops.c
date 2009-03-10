@@ -864,7 +864,7 @@ struct user_add_ctx {
     const char *name;
     uid_t uid;
     gid_t gid;
-    const char *gecos;
+    const char *fullname;
     const char *homedir;
     const char *shell;
 
@@ -879,7 +879,7 @@ static int user_add_call(struct user_add_ctx *user_ctx);
 int sysdb_add_user(struct sysdb_req *sysreq,
                    struct sss_domain_info *domain,
                    const char *name,
-                   uid_t uid, gid_t gid, const char *gecos,
+                   uid_t uid, gid_t gid, const char *fullname,
                    const char *homedir, const char *shell,
                    sysdb_callback_t fn, void *pvt)
 {
@@ -910,7 +910,7 @@ int sysdb_add_user(struct sysdb_req *sysreq,
     user_ctx->name = name;
     user_ctx->uid = uid;
     user_ctx->gid = gid;
-    user_ctx->gecos = gecos;
+    user_ctx->fullname = fullname;
     user_ctx->homedir = homedir;
     user_ctx->shell = shell;
 
@@ -1016,8 +1016,14 @@ static int user_add_call(struct user_add_ctx *user_ctx)
         return EINVAL;
     }
 
-    if (user_ctx->gecos && *user_ctx->gecos) {
-        ret = add_string(msg, flags, SYSDB_FULLNAME, user_ctx->gecos);
+    /* We set gecos to be the same as fullname on user creation,
+     * But we will not enforce coherency after that, it's up to
+     * admins to decide if they want to keep it in sync if they change
+     * one of the 2 */
+    if (user_ctx->fullname && *user_ctx->fullname) {
+        ret = add_string(msg, flags, SYSDB_FULLNAME, user_ctx->fullname);
+        if (ret != LDB_SUCCESS) return ENOMEM;
+        ret = add_string(msg, flags, SYSDB_GECOS, user_ctx->fullname);
         if (ret != LDB_SUCCESS) return ENOMEM;
     }
 
@@ -1473,9 +1479,9 @@ static int legacy_user_callback(struct ldb_request *req,
         }
 
         if (user_ctx->gecos && *user_ctx->gecos) {
-            ret = add_string(msg, flags, SYSDB_FULLNAME, user_ctx->gecos);
+            ret = add_string(msg, flags, SYSDB_GECOS, user_ctx->gecos);
         } else {
-            ret = ldb_msg_add_empty(msg, SYSDB_FULLNAME,
+            ret = ldb_msg_add_empty(msg, SYSDB_GECOS,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {

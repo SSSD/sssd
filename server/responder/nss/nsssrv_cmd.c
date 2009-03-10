@@ -186,7 +186,7 @@ static int fill_pwent(struct sss_packet *packet,
     struct ldb_message *msg;
     uint8_t *body;
     const char *name;
-    const char *fullname;
+    const char *gecos;
     const char *homedir;
     const char *shell;
     uint32_t uid;
@@ -207,20 +207,23 @@ static int fill_pwent(struct sss_packet *packet,
         msg = msgs[i];
 
         name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        fullname = ldb_msg_find_attr_as_string(msg, SYSDB_FULLNAME, NULL);
+        gecos = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
         homedir = ldb_msg_find_attr_as_string(msg, SYSDB_HOMEDIR, NULL);
         shell = ldb_msg_find_attr_as_string(msg, SYSDB_SHELL, NULL);
         uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
         gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
 
-        if (!name || !fullname || !homedir || !shell || !uid || !gid) {
+        if (!name || !uid || !gid) {
             DEBUG(1, ("Incomplete user object for %s[%llu]! Skipping\n",
                       name?name:"<NULL>", (unsigned long long int)uid));
             continue;
         }
+        if (!gecos) gecos = "";
+        if (!homedir) homedir = "/";
+        if (!shell) shell = "";
 
         s1 = strlen(name) + 1;
-        s2 = strlen(fullname) + 1;
+        s2 = strlen(gecos) + 1;
         s3 = strlen(homedir) + 1;
         s4 = strlen(shell) + 1;
         rsize = 2*sizeof(uint32_t) +s1 + 2 + s2 + s3 +s4;
@@ -245,7 +248,7 @@ static int fill_pwent(struct sss_packet *packet,
         }
         memcpy(&body[rp], "x", 2);
         rp += 2;
-        memcpy(&body[rp], fullname, s2);
+        memcpy(&body[rp], gecos, s2);
         rp += s2;
         memcpy(&body[rp], homedir, s3);
         rp += s3;

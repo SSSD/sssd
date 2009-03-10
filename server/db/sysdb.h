@@ -90,7 +90,7 @@
 #define SYSDB_CHECK_FILTER "(&(|("SYSDB_UC")("SYSDB_GC"))("SYSDB_NAME"=%s))"
 
 #define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
-                        SYSDB_GIDNUM, SYSDB_FULLNAME, \
+                        SYSDB_GIDNUM, SYSDB_GECOS, \
                         SYSDB_HOMEDIR, SYSDB_SHELL, \
                         SYSDB_LAST_UPDATE, \
                         "objectClass", \
@@ -274,7 +274,7 @@ int sysdb_set_user_attr(struct sysdb_req *sysreq,
 int sysdb_add_user(struct sysdb_req *sysreq,
                    struct sss_domain_info *domain,
                    const char *name,
-                   uid_t uid, gid_t gid, const char *gecos,
+                   uid_t uid, gid_t gid, const char *fullname,
                    const char *homedir, const char *shell,
                    sysdb_callback_t fn, void *pvt);
 

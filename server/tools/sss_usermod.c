@@ -292,7 +292,7 @@ int main(int argc, const char **argv)
 
     if(pc_gecos) {
         ret = sysdb_attrs_add_string(user_ctx->attrs,
-                                     SYSDB_FULLNAME,
+                                     SYSDB_GECOS,
                                      pc_gecos);
         VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
     }
