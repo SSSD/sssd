@@ -21,7 +21,7 @@
 #define SSS_PAM_SOCKET_NAME "/var/lib/sss/pipes/pam"
 #define SSS_PAM_PRIV_SOCKET_NAME "/var/lib/sss/pipes/private/pam"
 
-#define SSS_PROTOCOL_VERSION 0
+#define SSS_PROTOCOL_VERSION 1
 
 enum sss_cli_command {
 /* null */

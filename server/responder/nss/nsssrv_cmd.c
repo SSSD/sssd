@@ -30,7 +30,7 @@
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
     const char *name;
-    uid_t id;
+    uint32_t id;
 
     bool immediate;
     bool done;
@@ -189,8 +189,8 @@ static int fill_pwent(struct sss_packet *packet,
     const char *fullname;
     const char *homedir;
     const char *shell;
-    uint64_t uid;
-    uint64_t gid;
+    uint32_t uid;
+    uint32_t gid;
     size_t rsize, rp, blen;
     size_t s1, s2, s3, s4;
     size_t dom_len = 0;
@@ -223,7 +223,7 @@ static int fill_pwent(struct sss_packet *packet,
         s2 = strlen(fullname) + 1;
         s3 = strlen(homedir) + 1;
         s4 = strlen(shell) + 1;
-        rsize = 2*sizeof(uint64_t) +s1 + 2 + s2 + s3 +s4;
+        rsize = 2*sizeof(uint32_t) +s1 + 2 + s2 + s3 +s4;
         if (add_domain) rsize += dom_len;
 
         ret = sss_packet_grow(packet, rsize);
@@ -233,9 +233,9 @@ static int fill_pwent(struct sss_packet *packet,
         }
         sss_packet_get_body(packet, &body, &blen);
 
-        ((uint64_t *)(&body[rp]))[0] = uid;
-        ((uint64_t *)(&body[rp]))[1] = gid;
-        rp += 2*sizeof(uint64_t);
+        ((uint32_t *)(&body[rp]))[0] = uid;
+        ((uint32_t *)(&body[rp]))[1] = gid;
+        rp += 2*sizeof(uint32_t);
         memcpy(&body[rp], name, s1);
         rp += s1;
         if (add_domain) {
@@ -656,11 +656,11 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     /* get uid to query */
     sss_packet_get_body(cctx->creq->in, &body, &blen);
 
-    if (blen != sizeof(uint64_t)) {
+    if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
 
-    cmdctx->id = (uid_t)*((uint64_t *)body);
+    cmdctx->id = *((uint32_t *)body);
 
     /* FIXME: Just ask all backends for now, until we check for ranges */
     dctx = NULL;
@@ -1061,7 +1061,7 @@ static int fill_grent(struct sss_packet *packet,
     struct ldb_message *msg;
     uint8_t *body;
     const char *name;
-    uint64_t gid;
+    uint32_t gid;
     size_t rsize, rp, blen, mnump;
     int i, j, ret, num, memnum;
     bool get_members;
@@ -1102,23 +1102,23 @@ static int fill_grent(struct sss_packet *packet,
 
             /* fill in gid and name and set pointer for number of members */
             name_len = strlen(name)+1;
-            rsize = sizeof(uint64_t) + sizeof(uint32_t) + name_len +2;
+            rsize = 2 * sizeof(uint32_t) + name_len +2;
             if (add_domain) rsize += dom_len;
 
             ret = sss_packet_grow(packet, rsize);
             sss_packet_get_body(packet, &body, &blen);
 
-            /*  0-7: 64bit number gid */
+            /*  0-3: 64bit number gid */
             rp = blen - rsize;
-            ((uint64_t *)(&body[rp]))[0] = gid;
-            rp += sizeof(uint64_t);
+            ((uint32_t *)(&body[rp]))[0] = gid;
+            rp += sizeof(uint32_t);
 
-            /*  8-11: 32bit unsigned number of members */
+            /*  4-7: 32bit unsigned number of members */
             ((uint32_t *)(&body[rp]))[0] = 0; /* init members num to 0 */
             mnump = rp; /* keep around members num pointer to set later */
             rp += sizeof(uint32_t);
 
-            /*  12-X: sequence of strings (name, passwd, mem..) */
+            /*  8-X: sequence of strings (name, passwd, mem..) */
             memcpy(&body[rp], name, name_len);
             rp += name_len;
             if (add_domain) {
@@ -1593,11 +1593,11 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     /* get uid to query */
     sss_packet_get_body(cctx->creq->in, &body, &blen);
 
-    if (blen != sizeof(uint64_t)) {
+    if (blen != sizeof(uint32_t)) {
         return EINVAL;
     }
 
-    cmdctx->id = (gid_t)*((uint64_t *)body);
+    cmdctx->id = *((uint32_t *)body);
 
     /* FIXME: Just ask all backends for now, until we check for ranges */
     dctx = NULL;
@@ -1991,7 +1991,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     struct cli_ctx *cctx = cmdctx->cctx;
     uint8_t *body;
     size_t blen;
-    uint64_t gid;
+    uint32_t gid;
     uint32_t num;
     int ret, i;
 
@@ -2009,9 +2009,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     }
 
     num = res->count;
-    /* the first 64 bit uint is really 2 32 units used to hold the number of
-     * results */
-    ret = sss_packet_grow(cctx->creq->out, (1 + num) * sizeof(uint64_t));
+    ret = sss_packet_grow(cctx->creq->out, (2 + num) * sizeof(uint32_t));
     if (ret != EOK) {
         sss_packet_set_error(cctx->creq->out, ret);
         goto done;
@@ -2026,7 +2024,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
             num = 0;
             goto done;
         }
-        ((uint64_t *)body)[i+1] = gid;
+        ((uint32_t *)body)[2+i] = gid;
     }
 
     ((uint32_t *)body)[0] = num; /* num results */

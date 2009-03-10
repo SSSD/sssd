@@ -51,21 +51,21 @@ static void sss_nss_getgrent_data_clean(void) {
  *
  * GERTGRGID Request:
  *
- * 0-7: 64bit number with gid
+ * 0-7: 32bit number with gid
  *
  * INITGROUPS Request:
  *
- * 0-7: 64bit number with gid
- * 8-11: 32bit unsigned with max num of entries
+ * 0-3: 32bit number with gid
+ * 4-7: 32bit unsigned with max num of entries
  *
  * Replies:
  *
  * 0-3: 32bit unsigned number of results
  * 4-7: 32bit unsigned (reserved/padding)
  *  For each result (64bit padded ?):
- *  0-7: 64bit number gid
- *  8-11: 32bit unsigned number of members
- *  12-X: sequence of 0 terminated strings (name, passwd, mem..)
+ *  0-3: 32bit number gid
+ *  4-7: 32bit unsigned number of members
+ *  8-X: sequence of 0 terminated strings (name, passwd, mem..)
  */
 struct sss_nss_gr_rep {
     struct group *result;
@@ -82,15 +82,15 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     uint32_t mem_num;
     int err;
 
-    if (*len < 15) { /* not enough space for data, bad packet */
+    if (*len < 11) { /* not enough space for data, bad packet */
         return EBADMSG;
     }
 
-    pr->result->gr_gid = ((uint64_t *)buf)[0];
-    mem_num = ((uint32_t *)buf)[2];
+    pr->result->gr_gid = ((uint32_t *)buf)[0];
+    mem_num = ((uint32_t *)buf)[1];
 
-    sbuf = (char *)&buf[12];
-    slen = *len - 12;
+    sbuf = (char *)&buf[8];
+    slen = *len - 8;
     dlen = pr->buflen;
 
     pr->result->gr_name = &(pr->buffer[0]);
@@ -165,7 +165,7 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
  * 0-3: 32bit unsigned number of results
  * 4-7: 32bit unsigned (reserved/padding)
  * For each result:
- *  0-7: 64bit number with gid
+ *  0-4: 32bit number with gid
  */
 
 
@@ -178,7 +178,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
     uint8_t *repbuf;
     size_t replen;
     enum nss_status nret;
-    uint64_t *rbuf;
+    uint32_t *rbuf;
     uint32_t num_ret;
     long int l, max_ret;
 
@@ -220,7 +220,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
         *size = newsize;
     }
 
-    rbuf = &((uint64_t *)repbuf)[1];
+    rbuf = &((uint32_t *)repbuf)[2];
     for (l = 0; l < max_ret; l++) {
         (*groups)[*start] = rbuf[l];
         *start += 1;
@@ -284,11 +284,11 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     uint8_t *repbuf;
     size_t replen, len;
     enum nss_status nret;
-    uint64_t group_gid;
+    uint32_t group_gid;
     int ret;
 
     group_gid = gid;
-    rd.len = sizeof(uint64_t);
+    rd.len = sizeof(uint32_t);
     rd.data = &group_gid;
 
     nret = sss_nss_make_request(SSS_NSS_GETGRGID, &rd,

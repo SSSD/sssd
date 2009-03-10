@@ -51,16 +51,16 @@ static void sss_nss_getpwent_data_clean(void) {
  *
  * GERTPWUID Request:
  *
- * 0-7: 64bit number with uid
+ * 0-3: 32bit number with uid
  *
  * Replies:
  *
  * 0-3: 32bit unsigned number of results
  * 4-7: 32bit unsigned (reserved/padding)
  * For each result:
- *  0-7: 64bit number uid
- *  8-15: 64bit number gid
- *  16-X: sequence of 5, 0 terminated, strings (name, passwd, gecos, dir, shell)
+ *  0-3: 32bit number uid
+ *  4-7: 32bit number gid
+ *  8-X: sequence of 5, 0 terminated, strings (name, passwd, gecos, dir, shell)
  */
 
 struct sss_nss_pw_rep {
@@ -76,14 +76,14 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
     char *sbuf;
     int err;
 
-    if (*len < 21) { /* not enough space for data, bad packet */
+    if (*len < 13) { /* not enough space for data, bad packet */
         return EBADMSG;
     }
 
-    pr->result->pw_uid = ((int64_t *)buf)[0];
-    pr->result->pw_gid = ((int64_t *)buf)[1];
+    pr->result->pw_uid = ((uint32_t *)buf)[0];
+    pr->result->pw_gid = ((uint32_t *)buf)[1];
 
-    sbuf = (char *)&buf[16];
+    sbuf = (char *)&buf[8];
     if (*len < pr->buflen) {
         slen = *len;
         err = EBADMSG;
@@ -147,7 +147,7 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
         return err;
     }
 
-    *len = *len -16 -i -1;
+    *len = *len -8 -i -1;
 
     return 0;
 }
@@ -206,11 +206,11 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     uint8_t *repbuf;
     size_t replen, len;
     enum nss_status nret;
-    int64_t user_uid;
+    uint32_t user_uid;
     int ret;
 
     user_uid = uid;
-    rd.len = sizeof(int64_t);
+    rd.len = sizeof(uint32_t);
     rd.data = &user_uid;
 
     nret = sss_nss_make_request(SSS_NSS_GETPWUID, &rd,
