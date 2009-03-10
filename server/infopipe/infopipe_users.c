@@ -162,8 +162,7 @@ int infp_users_get_cached(DBusMessage *message, struct sbus_conn_ctx *sconn)
                                         infp_getcached_req->min_last_login);
     ret = sysdb_enumpwent(infp_getcached_req,
                           infp_getcached_req->infp_req->infp->sysdb,
-                          infp_getcached_req->infp_req->domain->name,
-                          infp_getcached_req->infp_req->domain->legacy,
+                          infp_getcached_req->infp_req->domain,
                           search_expression,
                           infp_users_get_cached_callback, infp_getcached_req);
     if(ret != EOK) {
@@ -1097,10 +1096,9 @@ static int infp_get_attr_lookup(struct infp_getattr_ctx *infp_getattr_req)
     /* Call into the sysdb for the requested attributes */
     ret = sysdb_get_user_attr(infp_getattr_req,
                               infp_getattr_req->infp_req->infp->sysdb,
-                              infp_getattr_req->infp_req->domain->name,
+                              infp_getattr_req->infp_req->domain,
                               infp_getattr_req->usernames[infp_getattr_req->index],
                               (const char **)attributes,
-                              infp_getattr_req->infp_req->domain->legacy,
                               infp_get_attr_lookup_callback, infp_getattr_req);
 
     return EOK;

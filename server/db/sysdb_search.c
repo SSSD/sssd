@@ -32,9 +32,9 @@ struct sysdb_search_ctx {
     struct sysdb_ctx *ctx;
     struct sysdb_req *req;
 
+    struct sss_domain_info *domain;
+
     const char *expression;
-    const char *domain;
-    bool legacy;
 
     sysdb_callback_t callback;
     void *ptr;
@@ -49,8 +49,7 @@ struct sysdb_search_ctx {
 };
 
 static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
-                                             const char *domain,
-                                             bool legacy,
+                                             struct sss_domain_info *domain,
                                              struct sysdb_ctx *ctx,
                                              sysdb_callback_t fn,
                                              void *ptr)
@@ -69,12 +68,7 @@ static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
         talloc_free(sctx);
         return NULL;
     }
-    sctx->domain = talloc_strdup(sctx, domain);
-    if (!sctx->domain) {
-        talloc_free(sctx);
-        return NULL;
-    }
-    sctx->legacy = legacy;
+    sctx->domain = domain;
 
     return sctx;
 }
@@ -179,7 +173,7 @@ static void user_search(struct sysdb_req *sysreq, void *ptr)
     sctx->req = sysreq;
 
     base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_USER_BASE, sctx->domain);
+                             SYSDB_TMPL_USER_BASE, sctx->domain->name);
     if (!base_dn) {
         return request_error(sctx, ENOMEM);
     }
@@ -201,9 +195,8 @@ static void user_search(struct sysdb_req *sysreq, void *ptr)
 
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    const char *name,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     static const char *attrs[] = SYSDB_PW_ATTRS;
@@ -213,7 +206,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -231,9 +224,8 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    uid_t uid,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     static const char *attrs[] = SYSDB_PW_ATTRS;
@@ -244,7 +236,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -262,8 +254,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
-                    const char *domain,
-                    bool legacy,
+                    struct sss_domain_info *domain,
                     const char *expression,
                     sysdb_callback_t fn, void *ptr)
 {
@@ -274,7 +265,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -336,7 +327,7 @@ static void get_members(struct sysdb_search_ctx *sctx)
     }
 
     dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                        SYSDB_TMPL_USER_BASE, sctx->domain);
+                        SYSDB_TMPL_USER_BASE, sctx->domain->name);
     if (!dn) {
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
@@ -458,14 +449,14 @@ static void grp_search(struct sysdb_req *sysreq, void *ptr)
     sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
     sctx->req = sysreq;
 
-    if (sctx->legacy) {
+    if (sctx->domain->legacy) {
         callback = get_gen_callback;
     } else {
         callback = get_grp_callback;
     }
 
     base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_GROUP_BASE, sctx->domain);
+                             SYSDB_TMPL_GROUP_BASE, sctx->domain->name);
     if (!base_dn) {
         return request_error(sctx, ENOMEM);
     }
@@ -487,9 +478,8 @@ static void grp_search(struct sysdb_req *sysreq, void *ptr)
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    const char *name,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -498,7 +488,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -514,9 +504,8 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    gid_t gid,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -526,7 +515,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -542,8 +531,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
-                    const char *domain,
-                    bool legacy,
+                    struct sss_domain_info *domain,
                     sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -552,7 +540,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -591,7 +579,7 @@ static void initgr_mem_legacy(struct sysdb_search_ctx *sctx)
     }
 
     base_dn = ldb_dn_new_fmt(sctx, ctx->ldb,
-                             SYSDB_TMPL_GROUP_BASE, sctx->domain);
+                             SYSDB_TMPL_GROUP_BASE, sctx->domain->name);
     if (!base_dn) {
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
@@ -683,14 +671,14 @@ static void initgr_search(struct sysdb_req *sysreq, void *ptr)
     sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
     sctx->req = sysreq;
 
-    if (sctx->legacy) {
+    if (sctx->domain->legacy) {
         sctx->gen_aux_fn = initgr_mem_legacy;
     } else {
         sctx->gen_aux_fn = initgr_mem_search;
     }
 
     base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_USER_BASE, sctx->domain);
+                             SYSDB_TMPL_USER_BASE, sctx->domain->name);
     if (!base_dn) {
         return request_error(sctx, ENOMEM);
     }
@@ -712,9 +700,8 @@ static void initgr_search(struct sysdb_req *sysreq, void *ptr)
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *ctx,
-                     const char *domain,
+                     struct sss_domain_info *domain,
                      const char *name,
-                     bool legacy,
                      sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -723,7 +710,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }
@@ -739,10 +726,9 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *ctx,
-                        const char *domain,
+                        struct sss_domain_info *domain,
                         const char *name,
                         const char **attributes,
-                        bool legacy,
                         sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
@@ -751,7 +737,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, legacy, ctx, fn, ptr);
+    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
     if (!sctx) {
         return ENOMEM;
     }

@@ -395,8 +395,7 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->name,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -446,8 +445,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
               cmdctx->name, dctx->domain->name));
 
     ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->name,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
 
     if (ret != EOK) {
@@ -622,8 +620,7 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->id,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->id,
                          nss_cmd_getpwuid_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -692,8 +689,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
                   cmdctx->id, dctx->domain->name));
 
         ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
-                             dctx->domain->name, cmdctx->id,
-                             dctx->domain->legacy,
+                             dctx->domain, cmdctx->id,
                              nss_cmd_getpwuid_callback, dctx);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -804,7 +800,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_enumpwent(cmdctx, cctx->nctx->sysdb,
-                          dctx->domain->name, dctx->domain->legacy, NULL,
+                          dctx->domain, NULL,
                           nss_cmd_setpwent_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -895,8 +891,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
                                        NULL, 0);
         } else {
             ret = sysdb_enumpwent(dctx, cctx->nctx->sysdb,
-                                  dctx->domain->name,
-                                  dctx->domain->legacy, NULL,
+                                  dctx->domain, NULL,
                                   nss_cmd_setpwent_callback, dctx);
         }
         if (ret != EOK) {
@@ -1357,8 +1352,7 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->name,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -1408,8 +1402,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
               cmdctx->name, dctx->domain->name));
 
     ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->name,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -1568,8 +1561,7 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->id,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->id,
                          nss_cmd_getgrgid_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -1635,8 +1627,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
                   cmdctx->id, dctx->domain->name));
 
         ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
-                             dctx->domain->name, cmdctx->id,
-                             dctx->domain->legacy,
+                             dctx->domain, cmdctx->id,
                              nss_cmd_getgrgid_callback, dctx);
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -1748,7 +1739,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_enumgrent(dctx, cctx->nctx->sysdb,
-                          dctx->domain->name, dctx->domain->legacy,
+                          dctx->domain,
                           nss_cmd_setgrent_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -1839,7 +1830,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
                                        NULL, 0);
         } else {
             ret = sysdb_enumgrent(dctx, cctx->nctx->sysdb,
-                                  dctx->domain->name, dctx->domain->legacy,
+                                  dctx->domain,
                                   nss_cmd_setgrent_callback, dctx);
         }
         if (ret != EOK) {
@@ -2061,8 +2052,7 @@ static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_initgroups(cmdctx, cctx->nctx->sysdb,
-                           dctx->domain->name, cmdctx->name,
-                           dctx->domain->legacy,
+                           dctx->domain, cmdctx->name,
                            nss_cmd_initgr_callback, cmdctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -2094,8 +2084,7 @@ static void nss_cmd_getinitnam_callback(uint16_t err_maj, uint32_t err_min,
     }
 
     ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->name,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
@@ -2254,8 +2243,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
               cmdctx->name, dctx->domain->name));
 
     ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
-                         dctx->domain->name, cmdctx->name,
-                         dctx->domain->legacy,
+                         dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));

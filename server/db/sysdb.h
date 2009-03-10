@@ -188,58 +188,50 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
  * therefore they cannot be called within a transaction */
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    const char *name,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    uid_t uid,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
-                    const char *domain,
-                    bool legacy,
+                    struct sss_domain_info *domain,
                     const char *expression,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    const char *name,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
-                   const char *domain,
+                   struct sss_domain_info *domain,
                    gid_t gid,
-                   bool legacy,
                    sysdb_callback_t fn, void *ptr);
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
-                    const char *domain,
-                    bool legacy,
+                    struct sss_domain_info *domain,
                     sysdb_callback_t fn, void *ptr);
 
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *ctx,
-                     const char *domain,
+                     struct sss_domain_info *domain,
                      const char *name,
-                     bool legacy,
                      sysdb_callback_t fn, void *ptr);
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *ctx,
-                        const char *domain,
+                        struct sss_domain_info *domain,
                         const char *name,
                         const char **attributes,
-                        bool legacy,
                         sysdb_callback_t fn, void *ptr);
 
 

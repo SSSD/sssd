@@ -87,8 +87,9 @@ static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
  * is given, returns that as integer (rationale: shadow-utils)
  * On error, returns -EINVAL
  */
-static int get_gid(struct tools_ctx *ctx, const char *groupname, gid_t *_gid)
+static int get_gid(struct user_add_ctx *user_ctx, const char *groupname)
 {
+    struct tools_ctx *ctx = user_ctx->ctx;
     struct fetch_group *data = NULL;
     char *end_ptr;
     gid_t gid;
@@ -103,7 +104,7 @@ static int get_gid(struct tools_ctx *ctx, const char *groupname, gid_t *_gid)
         if (!data) return ENOMEM;
 
         ret = sysdb_getgrnam(data, ctx->sysdb,
-                             "LOCAL", groupname, false,
+                             user_ctx->domain, groupname,
                              get_gid_callback, data);
         if (ret != EOK) {
             DEBUG(0, ("sysdb_getgrnam failed: %d\n", ret));
@@ -125,7 +126,7 @@ static int get_gid(struct tools_ctx *ctx, const char *groupname, gid_t *_gid)
     if (gid == 0) {
         ret = ERANGE;
     } else {
-        *_gid = gid;
+        user_ctx->gid = gid;
     }
 
 done:
@@ -288,7 +289,7 @@ int main(int argc, const char **argv)
 
     /* Same as shadow-utils useradd, -g can specify gid or group name */
     if (pc_group != NULL) {
-        ret = get_gid(ctx, pc_group, &user_ctx->gid);
+        ret = get_gid(user_ctx, pc_group);
         if (ret != EOK) {
             ret = EXIT_FAILURE;
             goto fini;

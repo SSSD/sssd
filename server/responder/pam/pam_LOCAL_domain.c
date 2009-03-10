@@ -418,9 +418,9 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
 
     lreq->dbctx = lreq->cctx->nctx->sysdb;
 
-    ret = sysdb_get_user_attr(lreq, lreq->dbctx, lreq->domain_info->name,
-                              lreq->pd->user, attrs, 0, pam_handler_callback,
-                              lreq);
+    ret = sysdb_get_user_attr(lreq, lreq->dbctx,
+                              lreq->domain_info, lreq->pd->user, attrs,
+                              pam_handler_callback, lreq);
 
     if(ret != EOK) {
         DEBUG(1, ("sysdb_get_user_attr failed.\n"));
