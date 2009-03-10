@@ -1,6 +1,6 @@
 Name: sssd
-Version: 0.1.0
-Release: 6%{dist}
+Version: 0.2.0
+Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -117,6 +117,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Tue Mar 10 2009 Simo Sorce <ssorce@redhat.com> - 0.2.0-1
+- Bump up to version 0.2.0
+
 * Fri Mar 06 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-4
 - fixed items found during review
 - added initscript
