@@ -82,7 +82,7 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     uint32_t mem_num;
     int err;
 
-    if (*len < 21) { /* not enough space for data, bad packet */
+    if (*len < 15) { /* not enough space for data, bad packet */
         return EBADMSG;
     }
 

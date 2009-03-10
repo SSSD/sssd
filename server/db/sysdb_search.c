@@ -567,6 +567,9 @@ static void initgr_mem_legacy(struct sysdb_search_ctx *sctx)
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
 
+    /* make sure we don't loop with get_gen_callback() */
+    sctx->gen_aux_fn = NULL;
+
     userid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
     if (!userid) {
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
@@ -615,6 +618,9 @@ static void initgr_mem_search(struct sysdb_search_ctx *sctx)
     if (res->count > 1) {
         return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
     }
+
+    /* make sure we don't loop with get_gen_callback() */
+    sctx->gen_aux_fn = NULL;
 
     sctx->expression = talloc_asprintf(sctx, SYSDB_INITGR_FILTER);
     if (!sctx->expression) {
