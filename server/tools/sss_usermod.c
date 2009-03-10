@@ -198,8 +198,8 @@ int main(int argc, const char **argv)
     const char *pc_shell = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "uid",   'u', POPT_ARG_INT, &pc_uid, 0, "The UID of the user", NULL },
-        { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, "The GID of the user", NULL },
+        { "uid",   'u', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_uid, 0, "The UID of the user", NULL },
+        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, "The GID of the user", NULL },
         { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, "The comment string", NULL },
         { "home",  'h', POPT_ARG_STRING, &pc_home, 0, "Home directory", NULL },
         { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, "Login shell", NULL },

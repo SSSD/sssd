@@ -182,7 +182,7 @@ int main(int argc, const char **argv)
         POPT_AUTOHELP
         { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', "Groups to add this group to", NULL },
         { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', "Groups to remove this group from", NULL },
-        { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, "The GID of the group", NULL },
+        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, "The GID of the group", NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
