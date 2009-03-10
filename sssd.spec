@@ -1,5 +1,5 @@
 Name: sssd
-Version: 0.2.0
+Version: 0.2.1
 Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
@@ -117,8 +117,8 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
-* Tue Mar 10 2009 Simo Sorce <ssorce@redhat.com> - 0.2.0-1
-- Bump up to version 0.2.0
+* Tue Mar 10 2009 Simo Sorce <ssorce@redhat.com> - 0.2.1-1
+- Bump up to version 0.2.1
 
 * Fri Mar 06 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-4
 - fixed items found during review

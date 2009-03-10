@@ -12,7 +12,6 @@
 #include <security/pam_misc.h>
 
 #include "sss_cli.h"
-#include "sss/responder.h"
 
 struct pam_items {
     const char* pam_service;
