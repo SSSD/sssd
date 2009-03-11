@@ -13,7 +13,7 @@ srcdir = @srcdir@
 builddir = @builddir@
 INSTALLCMD = @INSTALL@
 CPPFLAGS = @CPPFLAGS@
-CFLAGS = $(CPPFLAGS) @CFLAGS@
+CFLAGS := $(CPPFLAGS) @CFLAGS@ $(CFLAGS)
 LDFLAGS = @LDFLAGS@
 EXEEXT = @EXEEXT@
 SHLD = @SHLD@
@@ -31,7 +31,7 @@ NSS_SSS_OBJS = common.o passwd.o group.o
 PAM_SSS_SOLIB = pam_sss.$(SHLIBEXT)
 PAM_SSS_OBJS = pam_sss.o common.o
 PAM_LIBS = -lpam -lpam_misc
-PAM_CFLAGS = -DDEBUG -g -Wall -Werror
+PAM_CFLAGS = -Wall -Werror
 
 PAM_CLIENT = pam_test_client
 PAM_CLIENT_OBJS = pam_test_client.o
