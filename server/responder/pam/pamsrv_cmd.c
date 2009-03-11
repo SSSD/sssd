@@ -205,7 +205,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     size_t blen;
     int ret;
     struct pam_data *pd;
-    char *default_domain;
 
     pd = talloc(cctx, struct pam_data);
     if (pd == NULL) return ENOMEM;
@@ -229,14 +228,11 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     pd->resp_list = NULL;
 
     if (pd->domain == NULL) {
-        ret = confdb_get_string(cctx->nctx->cdb, cctx, "config/domains",
-                                "defaultDomain", "LOCAL", &default_domain);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to call confdb.\n"));
-            talloc_free(pd);
-            return ret;
+        if (cctx->nctx->default_domain != NULL) {
+            pd->domain = cctx->nctx->default_domain;
+        } else {
+            pd->domain = talloc_strdup(pd, "LOCAL");
         }
-        pd->domain = default_domain;
         DEBUG(4, ("Using default domain [%s].\n", pd->domain));
     }
 
