@@ -79,18 +79,8 @@ void become_daemon(bool Fork)
 		}
 	}
 
-  /* detach from the terminal */
-#ifdef HAVE_SETSID
+    /* detach from the terminal */
 	setsid();
-#elif defined(TIOCNOTTY)
-	{
-		int i = open("/dev/tty", O_RDWR, 0);
-		if (i != -1) {
-			ioctl(i, (int) TIOCNOTTY, (char *)0);      
-			close(i);
-		}
-	}
-#endif /* HAVE_SETSID */
 
 	/* Close fd's 0,1,2. Needed if started by rsh */
 	close_low_fds(false);  /* Don't close stderr, let the debug system
