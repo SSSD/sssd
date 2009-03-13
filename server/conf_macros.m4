@@ -5,12 +5,14 @@ AC_DEFUN(WITH_DB_PATH,
                                )
                 ]
                )
-    dbpath="/var/lib/sss/db"
+    config_dbpath="\"VARDIR\"/lib/sss/db"
+    dbpath="${localstatedir}/lib/sss/db"
     if test x"$with_db_path" != x; then
+        config_dbpath=$with_db_path
         dbpath=$with_db_path
     fi
     AC_SUBST(dbpath)
-    AC_DEFINE_UNQUOTED(DB_PATH, "$dbpath", [Path to the SSSD databases])
+    AC_DEFINE_UNQUOTED(DB_PATH, "$config_dbpath", [Path to the SSSD databases])
   ])
 
 AC_DEFUN(WITH_PLUGIN_PATH,
@@ -20,12 +22,14 @@ AC_DEFUN(WITH_PLUGIN_PATH,
                                )
                 ]
                )
-    pluginpath="/usr/lib/sssd"
+    pluginpath="${libdir}/sssd"
+    config_pluginpath="\"LIBDIR\"/sssd"
     if test x"$with_plugin_path" != x; then
         pluginpath=$with_plugin_path
+        config_pluginpath=$with_plugin_path
     fi
     AC_SUBST(pluginpath)
-    AC_DEFINE_UNQUOTED(DATA_PROVIDER_PLUGINS_PATH, "$pluginpath", [Path to the SSSD data provider plugins])
+    AC_DEFINE_UNQUOTED(DATA_PROVIDER_PLUGINS_PATH, "$config_pluginpath", [Path to the SSSD data provider plugins])
   ])
 
 AC_DEFUN(WITH_PID_PATH,
@@ -35,12 +39,14 @@ AC_DEFUN(WITH_PID_PATH,
                                )
                 ]
                )
-    pidpath="/var/run"
+    config_pidpath="\"VARDIR\"/run"
+    pidpath="${localstatedir}/run"
     if test x"$with_pid_path" != x; then
+        config_pidpath=$with_pid_path
         pidpath=$with_pid_path
     fi
     AC_SUBST(pidpath)
-    AC_DEFINE_UNQUOTED(PID_PATH, "$pidpath", [Where to store pid files for the SSSD])
+    AC_DEFINE_UNQUOTED(PID_PATH, "$config_pidpath", [Where to store pid files for the SSSD])
   ])
 
 AC_DEFUN(WITH_PIPE_PATH,
@@ -50,12 +56,14 @@ AC_DEFUN(WITH_PIPE_PATH,
                                )
                 ]
                )
-    pipepath="/var/lib/sss/pipes"
+    config_pipepath="\"VARDIR\"/lib/sss/pipes"
+    pipepath="${localstatedir}/lib/sss/pipes"
     if test x"$with_pipe_path" != x; then
+        config_pipepath=$with_pipe_path
         pipepath=$with_pipe_path
     fi
     AC_SUBST(pipepath)
-    AC_DEFINE_UNQUOTED(PIPE_PATH, "$pipepath", [Where to store pipe files for the SSSD interconnects])
+    AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
 AC_DEFUN(WITH_POLICYKIT,
@@ -114,12 +122,11 @@ AC_DEFUN(WITH_INIT_DIR,
                                )
                 ]
                )
-    initdir="/etc/rc.d/init.d"
+    initdir="${sysconfdir}/rc.d/init.d"
     if test x"$with_init_dir" != x; then
         initdir=$with_init_dir
     fi
     AC_SUBST(initdir)
-    AC_DEFINE_UNQUOTED(INIT_DIR, "$initdir", [Where to store init script for sssd])
   ])
 
 

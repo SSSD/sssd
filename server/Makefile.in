@@ -18,14 +18,15 @@ builddir = @builddir@
 sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 EXTRA_OBJ=@EXTRA_OBJ@
-SSSD_LIBEXEC_PATH = @SSSD_LIBEXEC_PATH@
-SSSD_LIBDIR = $(libdir)/@PACKAGE_NAME@
-LDB_LIBDIR = $(libdir)/ldb
-SSSD_INTROSPECT_PATH = @SSSD_INTROSPECT_PATH@
+SSSD_LIBEXEC_PATH = @libexecdir@/@PACKAGE_NAME@
+SSSD_LIBDIR = @pluginpath@
+LDB_LIBDIR = @libdir@/ldb
+SSSD_INTROSPECT_PATH=@datarootdir@/@PACKAGE_NAME@/introspect
 PACKAGE_VERSION = @PACKAGE_VERSION@
-srvdir = $(srcdir)
-pipepath = @pipepath@
-dbpath = @dbpath@
+srvdir = @srcdir@
+SSSD_PIPE_PATH = @pipepath@
+SSSD_DB_PATH = @dbpath@
+SSSD_PID_PATH = @pidpath@
 
 TALLOC_LIBS = @TALLOC_LIBS@
 TALLOC_CFLAGS = @TALLOC_CFLAGS@
@@ -73,8 +74,8 @@ LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(TEVENT_LIBS) $(POPT_LIBS) $(LDB_LIBS)
 PICFLAG = @PICFLAG@
 CFLAGS += -g -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
        $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(TEVENT_CFLAGS) $(LDB_CFLAGS) $(DBUS_CFLAGS) $(CHECK_CFLAGS)\
-	-DLIBDIR=\"$(libdir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\" -DSSSD_INTROSPECT_PATH=\"$(SSSD_INTROSPECT_PATH)\"\
-	-DUSE_MMAP=1 @CFLAGS@
+	-DLIBDIR=\"$(libdir)\" -DVARDIR=\"$(localstatedir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\"\
+	-DSSSD_INTROSPECT_PATH=\"$(SSSD_INTROSPECT_PATH)\" -DUSE_MMAP=1 @CFLAGS@
 
 MDLD = @MDLD@
 MDLD_FLAGS = @MDLD_FLAGS@
@@ -174,8 +175,9 @@ installdirs::
 		  $(DESTDIR)$(LDB_LIBDIR) \
 	          $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR) \
 	          $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe \
-		  $(DESTDIR)$(pipepath)/private \
-		  $(DESTDIR)$(dbpath)
+		  $(DESTDIR)$(SSSD_PIPE_PATH)/private \
+		  $(DESTDIR)$(SSSD_DB_PATH) \
+		  $(DESTDIR)$(SSSD_PID_PATH)
 
 installheaders:: installdirs
 ifneq (x$(headers), x)
