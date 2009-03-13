@@ -23,6 +23,7 @@
 #include "util/btreemap.h"
 #include "responder/common/responder_packet.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/nss/nsssrv_nc.h"
 #include "db/sysdb.h"
 #include <time.h>
 #include "confdb/confdb.h"
@@ -54,6 +55,9 @@ struct nss_dom_ctx {
     struct sss_domain_info *domain;
     bool add_domain;
     bool check_provider;
+
+    /* cache results */
+    struct ldb_result *res;
 };
 
 struct nss_cmd_table {
@@ -267,7 +271,7 @@ done:
 }
 
 static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                        const char *err_msg, void *ptr);
+                                         const char *err_msg, void *ptr);
 
 static void nss_cmd_getpwnam_callback(void *ptr, int status,
                                    struct ldb_result *res)
@@ -280,6 +284,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     uint8_t *body;
     size_t blen;
     bool call_provider = false;
+    bool neghit = false;
     int ret;
 
     if (status != LDB_SUCCESS) {
@@ -316,11 +321,37 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
         }
     }
 
+    if (call_provider && res->count == 0) {
+        /* check negative cache before potentially expensive remote call */
+        ret = nss_ncache_check_user(cctx->nctx->ncache,
+                                    cctx->nctx->neg_timeout,
+                                    dctx->domain->name, cmdctx->name);
+        switch (ret) {
+        case EEXIST:
+            DEBUG(2, ("Negative cache hit for getpwnam call\n"));
+            res->count = 0;
+            call_provider = false;
+            neghit = true;
+            break;
+        case ENOENT:
+            break;
+        default:
+            DEBUG(4,("Error processing ncache request: %d [%s]\n",
+                     ret, strerror(ret)));
+        }
+        ret = EOK;
+    }
+
     if (call_provider) {
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* keep around current data in case backend is offline */
+        if (res->count) {
+            dctx->res = talloc_steal(dctx, res);
+        }
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getpwnam_dp_callback, dctx,
@@ -342,6 +373,15 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     case 0:
 
         DEBUG(2, ("No results for getpwnam call\n"));
+
+        /* set negative cache only if not result of cache check */
+        if (!neghit) {
+            ret = nss_ncache_set_user(cctx->nctx->ncache,
+                                      dctx->domain->name, cmdctx->name);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+        }
 
         ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              sss_packet_get_cmd(cctx->creq->in),
@@ -383,7 +423,7 @@ done:
 }
 
 static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr)
+                                         const char *err_msg, void *ptr)
 {
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -395,13 +435,28 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        if (!dctx->res) {
+            /* return 0 results */
+            dctx->res = talloc_zero(dctx, struct ldb_result);
+            if (!dctx->res) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        nss_cmd_getpwnam_callback(dctx, LDB_SUCCESS, dctx->res);
+        return;
     }
 
     ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
+
+done:
     if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
+        DEBUG(1, ("Failed to make request to our cache! (%d [%s])\n",
+                  ret, strerror(ret)));
 
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret != EOK) {
@@ -481,6 +536,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
     uint8_t *body;
     size_t blen;
     bool call_provider = false;
+    bool neghit = false;
     int ret;
 
     /* one less to go */
@@ -529,6 +585,27 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
         }
     }
 
+    if (call_provider && res->count == 0) {
+        /* check negative cache before potentially expensive remote call */
+        ret = nss_ncache_check_uid(cctx->nctx->ncache,
+                                   cctx->nctx->neg_timeout,
+                                   cmdctx->id);
+        switch (ret) {
+        case EEXIST:
+            DEBUG(2, ("Negative cache hit for getpwuid call\n"));
+            res->count = 0;
+            call_provider = false;
+            neghit = true;
+            break;
+        case ENOENT:
+            break;
+        default:
+            DEBUG(4,("Error processing ncache request: %d [%s]\n",
+                     ret, strerror(ret)));
+        }
+        ret = EOK;
+    }
+
     if (call_provider) {
 
         /* yet one more call to go */
@@ -537,6 +614,11 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
         /* dont loop forever :-) */
         dctx->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* keep around current data in case backend is offline */
+        if (res->count) {
+            dctx->res = talloc_steal(dctx, res);
+        }
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getpwuid_dp_callback, dctx,
@@ -562,6 +644,14 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
         }
 
         DEBUG(2, ("No results for getpwuid call\n"));
+
+        /* set negative cache only if not result of cache check */
+        if (!neghit) {
+            ret = nss_ncache_set_uid(cctx->nctx->ncache, cmdctx->id);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+        }
 
         ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              sss_packet_get_cmd(cctx->creq->in),
@@ -620,11 +710,25 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        if (!dctx->res) {
+            /* return 0 results */
+            dctx->res = talloc_zero(dctx, struct ldb_result);
+            if (!dctx->res) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        nss_cmd_getpwnam_callback(dctx, LDB_SUCCESS, dctx->res);
+        return;
     }
 
     ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->id,
                          nss_cmd_getpwuid_callback, dctx);
+
+done:
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -1249,6 +1353,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     uint8_t *body;
     size_t blen;
     bool call_provider = false;
+    bool neghit = false;
     int ret;
 
     if (status != LDB_SUCCESS) {
@@ -1277,11 +1382,37 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
         }
     }
 
+    if (call_provider && res->count == 0) {
+        /* check negative cache before potentially expensive remote call */
+        ret = nss_ncache_check_group(cctx->nctx->ncache,
+                                     cctx->nctx->neg_timeout,
+                                     dctx->domain->name, cmdctx->name);
+        switch (ret) {
+        case EEXIST:
+            DEBUG(2, ("Negative cache hit for getgrnam call\n"));
+            res->count = 0;
+            call_provider = false;
+            neghit = true;
+            break;
+        case ENOENT:
+            break;
+        default:
+            DEBUG(4,("Error processing ncache request: %d [%s]\n",
+                     ret, strerror(ret)));
+        }
+        ret = EOK;
+    }
+
     if (call_provider) {
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* keep around current data in case backend is offline */
+        if (res->count) {
+            dctx->res = talloc_steal(dctx, res);
+        }
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getgrnam_dp_callback, dctx,
@@ -1304,6 +1435,15 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     case 0:
 
         DEBUG(2, ("No results for getgrnam call\n"));
+
+        /* set negative cache only if not result of cache check */
+        if (!neghit) {
+            ret = nss_ncache_set_group(cctx->nctx->ncache,
+                                       dctx->domain->name, cmdctx->name);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+        }
 
         ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              sss_packet_get_cmd(cctx->creq->in),
@@ -1352,11 +1492,25 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        if (!dctx->res) {
+            /* return 0 results */
+            dctx->res = talloc_zero(dctx, struct ldb_result);
+            if (!dctx->res) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        nss_cmd_getgrnam_callback(dctx, LDB_SUCCESS, dctx->res);
+        return;
     }
 
     ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
+
+done:
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -1437,6 +1591,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
     uint8_t *body;
     size_t blen;
     bool call_provider = false;
+    bool neghit = false;
     int ret;
 
     /* one less to go */
@@ -1476,6 +1631,27 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         }
     }
 
+    if (call_provider && res->count == 0) {
+        /* check negative cache before potentially expensive remote call */
+        ret = nss_ncache_check_gid(cctx->nctx->ncache,
+                                   cctx->nctx->neg_timeout,
+                                   cmdctx->id);
+        switch (ret) {
+        case EEXIST:
+            DEBUG(2, ("Negative cache hit for getgrgid call\n"));
+            res->count = 0;
+            call_provider = false;
+            neghit = true;
+            break;
+        case ENOENT:
+            break;
+        default:
+            DEBUG(4,("Error processing ncache request: %d [%s]\n",
+                     ret, strerror(ret)));
+        }
+        ret = EOK;
+    }
+
     if (call_provider) {
 
         /* yet one more call to go */
@@ -1484,6 +1660,11 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         /* dont loop forever :-) */
         dctx->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* keep around current data in case backend is offline */
+        if (res->count) {
+            dctx->res = talloc_steal(dctx, res);
+        }
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getgrgid_dp_callback, dctx,
@@ -1509,6 +1690,14 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         }
 
         DEBUG(2, ("No results for getgrgid call\n"));
+
+        /* set negative cache only if not result of cache check */
+        if (!neghit) {
+            ret = nss_ncache_set_gid(cctx->nctx->ncache, cmdctx->id);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+        }
 
         ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              sss_packet_get_cmd(cctx->creq->in),
@@ -1561,11 +1750,25 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        if (!dctx->res) {
+            /* return 0 results */
+            dctx->res = talloc_zero(dctx, struct ldb_result);
+            if (!dctx->res) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        nss_cmd_getgrgid_callback(dctx, LDB_SUCCESS, dctx->res);
+        return;
     }
 
     ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->id,
                          nss_cmd_getgrgid_callback, dctx);
+
+done:
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -2082,11 +2285,25 @@ static void nss_cmd_getinitnam_callback(uint16_t err_maj, uint32_t err_min,
                   "Error: %u, %u, %s\n"
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        if (!dctx->res) {
+            /* return 0 results */
+            dctx->res = talloc_zero(dctx, struct ldb_result);
+            if (!dctx->res) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        nss_cmd_getinit_callback(dctx, LDB_SUCCESS, dctx->res);
+        return;
     }
 
     ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
+
+done:
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
 
@@ -2109,6 +2326,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     uint8_t *body;
     size_t blen;
     bool call_provider = false;
+    bool neghit = false;
     int ret;
 
     if (status != LDB_SUCCESS) {
@@ -2136,11 +2354,37 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
         }
     }
 
+    if (call_provider && res->count == 0) {
+        /* check negative cache before potentially expensive remote call */
+        ret = nss_ncache_check_user(cctx->nctx->ncache,
+                                   cctx->nctx->neg_timeout,
+                                   dctx->domain->name, cmdctx->name);
+        switch (ret) {
+        case EEXIST:
+            DEBUG(2, ("Negative cache hit for initgr call\n"));
+            res->count = 0;
+            call_provider = false;
+            neghit = false;
+            break;
+        case ENOENT:
+            break;
+        default:
+            DEBUG(4,("Error processing ncache request: %d [%s]\n",
+                     ret, strerror(ret)));
+        }
+        ret = EOK;
+    }
+
     if (call_provider) {
 
         /* dont loop forever :-) */
         dctx->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* keep around current data in case backend is offline */
+        if (res->count) {
+            dctx->res = talloc_steal(dctx, res);
+        }
 
         ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
                                    nss_cmd_getinitnam_callback, dctx,
@@ -2163,6 +2407,15 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     case 0:
 
         DEBUG(2, ("No results for initgroups call\n"));
+
+        /* set negative cache only if not result of cache check */
+        if (!neghit) {
+            ret = nss_ncache_set_user(cctx->nctx->ncache,
+                                      dctx->domain->name, cmdctx->name);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+        }
 
         ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
                              sss_packet_get_cmd(cctx->creq->in),

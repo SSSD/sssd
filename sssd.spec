@@ -13,7 +13,8 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 ### Dependencies ###
 
-Requires: libldb >= 0.9.3
+Requires: libldb = 0.9.3
+Requires: libtdb >= 1.1.3
 
 Requires(preun):  initscripts chkconfig
 Requires(postun): /sbin/service

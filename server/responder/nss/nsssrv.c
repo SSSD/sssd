@@ -32,6 +32,7 @@
 #include "popt.h"
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/nss/nsssrv_nc.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
@@ -476,8 +477,15 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    ret = nss_ncache_init(nctx, &nctx->ncache);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing negative cache\n"));
+        return ret;
+    }
+
     nctx->expire_time = 120; /* FIXME: read from conf */
     nctx->cache_timeout = 600; /* FIXME: read from conf */
+    nctx->neg_timeout = 15; /* FIXME: read from conf */
 
     DEBUG(1, ("NSS Initialization complete\n"));
 

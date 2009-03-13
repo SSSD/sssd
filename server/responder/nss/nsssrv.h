@@ -64,6 +64,8 @@ struct nss_ctx {
     char *default_domain;
 
     int cache_timeout;
+    int neg_timeout;
+    struct nss_nc_ctx *ncache;
 
     int expire_time;
     time_t last_user_enum;

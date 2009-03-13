@@ -41,7 +41,8 @@ LDAP_BE_OBJ = \
 NSSSRV_OBJ = \
     responder/nss/nsssrv.o \
     responder/nss/nsssrv_cmd.o \
-    responder/nss/nsssrv_dp.o
+    responder/nss/nsssrv_dp.o \
+    responder/nss/nsssrv_nc.o
 
 INFOPIPE_OBJ = \
     infopipe/infopipe.o \
