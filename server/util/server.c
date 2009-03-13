@@ -93,11 +93,12 @@ int pidfile(const char *path, const char *name)
     pid_t pid;
     char *file;
     int fd;
-    int ret;
+    int ret, err;
 
     asprintf(&file, "%s/%s.pid", path, name);
 
     fd = open(file, O_RDONLY, 0644);
+    err = errno;
     if (fd != -1) {
 
         pid_str[sizeof(pid_str) -1] = '\0';
@@ -122,16 +123,17 @@ int pidfile(const char *path, const char *name)
         unlink(file);
 
     } else {
-        if (errno != ENOENT) {
+        if (err != ENOENT) {
             free(file);
-            return EIO;
+            return err;
         }
     }
 
     fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
+    err = errno;
     if (fd == -1) {
         free(file);
-        return EIO;
+        return err;
     }
     free(file);
 
@@ -139,9 +141,10 @@ int pidfile(const char *path, const char *name)
     snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
 
     ret = write(fd, pid_str, strlen(pid_str));
+    err = errno;
     if (ret != strlen(pid_str)) {
         close(fd);
-        return EIO;
+        return err;
     }
 
     close(fd);
@@ -251,8 +254,9 @@ int server_setup(const char *name, int flags,
     if (flags & FLAGS_PID_FILE) {
         ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
-            DEBUG(0, ("ERROR: PID File reports daemon already running!\n"));
-            return EEXIST;
+            DEBUG(0, ("Error creating pidfile! (%d [%s])\n",
+                      ret, strerror(ret)));
+            return ret;
         }
     }
 
