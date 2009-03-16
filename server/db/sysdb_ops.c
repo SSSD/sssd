@@ -23,8 +23,24 @@
 #include "db/sysdb_private.h"
 #include <time.h>
 
-#define return_error(ctx, ret) ctx->fn(ctx->pvt, ret, NULL)
-#define return_done(ctx) ctx->fn(ctx->pvt, EOK, NULL)
+struct sysdb_cb_ctx {
+    sysdb_callback_t fn;
+    void *pvt;
+
+    bool ignore_not_found;
+};
+
+static int sysdb_ret_error(struct sysdb_cb_ctx *ctx, int ret, int lret)
+{
+    ctx->fn(ctx->pvt, ret, NULL);
+    return lret;
+};
+
+static int sysdb_ret_done(struct sysdb_cb_ctx *ctx)
+{
+    ctx->fn(ctx->pvt, EOK, NULL);
+    return LDB_SUCCESS;
+};
 
 static int add_string(struct ldb_message *msg, int flags,
                       const char *attr, const char *value)
@@ -72,40 +88,29 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
     return l;
 }
 
-struct sysdb_cb_ctx {
-    sysdb_callback_t fn;
-    void *pvt;
-
-    bool ignore_not_found;
-};
-
 static int sysdb_op_callback(struct ldb_request *req, struct ldb_reply *rep)
 {
     struct sysdb_cb_ctx *cbctx;
+    int err;
 
     cbctx = talloc_get_type(req->context, struct sysdb_cb_ctx);
 
     if (!rep) {
-        return_error(cbctx, EIO);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EIO, LDB_ERR_OPERATIONS_ERROR);
     }
     if (rep->error != LDB_SUCCESS) {
         if (! (cbctx->ignore_not_found &&
                rep->error == LDB_ERR_NO_SUCH_OBJECT)) {
-            return_error(cbctx, sysdb_error_to_errno(rep->error));
-            return rep->error;
+            err = sysdb_error_to_errno(rep->error);
+            return sysdb_ret_error(cbctx, err, rep->error);
         }
     }
 
     if (rep->type != LDB_REPLY_DONE) {
-        talloc_free(rep);
-        return_error(cbctx, EINVAL);
-        return LDB_ERR_OPERATIONS_ERROR;
+        sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
     }
 
-    talloc_free(rep);
-    return_done(cbctx);
-    return LDB_SUCCESS;
+    return sysdb_ret_done(cbctx);
 }
 
 int sysdb_add_group_member(struct sysdb_req *sysreq,
@@ -269,7 +274,7 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
     struct ldb_request *delreq;
     struct ldb_result *res;
     struct ldb_dn *dn;
-    int ret;
+    int ret, err;
 
     del_ctx = talloc_get_type(req->context, struct delete_ctx);
     ctx = sysdb_req_get_ctx(del_ctx->sysreq);
@@ -277,12 +282,11 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
     res = del_ctx->res;
 
     if (!rep) {
-        return_error(cbctx, EIO);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EIO, LDB_ERR_OPERATIONS_ERROR);
     }
     if (rep->error != LDB_SUCCESS) {
-        return_error(cbctx, sysdb_error_to_errno(rep->error));
-        return rep->error;
+        err = sysdb_error_to_errno(rep->error);
+        return sysdb_ret_error(cbctx, err, rep->error);
     }
 
     switch (rep->type) {
@@ -290,14 +294,11 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
         if (res->msgs != NULL) {
             DEBUG(1, ("More than one reply for a base search ?! "
                       "DB seems corrupted, aborting."));
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EFAULT, LDB_ERR_OPERATIONS_ERROR);
         }
         res->msgs = talloc_realloc(res, res->msgs, struct ldb_message *, 2);
         if (!res->msgs) {
-            ret = LDB_ERR_OPERATIONS_ERROR;
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return ret;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         res->msgs[0] = talloc_steal(res->msgs, rep->message);
@@ -310,14 +311,12 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
 
         if (res->count == 0) {
             DEBUG(7, ("Base search returned no results\n"));
-            return_done(cbctx);
-            break;
+            return sysdb_ret_done(cbctx);
         }
 
         dn = ldb_dn_copy(del_ctx, res->msgs[0]->dn);
         if (!dn) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         talloc_free(res);
@@ -329,14 +328,13 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
             ret = ldb_request(ctx->ldb, delreq);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return LDB_ERR_OPERATIONS_ERROR;
+            err = sysdb_error_to_errno(ret);
+            return sysdb_ret_error(cbctx, err, ret);
         }
         break;
 
     default:
-        return_error(cbctx, EINVAL);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
     }
 
     talloc_free(rep);
@@ -589,7 +587,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
     struct ldb_message *msg;
     struct ldb_result *res;
     char *filter;
-    int ret;
+    int ret, err;
 
     idctx = talloc_get_type(req->context, struct next_id_ctx);
     ctx = sysdb_req_get_ctx(idctx->sysreq);
@@ -597,12 +595,11 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
     res = idctx->res;
 
     if (!rep) {
-        return_error(cbctx, EIO);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EIO, LDB_ERR_OPERATIONS_ERROR);
     }
     if (rep->error != LDB_SUCCESS) {
-        return_error(cbctx, sysdb_error_to_errno(rep->error));
-        return rep->error;
+        err = sysdb_error_to_errno(rep->error);
+        return sysdb_ret_error(cbctx, err, rep->error);
     }
 
     switch (rep->type) {
@@ -617,15 +614,12 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
         if (res->msgs != NULL) {
             DEBUG(1, ("More than one reply for a base search ?! "
                       "DB seems corrupted, aborting."));
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EFAULT, LDB_ERR_OPERATIONS_ERROR);
         }
 
         res->msgs = talloc_realloc(res, res->msgs, struct ldb_message *, 2);
         if (!res->msgs) {
-            ret = LDB_ERR_OPERATIONS_ERROR;
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return ret;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         res->msgs[0] = talloc_steal(res->msgs, rep->message);
@@ -643,8 +637,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
                 if (idctx->tmp_id == (uint32_t)(-1)) {
                     DEBUG(1, ("Invalid Next ID in domain %s\n",
                               idctx->domain->name));
-                    return_error(cbctx, ERANGE);
-                    return LDB_ERR_OPERATIONS_ERROR;
+                    return sysdb_ret_error(cbctx, ERANGE, LDB_ERR_OPERATIONS_ERROR);
                 }
             } else {
                 DEBUG(4, ("Base search returned no results, adding min id!\n"));
@@ -659,8 +652,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
                 (idctx->tmp_id > idctx->domain->id_max)) {
                 DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
                           idctx->tmp_id, idctx->domain->id_max));
-                return_error(cbctx, ERANGE);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ERANGE, LDB_ERR_OPERATIONS_ERROR);
             }
 
             talloc_free(res->msgs);
@@ -684,8 +676,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
 
         default:
             DEBUG(1, ("Invalid step, aborting.\n"));
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EFAULT, LDB_ERR_OPERATIONS_ERROR);
         }
 
         switch (idctx->step) {
@@ -694,8 +685,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
                                      SYSDB_UIDNUM, idctx->tmp_id,
                                      SYSDB_GIDNUM, idctx->tmp_id);
             if (!filter) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
             ret = ldb_build_search_req(&nreq, ctx->ldb, idctx,
                                        idctx->base_dn, LDB_SCOPE_SUBTREE,
@@ -706,8 +696,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
         case NEXTID_STORE:
             msg = ldb_msg_new(idctx);
             if (!msg) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
 
             msg->dn = idctx->base_dn;
@@ -715,8 +704,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
             ret = add_ulong(msg, LDB_FLAG_MOD_REPLACE,
                             SYSDB_NEXTID, idctx->tmp_id);
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
 
             ret = ldb_build_mod_req(&nreq, ctx->ldb, idctx, msg, NULL,
@@ -725,42 +713,31 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
 
         default:
             DEBUG(1, ("Invalid step, aborting.\n"));
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EFAULT, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (ret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
                       ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return LDB_ERR_OPERATIONS_ERROR;
+            err = sysdb_error_to_errno(ret);
+            return sysdb_ret_error(cbctx, err, ret);
         }
 
         ret = ldb_request(ctx->ldb, nreq);
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return LDB_ERR_OPERATIONS_ERROR;
+            err = sysdb_error_to_errno(ret);
+            return sysdb_ret_error(cbctx, err, ret);
         }
 
         break;
 
     default:
-        return_error(cbctx, EINVAL);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
     }
 
     talloc_free(rep);
     return LDB_SUCCESS;
 }
-
-struct check_name_ctx {
-    struct sysdb_req *sysreq;
-
-    sysdb_callback_t fn;
-    void *pvt;
-
-    struct ldb_result *res;
-};
 
 static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep);
 
@@ -770,7 +747,7 @@ int sysdb_check_name_unique(struct sysdb_req *sysreq,
                             sysdb_callback_t fn, void *pvt)
 {
     static const char *attrs[] = { SYSDB_NAME, NULL };
-    struct check_name_ctx *cnctx;
+    struct sysdb_cb_ctx *cbctx;
     struct sysdb_ctx *ctx;
     struct ldb_dn *base_dn;
     struct ldb_request *req;
@@ -784,26 +761,22 @@ int sysdb_check_name_unique(struct sysdb_req *sysreq,
 
     ctx = sysdb_req_get_ctx(sysreq);
 
-    cnctx = talloc_zero(mem_ctx, struct check_name_ctx);
-    if (!cnctx) return ENOMEM;
+    cbctx = talloc_zero(mem_ctx, struct sysdb_cb_ctx);
+    if (!cbctx) return ENOMEM;
 
-    cnctx->sysreq = sysreq;
-    cnctx->fn = fn;
-    cnctx->pvt = pvt;
+    cbctx->fn = fn;
+    cbctx->pvt = pvt;
 
-    base_dn = sysdb_domain_dn(ctx, cnctx, domain->name);
+    base_dn = sysdb_domain_dn(ctx, cbctx, domain->name);
     if (!base_dn) return ENOMEM;
 
-    filter = talloc_asprintf(cnctx, SYSDB_CHECK_FILTER, name);
+    filter = talloc_asprintf(cbctx, SYSDB_CHECK_FILTER, name);
     if (!filter) return ENOMEM;
-
-    cnctx->res = talloc_zero(cnctx, struct ldb_result);
-    if (!cnctx->res) return ENOMEM;
 
     ret = ldb_build_search_req(&req, ctx->ldb, mem_ctx,
                                base_dn, LDB_SCOPE_SUBTREE,
                                filter, attrs, NULL,
-                               cnctx, check_name_callback, NULL);
+                               cbctx, check_name_callback, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
@@ -818,19 +791,18 @@ int sysdb_check_name_unique(struct sysdb_req *sysreq,
 
 static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep)
 {
-    struct check_name_ctx *cnctx;
+    struct sysdb_cb_ctx *cbctx;
     struct sysdb_ctx *ctx;
+    int err;
 
-    cnctx = talloc_get_type(req->context, struct check_name_ctx);
-    ctx = sysdb_req_get_ctx(cnctx->sysreq);
+    cbctx = talloc_get_type(req->context, struct sysdb_cb_ctx);
 
     if (!rep) {
-        return_error(cnctx, EIO);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EIO, LDB_ERR_OPERATIONS_ERROR);
     }
     if (rep->error != LDB_SUCCESS) {
-        return_error(cnctx, sysdb_error_to_errno(rep->error));
-        return rep->error;
+        err = sysdb_error_to_errno(rep->error);
+        return sysdb_ret_error(cbctx, err, rep->error);
     }
 
     switch (rep->type) {
@@ -838,18 +810,14 @@ static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep)
 
         /* one found, that means name is not available */
         /* return EEXIST */
-        return_error(cnctx, EEXIST);
-        return LDB_ERR_ENTRY_ALREADY_EXISTS;
-        break;
+        return sysdb_ret_error(cbctx, EEXIST, LDB_ERR_ENTRY_ALREADY_EXISTS);
 
     case LDB_REPLY_DONE:
 
-        return_done(cnctx);
-        break;
+        return sysdb_ret_done(cbctx);
 
     default:
-        return_error(cnctx, EINVAL);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
     }
 
     return LDB_SUCCESS;
@@ -932,13 +900,13 @@ static void user_check_callback(void *pvt, int error, struct ldb_result *res)
 
     user_ctx = talloc_get_type(pvt, struct user_add_ctx);
     if (error != EOK) {
-        return_error(user_ctx->cbctx, error);
+        sysdb_ret_error(user_ctx->cbctx, error, LDB_ERR_OPERATIONS_ERROR);
         return;
     }
 
     ret = user_add_id(user_ctx);
     if (ret != EOK) {
-        return_error(user_ctx->cbctx, ret);
+        sysdb_ret_error(user_ctx->cbctx, ret, LDB_ERR_OPERATIONS_ERROR);
     }
 }
 
@@ -962,7 +930,7 @@ static void user_add_id_callback(void *pvt, int error, struct ldb_result *res)
 
     user_ctx = talloc_get_type(pvt, struct user_add_ctx);
     if (error != EOK) {
-        return_error(user_ctx->cbctx, error);
+        sysdb_ret_error(user_ctx->cbctx, error, LDB_ERR_OPERATIONS_ERROR);
         return;
     }
 
@@ -972,7 +940,7 @@ static void user_add_id_callback(void *pvt, int error, struct ldb_result *res)
 
     ret = user_add_call(user_ctx);
     if (ret != EOK) {
-        return_error(user_ctx->cbctx, ret);
+        sysdb_ret_error(user_ctx->cbctx, ret, LDB_ERR_OPERATIONS_ERROR);
     }
 }
 
@@ -1112,13 +1080,13 @@ static void group_check_callback(void *pvt, int error, struct ldb_result *res)
 
     group_ctx = talloc_get_type(pvt, struct group_add_ctx);
     if (error != EOK) {
-        return_error(group_ctx->cbctx, error);
+        sysdb_ret_error(group_ctx->cbctx, error, LDB_ERR_OPERATIONS_ERROR);
         return;
     }
 
     ret = group_add_id(group_ctx);
     if (ret != EOK) {
-        return_error(group_ctx->cbctx, ret);
+        sysdb_ret_error(group_ctx->cbctx, ret, LDB_ERR_OPERATIONS_ERROR);
     }
 }
 
@@ -1142,7 +1110,7 @@ static void group_add_id_callback(void *pvt, int error, struct ldb_result *res)
 
     group_ctx = talloc_get_type(pvt, struct group_add_ctx);
     if (error != EOK) {
-        return_error(group_ctx->cbctx, error);
+        sysdb_ret_error(group_ctx->cbctx, error, LDB_ERR_OPERATIONS_ERROR);
         return;
     }
 
@@ -1150,7 +1118,9 @@ static void group_add_id_callback(void *pvt, int error, struct ldb_result *res)
     group_ctx->gid = group_ctx->id.id;
 
     ret = group_add_call(group_ctx);
-    if (ret != EOK) return_error(group_ctx->cbctx, ret);
+    if (ret != EOK) {
+        sysdb_ret_error(group_ctx->cbctx, ret, LDB_ERR_OPERATIONS_ERROR);
+    }
 }
 
 static int group_add_call(struct group_add_ctx *group_ctx)
@@ -1366,7 +1336,7 @@ static int legacy_user_callback(struct ldb_request *req,
     struct ldb_request *ureq;
     struct ldb_result *res;
     int flags;
-    int ret;
+    int ret, err;
 
     user_ctx = talloc_get_type(req->context, struct legacy_user_ctx);
     ctx = sysdb_req_get_ctx(user_ctx->sysreq);
@@ -1374,12 +1344,11 @@ static int legacy_user_callback(struct ldb_request *req,
     res = user_ctx->res;
 
     if (!rep) {
-        return_error(cbctx, EIO);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EIO, LDB_ERR_OPERATIONS_ERROR);
     }
     if (rep->error != LDB_SUCCESS) {
-        return_error(cbctx, sysdb_error_to_errno(rep->error));
-        return rep->error;
+        err = sysdb_error_to_errno(rep->error);
+        return sysdb_ret_error(cbctx, err, rep->error);
     }
 
     switch (rep->type) {
@@ -1388,9 +1357,7 @@ static int legacy_user_callback(struct ldb_request *req,
                                    struct ldb_message *,
                                    res->count + 2);
         if (!res->msgs) {
-            ret = LDB_ERR_OPERATIONS_ERROR;
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return ret;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         res->msgs[res->count + 1] = NULL;
@@ -1404,8 +1371,7 @@ static int legacy_user_callback(struct ldb_request *req,
 
         msg = ldb_msg_new(cbctx);
         if (!msg) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
         msg->dn = user_ctx->dn;
 
@@ -1420,8 +1386,7 @@ static int legacy_user_callback(struct ldb_request *req,
             DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
                       res->count));
 
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EFAULT, LDB_ERR_OPERATIONS_ERROR);
         }
 
         talloc_free(res);
@@ -1430,14 +1395,12 @@ static int legacy_user_callback(struct ldb_request *req,
         if (flags == LDB_FLAG_MOD_ADD) {
             ret = add_string(msg, flags, "objectClass", SYSDB_USER_CLASS);
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
 
             ret = add_string(msg, flags, SYSDB_NAME, user_ctx->name);
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
         }
 
@@ -1448,34 +1411,29 @@ static int legacy_user_callback(struct ldb_request *req,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (user_ctx->uid) {
             ret = add_ulong(msg, flags, SYSDB_UIDNUM,
                                         (unsigned long)(user_ctx->uid));
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
         } else {
             DEBUG(0, ("Cached users can't have UID == 0\n"));
-            return_error(cbctx, EINVAL);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (user_ctx->gid) {
             ret = add_ulong(msg, flags, SYSDB_GIDNUM,
                                         (unsigned long)(user_ctx->gid));
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
         } else {
             DEBUG(0, ("Cached users can't have GID == 0\n"));
-            return_error(cbctx, EINVAL);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (user_ctx->gecos && *user_ctx->gecos) {
@@ -1485,8 +1443,7 @@ static int legacy_user_callback(struct ldb_request *req,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (user_ctx->homedir && *user_ctx->homedir) {
@@ -1496,8 +1453,7 @@ static int legacy_user_callback(struct ldb_request *req,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (user_ctx->shell && *user_ctx->shell) {
@@ -1507,16 +1463,14 @@ static int legacy_user_callback(struct ldb_request *req,
                                      LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         /* modification time */
         ret = add_ulong(msg, flags, SYSDB_LAST_UPDATE,
                                     (unsigned long)time(NULL));
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (flags == LDB_FLAG_MOD_ADD) {
@@ -1530,14 +1484,13 @@ static int legacy_user_callback(struct ldb_request *req,
             ret = ldb_request(ctx->ldb, ureq);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return LDB_ERR_OPERATIONS_ERROR;
+            err = sysdb_error_to_errno(ret);
+            return sysdb_ret_error(cbctx, err, ret);
         }
         break;
 
     default:
-        return_error(cbctx, EINVAL);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
     }
 
     talloc_free(rep);
@@ -1630,7 +1583,7 @@ static int legacy_group_callback(struct ldb_request *req,
     struct ldb_request *greq;
     struct ldb_result *res;
     int flags;
-    int i, ret;
+    int i, ret, err;
 
     group_ctx = talloc_get_type(req->context, struct legacy_group_ctx);
     ctx = sysdb_req_get_ctx(group_ctx->sysreq);
@@ -1638,12 +1591,11 @@ static int legacy_group_callback(struct ldb_request *req,
     res = group_ctx->res;
 
     if (!rep) {
-        return_error(cbctx, EIO);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EIO, LDB_ERR_OPERATIONS_ERROR);
     }
     if (rep->error != LDB_SUCCESS) {
-        return_error(cbctx, sysdb_error_to_errno(rep->error));
-        return rep->error;
+        err = sysdb_error_to_errno(rep->error);
+        return sysdb_ret_error(cbctx, err, rep->error);
     }
 
     switch (rep->type) {
@@ -1652,9 +1604,7 @@ static int legacy_group_callback(struct ldb_request *req,
                                    struct ldb_message *,
                                    res->count + 2);
         if (!res->msgs) {
-            ret = LDB_ERR_OPERATIONS_ERROR;
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return ret;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         res->msgs[res->count + 1] = NULL;
@@ -1668,8 +1618,7 @@ static int legacy_group_callback(struct ldb_request *req,
 
         msg = ldb_msg_new(cbctx);
         if (!msg) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
         msg->dn = group_ctx->dn;
 
@@ -1684,8 +1633,7 @@ static int legacy_group_callback(struct ldb_request *req,
             DEBUG(0, ("Cache DB corrupted, base search returned %d results\n",
                       res->count));
 
-            return_error(cbctx, EFAULT);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EFAULT, LDB_ERR_OPERATIONS_ERROR);
         }
 
         talloc_free(res);
@@ -1694,14 +1642,12 @@ static int legacy_group_callback(struct ldb_request *req,
         if (flags == LDB_FLAG_MOD_ADD) {
             ret = add_string(msg, flags, "objectClass", SYSDB_GROUP_CLASS);
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
 
             ret = add_string(msg, flags, SYSDB_NAME, group_ctx->name);
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
         }
 
@@ -1709,28 +1655,24 @@ static int legacy_group_callback(struct ldb_request *req,
             ret = add_ulong(msg, flags, SYSDB_GIDNUM,
                                         (unsigned long)(group_ctx->gid));
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
         } else {
             DEBUG(0, ("Cached groups can't have GID == 0\n"));
-            return_error(cbctx, EINVAL);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
         }
 
         /* members */
         if (group_ctx->members && group_ctx->members[0]) {
             ret = ldb_msg_add_empty(msg, SYSDB_LEGACY_MEMBER, flags, NULL);
             if (ret != LDB_SUCCESS) {
-                return_error(cbctx, ENOMEM);
-                return LDB_ERR_OPERATIONS_ERROR;
+                return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
             }
             for (i = 0; group_ctx->members[i]; i++) {
                 ret = ldb_msg_add_string(msg, SYSDB_LEGACY_MEMBER,
                                               group_ctx->members[i]);
                 if (ret != LDB_SUCCESS) {
-                    return_error(cbctx, ENOMEM);
-                    return LDB_ERR_OPERATIONS_ERROR;
+                    return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
                 }
             }
         }
@@ -1739,8 +1681,7 @@ static int legacy_group_callback(struct ldb_request *req,
         ret = add_ulong(msg, flags, SYSDB_LAST_UPDATE,
                                     (unsigned long)time(NULL));
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, ENOMEM);
-            return LDB_ERR_OPERATIONS_ERROR;
+            return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
         }
 
         if (flags == LDB_FLAG_MOD_ADD) {
@@ -1754,14 +1695,13 @@ static int legacy_group_callback(struct ldb_request *req,
             ret = ldb_request(ctx->ldb, greq);
         }
         if (ret != LDB_SUCCESS) {
-            return_error(cbctx, sysdb_error_to_errno(ret));
-            return LDB_ERR_OPERATIONS_ERROR;
+            err = sysdb_error_to_errno(ret);
+            return sysdb_ret_error(cbctx, err, ret);
         }
         break;
 
     default:
-        return_error(cbctx, EINVAL);
-        return LDB_ERR_OPERATIONS_ERROR;
+        return sysdb_ret_error(cbctx, EINVAL, LDB_ERR_OPERATIONS_ERROR);
     }
 
     talloc_free(rep);
