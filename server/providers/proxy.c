@@ -85,8 +85,8 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
         switch( msgm[i]->msg_style ) {
             case PAM_PROMPT_ECHO_OFF:
                 DEBUG(4, ("Conversation message: %s.\n", msgm[i]->msg));
-                reply[i].resp_retcode = 0; 
-                reply[i].resp = strdup(auth_data->authtok); 
+                reply[i].resp_retcode = 0;
+                reply[i].resp = strdup(auth_data->authtok);
                 break;
             default:
                 DEBUG(1, ("Conversation style %d not supported.\n",
@@ -1050,10 +1050,17 @@ static void proxy_get_account_info(struct be_req *req)
     }
 }
 
+static void proxy_shutdown(struct be_req *req)
+{
+    /* TODO: Clean up any internal data */
+    req->fn(req, EOK, NULL);
+}
+
 struct be_mod_ops proxy_mod_ops = {
     .check_online = proxy_check_online,
     .get_account_info = proxy_get_account_info,
-    .pam_handler = proxy_pam_handler
+    .pam_handler = proxy_pam_handler,
+    .finalize = proxy_shutdown
 };
 
 static void *proxy_dlsym(void *handle, const char *functemp, char *libname)

@@ -646,11 +646,13 @@ static int mon_cli_init(struct be_ctx *ctx)
     return EOK;
 }
 
+static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt);
+
 /* be_cli_init
  * sbus channel to the data provider daemon */
 static int be_cli_init(struct be_ctx *ctx)
 {
-    int ret;
+    int ret, max_retries;
     char *sbus_address;
     struct sbus_method_ctx *sm_ctx;
 
@@ -677,7 +679,90 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
+    /* Enable automatic reconnection to the Data Provider */
+    ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
+                         "retries", 3, &max_retries);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        return ret;
+    }
+
+    sbus_reconnect_init(ctx->dp_ctx->scon_ctx, max_retries,
+                        be_cli_reconnect_init, ctx);
+
     return EOK;
+}
+
+static int be_finalize(struct be_ctx *ctx);
+static void be_shutdown(struct be_req *req, int status,
+                        const char *errstr);
+
+static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt)
+{
+    int ret;
+    struct be_ctx *be_ctx = talloc_get_type(pvt, struct be_ctx);
+
+    /* Did we reconnect successfully? */
+    if (status == SBUS_RECONNECT_SUCCESS) {
+        /* Add the methods back to the new connection */
+        ret = sbus_conn_add_method_ctx(be_ctx->dp_ctx->scon_ctx,
+                                       be_ctx->dp_ctx->sm_ctx);
+        if (ret != EOK) {
+            DEBUG(0, ("Could not re-add methods on reconnection.\n"));
+            ret = be_finalize(be_ctx);
+            if (ret != EOK) {
+                DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]", ret, strerror(ret)));
+                be_shutdown(NULL, ret, NULL);
+            }
+            return;
+        }
+
+        DEBUG(1, ("Reconnected to the Data Provider.\n"));
+        return;
+    }
+
+    /* Handle failure */
+    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    /* Kill the backend and let the monitor restart it */
+    ret = be_finalize(be_ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]", ret, strerror(ret)));
+        be_shutdown(NULL, ret, NULL);
+    }
+}
+
+static void be_shutdown(struct be_req *req, int status,
+                        const char *errstr)
+{
+    /* Nothing left to do but exit() */
+    if (status == EOK)
+        exit(0);
+
+    /* Something went wrong in finalize */
+    exit(1);
+}
+
+static int be_finalize(struct be_ctx *ctx)
+{
+    int ret;
+    struct be_req *shutdown_req = talloc_zero(ctx, struct be_req);
+    if (!shutdown_req) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    shutdown_req->be_ctx = ctx;
+    shutdown_req->fn = be_shutdown;
+
+    shutdown_req->pvt = ctx->pvt_data;
+
+    ret = be_file_request(ctx, ctx->ops->finalize, shutdown_req);
+    if (ret == EOK) return EOK;
+
+fail:
+    /* If we got here, we couldn't shut down cleanly. */
+    DEBUG(0, ("ERROR: could not shut down cleanly.\n"));
+    return ret;
 }
 
 static int load_backend(struct be_ctx *ctx)
@@ -827,13 +912,19 @@ int main(int argc, const char *argv[])
     if (!srv_name) return 2;
 
     ret = server_setup(srv_name, 0, &main_ctx);
-    if (ret != EOK) return 2;
+    if (ret != EOK) {
+        DEBUG(0, ("Could not set up mainloop [%d]\n", ret));
+        return 2;
+    }
 
     ret = be_process_init(main_ctx,
                           be_name, be_domain,
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
-    if (ret != EOK) return 3;
+    if (ret != EOK) {
+        DEBUG(0, ("Could not initialize backend [%d]\n", ret));
+        return 3;
+    }
 
     DEBUG(1, ("Backend provider %s(%s) started!\n", be_name, be_domain));
 

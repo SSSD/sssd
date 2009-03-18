@@ -26,6 +26,10 @@
 #include "db/sysdb.h"
 #include "responder/pam/pamsrv.h"
 
+struct be_ctx;
+
+typedef void (*be_shutdown_fn)(void *);
+
 struct be_mod_ops;
 
 struct be_ctx {
@@ -40,6 +44,7 @@ struct be_ctx {
     const char *conf_path;
     struct be_mod_ops *ops;
     void *pvt_data;
+    be_shutdown_fn shutdown;
 };
 
 struct be_req;
@@ -65,12 +70,19 @@ struct be_online_req {
     int online;
 };
 
+struct be_pam_handler {
+    int pam_status;
+    const char *domain;
+    struct pam_data *pd;
+};
+
 typedef void (*be_req_fn_t)(struct be_req *);
 
 struct be_mod_ops {
     be_req_fn_t check_online;
     be_req_fn_t get_account_info;
     be_req_fn_t pam_handler;
+    be_req_fn_t finalize;
 };
 
 #endif /* __DP_BACKEND_H___ */

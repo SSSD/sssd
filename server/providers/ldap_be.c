@@ -622,10 +622,17 @@ done:
     req->fn(req, pam_status, NULL);
 }
 
+static void ldap_shutdown(struct be_req *req)
+{
+    /* TODO: Clean up any internal data */
+    req->fn(req, EOK, NULL);
+}
+
 struct be_mod_ops ldap_mod_ops = {
     .check_online = NULL,
     .get_account_info = NULL,
-    .pam_handler = ldap_pam_handler
+    .pam_handler = ldap_pam_handler,
+    .finalize = ldap_shutdown
 };
 
 
