@@ -96,7 +96,7 @@ static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
     timeout.tv_usec += tv.tv_usec;
 
 
-    te = tevent_add_timer(lr->req->be_ctx->ev, lr, timeout, task, lr); 
+    te = tevent_add_timer(lr->req->be_ctx->ev, lr, timeout, task, lr);
     if (te == NULL) {
         return EIO;
     }
@@ -271,7 +271,7 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
     int pam_status=PAM_SUCCESS;
     int ldap_ret;
     struct ldap_req *lr;
-    struct be_pam_handler *ph;
+    struct pam_data *pd;
     struct be_req *req;
     LDAPMessage *result=NULL;
     LDAPMessage *msg=NULL;
@@ -281,7 +281,7 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
     char *filter=NULL;
     char *attrs[] = { LDAP_NO_ATTRS, NULL };
 
-    lr = talloc_get_type(pvt, struct ldap_req); 
+    lr = talloc_get_type(pvt, struct ldap_req);
 
     switch (lr->next_op) {
         case LDAP_OP_INIT:
@@ -533,8 +533,8 @@ done:
     talloc_free(filter);
     if (lr->ldap != NULL) ldap_unbind_ext(lr->ldap, NULL, NULL);
     req = lr->req;
-    ph = talloc_get_type(lr->req->req_data, struct be_pam_handler);
-    ph->pam_status = pam_status;
+    pd = talloc_get_type(lr->req->req_data, struct pam_data);
+    pd->pam_status = pam_status;
 
     talloc_free(lr);
 
@@ -548,9 +548,9 @@ static void ldap_start(struct tevent_context *ev, struct tevent_timer *te,
     int pam_status;
     struct ldap_req *lr;
     struct be_req *req;
-    struct be_pam_handler *ph;
+    struct pam_data *pd;
 
-    lr = talloc_get_type(pvt, struct ldap_req); 
+    lr = talloc_get_type(pvt, struct ldap_req);
 
     ret = ldap_be_init(lr);
     if (ret != EOK) {
@@ -573,8 +573,8 @@ static void ldap_start(struct tevent_context *ev, struct tevent_timer *te,
 done:
     if (lr->ldap != NULL ) ldap_unbind_ext(lr->ldap, NULL, NULL);
     req = lr->req;
-    ph = talloc_get_type(lr->req->req_data, struct be_pam_handler);
-    ph->pam_status = pam_status;
+    pd = talloc_get_type(lr->req->req_data, struct pam_data);
+    pd->pam_status = pam_status;
 
     talloc_free(lr);
 
@@ -587,12 +587,10 @@ static void ldap_pam_handler(struct be_req *req)
     int pam_status=PAM_SUCCESS;
     struct ldap_req *lr;
     struct ldap_ctx *ldap_ctx;
-    struct be_pam_handler *ph;
     struct pam_data *pd;
     struct timeval timeout;
 
-    ph = talloc_get_type(req->req_data, struct be_pam_handler);
-    pd = ph->pd;
+    pd = talloc_get_type(req->req_data, struct pam_data);
 
     ldap_ctx = talloc_get_type(req->be_ctx->pvt_data, struct ldap_ctx);
 
@@ -620,7 +618,7 @@ static void ldap_pam_handler(struct be_req *req)
 done:
     talloc_free(lr);
 
-    ph->pam_status = pam_status;
+    pd->pam_status = pam_status;
     req->fn(req, pam_status, NULL);
 }
 

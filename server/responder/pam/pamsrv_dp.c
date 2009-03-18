@@ -44,8 +44,6 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr)
     DBusMessage* msg;
     int ret;
     int type;
-    dbus_uint32_t pam_status;
-    char *domain;
     struct pam_reply_ctx *rctx;
 
     rctx = talloc_get_type(ptr, struct pam_reply_ctx);
@@ -64,27 +62,21 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr)
     type = dbus_message_get_type(msg);
     switch (type) {
         case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-            ret = dbus_message_get_args(msg, &dbus_error,
-                                        DBUS_TYPE_UINT32, &pam_status,
-                                        DBUS_TYPE_STRING, &domain,
-                                        DBUS_TYPE_INVALID);
+            ret = dp_unpack_pam_response(msg, rctx->pd, &dbus_error);
             if (!ret) {
                 DEBUG(0, ("Failed to parse reply.\n"));
                 rctx->pd->pam_status = PAM_SYSTEM_ERR;
-                domain = NULL;
                 goto done;
             }
-            DEBUG(4, ("received: [%d][%s]\n", pam_status, domain));
-            rctx->pd->pam_status = pam_status;
-            rctx->pd->domain = talloc_strdup(rctx->cctx, domain);
+            DEBUG(4, ("received: [%d][%s]\n", rctx->pd->pam_status, rctx->pd->domain));
             break;
         case DBUS_MESSAGE_TYPE_ERROR:
             DEBUG(0, ("Reply error.\n"));
-            pam_status = PAM_SYSTEM_ERR;
+            rctx->pd->pam_status = PAM_SYSTEM_ERR;
             break;
         default:
             DEBUG(0, ("Default... what now?.\n"));
-            pam_status = PAM_SYSTEM_ERR;
+            rctx->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
 
@@ -141,21 +133,7 @@ int pam_dp_send_req(struct cli_ctx *cctx,
     DEBUG(4, ("Sending request with the following data:\n"));
     DEBUG_PAM_DATA(4, pd);
 
-    ret = dbus_message_append_args(msg,
-                                   DBUS_TYPE_INT32, &(pd->cmd),
-                                   DBUS_TYPE_STRING, &(pd->domain),
-                                   DBUS_TYPE_STRING, &(pd->user),
-                                   DBUS_TYPE_STRING, &(pd->service),
-                                   DBUS_TYPE_STRING, &(pd->tty),
-                                   DBUS_TYPE_STRING, &(pd->ruser),
-                                   DBUS_TYPE_STRING, &(pd->rhost),
-                                   DBUS_TYPE_INT32, &(pd->authtok_type),
-                                   DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                       &(pd->authtok), pd->authtok_size,
-                                   DBUS_TYPE_INT32, &(pd->newauthtok_type),
-                                   DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                       &(pd->newauthtok), pd->newauthtok_size,
-                                   DBUS_TYPE_INVALID);
+    ret = dp_pack_pam_request(msg, pd);
     if (!ret) {
         DEBUG(1,("Failed to build message\n"));
         return EIO;

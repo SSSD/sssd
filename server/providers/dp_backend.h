@@ -65,12 +65,6 @@ struct be_online_req {
     int online;
 };
 
-struct be_pam_handler {
-    int pam_status; 
-    const char *domain;
-    struct pam_data *pd;
-};
-
 typedef void (*be_req_fn_t)(struct be_req *);
 
 struct be_mod_ops {

@@ -512,19 +512,16 @@ done:
 
 static void be_pam_handler_callback(struct be_req *req, int status,
                                 const char *errstr) {
-    struct be_pam_handler *ph;
+    struct pam_data *pd;
     DBusMessage *reply;
     DBusConnection *conn;
     dbus_bool_t dbret;
 
-    ph = talloc_get_type(req->req_data, struct be_pam_handler);
+    pd = talloc_get_type(req->req_data, struct pam_data);
 
-    DEBUG(4, ("Sending result [%d][%s]\n", ph->pam_status, ph->domain));
+    DEBUG(4, ("Sending result [%d][%s]\n", pd->pam_status, pd->domain));
     reply = (DBusMessage *)req->pvt;
-    dbret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_UINT32, &(ph->pam_status),
-                                   DBUS_TYPE_STRING, &(ph->domain),
-                                   DBUS_TYPE_INVALID);
+    dbret = dp_pack_pam_response(reply, pd);
     if (!dbret) {
         DEBUG(1, ("Failed to generate dbus reply\n"));
         return;
@@ -534,7 +531,7 @@ static void be_pam_handler_callback(struct be_req *req, int status,
     dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
 
-    DEBUG(4, ("Sent result [%d][%s]\n", ph->pam_status, ph->domain));
+    DEBUG(4, ("Sent result [%d][%s]\n", pd->pam_status, pd->domain));
 
     talloc_free(req);
 }
@@ -544,7 +541,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     DBusError dbus_error;
     DBusMessage *reply;
     struct be_ctx *ctx;
-    struct be_pam_handler *req;
     struct be_req *be_req;
     dbus_bool_t ret;
     void *user_data;
@@ -556,7 +552,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
 
-    pd = talloc(NULL, struct pam_data);
+    pd = talloc_zero(ctx, struct pam_data);
     if (!pd) return ENOMEM;
 
     dbus_error_init(&dbus_error);
@@ -568,24 +564,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
         return ENOMEM;
     }
 
-
-    ret = dbus_message_get_args(message, &dbus_error,
-                                DBUS_TYPE_INT32,  &(pd->cmd),
-                                DBUS_TYPE_STRING, &(pd->domain),
-                                DBUS_TYPE_STRING, &(pd->user),
-                                DBUS_TYPE_STRING, &(pd->service),
-                                DBUS_TYPE_STRING, &(pd->tty),
-                                DBUS_TYPE_STRING, &(pd->ruser),
-                                DBUS_TYPE_STRING, &(pd->rhost),
-                                DBUS_TYPE_INT32, &(pd->authtok_type),
-                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                    &(pd->authtok),
-                                    &(pd->authtok_size),
-                                DBUS_TYPE_INT32, &(pd->newauthtok_type),
-                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                    &(pd->newauthtok),
-                                    &(pd->newauthtok_size),
-                                DBUS_TYPE_INVALID);
+    ret = dp_unpack_pam_request(message, pd, &dbus_error);
     if (!ret) {
         DEBUG(1,("Failed, to parse message!\n"));
         talloc_free(pd);
@@ -603,16 +582,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     be_req->be_ctx = ctx;
     be_req->fn = be_pam_handler_callback;
     be_req->pvt = reply;
-
-    req = talloc(be_req, struct be_pam_handler);
-    if (!req) {
-        pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-    req->domain = ctx->domain;
-    req->pd = pd;
-
-    be_req->req_data = req;
+    be_req->req_data = pd;
 
     ret = be_file_request(ctx, ctx->ops->pam_handler, be_req);
     if (ret != EOK) {

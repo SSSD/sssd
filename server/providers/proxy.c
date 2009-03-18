@@ -111,11 +111,9 @@ static void proxy_pam_handler(struct be_req *req) {
     pam_handle_t *pamh=NULL;
     struct authtok_conv *auth_data;
     struct pam_conv conv;
-    struct be_pam_handler *ph;
     struct pam_data *pd;
 
-    ph = talloc_get_type(req->req_data, struct be_pam_handler);
-    pd = ph->pd;
+    pd = talloc_get_type(req->req_data, struct pam_data);
 
     conv.conv=proxy_internal_conv;
     auth_data = talloc_zero(req->be_ctx, struct authtok_conv);
@@ -181,7 +179,7 @@ static void proxy_pam_handler(struct be_req *req) {
 
     talloc_free(auth_data);
 
-    ph->pam_status = pam_status;
+    pd->pam_status = pam_status;
     req->fn(req, EOK, NULL);
 }
 

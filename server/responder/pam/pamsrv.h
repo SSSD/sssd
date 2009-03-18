@@ -51,4 +51,9 @@ struct sss_cmd_table *register_sss_cmds(void);
 int pam_dp_send_req(struct cli_ctx *cctx, pam_dp_callback_t callback,
                     int timeout, struct pam_data *pd);
 
+
+int dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
+int dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
+int dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
+int dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
 #endif /* __PAMSRV_H__ */
