@@ -22,8 +22,8 @@
 /*** Monitor ***/
 
 #define MONITOR_VERSION "0.1"
-#define MONITOR_DBUS_INTERFACE "org.freeipa.sssd.monitor"
-#define MONITOR_DBUS_PATH "/org/freeipa/sssd/monitor"
+#define MONITOR_DBUS_INTERFACE "org.freedesktop.sssd.monitor"
+#define MONITOR_DBUS_PATH "/org/freedesktop/sssd/monitor"
 
 /* Monitor Methods */
 #define MONITOR_METHOD_VERSION "getVersion"
@@ -31,8 +31,8 @@
 
 /*** Services ***/
 
-#define SERVICE_PATH "/org/freeipa/sssd/service"
-#define SERVICE_INTERFACE "org.freeipa.sssd.service"
+#define SERVICE_PATH "/org/freedesktop/sssd/service"
+#define SERVICE_INTERFACE "org.freedesktop.sssd.service"
 
 /* Service Methods */
 #define SERVICE_METHOD_IDENTITY "getIdentity"

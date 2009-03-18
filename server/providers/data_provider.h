@@ -45,8 +45,8 @@
 #define MOD_OFFLINE 0x0000
 #define MOD_ONLINE  0x0001
 
-#define DP_CLI_INTERFACE "org.freeipa.sssd.dataprovider"
-#define DP_CLI_PATH "/org/freeipa/sssd/dataprovider"
+#define DP_CLI_INTERFACE "org.freedesktop.sssd.dataprovider"
+#define DP_CLI_PATH "/org/freedesktop/sssd/dataprovider"
 
 #define DP_CLI_BACKEND 0x0001
 #define DP_CLI_FRONTEND 0x0002

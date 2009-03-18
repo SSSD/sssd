@@ -25,17 +25,17 @@
 #include <dbus/dbus.h>
 #include "sbus/sssd_dbus.h"
 
-#define INFP_INTROSPECT_XML "infopipe/org.freeipa.sssd.infopipe.Introspect.xml"
+#define INFP_INTROSPECT_XML "infopipe/org.freedesktop.sssd.infopipe.Introspect.xml"
 
-#define INFOPIPE_DBUS_NAME "org.freeipa.sssd.infopipe1"
-#define INFOPIPE_INTERFACE "org.freeipa.sssd.infopipe1"
-#define INFOPIPE_PATH "/org/freeipa/sssd/infopipe1"
+#define INFOPIPE_DBUS_NAME "org.freedesktop.sssd.infopipe1"
+#define INFOPIPE_INTERFACE "org.freedesktop.sssd.infopipe1"
+#define INFOPIPE_PATH "/org/freedesktop/sssd/infopipe1"
 #define INFOPIPE_VERSION 0x0001
 #define INFOPIPE_SERVICE_NAME "info"
 
 /* InfoPipe Methods
  * NOTE: Any changes to the method names and arguments for these calls
- * must also be updated in the org.freeipa.sssd.infopipe.Introspect.xml
+ * must also be updated in the org.freedesktop.sssd.infopipe.Introspect.xml
  * or clients may not behave properly.
  */
 

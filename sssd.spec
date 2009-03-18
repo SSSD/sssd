@@ -95,8 +95,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
 %{_sharedstatedir}/sss/
-%config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freeipa.sssd.infopipe.conf
-%{_datadir}/%{name}/introspect/infopipe/org.freeipa.sssd.infopipe.Introspect.xml
+%config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
+%{_datadir}/%{name}/introspect/infopipe/org.freedesktop.sssd.infopipe.Introspect.xml
 /%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so

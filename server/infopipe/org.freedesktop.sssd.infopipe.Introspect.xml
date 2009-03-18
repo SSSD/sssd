@@ -1,13 +1,13 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
     "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-<node name="/org/freeipa/sssd/infopipe1">
-    <interface name="org.freeipa.sssd.infopipe">
+<node name="/org/freedesktop/sssd/infopipe1">
+    <interface name="org.freedesktop.sssd.infopipe">
         <annotation
-            name="org.freeipa.sssd.infopipe.DocString.Summary"
+            name="org.freedesktop.sssd.infopipe.DocString.Summary"
             value="InfoPipe Interface version 1"
         />
         <annotation
-            name="org.freeipa.sssd.infopipe.DocString"
+            name="org.freedesktop.sssd.infopipe.DocString"
             value="This is a D-BUS interface used for reading and writing POSIX and extended user attributes within the System Security Services Daemon."
         />
 
@@ -18,7 +18,7 @@
 -->
         <method name="CheckPermissions1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Determine whether the caller has permissions on one or more instances of domain objects
                        @param domain The domain to query
                        @param object An object type in the domain
@@ -63,7 +63,7 @@
 -->
         <method name="GetCachedUsers1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Get a list of users stored locally in SSSD for this system. This is not a complete user listing for remote domains, only a listing of domain members that have logged in locally.
                        @param domain The domain to query.
                        @param minlastlogin Return only users who have logged in successfully since this UNIX timestamp. For all cached users in a domain, set to 0.
@@ -72,12 +72,12 @@
             />
             <arg name="domain" type="s" direction="in" />
             <arg name="minlastlogin" type="t" direction="in" />
-            <arg name="users" type="as" />
+            <arg name="users" type="as" direction="out"/>
         </method>
 
         <method name="CreateUser1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Create a new user in a particular domain. User will initially have a disabled password.
                        @param username Username for the new user. Must be unique within a domain.
                        @param domain The domain in which to add the user
@@ -99,7 +99,7 @@
 
         <method name="DeleteUser1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Delete a user by UID from a specified domain.
                        @param username The user to delete.
                        @param domain The domain from which to delete the user.
@@ -113,7 +113,7 @@
 
         <method name="GetUserAttributes1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Get user information
                        @param usernames An array of unique usernames.
                        @param domain The domain from which to query user information.
@@ -142,7 +142,7 @@
 
         <method name="SetUserAttributes1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Set user attributes for one or more users
                        @param usernames An array of unique usernames.
                        @param domain The domain of the users to edit.
@@ -169,7 +169,7 @@
 
         <method name="Set_YouReallyDoNotWantToUseThisFunction_UserUID1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Change the User ID for a user.
                        @param username The username
                        @param domain The user's domain
@@ -191,7 +191,7 @@
 -->
         <method name="CreateGroup1">
              <annotation
-                 name="org.freeipa.sssd.infopipe.DocString"
+                 name="org.freedesktop.sssd.infopipe.DocString"
                  value="Create new user groups
                         @param groupnames A list of new groups to add.
                         @param domain The domain in which to create the groups.
@@ -207,7 +207,7 @@
 
         <method name="DeleteGroup1">
              <annotation
-                 name="org.freeipa.sssd.infopipe.DocString"
+                 name="org.freedesktop.sssd.infopipe.DocString"
                  value="Delete a user group
                         @param groupname A group to delete.
                         @param domain The domain from which to delete the group.
@@ -222,7 +222,7 @@
 
         <method name="AddGroupMembers1">
             <annotation
-                 name="org.freeipa.sssd.infopipe.DocString"
+                 name="org.freedesktop.sssd.infopipe.DocString"
                  value="Add members to a group
                         @param group Group being modified.
                         @param domain The domain the group belongs to.
@@ -240,7 +240,7 @@
 
         <method name="RemoveGroupMembers1">
             <annotation
-                 name="org.freeipa.sssd.infopipe.DocString"
+                 name="org.freedesktop.sssd.infopipe.DocString"
                  value="Remove members from a group
                         @param group Group being modified.
                         @param domain The domain the group belongs to.
@@ -257,7 +257,7 @@
 
         <method name="Set_YouReallyDoNotWantToUseThisFunction_GroupGID1">
             <annotation
-                name="org.freeipa.sssd.infopipe.DocString"
+                name="org.freedesktop.sssd.infopipe.DocString"
                 value="Change the User ID for a user.
                        @param group The group name
                        @param domain The group's domain

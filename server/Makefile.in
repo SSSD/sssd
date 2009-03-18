@@ -110,8 +110,8 @@ DBUS_SYSBUS_POLICY_DIR = @sysconfdir@/dbus-1/system.d
 LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_pam
 ifneq (x$(HAVE_INFOPIPE), x)
     LIBEXECBINS += sbin/sssd_info
-    DBUS_SYSBUS_POLICIES = infopipe/org.freeipa.sssd.infopipe.conf
-    INFP_INTROSPECT_XML = infopipe/org.freeipa.sssd.infopipe.Introspect.xml
+    DBUS_SYSBUS_POLICIES = infopipe/org.freedesktop.sssd.infopipe.conf
+    INFP_INTROSPECT_XML = infopipe/org.freedesktop.sssd.infopipe.Introspect.xml
 endif
 ifneq (x$(HAVE_POLICYKIT), x)
     LIBEXECBINS += sbin/sssd_pk

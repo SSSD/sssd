@@ -31,7 +31,7 @@
 #include "infopipe/infopipe.h"
 #include "db/sysdb.h"
 
-#define INFP_TEST_DBUS_NAME "org.freeipa.sssd.infopipe1.test"
+#define INFP_TEST_DBUS_NAME "org.freedesktop.sssd.infopipe1.test"
 #define TEST_TIMEOUT 30000 /* 30 seconds */
 
 static int setup_infp_tests(DBusConnection **bus)
