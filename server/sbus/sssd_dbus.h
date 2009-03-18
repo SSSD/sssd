@@ -35,6 +35,8 @@ typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_conn_ctx *);
  */
 typedef int (*sbus_conn_destructor_fn)(void *);
 
+typedef void (*sbus_conn_reconn_callback_fn)(struct sbus_conn_ctx *, int, void *);
+
 /*
  * sbus_server_conn_init_fn
  * Set up function for connection-specific activities
@@ -46,6 +48,12 @@ typedef int (*sbus_server_conn_init_fn)(struct sbus_conn_ctx *, void *);
 enum {
     SBUS_CONN_TYPE_PRIVATE = 1,
     SBUS_CONN_TYPE_SHARED
+};
+
+enum {
+    SBUS_RECONNECT_SUCCESS = 1,
+    SBUS_RECONNECT_EXCEEDED_RETRIES,
+    SBUS_RECONNECT_ERROR
 };
 
 /* Special interface and method for D-BUS introspection */
@@ -116,6 +124,15 @@ void *sbus_conn_get_private_data(struct sbus_conn_ctx *conn_ctx);
 int sbus_conn_add_method_ctx(struct sbus_conn_ctx *conn_ctx,
                              struct sbus_method_ctx *method_ctx);
 bool sbus_conn_disconnecting(struct sbus_conn_ctx *conn_ctx);
+
+/* max_retries < 0: retry forever
+ * max_retries = 0: never retry (why are you calling this function?)
+ * max_retries > 0: obvious
+ */
+void sbus_reconnect_init(struct sbus_conn_ctx *conn_ctx,
+                         int max_retries,
+                         sbus_conn_reconn_callback_fn callback,
+                         void *pvt);
 
 /* Default message handler
  * Should be usable for most cases */
