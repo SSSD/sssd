@@ -859,7 +859,9 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     pctx->doms = talloc_realloc(pctx, pctx->doms, struct dom_ctx, pctx->num +1);
     if (!pctx->doms) NSS_CMD_FATAL_ERROR(cctx);
 
-    pctx->doms[pctx->num].domain = dctx->domain->name;
+    if (dctx->add_domain) {
+        pctx->doms[pctx->num].domain = dctx->domain->name;
+    }
     pctx->doms[pctx->num].res = talloc_steal(pctx->doms, res);
     pctx->doms[pctx->num].cur = 0;
 
@@ -1897,7 +1899,9 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     gctx->doms = talloc_realloc(gctx, gctx->doms, struct dom_ctx, gctx->num +1);
     if (!gctx->doms) NSS_CMD_FATAL_ERROR(cctx);
 
-    gctx->doms[gctx->num].domain = dctx->domain->name;
+    if (dctx->add_domain) {
+        gctx->doms[gctx->num].domain = dctx->domain->name;
+    }
     gctx->doms[gctx->num].res = talloc_steal(gctx->doms, res);
     gctx->doms[gctx->num].cur = 0;
 
