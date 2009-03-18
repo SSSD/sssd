@@ -629,13 +629,15 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     ret = confdb_add_param(cdb, false, "config/domains", "default", val);
     if(ret != EOK) goto done;
 
-    /* Set enumeration of LOCAL domain to 1 */
-    val[0] = "1";
+    /* Set enumeration of LOCAL domain to allow user and groups
+     * (mask 1: users, 2: groups)
+     */
+    val[0] = "3";
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "enumerate", val);
     if (ret != EOK) goto done;
 
     /* LOCAL uses Magic Private Groups by default */
-    val[0] = "1";
+    val[0] = "TRUE";
     ret = confdb_add_param(cdb, false, "config/domains/LOCAL", CONFDB_MPG, val);
     if (ret != EOK) goto done;
 
