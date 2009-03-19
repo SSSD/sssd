@@ -39,6 +39,7 @@
 } while(0)
 
 struct confdb_ctx {
+    struct tevent_context *pev;
     struct ldb_context *ldb;
 };
 
@@ -658,7 +659,20 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     if (!cdb)
         return ENOMEM;
 
-    cdb->ldb = ldb_init(cdb, ev);
+    /* Because condb calls use sync ldb calls, we create a separate event
+     * context here. This will prevent the ldb sync calls to start nested
+     * events.
+     * NOTE: this means that we *cannot* do async calls and return in confdb
+     * unless we convert all calls and hook back to the main event context.
+     */
+
+    cdb->pev = tevent_context_init(cdb);
+    if (!cdb->pev) {
+        talloc_free(cdb);
+        return EIO;
+    }
+
+    cdb->ldb = ldb_init(cdb, cdb->pev);
     if (!cdb->ldb) {
         talloc_free(cdb);
         return EIO;
