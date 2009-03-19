@@ -36,7 +36,9 @@ struct pam_items {
 
 static int eval_response(pam_handle_t *pamh, int buflen, uint8_t *buf)
 {
+    int ret;
     int p=0;
+    char *env_item;
     int32_t *c;
     int32_t *type;
     int32_t *len;
@@ -60,6 +62,36 @@ static int eval_response(pam_handle_t *pamh, int buflen, uint8_t *buf)
                 break;
             case PAM_DOMAIN_NAME:
                 D(("domain name: [%s]", &buf[p]));
+                break;
+            case ENV_ITEM:
+            case PAM_ENV_ITEM:
+            case ALL_ENV_ITEM:
+                if (buf[p + (*len -1)] != '\0') {
+                    D(("env item does not end with \\0.\n"));
+                    break;
+                }
+
+                D(("env item: [%s]", &buf[p]));
+                if (*type == PAM_ENV_ITEM || *type == ALL_ENV_ITEM) {
+                    ret = pam_putenv(pamh, &buf[p]);
+                    if (ret != PAM_SUCCESS) {
+                        D(("pam_putenv failed.\n"));
+                        break;
+                    }
+                }
+
+                if (*type == ENV_ITEM || *type == ALL_ENV_ITEM) {
+                    env_item = strdup(&buf[p]);
+                    if (env_item == NULL) {
+                        D(("strdup failed\n"));
+                        break;
+                    }
+                    ret = putenv(env_item);
+                    if (ret == -1) {
+                        D(("putenv failed.\n"));
+                        break;
+                    }
+                }
                 break;
         }
         p += *len;

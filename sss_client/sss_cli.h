@@ -157,6 +157,9 @@ enum sss_status {
 enum response_type {
     PAM_USER_INFO = 0x01,
     PAM_DOMAIN_NAME,
+    PAM_ENV_ITEM,    /* only pam environment */
+    ENV_ITEM,        /* only user environment */
+    ALL_ENV_ITEM,    /* pam and user environment */
 };
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,

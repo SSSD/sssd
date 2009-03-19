@@ -17,7 +17,7 @@ void pam_print_data(int l, struct pam_data *pd)
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,
-                     int len, uint8_t *data)
+                     int len, const uint8_t *data)
 {
     struct response_data *new;
 
@@ -34,7 +34,7 @@ int pam_add_response(struct pam_data *pd, enum response_type type,
     return EOK;
 }
 
-int dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
+bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
 {
     int ret;
 
@@ -59,7 +59,7 @@ int dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
     return ret;
 }
 
-int dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
+bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
 {
     int ret;
 
@@ -84,27 +84,106 @@ int dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus
     return ret;
 }
 
-int dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
+bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
 {
     int ret;
+    struct response_data *resp;
 
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_UINT32, &(pd->pam_status),
                                    DBUS_TYPE_STRING, &(pd->domain),
                                    DBUS_TYPE_INVALID);
+    if (!ret) return ret;
 
-    return ret;
+    resp = pd->resp_list;
+    while (resp != NULL) {
+        ret=dbus_message_append_args(msg,
+                                 DBUS_TYPE_UINT32, &(resp->type),
+                                 DBUS_TYPE_UINT32, &(resp->len),
+                                 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(resp->data),
+                                    resp->len,
+                                 DBUS_TYPE_INVALID);
+        if (!ret) return ret;
+
+        resp = resp->next;
+    }
+
+    return true;
 }
 
-int dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
+bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
 {
     int ret;
+    DBusMessageIter iter;
+    DBusMessageIter sub_iter;
+    int type;
+    int len;
+    int len_msg;
+    const uint8_t *data;
 
-    ret = dbus_message_get_args(msg, dbus_error,
-                                DBUS_TYPE_UINT32, &(pd->pam_status),
-                                DBUS_TYPE_STRING, &(pd->domain),
-                                DBUS_TYPE_INVALID);
+    if (!dbus_message_iter_init(msg, &iter)) {
+        DEBUG(1, ("pam response has no arguments.\n"));
+        return false;
+    }
 
-    return ret;
+    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+        DEBUG(1, ("pam response format error.\n"));
+        return false;
+    }
+    dbus_message_iter_get_basic(&iter, &(pd->pam_status));
+
+    if (!dbus_message_iter_next(&iter)) {
+        DEBUG(1, ("pam response has too few arguments.\n"));
+        return false;
+    }
+
+    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
+        DEBUG(1, ("pam response format error.\n"));
+        return false;
+    }
+    dbus_message_iter_get_basic(&iter, &(pd->domain));
+
+    while(dbus_message_iter_next(&iter)) {
+        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+        dbus_message_iter_get_basic(&iter, &type);
+
+        if (!dbus_message_iter_next(&iter)) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+
+        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+        dbus_message_iter_get_basic(&iter, &len);
+
+        if (!dbus_message_iter_next(&iter)) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+
+        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY ||
+            dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_BYTE) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+
+        dbus_message_iter_recurse(&iter, &sub_iter);
+        dbus_message_iter_get_fixed_array(&sub_iter, &data, &len_msg);
+        if (len != len_msg) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+
+        pam_add_response(pd, type, len, data);
+
+    }
+
+    return true;
 }
 
