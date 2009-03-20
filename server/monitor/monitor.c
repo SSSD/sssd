@@ -50,8 +50,10 @@ struct mt_svc {
     struct mt_conn *mt_conn;
     struct mt_ctx *mt_ctx;
 
+    char *provider;
     char *command;
     char *name;
+    char *identity;
     pid_t pid;
 
     int ping_time;
@@ -59,6 +61,8 @@ struct mt_svc {
     int restarts;
     time_t last_restart;
     time_t last_pong;
+
+    int debug_level;
 };
 
 struct mt_ctx {
@@ -412,8 +416,19 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             talloc_free(ctx);
             return ENOMEM;
         }
-        svc->name = ctx->services[i];
         svc->mt_ctx = ctx;
+
+        svc->name = talloc_strdup(svc, ctx->services[i]);
+        if (!svc->name) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
+
+        svc->identity = talloc_strdup(svc, ctx->services[i]);
+        if (!svc->identity) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
 
         path = talloc_asprintf(svc, "config/services/%s", svc->name);
         if (!path) {
@@ -421,11 +436,22 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             return ENOMEM;
         }
 
-        ret = confdb_get_string(cdb, svc, path, "command", NULL, &svc->command);
+        ret = confdb_get_string(cdb, svc, path, "command",
+                                NULL, &svc->command);
         if (ret != EOK) {
             DEBUG(0,("Failed to start service '%s'\n", svc->name));
             talloc_free(svc);
             continue;
+        }
+
+        if (!svc->command) {
+            svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d",
+                                           SSSD_LIBEXEC_PATH, svc->name,
+                                           debug_level);
+            if (!svc->command) {
+                talloc_free(ctx);
+                return ENOMEM;
+            }
         }
 
         ret = confdb_get_int(cdb, svc, path, "timeout",
@@ -463,18 +489,38 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             talloc_free(ctx);
             return ENOMEM;
         }
-        svc->name = talloc_asprintf(svc, "%%BE_%s", doms[i]);
         svc->mt_ctx = ctx;
+
+        svc->name = talloc_strdup(svc, doms[i]);
+        if (!svc->name) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
+
+        svc->identity = talloc_asprintf(svc, "%%BE_%s", svc->name);
+        if (!svc->identity) {
+            talloc_free(ctx);
+            return ENOMEM;
+        }
 
         path = talloc_asprintf(svc, "config/domains/%s", doms[i]);
         if (!path) {
             talloc_free(ctx);
             return ENOMEM;
         }
+
+        ret = confdb_get_string(cdb, svc, path,
+                                "provider", NULL, &svc->provider);
+        if (ret != EOK) {
+            DEBUG(0, ("Failed to find provider from [%s] configuration\n", doms[i]));
+            talloc_free(svc);
+            continue;
+        }
+
         ret = confdb_get_string(cdb, svc, path,
                                 "command", NULL, &svc->command);
         if (ret != EOK) {
-            DEBUG(0, ("Failed to find provider [%s] configuration\n", doms[i]));
+            DEBUG(0, ("Failed to find command from [%s] configuration\n", doms[i]));
             talloc_free(svc);
             continue;
         }
@@ -489,14 +535,22 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 
         talloc_free(path);
 
-        /* if no command is present do not run the domain */
-        if (svc->command == NULL) {
-            /* the LOCAL domain does not need a backend at the moment */
-            if (strcasecmp(doms[i], "LOCAL") != 0) {
-                DEBUG(0, ("Missing command to run provider\n"));
-            }
+        /* if no provider is present do not run the domain */
+        if (!svc->provider) {
             talloc_free(svc);
             continue;
+        }
+
+        /* if there are no custom commands, build a default one */
+        if (!svc->command) {
+            svc->command = talloc_asprintf(svc,
+                                "%s/sssd_be -d %d --provider %s --domain %s",
+                                SSSD_LIBEXEC_PATH, debug_level,
+                                svc->provider, svc->name);
+            if (!svc->command) {
+                talloc_free(ctx);
+                return ENOMEM;
+            }
         }
 
         ret = start_service(svc);
@@ -657,7 +711,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         /* search this service in the list */
         svc = fake_svc->mt_ctx->svc_list;
         while (svc) {
-            ret = strcasecmp(svc->name, svc_name);
+            ret = strcasecmp(svc->identity, svc_name);
             if (ret == 0) {
                 break;
             }

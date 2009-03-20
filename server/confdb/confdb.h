@@ -32,8 +32,10 @@
 
 struct sss_domain_info {
     char *name;
+    char *provider;
     int timeout;
     int enumerate;
+    bool fqnames;
     bool legacy;
     bool mpg;
     uint32_t id_min;

@@ -24,12 +24,14 @@
 #include "ldb_errors.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
+#include "confdb/confdb_private.h"
 #include "util/btreemap.h"
 #include "db/sysdb.h"
 #define CONFDB_VERSION "0.1"
 #define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
 #define CONFDB_DOMAIN_ATTR "cn"
 #define CONFDB_MPG "magicPrivateGroups"
+#define CONFDB_FQ "useFullyQualifiedNames"
 
 #define CONFDB_ZERO_CHECK_OR_JUMP(var, ret, err, label) do { \
     if (!var) { \
@@ -522,6 +524,8 @@ static int confdb_test(struct confdb_ctx *cdb)
 
 static int confdb_init_db(struct confdb_ctx *cdb)
 {
+    const char *base_ldif;
+	struct ldb_ldif *ldif;
     const char *val[2];
     int ret;
     TALLOC_CTX *tmp_ctx;
@@ -529,88 +533,18 @@ static int confdb_init_db(struct confdb_ctx *cdb)
     tmp_ctx = talloc_new(cdb);
     if(tmp_ctx == NULL) return ENOMEM;
 
-    val[0] = CONFDB_VERSION;
-    val[1] = NULL;
-
-    /* Add the confdb version */
-    ret = confdb_add_param(cdb,
-                           false,
-                           "config",
-                           "version",
-                            val);
-    if (ret != EOK) goto done;
-
-    /* Set up default monitored services */
-    val[0] = "Local service configuration";
-    ret = confdb_add_param(cdb, false, "config/services", "description", val);
-    if (ret != EOK) goto done;
-
-/* PAM */
-    /* set the sssd_pam description */
-    val[0] = "PAM Responder Configuration";
-    ret = confdb_add_param(cdb, false, "config/services/pam", "description", val);
-    if (ret != EOK) goto done;
-
-    /* Set the sssd_pam command path */
-    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_pam", SSSD_LIBEXEC_PATH);
-    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
-    ret = confdb_add_param(cdb, false, "config/services/pam", "command", val);
-    if (ret != EOK) goto done;
-
-#if 0 /* for future use */
-    /* Set the sssd_pam socket path */
-    val[0] = talloc_asprintf(tmp_ctx, "%s/pam", PIPE_PATH);
-    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
-    ret = confdb_add_param(cdb, false, "config/services/pam", "unixSocket", val);
-    if (ret != EOK) goto done;
-#endif /* for future use */
-
-    /* Add PAM to the list of active services */
-    val[0] = "pam";
-    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
-    if (ret != EOK) goto done;
-
-/* NSS */
-    /* set the sssd_nss description */
-    val[0] = "NSS Responder Configuration";
-    ret = confdb_add_param(cdb, false, "config/services/nss", "description", val);
-    if (ret != EOK) goto done;
-
-    /* Set the sssd_nss command path */
-    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", SSSD_LIBEXEC_PATH);
-    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
-    ret = confdb_add_param(cdb, false, "config/services/nss", "command", val);
-    if (ret != EOK) goto done;
-
-#if 0 /* for future use */
-    /* Set the sssd_nss socket path */
-    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_nss", PIPE_PATH);
-    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
-    ret = confdb_add_param(cdb, false, "config/services/nss", "unixSocket", val);
-    if (ret != EOK) goto done;
-#endif /* for future use */
-
-    /* Add NSS to the list of active services */
-    val[0] = "nss";
-    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
-    if (ret != EOK) goto done;
-
-/* Data Provider */
-    /* Set the sssd_dp description */
-    val[0] = "Data Provider Configuration";
-    ret = confdb_add_param(cdb, false, "config/services/dp", "description", val);
-    if (ret != EOK) goto done;
-
-    /* Set the sssd_dp command path */
-    val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_dp", SSSD_LIBEXEC_PATH);
-    CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
-    ret = confdb_add_param(cdb, false, "config/services/dp", "command", val);
-    if (ret != EOK) goto done;
-
-    /* Add the Data Provider to the list of active services */
-    val[0] = "dp";
-    ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
-    if (ret != EOK) goto done;
+    /* cn=confdb does not exists, means db is empty, populate */
+    base_ldif = CONFDB_BASE_LDIF;
+    while ((ldif = ldb_ldif_read_string(cdb->ldb, &base_ldif))) {
+        ret = ldb_add(cdb->ldb, ldif->msg);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(0, ("Failed to inizialiaze DB (%d,[%s]), aborting!\n",
+                      ret, ldb_errstring(cdb->ldb)));
+            ret = EIO;
+            goto done;
+        }
+        ldb_ldif_read_free(cdb->ldb, ldif);
+    }
 
 /* InfoPipe */
 #ifdef HAVE_INFOPIPE
@@ -635,46 +569,20 @@ static int confdb_init_db(struct confdb_ctx *cdb)
 #ifdef HAVE_POLICYKIT
     /* Set the sssd_pk description */
     val[0] = "PolicyKit Backend Configuration";
-    ret = confdb_add_param(cdb, false, "config/services/spk", "description", val);
+    ret = confdb_add_param(cdb, false, "config/services/pk", "description", val);
     if (ret != EOK) goto done;
 
     /* Set the sssd_info command path */
     val[0] = talloc_asprintf(tmp_ctx, "%s/sssd_pk", SSSD_LIBEXEC_PATH);
     CONFDB_ZERO_CHECK_OR_JUMP(val[0], ret, ENOMEM, done);
-    ret = confdb_add_param(cdb, false, "config/services/spk", "command", val);
+    ret = confdb_add_param(cdb, false, "config/services/pk", "command", val);
     if (ret != EOK) goto done;
 
     /* Add the InfoPipe to the list of active services */
-    val[0] = "spk";
+    val[0] = "pk";
     ret = confdb_add_param(cdb, false, "config/services", "activeServices", val);
     if (ret != EOK) goto done;
 #endif
-
-/* Domains */
-    val[0] = "Domains served by SSSD";
-    ret = confdb_add_param(cdb, false, "config/domains", "description", val);
-    if (ret != EOK) goto done;
-
-    /* Default LOCAL domain */
-    val[0] = "Reserved domain for local configurations";
-    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "description", val);
-    if (ret != EOK) goto done;
-
-    val[0] = "LOCAL";
-    ret = confdb_add_param(cdb, false, "config/domains", "default", val);
-    if(ret != EOK) goto done;
-
-    /* Set enumeration of LOCAL domain to allow user and groups
-     * (mask 1: users, 2: groups)
-     */
-    val[0] = "3";
-    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", "enumerate", val);
-    if (ret != EOK) goto done;
-
-    /* LOCAL uses Magic Private Groups by default */
-    val[0] = "TRUE";
-    ret = confdb_add_param(cdb, false, "config/domains/LOCAL", CONFDB_MPG, val);
-    if (ret != EOK) goto done;
 
 done:
     talloc_free(tmp_ctx);
@@ -795,6 +703,15 @@ int confdb_get_domains(struct confdb_ctx *cdb,
             goto done;
         }
 
+        tmp = ldb_msg_find_attr_as_string(res->msgs[i], "provider", NULL);
+        if (tmp) {
+            domain->provider = talloc_strdup(domain, tmp);
+            if (!domain->provider) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
         domain->timeout = ldb_msg_find_attr_as_int(res->msgs[i],
                                                    "timeout", 0);
 
@@ -814,6 +731,13 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         if (ldb_msg_find_attr_as_bool(res->msgs[i], CONFDB_MPG, 0)) {
             domain->mpg = true;
         }
+
+        /* Determine if user/group names will be Fully Qualified
+         * in NSS interfaces */
+        if (ldb_msg_find_attr_as_bool(res->msgs[i], CONFDB_FQ, 0)) {
+            domain->fqnames = true;
+        }
+
 
         domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[i],
                                                    "minId", SSSD_MIN_ID);
