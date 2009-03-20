@@ -34,6 +34,8 @@
 #include "infopipe/infopipe.h"
 #include "infopipe/infopipe_private.h"
 
+#define INFP_CONF_ENTRY "config/services/info"
+
 struct infp_ctx;
 
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
@@ -737,7 +739,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[infp]", 0, &main_ctx);
+    ret = server_setup("sssd[info]", 0, INFP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = infp_process_init(main_ctx,

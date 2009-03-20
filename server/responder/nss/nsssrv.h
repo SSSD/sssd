@@ -47,6 +47,8 @@
 #define NSS_ENUM_GROUPS 0x02
 #define NSS_ENUM_ALL 0x03
 
+#define NSS_SRV_CONFIG "config/services/nss"
+
 struct sysdb_ctx;
 struct getpwent_ctx;
 struct getgrent_ctx;

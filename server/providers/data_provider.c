@@ -43,6 +43,8 @@
 #include "monitor/monitor_interfaces.h"
 #include "responder/pam/pamsrv.h"
 
+#define DP_CONF_ENTRY "config/services/dp"
+
 struct dp_backend;
 struct dp_frontend;
 
@@ -1004,7 +1006,7 @@ static int dp_srv_init(struct dp_ctx *dpctx)
     }
 
     ret = confdb_get_string(dpctx->cdb, tmp_ctx,
-                            "config/services/dataprovider", "dpbusAddress",
+                            DP_CONF_ENTRY, "dpbusAddress",
                             default_dp_address, &dpbus_address);
     if (ret != EOK) goto done;
 
@@ -1100,7 +1102,7 @@ int main(int argc, const char *argv[])
 	poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[dp]", 0, &main_ctx);
+    ret = server_setup("sssd[dp]", 0, DP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = dp_process_init(main_ctx,

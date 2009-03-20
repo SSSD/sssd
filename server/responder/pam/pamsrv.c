@@ -148,7 +148,7 @@ int main(int argc, const char *argv[])
 	poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[pam]", 0, &main_ctx);
+    ret = server_setup("sssd[pam]", 0, CONFDB_SOCKET_PATH, &main_ctx);
     if (ret != EOK) return 2;
 
     pam_dp_methods = register_pam_dp_methods();

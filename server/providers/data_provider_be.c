@@ -47,6 +47,8 @@
 #include "monitor/monitor_interfaces.h"
 #include "../sss_client/sss_cli.h"
 
+#define BE_CONF_ENTRY "config/domains/%s"
+
 typedef int (*be_init_fn_t)(TALLOC_CTX *, struct be_mod_ops **, void **);
 
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
@@ -881,6 +883,7 @@ int main(int argc, const char *argv[])
     char *be_name;
     char *be_domain;
     char *srv_name;
+    char *conf_entry;
     struct main_context *main_ctx;
     int ret;
 
@@ -911,7 +914,10 @@ int main(int argc, const char *argv[])
     srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_name);
     if (!srv_name) return 2;
 
-    ret = server_setup(srv_name, 0, &main_ctx);
+    conf_entry = talloc_asprintf(NULL, BE_CONF_ENTRY, be_domain);
+    if (!conf_entry) return 2;
+
+    ret = server_setup(srv_name, 0, conf_entry, &main_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not set up mainloop [%d]\n", ret));
         return 2;

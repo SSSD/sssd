@@ -28,6 +28,8 @@
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 
+#define SPK_CONF_ENTRY "config/services/pk"
+
 struct spk_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
@@ -189,7 +191,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[infp]", 0, &main_ctx);
+    ret = server_setup("sssd[pk]", 0, SPK_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = spk_process_init(main_ctx,

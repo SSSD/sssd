@@ -225,6 +225,7 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
  main server helpers.
 */
 int server_setup(const char *name, int flags,
+                 const char *conf_entry,
                  struct main_context **main_ctx)
 {
     struct tevent_context *event_ctx;
@@ -286,6 +287,15 @@ int server_setup(const char *name, int flags,
     ret = confdb_init(ctx, event_ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
         DEBUG(0,("The confdb initialization failed\n"));
+        return ret;
+    }
+
+    /* set debug level if any in conf_entry */
+    ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
+                         "debug-level", debug_level, &debug_level);
+    if (ret != EOK) {
+        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                  ret, strerror(ret)));
         return ret;
     }
 

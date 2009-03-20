@@ -37,6 +37,7 @@
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
+#define MONITOR_CONF_ENTRY "config/services/monitor"
 
 struct mt_conn {
     struct sbus_conn_ctx *conn_ctx;
@@ -136,7 +137,7 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     }
 
     ret = confdb_get_string(ctx->cdb, ctx,
-                            "config/services/monitor", "sbusAddress",
+                            MONITOR_CONF_ENTRY, "sbusAddress",
                             default_monitor_address, &sbus_address);
     if (ret != EOK) {
         talloc_free(default_monitor_address);
@@ -346,7 +347,7 @@ int get_monitor_config(struct mt_ctx *ctx)
     int ret;
 
     ret = confdb_get_int(ctx->cdb, ctx,
-                         "config/services/monitor", "sbusTimeout",
+                         MONITOR_CONF_ENTRY, "sbusTimeout",
                          -1, &ctx->service_id_timeout);
     if (ret != EOK) {
         return ret;
@@ -1121,7 +1122,7 @@ int main(int argc, const char *argv[])
     flags |= FLAGS_PID_FILE;
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd", flags, &main_ctx);
+    ret = server_setup("sssd", flags, MONITOR_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = monitor_process_init(main_ctx,
