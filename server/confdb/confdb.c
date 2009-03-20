@@ -116,7 +116,7 @@ int confdb_add_param(struct confdb_ctx *cdb,
                      const char *attribute,
                      const char **values)
 {
-    TALLOC_CTX *tmp_ctx;
+    TALLOC_CTX *tmp_ctx = NULL;
     struct ldb_message *msg;
     struct ldb_result *res;
     struct ldb_dn *dn;
@@ -125,8 +125,10 @@ int confdb_add_param(struct confdb_ctx *cdb,
     int ret, i;
 
     tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx)
-        return ENOMEM;
+    if (!tmp_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     ret = parse_section(tmp_ctx, section, &secdn, &rdn_name);
     if (ret != EOK) {
@@ -211,6 +213,10 @@ int confdb_add_param(struct confdb_ctx *cdb,
 
 done:
     talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to add [%s] to [%s], error [%d] (%s)",
+                  attribute, section, ret, strerror(ret)));
+    }
     return ret;
 }
 
@@ -283,6 +289,10 @@ int confdb_get_param(struct confdb_ctx *cdb,
 
 done:
     talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)",
+                  attribute, section, ret, strerror(ret)));
+    }
     return ret;
 }
 
@@ -290,20 +300,20 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                       const char *section, const char *attribute,
                       const char *defstr, char **result)
 {
-    char **values;
+    char **values = NULL;
     char *restr;
     int ret;
 
     ret = confdb_get_param(cdb, ctx, section, attribute, &values);
     if (ret != EOK) {
-        return ret;
+        goto failed;
     }
 
     if (values[0]) {
         if (values[1] != NULL) {
             /* too many values */
-            talloc_free(values);
-            return EINVAL;
+            ret = EINVAL;
+            goto failed;
         }
         restr = talloc_steal(ctx, values[0]);
     } else {
@@ -319,47 +329,52 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         restr = talloc_strdup(ctx, defstr);
     }
     if (!restr) {
-        talloc_free(values);
-        DEBUG(0, ("Out of memory\n"));
-        return ENOMEM;
+        ret = ENOMEM;
+        goto failed;
     }
 
     talloc_free(values);
 
     *result = restr;
     return EOK;
+
+failed:
+    talloc_free(values);
+    DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)",
+              attribute, section, ret, strerror(ret)));
+    return ret;
 }
 
 int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                    const char *section, const char *attribute,
                    int defval, int *result)
 {
-    char **values;
+    char **values = NULL;
     long val;
     int ret;
 
     ret = confdb_get_param(cdb, ctx, section, attribute, &values);
     if (ret != EOK) {
-        return ret;
+        goto failed;
     }
 
     if (values[0]) {
         if (values[1] != NULL) {
             /* too many values */
-            talloc_free(values);
-            return EINVAL;
+            ret = EINVAL;
+            goto failed;
         }
 
         errno = 0;
         val = strtol(values[0], NULL, 0);
         if (errno) {
-            talloc_free(values);
-            return errno;
+            ret = errno;
+            goto failed;
         }
 
         if (val < INT_MIN || val > INT_MAX) {
-            talloc_free(values);
-            return ERANGE;
+            ret = ERANGE;
+            goto failed;
         }
 
     } else {
@@ -370,33 +385,39 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
     *result = (int)val;
     return EOK;
+
+failed:
+    talloc_free(values);
+    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
+              attribute, section, ret, strerror(ret)));
+    return ret;
 }
 
 long confdb_get_long(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                      const char *section, const char *attribute,
                      long defval, long *result)
 {
-    char **values;
+    char **values = NULL;
     long val;
     int ret;
 
     ret = confdb_get_param(cdb, ctx, section, attribute, &values);
     if (ret != EOK) {
-        return ret;
+        goto failed;
     }
 
     if (values[0]) {
         if (values[1] != NULL) {
             /* too many values */
-            talloc_free(values);
-            return EINVAL;
+            ret = EINVAL;
+            goto failed;
         }
 
         errno = 0;
         val = strtol(values[0], NULL, 0);
         if (errno) {
-            talloc_free(values);
-            return errno;
+            ret = errno;
+            goto failed;
         }
 
     } else {
@@ -407,26 +428,32 @@ long confdb_get_long(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
     *result = val;
     return EOK;
+
+failed:
+    talloc_free(values);
+    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
+              attribute, section, ret, strerror(ret)));
+    return ret;
 }
 
 int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                     const char *section, const char *attribute,
                     bool defval, bool *result)
 {
-    char **values;
+    char **values = NULL;
     bool val;
     int ret;
 
     ret = confdb_get_param(cdb, ctx, section, attribute, &values);
     if (ret != EOK) {
-        return ret;
+        goto failed;
     }
 
     if (values[0]) {
         if (values[1] != NULL) {
             /* too many values */
-            talloc_free(values);
-            return EINVAL;
+            ret = EINVAL;
+            goto failed;
         }
 
         if (strcasecmp(values[0], "FALSE") == 0) {
@@ -438,7 +465,8 @@ int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         } else {
 
             DEBUG(2, ("Value is not a boolean!\n"));
-            return EINVAL;
+            ret = EINVAL;
+            goto failed;
         }
 
     } else {
@@ -449,6 +477,12 @@ int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
     *result = val;
     return EOK;
+
+failed:
+    talloc_free(values);
+    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
+              attribute, section, ret, strerror(ret)));
+    return ret;
 }
 
 static int confdb_test(struct confdb_ctx *cdb)
