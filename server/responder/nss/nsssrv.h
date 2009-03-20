@@ -69,7 +69,7 @@ struct nss_ctx {
     int neg_timeout;
     struct nss_nc_ctx *ncache;
 
-    int expire_time;
+    int enum_cache_timeout;
     time_t last_user_enum;
     time_t last_group_enum;
 

@@ -962,8 +962,9 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
     }
 
     /* do not query backends if we have a recent enumeration */
-    if (cctx->nctx->expire_time) {
-        if (cctx->nctx->last_user_enum + cctx->nctx->expire_time > now) {
+    if (cctx->nctx->enum_cache_timeout) {
+        if (cctx->nctx->last_user_enum +
+            cctx->nctx->enum_cache_timeout > now) {
             cached = true;
         }
     }
@@ -2002,8 +2003,9 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
     }
 
     /* do not query backends if we have a recent enumeration */
-    if (cctx->nctx->expire_time) {
-        if (cctx->nctx->last_group_enum + cctx->nctx->expire_time > now) {
+    if (cctx->nctx->enum_cache_timeout) {
+        if (cctx->nctx->last_group_enum +
+            cctx->nctx->enum_cache_timeout > now) {
             cached = true;
         }
     }

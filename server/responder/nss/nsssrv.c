@@ -431,6 +431,37 @@ done:
     return retval;
 }
 
+static int nss_get_config(struct nss_ctx *nctx)
+{
+    int ret;
+
+    ret = confdb_get_int(nctx->cdb, nctx, NSS_SRV_CONFIG,
+                         "EnumCacheTimeout", 120,
+                         &nctx->enum_cache_timeout);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_int(nctx->cdb, nctx, NSS_SRV_CONFIG,
+                         "EntryCacheTimeout", 600,
+                         &nctx->enum_cache_timeout);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_int(nctx->cdb, nctx, NSS_SRV_CONFIG,
+                         "EntryNegativeTimeout", 15,
+                         &nctx->enum_cache_timeout);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_param(nctx->cdb, nctx, NSS_SRV_CONFIG,
+                           "filterUsers", &nctx->filter_users);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_param(nctx->cdb, nctx, NSS_SRV_CONFIG,
+                           "filterGroups", &nctx->filter_groups);
+    if (ret != EOK) goto done;
+
+done:
+    return ret;
+}
+
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -470,10 +501,9 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    /* after all initializations we are ready to listen on our socket */
-    ret = set_unix_socket(nctx);
+    ret = nss_get_config(nctx);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing socket\n"));
+        DEBUG(0, ("fatal error getting nss config\n"));
         return ret;
     }
 
@@ -483,9 +513,12 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    nctx->expire_time = 120; /* FIXME: read from conf */
-    nctx->cache_timeout = 600; /* FIXME: read from conf */
-    nctx->neg_timeout = 15; /* FIXME: read from conf */
+    /* after all initializations we are ready to listen on our socket */
+    ret = set_unix_socket(nctx);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing socket\n"));
+        return ret;
+    }
 
     DEBUG(1, ("NSS Initialization complete\n"));
 
