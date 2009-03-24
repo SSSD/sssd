@@ -552,7 +552,7 @@ int main(int argc, const char *argv[])
 	poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[nss]", 0, NSS_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd[nss]", 0, NSS_SRV_CONFIG, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = nss_process_init(main_ctx,

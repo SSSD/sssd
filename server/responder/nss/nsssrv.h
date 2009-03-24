@@ -78,6 +78,9 @@ struct nss_ctx {
     const char *sss_pipe_name;
     const char *confdb_socket_path;
     struct sbus_method *dp_methods;
+
+    char **filter_users;
+    char **filter_groups;
 };
 
 struct cli_ctx {
