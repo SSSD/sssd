@@ -73,7 +73,7 @@ static int eval_response(pam_handle_t *pamh, int buflen, uint8_t *buf)
 
                 D(("env item: [%s]", &buf[p]));
                 if (*type == PAM_ENV_ITEM || *type == ALL_ENV_ITEM) {
-                    ret = pam_putenv(pamh, &buf[p]);
+                    ret = pam_putenv(pamh, (char *)&buf[p]);
                     if (ret != PAM_SUCCESS) {
                         D(("pam_putenv failed.\n"));
                         break;
@@ -81,7 +81,7 @@ static int eval_response(pam_handle_t *pamh, int buflen, uint8_t *buf)
                 }
 
                 if (*type == ENV_ITEM || *type == ALL_ENV_ITEM) {
-                    env_item = strdup(&buf[p]);
+                    env_item = strdup((char *)&buf[p]);
                     if (env_item == NULL) {
                         D(("strdup failed\n"));
                         break;
