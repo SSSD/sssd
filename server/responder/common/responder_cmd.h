@@ -40,7 +40,7 @@ struct cli_request {
     struct sss_packet *out;
 };
 
-struct nss_ctx {
+struct resp_ctx {
     struct tevent_context *ev;
     struct tevent_fd *lfde;
     int lfd;
@@ -67,7 +67,7 @@ struct nss_ctx {
 
 struct cli_ctx {
     struct tevent_context *ev;
-    struct nss_ctx *nctx;
+    struct resp_ctx *rctx;
     int cfd;
     struct tevent_fd *cfde;
     struct sockaddr_un addr;

@@ -9,7 +9,7 @@
 #include "providers/dp_sbus.h"
 
 struct sss_dp_pvt_ctx {
-    struct nss_ctx *nctx;
+    struct resp_ctx *rctx;
     struct sbus_method *methods;
     time_t last_retry;
     int retries;
@@ -22,7 +22,7 @@ static void sss_dp_reconnect(struct tevent_context *ev,
 
 static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
 {
-    struct nss_ctx *nctx;
+    struct resp_ctx *rctx;
     struct tevent_timer *te;
     struct timeval tv;
     struct sbus_method_ctx *sm_ctx;
@@ -42,30 +42,30 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
     pvt->last_retry = now;
     pvt->retries++;
 
-    nctx = pvt->nctx;
+    rctx = pvt->rctx;
 
-    ret = dp_get_sbus_address(nctx, nctx->cdb, &sbus_address);
+    ret = dp_get_sbus_address(rctx, rctx->cdb, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate data provider address.\n"));
         return;
     }
 
-    ret = dp_init_sbus_methods(nctx, pvt->methods, &sm_ctx);
+    ret = dp_init_sbus_methods(rctx, pvt->methods, &sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return;
     }
 
-    ret = sbus_client_init(nctx, nctx->ev,
+    ret = sbus_client_init(rctx, rctx->ev,
                            sbus_address, sm_ctx,
                            pvt, sss_dp_conn_destructor,
-                           &nctx->dp_ctx);
+                           &rctx->dp_ctx);
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
 
         tv.tv_sec = now +5;
         tv.tv_usec = 0;
-        te = tevent_add_timer(nctx->ev, nctx, tv, sss_dp_reconnect, pvt);
+        te = tevent_add_timer(rctx->ev, rctx, tv, sss_dp_reconnect, pvt);
         if (te == NULL) {
             DEBUG(4, ("Failed to add timed event! Giving up\n"));
         } else {
@@ -105,14 +105,14 @@ int sss_dp_conn_destructor(void *data)
     return 0;
 }
 
-int sss_dp_init(struct nss_ctx *nctx, struct sbus_method *dp_methods)
+int sss_dp_init(struct resp_ctx *rctx, struct sbus_method *dp_methods)
 {
     struct sss_dp_pvt_ctx *pvt;
 
-    pvt = talloc_zero(nctx, struct sss_dp_pvt_ctx);
+    pvt = talloc_zero(rctx, struct sss_dp_pvt_ctx);
     if (!pvt) return ENOMEM;
 
-    pvt->nctx = nctx;
+    pvt->rctx = rctx;
     pvt->methods = dp_methods;
 
     sss_dp_conn_reconnect(pvt);

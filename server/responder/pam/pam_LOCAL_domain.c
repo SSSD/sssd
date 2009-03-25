@@ -377,12 +377,12 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
 
     DEBUG(4, ("LOCAL pam handler.\n"));
 
-    lreq->domain_info = btreemap_get_value(lreq->cctx->nctx->domain_map,
+    lreq->domain_info = btreemap_get_value(lreq->cctx->rctx->domain_map,
                                      lreq->pd->domain);
     NULL_CHECK_OR_JUMP(lreq->domain_info, ("Domain info not found.\n"),
                        ret, EINVAL, done);
 
-    lreq->dbctx = lreq->cctx->nctx->sysdb;
+    lreq->dbctx = lreq->cctx->rctx->sysdb;
 
     ret = sysdb_get_user_attr(lreq, lreq->dbctx,
                               lreq->domain_info, lreq->pd->user, attrs,

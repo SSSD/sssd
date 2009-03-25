@@ -97,7 +97,7 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
 static void pam_reply(struct pam_data *pd)
 {
     struct cli_ctx *cctx;
-    struct sss_cmd_ctx *nctx;
+    struct sss_cmd_ctx *rctx;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -134,13 +134,13 @@ static void pam_reply(struct pam_data *pd)
     }
 
     cctx = pd->cctx;
-    nctx = talloc_zero(cctx, struct sss_cmd_ctx);
-    if (!nctx) {
+    rctx = talloc_zero(cctx, struct sss_cmd_ctx);
+    if (!rctx) {
         err = ENOMEM;
         goto done;
     }
-    nctx->cctx = cctx;
-    nctx->check_expiration = true;
+    rctx->cctx = cctx;
+    rctx->check_expiration = true;
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
@@ -196,7 +196,7 @@ static void pam_reply(struct pam_data *pd)
 
 done:
     talloc_free(pd);
-    sss_cmd_done(nctx);
+    sss_cmd_done(rctx);
 }
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
@@ -228,8 +228,8 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     pd->resp_list = NULL;
 
     if (pd->domain == NULL) {
-        if (cctx->nctx->default_domain != NULL) {
-            pd->domain = cctx->nctx->default_domain;
+        if (cctx->rctx->default_domain != NULL) {
+            pd->domain = cctx->rctx->default_domain;
         } else {
             pd->domain = talloc_strdup(pd, "LOCAL");
         }

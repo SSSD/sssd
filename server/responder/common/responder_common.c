@@ -117,7 +117,7 @@ static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
         /* do not read anymore */
         TEVENT_FD_NOT_READABLE(cctx->cfde);
         /* execute command */
-        ret = sss_cmd_execute(cctx, cctx->nctx->sss_cmds);
+        ret = sss_cmd_execute(cctx, cctx->rctx->sss_cmds);
         if (ret != EOK) {
             DEBUG(0, ("Failed to execute request, aborting client!\n"));
             talloc_free(cctx);
@@ -171,13 +171,13 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
                               uint16_t flags, void *ptr)
 {
     /* accept and attach new event handler */
-    struct nss_ctx *nctx = talloc_get_type(ptr, struct nss_ctx);
+    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
     struct cli_ctx *cctx;
     socklen_t len;
     struct stat stat_buf;
     int ret;
 
-    ret = stat(nctx->priv_sock_name, &stat_buf);
+    ret = stat(rctx->priv_sock_name, &stat_buf);
     if (ret == -1) {
         DEBUG(1, ("stat on privileged pipe failed: [%d][%s].\n", errno,
                   strerror(errno)));
@@ -192,7 +192,7 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
     }
 
 
-    cctx = talloc_zero(nctx, struct cli_ctx);
+    cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
         struct sockaddr_un addr;
         int fd;
@@ -200,7 +200,7 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
         len = sizeof(addr);
-        fd = accept(nctx->priv_lfd, (struct sockaddr *)&addr, &len);
+        fd = accept(rctx->priv_lfd, (struct sockaddr *)&addr, &len);
         if (fd == -1) {
             return;
         }
@@ -209,7 +209,7 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
     }
 
     len = sizeof(cctx->addr);
-    cctx->cfd = accept(nctx->priv_lfd, (struct sockaddr *)&cctx->addr, &len);
+    cctx->cfd = accept(rctx->priv_lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
         DEBUG(1, ("Accept failed [%s]", strerror(errno)));
         talloc_free(cctx);
@@ -227,7 +227,7 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
     }
 
     cctx->ev = ev;
-    cctx->nctx = nctx;
+    cctx->rctx = rctx;
 
     talloc_set_destructor(cctx, client_destructor);
 
@@ -241,11 +241,11 @@ static void accept_fd_handler(struct tevent_context *ev,
                               uint16_t flags, void *ptr)
 {
     /* accept and attach new event handler */
-    struct nss_ctx *nctx = talloc_get_type(ptr, struct nss_ctx);
+    struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
     struct cli_ctx *cctx;
     socklen_t len;
 
-    cctx = talloc_zero(nctx, struct cli_ctx);
+    cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
         struct sockaddr_un addr;
         int fd;
@@ -253,7 +253,7 @@ static void accept_fd_handler(struct tevent_context *ev,
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
         len = sizeof(addr);
-        fd = accept(nctx->lfd, (struct sockaddr *)&addr, &len);
+        fd = accept(rctx->lfd, (struct sockaddr *)&addr, &len);
         if (fd == -1) {
             return;
         }
@@ -262,7 +262,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     }
 
     len = sizeof(cctx->addr);
-    cctx->cfd = accept(nctx->lfd, (struct sockaddr *)&cctx->addr, &len);
+    cctx->cfd = accept(rctx->lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
         DEBUG(1, ("Accept failed [%s]", strerror(errno)));
         talloc_free(cctx);
@@ -278,7 +278,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     }
 
     cctx->ev = ev;
-    cctx->nctx = nctx;
+    cctx->rctx = rctx;
 
     talloc_set_destructor(cctx, client_destructor);
 
@@ -287,7 +287,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     return;
 }
 
-static int sss_sbus_init(struct nss_ctx *nctx)
+static int sss_sbus_init(struct resp_ctx *rctx)
 {
     int ret;
     char *sbus_address;
@@ -295,19 +295,19 @@ static int sss_sbus_init(struct nss_ctx *nctx)
     struct sbus_method_ctx *sm_ctx;
 
     /* Set up SBUS connection to the monitor */
-    ret = monitor_get_sbus_address(nctx, nctx->cdb, &sbus_address);
+    ret = monitor_get_sbus_address(rctx, rctx->cdb, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
     }
 
-    ret = monitor_init_sbus_methods(nctx, nctx->sss_sbus_methods, &sm_ctx);
+    ret = monitor_init_sbus_methods(rctx, rctx->sss_sbus_methods, &sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return ret;
     }
 
-    ret = sbus_client_init(nctx, nctx->ev,
+    ret = sbus_client_init(rctx, rctx->ev,
                            sbus_address, sm_ctx,
                            NULL /* Private Data */,
                            NULL /* Destructor */,
@@ -320,13 +320,13 @@ static int sss_sbus_init(struct nss_ctx *nctx)
     /* Set up NSS-specific listeners */
     /* None currently used */
 
-    nctx->ss_ctx = ss_ctx;
+    rctx->ss_ctx = ss_ctx;
 
     return EOK;
 }
 
 /* create a unix socket and listen to it */
-static int set_unix_socket(struct nss_ctx *nctx)
+static int set_unix_socket(struct resp_ctx *rctx)
 {
     struct sockaddr_un addr;
 
@@ -335,30 +335,30 @@ static int set_unix_socket(struct nss_ctx *nctx)
     char *default_pipe;
     int ret;
 
-    default_pipe = talloc_asprintf(nctx, "%s/%s", PIPE_PATH,
-                                   nctx->sss_pipe_name);
+    default_pipe = talloc_asprintf(rctx, "%s/%s", PIPE_PATH,
+                                   rctx->sss_pipe_name);
     if (!default_pipe) {
         return ENOMEM;
     }
 
-    ret = confdb_get_string(nctx->cdb, nctx,
-                            nctx->confdb_socket_path, "unixSocket",
-                            default_pipe, &nctx->sock_name);
+    ret = confdb_get_string(rctx->cdb, rctx,
+                            rctx->confdb_socket_path, "unixSocket",
+                            default_pipe, &rctx->sock_name);
     if (ret != EOK) {
         talloc_free(default_pipe);
         return ret;
     }
     talloc_free(default_pipe);
 
-    default_pipe = talloc_asprintf(nctx, "%s/private/%s", PIPE_PATH,
-                                   nctx->sss_pipe_name);
+    default_pipe = talloc_asprintf(rctx, "%s/private/%s", PIPE_PATH,
+                                   rctx->sss_pipe_name);
     if (!default_pipe) {
         return ENOMEM;
     }
 
-    ret = confdb_get_string(nctx->cdb, nctx,
-                            nctx->confdb_socket_path, "privUnixSocket",
-                            default_pipe, &nctx->priv_sock_name);
+    ret = confdb_get_string(rctx->cdb, rctx,
+                            rctx->confdb_socket_path, "privUnixSocket",
+                            default_pipe, &rctx->priv_sock_name);
     if (ret != EOK) {
         talloc_free(default_pipe);
         return ret;
@@ -366,9 +366,9 @@ static int set_unix_socket(struct nss_ctx *nctx)
     talloc_free(default_pipe);
 #endif
 
-    if (nctx->sock_name != NULL ) {
-        nctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (nctx->lfd == -1) {
+    if (rctx->sock_name != NULL ) {
+        rctx->lfd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (rctx->lfd == -1) {
             return EIO;
         }
 
@@ -376,64 +376,64 @@ static int set_unix_socket(struct nss_ctx *nctx)
          * It must be readable and writable by anybody on the system. */
         umask(0111);
 
-        set_nonblocking(nctx->lfd);
-        set_close_on_exec(nctx->lfd);
+        set_nonblocking(rctx->lfd);
+        set_close_on_exec(rctx->lfd);
 
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, nctx->sock_name, sizeof(addr.sun_path));
+        strncpy(addr.sun_path, rctx->sock_name, sizeof(addr.sun_path));
 
         /* make sure we have no old sockets around */
-        unlink(nctx->sock_name);
+        unlink(rctx->sock_name);
 
-        if (bind(nctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            DEBUG(0,("Unable to bind on socket '%s'\n", nctx->sock_name));
+        if (bind(rctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+            DEBUG(0,("Unable to bind on socket '%s'\n", rctx->sock_name));
             goto failed;
         }
-        if (listen(nctx->lfd, 10) != 0) {
-            DEBUG(0,("Unable to listen on socket '%s'\n", nctx->sock_name));
+        if (listen(rctx->lfd, 10) != 0) {
+            DEBUG(0,("Unable to listen on socket '%s'\n", rctx->sock_name));
             goto failed;
         }
 
-        nctx->lfde = tevent_add_fd(nctx->ev, nctx, nctx->lfd,
-                                   TEVENT_FD_READ, accept_fd_handler, nctx);
-        if (!nctx->lfde) {
+        rctx->lfde = tevent_add_fd(rctx->ev, rctx, rctx->lfd,
+                                   TEVENT_FD_READ, accept_fd_handler, rctx);
+        if (!rctx->lfde) {
             DEBUG(0, ("Failed to queue handler on pipe\n"));
             goto failed;
         }
     }
 
-    if (nctx->priv_sock_name != NULL ) {
+    if (rctx->priv_sock_name != NULL ) {
         /* create privileged pipe */
-        nctx->priv_lfd = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (nctx->priv_lfd == -1) {
-            close(nctx->lfd);
+        rctx->priv_lfd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (rctx->priv_lfd == -1) {
+            close(rctx->lfd);
             return EIO;
         }
 
         umask(0177);
 
-        set_nonblocking(nctx->priv_lfd);
-        set_close_on_exec(nctx->priv_lfd);
+        set_nonblocking(rctx->priv_lfd);
+        set_close_on_exec(rctx->priv_lfd);
 
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, nctx->priv_sock_name, sizeof(addr.sun_path));
+        strncpy(addr.sun_path, rctx->priv_sock_name, sizeof(addr.sun_path));
 
-        unlink(nctx->priv_sock_name);
+        unlink(rctx->priv_sock_name);
 
-        if (bind(nctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            DEBUG(0,("Unable to bind on socket '%s'\n", nctx->priv_sock_name));
+        if (bind(rctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+            DEBUG(0,("Unable to bind on socket '%s'\n", rctx->priv_sock_name));
             goto failed;
         }
-        if (listen(nctx->priv_lfd, 10) != 0) {
-            DEBUG(0,("Unable to listen on socket '%s'\n", nctx->priv_sock_name));
+        if (listen(rctx->priv_lfd, 10) != 0) {
+            DEBUG(0,("Unable to listen on socket '%s'\n", rctx->priv_sock_name));
             goto failed;
         }
 
-        nctx->priv_lfde = tevent_add_fd(nctx->ev, nctx, nctx->priv_lfd,
-                                   TEVENT_FD_READ, accept_priv_fd_handler, nctx);
-        if (!nctx->priv_lfde) {
+        rctx->priv_lfde = tevent_add_fd(rctx->ev, rctx, rctx->priv_lfd,
+                                   TEVENT_FD_READ, accept_priv_fd_handler, rctx);
+        if (!rctx->priv_lfde) {
             DEBUG(0, ("Failed to queue handler on privileged pipe\n"));
             goto failed;
         }
@@ -448,25 +448,25 @@ failed:
     /* we want default permissions on created files to be very strict,
        so set our umask to 0177 */
     umask(0177);
-    close(nctx->lfd);
-    close(nctx->priv_lfd);
+    close(rctx->lfd);
+    close(rctx->priv_lfd);
     return EIO;
 }
 
-static int sss_init_domains(struct nss_ctx *nctx)
+static int sss_init_domains(struct resp_ctx *rctx)
 {
     TALLOC_CTX *tmp_ctx;
     int ret;
     int retval;
 
-    tmp_ctx = talloc_new(nctx);
-    ret = confdb_get_domains(nctx->cdb, nctx, &nctx->domain_map);
+    tmp_ctx = talloc_new(rctx);
+    ret = confdb_get_domains(rctx->cdb, rctx, &rctx->domain_map);
     if (ret != EOK) {
         retval = ret;
         goto done;
     }
 
-    if (nctx->domain_map == NULL) {
+    if (rctx->domain_map == NULL) {
         /* No domains configured!
          * Note: this should never happen, since LOCAL should
          * always be configured */
@@ -475,9 +475,9 @@ static int sss_init_domains(struct nss_ctx *nctx)
         goto done;
     }
 
-    ret = confdb_get_string(nctx->cdb, nctx,
+    ret = confdb_get_string(rctx->cdb, rctx,
                             "config/domains", "default",
-                            NULL, &nctx->default_domain);
+                            NULL, &rctx->default_domain);
     if (ret != EOK) {
         retval = ret;
         goto done;
@@ -500,55 +500,55 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *confdb_socket_path,
                      struct sbus_method dp_methods[])
 {
-    struct nss_ctx *nctx;
+    struct resp_ctx *rctx;
     int ret;
 
-    nctx = talloc_zero(mem_ctx, struct nss_ctx);
-    if (!nctx) {
-        DEBUG(0, ("fatal error initializing nss_ctx\n"));
+    rctx = talloc_zero(mem_ctx, struct resp_ctx);
+    if (!rctx) {
+        DEBUG(0, ("fatal error initializing resp_ctx\n"));
         return ENOMEM;
     }
-    nctx->ev = ev;
-    nctx->cdb = cdb;
-    nctx->sss_sbus_methods = sss_sbus_methods;
-    nctx->sss_cmds = sss_cmds;
-    nctx->sock_name = sss_pipe_name;
-    nctx->priv_sock_name = sss_priv_pipe_name;
-    nctx->confdb_socket_path = confdb_socket_path;
-    nctx->dp_methods = dp_methods;
+    rctx->ev = ev;
+    rctx->cdb = cdb;
+    rctx->sss_sbus_methods = sss_sbus_methods;
+    rctx->sss_cmds = sss_cmds;
+    rctx->sock_name = sss_pipe_name;
+    rctx->priv_sock_name = sss_priv_pipe_name;
+    rctx->confdb_socket_path = confdb_socket_path;
+    rctx->dp_methods = dp_methods;
 
-    ret = sss_init_domains(nctx);
+    ret = sss_init_domains(rctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up domain map\n"));
         return ret;
     }
 
-    ret = sss_sbus_init(nctx);
+    ret = sss_sbus_init(rctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up message bus\n"));
         return ret;
     }
 
-    ret = sss_dp_init(nctx, nctx->dp_methods);
+    ret = sss_dp_init(rctx, rctx->dp_methods);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
 
-    ret = sysdb_init(nctx, ev, cdb, NULL, &nctx->sysdb);
+    ret = sysdb_init(rctx, ev, cdb, NULL, &rctx->sysdb);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing nss_ctx\n"));
+        DEBUG(0, ("fatal error initializing resp_ctx\n"));
         return ret;
     }
 
     /* after all initializations we are ready to listen on our socket */
-    ret = set_unix_socket(nctx);
+    ret = set_unix_socket(rctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing socket\n"));
         return ret;
     }
 
-    nctx->cache_timeout = 600; /* FIXME: read from conf */
+    rctx->cache_timeout = 600; /* FIXME: read from conf */
 
     DEBUG(1, ("NSS Initialization complete\n"));
 

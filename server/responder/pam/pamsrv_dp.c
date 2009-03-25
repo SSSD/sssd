@@ -117,7 +117,7 @@ int pam_dp_send_req(struct cli_ctx *cctx,
         return EINVAL;
     }
 
-    conn = sbus_get_connection(cctx->nctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(cctx->rctx->dp_ctx->scon_ctx);
     dbus_error_init(&dbus_error);
 
     msg = dbus_message_new_method_call(NULL,
