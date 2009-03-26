@@ -17,7 +17,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
                      const char *confdb_socket_path,
-                     struct sbus_method dp_methods[]);
+                     struct sbus_method dp_methods[],
+                     struct resp_ctx **responder_ctx);
 
 int sss_parse_name(TALLOC_CTX *memctx,
                    const char *fullname,

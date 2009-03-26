@@ -498,7 +498,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
                      const char *confdb_socket_path,
-                     struct sbus_method dp_methods[])
+                     struct sbus_method dp_methods[],
+                     struct resp_ctx **responder_ctx)
 {
     struct resp_ctx *rctx;
     int ret;
@@ -550,8 +551,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     rctx->cache_timeout = 600; /* FIXME: read from conf */
 
-    DEBUG(1, ("NSS Initialization complete\n"));
+    DEBUG(1, ("Responder Initialization complete\n"));
 
+    *responder_ctx = rctx;
     return EOK;
 }
 

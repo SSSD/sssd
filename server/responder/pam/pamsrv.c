@@ -109,6 +109,8 @@ static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
     return EOK;
 }
 
+static void pam_shutdown(struct resp_ctx *ctx);
+
 static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
@@ -119,6 +121,59 @@ static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn) {
     return service_pong(message, sconn);
 }
 
+static void pam_dp_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt)
+{
+    int ret;
+    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
+
+    /* Did we reconnect successfully? */
+    if (status == SBUS_RECONNECT_SUCCESS) {
+        /* Add the methods back to the new connection */
+        ret = sbus_conn_add_method_ctx(rctx->dp_ctx->scon_ctx,
+                                       rctx->dp_ctx->sm_ctx);
+        if (ret != EOK) {
+            DEBUG(0, ("Could not re-add methods on reconnection.\n"));
+            pam_shutdown(rctx);
+        }
+
+        DEBUG(1, ("Reconnected to the Data Provider.\n"));
+        return;
+    }
+
+    /* Handle failure */
+    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    /* Kill the backend and let the monitor restart it */
+    pam_shutdown(rctx);
+}
+
+static void pam_shutdown(struct resp_ctx *rctx)
+{
+    /* TODO: Do clean-up here */
+
+    /* Nothing left to do but exit() */
+    exit(0);
+}
+
+
+static int pam_process_init(struct main_context *main_ctx,
+                            struct resp_ctx *rctx)
+{
+    int ret, max_retries;
+
+    /* Enable automatic reconnection to the Data Provider */
+    ret = confdb_get_int(rctx->cdb, rctx, rctx->confdb_socket_path,
+                         "retries", 3, &max_retries);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        return ret;
+    }
+
+    sbus_reconnect_init(rctx->dp_ctx->scon_ctx, max_retries,
+                        pam_dp_reconnect_init, rctx);
+
+    return EOK;
+}
+
 int main(int argc, const char *argv[])
 {
     int opt;
@@ -127,6 +182,7 @@ int main(int argc, const char *argv[])
     int ret;
     struct sbus_method *pam_dp_methods;
     struct sss_cmd_table *sss_cmds;
+    struct resp_ctx *rctx;
 
 	struct poptOption long_options[] = {
 		POPT_AUTOHELP
@@ -161,8 +217,12 @@ int main(int argc, const char *argv[])
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
                            CONFDB_SOCKET_PATH,
-                           pam_dp_methods);
+                           pam_dp_methods,
+                           &rctx);
     if (ret != EOK) return 3;
+
+    ret = pam_process_init(main_ctx, rctx);
+    if (ret != EOK) return 4;
 
     /* loop on main */
     server_loop(main_ctx);
