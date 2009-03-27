@@ -720,7 +720,7 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
             }
         }
 
-        nss_cmd_getpwnam_callback(dctx, LDB_SUCCESS, dctx->res);
+        nss_cmd_getpwuid_callback(dctx, LDB_SUCCESS, dctx->res);
         return;
     }
 
@@ -861,6 +861,8 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
 
     if (dctx->add_domain) {
         pctx->doms[pctx->num].domain = dctx->domain->name;
+    } else {
+        pctx->doms[pctx->num].domain = NULL;
     }
     pctx->doms[pctx->num].res = talloc_steal(pctx->doms, res);
     pctx->doms[pctx->num].cur = 0;
@@ -1902,6 +1904,8 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
 
     if (dctx->add_domain) {
         gctx->doms[gctx->num].domain = dctx->domain->name;
+    } else {
+        gctx->doms[gctx->num].domain = NULL;
     }
     gctx->doms[gctx->num].res = talloc_steal(gctx->doms, res);
     gctx->doms[gctx->num].cur = 0;
