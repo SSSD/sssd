@@ -120,7 +120,7 @@ int pam_dp_send_req(struct cli_ctx *cctx,
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!rctx->dp_ctx) {
+    if (!cctx->rctx->dp_ctx) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
