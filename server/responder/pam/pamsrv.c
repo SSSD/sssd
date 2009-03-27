@@ -48,7 +48,7 @@
 
 #define PAM_SBUS_SERVICE_VERSION 0x0001
 #define PAM_SBUS_SERVICE_NAME "pam"
-#define CONFDB_SOCKET_PATH "config/services/pam"
+#define PAM_SRV_CONFIG "config/services/pam"
 
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
@@ -161,7 +161,10 @@ static int pam_process_init(struct main_context *main_ctx,
     int ret, max_retries;
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(rctx->cdb, rctx, rctx->confdb_socket_path,
+
+    /* FIXME: "retries" is too generic, either get it from a global config
+     * or specify these retries are about the sbus connections to DP */
+    ret = confdb_get_int(rctx->cdb, rctx, rctx->confdb_service_path,
                          "retries", 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
@@ -204,7 +207,7 @@ int main(int argc, const char *argv[])
 	poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[pam]", 0, CONFDB_SOCKET_PATH, &main_ctx);
+    ret = server_setup("sssd[pam]", 0, PAM_SRV_CONFIG, &main_ctx);
     if (ret != EOK) return 2;
 
     pam_dp_methods = register_pam_dp_methods();
@@ -216,7 +219,7 @@ int main(int argc, const char *argv[])
                            sss_cmds,
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
-                           CONFDB_SOCKET_PATH,
+                           PAM_SRV_CONFIG,
                            pam_dp_methods,
                            &rctx);
     if (ret != EOK) return 3;

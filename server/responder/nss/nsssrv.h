@@ -31,7 +31,9 @@
 #include "../sss_client/sss_cli.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
+#include "responder/common/responder_packet.h"
 #include "responder/common/responder_cmd.h"
+#include "responder/nss/nsssrv_nc.h"
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define NSS_SBUS_SERVICE_NAME "nss"
@@ -49,21 +51,10 @@
 
 #define NSS_SRV_CONFIG "config/services/nss"
 
-struct sysdb_ctx;
-struct getpwent_ctx;
-struct getgrent_ctx;
+struct getent_ctx;
 
 struct nss_ctx {
-    struct tevent_context *ev;
-    struct tevent_fd *lfde;
-    int lfd;
-    struct sysdb_ctx *sysdb;
-    struct confdb_ctx *cdb;
-    const char *sock_name;
-    struct service_sbus_ctx *ss_ctx;
-    struct service_sbus_ctx *dp_ctx;
-    struct btreemap *domain_map;
-    char *default_domain;
+    struct resp_ctx *rctx;
 
     int cache_timeout;
     int neg_timeout;
@@ -73,37 +64,11 @@ struct nss_ctx {
     time_t last_user_enum;
     time_t last_group_enum;
 
-    struct sbus_method *sss_sbus_methods;
-    struct sss_cmd_table *sss_cmds;
-    const char *sss_pipe_name;
-    const char *confdb_socket_path;
-    struct sbus_method *dp_methods;
-
-    char **filter_users;
-    char **filter_groups;
-};
-
-struct cli_ctx {
-    struct tevent_context *ev;
-    struct nss_ctx *nctx;
-    int cfd;
-    struct tevent_fd *cfde;
-    struct sockaddr_un addr;
-    struct cli_request *creq;
     struct getent_ctx *pctx;
     struct getent_ctx *gctx;
 };
 
 struct nss_packet;
-
-struct cli_request {
-
-    /* original request from the wire */
-    struct sss_packet *in;
-
-    /* reply data */
-    struct sss_packet *out;
-};
 
 int nss_cmd_execute(struct cli_ctx *cctx);
 
@@ -115,10 +80,12 @@ int nss_cmd_execute(struct cli_ctx *cctx);
 typedef void (*nss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
 
-int nss_dp_send_acct_req(struct nss_ctx *nctx, TALLOC_CTX *memctx,
+int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
                          nss_dp_callback_t callback, void *callback_ctx,
                          int timeout, const char *domain, int type,
                          const char *opt_name, uint32_t opt_id);
-int nss_dp_init(struct nss_ctx *nctx);
+
+struct sbus_method *get_nss_dp_methods(void);
+struct sss_cmd_table *get_nss_cmds(void);
 
 #endif /* __NSSSRV_H__ */

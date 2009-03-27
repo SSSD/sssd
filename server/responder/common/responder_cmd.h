@@ -28,9 +28,9 @@
 #include "tevent.h"
 #include "ldb.h"
 #include "../sss_client/sss_cli.h"
+#include "util/btreemap.h"
 
 /* needed until nsssrv.h is updated */
-#ifndef __NSSSRV_H__
 struct cli_request {
 
     /* original request from the wire */
@@ -52,18 +52,18 @@ struct resp_ctx {
     const char *priv_sock_name;
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
+
     struct btreemap *domain_map;
     char *default_domain;
-
-    int cache_timeout;
 
     struct sbus_method *sss_sbus_methods;
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;
-    const char *confdb_socket_path;
+    const char *confdb_service_path;
     struct sbus_method *dp_methods;
-};
 
+    void *pvt_ctx;
+};
 
 struct cli_ctx {
     struct tevent_context *ev;
@@ -72,17 +72,7 @@ struct cli_ctx {
     struct tevent_fd *cfde;
     struct sockaddr_un addr;
     struct cli_request *creq;
-    struct getent_ctx *gctx;
     int priv;
-};
-#endif
-
-struct sss_cmd_ctx {
-    struct cli_ctx *cctx;
-    const char *domain;
-    const char *name;
-    uid_t id;
-    bool check_expiration;
 };
 
 struct sss_cmd_table {
@@ -91,7 +81,7 @@ struct sss_cmd_table {
 };
 
 int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);
-void sss_cmd_done(struct sss_cmd_ctx *nctx);
+void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
 
 #endif /* __SSSSRV_CMD_H__ */

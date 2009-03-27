@@ -20,13 +20,10 @@
 */
 
 #include "util/util.h"
-#include "util/btreemap.h"
-#include "responder/common/responder_packet.h"
 #include "responder/nss/nsssrv.h"
-#include "responder/nss/nsssrv_nc.h"
+#include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include <time.h>
-#include "confdb/confdb.h"
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
@@ -60,21 +57,6 @@ struct nss_dom_ctx {
     struct ldb_result *res;
 };
 
-struct nss_cmd_table {
-    enum sss_cli_command cmd;
-    int (*fn)(struct cli_ctx *cctx);
-};
-
-static void nss_cmd_done(struct nss_cmd_ctx *cmdctx)
-{
-    /* now that the packet is in place, unlock queue
-     * making the event writable */
-    TEVENT_FD_WRITEABLE(cmdctx->cctx->cfde);
-
-    /* free all request related data through the talloc hierarchy */
-    talloc_free(cmdctx);
-}
-
 static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 {
     struct cli_ctx *cctx = cmdctx->cctx;
@@ -107,7 +89,6 @@ static bool nss_add_domain(struct sss_domain_info *info)
 static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct nss_ctx *nctx = cmdctx->cctx->nctx;
     struct sss_domain_info *info;
     struct btreemap *domain_map;
     char *delim;
@@ -116,12 +97,12 @@ static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
     /* TODO: add list of names to filter to configuration */
     if (strcmp(fullname, "root") == 0) return ECANCELED;
 
-    domain_map = nctx->domain_map;
+    domain_map = cmdctx->cctx->rctx->domain_map;
 
     if ((delim = strchr(fullname, NSS_DOMAIN_DELIM)) != NULL) {
         domain = delim+1;
     } else {
-        domain = nctx->default_domain;
+        domain = cmdctx->cctx->rctx->default_domain;
     }
 
     /* Check for registered domain */
@@ -147,33 +128,6 @@ static int nss_parse_name(struct nss_dom_ctx *dctx, const char *fullname)
     }
     if (!cmdctx->name) return ENOMEM;
 
-    return EOK;
-}
-
-static int nss_cmd_get_version(struct cli_ctx *cctx)
-{
-    struct nss_cmd_ctx *cmdctx;
-    uint8_t *body;
-    size_t blen;
-    int ret;
-
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
-
-    /* create response packet */
-    ret = sss_packet_new(cctx->creq, sizeof(uint32_t),
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret != EOK) {
-        return ret;
-    }
-    sss_packet_get_body(cctx->creq->out, &body, &blen);
-    ((uint32_t *)body)[0] = SSS_PROTOCOL_VERSION;
-
-    nss_cmd_done(cmdctx);
     return EOK;
 }
 
@@ -279,6 +233,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
@@ -286,6 +241,8 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     bool call_provider = false;
     bool neghit = false;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     if (status != LDB_SUCCESS) {
         ret = nss_cmd_send_error(cmdctx, status);
@@ -302,7 +259,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
             break;
 
         case 1:
-            timeout = cmdctx->cctx->nctx->cache_timeout;
+            timeout = nctx->cache_timeout;
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
@@ -323,8 +280,8 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
     if (call_provider && res->count == 0) {
         /* check negative cache before potentially expensive remote call */
-        ret = nss_ncache_check_user(cctx->nctx->ncache,
-                                    cctx->nctx->neg_timeout,
+        ret = nss_ncache_check_user(nctx->ncache,
+                                    nctx->neg_timeout,
                                     dctx->domain->name, cmdctx->name);
         switch (ret) {
         case EEXIST:
@@ -353,7 +310,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getpwnam_dp_callback, dctx,
                                    timeout, dctx->domain->name, NSS_DP_USER,
                                    cmdctx->name, 0);
@@ -376,7 +333,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_user(cctx->nctx->ncache,
+            ret = nss_ncache_set_user(nctx->ncache,
                                       dctx->domain->name, cmdctx->name);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
@@ -419,7 +376,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     }
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -449,7 +406,7 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
 
@@ -462,7 +419,7 @@ done:
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -502,7 +459,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               cmdctx->name, dctx->domain->name));
 
-    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
 
@@ -514,7 +471,7 @@ done:
     if (ret != EOK) {
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret == EOK) {
-            nss_cmd_done(cmdctx);
+            sss_cmd_done(cctx, cmdctx);
         }
         return ret;
     }
@@ -531,6 +488,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
@@ -538,6 +496,8 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
     bool call_provider = false;
     bool neghit = false;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     /* one less to go */
     cmdctx->nr--;
@@ -566,7 +526,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
             break;
 
         case 1:
-            timeout = cmdctx->cctx->nctx->cache_timeout;
+            timeout = nctx->cache_timeout;
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
@@ -587,8 +547,8 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
     if (call_provider && res->count == 0) {
         /* check negative cache before potentially expensive remote call */
-        ret = nss_ncache_check_uid(cctx->nctx->ncache,
-                                   cctx->nctx->neg_timeout,
+        ret = nss_ncache_check_uid(nctx->ncache,
+                                   nctx->neg_timeout,
                                    cmdctx->id);
         switch (ret) {
         case EEXIST:
@@ -620,7 +580,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getpwuid_dp_callback, dctx,
                                    timeout, dctx->domain->name, NSS_DP_USER,
                                    NULL, cmdctx->id);
@@ -647,7 +607,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_uid(cctx->nctx->ncache, cmdctx->id);
+            ret = nss_ncache_set_uid(nctx->ncache, cmdctx->id);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
@@ -694,7 +654,7 @@ done:
         cmdctx->done = true; /* signal that we are done */
         return;
     }
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -724,7 +684,7 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getpwuid(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->id,
                          nss_cmd_getpwuid_callback, dctx);
 
@@ -740,7 +700,7 @@ done:
             cmdctx->done = true; /* signal that we are done */
             return;
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -774,7 +734,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     domains = NULL;
     num = 0;
     /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
                             (const void ***)&domains, &num);
     if (ret != EOK)
         return ret;
@@ -782,7 +742,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     cmdctx->nr = num;
 
     for (i = 0; i < num; i++) {
-        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
+        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
 
         dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
         if (!dctx) return ENOMEM;
@@ -795,7 +755,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
 
-        ret = sysdb_getpwuid(cmdctx, cctx->nctx->sysdb,
+        ret = sysdb_getpwuid(cmdctx, cctx->rctx->sysdb,
                              dctx->domain, cmdctx->id,
                              nss_cmd_getpwuid_callback, dctx);
         if (ret != EOK) {
@@ -804,7 +764,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 
             ret = nss_cmd_send_error(cmdctx, ret);
             if (ret == EOK) {
-                nss_cmd_done(cmdctx);
+                sss_cmd_done(cctx, cmdctx);
             }
             return ret;
         }
@@ -832,8 +792,12 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct getent_ctx *pctx = cctx->pctx;
+    struct getent_ctx *pctx;
+    struct nss_ctx *nctx;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    pctx = nctx->pctx;
 
     cmdctx->nr--;
 
@@ -873,7 +837,7 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     if (cmdctx->nr) return;
 
     /* set cache mark */
-    cctx->nctx->last_user_enum = time(NULL);
+    nctx->last_user_enum = time(NULL);
 
     if (cmdctx->immediate) {
         /* this was a getpwent call w/o setpwent,
@@ -892,7 +856,7 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     }
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -910,7 +874,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_enumpwent(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_enumpwent(cmdctx, cctx->rctx->sysdb,
                           dctx->domain, NULL,
                           nss_cmd_setpwent_callback, dctx);
     if (ret != EOK) {
@@ -920,7 +884,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -930,6 +894,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *pctx;
+    struct nss_ctx *nctx;
     const char **domains;
     time_t now = time(NULL);
     bool cached = false;
@@ -938,42 +903,44 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 
     DEBUG(4, ("Requesting info for all users\n"));
 
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
     cmdctx->cctx = cctx;
 
-    talloc_free(cctx->pctx);
-    cctx->pctx = talloc_zero(cctx, struct getent_ctx);
-    if (!cctx->pctx) {
+    talloc_free(nctx->pctx);
+    pctx = talloc_zero(nctx, struct getent_ctx);
+    if (!pctx) {
         talloc_free(cmdctx);
         return ENOMEM;
     }
-    pctx = cctx->pctx;
+    nctx->pctx = pctx;
 
     cmdctx->immediate = immediate;
 
     domains = NULL;
     num = 0;
     /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
                       (const void ***)&domains, &num);
     if (ret != EOK) {
         return ret;
     }
 
     /* do not query backends if we have a recent enumeration */
-    if (cctx->nctx->enum_cache_timeout) {
-        if (cctx->nctx->last_user_enum +
-            cctx->nctx->enum_cache_timeout > now) {
+    if (nctx->enum_cache_timeout) {
+        if (nctx->last_user_enum +
+            nctx->enum_cache_timeout > now) {
             cached = true;
         }
     }
 
     /* check if enumeration is enabled in any domain */
     for (i = 0; i < num; i++) {
-        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
+        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
 
         if ((info->enumerate & NSS_ENUM_USERS) == 0) {
             continue;
@@ -997,12 +964,12 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 
         if (dctx->check_provider) {
             timeout = SSS_CLI_SOCKET_TIMEOUT/(i+2);
-            ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+            ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setpw_dp_callback, dctx,
                                        timeout, domains[i], NSS_DP_USER,
                                        NULL, 0);
         } else {
-            ret = sysdb_enumpwent(dctx, cctx->nctx->sysdb,
+            ret = sysdb_enumpwent(dctx, cctx->rctx->sysdb,
                                   dctx->domain, NULL,
                                   nss_cmd_setpwent_callback, dctx);
         }
@@ -1027,7 +994,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         }
 
         sss_packet_set_error(cctx->creq->out, ret);
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
         return EOK;
     }
 
@@ -1042,12 +1009,16 @@ static int nss_cmd_setpwent(struct cli_ctx *cctx)
 
 static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 {
-    struct getent_ctx *pctx = cctx->pctx;
+    struct nss_ctx *nctx;
+    struct getent_ctx *pctx;
     struct ldb_message **msgs = NULL;
     struct dom_ctx *pdom;
     const char *dom = NULL;
     bool add = false;
     int n = 0;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    pctx = nctx->pctx;
 
     if (pctx->cur >= pctx->num) goto done;
 
@@ -1102,21 +1073,24 @@ static int nss_cmd_getpwent_immediate(struct nss_cmd_ctx *cmdctx)
     ret = nss_cmd_retpwent(cctx, num);
 
     sss_packet_set_error(cctx->creq->out, ret);
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 
     return EOK;
 }
 
 static int nss_cmd_getpwent(struct cli_ctx *cctx)
 {
+    struct nss_ctx *nctx;
     struct nss_cmd_ctx *cmdctx;
 
     DEBUG(4, ("Requesting info for all accounts\n"));
 
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
     /* see if we need to trigger an implicit setpwent() */
-    if (cctx->gctx == NULL) {
-        cctx->gctx = talloc_zero(cctx, struct getent_ctx);
-        if (!cctx->gctx) return ENOMEM;
+    if (nctx->gctx == NULL) {
+        nctx->gctx = talloc_zero(nctx, struct getent_ctx);
+        if (!nctx->gctx) return ENOMEM;
 
         return nss_cmd_setpwent_ext(cctx, true);
     }
@@ -1132,30 +1106,26 @@ static int nss_cmd_getpwent(struct cli_ctx *cctx)
 
 static int nss_cmd_endpwent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *cmdctx;
+    struct nss_ctx *nctx;
     int ret;
 
     DEBUG(4, ("Terminating request info for all accounts\n"));
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
 
-    if (cctx->pctx == NULL) goto done;
+    if (nctx->pctx == NULL) goto done;
 
     /* free results and reset */
-    talloc_free(cctx->pctx);
-    cctx->pctx = NULL;
+    talloc_free(nctx->pctx);
+    nctx->pctx = NULL;
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, NULL);
     return EOK;
 }
 
@@ -1353,6 +1323,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
@@ -1361,12 +1332,14 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     bool neghit = false;
     int ret;
 
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
     if (status != LDB_SUCCESS) {
         ret = nss_cmd_send_error(cmdctx, status);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
         return;
     }
 
@@ -1377,7 +1350,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
             break;
 
         default:
-            timeout = cmdctx->cctx->nctx->cache_timeout;
+            timeout = nctx->cache_timeout;
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
@@ -1389,8 +1362,8 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
     if (call_provider && res->count == 0) {
         /* check negative cache before potentially expensive remote call */
-        ret = nss_ncache_check_group(cctx->nctx->ncache,
-                                     cctx->nctx->neg_timeout,
+        ret = nss_ncache_check_group(nctx->ncache,
+                                     nctx->neg_timeout,
                                      dctx->domain->name, cmdctx->name);
         switch (ret) {
         case EEXIST:
@@ -1419,7 +1392,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getgrnam_dp_callback, dctx,
                                    timeout, dctx->domain->name, NSS_DP_GROUP,
                                    cmdctx->name, 0);
@@ -1443,7 +1416,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_group(cctx->nctx->ncache,
+            ret = nss_ncache_set_group(nctx->ncache,
                                        dctx->domain->name, cmdctx->name);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
@@ -1481,7 +1454,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     }
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -1511,7 +1484,7 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getgrnam(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
 
@@ -1523,7 +1496,7 @@ done:
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -1563,7 +1536,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               cmdctx->name, dctx->domain->name));
 
-    ret = sysdb_getgrnam(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getgrnam(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
     if (ret != EOK) {
@@ -1574,7 +1547,7 @@ done:
     if (ret != EOK) {
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret == EOK) {
-            nss_cmd_done(cmdctx);
+            sss_cmd_done(cctx, cmdctx);
         }
         return ret;
     }
@@ -1591,6 +1564,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
@@ -1598,6 +1572,8 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
     bool call_provider = false;
     bool neghit = false;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     /* one less to go */
     cmdctx->nr--;
@@ -1626,7 +1602,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
             break;
 
         default:
-            timeout = cmdctx->cctx->nctx->cache_timeout;
+            timeout = nctx->cache_timeout;
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
@@ -1638,8 +1614,8 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
     if (call_provider && res->count == 0) {
         /* check negative cache before potentially expensive remote call */
-        ret = nss_ncache_check_gid(cctx->nctx->ncache,
-                                   cctx->nctx->neg_timeout,
+        ret = nss_ncache_check_gid(nctx->ncache,
+                                   nctx->neg_timeout,
                                    cmdctx->id);
         switch (ret) {
         case EEXIST:
@@ -1671,7 +1647,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getgrgid_dp_callback, dctx,
                                    timeout, dctx->domain->name, NSS_DP_GROUP,
                                    NULL, cmdctx->id);
@@ -1698,7 +1674,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_gid(cctx->nctx->ncache, cmdctx->id);
+            ret = nss_ncache_set_gid(nctx->ncache, cmdctx->id);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
@@ -1739,7 +1715,7 @@ done:
         cmdctx->done = true; /* signal that we are done */
         return;
     }
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -1769,7 +1745,7 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getgrgid(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->id,
                          nss_cmd_getgrgid_callback, dctx);
 
@@ -1781,7 +1757,7 @@ done:
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -1815,7 +1791,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     domains = NULL;
     num = 0;
     /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
                             (const void ***)&domains, &num);
     if (ret != EOK) {
         return ret;
@@ -1824,7 +1800,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     cmdctx->nr = num;
 
     for (i = 0; i < num; i++) {
-        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
+        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
 
         dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
         if (!dctx) return ENOMEM;
@@ -1837,7 +1813,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
 
-        ret = sysdb_getgrgid(cmdctx, cctx->nctx->sysdb,
+        ret = sysdb_getgrgid(cmdctx, cctx->rctx->sysdb,
                              dctx->domain, cmdctx->id,
                              nss_cmd_getgrgid_callback, dctx);
         if (ret != EOK) {
@@ -1846,7 +1822,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 
             ret = nss_cmd_send_error(cmdctx, ret);
             if (ret == EOK) {
-                nss_cmd_done(cmdctx);
+                sss_cmd_done(cctx, cmdctx);
             }
             return ret;
         }
@@ -1875,8 +1851,12 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct getent_ctx *gctx = cctx->gctx;
+    struct getent_ctx *gctx;
+    struct nss_ctx *nctx;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    gctx = nctx->gctx;
 
     cmdctx->nr--;
 
@@ -1916,7 +1896,7 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     if (cmdctx->nr) return;
 
     /* set cache mark */
-    cctx->nctx->last_group_enum = time(NULL);
+    nctx->last_group_enum = time(NULL);
 
     if (cmdctx->immediate) {
         /* this was a getgrent call w/o setgrent,
@@ -1935,7 +1915,7 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     }
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -1953,7 +1933,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_enumgrent(dctx, cctx->nctx->sysdb,
+    ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
                           dctx->domain,
                           nss_cmd_setgrent_callback, dctx);
     if (ret != EOK) {
@@ -1963,7 +1943,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -1973,6 +1953,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *gctx;
+    struct nss_ctx *nctx;
     const char **domains;
     time_t now = time(NULL);
     bool cached = false;
@@ -1981,42 +1962,44 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     DEBUG(4, ("Requesting info for all groups\n"));
 
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
     cmdctx->cctx = cctx;
 
-    talloc_free(cctx->gctx);
-    cctx->gctx = talloc_zero(cctx, struct getent_ctx);
-    if (!cctx->gctx) {
+    talloc_free(nctx->gctx);
+    gctx = talloc_zero(nctx, struct getent_ctx);
+    if (!gctx) {
         talloc_free(cmdctx);
         return ENOMEM;
     }
-    gctx = cctx->gctx;
+    nctx->gctx = gctx;
 
     cmdctx->immediate = immediate;
 
     domains = NULL;
     num = 0;
     /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->nctx->domain_map,
+    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
                             (const void ***)&domains, &num);
     if(ret != EOK) {
         return ret;
     }
 
     /* do not query backends if we have a recent enumeration */
-    if (cctx->nctx->enum_cache_timeout) {
-        if (cctx->nctx->last_group_enum +
-            cctx->nctx->enum_cache_timeout > now) {
+    if (nctx->enum_cache_timeout) {
+        if (nctx->last_group_enum +
+            nctx->enum_cache_timeout > now) {
             cached = true;
         }
     }
 
     /* check if enumeration is enabled in any domain */
     for (i = 0; i < num; i++) {
-        info = btreemap_get_value(cctx->nctx->domain_map, domains[i]);
+        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
 
         if ((info->enumerate & NSS_ENUM_GROUPS) == 0) {
             continue;
@@ -2040,12 +2023,12 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
         if (dctx->check_provider) {
             timeout = SSS_CLI_SOCKET_TIMEOUT/(i+2);
-            ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+            ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setgr_dp_callback, dctx,
                                        timeout, domains[i], NSS_DP_GROUP,
                                        NULL, 0);
         } else {
-            ret = sysdb_enumgrent(dctx, cctx->nctx->sysdb,
+            ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
                                   dctx->domain,
                                   nss_cmd_setgrent_callback, dctx);
         }
@@ -2069,7 +2052,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         }
 
         sss_packet_set_error(cctx->creq->out, ret);
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
         return EOK;
     }
 
@@ -2083,12 +2066,16 @@ static int nss_cmd_setgrent(struct cli_ctx *cctx)
 
 static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 {
-    struct getent_ctx *gctx = cctx->gctx;
+    struct nss_ctx *nctx;
+    struct getent_ctx *gctx;
     struct ldb_message **msgs = NULL;
     struct dom_ctx *gdom;
     const char *dom = NULL;
     bool add = false;
     int n = 0;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    gctx = nctx->gctx;
 
     if (gctx->cur >= gctx->num) goto done;
 
@@ -2143,21 +2130,24 @@ static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx)
     ret = nss_cmd_retgrent(cctx, num);
 
     sss_packet_set_error(cctx->creq->out, ret);
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 
     return EOK;
 }
 
 static int nss_cmd_getgrent(struct cli_ctx *cctx)
 {
+    struct nss_ctx *nctx;
     struct nss_cmd_ctx *cmdctx;
 
     DEBUG(4, ("Requesting info for all groups\n"));
 
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
     /* see if we need to trigger an implicit setpwent() */
-    if (cctx->gctx == NULL) {
-        cctx->gctx = talloc_zero(cctx, struct getent_ctx);
-        if (!cctx->gctx) return ENOMEM;
+    if (nctx->gctx == NULL) {
+        nctx->gctx = talloc_zero(nctx, struct getent_ctx);
+        if (!nctx->gctx) return ENOMEM;
 
         return nss_cmd_setgrent_ext(cctx, true);
     }
@@ -2173,30 +2163,26 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
 
 static int nss_cmd_endgrent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *cmdctx;
+    struct nss_ctx *nctx;
     int ret;
 
     DEBUG(4, ("Terminating request info for all groups\n"));
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
 
-    if (cctx->gctx == NULL) goto done;
+    if (nctx->gctx == NULL) goto done;
 
     /* free results and reset */
-    talloc_free(cctx->gctx);
-    cctx->gctx = NULL;
+    talloc_free(nctx->gctx);
+    nctx->gctx = NULL;
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, NULL);
     return EOK;
 }
 
@@ -2247,7 +2233,7 @@ static void nss_cmd_initgr_callback(void *ptr, int status,
     ((uint32_t *)body)[1] = 0; /* reserved */
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
@@ -2265,7 +2251,7 @@ static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_initgroups(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_initgroups(cmdctx, cctx->rctx->sysdb,
                            dctx->domain, cmdctx->name,
                            nss_cmd_initgr_callback, cmdctx);
     if (ret != EOK) {
@@ -2275,7 +2261,7 @@ static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -2309,7 +2295,7 @@ static void nss_cmd_getinitnam_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
 
@@ -2321,7 +2307,7 @@ done:
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-        nss_cmd_done(cmdctx);
+        sss_cmd_done(cctx, cmdctx);
     }
 }
 
@@ -2331,6 +2317,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
     uint8_t *body;
@@ -2338,6 +2325,8 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     bool call_provider = false;
     bool neghit = false;
     int ret;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     if (status != LDB_SUCCESS) {
         ret = nss_cmd_send_error(cmdctx, status);
@@ -2354,7 +2343,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
             break;
 
         default:
-            timeout = cmdctx->cctx->nctx->cache_timeout;
+            timeout = nctx->cache_timeout;
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
@@ -2366,8 +2355,8 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
 
     if (call_provider && res->count == 0) {
         /* check negative cache before potentially expensive remote call */
-        ret = nss_ncache_check_user(cctx->nctx->ncache,
-                                   cctx->nctx->neg_timeout,
+        ret = nss_ncache_check_user(nctx->ncache,
+                                   nctx->neg_timeout,
                                    dctx->domain->name, cmdctx->name);
         switch (ret) {
         case EEXIST:
@@ -2396,7 +2385,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getinitnam_callback, dctx,
                                    timeout, dctx->domain->name, NSS_DP_USER,
                                    cmdctx->name, 0);
@@ -2420,7 +2409,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_user(cctx->nctx->ncache,
+            ret = nss_ncache_set_user(nctx->ncache,
                                       dctx->domain->name, cmdctx->name);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
@@ -2441,7 +2430,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     case 1:
 
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-        ret = nss_dp_send_acct_req(cctx->nctx, cmdctx,
+        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getinitgr_callback, dctx,
                                    timeout, dctx->domain->name,
                                    NSS_DP_INITGROUPS,
@@ -2467,7 +2456,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     }
 
 done:
-    nss_cmd_done(cmdctx);
+    sss_cmd_done(cctx, cmdctx);
 }
 
 /* for now, if we are online, try to always query the backend */
@@ -2506,7 +2495,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
               cmdctx->name, dctx->domain->name));
 
-    ret = sysdb_getpwnam(cmdctx, cctx->nctx->sysdb,
+    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
     if (ret != EOK) {
@@ -2517,7 +2506,7 @@ done:
     if (ret != EOK) {
         ret = nss_cmd_send_error(cmdctx, ret);
         if (ret == EOK) {
-            nss_cmd_done(cmdctx);
+            sss_cmd_done(cctx, cmdctx);
         }
         return ret;
     }
@@ -2525,9 +2514,8 @@ done:
     return EOK;
 }
 
-struct nss_cmd_table sss_cmds[] = {};
-struct nss_cmd_table nss_cmds[] = {
-    {SSS_GET_VERSION, nss_cmd_get_version},
+static struct sss_cmd_table nss_cmds[] = {
+    {SSS_GET_VERSION, sss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},
     {SSS_NSS_GETPWUID, nss_cmd_getpwuid},
     {SSS_NSS_SETPWENT, nss_cmd_setpwent},
@@ -2541,6 +2529,10 @@ struct nss_cmd_table nss_cmds[] = {
     {SSS_NSS_INITGR, nss_cmd_initgroups},
     {SSS_CLI_NULL, NULL}
 };
+
+struct sss_cmd_table *get_nss_cmds(void) {
+    return nss_cmds;
+}
 
 int nss_cmd_execute(struct cli_ctx *cctx)
 {

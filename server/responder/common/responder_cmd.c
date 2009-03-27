@@ -24,28 +24,21 @@
 #include "responder/common/responder_packet.h"
 
 
-void sss_cmd_done(struct sss_cmd_ctx *nctx)
+void sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 {
     /* now that the packet is in place, unlock queue
      * making the event writable */
-    TEVENT_FD_WRITEABLE(nctx->cctx->cfde);
+    TEVENT_FD_WRITEABLE(cctx->cfde);
 
     /* free all request related data through the talloc hierarchy */
-    talloc_free(nctx);
+    talloc_free(freectx);
 }
 
 int sss_cmd_get_version(struct cli_ctx *cctx)
 {
-    struct sss_cmd_ctx *nctx;
     uint8_t *body;
     size_t blen;
     int ret;
-
-    nctx = talloc(cctx, struct sss_cmd_ctx);
-    if (!nctx) {
-        return ENOMEM;
-    }
-    nctx->cctx = cctx;
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, sizeof(uint32_t),
@@ -57,7 +50,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     sss_packet_get_body(cctx->creq->out, &body, &blen);
     ((uint32_t *)body)[0] = SSS_PROTOCOL_VERSION;
 
-    sss_cmd_done(nctx);
+    sss_cmd_done(cctx, NULL);
     return EOK;
 }
 

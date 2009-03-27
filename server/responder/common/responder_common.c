@@ -455,11 +455,9 @@ failed:
 
 static int sss_init_domains(struct resp_ctx *rctx)
 {
-    TALLOC_CTX *tmp_ctx;
     int ret;
     int retval;
 
-    tmp_ctx = talloc_new(rctx);
     ret = confdb_get_domains(rctx->cdb, rctx, &rctx->domain_map);
     if (ret != EOK) {
         retval = ret;
@@ -486,7 +484,6 @@ static int sss_init_domains(struct resp_ctx *rctx)
     retval = EOK;
 
 done:
-    talloc_free(tmp_ctx);
     return retval;
 }
 
@@ -497,7 +494,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
-                     const char *confdb_socket_path,
+                     const char *confdb_service_path,
                      struct sbus_method dp_methods[],
                      struct resp_ctx **responder_ctx)
 {
@@ -515,7 +512,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->sss_cmds = sss_cmds;
     rctx->sock_name = sss_pipe_name;
     rctx->priv_sock_name = sss_priv_pipe_name;
-    rctx->confdb_socket_path = confdb_socket_path;
+    rctx->confdb_service_path = confdb_service_path;
     rctx->dp_methods = dp_methods;
 
     ret = sss_init_domains(rctx);
@@ -548,8 +545,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error initializing socket\n"));
         return ret;
     }
-
-    rctx->cache_timeout = 600; /* FIXME: read from conf */
 
     DEBUG(1, ("Responder Initialization complete\n"));
 

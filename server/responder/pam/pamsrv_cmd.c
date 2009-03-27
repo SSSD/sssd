@@ -134,13 +134,6 @@ static void pam_reply(struct pam_data *pd)
     }
 
     cctx = pd->cctx;
-    rctx = talloc_zero(cctx, struct sss_cmd_ctx);
-    if (!rctx) {
-        err = ENOMEM;
-        goto done;
-    }
-    rctx->cctx = cctx;
-    rctx->check_expiration = true;
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
@@ -196,7 +189,7 @@ static void pam_reply(struct pam_data *pd)
 
 done:
     talloc_free(pd);
-    sss_cmd_done(rctx);
+    sss_cmd_done(cctx, NULL);
 }
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
