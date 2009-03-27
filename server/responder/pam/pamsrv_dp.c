@@ -95,7 +95,6 @@ int pam_dp_send_req(struct cli_ctx *cctx,
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
-    DBusError dbus_error;
     dbus_bool_t ret;
     struct pam_reply_ctx *rctx;
 
@@ -117,8 +116,16 @@ int pam_dp_send_req(struct cli_ctx *cctx,
         return EINVAL;
     }
 
+    /* double check dp_ctx has actually been initialized.
+     * in some pathological cases it may happen that nss starts up before
+     * dp connection code is actually able to establish a connection.
+     */
+    if (!rctx->dp_ctx) {
+        DEBUG(1, ("The Data Provider connection is not available yet!"
+                  " This maybe a bug, it shouldn't happen!\n"));
+        return EIO;
+    }
     conn = sbus_get_connection(cctx->rctx->dp_ctx->scon_ctx);
-    dbus_error_init(&dbus_error);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_CLI_PATH,
