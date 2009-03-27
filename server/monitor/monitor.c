@@ -64,6 +64,8 @@ struct mt_svc {
     time_t last_pong;
 
     int debug_level;
+
+    struct tevent_timer *ping_ev;
 };
 
 struct mt_ctx {
@@ -192,6 +194,11 @@ static void svc_try_restart(struct mt_svc *svc, time_t now)
         return;
     }
 
+    /* Shut down the current ping timer so it will restart
+     * cleanly in start_service()
+     */
+    talloc_free(svc->ping_ev);
+
     ret = start_service(svc);
     if (ret != EOK) {
         DEBUG(0,("Failed to restart service '%s'\n", svc->name));
@@ -286,6 +293,7 @@ static void set_tasks_checker(struct mt_svc *svc)
                   svc->name));
         /* FIXME: shutdown ? */
     }
+    svc->ping_ev = te;
 }
 
 static void global_checks_handler(struct tevent_context *ev,
