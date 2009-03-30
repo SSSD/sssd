@@ -526,7 +526,7 @@ static int confdb_init_db(struct confdb_ctx *cdb)
 {
     const char *base_ldif;
 	struct ldb_ldif *ldif;
-    const char *val[2];
+    const char *val[2] = {NULL, NULL};
     int ret;
     TALLOC_CTX *tmp_ctx;
 

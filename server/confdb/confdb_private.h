@@ -24,7 +24,6 @@
      "activeServices: dp\n" \
      "activeServices: nss\n" \
      "activeServices: pam\n" \
-     "activeServices: info\n" \
      "\n" \
      "dn: cn=monitor,cn=services,cn=config\n" \
      "cn: monitor\n" \
