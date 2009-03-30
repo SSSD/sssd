@@ -34,6 +34,7 @@
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder_cmd.h"
 #include "responder/nss/nsssrv_nc.h"
+#include <pcre.h>
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define NSS_SBUS_SERVICE_NAME "nss"
@@ -66,6 +67,8 @@ struct nss_ctx {
 
     struct getent_ctx *pctx;
     struct getent_ctx *gctx;
+
+    pcre *parse_name_re;
 };
 
 struct nss_packet;
@@ -87,5 +90,10 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
 
 struct sbus_method *get_nss_dp_methods(void);
 struct sss_cmd_table *get_nss_cmds(void);
+
+int nss_parse_name(TALLOC_CTX *memctx,
+                   struct nss_ctx *nctx,
+                   const char *origname,
+                   const char **domain, const char **name);
 
 #endif /* __NSSSRV_H__ */

@@ -24,10 +24,11 @@
 #include <time.h>
 #include "tdb.h"
 
-#define NC_USER_PREFIX "NCUSER"
-#define NC_GROUP_PREFIX "NCGROUP"
-#define NC_UID_PREFIX "NCUID"
-#define NC_GID_PREFIX "NCGID"
+#define NC_ENTRY_PREFIX "NCE/"
+#define NC_USER_PREFIX NC_ENTRY_PREFIX"USER"
+#define NC_GROUP_PREFIX NC_ENTRY_PREFIX"GROUP"
+#define NC_UID_PREFIX NC_ENTRY_PREFIX"UID"
+#define NC_GID_PREFIX NC_ENTRY_PREFIX"GID"
 
 struct nss_nc_ctx {
     struct tdb_context *tdb;
@@ -78,11 +79,23 @@ static int nss_ncache_check_str(struct nss_nc_ctx *ctx, char *str, int ttl)
         goto done;
     }
 
+    if (ttl == -1) {
+        /* a negative ttl means: never expires */
+        ret = EEXIST;
+        goto done;
+    }
+
     errno = 0;
     timestamp = strtoull((const char *)data.dptr, &ep, 0);
     if (errno != 0 || *ep != '\0') {
         /* Malformed entry, remove it and return no entry */
         expired = true;
+        goto done;
+    }
+
+    if (timestamp == 0) {
+        /* a 0 timestamp means this is a permanent entry */
+        ret = EEXIST;
         goto done;
     }
 
@@ -104,7 +117,8 @@ done:
     return ret;
 }
 
-static int nss_ncache_set_str(struct nss_nc_ctx *ctx, char *str)
+static int nss_ncache_set_str(struct nss_nc_ctx *ctx,
+                              char *str, bool permanent)
 {
     TDB_DATA key;
     TDB_DATA data;
@@ -114,7 +128,12 @@ static int nss_ncache_set_str(struct nss_nc_ctx *ctx, char *str)
     ret = string_to_tdb_data(str, &key);
     if (ret != EOK) return ret;
 
-    timest = talloc_asprintf(ctx, "%llu", (unsigned long long int)time(NULL));
+    if (permanent) {
+        timest = talloc_strdup(ctx, "0");
+    } else {
+        timest = talloc_asprintf(ctx, "%llu",
+                                 (unsigned long long int)time(NULL));
+    }
     if (!timest) return ENOMEM;
 
     ret = string_to_tdb_data(timest, &data);
@@ -194,7 +213,7 @@ int nss_ncache_check_gid(struct nss_nc_ctx *ctx, int ttl, gid_t gid)
     return ret;
 }
 
-int nss_ncache_set_user(struct nss_nc_ctx *ctx,
+int nss_ncache_set_user(struct nss_nc_ctx *ctx, bool permanent,
                         const char *domain, const char *name)
 {
     char *str;
@@ -205,13 +224,13 @@ int nss_ncache_set_user(struct nss_nc_ctx *ctx,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str);
+    ret = nss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_group(struct nss_nc_ctx *ctx,
+int nss_ncache_set_group(struct nss_nc_ctx *ctx, bool permanent,
                         const char *domain, const char *name)
 {
     char *str;
@@ -222,13 +241,13 @@ int nss_ncache_set_group(struct nss_nc_ctx *ctx,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str);
+    ret = nss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_uid(struct nss_nc_ctx *ctx, uid_t uid)
+int nss_ncache_set_uid(struct nss_nc_ctx *ctx, bool permanent, uid_t uid)
 {
     char *str;
     int ret;
@@ -236,13 +255,13 @@ int nss_ncache_set_uid(struct nss_nc_ctx *ctx, uid_t uid)
     str = talloc_asprintf(ctx, "%s/%u", NC_UID_PREFIX, uid);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str);
+    ret = nss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_gid(struct nss_nc_ctx *ctx, gid_t gid)
+int nss_ncache_set_gid(struct nss_nc_ctx *ctx, bool permanent, gid_t gid)
 {
     char *str;
     int ret;
@@ -250,9 +269,53 @@ int nss_ncache_set_gid(struct nss_nc_ctx *ctx, gid_t gid)
     str = talloc_asprintf(ctx, "%s/%u", NC_GID_PREFIX, gid);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str);
+    ret = nss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
+static int delete_permanent(struct tdb_context *tdb,
+                            TDB_DATA key, TDB_DATA data, void *state)
+{
+    unsigned long long int timestamp;
+    bool remove = false;
+    char *ep;
+
+    if (strncmp((char *)key.dptr,
+                NC_ENTRY_PREFIX, sizeof(NC_ENTRY_PREFIX)) != 0) {
+        /* not interested in this key */
+        return 0;
+    }
+
+    errno = 0;
+    timestamp = strtoull((const char *)data.dptr, &ep, 0);
+    if (errno != 0 || *ep != '\0') {
+        /* Malformed entry, remove it */
+        remove = true;
+        goto done;
+    }
+
+    if (timestamp == 0) {
+        /* a 0 timestamp means this is a permanent entry */
+        remove = true;
+    }
+
+done:
+    if (remove) {
+        return tdb_delete(tdb, key);
+    }
+
+    return 0;
+}
+
+int nss_ncache_reset_permament(struct nss_nc_ctx *ctx)
+{
+    int ret;
+
+    ret = tdb_traverse(ctx->tdb, delete_permanent, NULL);
+    if (ret < 0)
+        return EIO;
+
+    return EOK;
+}

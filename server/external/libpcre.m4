@@ -1,0 +1,7 @@
+PCRE_OBJ=""
+AC_SUBST(PCRE_OBJ)
+AC_SUBST(PCRE_LIBS)
+AC_SUBST(PCRE_CFLAGS)
+
+AC_CHECK_HEADERS(pcre.h)
+AC_CHECK_LIB(pcre, pcre_compile, [ PCRE_LIBS="-lpcre" ])

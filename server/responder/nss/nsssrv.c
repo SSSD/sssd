@@ -118,9 +118,18 @@ static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn)
     return service_pong(message, sconn);
 }
 
-static int nss_get_config(struct nss_ctx *nctx, struct confdb_ctx *cdb)
+static int nss_get_config(struct nss_ctx *nctx,
+                          struct resp_ctx *rctx,
+                          struct confdb_ctx *cdb)
 {
-    int ret;
+    TALLOC_CTX *tmpctx;
+    const char *domain, *name;
+    const char **domains;
+    char **filter_list;
+    int ret, num, i, j;
+
+    tmpctx = talloc_new(nctx);
+    if (!tmpctx) return ENOMEM;
 
     ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
                          "EnumCacheTimeout", 120,
@@ -137,8 +146,109 @@ static int nss_get_config(struct nss_ctx *nctx, struct confdb_ctx *cdb)
                          &nctx->enum_cache_timeout);
     if (ret != EOK) goto done;
 
+    ret = confdb_get_param(cdb, nctx, NSS_SRV_CONFIG,
+                           "filterUsers", &filter_list);
+    if (ret != EOK) goto done;
+    for (i = 0; filter_list[i]; i++) {
+        ret = nss_parse_name(tmpctx, nctx, filter_list[i],
+                             &domain, &name);
+        if (ret != EOK) {
+            DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
+                     filter_list[i], ret));
+            continue;
+        }
+        if (domain) {
+            ret = nss_ncache_set_user(nctx->ncache, true, domain, name);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to store permanent user filter for [%s]"
+                          " (%d [%s])\n", filter_list[i],
+                          ret, strerror(ret)));
+                continue;
+            }
+        } else {
+            ret = btreemap_get_keys(tmpctx, rctx->domain_map,
+                                    (const void ***)&domains, &num);
+            if (ret != EOK) {
+                DEBUG(0, ("Unable to find domains!\n"));
+                return ret;
+            }
+
+            for (j = 0; j < num; j++) {
+                ret = nss_ncache_set_user(nctx->ncache,
+                                          true, domains[j], name);
+                if (ret != EOK) {
+                   DEBUG(1, ("Failed to store permanent user filter for"
+                             " [%s:%s] (%d [%s])\n",
+                             domains[j], filter_list[i],
+                             ret, strerror(ret)));
+                    continue;
+                }
+            }
+        }
+    }
+    talloc_free(filter_list);
+
+    ret = confdb_get_param(cdb, nctx, NSS_SRV_CONFIG,
+                           "filterGroups", &filter_list);
+    if (ret != EOK) goto done;
+    for (i = 0; filter_list[i]; i++) {
+        ret = nss_parse_name(tmpctx, nctx, filter_list[i],
+                             &domain, &name);
+        if (ret != EOK) {
+            DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
+                     filter_list[i], ret));
+            continue;
+        }
+        if (domain) {
+            ret = nss_ncache_set_group(nctx->ncache, true, domain, name);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to store permanent group filter for"
+                          " [%s] (%d [%s])\n", filter_list[i],
+                          ret, strerror(ret)));
+                continue;
+            }
+        } else {
+            ret = btreemap_get_keys(tmpctx, rctx->domain_map,
+                                    (const void ***)&domains, &num);
+            if (ret != EOK) {
+                DEBUG(0, ("Unable to find domains!\n"));
+                return ret;
+            }
+
+            for (j = 0; j < num; j++) {
+                ret = nss_ncache_set_group(nctx->ncache,
+                                           true, domains[j], name);
+                if (ret != EOK) {
+                   DEBUG(1, ("Failed to store permanent group filter for"
+                             " [%s:%s] (%d [%s])\n",
+                             domains[j], filter_list[i],
+                             ret, strerror(ret)));
+                    continue;
+                }
+            }
+        }
+    }
+    talloc_free(filter_list);
+
 done:
+    talloc_free(tmpctx);
     return ret;
+}
+
+static void *nss_pcre_malloc(size_t size)
+{
+    return talloc_named_const(NULL, size, "nss_pcre_malloc");
+}
+
+static void nss_pcre_free(void *ctx)
+{
+    talloc_free(ctx);
+}
+
+void nss_pcre_setup(void)
+{
+    pcre_malloc = nss_pcre_malloc;
+    pcre_free = nss_pcre_free;
 }
 
 int nss_process_init(TALLOC_CTX *mem_ctx,
@@ -150,16 +260,12 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct nss_ctx *nctx;
     int ret;
 
+    nss_pcre_setup();
+
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
         DEBUG(0, ("fatal error initializing nss_ctx\n"));
         return ENOMEM;
-    }
-
-    ret = nss_get_config(nctx, cdb);
-    if (ret != EOK) {
-        DEBUG(0, ("fatal error getting nss config\n"));
-        return ret;
     }
 
     ret = nss_ncache_init(nctx, &nctx->ncache);
@@ -182,6 +288,12 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
     nctx->rctx->pvt_ctx = nctx;
+
+    ret = nss_get_config(nctx, nctx->rctx, cdb);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error getting nss config\n"));
+        return ret;
+    }
 
     DEBUG(1, ("NSS Initialization complete\n"));
 
