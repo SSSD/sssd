@@ -51,6 +51,12 @@ m4_include(ldap.m4)
 m4_include(util/signal.m4)
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
+if test x$has_dbus != xno; then
+    LDFLAGS="$DBUS_LIBS"
+    AC_CHECK_FUNC([dbus_watch_get_unix_fd],
+                  AC_DEFINE([HAVE_DBUS_WATCH_GET_UNIX_FD], [1],
+                            [Define if dbus_watch_get_unix_fd exists]))
+fi
 if test x$HAVE_TESTS != x; then
     PKG_CHECK_MODULES([CHECK],[check])
 fi

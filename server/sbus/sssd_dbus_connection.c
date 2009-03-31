@@ -170,7 +170,11 @@ static dbus_bool_t sbus_add_conn_watch(DBusWatch *watch, void *data)
     conn_w_ctx->watch = watch;
 
     flags = dbus_watch_get_flags(watch);
+#ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
     conn_w_ctx->fd = dbus_watch_get_unix_fd(watch);
+#else
+    conn_w_ctx->fd = dbus_watch_get_fd(watch);
+#endif
 
     event_flags = 0;
 

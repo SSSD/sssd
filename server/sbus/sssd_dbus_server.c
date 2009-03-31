@@ -102,7 +102,11 @@ static dbus_bool_t sbus_add_srv_watch(DBusWatch *watch, void *data)
     svw_ctx->watch = watch;
 
     flags = dbus_watch_get_flags(watch);
+#ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
     svw_ctx->fd = dbus_watch_get_unix_fd(watch);
+#else
+    svw_ctx->fd = dbus_watch_get_fd(watch);
+#endif
 
     event_flags = 0;
 
