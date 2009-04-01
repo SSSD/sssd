@@ -190,6 +190,8 @@ static int be_file_request(struct be_ctx *ctx,
     struct tevent_timer *te;
     struct timeval tv;
 
+    if (!fn || !req) return EINVAL;
+
     areq = talloc(req, struct be_async_req);
     if (!areq) {
         return ENOMEM;
