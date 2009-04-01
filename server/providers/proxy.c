@@ -310,6 +310,13 @@ static void get_pw_name(struct be_req *req, char *name)
         break;
 
     case NSS_STATUS_SUCCESS:
+        /* FIXME: verify user does not have uid=0 or gid=0 as these are invalid
+         * values */
+        if (data->pwd->pw_uid == 0 || data->pwd->pw_gid == 0) {
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+            break;
+        }
+
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
         break;
 
@@ -360,6 +367,14 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
         break;
 
     case NSS_STATUS_SUCCESS:
+        /* FIXME: verify user does not have gid=0 as these are invalid values */
+        if (data->pwd->pw_gid == 0) {
+            data->dn = sysdb_user_dn(req->be_ctx->sysdb, data,
+                                     req->be_ctx->domain, data->pwd->pw_name);
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+            break;
+        }
+
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
         break;
 
@@ -427,6 +442,12 @@ retry:
         break;
 
     case NSS_STATUS_SUCCESS:
+        /* FIXME: verify user does not have uid=0 or gid=0 as these are invalid
+         * values */
+        if (data->pwd->pw_uid == 0 || data->pwd->pw_gid == 0) {
+            goto retry; /* skip */
+        }
+
         ret = sysdb_legacy_store_user(req, data->req->be_ctx->domain,
                                       data->pwd->pw_name,
                                       data->pwd->pw_passwd,
@@ -486,7 +507,7 @@ static void enum_users(struct be_req *req)
     }
 }
 
-static void del_gr_uid(struct sysdb_req *req, void *pvt)
+static void del_gr_gid(struct sysdb_req *req, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     struct sysdb_ctx *ctx;
@@ -561,6 +582,12 @@ static void get_gr_name(struct be_req *req, char *name)
         break;
 
     case NSS_STATUS_SUCCESS:
+        /* FIXME: verify group does not have gid=0 as this is invalid */
+        if (data->grp->gr_gid == 0) {
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+            break;
+        }
+
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_gr_name, data);
         break;
 
@@ -607,10 +634,18 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
         data->grp->gr_gid = gid;
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_gr_uid, data);
+        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_gr_gid, data);
         break;
 
     case NSS_STATUS_SUCCESS:
+        /* FIXME: verify group does not have gid=0 as this is invalid */
+        if (data->grp->gr_gid == 0) {
+            data->dn = sysdb_group_dn(req->be_ctx->sysdb, data,
+                                      req->be_ctx->domain, data->grp->gr_name);
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+            break;
+        }
+
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_gr_name, data);
         break;
 
@@ -676,6 +711,10 @@ retry:
         break;
 
     case NSS_STATUS_SUCCESS:
+        /* FIXME: verify group does not have gid=0 as this is invalid */
+        if (data->grp->gr_gid == 0) {
+            goto retry;
+        }
         ret = sysdb_legacy_store_group(req, data->req->be_ctx->domain,
                                        data->grp->gr_name,
                                        data->grp->gr_gid,
@@ -835,14 +874,13 @@ static void get_user_groups(void *pvt, int error, struct ldb_result *ignore)
         return proxy_return(data, ENOMEM, NULL);
 
     gid = data->pwd->pw_gid;
-    name = talloc_strdup(data, data->pwd->pw_name);
-    if (!name)
-        return proxy_return(data, ENOMEM, NULL);
+    name = data->pwd->pw_name;
 
 retry:
     status = data->ctx->ops.initgroups_dyn(name, gid,
                                            &start, &num,
                                            &data->groups, limit, &ret);
+
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
         /* buffer too small ? */
@@ -916,9 +954,24 @@ static void get_initgr_user(struct be_req *req, char *name)
         break;
 
     case NSS_STATUS_SUCCESS:
-        data->next_fn = get_user_groups;
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
-        break;
+        /* FIXME: verify user does not have uid=0 or gid=0 as these are invalid
+         * values */
+        if (data->pwd->pw_uid == 0 || data->pwd->pw_gid == 0) {
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+            break;
+        }
+
+        if (ctx->ops.initgroups_dyn) {
+            data->next_fn = get_user_groups;
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
+        } else {
+            status = ctx->ops.setgrent();
+            if (status != NSS_STATUS_SUCCESS)
+                return proxy_reply(req, EIO, "Operation failed");
+
+            ret = sysdb_transaction(data, req->be_ctx->sysdb, get_gr_entry, data);
+            break;
+        }
 
     default:
         DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
@@ -1181,9 +1234,10 @@ int sssm_proxy_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_da
     ctx->ops.initgroups_dyn = proxy_dlsym(handle, "_nss_%s_initgroups_dyn",
                                                   libname);
     if (!ctx->ops.initgroups_dyn) {
-        DEBUG(0, ("Failed to load NSS fns, error: %s\n", dlerror()));
-        ret = ELIBBAD;
-        goto done;
+        DEBUG(1, ("The '%s' library does not provides the "
+                  "_nss_XXX_initgroups_dyn function!\n"
+                  "initgroups will be slow as it will require "
+                  "full groups enumeration!\n", libname));
     }
 
     *ops = &proxy_mod_ops;

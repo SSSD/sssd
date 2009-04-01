@@ -481,7 +481,7 @@ static int get_grp_callback(struct ldb_request *req,
 static void grp_search(struct sysdb_req *sysreq, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
-    static const char *attrs[] = SYSDB_GRNAM_ATTRS;
+    static const char *attrs[] = SYSDB_GRSRC_ATTRS;
     struct ldb_request *req;
     struct ldb_dn *base_dn;
     int ret;

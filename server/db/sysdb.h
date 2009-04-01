@@ -107,11 +107,12 @@
                           SYSDB_USERPIC, \
                           SYSDB_LAST_UPDATE, \
                           NULL}
-#define SYSDB_GRNAM_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
+#define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
                            SYSDB_LAST_UPDATE, SYSDB_LEGACY_MEMBER, \
                            "objectClass", \
                            NULL}
-#define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_LAST_UPDATE, \
+#define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
+                          SYSDB_LAST_UPDATE, \
                           "objectClass", \
                           NULL}
 

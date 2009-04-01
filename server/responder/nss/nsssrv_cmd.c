@@ -192,6 +192,7 @@ static int fill_pwent(struct sss_packet *packet,
     int i, ret, num;
     bool add_domain = info->fqnames;
     const char *domain = info->name;
+    int ncret;
 
     if (add_domain) dom_len = strlen(domain) +1;
 
@@ -214,14 +215,22 @@ static int fill_pwent(struct sss_packet *packet,
         }
 
         if (filter_users) {
-            ret = nss_ncache_check_user(nctx->ncache,
+            ncret = nss_ncache_check_user(nctx->ncache,
                                         nctx->neg_timeout,
                                         domain, name);
-            if (ret == EEXIST) {
+            if (ncret == EEXIST) {
                 DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
                           name, domain));
                 continue;
             }
+        }
+
+        /* check that the uid is valid for this domain */
+        if ((info->id_min && (uid < info->id_min)) ||
+            (info->id_max && (uid > info->id_max))) {
+                DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
+                          name, domain));
+            continue;
         }
 
         gecos = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
@@ -489,6 +498,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret, num, i;
+    int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -522,9 +532,9 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     if (domname) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+        ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                     domname, cmdctx->name);
-        if (ret != ENOENT) {
+        if (ncret != ENOENT) {
             DEBUG(3, ("User [%s] does not exist! (negative cache)\n",
                       rawname));
             ret = ENOENT;
@@ -568,9 +578,9 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         for (i = 0; i < num; i++) {
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
-            ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+            ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                         domains[i], cmdctx->name);
-            if (ret != ENOENT) {
+            if (ncret != ENOENT) {
                 DEBUG(3, ("User [%s] does not exist! (neg cache)\n",
                           rawname));
                 continue;
@@ -850,6 +860,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int i, num, ret;
+    int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -885,15 +896,24 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     for (i = 0; i < num; i++) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
+        ncret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
                                    cmdctx->id);
-        if (ret != ENOENT) {
+        if (ncret != ENOENT) {
             DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
                       (unsigned long)cmdctx->id));
             continue;
         }
 
         info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
+
+        /* check that the uid is valid for this domain */
+        if ((info->id_min && (cmdctx->id < info->id_min)) ||
+            (info->id_max && (cmdctx->id > info->id_max))) {
+            DEBUG(4, ("Uid [%lu] does not exist in domain [%s]! "
+                      "(id out of range)\n",
+                      (unsigned long)cmdctx->id, domains[i]));
+            continue;
+        }
 
         cmdctx->nr++;
 
@@ -1310,15 +1330,16 @@ static int fill_grent(struct sss_packet *packet,
     struct ldb_message *msg;
     uint8_t *body;
     const char *name;
-    uint32_t gid;
+    uint32_t gid, uid;
     size_t rsize, rp, blen, mnump;
-    int i, j, ret, num, memnum;
+    int i, j, n, ret, num, memnum;
     bool get_members;
     bool skip_members;
     size_t dom_len = 0;
     size_t name_len;
     bool add_domain = info->fqnames;
     const char *domain = info->name;
+    int ncret;
 
     if (add_domain) dom_len = strlen(domain) +1;
 
@@ -1355,14 +1376,23 @@ static int fill_grent(struct sss_packet *packet,
             skip_members = false;
 
             if (filter_groups) {
-                ret = nss_ncache_check_group(nctx->ncache,
+                ncret = nss_ncache_check_group(nctx->ncache,
                                              nctx->neg_timeout, domain, name);
-                if (ret == EEXIST) {
+                if (ncret == EEXIST) {
                     DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
                               name, domain));
                     skip_members = true;
                     continue;
                 }
+            }
+
+            /* check that the gid is valid for this domain */
+            if ((info->id_min && (gid < info->id_min)) ||
+                (info->id_max && (gid > info->id_max))) {
+                    DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
+                              name, domain));
+                skip_members = true;
+                continue;
             }
 
             /* fill in gid and name and set pointer for number of members */
@@ -1402,8 +1432,18 @@ static int fill_grent(struct sss_packet *packet,
             if (el) {
                 /* legacy */
                 memnum = el->num_values;
-
+                n = 0;
                 for (j = 0; j < memnum; j++) {
+
+                    ncret = nss_ncache_check_user(nctx->ncache,
+                                                nctx->neg_timeout, domain,
+                                                (char *)el->values[j].data);
+                    if (ncret == EEXIST) {
+                        DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
+                                  name, domain));
+                        continue;
+                    }
+
                     rsize = el->values[j].length + 1;
                     if (add_domain) {
                         name_len = rsize;
@@ -1424,10 +1464,12 @@ static int fill_grent(struct sss_packet *packet,
                         memcpy(&body[rp], domain, dom_len);
                     }
                     body[blen-1] = '\0';
+
+                    n++;
                 }
 
                 sss_packet_get_body(packet, &body, &blen);
-                ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+                ((uint32_t *)(&body[mnump]))[0] = n; /* num members */
 
             }  else {
                 get_members = true;
@@ -1449,17 +1491,26 @@ static int fill_grent(struct sss_packet *packet,
                                                 SYSDB_USER_CLASS)) {
 
             name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-            if (!name) {
+            uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+            if (!name || !uid) {
                 DEBUG(1, ("Incomplete user object! Aborting\n"));
                 num = 0;
                 goto done;
             }
 
-            ret = nss_ncache_check_user(nctx->ncache,
+            ncret = nss_ncache_check_user(nctx->ncache,
                                         nctx->neg_timeout, domain, name);
-            if (ret == EEXIST) {
+            if (ncret == EEXIST) {
                 DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
                           name, domain));
+                continue;
+            }
+
+            /* check that the uid is valid for this domain */
+            if ((info->id_min && (uid < info->id_min)) ||
+                (info->id_max && (uid > info->id_max))) {
+                    DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
+                              name, domain));
                 continue;
             }
 
@@ -1706,6 +1757,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret, num, i;
+    int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1738,9 +1790,9 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     if (domname) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
+        ncret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
                                      domname, cmdctx->name);
-        if (ret != ENOENT) {
+        if (ncret != ENOENT) {
             DEBUG(3, ("Group [%s] does not exist! (negative cache)\n",
                       rawname));
             ret = ENOENT;
@@ -1783,9 +1835,9 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
         for (i = 0; i < num; i++) {
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
-            ret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
+            ncret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
                                          domains[i], cmdctx->name);
-            if (ret != ENOENT) {
+            if (ncret != ENOENT) {
                 DEBUG(3, ("Group [%s] does not exist! (negative cache)\n",
                           rawname));
                 continue;
@@ -2046,6 +2098,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int i, num, ret;
+    int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -2081,15 +2134,24 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     for (i = 0; i < num; i++) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
+        ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
                                    cmdctx->id);
-        if (ret != ENOENT) {
+        if (ncret != ENOENT) {
             DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
                       (unsigned long)cmdctx->id));
             continue;
         }
 
         info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
+
+        /* check that the uid is valid for this domain */
+        if ((info->id_min && (cmdctx->id < info->id_min)) ||
+            (info->id_max && (cmdctx->id > info->id_max))) {
+            DEBUG(4, ("Gid [%lu] does not exist! (id out of range)\n",
+                      (unsigned long)cmdctx->id));
+            continue;
+        }
+
 
         cmdctx->nr++;
 
@@ -2787,6 +2849,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     uint8_t *body;
     size_t blen;
     int ret, num, i;
+    int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -2813,14 +2876,14 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
         goto done;
     }
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
-              cmdctx->name, dctx->domain->name));
+              cmdctx->name, domname  ? : "<ALL>"));
 
     if (domname) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+        ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                     domname, cmdctx->name);
-        if (ret != ENOENT) {
+        if (ncret != ENOENT) {
             DEBUG(3, ("User [%s] does not exist! (negative cache)\n",
                       rawname));
             ret = ENOENT;
@@ -2864,9 +2927,9 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
         for (i = 0; i < num; i++) {
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
-            ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+            ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                         domains[i], cmdctx->name);
-            if (ret != ENOENT) {
+            if (ncret != ENOENT) {
                 DEBUG(3, ("User does not exist! (neg cache)\n"));
                 continue;
             }

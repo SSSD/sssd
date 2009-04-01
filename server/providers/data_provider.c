@@ -604,14 +604,6 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn
         goto respond;
     }
 
-    /* nothing to do for local */
-    if (strcasecmp(domain, "LOCAL") == 0) {
-        dpret = DP_ERR_OK;
-        errmsg = "Success";
-        ret = EOK;
-        goto respond;
-    }
-
     /* all domains, fire off a request for each backend */
     if (strcmp(domain, "*") == 0) {
         dpreq = talloc(dpcli->dpctx, struct dp_request);
