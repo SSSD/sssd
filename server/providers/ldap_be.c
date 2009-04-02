@@ -40,7 +40,7 @@
 #include "db/sysdb.h"
 #include "../sss_client/sss_cli.h"
 
-struct ldap_ctx {
+struct sdap_ctx {
     char *ldap_uri;
     char *default_bind_dn;
     char *user_search_base;
@@ -51,36 +51,36 @@ struct ldap_ctx {
     char *default_authtok;
 };
 
-struct ldap_ops;
-struct ldap_req;
+struct sdap_ops;
+struct sdap_req;
 
-struct ldap_ops {
-    void (*op)(struct ldap_req *);
-    struct ldap_ops *next;
+struct sdap_ops {
+    void (*op)(struct sdap_req *);
+    struct sdap_ops *next;
 };
 
-enum ldap_be_ops {
-    LDAP_NOOP = 0x0000,
-    LDAP_OP_INIT = 0x0001,
-    LDAP_CHECK_INIT_RESULT,
-    LDAP_CHECK_STD_BIND,
-    LDAP_CHECK_SEARCH_DN_RESULT,
-    LDAP_CHECK_USER_BIND
+enum sdap_int_ops {
+    SDAP_NOOP = 0x0000,
+    SDAP_OP_INIT = 0x0001,
+    SDAP_CHECK_INIT_RESULT,
+    SDAP_CHECK_STD_BIND,
+    SDAP_CHECK_SEARCH_DN_RESULT,
+    SDAP_CHECK_USER_BIND
 };
 
-struct ldap_req {
+struct sdap_req {
     struct be_req *req;
     struct pam_data *pd;
-    struct ldap_ctx *ldap_ctx;
+    struct sdap_ctx *sdap_ctx;
     LDAP *ldap;
-    struct ldap_ops *ops;
+    struct sdap_ops *ops;
     char *user_dn;
     tevent_fd_handler_t next_task;
-    enum ldap_be_ops next_op;
+    enum sdap_int_ops next_op;
     int msgid;
 };
 
-static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
+static int schedule_next_task(struct sdap_req *lr, struct timeval tv,
                               tevent_timer_handler_t task)
 {
     int ret;
@@ -104,7 +104,7 @@ static int schedule_next_task(struct ldap_req *lr, struct timeval tv,
     return EOK;
 }
 
-static int wait_for_fd(struct ldap_req *lr)
+static int wait_for_fd(struct sdap_req *lr)
 {
     int ret;
     int fd;
@@ -124,7 +124,7 @@ static int wait_for_fd(struct ldap_req *lr)
     return EOK;
 }
 
-static int ldap_pam_chauthtok(struct ldap_req *lr)
+static int sdap_pam_chauthtok(struct sdap_req *lr)
 {
     BerElement *ber=NULL;
     int ret;
@@ -191,14 +191,14 @@ cleanup:
     return pam_status;
 }
 
-static int ldap_be_init(struct ldap_req *lr)
+static int sdap_init(struct sdap_req *lr)
 {
     int ret;
     int status=EOK;
     int ldap_vers = LDAP_VERSION3;
     int msgid;
 
-    ret = ldap_initialize(&(lr->ldap), lr->ldap_ctx->ldap_uri);
+    ret = ldap_initialize(&(lr->ldap), lr->sdap_ctx->ldap_uri);
     if (ret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_initialize failed: %s\n", strerror(errno)));
         return EIO;
@@ -232,7 +232,7 @@ cleanup:
     return status;
 }
 
-static int ldap_be_bind(struct ldap_req *lr)
+static int sdap_bind(struct sdap_req *lr)
 {
     int ret;
     int msgid;
@@ -247,10 +247,10 @@ static int ldap_be_bind(struct ldap_req *lr)
         pw.bv_len = lr->pd->authtok_size;
         pw.bv_val = (char *) lr->pd->authtok;
     }
-    if (lr->user_dn == NULL && lr->ldap_ctx->default_bind_dn != NULL) {
-        dn = lr->ldap_ctx->default_bind_dn;
-        pw.bv_len = lr->ldap_ctx->default_authtok_size;
-        pw.bv_val = lr->ldap_ctx->default_authtok;
+    if (lr->user_dn == NULL && lr->sdap_ctx->default_bind_dn != NULL) {
+        dn = lr->sdap_ctx->default_bind_dn;
+        pw.bv_len = lr->sdap_ctx->default_authtok_size;
+        pw.bv_val = lr->sdap_ctx->default_authtok;
     }
 
     DEBUG(3, ("Trying to bind as [%s][%*s]\n", dn, pw.bv_len, pw.bv_val));
@@ -264,13 +264,13 @@ static int ldap_be_bind(struct ldap_req *lr)
     return LDAP_SUCCESS;
 }
 
-static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
+static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                          uint16_t fd, void *pvt)
 {
     int ret;
     int pam_status=PAM_SUCCESS;
     int ldap_ret;
-    struct ldap_req *lr;
+    struct sdap_req *lr;
     struct pam_data *pd;
     struct be_req *req;
     LDAPMessage *result=NULL;
@@ -281,18 +281,18 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
     char *filter=NULL;
     char *attrs[] = { LDAP_NO_ATTRS, NULL };
 
-    lr = talloc_get_type(pvt, struct ldap_req);
+    lr = talloc_get_type(pvt, struct sdap_req);
 
     switch (lr->next_op) {
-        case LDAP_OP_INIT:
-            ret = ldap_be_init(lr);
+        case SDAP_OP_INIT:
+            ret = sdap_init(lr);
             if (ret != EOK) {
-                DEBUG(1, ("ldap_be_init failed.\n"));
+                DEBUG(1, ("sdap_init failed.\n"));
                 lr->ldap = NULL;
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-        case LDAP_CHECK_INIT_RESULT:
+        case SDAP_CHECK_INIT_RESULT:
             ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
             if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
@@ -301,8 +301,8 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
             }
             if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = ldap_be_loop;
-                lr->next_op = LDAP_CHECK_INIT_RESULT;
+                lr->next_task = sdap_pam_loop;
+                lr->next_op = SDAP_CHECK_INIT_RESULT;
                 ret = wait_for_fd(lr);
                 if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
@@ -334,13 +334,13 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
                 goto done;
             }
 
-            ret = ldap_be_bind(lr);
+            ret = sdap_bind(lr);
             if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_be_bind failed.\n"));
+                DEBUG(1, ("sdap_bind failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-        case LDAP_CHECK_STD_BIND:
+        case SDAP_CHECK_STD_BIND:
             ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
             if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
@@ -349,8 +349,8 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
             }
             if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = ldap_be_loop;
-                lr->next_op = LDAP_CHECK_STD_BIND;
+                lr->next_task = sdap_pam_loop;
+                lr->next_op = SDAP_CHECK_STD_BIND;
                 ret = wait_for_fd(lr);
                 if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
@@ -375,15 +375,15 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
                 goto done;
             }
 
-            filter = talloc_asprintf(lr->ldap_ctx,
+            filter = talloc_asprintf(lr->sdap_ctx,
                                      "(&(%s=%s)(objectclass=%s))",
-                                     lr->ldap_ctx->user_name_attribute,
+                                     lr->sdap_ctx->user_name_attribute,
                                      lr->pd->user,
-                                     lr->ldap_ctx->user_object_class);
+                                     lr->sdap_ctx->user_object_class);
 
             DEBUG(4, ("calling ldap_search_ext with [%s].\n", filter));
             ret = ldap_search_ext(lr->ldap,
-                                  lr->ldap_ctx->user_search_base,
+                                  lr->sdap_ctx->user_search_base,
                                   LDAP_SCOPE_SUBTREE,
                                   filter,
                                   attrs,
@@ -398,7 +398,7 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-        case LDAP_CHECK_SEARCH_DN_RESULT:
+        case SDAP_CHECK_SEARCH_DN_RESULT:
             ret = ldap_result(lr->ldap, lr->msgid, TRUE, &no_timeout, &result);
             if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
@@ -407,8 +407,8 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
             }
             if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = ldap_be_loop;
-                lr->next_op = LDAP_CHECK_SEARCH_DN_RESULT;
+                lr->next_task = sdap_pam_loop;
+                lr->next_op = SDAP_CHECK_SEARCH_DN_RESULT;
                 ret = wait_for_fd(lr);
                 if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
@@ -456,13 +456,13 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
                 }
             } while( (msg=ldap_next_message(lr->ldap, msg)) != NULL );
 
-            ret = ldap_be_bind(lr);
+            ret = sdap_bind(lr);
             if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_be_bind failed.\n"));
+                DEBUG(1, ("sdap_bind failed.\n"));
                 pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-        case LDAP_CHECK_USER_BIND:
+        case SDAP_CHECK_USER_BIND:
             ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
             if (ret == -1) {
                 DEBUG(1, ("ldap_result failed.\n"));
@@ -471,8 +471,8 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
             }
             if (ret == 0) {
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = ldap_be_loop;
-                lr->next_op = LDAP_CHECK_USER_BIND;
+                lr->next_task = sdap_pam_loop;
+                lr->next_op = SDAP_CHECK_USER_BIND;
                 ret = wait_for_fd(lr);
                 if (ret != EOK) {
                     DEBUG(1, ("schedule_next_task failed.\n"));
@@ -509,7 +509,7 @@ static void ldap_be_loop(struct tevent_context *ev, struct tevent_fd *te,
                     pam_status = PAM_SUCCESS;
                     break;
                 case SSS_PAM_CHAUTHTOK:
-                    pam_status = ldap_pam_chauthtok(lr);
+                    pam_status = sdap_pam_chauthtok(lr);
                     break;
                 case SSS_PAM_ACCT_MGMT:
                 case SSS_PAM_SETCRED:
@@ -541,27 +541,27 @@ done:
     req->fn(req, pam_status, NULL);
 }
 
-static void ldap_start(struct tevent_context *ev, struct tevent_timer *te,
+static void sdap_start(struct tevent_context *ev, struct tevent_timer *te,
                        struct timeval tv, void *pvt)
 {
     int ret;
     int pam_status;
-    struct ldap_req *lr;
+    struct sdap_req *lr;
     struct be_req *req;
     struct pam_data *pd;
 
-    lr = talloc_get_type(pvt, struct ldap_req);
+    lr = talloc_get_type(pvt, struct sdap_req);
 
-    ret = ldap_be_init(lr);
+    ret = sdap_init(lr);
     if (ret != EOK) {
-        DEBUG(1, ("ldap_be_init failed.\n"));
+        DEBUG(1, ("sdap_init failed.\n"));
         lr->ldap = NULL;
         pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
 
-    lr->next_task = ldap_be_loop;
-    lr->next_op = LDAP_CHECK_INIT_RESULT;
+    lr->next_task = sdap_pam_loop;
+    lr->next_op = SDAP_CHECK_INIT_RESULT;
     ret = wait_for_fd(lr);
     if (ret != EOK) {
         DEBUG(1, ("schedule_next_task failed.\n"));
@@ -581,32 +581,32 @@ done:
     req->fn(req, pam_status, NULL);
 }
 
-static void ldap_pam_handler(struct be_req *req)
+static void sdap_pam_handler(struct be_req *req)
 {
     int ret;
     int pam_status=PAM_SUCCESS;
-    struct ldap_req *lr;
-    struct ldap_ctx *ldap_ctx;
+    struct sdap_req *lr;
+    struct sdap_ctx *sdap_ctx;
     struct pam_data *pd;
     struct timeval timeout;
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
-    ldap_ctx = talloc_get_type(req->be_ctx->pvt_data, struct ldap_ctx);
+    sdap_ctx = talloc_get_type(req->be_ctx->pvt_data, struct sdap_ctx);
 
-    lr = talloc(req, struct ldap_req);
+    lr = talloc(req, struct sdap_req);
 
     lr->ldap = NULL;
     lr->req = req;
     lr->pd = pd;
-    lr->ldap_ctx = ldap_ctx;
+    lr->sdap_ctx = sdap_ctx;
     lr->user_dn = NULL;
     lr->next_task = NULL;
-    lr->next_op = LDAP_NOOP;
+    lr->next_op = SDAP_NOOP;
 
     timeout.tv_sec=0;
     timeout.tv_usec=0;
-    ret = schedule_next_task(lr, timeout, ldap_start);
+    ret = schedule_next_task(lr, timeout, sdap_start);
     if (ret != EOK) {
         DEBUG(1, ("schedule_next_task failed.\n"));
         pam_status = PAM_SYSTEM_ERR;
@@ -622,23 +622,23 @@ done:
     req->fn(req, pam_status, NULL);
 }
 
-static void ldap_shutdown(struct be_req *req)
+static void sdap_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
     req->fn(req, EOK, NULL);
 }
 
-struct be_mod_ops ldap_mod_ops = {
+struct be_mod_ops sdap_mod_ops = {
     .check_online = NULL,
     .get_account_info = NULL,
-    .pam_handler = ldap_pam_handler,
-    .finalize = ldap_shutdown
+    .pam_handler = sdap_pam_handler,
+    .finalize = sdap_shutdown
 };
 
 
 int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
 {
-    struct ldap_ctx *ctx;
+    struct sdap_ctx *ctx;
     char *ldap_uri;
     char *default_bind_dn;
     char *default_authtok_type;
@@ -648,7 +648,7 @@ int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_dat
     char *user_object_class;
     int ret;
 
-    ctx = talloc(bectx, struct ldap_ctx);
+    ctx = talloc(bectx, struct sdap_ctx);
     if (!ctx) {
         return ENOMEM;
     }
@@ -700,7 +700,7 @@ int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_dat
 
 
 
-    *ops = &ldap_mod_ops;
+    *ops = &sdap_mod_ops;
     *pvt_data = ctx;
     ret = EOK;
 
