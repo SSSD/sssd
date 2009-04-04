@@ -15,31 +15,28 @@ activeServices: info
 dn: cn=nss,cn=services,cn=config
 cn: nss
 description: NSS Responder Configuration
-unixSocket: /var/lib/sss/pipes/nss
-command: /usr/libexec/sssd/sssd_nss
+filterGroups: root
+filterGroups: foo@TEST
+filterUsers: root
+filterUsers: bar@TEST
 
 dn: cn=dp,cn=services,cn=config
 cn: dp
 description: Data Provider Configuration
-command: /usr/libexec/sssd/sssd_dp
 
 dn: cn=monitor,cn=services,cn=config
 cn: monitor
 description: Monitor Configuration
 sbusTimeout: 10
-sbusAddress: unix:path=/var/lib/sss/pipes/private/dbus
 servicePingTime: 10
 
 dn: cn=pam,cn=services,cn=config
 cn: pam
-command: /usr/libexec/sssd/sssd_pam
 description: PAM Responder Configuration
-unixSocket: /var/lib/sss/pipes/pam
 
 dn: cn=info,cn=services,cn=config
 cn: info
 description: InfoPipe Configuration
-command: ./sbin/sssd_info
 
 dn: cn=domains,cn=config
 cn: domains
@@ -48,8 +45,37 @@ description: Domains served by SSSD
 dn: cn=LOCAL,cn=domains,cn=config
 cn: LOCAL
 description: Reserved domain for local configurations
-legacy: FALSE
 enumerate: 3
+minId: 500
+maxId: 999
+legacy: TRUE
+libName: files
+libPath: /lib64/libnss_files.so.2
+magicPrivateGroups: FALSE
+provider: proxy
+auth-module: proxy
+pam-target: sssdproxylocal
+
+dn: cn=TEST,cn=domains,cn=config
+cn: TEST
+description: TEST Ldap domain
+libName: ldap
+libPath: /usr/lib64/libnss_ldap.so.2
+legacy: TRUE
+enumerate: 3
+useFullyQualifiedNames: TRUE
+minId: 1000
+provider: proxy
+auth-module: proxy
+pam-target: sssdproxytest
+
+dn: cn=LDAPTEST,cn=domains,cn=config
+cn: LDAPTEST
+basedn: cn=LDAPTEST,sn=sysdb
+command: /usr/libexec/sssd/sssd_be --provider ldap --domain LDAPTEST
+description: TEST PAM Ldap domain
+provider: ldap
+userSearchBase: ou=user,dc=my-domain,dc=com
 
 dn: cn=EXAMPLE.COM,cn=domains,cn=config
 cn: EXAMPLE.COM
@@ -59,21 +85,3 @@ server: ipaserver1.example.com
 server: ipabackupserver.example.com
 legacy: FALSE
 enumerate: 0
-
-dn: cn=TEST,cn=domains,cn=config
-cn: TEST
-description: TEST Ldap domain
-provider: proxy
-command: ./sbin/sssd_be -d 2 --provider proxy --domain TEST
-libName: ldap
-libPath: /usr/lib64/libnss_ldap.so.2
-legacy: TRUE
-enumerate: 0
-
-dn: cn=LDAPTEST,cn=domains,cn=config
-cn: LDAPTEST
-basedn: cn=LDAPTEST,sn=sysdb
-command: ./sbin/sssd_be --provider ldap --domain LDAPTEST
-description: TEST PAM Ldap domain
-provider: ldap
-userSearchBase: ou=user,dc=my-domain,dc=com

@@ -27,10 +27,15 @@
 #include "responder/pam/pamsrv.h"
 
 struct be_ctx;
+struct be_id_ops;
+struct be_auth_ops;
+struct be_req;
 
+typedef int (*be_id_init_fn_t)(TALLOC_CTX *, struct be_id_ops **, void **);
+typedef int (*be_auth_init_fn_t)(TALLOC_CTX *, struct be_auth_ops **, void **);
 typedef void (*be_shutdown_fn)(void *);
-
-struct be_mod_ops;
+typedef void (*be_req_fn_t)(struct be_req *);
+typedef void (*be_async_callback_t)(struct be_req *, int, const char *);
 
 struct be_ctx {
     struct tevent_context *ev;
@@ -42,14 +47,24 @@ struct be_ctx {
     const char *domain;
     const char *identity;
     const char *conf_path;
-    struct be_mod_ops *ops;
-    void *pvt_data;
-    be_shutdown_fn shutdown;
+
+    struct be_id_ops *id_ops;
+    void *pvt_id_data;
+
+    struct be_auth_ops *auth_ops;
+    void *pvt_auth_data;
 };
 
-struct be_req;
+struct be_id_ops {
+    be_req_fn_t check_online;
+    be_req_fn_t get_account_info;
+    be_req_fn_t finalize;
+};
 
-typedef void (*be_async_callback_t)(struct be_req *, int, const char *);
+struct be_auth_ops {
+    be_req_fn_t pam_handler;
+    be_req_fn_t finalize;
+};
 
 struct be_req {
     struct be_ctx *be_ctx;
@@ -68,21 +83,6 @@ struct be_acct_req {
 
 struct be_online_req {
     int online;
-};
-
-struct be_pam_handler {
-    int pam_status;
-    const char *domain;
-    struct pam_data *pd;
-};
-
-typedef void (*be_req_fn_t)(struct be_req *);
-
-struct be_mod_ops {
-    be_req_fn_t check_online;
-    be_req_fn_t get_account_info;
-    be_req_fn_t pam_handler;
-    be_req_fn_t finalize;
 };
 
 #endif /* __DP_BACKEND_H___ */

@@ -592,7 +592,7 @@ static void sdap_pam_handler(struct be_req *req)
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
-    sdap_ctx = talloc_get_type(req->be_ctx->pvt_data, struct sdap_ctx);
+    sdap_ctx = talloc_get_type(req->be_ctx->pvt_auth_data, struct sdap_ctx);
 
     lr = talloc(req, struct sdap_req);
 
@@ -628,15 +628,15 @@ static void sdap_shutdown(struct be_req *req)
     req->fn(req, EOK, NULL);
 }
 
-struct be_mod_ops sdap_mod_ops = {
-    .check_online = NULL,
-    .get_account_info = NULL,
+struct be_auth_ops sdap_mod_ops = {
     .pam_handler = sdap_pam_handler,
     .finalize = sdap_shutdown
 };
 
 
-int sssm_ldap_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
+int sssm_ldap_auth_init(struct be_ctx *bectx,
+                        struct be_auth_ops **ops,
+                        void **pvt_data)
 {
     struct sdap_ctx *ctx;
     char *ldap_uri;

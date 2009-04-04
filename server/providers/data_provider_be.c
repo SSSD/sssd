@@ -49,8 +49,6 @@
 
 #define BE_CONF_ENTRY "config/domains/%s"
 
-typedef int (*be_init_fn_t)(TALLOC_CTX *, struct be_mod_ops **, void **);
-
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
 
@@ -305,7 +303,7 @@ static int be_check_online(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     be_req->req_data = req;
 
-    ret = be_file_request(ctx, ctx->ops->check_online, be_req);
+    ret = be_file_request(ctx, ctx->id_ops->check_online, be_req);
     if (ret != EOK) {
         online = MOD_OFFLINE;
         err_maj = DP_ERR_FATAL;
@@ -482,7 +480,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn
 
     be_req->req_data = req;
 
-    ret = be_file_request(ctx, ctx->ops->get_account_info, be_req);
+    ret = be_file_request(ctx, ctx->id_ops->get_account_info, be_req);
     if (ret != EOK) {
         err_maj = DP_ERR_FATAL;
         err_min = ret;
@@ -588,7 +586,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     be_req->pvt = reply;
     be_req->req_data = pd;
 
-    ret = be_file_request(ctx, ctx->ops->pam_handler, be_req);
+    ret = be_file_request(ctx, ctx->auth_ops->pam_handler, be_req);
     if (ret != EOK) {
         pam_status = PAM_SYSTEM_ERR;
         goto done;
@@ -698,8 +696,7 @@ static int be_cli_init(struct be_ctx *ctx)
 }
 
 static int be_finalize(struct be_ctx *ctx);
-static void be_shutdown(struct be_req *req, int status,
-                        const char *errstr);
+static void be_shutdown(struct be_req *req, int status, const char *errstr);
 
 static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt)
 {
@@ -730,37 +727,76 @@ static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void 
     /* Kill the backend and let the monitor restart it */
     ret = be_finalize(be_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]", ret, strerror(ret)));
+        DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]\n",
+                  ret, strerror(ret)));
         be_shutdown(NULL, ret, NULL);
     }
 }
 
-static void be_shutdown(struct be_req *req, int status,
-                        const char *errstr)
+static void be_shutdown(struct be_req *req, int status, const char *errstr)
 {
     /* Nothing left to do but exit() */
     if (status == EOK)
         exit(0);
 
     /* Something went wrong in finalize */
+    DEBUG(0, ("Finalizing auth module failed with error [%d] [%s]\n",
+              status, errstr ? : strerror(status)));
+
     exit(1);
 }
 
-static int be_finalize(struct be_ctx *ctx)
+static void be_id_shutdown(struct be_req *req, int status, const char *errstr)
 {
+    struct be_req *shutdown_req;
+    struct be_ctx *ctx;
     int ret;
-    struct be_req *shutdown_req = talloc_zero(ctx, struct be_req);
+
+    if (status != EOK) {
+        /* Something went wrong in finalize */
+        DEBUG(0, ("Finalizing auth module failed with error [%d] [%s]\n",
+                  status, errstr ? : strerror(status)));
+    }
+
+    ctx = req->be_ctx;
+
+    /* Now shutdown the id module too */
+    shutdown_req = talloc_zero(ctx, struct be_req);
     if (!shutdown_req) {
         ret = ENOMEM;
         goto fail;
     }
 
     shutdown_req->be_ctx = ctx;
-    shutdown_req->fn = be_shutdown;
+    shutdown_req->fn = be_id_shutdown;
 
-    shutdown_req->pvt = ctx->pvt_data;
+    shutdown_req->pvt = ctx->pvt_id_data;
 
-    ret = be_file_request(ctx, ctx->ops->finalize, shutdown_req);
+    ret = be_file_request(ctx, ctx->id_ops->finalize, shutdown_req);
+    if (ret == EOK)
+        return;
+
+fail:
+    /* If we got here, we couldn't shut down cleanly. */
+    be_shutdown(NULL, ret, NULL);
+}
+
+static int be_finalize(struct be_ctx *ctx)
+{
+    struct be_req *shutdown_req;
+    int ret;
+
+    shutdown_req = talloc_zero(ctx, struct be_req);
+    if (!shutdown_req) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    shutdown_req->be_ctx = ctx;
+    shutdown_req->fn = be_id_shutdown;
+    shutdown_req->pvt = ctx->pvt_auth_data;
+
+    ret = be_file_request(ctx, ctx->auth_ops->finalize, shutdown_req);
     if (ret == EOK) return EOK;
 
 fail:
@@ -769,13 +805,13 @@ fail:
     return ret;
 }
 
-static int load_backend(struct be_ctx *ctx)
+static int load_id_backend(struct be_ctx *ctx)
 {
     TALLOC_CTX *tmp_ctx;
     char *path;
     void *handle;
     char *mod_init_fn_name;
-    be_init_fn_t mod_init_fn;
+    be_id_init_fn_t mod_init_fn;
     int ret;
 
     tmp_ctx = talloc_new(ctx);
@@ -804,7 +840,7 @@ static int load_backend(struct be_ctx *ctx)
         goto done;
     }
 
-    mod_init_fn = (be_init_fn_t)dlsym(handle, mod_init_fn_name);
+    mod_init_fn = (be_id_init_fn_t)dlsym(handle, mod_init_fn_name);
     if (!mod_init_fn) {
         DEBUG(0, ("Unable to load init fn from module %s, error: %s\n",
                   ctx->name, dlerror()));
@@ -812,10 +848,79 @@ static int load_backend(struct be_ctx *ctx)
         goto done;
     }
 
-    ret = mod_init_fn(ctx, &ctx->ops, &ctx->pvt_data);
+    ret = mod_init_fn(ctx, &ctx->id_ops, &ctx->pvt_id_data);
     if (ret != EOK) {
         DEBUG(0, ("Error (%d) in module (%s) initialization!\n",
                   ret, ctx->name));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static int load_auth_backend(struct be_ctx *ctx)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *mod_name;
+    char *path;
+    void *handle;
+    char *mod_init_fn_name;
+    be_auth_init_fn_t mod_init_fn;
+    int ret;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(ctx->cdb, tmp_ctx, ctx->conf_path,
+                            "auth-module", NULL, &mod_name);
+    if (ret != EOK) {
+        ret = EFAULT;
+        goto done;
+    }
+    if (!mod_name) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
+                           DATA_PROVIDER_PLUGINS_PATH, mod_name);
+    if (!path) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    handle = dlopen(path, RTLD_NOW);
+    if (!handle) {
+        DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
+                  mod_name, path, dlerror()));
+        ret = ELIBACC;
+        goto done;
+    }
+
+    mod_init_fn_name = talloc_asprintf(tmp_ctx, "sssm_%s_auth_init", mod_name);
+    if (!mod_init_fn_name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    mod_init_fn = (be_auth_init_fn_t)dlsym(handle, mod_init_fn_name);
+    if (!mod_init_fn) {
+        DEBUG(0, ("Unable to load init fn from module %s, error: %s\n",
+                  mod_name, dlerror()));
+        ret = ELIBBAD;
+        goto done;
+    }
+
+    ret = mod_init_fn(ctx, &ctx->auth_ops, &ctx->pvt_auth_data);
+    if (ret != EOK) {
+        DEBUG(0, ("Error (%d) in module (%s) initialization!\n",
+                  ret, mod_name));
         goto done;
     }
 
@@ -869,10 +974,20 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = load_backend(ctx);
+    ret = load_id_backend(ctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing data providers\n"));
         return ret;
+    }
+
+    ret = load_auth_backend(ctx);
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(0, ("fatal error initializing data providers\n"));
+            return ret;
+        }
+        DEBUG(1, ("No authentication module provided for [%s] !!\n",
+                  be_domain));
     }
 
     return EOK;

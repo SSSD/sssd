@@ -61,6 +61,10 @@ struct proxy_ctx {
     struct proxy_nss_ops ops;
 };
 
+struct proxy_auth_ctx {
+    char *pam_target;
+};
+
 struct authtok_conv {
     char *authtok;
     char *oldauthtok;
@@ -84,7 +88,7 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
     for (i=0; i < num_msg; i++) {
         switch( msgm[i]->msg_style ) {
             case PAM_PROMPT_ECHO_OFF:
-                DEBUG(4, ("Conversation message: %s.\n", msgm[i]->msg));
+                DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
                 reply[i].resp_retcode = 0;
                 reply[i].resp = strdup(auth_data->authtok);
                 break;
@@ -112,14 +116,16 @@ static void proxy_pam_handler(struct be_req *req) {
     struct authtok_conv *auth_data;
     struct pam_conv conv;
     struct pam_data *pd;
+    struct proxy_auth_ctx *ctx;;
 
+    ctx = talloc_get_type(req->be_ctx->pvt_auth_data, struct proxy_auth_ctx);
     pd = talloc_get_type(req->req_data, struct pam_data);
 
     conv.conv=proxy_internal_conv;
     auth_data = talloc_zero(req->be_ctx, struct authtok_conv);
     conv.appdata_ptr=auth_data;
 
-    ret = pam_start("sssd_be_test", pd->user, &conv, &pamh);
+    ret = pam_start(ctx->pam_target, pd->user, &conv, &pamh);
     if (ret == PAM_SUCCESS) {
         DEBUG(1, ("Pam transaction started.\n"));
         pam_set_item(pamh, PAM_TTY, pd->tty);
@@ -279,7 +285,7 @@ static void get_pw_name(struct be_req *req, char *name)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -340,7 +346,7 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -478,7 +484,7 @@ static void enum_users(struct be_req *req)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -551,7 +557,7 @@ static void get_gr_name(struct be_req *req, char *name)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -611,7 +617,7 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -741,7 +747,7 @@ static void enum_groups(struct be_req *req)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -920,7 +926,7 @@ static void get_initgr_user(struct be_req *req, char *name)
     struct proxy_data *data;
     int ret;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_data, struct proxy_ctx);
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
     data = talloc_zero(req, struct proxy_data);
     if (!data)
@@ -1109,11 +1115,21 @@ static void proxy_shutdown(struct be_req *req)
     req->fn(req, EOK, NULL);
 }
 
-struct be_mod_ops proxy_mod_ops = {
+static void proxy_auth_shutdown(struct be_req *req)
+{
+    talloc_free(req->be_ctx->pvt_auth_data);
+    req->fn(req, EOK, NULL);
+}
+
+struct be_id_ops proxy_id_ops = {
     .check_online = proxy_check_online,
     .get_account_info = proxy_get_account_info,
-    .pam_handler = proxy_pam_handler,
     .finalize = proxy_shutdown
+};
+
+struct be_auth_ops proxy_auth_ops = {
+    .pam_handler = proxy_pam_handler,
+    .finalize = proxy_auth_shutdown
 };
 
 static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
@@ -1130,7 +1146,8 @@ static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
     return funcptr;
 }
 
-int sssm_proxy_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_data)
+int sssm_proxy_init(struct be_ctx *bectx,
+                    struct be_id_ops **ops, void **pvt_data)
 {
     struct proxy_ctx *ctx;
     char *libname;
@@ -1240,9 +1257,39 @@ int sssm_proxy_init(struct be_ctx *bectx, struct be_mod_ops **ops, void **pvt_da
                   "full groups enumeration!\n", libname));
     }
 
-    *ops = &proxy_mod_ops;
+    *ops = &proxy_id_ops;
     *pvt_data = ctx;
     ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
+    return ret;
+}
+
+int sssm_proxy_auth_init(struct be_ctx *bectx,
+                         struct be_auth_ops **ops, void **pvt_data)
+{
+    struct proxy_auth_ctx *ctx;
+    int ret;
+
+    ctx = talloc(bectx, struct proxy_auth_ctx);
+    if (!ctx) return ENOMEM;
+
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                           "pam-target", NULL, &ctx->pam_target);
+    if (ret != EOK) goto done;
+    if (!ctx->pam_target) {
+        ctx->pam_target = talloc_strdup(ctx, "sssd_pam_proxy_default");
+        if (!ctx->pam_target) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    *ops = &proxy_auth_ops;
+    *pvt_data = ctx;
 
 done:
     if (ret != EOK) {

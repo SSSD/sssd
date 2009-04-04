@@ -1,0 +1,9 @@
+#%PAM-1.0
+auth        sufficient    pam_ldap.so debug
+auth        requisite     pam_succeed_if.so uid >= 1000 quiet
+auth        required      pam_deny.so
+
+account     required      pam_ldap.so debug
+account     sufficient    pam_succeed_if.so uid < 1000 quiet
+account     required      pam_permit.so
+
