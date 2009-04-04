@@ -194,6 +194,7 @@ done:
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
+    struct sss_domain_info *info;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -229,7 +230,17 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         DEBUG(4, ("Using default domain [%s].\n", pd->domain));
     }
 
-    if ( strncasecmp(pd->domain,"LOCAL",5) == 0 ) {
+    if (pd->domain) {
+        /* Check for registered domain */
+        info = btreemap_get_value(cctx->rctx->domain_map,
+                                    (void *)(pd->domain));
+        if (!info) {
+            talloc_free(pd);
+            return EINVAL;
+        }
+    }
+
+    if (!info->provider) {
         return LOCAL_pam_handler(cctx, pam_reply, pd);
     };
 
