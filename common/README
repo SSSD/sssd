@@ -1,0 +1,6 @@
+TO BUILD EXECUTE:
+
+autoreconf
+./configure
+make
+
