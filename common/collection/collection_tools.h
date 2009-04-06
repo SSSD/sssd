@@ -91,6 +91,9 @@ int debug_collection(struct collection_item *handle,int flag);
 /* Print the collection using default serialization */
 int print_collection(struct collection_item *handle);
 
+/* Print the collection using iterator */
+int print_collection2(struct collection_item *handle);
+
 
 /* Find and print one item using default serialization */
 int print_item(struct collection_item *handle, char *name);

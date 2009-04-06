@@ -105,7 +105,7 @@ struct collection_item;
 struct collection_iterator;
 #endif /* COLLECTION_PRIV_H */
 
-/* IMPORATNAT - the collection is a set of items of different types.
+/* IMPORTANT - the collection is a set of items of different types.
  * There is always a header item in any collection that starts the collection.
  * Most of the functions in the interface (unless it is explicitly mentioned
  * otherwise) assume that the collection_item * argument points to the header element.
@@ -113,7 +113,7 @@ struct collection_iterator;
  * that expect header elements is illegal. There might be not enough checking
  * at the moment but this will be enforced in future versions of the library.
 
-/* IMPORTANT - To better understand how collections work imagine travel bags.
+ * IMPORTANT - To better understand how collections work imagine travel bags.
  * They usually come in different sizes and one can put a bag in a bag when they put away
  * to the shelf in a garage or closet. Collection is such bag except that you
  * can put other bags into each other even if they are not empty.
@@ -144,6 +144,7 @@ struct collection_iterator;
  * to destroy the collection after it is used.
  * By extracting reference from an internal collection the caller gains access to the
  * collection directly and thus has responsibility to destroy it after use.
+ */
 
 /* Function that creates an named collection */
 int create_collection(struct collection_item **ci,char *name,unsigned class);

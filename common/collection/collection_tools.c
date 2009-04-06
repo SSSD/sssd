@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <errno.h>
+#include <string.h>
 #include "trace.h"
 #include "collection_priv.h"
 #include "collection.h"

@@ -303,7 +303,7 @@ static struct collection_item *add_property(struct collection_item *collection,
                                             int type,
                                             int *error)
 {
-    struct collection_item *item;
+    struct collection_item *item = (struct collection_item *) NULL;
     struct collection_item *acceptor = (struct collection_item *)(NULL);
 
     TRACE_FLOW_STRING("add_property","Entry.");
@@ -734,7 +734,6 @@ static int find_item_and_do(struct collection_item *ci,
 static int update_current_item(struct collection_item *current,
                                struct update_property *update_data)
 {
-    int error = EOK;
     TRACE_FLOW_STRING("update_current_item","Entry");
 
     /* If type is different or same but it is string or binary we need to replace the storage */
@@ -1468,7 +1467,6 @@ int get_reference_from_item(struct collection_item *ci,
 {
     struct collection_header *header;
     struct collection_item *subcollection = (struct collection_item *)(NULL);
-    int error = EOK;
 
     TRACE_FLOW_STRING("get_reference_from_item","Entry.");
 
@@ -1878,8 +1876,6 @@ int modify_item(struct collection_item *item,
                 void *data,
                 int length)
 {
-    int error = EOK;
-
     TRACE_FLOW_STRING("modify_item","Entry");
 
     if((item == (struct collection_item *)(NULL)) ||
@@ -2054,7 +2050,6 @@ inline int modify_double_item(struct collection_item *item,
 /* Grow iteration stack */
 static int grow_stack(struct collection_iterator *iterator, unsigned desired)
 {
-    int error;
     int grow_by = 0;
     struct collection_item **temp;
 

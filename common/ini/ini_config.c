@@ -20,7 +20,7 @@
     along with INI Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -94,6 +94,8 @@ inline const char *parsing_error_str(int parsing_error)
 
 #endif
 
+int read_line(FILE *file,char **key,char **value, int *length, int *ext_error);
+
 /* Add to collection or update - CONSIDER moving to the collection.c */
 static int add_or_update(struct collection_item *current_section,
                          char *key,
@@ -137,7 +139,6 @@ static int ini_to_collection(const char *filename,
     char *value = NULL;
     struct collection_item *current_section = (struct collection_item *)(NULL);
     int length;
-    int type;
     int ext_err = -1;
     struct parse_error pe;
     int line = 0;
@@ -349,7 +350,6 @@ int config_for_app(const char *application,
     struct collection_item *error_list_specific = (struct collection_item *)(NULL);
     struct collection_item **pass_common = (struct collection_item **)(NULL);
     struct collection_item **pass_specific = (struct collection_item **)(NULL);
-    struct collection_item *error_file_set = (struct collection_item *)(NULL);
     int created = 0;
 
     TRACE_FLOW_STRING("config_to_collection", "Entry");
@@ -480,7 +480,7 @@ int config_for_app(const char *application,
 }
 
 /* Reads a line from the file */
-int read_line(FILE *file,char **key,void **value, int *length, int *ext_error)
+int read_line(FILE *file,char **key,char **value, int *length, int *ext_error)
 {
 
     char *res = NULL;
@@ -488,7 +488,6 @@ int read_line(FILE *file,char **key,void **value, int *length, int *ext_error)
     int len = 0;
     char *buffer = NULL;
     int i = 0;
-    int status = RET_INVALID;
     char *eq = NULL;
 
     TRACE_FLOW_STRING("read_line","Entry");
@@ -639,9 +638,8 @@ void print_file_parsing_errors(FILE *file,
     struct collection_iterator *iterator;
     int error;
     struct collection_item *item = (struct collection_item *)(NULL);
-    struct collection_header *header;
     struct parse_error *pe;
-    int count;
+    unsigned int count;
 
     TRACE_FLOW_STRING("print_file_parsing_errors", "Entry");
 
@@ -796,7 +794,7 @@ int get_config_item(const char *section,
         return EINVAL;
     }
 
-    *item == (struct collection_item *)(NULL);
+    *item = (struct collection_item *)(NULL);
 
     if(section == NULL) to_find = default_section;
     else to_find = (char *)section;
@@ -1097,7 +1095,6 @@ char **get_string_config_array(struct collection_item *item, char *sep, int *siz
     char defsep[] = ",";
     char *copy = NULL;
     char *dest = NULL;
-    int total = 0;
     int lensep;
     char *buff;
     int count = 0;

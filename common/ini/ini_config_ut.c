@@ -19,6 +19,7 @@
     along with INI Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #define TRACE_HOME
@@ -84,9 +85,8 @@ int single_file()
 int negative_test()
 {
     int error;
-    int count;
+    unsigned int count;
     struct collection_item *ini_config = (struct collection_item *)(NULL);
-    struct collection_item *error_set = (struct collection_item *)(NULL);
 
     /* App name is null - expect failure */
     error = config_for_app(NULL, NULL, NULL, NULL,INI_STOP_ON_NONE,NULL);
@@ -209,9 +209,7 @@ int get_test()
     int error;
     struct collection_item *ini_config = (struct collection_item *)(NULL);
     struct collection_item *error_set = (struct collection_item *)(NULL);
-    struct collection_iterator *iterator = (struct collection_iterator *)(NULL);
     struct collection_item *item = (struct collection_item *)(NULL);
-    int type;
     int number;
     long number_long;
     double number_double;
@@ -449,7 +447,7 @@ int get_test()
         return -1;
     }
 
-    printf("Expected 3 got %d\n", number_long);
+    printf("Expected 3 got %ld\n", number_long);
 
     printf("Convert item to unsigned.\n");
 
@@ -489,7 +487,7 @@ int get_test()
         return -1;
     }
 
-    printf("Expected 3 got %d\n", number_ulong);
+    printf("Expected 3 got %lu\n", number_ulong);
 
     printf("Convert item to double.\n");
 
@@ -509,7 +507,7 @@ int get_test()
         return -1;
     }
 
-    printf("Expected 3 got %d\n", number_double);
+    printf("Expected 3 got %e\n", number_double);
 
     printf("Convert item to bool.\n");
 
@@ -675,7 +673,7 @@ int get_test()
     }
 
     /* Can be used with this cycle */
-    for(i=0;i<size;i++) printf("%d\n",*(array + i));
+    for(i=0;i<size;i++) printf("%ld\n",*(array + i));
 
     free_long_config_array(array);
 

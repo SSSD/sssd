@@ -34,7 +34,6 @@ int ref_collection_test()
     struct collection_item *peer;
     struct collection_item *socket;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-    int found = 0;
 
     int error = EOK;
 
@@ -169,7 +168,6 @@ int add_collection_test()
     struct collection_item *peer;
     struct collection_item *socket;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-    int found = 0;
 
     int error = EOK;
 
@@ -227,12 +225,11 @@ int mixed_collection_test()
     struct collection_item *peer;
     struct collection_item *socket1;
     struct collection_item *socket2;
-    struct collection_item *packet;
     struct collection_item *event;
     struct collection_item *host;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
     int found = 0;
-    int class = 0;
+    unsigned int class = 0;
 
     int error = EOK;
 

@@ -105,7 +105,7 @@ void print_config_parsing_errors(FILE *file,                           /* File t
 int get_config_item(const char *section,                    /* Section. If NULL assumed default */
                     const char *name,                       /* Name of the property to look up */
                     struct collection_item *ini_config,     /* Collection to search */
-                    struct collection_item **item);         /* Item returned. Will be NULL is not found. /
+                    struct collection_item **item);         /* Item returned. Will be NULL is not found. */
 
 /* Convertion functions for the configuration item.
  * Sets error to EINVAL if the item is bad.
