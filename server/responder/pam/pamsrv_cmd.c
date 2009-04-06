@@ -4,55 +4,55 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "responder/pam/pam_LOCAL_domain.h"
-#include "responder/common/responder_common.h"
-#include "responder/common/responder_cmd.h"
-#include "responder/common/responder_packet.h"
 #include "responder/pam/pamsrv.h"
 
-static int pam_parse_in_data(uint8_t *body, size_t blen, struct pam_data *pd) {
+static int pam_parse_in_data(struct sss_names_ctx *snctx,
+                             struct pam_data *pd,
+                             uint8_t *body, size_t blen)
+{
     int start;
     int end;
-    int last=blen-1;
-    char *delim;
+    int last;
+    int ret;
 
-    start = end = 0;
-    while ( end < last && body[end++]!='\0');
-    pd->user = (char *) &body[start];
+    last = blen - 1;
+    end = 0;
 
-    delim = strchr(pd->user, SSS_DOMAIN_DELIM);
-    if (delim != NULL ) {
-        *delim = '\0';
-        pd->domain = delim+1;
-    } else {
-        pd->domain =  NULL;
-    }
+    /* user name */
+    for (start = end; end < last; end++) if (body[end] == '\0') break;
+    if (body[end++] != '\0') return EINVAL;
 
-    start = end;
-    while ( end < last && body[end++]!='\0');
+    ret = sss_parse_name(pd, snctx, &body[start], &pd->domain, &pd->user);
+    if (ret != EOK) return ret;
+
+    for (start = end; end < last; end++) if (body[end] == '\0') break;
+    if (body[end++] != '\0') return EINVAL;
     pd->service = (char *) &body[start];
 
-    start = end;
-    while ( end < last && body[end++]!='\0');
+    for (start = end; end < last; end++) if (body[end] == '\0') break;
+    if (body[end++] != '\0') return EINVAL;
     pd->tty = (char *) &body[start];
 
-    start = end;
-    while ( end < last && body[end++]!='\0');
+    for (start = end; end < last; end++) if (body[end] == '\0') break;
+    if (body[end++] != '\0') return EINVAL;
     pd->ruser = (char *) &body[start];
 
-    start = end;
-    while ( end < last && body[end++]!='\0');
+    for (start = end; end < last; end++) if (body[end] == '\0') break;
+    if (body[end++] != '\0') return EINVAL;
     pd->rhost = (char *) &body[start];
 
     start = end;
     pd->authtok_type = (int) body[start];
+
     start += sizeof(uint32_t);
     pd->authtok_size = (int) body[start];
+
     start += sizeof(uint32_t);
-    end =  start+pd->authtok_size;
-    if ( pd->authtok_size == 0 ) {
+    end = start + pd->authtok_size;
+    if (pd->authtok_size == 0) {
         pd->authtok = NULL;
     } else {
-        if ( end <= blen ) {
+        if (end <= blen) {
             pd->authtok = (uint8_t *) &body[start];
         } else {
             DEBUG(1, ("Invalid authtok size: %d\n", pd->authtok_size));
@@ -62,14 +62,17 @@ static int pam_parse_in_data(uint8_t *body, size_t blen, struct pam_data *pd) {
 
     start = end;
     pd->newauthtok_type = (int) body[start];
+
     start += sizeof(uint32_t);
     pd->newauthtok_size = (int) body[start];
+
     start += sizeof(uint32_t);
-    end =  start+pd->newauthtok_size;
-    if ( pd->newauthtok_size == 0 ) {
+    end = start + pd->newauthtok_size;
+
+    if (pd->newauthtok_size == 0) {
         pd->newauthtok = NULL;
     } else {
-        if ( end <= blen ) {
+        if (end <= blen) {
             pd->newauthtok = (uint8_t *) &body[start];
         } else {
             DEBUG(1, ("Invalid newauthtok size: %d\n", pd->newauthtok_size));
@@ -213,7 +216,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     pd->cmd = pam_cmd;
     pd->cctx = cctx;
-    ret=pam_parse_in_data(body, blen, pd);
+    ret=pam_parse_in_data(cctx->rctx->names, pd, body, blen);
     if( ret != 0 ) {
         talloc_free(pd);
         return EINVAL;

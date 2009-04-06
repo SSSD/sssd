@@ -20,7 +20,7 @@
 */
 #include <errno.h>
 #include "util/util.h"
-#include "responder/common/responder_cmd.h"
+#include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 
 

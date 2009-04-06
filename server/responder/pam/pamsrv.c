@@ -37,8 +37,6 @@
 #include "sbus/sssd_dbus.h"
 #include "util/btreemap.h"
 #include "responder/common/responder_packet.h"
-#include "responder/common/responder_cmd.h"
-#include "responder/common/responder_common.h"
 #include "providers/data_provider.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"

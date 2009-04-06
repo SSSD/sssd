@@ -3,7 +3,7 @@
 #include <time.h>
 #include "util/util.h"
 #include "responder/common/responder_packet.h"
-#include "responder/common/responder_common.h"
+#include "responder/common/responder.h"
 #include "providers/data_provider.h"
 #include "sbus/sbus_client.h"
 #include "providers/dp_sbus.h"

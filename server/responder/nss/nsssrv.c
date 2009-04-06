@@ -123,7 +123,7 @@ static int nss_get_config(struct nss_ctx *nctx,
                           struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmpctx;
-    const char *domain, *name;
+    char *domain, *name;
     const char **domains;
     char **filter_list;
     int ret, num, i, j;
@@ -150,8 +150,8 @@ static int nss_get_config(struct nss_ctx *nctx,
                            "filterUsers", &filter_list);
     if (ret != EOK) goto done;
     for (i = 0; filter_list[i]; i++) {
-        ret = nss_parse_name(tmpctx, nctx, filter_list[i],
-                             &domain, &name);
+        ret = sss_parse_name(tmpctx, nctx->rctx->names,
+                             filter_list[i], &domain, &name);
         if (ret != EOK) {
             DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
                      filter_list[i], ret));
@@ -192,8 +192,8 @@ static int nss_get_config(struct nss_ctx *nctx,
                            "filterGroups", &filter_list);
     if (ret != EOK) goto done;
     for (i = 0; filter_list[i]; i++) {
-        ret = nss_parse_name(tmpctx, nctx, filter_list[i],
-                             &domain, &name);
+        ret = sss_parse_name(tmpctx, nctx->rctx->names,
+                             filter_list[i], &domain, &name);
         if (ret != EOK) {
             DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
                      filter_list[i], ret));
@@ -235,22 +235,6 @@ done:
     return ret;
 }
 
-static void *nss_pcre_malloc(size_t size)
-{
-    return talloc_named_const(NULL, size, "nss_pcre_malloc");
-}
-
-static void nss_pcre_free(void *ctx)
-{
-    talloc_free(ctx);
-}
-
-void nss_pcre_setup(void)
-{
-    pcre_malloc = nss_pcre_malloc;
-    pcre_free = nss_pcre_free;
-}
-
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -259,8 +243,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct sss_cmd_table *nss_cmds;
     struct nss_ctx *nctx;
     int ret;
-
-    nss_pcre_setup();
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {

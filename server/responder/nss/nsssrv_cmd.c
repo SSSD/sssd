@@ -27,7 +27,7 @@
 
 struct nss_cmd_ctx {
     struct cli_ctx *cctx;
-    const char *name;
+    char *name;
     uint32_t id;
 
     bool immediate;
@@ -79,77 +79,6 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
     return; \
 } while(0)
 
-int nss_parse_name(TALLOC_CTX *memctx,
-                   struct nss_ctx *nctx,
-                   const char *origname,
-                   const char **domain, const char **name)
-{
-    pcre *re = nctx->parse_name_re;
-    const char *errstr;
-    const char *pattern = "(?<name>[^@]+)@?(?<domain>[^@]*$)";
-    const char *result;
-    int options;
-    int errpos;
-    int errval;
-    int ovec[30];
-    int origlen;
-    int ret, strnum;
-
-    options = PCRE_DUPNAMES | PCRE_EXTENDED;
-
-    if (!re) {
-        re = pcre_compile2(pattern, options, &errval, &errstr, &errpos, NULL);
-        if (!re) {
-            DEBUG(1, ("Invalid Regular Expression pattern at position %d. (%d [%s])\n",
-                      errpos, errstr));
-            return EFAULT;
-        }
-    }
-    nctx->parse_name_re = re;
-
-    origlen = strlen(origname);
-    options = PCRE_NOTEMPTY;
-
-    ret = pcre_exec(re, NULL, origname, origlen, 0, options, ovec, 30);
-    if (ret < 0) {
-        DEBUG(2, ("PCRE Matching error, %d\n", ret));
-        return EINVAL;
-    }
-
-    if (ret == 0) {
-        DEBUG(1, ("Too many matches, the pattern is invalid.\n"));
-    }
-
-    strnum = ret;
-
-    result = NULL;
-    ret = pcre_get_named_substring(re, origname, ovec, strnum, "name", &result);
-    if (ret < 0  || !result) {
-        DEBUG(2, ("Name not found!\n"));
-        return EINVAL;
-    }
-    *name = talloc_steal(memctx, result);
-    if (!*name) return ENOMEM;
-
-
-    result = NULL;
-    ret = pcre_get_named_substring(re, origname, ovec, strnum, "domain", &result);
-    if (ret < 0  || !result) {
-        DEBUG(4, ("Domain not provided!\n"));
-        *domain = NULL;
-    } else {
-        /* ignore "" string */
-        if (*result) {
-            *domain = talloc_steal(memctx, result);
-            if (!*domain) return ENOMEM;
-        } else {
-            *domain = NULL;
-        }
-    }
-
-    return EOK;
-}
-
 static int nss_dom_ctx_init(struct nss_dom_ctx *dctx,
                             struct btreemap *domain_map, const char *domain)
 {
@@ -189,12 +118,14 @@ static int fill_pwent(struct sss_packet *packet,
     size_t rsize, rp, blen;
     size_t s1, s2, s3, s4;
     size_t dom_len = 0;
-    int i, ret, num;
+    int delim = 1;
+    int i, ret, num, t;
     bool add_domain = info->fqnames;
     const char *domain = info->name;
+    const char *namefmt = nctx->rctx->names->fq_fmt;
     int ncret;
 
-    if (add_domain) dom_len = strlen(domain) +1;
+    if (add_domain) dom_len = strlen(domain);
 
     /* first 2 fields (len and reserved), filled up later */
     ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -245,8 +176,9 @@ static int fill_pwent(struct sss_packet *packet,
         s2 = strlen(gecos) + 1;
         s3 = strlen(homedir) + 1;
         s4 = strlen(shell) + 1;
+        if (add_domain) s1 += delim + dom_len;
+
         rsize = 2*sizeof(uint32_t) +s1 + 2 + s2 + s3 +s4;
-        if (add_domain) rsize += dom_len;
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -258,13 +190,35 @@ static int fill_pwent(struct sss_packet *packet,
         ((uint32_t *)(&body[rp]))[0] = uid;
         ((uint32_t *)(&body[rp]))[1] = gid;
         rp += 2*sizeof(uint32_t);
-        memcpy(&body[rp], name, s1);
-        rp += s1;
+
         if (add_domain) {
-            body[rp-1] = NSS_DOMAIN_DELIM;
-            memcpy(&body[rp], domain, dom_len);
-            rp += dom_len;
+            ret = snprintf(&body[rp], s1, namefmt, name, domain);
+            if (ret >= s1) {
+                /* need more space, got creative with the print format ? */
+                t = ret - s1 + 1;
+                ret = sss_packet_grow(packet, t);
+                if (ret != EOK) {
+                    num = 0;
+                    goto done;
+                }
+                delim += t;
+                s1 += t;
+                sss_packet_get_body(packet, &body, &blen);
+
+                /* retry */
+                ret = snprintf(&body[rp], s1, namefmt, name, domain);
+            }
+
+            if (ret != s1-1) {
+                DEBUG(1, ("Failed to generate a fully qualified name for user "
+                          "[%s] in [%s]! Skipping user.\n", name, domain));
+                continue;
+            }
+        } else {
+            memcpy(&body[rp], name, s1);
         }
+        rp += s1;
+
         memcpy(&body[rp], "x", 2);
         rp += 2;
         memcpy(&body[rp], gecos, s2);
@@ -493,8 +447,8 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     struct sss_domain_info *info;
     struct nss_ctx *nctx;
     const char **domains;
-    const char *domname;
     const char *rawname;
+    char *domname;
     uint8_t *body;
     size_t blen;
     int ret, num, i;
@@ -519,7 +473,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = nss_parse_name(cmdctx, nctx, rawname,
+    ret = sss_parse_name(cmdctx, cctx->rctx->names, rawname,
                          &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
@@ -1332,16 +1286,18 @@ static int fill_grent(struct sss_packet *packet,
     const char *name;
     uint32_t gid, uid;
     size_t rsize, rp, blen, mnump;
-    int i, j, n, ret, num, memnum;
+    int i, j, n, t, ret, num, memnum;
     bool get_members;
     bool skip_members;
     size_t dom_len = 0;
     size_t name_len;
+    int delim = 1;
     bool add_domain = info->fqnames;
     const char *domain = info->name;
+    const char *namefmt = nctx->rctx->names->fq_fmt;
     int ncret;
 
-    if (add_domain) dom_len = strlen(domain) +1;
+    if (add_domain) dom_len = strlen(domain);
 
     /* first 2 fields (len and reserved), filled up later */
     ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -1396,11 +1352,15 @@ static int fill_grent(struct sss_packet *packet,
             }
 
             /* fill in gid and name and set pointer for number of members */
-            name_len = strlen(name)+1;
-            rsize = 2 * sizeof(uint32_t) + name_len +2;
-            if (add_domain) rsize += dom_len;
+            name_len = strlen(name) + 1;
+            if (add_domain) name_len += delim + dom_len;
+            rsize = 2 * sizeof(uint32_t) + name_len + 2;
 
             ret = sss_packet_grow(packet, rsize);
+            if (ret != EOK) {
+                num = 0;
+                goto done;
+            }
             sss_packet_get_body(packet, &body, &blen);
 
             /*  0-3: 64bit number gid */
@@ -1414,13 +1374,34 @@ static int fill_grent(struct sss_packet *packet,
             rp += sizeof(uint32_t);
 
             /*  8-X: sequence of strings (name, passwd, mem..) */
-            memcpy(&body[rp], name, name_len);
-            rp += name_len;
             if (add_domain) {
-                body[rp-1] = NSS_DOMAIN_DELIM;
-                memcpy(&body[rp], domain, dom_len);
-                rp += dom_len;
+                ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                if (ret >= name_len) {
+                    /* need more space, got creative with the print format ? */
+                    t = ret - name_len + 1;
+                    ret = sss_packet_grow(packet, t);
+                    if (ret != EOK) {
+                        num = 0;
+                        goto done;
+                    }
+                    delim += t;
+                    name_len += t;
+                    sss_packet_get_body(packet, &body, &blen);
+
+                    /* retry */
+                    ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                }
+
+                if (ret != name_len-1) {
+                    DEBUG(1, ("Failed to generate a fully qualified name for user "
+                              "[%s] in [%s]! Skipping user.\n", name, domain));
+                    continue;
+                }
+            } else {
+                memcpy(&body[rp], name, name_len);
             }
+            rp += name_len;
+
             body[rp] = 'x'; /* group passwd field */
             body[rp+1] = '\0';
 
@@ -1435,20 +1416,21 @@ static int fill_grent(struct sss_packet *packet,
                 n = 0;
                 for (j = 0; j < memnum; j++) {
 
+                    name = (char *)el->values[j].data;
+
                     ncret = nss_ncache_check_user(nctx->ncache,
-                                                nctx->neg_timeout, domain,
-                                                (char *)el->values[j].data);
+                                                  nctx->neg_timeout,
+                                                  domain, name);
                     if (ncret == EEXIST) {
                         DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
                                   name, domain));
                         continue;
                     }
 
-                    rsize = el->values[j].length + 1;
-                    if (add_domain) {
-                        name_len = rsize;
-                        rsize += dom_len;
-                    }
+                    name_len = el->values[j].length + 1;
+                    if (add_domain) name_len += delim + dom_len;
+
+                    rsize = name_len;
                     ret = sss_packet_grow(packet, rsize);
                     if (ret != EOK) {
                         num = 0;
@@ -1457,12 +1439,34 @@ static int fill_grent(struct sss_packet *packet,
 
                     sss_packet_get_body(packet, &body, &blen);
                     rp = blen - rsize;
-                    memcpy(&body[rp], el->values[j].data, el->values[j].length);
+
                     if (add_domain) {
-                        rp += name_len;
-                        body[rp-1] = NSS_DOMAIN_DELIM;
-                        memcpy(&body[rp], domain, dom_len);
+                        ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                        if (ret >= name_len) {
+                            /* need more space, got creative with the print format ? */
+                            t = ret - name_len + 1;
+                            ret = sss_packet_grow(packet, t);
+                            if (ret != EOK) {
+                                num = 0;
+                                goto done;
+                            }
+                            delim += t;
+                            name_len += t;
+                            sss_packet_get_body(packet, &body, &blen);
+
+                            /* retry */
+                            ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                        }
+
+                        if (ret != name_len-1) {
+                            DEBUG(1, ("Failed to generate a fully qualified name for user "
+                                      "[%s] in [%s]! Skipping user.\n", name, domain));
+                            continue;
+                        }
+                    } else {
+                        memcpy(&body[rp], name, name_len);
                     }
+                    rp += name_len;
                     body[blen-1] = '\0';
 
                     n++;
@@ -1514,12 +1518,10 @@ static int fill_grent(struct sss_packet *packet,
                 continue;
             }
 
-            rsize = strlen(name) + 1;
-            if (add_domain) {
-                name_len = rsize;
-                rsize += dom_len;
-            }
+            name_len = strlen(name) + 1;
+            if (add_domain) name_len += delim + dom_len;
 
+            rsize = name_len;
             ret = sss_packet_grow(packet, rsize);
             if (ret != EOK) {
                 num = 0;
@@ -1527,13 +1529,34 @@ static int fill_grent(struct sss_packet *packet,
             }
             sss_packet_get_body(packet, &body, &blen);
             rp = blen - rsize;
-            memcpy(&body[rp], name, rsize);
-            if (add_domain) {
-                body[rp-1] = NSS_DOMAIN_DELIM;
-                memcpy(&body[rp], domain, dom_len);
-                rp += dom_len;
-            }
 
+            if (add_domain) {
+                ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                if (ret >= name_len) {
+                    /* need more space, got creative with the print format ? */
+                    t = ret - name_len + 1;
+                    ret = sss_packet_grow(packet, t);
+                    if (ret != EOK) {
+                        num = 0;
+                        goto done;
+                    }
+                    delim += t;
+                    name_len += t;
+                    sss_packet_get_body(packet, &body, &blen);
+
+                    /* retry */
+                    ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                }
+
+                if (ret != name_len-1) {
+                    DEBUG(1, ("Failed to generate a fully qualified name for user "
+                              "[%s] in [%s]! Skipping user.\n", name, domain));
+                    continue;
+                }
+            } else {
+                memcpy(&body[rp], name, name_len);
+            }
+            rp += name_len;
             memnum++;
 
             continue;
@@ -1752,8 +1775,8 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     struct sss_domain_info *info;
     struct nss_ctx *nctx;
     const char **domains;
-    const char *domname;
     const char *rawname;
+    char *domname;
     uint8_t *body;
     size_t blen;
     int ret, num, i;
@@ -1777,7 +1800,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = nss_parse_name(cmdctx, nctx, rawname,
+    ret = sss_parse_name(cmdctx, cctx->rctx->names, rawname,
                          &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));
@@ -2844,8 +2867,8 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     struct sss_domain_info *info;
     struct nss_ctx *nctx;
     const char **domains;
-    const char *domname;
     const char *rawname;
+    char *domname;
     uint8_t *body;
     size_t blen;
     int ret, num, i;
@@ -2869,7 +2892,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     rawname = (const char *)body;
 
     domname = NULL;
-    ret = nss_parse_name(cmdctx, nctx, rawname,
+    ret = sss_parse_name(cmdctx, cctx->rctx->names, rawname,
                          &domname, &cmdctx->name);
     if (ret != EOK) {
         DEBUG(2, ("Invalid name received [%s]\n", rawname));

@@ -36,14 +36,14 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "util/btreemap.h"
-#include "responder/common/responder_common.h"
+#include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
-#include "responder/common/responder_cmd.h"
-#include "responder/common/responder_dp.h"
 #include "providers/data_provider.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
+
+#define NAMES_CONFIG "config/names"
 
 static void set_nonblocking(int fd)
 {
@@ -487,6 +487,62 @@ done:
     return retval;
 }
 
+int sss_names_init(struct resp_ctx *rctx)
+{
+    struct sss_names_ctx *ctx;
+    const char *errstr;
+    int errval;
+    int errpos;
+    int ret;
+
+    ctx = talloc_zero(rctx, struct sss_names_ctx);
+    if (!ctx) return ENOMEM;
+
+    ret = confdb_get_string(rctx->cdb, ctx, NAMES_CONFIG,
+                            "re-expression", NULL, &ctx->re_pattern);
+    if (ret != EOK) goto done;
+
+    if (!ctx->re_pattern) {
+        ctx->re_pattern = talloc_strdup(ctx,
+                                "(?<name>[^@]+)@?(?<domain>[^@]*$)");
+        if (!ctx->re_pattern) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ret = confdb_get_string(rctx->cdb, ctx, NAMES_CONFIG,
+                            "full-name-format", NULL, &ctx->fq_fmt);
+    if (ret != EOK) goto done;
+
+    if (!ctx->fq_fmt) {
+        ctx->fq_fmt = talloc_strdup(ctx, "%1$s@%2$s");
+        if (!ctx->fq_fmt) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    ctx->re = pcre_compile2(ctx->re_pattern,
+                            PCRE_DUPNAMES | PCRE_EXTENDED,
+                            &errval, &errstr, &errpos, NULL);
+    if (!ctx->re) {
+        DEBUG(1, ("Invalid Regular Expression pattern at position %d."
+                  " (Error: %d [%s])\n", errpos, errval, errstr));
+        ret = EFAULT;
+        goto done;
+    }
+
+    rctx->names = ctx;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
+    return ret;
+}
+
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
@@ -539,6 +595,12 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
+    ret = sss_names_init(rctx);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing regex data\n"));
+        return ret;
+    }
+
     /* after all initializations we are ready to listen on our socket */
     ret = set_unix_socket(rctx);
     if (ret != EOK) {
@@ -553,33 +615,55 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 }
 
 int sss_parse_name(TALLOC_CTX *memctx,
-                          const char *fullname,
-                          struct btreemap *domain_map,
-                          const char **domain, const char **name) {
-    char *delim;
-    struct btreemap *node;
-    int ret;
+                   struct sss_names_ctx *snctx,
+                   const char *orig, char **domain, char **name)
+{
+    pcre *re = snctx->re;
+    const char *result;
+    int ovec[30];
+    int origlen;
+    int ret, strnum;
 
-    if ((delim = strchr(fullname, SSS_DOMAIN_DELIM)) != NULL) {
+    origlen = strlen(orig);
 
-        /* Check for registered domain */
-        ret = btreemap_search_key(domain_map, (void *)(delim+1), &node);
-        if (ret != BTREEMAP_FOUND) {
-            /* No such domain was registered. Return EINVAL.
-             * TODO: alternative approach?
-             * Alternatively, we could simply fail down to
-             * below, treating the entire construct as the
-             * full name if the domain is unspecified.
-             */
-            return EINVAL;
-        }
-
-        *name = talloc_strndup(memctx, fullname, delim-fullname);
-        *domain = talloc_strdup(memctx, delim+1);
+    ret = pcre_exec(re, NULL, orig, origlen, 0, PCRE_NOTEMPTY, ovec, 30);
+    if (ret < 0) {
+        DEBUG(2, ("PCRE Matching error, %d\n", ret));
+        return EINVAL;
     }
-    else {
-        *name = talloc_strdup(memctx, fullname);
+
+    if (ret == 0) {
+        DEBUG(1, ("Too many matches, the pattern is invalid.\n"));
+    }
+
+    strnum = ret;
+
+    result = NULL;
+    ret = pcre_get_named_substring(re, orig, ovec, strnum, "name", &result);
+    if (ret < 0  || !result) {
+        DEBUG(2, ("Name not found!\n"));
+        return EINVAL;
+    }
+    *name = talloc_strdup(memctx, result);
+    pcre_free_substring(result);
+    if (!*name) return ENOMEM;
+
+
+    result = NULL;
+    ret = pcre_get_named_substring(re, orig, ovec, strnum, "domain", &result);
+    if (ret < 0  || !result) {
+        DEBUG(4, ("Domain not provided!\n"));
         *domain = NULL;
+    } else {
+        /* ignore "" string */
+        if (*result) {
+            *domain = talloc_strdup(memctx, result);
+            pcre_free_substring(result);
+            if (!*domain) return ENOMEM;
+        } else {
+            pcre_free_substring(result);
+            *domain = NULL;
+        }
     }
 
     return EOK;

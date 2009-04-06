@@ -32,19 +32,13 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
-#include "responder/common/responder_cmd.h"
+#include "responder/common/responder.h"
 #include "responder/nss/nsssrv_nc.h"
-#include <pcre.h>
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define NSS_SBUS_SERVICE_NAME "nss"
 
 #define NSS_PACKET_MAX_RECV_SIZE 1024
-
-/* NSS_DOMAIN_DELIM can be specified in config.h */
-#ifndef NSS_DOMAIN_DELIM
-#define NSS_DOMAIN_DELIM '@'
-#endif
 
 #define NSS_ENUM_USERS 0x01
 #define NSS_ENUM_GROUPS 0x02
@@ -67,8 +61,6 @@ struct nss_ctx {
 
     struct getent_ctx *pctx;
     struct getent_ctx *gctx;
-
-    pcre *parse_name_re;
 };
 
 struct nss_packet;

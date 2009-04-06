@@ -19,14 +19,17 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __SSSSRV_CMD_H__
-#define __SSSSRV_CMD_H__
+#ifndef __SSS_RESPONDER_H__
+#define __SSS_RESPONDER_H__
 
 #include <stdint.h>
 #include <sys/un.h>
+#include <pcre.h>
+#include "config.h"
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"
+#include "sbus/sssd_dbus.h"
 #include "../sss_client/sss_cli.h"
 #include "util/btreemap.h"
 
@@ -38,6 +41,13 @@ struct cli_request {
 
     /* reply data */
     struct sss_packet *out;
+};
+
+struct sss_names_ctx {
+    char *re_pattern;
+    char *fq_fmt;
+
+    pcre *re;
 };
 
 struct resp_ctx {
@@ -62,6 +72,8 @@ struct resp_ctx {
     const char *confdb_service_path;
     struct sbus_method *dp_methods;
 
+    struct sss_names_ctx *names;
+
     void *pvt_ctx;
 };
 
@@ -80,8 +92,28 @@ struct sss_cmd_table {
     int (*fn)(struct cli_ctx *cctx);
 };
 
+/* responder_common.c */
+int sss_process_init(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
+                     struct confdb_ctx *cdb,
+                     struct sbus_method sss_sbus_methods[],
+                     struct sss_cmd_table sss_cmds[],
+                     const char *sss_pipe_name,
+                     const char *sss_priv_pipe_name,
+                     const char *confdb_service_path,
+                     struct sbus_method dp_methods[],
+                     struct resp_ctx **responder_ctx);
+
+int sss_parse_name(TALLOC_CTX *memctx,
+                   struct sss_names_ctx *snctx,
+                   const char *orig, char **domain, char **name);
+
+/* responder_cmd.c */
 int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
 
-#endif /* __SSSSRV_CMD_H__ */
+/* responder_dp.c */
+int sss_dp_init(struct resp_ctx *rctx, struct sbus_method dp_methods[]);
+
+#endif /* __SSS_RESPONDER_H__ */

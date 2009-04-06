@@ -4,7 +4,7 @@
 
 #include "util/util.h"
 #include "sbus/sssd_dbus.h"
-#include "responder/common/responder_cmd.h"
+#include "responder/common/responder.h"
 
 #define PAM_DP_TIMEOUT 5000
 
