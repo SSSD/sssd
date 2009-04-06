@@ -1,1 +1,1 @@
-SUBDIRS = collection
+SUBDIRS = collection ini

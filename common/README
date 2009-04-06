@@ -1,6 +1,12 @@
 TO BUILD EXECUTE:
 
-autoreconf
+autoreconf -i
 ./configure
 make
 
+If you build first time after getting source use:
+
+autoreconf -i -f
+
+Most information about how to use the interfaces can be found in header files
+and in the unit tests (*_ut.c).

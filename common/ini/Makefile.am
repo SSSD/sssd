@@ -2,7 +2,7 @@
 TRACE_LEVEL=@TRACE_VAR@
 
 topdir=..
-AM_CPPFLAGS = -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
+AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
 
 # Build static libraty
 noinst_LIBRARIES = libini_config.a
