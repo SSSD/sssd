@@ -63,7 +63,7 @@ struct collection_header {
     struct collection_item *last;
     unsigned reference_count;
     unsigned count;
-    unsigned class;
+    unsigned cclass;
 };
 
 #endif

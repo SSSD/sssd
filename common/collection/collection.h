@@ -26,7 +26,8 @@
 #define EOK 0
 #endif
 
-#define COL_TYPE_STRING          0x00000001 /* For elements of type string the trailing 0 is counted into the length. */
+#define COL_TYPE_STRING          0x00000001 /* For elements of type string the
+                                               lenght includes the trailing 0 */
 #define COL_TYPE_BINARY          0x00000002
 #define COL_TYPE_INTEGER         0x00000004
 #define COL_TYPE_UNSIGNED        0x00000008
@@ -34,10 +35,18 @@
 #define COL_TYPE_ULONG           0x00000020
 #define COL_TYPE_DOUBLE          0x00000040
 #define COL_TYPE_BOOL            0x00000080
-#define COL_TYPE_COLLECTION      0x00000100 /* The item of this type denotes that starting element of a collection */
-#define COL_TYPE_COLLECTIONREF   0x00000200 /* The item of this type denotes a pointer to already existing external collection */
-#define COL_TYPE_END             0x10000000 /* Special type that denotes the end of the collection. Useful when traversing collection */
-#define COL_TYPE_ANY             0x0FFFFFFF /* Special type that denotes any. Useful when traversing collection */
+#define COL_TYPE_COLLECTION      0x00000100 /* The item of this type denotes
+                                               that starting element of a
+                                               collection */
+#define COL_TYPE_COLLECTIONREF   0x00000200 /* An item of this type is a pointer
+                                               to an existing external
+                                               collection */
+#define COL_TYPE_END             0x10000000 /* Special type that denotes the end
+                                               of the collection. Useful when
+                                               traversing collections */
+#define COL_TYPE_ANY             0x0FFFFFFF /* Special type that denotes any.
+                                               Useful when traversing
+                                               collections */
 
 /* Any data we deal with can't be longer than this */
 /* FIXME - make it compile time option */
@@ -48,31 +57,53 @@
 
 /* The modes that define how one collection can be added to another */
 
-#define COL_ADD_MODE_REFERENCE 0    /* One collection will contain a pointer of another */
-#define COL_ADD_MODE_EMBED     1    /* One collection will be donated to become a part of another collection.
-                                     * After that the donating connection handle should not be used or freed.
-                                     * It means that it can be donated only once. The donation attempt will
-                                     * fail if the collection is referenced by other collection. */
-#define COL_ADD_MODE_CLONE     2    /* Creates a deep copy of a collection with its sub collections */
+#define COL_ADD_MODE_REFERENCE 0    /* The collection will contain a pointer
+                                       to another */
+#define COL_ADD_MODE_EMBED     1    /* The collection will become part of
+                                       another collection.
+                                       After this operation the handle should
+                                       not be used or freed.
+                                       Can't be done more than once.
+                                       If the collection is referenced by
+                                       another collection, the operation will
+                                       fail. */
+#define COL_ADD_MODE_CLONE     2    /* Creates a deep copy of a collection with
+                                       its sub collections */
 
 
 /* Modes how the collection is traversed */
-#define COL_TRAVERSE_DEFAULT  0x00000000  /* No special flags - means it will go through all the items */
-#define COL_TRAVERSE_ONELEVEL 0x00000001  /* Flag to traverse only high level - ignored it IGNORE flag is specified */
-#define COL_TRAVERSE_END      0x00000002  /* Call handler once more when end of the collection is reached - good for processing nested collections */
-                                          /* Flag is implied for iterator unless FLAT flag is specified */
-#define COL_TRAVERSE_IGNORE   0x00000004  /* Ignore sub collections at all as if there are none */
-#define COL_TRAVERSE_FLAT     0x00000008  /* Flatten the collection - FIXME - not implemented yet */
-/* Additional iterator flags - not respected by traverse functions */
-#define COL_TRAVERSE_SHOWSUB  0x00010000  /* Include header of the sub collections - respected by iterator */
-                                          /* By default iterator returns just references and skips headers */
-                                          /* Ignored if ONELEVEL flag is specified and not ignored */
-                                          /* Ignored if FLAT flag is specified */
-#define COL_TRAVERSE_ONLYSUB  0x00020000  /* Show header of the sub collection instead of reference - respected by iterator */
-                                          /* Ignored if ONELEVEL flag is specified and not ignored */
-                                          /* Ignored if FLAT flag is specified */
+#define COL_TRAVERSE_DEFAULT  0x00000000  /* Traverse all items */
+#define COL_TRAVERSE_ONELEVEL 0x00000001  /* Flag to traverse only top level
+                                             ignored if the IGNORE flag is
+                                             specified */
+#define COL_TRAVERSE_END      0x00000002  /* Call the handler once more when the
+                                             end of the collection is reached.
+                                             Good for processing nested
+                                             collections.
+                                             Implicit for iterators unless
+                                             the FLAT flag is specified */
+#define COL_TRAVERSE_IGNORE   0x00000004  /* Ignore sub collections as if none
+                                             is present */
+#define COL_TRAVERSE_FLAT     0x00000008  /* Flatten the collection.
+                                             FIXME: not implemented yet */
 
-/* FIXME - move to event level - this does not belong to collection */
+/* Additional iterator flags
+ * NOTE: ignored by traverse functions */
+#define COL_TRAVERSE_SHOWSUB  0x00010000  /* Include headers of sub collections
+                                             By default iterators return just
+                                             references and skips headers.
+                                             Ignored if the ONELEVEL flag is
+                                             specified and not ignored.
+                                             Ignored if the FLAT flag is
+                                             specified. */
+#define COL_TRAVERSE_ONLYSUB  0x00020000  /* Show the header of the sub
+                                             collection instead of reference.
+                                             Ignored if the ONELEVEL flag is
+                                             specified and not ignored.
+                                             Ignored if the FLAT flag is
+                                             specified. */
+
+/* FIXME: move to event level - this does not belong to collection */
 /* Time stamp property name */
 #define TS_NAME         "stamp"
 /* Time property name */
@@ -105,49 +136,53 @@ struct collection_item;
 struct collection_iterator;
 #endif /* COLLECTION_PRIV_H */
 
-/* IMPORTANT - the collection is a set of items of different types.
+/* IMPORTANT - the collection is a set of items of different type.
  * There is always a header item in any collection that starts the collection.
- * Most of the functions in the interface (unless it is explicitly mentioned
- * otherwise) assume that the collection_item * argument points to the header element.
- * Passing in elements extracted from the middle of collection to the functions
+ * Most of the functions in the interface (unless explicitly stated otherwise)
+ * assume that the collection_item * argument points to the header element.
+ * Passing in elements extracted from the middle of a collection to functions
  * that expect header elements is illegal. There might be not enough checking
  * at the moment but this will be enforced in future versions of the library.
 
  * IMPORTANT - To better understand how collections work imagine travel bags.
- * They usually come in different sizes and one can put a bag in a bag when they put away
- * to the shelf in a garage or closet. Collection is such bag except that you
- * can put other bags into each other even if they are not empty.
+ * They usually come in different sizes and one can put a bag in a bag when
+ * they put away to the shelf in a garage or closet. Collection is such bag
+ * except that you can put other bags into each other even if they are not
+ * empty.
  * When you put items into a bag you do not see the contents of the bag.
  * You just hold the bag. How many other bags inside this bag you do not know.
  * But you might know that you put a "valet" somewhere there.
  * You ask the bag you hold: "find my valet and give it to me".
  * get_item function will return you the item that is you "valet".
- * You can then change something or just get information about the item you retrieved.
- * But in most cases you do not the valet itself. You want to get something from the vallet
- * or put something into it. IMO money would be an obvious choice.
- * To do this you use update_xxx_property functions.
- * There might be a bag somewhere deep and you might want to add something to it.
- * add_xxx_property_xxx functions allow you to specify sub collection you want the item
- * to be added to. If this sub collection argument is NULL top level collection is assumed.
- * The search in the collections users a dotted notation to refer to an item (or property)
- * You can search for "valet" and it will find any first instance of the "valet" in
- * your luggage. But you might have two valets. One is yours and another is your significant other's.
- * So you might say find "my.valet". It will find valet in your bad (collection) named "my".
- * This collection can be many levels deep inside other collections. You do not need to know
- * the full path to get to it. But if you have the full path you can use the fill path
- * like this "luggage.newbags.my.valet".
- * It is useful to be able to put bags into bags as well as get them out of each other.
- * When the collection is created the header keeps a reference count on how many
- * copies of the collection are known to the world. So one can put a collection into collection
- * and give up its access to it (embed) of still hold to the reference.
- * By embedding the collection the caller effectively gives up its responsibility
- * to destroy the collection after it is used.
- * By extracting reference from an internal collection the caller gains access to the
- * collection directly and thus has responsibility to destroy it after use.
+ * You can then change something or just get information about the item you
+ * retrieved. But in most cases you do not the valet itself. You want to get
+ * something from the vallet or put something into it. IMO money would be an
+ * obvious choice. To do this you use update_xxx_property functions.
+ * There might be a bag somewhere deep and you might want to add something to
+ * it. add_xxx_property_xxx functions allow you to specify sub collection you
+ * want the item to be added to. If this sub collection argument is NULL top
+ * level collection is assumed.
+ * The search in the collections users a dotted notation to refer to an item (or
+ * property). You can search for "valet" and it will find any first instance of
+ * the "valet" in your luggage. But you might have two valets. One is yours and
+ * another is your significant other's. So you might say find "my.valet".
+ * It will find valet in your bad (collection) named "my". This collection can
+ * be many levels deep inside other collections. You do not need to know the
+ * full path to get to it. But if you have the full path you can use the fill
+ * path like this "luggage.newbags.my.valet".
+ * It is useful to be able to put bags into bags as well as get them out of each
+ * other. When the collection is created the header keeps a reference count on
+ * how many copies of the collection are known to the world. So one can put a
+ * collection into collection and give up its access to it (embed) of still hold
+ * to the reference. By embedding the collection the caller effectively gives
+ * up its responsibility to destroy the collection after it is used.
+ * By extracting reference from an internal collection the caller gains access
+ * to the collection directly and thus has responsibility to destroy it after
+ * use.
  */
 
 /* Function that creates an named collection */
-int create_collection(struct collection_item **ci,char *name,unsigned class);
+int create_collection(struct collection_item **ci, char *name,unsigned cclass);
 
 /* Function that destroys a collection */
 void destroy_collection(struct collection_item *ci);
@@ -155,88 +190,131 @@ void destroy_collection(struct collection_item *ci);
 /* Family of functions that add properties to an event */
 /* See details about subcollection argument above. */
 /* Family includes the following convinience functions: */
-/* Add a string property to collection. Length should include the null terminating 0  */
-int add_str_property(struct collection_item *ci,char *subcollection, char *property,char *string,int length);
+/* Add a string property to collection. The length should include the
+ * terminating 0 */
+int add_str_property(struct collection_item *ci, char *subcollection,
+                     char *property, char *string, int length);
 /* Add a binary property to collection.  */
-int add_binary_property(struct collection_item *ci,char *subcollection, char *property,void *binary_data,int length);
+int add_binary_property(struct collection_item *ci, char *subcollection,
+                        char *property, void *binary_data, int length);
 /* Add an int property to collection. */
-int add_int_property(struct collection_item *ci,char *subcollection, char *property,int number);
+int add_int_property(struct collection_item *ci, char *subcollection,
+                     char *property, int number);
 /* Add an unsigned int property. */
-int add_unsigned_property(struct collection_item *ci,char *subcollection, char *property,unsigned int number);
+int add_unsigned_property(struct collection_item *ci, char *subcollection,
+                          char *property,unsigned int number);
 /* Add a long property. */
-int add_long_property(struct collection_item *ci,char *subcollection, char *property,long number);
+int add_long_property(struct collection_item *ci, char *subcollection,
+                      char *property, long number);
 /* Add an unsigned long property. */
-int add_ulong_property(struct collection_item *ci,char *subcollection, char *property,unsigned long number);
+int add_ulong_property(struct collection_item *ci, char *subcollection,
+                       char *property, unsigned long number);
 /* Add a double property. */
-int add_double_property(struct collection_item *ci,char *subcollection, char *property,double number);
+int add_double_property(struct collection_item *ci, char *subcollection,
+                        char *property,double number);
 /* Add a bool property. */
-int add_bool_property(struct collection_item *ci,char *subcollection, char *property,unsigned char logical);
+int add_bool_property(struct collection_item *ci, char *subcollection,
+                      char *property, unsigned char logical);
 
 /* Add any property */
-int add_any_property(struct collection_item *ci,    /* Collection to find things in */
+int add_any_property(struct collection_item *ci,    /* A collection of items */
                      char *subcollection,           /* Subcollection */
                      char *property,                /* Name */
-                     int type,                      /* Type of the passed in data */
-                     void *data,                    /* Pointer to the new data */
-                     int length);                   /* Length of the data. For strings should include trailing 0 */
+                     int type,                      /* Data type */
+                     void *data,                    /* Pointer to the data */
+                     int length);                   /* Length of the data. For
+                                                       strings it includes the
+                                                       trailing 0 */
 
-/* The functions that add an item and immediately return you this item in the ret_ref parameter */
-int add_str_property_with_ref(struct collection_item *ci,char *subcollection, char *property,char *string,int length,
+/* The functions that add an item and immediately return you this item
+ * in the ret_ref parameter */
+int add_str_property_with_ref(struct collection_item *ci,
+                              char *subcollection,
+                              char *property, char *string, int length,
                               struct collection_item **ret_ref);
-int add_binary_property_with_ref(struct collection_item *ci,char *subcollection, char *property,void *binary_data,int length,
+int add_binary_property_with_ref(struct collection_item *ci,
+                                 char *subcollection,
+                                 char *property, void *binary_data, int length,
                                  struct collection_item **ret_ref);
-int add_int_property_with_ref(struct collection_item *ci,char *subcollection, char *property,int number,
+int add_int_property_with_ref(struct collection_item *ci,
+                              char *subcollection,
+                              char *property, int number,
                               struct collection_item **ret_ref);
-int add_unsigned_property_with_ref(struct collection_item *ci,char *subcollection, char *property,unsigned int number,
+int add_unsigned_property_with_ref(struct collection_item *ci,
+                                   char *subcollection,
+                                   char *property,unsigned int number,
                                    struct collection_item **ret_ref);
-int add_long_property_with_ref(struct collection_item *ci,char *subcollection, char *property,long number,
+int add_long_property_with_ref(struct collection_item *ci,
+                               char *subcollection,
+                               char *property, long number,
                                struct collection_item **ret_ref);
-int add_ulong_property_with_ref(struct collection_item *ci,char *subcollection, char *property,unsigned long number,
+int add_ulong_property_with_ref(struct collection_item *ci,
+                                char *subcollection,
+                                char *property, unsigned long number,
                                 struct collection_item **ret_ref);
-int add_double_property_with_ref(struct collection_item *ci,char *subcollection, char *property,double number,
+int add_double_property_with_ref(struct collection_item *ci,
+                                 char *subcollection,
+                                 char *property, double number,
                                  struct collection_item **ret_ref);
-int add_bool_property_with_ref(struct collection_item *ci,char *subcollection, char *property,unsigned char logical,
-                                 struct collection_item **ret_ref);
-int add_any_property_with_ref(struct collection_item *ci,char *subcollection,char *property,int type,void *data,int length,
+int add_bool_property_with_ref(struct collection_item *ci,
+                               char *subcollection,
+                               char *property, unsigned char logical,
+                               struct collection_item **ret_ref);
+int add_any_property_with_ref(struct collection_item *ci,
+                              char *subcollection,
+                              char *property, int type, void *data, int length,
                               struct collection_item **ret_ref);
 
 /* FIXME - does not belong here - move to other place */
 /* Function to create a timestamp */
-/* Automatically adds/updates time and timestamp properties in the collection returning references */
+/* Automatically adds/updates time and timestamp properties in the
+ * collection returning references */
 int set_timestamp(struct collection_item *ci,
                   struct collection_item **timestr_ref,
                   struct collection_item **timeint_ref);
 
 
 /* Update functions */
-/* All update functions search the property using the search algorithm described at the top of the header file.
+/* All update functions search the property using the search algorithm
+ * described at the top of the header file.
  * Use same dotted notation to specify a property.
  */
-/* Update a string property in the collection. Length should include the null terminating 0  */
-int update_str_property(struct collection_item *ci, char *property,int mode_flags, char *string,int length);
+/* Update a string property in the collection.
+ * Length should include the terminating 0  */
+int update_str_property(struct collection_item *ci, char *property,
+                        int mode_flags, char *string,int length);
 /* Update a binary property in the collection.  */
-int update_binary_property(struct collection_item *ci, char *property,int mode_flags, void *binary_data,int length);
+int update_binary_property(struct collection_item *ci, char *property,
+                           int mode_flags, void *binary_data,int length);
 /* Update an int property in the collection. */
-int update_int_property(struct collection_item *ci, char *property,int mode_flags, int number);
+int update_int_property(struct collection_item *ci, char *property,
+                        int mode_flags, int number);
 /* Update an unsigned int property. */
-int update_unsigned_property(struct collection_item *ci, char *property,int mode_flags, unsigned int number);
+int update_unsigned_property(struct collection_item *ci, char *property,
+                             int mode_flags, unsigned int number);
 /* Update a long property. */
-int update_long_property(struct collection_item *ci, char *property,int mode_flags ,long number);
+int update_long_property(struct collection_item *ci, char *property,
+                         int mode_flags, long number);
 /* Update an unsigned long property. */
-int update_ulong_property(struct collection_item *ci, char *property,int mode_flags, unsigned long number);
+int update_ulong_property(struct collection_item *ci, char *property,
+                          int mode_flags, unsigned long number);
 /* Update a double property. */
-int update_double_property(struct collection_item *ci, char *property,int mode_flags, double number);
+int update_double_property(struct collection_item *ci, char *property,
+                           int mode_flags, double number);
 /* Update a double property. */
-int update_bool_property(struct collection_item *ci, char *property,int mode_flags, unsigned char logical);
+int update_bool_property(struct collection_item *ci, char *property,
+                         int mode_flags, unsigned char logical);
 
 
 /* Update property in the collection */
-int update_property(struct collection_item *ci,    /* Collection to find things in */
-                    char *property_to_find,        /* Name to match */
-                    int type,                      /* Type of the passed in data */
-                    void *new_data,                /* Pointer to the new data */
-                    int length,                    /* Length of the data. For strings should include trailing 0 */
-                    int mode_flags);               /* How to traverse the collection  */
+int update_property(struct collection_item *ci, /* A collection of items */
+                    char *property_to_find,     /* Name to match */
+                    int type,                   /* Data type */
+                    void *new_data,             /* Pointer to the data */
+                    int length,                 /* Length of the data. For
+                                                   strings, it includes the
+                                                   trailing 0 */
+                    int mode_flags);            /* How to traverse the collection  */
 
 
 
@@ -283,12 +361,12 @@ int traverse_collection(struct collection_item *ci,    /* Collection to traverse
    the data passed in custom_data and see if the item was found and
    that the action was performed.
  */
-int get_item_and_do(struct collection_item *ci,       /* Collection to find things in */
-                    char *property_to_find,           /* Name to match */
-                    int type,                         /* Type filter */
-                    int mode_flags,                   /* How to traverse the collection */
-                    item_fn item_handler,             /* Function to call when the item is found */
-                    void *custom_data);               /* Custom data passed around */
+int get_item_and_do(struct collection_item *ci,  /* A collection of items */
+                    char *property_to_find,      /* Name to match */
+                    int type,                    /* Type filter */
+                    int mode_flags,              /* How to traverse the collection */
+                    item_fn item_handler,        /* Function to call when the item is found */
+                    void *custom_data);          /* Custom data passed around */
 
 /* Convenience function to get individual item */
 /* Caller should be aware that this is not a copy of the item
@@ -354,7 +432,7 @@ int modify_double_item(struct collection_item *item,
                        double number);
 
 /* Delete property from the collection */
-int delete_property(struct collection_item *ci,    /* Collection to find things in */
+int delete_property(struct collection_item *ci,    /* A collection of items */
                     char *property_to_find,        /* Name to match */
                     int type,                      /* Type filter */
                     int mode_flags);               /* How to traverse the collection  */
@@ -381,18 +459,21 @@ int get_reference_from_item(struct collection_item *ci,          /* Reference el
 
 
 /* Bind iterator to a collection */
-int bind_iterator(struct collection_iterator **iterator,   /* The iterator to bind */
-                  struct collection_item *ci,              /* Collection to bind iterator to */
-                  int mode_flags);                         /* How the collection needs to be iterated */
+int bind_iterator(struct collection_iterator **iterator, /* The iterator to bind */
+                  struct collection_item *ci,            /* Collection to bind iterator to */
+                  int mode_flags);                       /* How the collection needs to be iterated */
 
 /* Unbind the iterator from the collection */
 void unbind_iterator(struct collection_iterator *iterator);
 
 /* Get items from the collection one by one following the tree */
-int iterate_collection(struct collection_iterator *iterator, struct collection_item **item);
+int iterate_collection(struct collection_iterator *iterator,
+                       struct collection_item **item);
 
-/* Stop processing this subcollection and move to the next item in the collection 'level' levels up.*/
-/* 'Level' parameter indicates how many levels up you want to jump. If 0 - call is a no op.
+/* Stop processing this subcollection and move to the next item in the
+ * collection 'level' levels up.
+ * The 'Level' parameter indicates how many levels up you want to jump.
+ * If 0 - call is a no op.
  * If the depth is less than requested level function will return error EINVAL.
  */
 int iterate_up(struct collection_iterator *iterator, int level);
@@ -403,24 +484,26 @@ int get_iterator_depth(struct collection_iterator *iterator, int *depth);
 /* FIXME - Do we need to be able to rewind iterator? */
 
 /* Set collection class */
-int set_collection_class(struct collection_item *item,      /* Collection */
-                         unsigned class);                   /* Class of the collection */
+int set_collection_class(struct collection_item *item, /* Collection */
+                         unsigned cclass);             /* Collection class */
 
 /* Get collection class */
-int get_collection_class(struct collection_item *item,      /* Collection */
-                         unsigned *class);                  /* Class of the collection */
+int get_collection_class(struct collection_item *item, /* Collection */
+                         unsigned *cclass);            /* Collection class */
 
 
 /* Get collection count */
-int get_collection_count(struct collection_item *item,      /* Collection */
-                         unsigned *count);                  /* Count of elements in this collection.
-                                                             * Each subcollection is counted as 1 element.
-                                                             */
+int get_collection_count(struct collection_item *item, /* Collection */
+                         unsigned *count);             /* Number of elements in
+                                                          this collection.
+                                                          Each subcollection is
+                                                          counted as 1 element.
+                                                        */
 
 /* Convenience function to check if the collection is of the specific class */
 /* In case of internal error assumes that collection is not of the right class */
-int is_of_class(struct collection_item *item,      /* Collection */
-                unsigned class);                   /* Class of the collection */
+int is_of_class(struct collection_item *item,  /* Collection */
+                unsigned cclass);              /* Class of the collection */
 
 
 

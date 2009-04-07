@@ -41,47 +41,56 @@ extern unsigned trace_level;
 
 #ifdef HAVE_TRACE
 /* Tracing strings */
-#define TRACE_STRING(level,message,str)     if(level & trace_level) \
-                                            printf("[DEBUG] %23s (%4d) %s %s\n",__FILE__,__LINE__,message,str);
-/* Convenience wrappers for strings */
-#define TRACE_FLOW_STRING(message,str)      TRACE_STRING(TRACE_FLOW,message,str)
-#define TRACE_ERROR_STRING(message,str)     TRACE_STRING(TRACE_ERROR,message,str)
-#define TRACE_INFO_STRING(message,str)      TRACE_STRING(TRACE_INFO,message,str)
+#define TRACE_STRING(level, msg, str) \
+    do { \
+        if (level & trace_level) { \
+            printf("[DEBUG] %23s (%4d) %s %s\n", \
+                   __FILE__, __LINE__, msg, str); \
+        } \
+    } while(0)
 
 /* Tracing numbers */
-#define TRACE_NUMBER(level,message,number)  if(level & trace_level) \
-                                            printf("[DEBUG] %23s (%4d) %s %lu\n",__FILE__,__LINE__,message,(unsigned long int)(number));
-/* Convenience wrappers for numbers */
-#define TRACE_FLOW_NUMBER(message,number)   TRACE_NUMBER(TRACE_FLOW,message,number)
-#define TRACE_ERROR_NUMBER(message,number)  TRACE_NUMBER(TRACE_ERROR,message,number)
-#define TRACE_INFO_NUMBER(message,number)   TRACE_NUMBER(TRACE_INFO,message,number)
+#define TRACE_NUMBER(level, msg, num) \
+    do { \
+        if (level & trace_level) { \
+            printf("[DEBUG] %23s (%4d) %s %lu\n", \
+                   __FILE__, __LINE__, msg, (unsigned long int)(num)); \
+        } \
+    } while(0)
 
 /* Tracing doubles */
-#define TRACE_DOUBLE(level,message,number)  if(level & trace_level) \
-                                            printf("[DEBUG] %23s (%4d) %s %e\n",__FILE__,__LINE__,message,(double)(number));
-/* Convenience wrappers for numbers */
-#define TRACE_FLOW_DOUBLE(message,number)   TRACE_DOUBLE(TRACE_FLOW,message,number)
-#define TRACE_ERROR_DOUBLE(message,number)  TRACE_DOUBLE(TRACE_ERROR,message,number)
-#define TRACE_INFO_DOUBLE(message,number)   TRACE_DOUBLE(TRACE_INFO,message,number)
+#define TRACE_DOUBLE(level, msg, num) \
+    do { \
+        if (level & trace_level) { \
+            printf("[DEBUG] %23s (%4d) %s %e\n", \
+                   __FILE__, __LINE__, msg, (double)(num)); \
+        } \
+    } while(0)
 
 /* Assertion */
-#define TRACE_ASSERT(expression)             expression ? ; : printf("ASSERTION FAILED\n");
-#else
+#define TRACE_ASSERT(expression) expression ? : printf("ASSERTION FAILED\n")
+#else /* HAVE_TRACE */
+
 /* Noop in case the tracing is disabled */
-#define TRACE_STRING(level,message,str)     ;
-#define TRACE_NUMBER(level,message,number)  ;
-#define TRACE_DOUBLE(level,message,number)  ;
-#define TRACE_FLOW_STRING(message,str)      ;
-#define TRACE_ERROR_STRING(message,str)     ;
-#define TRACE_INFO_STRING(message,str)      ;
-#define TRACE_FLOW_NUMBER(message,str)      ;
-#define TRACE_ERROR_NUMBER(message,str)     ;
-#define TRACE_INFO_NUMBER(message,str)      ;
-#define TRACE_FLOW_DOUBLE(message,str)      ;
-#define TRACE_ERROR_DOUBLE(message,str)     ;
-#define TRACE_INFO_DOUBLE(message,str)      ;
-#define TRACE_ASSERT(expression)            ;
+#define TRACE_STRING(level, msg, str)
+#define TRACE_NUMBER(level, msg, num)
+#define TRACE_DOUBLE(level, msg, num)
 #endif /* HAVE_TRACE */
 
+
+/* Convenience wrappers for strings */
+#define TRACE_FLOW_STRING(msg, str)  TRACE_STRING(TRACE_FLOW, msg, str)
+#define TRACE_ERROR_STRING(msg, str) TRACE_STRING(TRACE_ERROR, msg, str)
+#define TRACE_INFO_STRING(msg, str)  TRACE_STRING(TRACE_INFO, msg, str)
+
+/* Convenience wrappers for numbers */
+#define TRACE_FLOW_NUMBER(msg, num)  TRACE_NUMBER(TRACE_FLOW, msg, num)
+#define TRACE_ERROR_NUMBER(msg, num) TRACE_NUMBER(TRACE_ERROR, msg, num)
+#define TRACE_INFO_NUMBER(msg, num)  TRACE_NUMBER(TRACE_INFO, msg, num)
+
+/* Convenience wrappers for numbers */
+#define TRACE_FLOW_DOUBLE(msg, num)  TRACE_DOUBLE(TRACE_FLOW, msg, num)
+#define TRACE_ERROR_DOUBLE(msg, num) TRACE_DOUBLE(TRACE_ERROR, msg, num)
+#define TRACE_INFO_DOUBLE(msg, num)  TRACE_DOUBLE(TRACE_INFO, msg, num)
 
 #endif /* COMMON_TRACE_H */
