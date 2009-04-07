@@ -63,8 +63,7 @@ struct resp_ctx {
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
 
-    struct btreemap *domain_map;
-    char *default_domain;
+    struct sss_domain_info *domains;
 
     struct sbus_method *sss_sbus_methods;
     struct sss_cmd_table *sss_cmds;

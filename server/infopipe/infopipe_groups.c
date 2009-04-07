@@ -150,9 +150,8 @@ int infp_groups_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     grcreate_req->infp_req->domain =
-        btreemap_get_value(grcreate_req->infp_req->infp->domain_map,
-                           (const void *)arg_domain);
-    if(grcreate_req->infp_req->domain == NULL) {
+                infp_get_domain_obj(grcreate_req->infp_req->infp, arg_domain);
+    if (grcreate_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(grcreate_req, "Invalid domain.");
         goto einval;
     }
@@ -319,9 +318,8 @@ int infp_groups_delete(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     grdel_req->infp_req->domain =
-        btreemap_get_value(grdel_req->infp_req->infp->domain_map,
-                           (const void *)arg_domain);
-    if(grdel_req->infp_req->domain == NULL) {
+                    infp_get_domain_obj(grdel_req->infp_req->infp, arg_domain);
+    if (grdel_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(grdel_req, "Invalid domain.");
         goto einval;
     }
@@ -546,10 +544,9 @@ static int infp_groups_modify_members(DBusMessage *message,
     }
 
     grmod_req->infp_req->domain =
-        btreemap_get_value(grmod_req->infp_req->infp->domain_map,
-                           (const void *)arg_domain);
+                    infp_get_domain_obj(grmod_req->infp_req->infp, arg_domain);
     /* Check for a valid domain */
-    if(grmod_req->infp_req->domain == NULL) {
+    if (grmod_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(grmod_req, "Invalid domain.");
         goto einval;
     }
@@ -772,11 +769,9 @@ int infp_groups_set_gid(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     grmod_req->infp_req->domain =
-        btreemap_get_value(grmod_req->infp_req->infp->domain_map,
-                           (const void *)arg_domain);
-
+                    infp_get_domain_obj(grmod_req->infp_req->infp, arg_domain);
     /* Check for a valid domain */
-    if(grmod_req->infp_req->domain == NULL) {
+    if (grmod_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(grmod_req, "Invalid domain.");
         goto einval;
     }

@@ -71,7 +71,7 @@ struct mt_svc {
 struct mt_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
-    struct btreemap *dom_map;
+    struct sss_domain_info *domains;
     char **services;
     struct mt_svc *svc_list;
     struct sbus_srv_ctx *sbus_srv;
@@ -380,8 +380,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     struct mt_ctx *ctx;
     struct mt_svc *svc;
     struct sysdb_ctx *sysdb;
-    const char **doms;
-    int dom_count;
+    struct sss_domain_info *dom;
     char *path;
     int ret, i;
 
@@ -485,14 +484,14 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* now start the data providers */
-    ret = confdb_get_domains_list(cdb, ctx,
-                                  &(ctx->dom_map), &doms, &dom_count);
+    ret = confdb_get_domains(cdb, ctx, &ctx->domains);
     if (ret != EOK) {
         DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
         return ret;
     }
 
-    for (i = 0; i < dom_count; i++) {
+    for (dom = ctx->domains; dom; dom = dom->next) {
+
         svc = talloc_zero(ctx, struct mt_svc);
         if (!svc) {
             talloc_free(ctx);
@@ -500,7 +499,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         }
         svc->mt_ctx = ctx;
 
-        svc->name = talloc_strdup(svc, doms[i]);
+        svc->name = talloc_strdup(svc, dom->name);
         if (!svc->name) {
             talloc_free(ctx);
             return ENOMEM;
@@ -512,7 +511,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
             return ENOMEM;
         }
 
-        path = talloc_asprintf(svc, "config/domains/%s", doms[i]);
+        path = talloc_asprintf(svc, "config/domains/%s", svc->name);
         if (!path) {
             talloc_free(ctx);
             return ENOMEM;
@@ -521,7 +520,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         ret = confdb_get_string(cdb, svc, path,
                                 "provider", NULL, &svc->provider);
         if (ret != EOK) {
-            DEBUG(0, ("Failed to find provider from [%s] configuration\n", doms[i]));
+            DEBUG(0, ("Failed to find provider from [%s] configuration\n", svc->name));
             talloc_free(svc);
             continue;
         }
@@ -529,7 +528,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         ret = confdb_get_string(cdb, svc, path,
                                 "command", NULL, &svc->command);
         if (ret != EOK) {
-            DEBUG(0, ("Failed to find command from [%s] configuration\n", doms[i]));
+            DEBUG(0, ("Failed to find command from [%s] configuration\n", svc->name));
             talloc_free(svc);
             continue;
         }
@@ -564,7 +563,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 
         ret = start_service(svc);
         if (ret != EOK) {
-            DEBUG(0,("Failed to start provider for '%s'\n", doms[i]));
+            DEBUG(0,("Failed to start provider for '%s'\n", svc->name));
             talloc_free(svc);
             continue;
         }

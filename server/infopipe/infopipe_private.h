@@ -28,7 +28,7 @@ struct infp_ctx {
     struct service_sbus_ctx *ss_ctx;
     struct sysbus_ctx *sysbus;
     struct sysdb_ctx *sysdb;
-    struct btreemap *domain_map;
+    struct sss_domain_info *domains;
     char *introspect_xml;
 
     int cache_timeout;

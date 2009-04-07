@@ -186,6 +186,7 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
+    struct sss_domain_info *dom;
     struct group_mod_ctx *group_ctx = NULL;
     struct tools_ctx *ctx = NULL;
     char *groups;
@@ -246,12 +247,16 @@ int main(int argc, const char **argv)
     group_ctx->gid = pc_gid;
 
     /* arguments processed, go on to actual work */
-    group_ctx->domain = btreemap_get_value(ctx->domains, "LOCAL");
-    if (group_ctx->domain == NULL) {
-        DEBUG(0, ("Could not get the domain\n"));
+
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+    }
+    if (dom == NULL) {
+        DEBUG(0, ("Could not get domain info\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
+    group_ctx->domain = dom;
 
     ret = sysdb_transaction(ctx, ctx->sysdb, mod_group, group_ctx);
     if (ret != EOK) {

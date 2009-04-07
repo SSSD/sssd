@@ -197,7 +197,7 @@ done:
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     uint8_t *body;
     size_t blen;
     int ret;
@@ -224,30 +224,27 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     pd->response_delay = 0;
     pd->resp_list = NULL;
 
-    if (pd->domain == NULL) {
-        if (cctx->rctx->default_domain != NULL) {
-            pd->domain = cctx->rctx->default_domain;
-        } else {
-            pd->domain = talloc_strdup(pd, "LOCAL");
-        }
-        DEBUG(4, ("Using default domain [%s].\n", pd->domain));
-    }
 
     if (pd->domain) {
-        /* Check for registered domain */
-        info = btreemap_get_value(cctx->rctx->domain_map,
-                                    (void *)(pd->domain));
-        if (!info) {
+        for (dom = cctx->rctx->domains; dom; dom = dom->next) {
+            if (strcasecmp(dom->name, pd->domain) == 0) break;
+        }
+        if (!dom) {
             talloc_free(pd);
             return EINVAL;
         }
     }
+    else {
+        DEBUG(4, ("Domain not provided, using default.\n"));
+        dom = cctx->rctx->domains;
+        pd->domain = dom->name;
+    }
 
-    if (!info->provider) {
-        return LOCAL_pam_handler(cctx, pam_reply, pd);
+    if (!dom->provider) {
+        return LOCAL_pam_handler(cctx, pam_reply, dom, pd);
     };
 
-    ret=pam_dp_send_req(cctx, pam_reply, PAM_DP_TIMEOUT, pd);
+    ret = pam_dp_send_req(cctx, pam_reply, PAM_DP_TIMEOUT, pd);
     DEBUG(4, ("pam_dp_send_req returned %d\n", ret));
 
     return ret;

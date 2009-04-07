@@ -453,40 +453,6 @@ failed:
     return EIO;
 }
 
-static int sss_init_domains(struct resp_ctx *rctx)
-{
-    int ret;
-    int retval;
-
-    ret = confdb_get_domains(rctx->cdb, rctx, &rctx->domain_map);
-    if (ret != EOK) {
-        retval = ret;
-        goto done;
-    }
-
-    if (rctx->domain_map == NULL) {
-        /* No domains configured!
-         * Note: this should never happen, since LOCAL should
-         * always be configured */
-        DEBUG(0, ("No domains configured on this client!\n"));
-        retval = EINVAL;
-        goto done;
-    }
-
-    ret = confdb_get_string(rctx->cdb, rctx,
-                            "config/domains", "default",
-                            NULL, &rctx->default_domain);
-    if (ret != EOK) {
-        retval = ret;
-        goto done;
-    }
-
-    retval = EOK;
-
-done:
-    return retval;
-}
-
 int sss_names_init(struct resp_ctx *rctx)
 {
     struct sss_names_ctx *ctx;
@@ -571,7 +537,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->confdb_service_path = confdb_service_path;
     rctx->dp_methods = dp_methods;
 
-    ret = sss_init_domains(rctx);
+    ret = confdb_get_domains(rctx->cdb, rctx, &rctx->domains);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up domain map\n"));
         return ret;

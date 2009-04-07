@@ -144,10 +144,9 @@ int infp_users_get_cached(DBusMessage *message, struct sbus_conn_ctx *sconn)
     infp_getcached_req->min_last_login = arg_minlastlogin;
 
     infp_getcached_req->infp_req->domain =
-        btreemap_get_value(infp_getcached_req->infp_req->infp->domain_map,
-                           (const void *)arg_domain);
+            infp_get_domain_obj(infp_getcached_req->infp_req->infp, arg_domain);
     /* Check for a valid domain */
-    if(infp_getcached_req->infp_req->domain == NULL) {
+    if (infp_getcached_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(infp_getcached_req, "Invalid domain.");
         goto einval;
     }
@@ -320,10 +319,10 @@ int infp_users_create(DBusMessage *message, struct sbus_conn_ctx *sconn)
         goto denied;
     }
 
-    infp_createuser_req->infp_req->domain = btreemap_get_value(infp_createuser_req->infp_req->infp->domain_map,
-                                                               (const void *)arg_domain);
+    infp_createuser_req->infp_req->domain =
+            infp_get_domain_obj(infp_createuser_req->infp_req->infp, arg_domain);
     /* Check for a valid domain */
-    if(infp_createuser_req->infp_req->domain == NULL) {
+    if (infp_createuser_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(infp_createuser_req, "Invalid domain.");
         goto einval;
     }
@@ -523,10 +522,9 @@ int infp_users_delete(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     infp_deleteuser_req->infp_req->domain =
-        btreemap_get_value(infp_deleteuser_req->infp_req->infp->domain_map,
-                           (const void *)arg_domain);
+            infp_get_domain_obj(infp_deleteuser_req->infp_req->infp, arg_domain);
     /* Check for a valid domain */
-    if(infp_deleteuser_req->infp_req->domain == NULL) {
+    if (infp_deleteuser_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(infp_deleteuser_req, "Invalid domain.");
         goto einval;
     }
@@ -1213,8 +1211,11 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
         goto end;
     }
 
-    infp_getattr_req->infp_req->domain = btreemap_get_value(infp_getattr_req->infp_req->infp->domain_map, (const void *)domain);
-    infp_getattr_req->check_provider = strcasecmp(domain, "LOCAL");
+    infp_getattr_req->infp_req->domain =
+                infp_get_domain_obj(infp_getattr_req->infp_req->infp, domain);
+    if (infp_getattr_req->infp_req->domain->provider) {
+        infp_getattr_req->check_provider = true;
+    }
 
     /* Copy the username list */
     infp_getattr_req->usernames = talloc_array(infp_getattr_req, char *, username_count);
@@ -1469,9 +1470,9 @@ int infp_users_set_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
     dbus_message_iter_get_basic(&iter, &domain_name);
 
-    infp_setattr_req->infp_req->domain = btreemap_get_value(infp_setattr_req->infp_req->infp->domain_map,
-                                                            (const void *)domain_name);
-    if(infp_setattr_req->infp_req->domain == NULL) {
+    infp_setattr_req->infp_req->domain =
+            infp_get_domain_obj(infp_setattr_req->infp_req->infp, domain_name);
+    if (infp_setattr_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(infp_setattr_req, "Invalid domain.");
         goto einval;
     }
@@ -1770,10 +1771,10 @@ int infp_users_set_uid(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     infp_setuid_req->username = talloc_strdup(infp_setuid_req, arg_username);
 
-    infp_setuid_req->infp_req->domain = btreemap_get_value(infp_setuid_req->infp_req->infp->domain_map,
-                                                           (const void *)arg_domain);
+    infp_setuid_req->infp_req->domain =
+            infp_get_domain_obj(infp_setuid_req->infp_req->infp, arg_domain);
     /* Check for a valid domain */
-    if(infp_setuid_req->infp_req->domain == NULL) {
+    if (infp_setuid_req->infp_req->domain == NULL) {
         einval_msg = talloc_strdup(infp_setuid_req, "Invalid domain.");
         goto einval;
     }

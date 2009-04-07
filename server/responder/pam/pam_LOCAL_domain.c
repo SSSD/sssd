@@ -347,7 +347,7 @@ done:
 }
 
 int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
-                      struct pam_data *pd)
+                      struct sss_domain_info *dom, struct pam_data *pd)
 {
     int ret;
     struct LOCAL_request *lreq=NULL;
@@ -377,8 +377,7 @@ int LOCAL_pam_handler(struct cli_ctx *cctx, pam_dp_callback_t callback,
 
     DEBUG(4, ("LOCAL pam handler.\n"));
 
-    lreq->domain_info = btreemap_get_value(lreq->cctx->rctx->domain_map,
-                                     lreq->pd->domain);
+    lreq->domain_info = dom;
     NULL_CHECK_OR_JUMP(lreq->domain_info, ("Domain info not found.\n"),
                        ret, EINVAL, done);
 

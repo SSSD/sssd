@@ -78,7 +78,7 @@ int main(int argc, const char **argv)
     int ret = EXIT_SUCCESS;
     struct user_del_ctx *user_ctx = NULL;
     struct tools_ctx *ctx = NULL;
-
+    struct sss_domain_info *dom;
 
     poptContext pc = NULL;
     struct poptOption long_options[] = {
@@ -120,12 +120,15 @@ int main(int argc, const char **argv)
 
     /* arguments processed, go on to actual work */
 
-    user_ctx->domain = btreemap_get_value(ctx->domains, "LOCAL");
-    if (user_ctx->domain == NULL) {
-        DEBUG(0, ("Could not set default values\n"));
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+    }
+    if (dom == NULL) {
+        DEBUG(0, ("Could not get domain info\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
+    user_ctx->domain = dom;
 
     user_ctx->user_dn = sysdb_user_dn(ctx->sysdb, ctx,
                                       user_ctx->domain->name,

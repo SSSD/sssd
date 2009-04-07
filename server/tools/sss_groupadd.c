@@ -83,7 +83,7 @@ int main(int argc, const char **argv)
         { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, "The GID of the group", NULL },
         POPT_TABLEEND
     };
-
+    struct sss_domain_info *dom;
     poptContext pc = NULL;
     struct tools_ctx *ctx = NULL;
     struct group_add_ctx *group_ctx = NULL;
@@ -128,12 +128,15 @@ int main(int argc, const char **argv)
 
     /* arguments processed, go on to actual work */
 
-    group_ctx->domain = btreemap_get_value(ctx->domains, "LOCAL");
-    if (group_ctx->domain == NULL) {
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+    }
+    if (dom == NULL) {
         DEBUG(0, ("Could not get domain info\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
+    group_ctx->domain = dom;
 
     /* add_group */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_group, group_ctx);

@@ -36,8 +36,6 @@
 
 #define INFP_CONF_ENTRY "config/services/info"
 
-struct infp_ctx;
-
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     dbus_uint16_t version = INFOPIPE_VERSION;
@@ -366,19 +364,9 @@ static int infp_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Read in the domain map */
-    ret = confdb_get_domains(cdb, infp_ctx, &infp_ctx->domain_map);
+    ret = confdb_get_domains(cdb, infp_ctx, &infp_ctx->domains);
     if (ret != EOK) {
         DEBUG(0, ("Failed to populate the domain map\n"));
-        talloc_free(infp_ctx);
-        return EIO;
-    }
-
-    if (infp_ctx->domain_map == NULL) {
-        /* No domains configured!
-         * Note: this should never happen, since LOCAL
-         * should always be configured
-         */
-        DEBUG(0, ("No domains configured on this client!\n"));
         talloc_free(infp_ctx);
         return EIO;
     }
@@ -482,9 +470,15 @@ bool infp_get_permissions(const char *caller,
     return false;
 }
 
-struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp, const char *domain_name)
+struct sss_domain_info *infp_get_domain_obj(struct infp_ctx *infp,
+                                            const char *domain_name)
 {
-    return talloc_get_type(btreemap_get_value(infp->domain_map, (const void *) domain_name), struct sss_domain_info);
+    struct sss_domain_info *dom;
+
+    for (dom = infp->domains; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, domain_name) == 0) break;
+    }
+    return dom;
 }
 
 /* CheckPermissions(STRING domain, STRING object, STRING instance

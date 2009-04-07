@@ -640,58 +640,86 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-/* domain names are case insensitive for now
- * NOTE: this function is not utf-8 safe,
- * only ASCII names for now */
-static int _domain_comparator(const void *key1, const void *key2)
-{
-    int ret;
-
-    ret = strcasecmp((const char *)key1, (const char *)key2);
-    if (ret) {
-        /* special case LOCAL to be always the first domain */
-        if (strcmp(key1, "LOCAL") == 0) return -1;
-        if (strcmp(key2, "LOCAL") == 0) return 1;
-    }
-    return ret;
-}
-
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
-                       struct btreemap **domains)
+                       struct sss_domain_info **domains)
 {
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *dn;
     struct ldb_result *res;
-    struct btreemap *domain_map;
-    struct sss_domain_info *domain;
+    struct sss_domain_info *domain, *prevdom;
+    struct sss_domain_info *first = NULL;
+    const char *attrs[] = { "domains", NULL };
     const char *tmp;
-    int ret, i;
+    char *cur, *p, *t;
+    int ret;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    dn = ldb_dn_new(tmp_ctx,cdb->ldb, CONFDB_DOMAIN_BASEDN);
+    dn = ldb_dn_new(tmp_ctx, cdb->ldb, CONFDB_DOMAIN_BASEDN);
     if (!dn) {
         ret = EIO;
         goto done;
     }
 
     ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
-                     LDB_SCOPE_ONELEVEL, NULL, NULL);
+                     LDB_SCOPE_BASE, attrs, NULL);
     if (ret != LDB_SUCCESS) {
         ret = EIO;
         goto done;
     }
 
-    domain_map = NULL;
-    for(i = 0; i < res->count; i++) {
-        /* allocate the domain on the tmp_ctx. It will be stolen
-         * by btreemap_set_value
-         */
+    if (res->count != 1) {
+        ret = EFAULT;
+        goto done;
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "domains",  NULL);
+    if (!tmp) {
+        DEBUG(0, ("No domains configured, fatal error!\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    cur = p = talloc_strdup(tmp_ctx, tmp);
+
+    while (p && *p) {
+
+        for (cur = p; (*cur == ' ' || *cur == '\t'); cur++) /* trim */ ;
+        if (!*cur) break;
+
+        p = strchr(cur, ',');
+        if (p) {
+            /* terminate element */
+            *p = '\0';
+            /* trim spaces */
+            for (t = p-1; (*t == ' ' || *t == '\t'); t--) *t = '\0';
+            p++;
+        }
+
+        dn = ldb_dn_new_fmt(tmp_ctx, cdb->ldb,
+                            "cn=%s,%s", cur, CONFDB_DOMAIN_BASEDN);
+        if (!dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
+                         LDB_SCOPE_BASE, NULL, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = EIO;
+            goto done;
+        }
+
+        if (res->count != 1) {
+            DEBUG(0, ("Unknown domain [%s]\n", cur));
+            ret = EINVAL;
+            goto done;
+        }
+
         domain = talloc_zero(mem_ctx, struct sss_domain_info);
 
-        tmp = ldb_msg_find_attr_as_string(res->msgs[i], "cn", NULL);
+        tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
         if (!tmp) {
             DEBUG(0, ("Invalid configuration entry, fatal error!\n"));
             ret = EINVAL;
@@ -703,7 +731,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
             goto done;
         }
 
-        tmp = ldb_msg_find_attr_as_string(res->msgs[i], "provider", NULL);
+        tmp = ldb_msg_find_attr_as_string(res->msgs[0], "provider", NULL);
         if (tmp) {
             domain->provider = talloc_strdup(domain, tmp);
             if (!domain->provider) {
@@ -712,82 +740,54 @@ int confdb_get_domains(struct confdb_ctx *cdb,
             }
         }
 
-        domain->timeout = ldb_msg_find_attr_as_int(res->msgs[i],
+        domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
                                                    "timeout", 0);
 
         /* Determine if this domain can be enumerated */
-        domain->enumerate = ldb_msg_find_attr_as_int(res->msgs[i],
+        domain->enumerate = ldb_msg_find_attr_as_int(res->msgs[0],
                                                      "enumerate", 0);
         if (domain->enumerate == 0) {
             DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
         }
 
         /* Determine if this is a legacy domain */
-        if (ldb_msg_find_attr_as_bool(res->msgs[i], "legacy", 0)) {
+        if (ldb_msg_find_attr_as_bool(res->msgs[0], "legacy", 0)) {
             domain->legacy = true;
         }
 
         /* Determine if this is domain uses MPG */
-        if (ldb_msg_find_attr_as_bool(res->msgs[i], CONFDB_MPG, 0)) {
+        if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_MPG, 0)) {
             domain->mpg = true;
         }
 
         /* Determine if user/group names will be Fully Qualified
          * in NSS interfaces */
-        if (ldb_msg_find_attr_as_bool(res->msgs[i], CONFDB_FQ, 0)) {
+        if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_FQ, 0)) {
             domain->fqnames = true;
         }
 
-
-        domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[i],
+        domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[0],
                                                    "minId", SSSD_MIN_ID);
-        domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[i],
+        domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[0],
                                                    "maxId", 0);
 
-        ret = btreemap_set_value(mem_ctx, &domain_map,
-                                 domain->name, domain,
-                                 _domain_comparator);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to store domain info for [%s]!\n", domain->name));
-            talloc_free(domain_map);
-            goto done;
+        if (first == NULL) {
+            first = domain;
+            prevdom = first;
+        } else {
+            prevdom->next = domain;
+            prevdom = domain;
         }
     }
 
-    if (domain_map == NULL) {
+    if (first == NULL) {
         DEBUG(0, ("No domains configured, fatal error!\n"));
         ret = EINVAL;
     }
 
-    *domains = domain_map;
+    *domains = first;
 
 done:
     talloc_free(tmp_ctx);
     return ret;
-}
-
-int confdb_get_domains_list(struct confdb_ctx *cdb,
-                            TALLOC_CTX *mem_ctx,
-                            struct btreemap **domain_map,
-                            const char ***domain_names,
-                            int *count)
-{
-    const void **names;
-    int num;
-    int ret;
-
-    if (*domain_map == NULL) {
-        ret = confdb_get_domains(cdb, mem_ctx, domain_map);
-        if (ret != EOK) return ret;
-    }
-
-    ret = btreemap_get_keys(mem_ctx, *domain_map, &names, &num);
-    if (ret != EOK) {
-        DEBUG(0, ("Couldn't get domain list\n"));
-        return ret;
-    }
-
-    *domain_names = (const char **)names;
-    *count = num;
-    return EOK;
 }

@@ -40,6 +40,8 @@ struct sss_domain_info {
     bool mpg;
     uint32_t id_min;
     uint32_t id_max;
+
+    struct sss_domain_info *next;
 };
 
 struct confdb_ctx;
@@ -76,12 +78,6 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
-                       struct btreemap **domains);
-
-int confdb_get_domains_list(struct confdb_ctx *cdb,
-                            TALLOC_CTX *mem_ctx,
-                            struct btreemap **domain_map,
-                            const char ***domain_names,
-                            int *count);
+                       struct sss_domain_info **domains);
 
 #endif

@@ -80,18 +80,19 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 } while(0)
 
 static int nss_dom_ctx_init(struct nss_dom_ctx *dctx,
-                            struct btreemap *domain_map, const char *domain)
+                            struct sss_domain_info *doms, const char *domain)
 {
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
 
-    /* Check for registered domain */
-    info = btreemap_get_value(domain_map, (void *)domain);
-    if (!info) {
+    for (dom = doms; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, domain) == 0) break;
+    }
+    if (!dom) {
         return EINVAL;
     }
 
-    dctx->domain = info;
-    dctx->check_provider = (info->provider != NULL);
+    dctx->domain = dom;
+    dctx->check_provider = (dom->provider != NULL);
 
     return EOK;
 }
@@ -101,7 +102,7 @@ static int nss_dom_ctx_init(struct nss_dom_ctx *dctx,
  ***************************************************************************/
 
 static int fill_pwent(struct sss_packet *packet,
-                      struct sss_domain_info *info,
+                      struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
                       bool filter_users,
                       struct ldb_message **msgs,
@@ -120,8 +121,8 @@ static int fill_pwent(struct sss_packet *packet,
     size_t dom_len = 0;
     int delim = 1;
     int i, ret, num, t;
-    bool add_domain = info->fqnames;
-    const char *domain = info->name;
+    bool add_domain = dom->fqnames;
+    const char *domain = dom->name;
     const char *namefmt = nctx->rctx->names->fq_fmt;
     int ncret;
 
@@ -157,8 +158,8 @@ static int fill_pwent(struct sss_packet *packet,
         }
 
         /* check that the uid is valid for this domain */
-        if ((info->id_min && (uid < info->id_min)) ||
-            (info->id_max && (uid > info->id_max))) {
+        if ((dom->id_min && (uid < dom->id_min)) ||
+            (dom->id_max && (uid > dom->id_max))) {
                 DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
                           name, domain));
             continue;
@@ -444,14 +445,13 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_ctx *nctx;
-    const char **domains;
     const char *rawname;
     char *domname;
     uint8_t *body;
     size_t blen;
-    int ret, num, i;
+    int ret;
     int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
@@ -502,7 +502,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         }
         dctx->cmdctx = cmdctx;
 
-        ret = nss_dom_ctx_init(dctx, cctx->rctx->domain_map, domname);
+        ret = nss_dom_ctx_init(dctx, cctx->rctx->domains, domname);
         if (ret != EOK) {
             DEBUG(2, ("Invalid domain name received [%s]\n", domname));
             goto done;
@@ -520,30 +520,22 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     } else {
 
         dctx = NULL;
-        domains = NULL;
-        num = 0;
-        /* get domains list */
-        ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                                (const void ***)&domains, &num);
-        if (ret != EOK) goto done;
 
         cmdctx->nr = 0;
 
-        for (i = 0; i < num; i++) {
+        for (dom = cctx->rctx->domains; dom; dom = dom->next) {
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
             ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                        domains[i], cmdctx->name);
+                                          dom->name, cmdctx->name);
             if (ncret != ENOENT) {
                 DEBUG(3, ("User [%s] does not exist! (neg cache)\n",
                           rawname));
                 continue;
             }
 
-            info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
-
             /* skip domains that require FQnames */
-            if (info->fqnames) continue;
+            if (dom->fqnames) continue;
 
             cmdctx->nr++;
 
@@ -554,8 +546,8 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
             }
 
             dctx->cmdctx = cmdctx;
-            dctx->domain = info;
-            dctx->check_provider = (info->provider != NULL);
+            dctx->domain = dom;
+            dctx->check_provider = (dom->provider != NULL);
 
             DEBUG(4, ("Requesting info for [%s@%s]\n",
                       cmdctx->name, dctx->domain->name));
@@ -808,12 +800,11 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_ctx *nctx;
-    const char **domains;
     uint8_t *body;
     size_t blen;
-    int i, num, ret;
+    int ret;
     int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
@@ -836,36 +827,25 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
 
     /* FIXME: Just ask all backends for now, until we check for ranges */
     dctx = NULL;
-    domains = NULL;
-    num = 0;
-    /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                            (const void ***)&domains, &num);
-    if (ret != EOK) {
-        goto done;
-    }
-
     cmdctx->nr = 0;
 
-    for (i = 0; i < num; i++) {
+    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
         ncret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
-                                   cmdctx->id);
+                                     cmdctx->id);
         if (ncret != ENOENT) {
             DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
                       (unsigned long)cmdctx->id));
             continue;
         }
 
-        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
-
         /* check that the uid is valid for this domain */
-        if ((info->id_min && (cmdctx->id < info->id_min)) ||
-            (info->id_max && (cmdctx->id > info->id_max))) {
+        if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
+            (dom->id_max && (cmdctx->id > dom->id_max))) {
             DEBUG(4, ("Uid [%lu] does not exist in domain [%s]! "
                       "(id out of range)\n",
-                      (unsigned long)cmdctx->id, domains[i]));
+                      (unsigned long)cmdctx->id, dom->name));
             continue;
         }
 
@@ -878,8 +858,8 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         }
 
         dctx->cmdctx = cmdctx;
-        dctx->domain = info;
-        dctx->check_provider = (info->provider != NULL);
+        dctx->domain = dom;
+        dctx->check_provider = (dom->provider != NULL);
 
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
@@ -1036,16 +1016,15 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
 
 static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 {
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *pctx;
     struct nss_ctx *nctx;
-    const char **domains;
     time_t now = time(NULL);
     bool cached = false;
     int timeout;
-    int i, ret, num;
+    int ret;
 
     DEBUG(4, ("Requesting info for all users\n"));
 
@@ -1067,15 +1046,6 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 
     cmdctx->immediate = immediate;
 
-    domains = NULL;
-    num = 0;
-    /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                      (const void ***)&domains, &num);
-    if (ret != EOK) {
-        return ret;
-    }
-
     /* do not query backends if we have a recent enumeration */
     if (nctx->enum_cache_timeout) {
         if (nctx->last_user_enum +
@@ -1085,10 +1055,9 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
     }
 
     /* check if enumeration is enabled in any domain */
-    for (i = 0; i < num; i++) {
-        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
+    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
 
-        if ((info->enumerate & NSS_ENUM_USERS) == 0) {
+        if ((dom->enumerate & NSS_ENUM_USERS) == 0) {
             continue;
         }
 
@@ -1099,19 +1068,19 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         if (!dctx) return ENOMEM;
 
         dctx->cmdctx = cmdctx;
-        dctx->domain = info;
+        dctx->domain = dom;
 
         if (cached) {
             dctx->check_provider = false;
         } else {
-            dctx->check_provider = (info->provider != NULL);
+            dctx->check_provider = (dom->provider != NULL);
         }
 
         if (dctx->check_provider) {
-            timeout = SSS_CLI_SOCKET_TIMEOUT/(i+2);
+            timeout = SSS_CLI_SOCKET_TIMEOUT;
             ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setpw_dp_callback, dctx,
-                                       timeout, domains[i], NSS_DP_USER,
+                                       timeout, dom->name, NSS_DP_USER,
                                        NULL, 0);
         } else {
             ret = sysdb_enumpwent(dctx, cctx->rctx->sysdb,
@@ -1121,7 +1090,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         if (ret != EOK) {
             /* FIXME: shutdown ? */
             DEBUG(1, ("Failed to send enumeration request for domain [%s]!\n",
-                      domains[i]));
+                      dom->name));
             continue;
         }
 
@@ -1274,7 +1243,7 @@ done:
  ***************************************************************************/
 
 static int fill_grent(struct sss_packet *packet,
-                      struct sss_domain_info *info,
+                      struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
                       bool filter_groups,
                       struct ldb_message **msgs,
@@ -1292,8 +1261,8 @@ static int fill_grent(struct sss_packet *packet,
     size_t dom_len = 0;
     size_t name_len;
     int delim = 1;
-    bool add_domain = info->fqnames;
-    const char *domain = info->name;
+    bool add_domain = dom->fqnames;
+    const char *domain = dom->name;
     const char *namefmt = nctx->rctx->names->fq_fmt;
     int ncret;
 
@@ -1343,8 +1312,8 @@ static int fill_grent(struct sss_packet *packet,
             }
 
             /* check that the gid is valid for this domain */
-            if ((info->id_min && (gid < info->id_min)) ||
-                (info->id_max && (gid > info->id_max))) {
+            if ((dom->id_min && (gid < dom->id_min)) ||
+                (dom->id_max && (gid > dom->id_max))) {
                     DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
                               name, domain));
                 skip_members = true;
@@ -1511,8 +1480,8 @@ static int fill_grent(struct sss_packet *packet,
             }
 
             /* check that the uid is valid for this domain */
-            if ((info->id_min && (uid < info->id_min)) ||
-                (info->id_max && (uid > info->id_max))) {
+            if ((dom->id_min && (uid < dom->id_min)) ||
+                (dom->id_max && (uid > dom->id_max))) {
                     DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
                               name, domain));
                 continue;
@@ -1772,14 +1741,13 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_ctx *nctx;
-    const char **domains;
     const char *rawname;
     char *domname;
     uint8_t *body;
     size_t blen;
-    int ret, num, i;
+    int ret;
     int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
@@ -1828,7 +1796,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
         }
         dctx->cmdctx = cmdctx;
 
-        ret = nss_dom_ctx_init(dctx, cctx->rctx->domain_map, domname);
+        ret = nss_dom_ctx_init(dctx, cctx->rctx->domains, domname);
         if (ret != EOK) {
             DEBUG(2, ("Invalid domain name received [%s]\n", domname));
             goto done;
@@ -1846,30 +1814,21 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     } else {
 
         dctx = NULL;
-        domains = NULL;
-        num = 0;
-        /* get domains list */
-        ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                                (const void ***)&domains, &num);
-        if (ret != EOK) goto done;
-
         cmdctx->nr = 0;
 
-        for (i = 0; i < num; i++) {
+        for (dom = cctx->rctx->domains; dom; dom = dom->next) {
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
             ncret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
-                                         domains[i], cmdctx->name);
+                                           dom->name, cmdctx->name);
             if (ncret != ENOENT) {
                 DEBUG(3, ("Group [%s] does not exist! (negative cache)\n",
                           rawname));
                 continue;
             }
 
-            info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
-
             /* skip domains that require FQnames */
-            if (info->fqnames) continue;
+            if (dom->fqnames) continue;
 
             cmdctx->nr++;
 
@@ -1880,8 +1839,8 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
             }
 
             dctx->cmdctx = cmdctx;
-            dctx->domain = info;
-            dctx->check_provider = (info->provider != NULL);
+            dctx->domain = dom;
+            dctx->check_provider = (dom->provider != NULL);
 
             DEBUG(4, ("Requesting info for [%s@%s]\n",
                       cmdctx->name, dctx->domain->name));
@@ -2115,12 +2074,11 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_ctx *nctx;
-    const char **domains;
     uint8_t *body;
     size_t blen;
-    int i, num, ret;
+    int ret;
     int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
@@ -2143,33 +2101,22 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 
     /* FIXME: Just ask all backends for now, until we check for ranges */
     dctx = NULL;
-    domains = NULL;
-    num = 0;
-    /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                            (const void ***)&domains, &num);
-    if (ret != EOK) {
-        goto done;
-    }
-
     cmdctx->nr = 0;
 
-    for (i = 0; i < num; i++) {
+    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
         ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
-                                   cmdctx->id);
+                                     cmdctx->id);
         if (ncret != ENOENT) {
             DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
                       (unsigned long)cmdctx->id));
             continue;
         }
 
-        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
-
         /* check that the uid is valid for this domain */
-        if ((info->id_min && (cmdctx->id < info->id_min)) ||
-            (info->id_max && (cmdctx->id > info->id_max))) {
+        if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
+            (dom->id_max && (cmdctx->id > dom->id_max))) {
             DEBUG(4, ("Gid [%lu] does not exist! (id out of range)\n",
                       (unsigned long)cmdctx->id));
             continue;
@@ -2185,8 +2132,8 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         }
 
         dctx->cmdctx = cmdctx;
-        dctx->domain = info;
-        dctx->check_provider = (info->provider != NULL);
+        dctx->domain = dom;
+        dctx->check_provider = (dom->provider != NULL);
 
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
@@ -2344,16 +2291,15 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
 
 static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 {
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *gctx;
     struct nss_ctx *nctx;
-    const char **domains;
     time_t now = time(NULL);
     bool cached = false;
     int timeout;
-    int i, ret, num;
+    int ret;
 
     DEBUG(4, ("Requesting info for all groups\n"));
 
@@ -2375,15 +2321,6 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     cmdctx->immediate = immediate;
 
-    domains = NULL;
-    num = 0;
-    /* get domains list */
-    ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                            (const void ***)&domains, &num);
-    if(ret != EOK) {
-        return ret;
-    }
-
     /* do not query backends if we have a recent enumeration */
     if (nctx->enum_cache_timeout) {
         if (nctx->last_group_enum +
@@ -2393,10 +2330,9 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
     }
 
     /* check if enumeration is enabled in any domain */
-    for (i = 0; i < num; i++) {
-        info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
+    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
 
-        if ((info->enumerate & NSS_ENUM_GROUPS) == 0) {
+        if ((dom->enumerate & NSS_ENUM_GROUPS) == 0) {
             continue;
         }
 
@@ -2407,19 +2343,19 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         if (!dctx) return ENOMEM;
 
         dctx->cmdctx = cmdctx;
-        dctx->domain = info;
+        dctx->domain = dom;
 
         if (cached) {
             dctx->check_provider = false;
         } else {
-            dctx->check_provider = (info->provider != NULL);
+            dctx->check_provider = (dom->provider != NULL);
         }
 
         if (dctx->check_provider) {
-            timeout = SSS_CLI_SOCKET_TIMEOUT/(i+2);
+            timeout = SSS_CLI_SOCKET_TIMEOUT;
             ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setgr_dp_callback, dctx,
-                                       timeout, domains[i], NSS_DP_GROUP,
+                                       timeout, dom->name, NSS_DP_GROUP,
                                        NULL, 0);
         } else {
             ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
@@ -2429,7 +2365,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         if (ret != EOK) {
             /* FIXME: shutdown ? */
             DEBUG(1, ("Failed to send enumeration request for domain [%s]!\n",
-                      domains[i]));
+                      dom->name));
             continue;
         }
 
@@ -2864,14 +2800,13 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *info;
+    struct sss_domain_info *dom;
     struct nss_ctx *nctx;
-    const char **domains;
     const char *rawname;
     char *domname;
     uint8_t *body;
     size_t blen;
-    int ret, num, i;
+    int ret;
     int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
@@ -2920,7 +2855,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
         }
         dctx->cmdctx = cmdctx;
 
-        ret = nss_dom_ctx_init(dctx, cctx->rctx->domain_map, domname);
+        ret = nss_dom_ctx_init(dctx, cctx->rctx->domains, domname);
         if (ret != EOK) {
             DEBUG(2, ("Invalid domain name received [%s]\n", domname));
             goto done;
@@ -2938,29 +2873,20 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     } else {
 
         dctx = NULL;
-        domains = NULL;
-        num = 0;
-        /* get domains list */
-        ret = btreemap_get_keys(cmdctx, cctx->rctx->domain_map,
-                                (const void ***)&domains, &num);
-        if (ret != EOK) goto done;
-
         cmdctx->nr = 0;
 
-        for (i = 0; i < num; i++) {
+        for (dom = cctx->rctx->domains; dom; dom = dom->next) {
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
             ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                        domains[i], cmdctx->name);
+                                          dom->name, cmdctx->name);
             if (ncret != ENOENT) {
                 DEBUG(3, ("User does not exist! (neg cache)\n"));
                 continue;
             }
 
-            info = btreemap_get_value(cctx->rctx->domain_map, domains[i]);
-
             /* skip domains that require FQnames */
-            if (info->fqnames) continue;
+            if (dom->fqnames) continue;
 
             cmdctx->nr++;
 
@@ -2971,8 +2897,8 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
             }
 
             dctx->cmdctx = cmdctx;
-            dctx->domain = info;
-            dctx->check_provider = (info->provider != NULL);
+            dctx->domain = dom;
+            dctx->check_provider = (dom->provider != NULL);
 
             DEBUG(4, ("Requesting info for [%s@%s]\n",
                       cmdctx->name, dctx->domain->name));

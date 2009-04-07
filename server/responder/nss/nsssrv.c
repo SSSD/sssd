@@ -123,10 +123,10 @@ static int nss_get_config(struct nss_ctx *nctx,
                           struct confdb_ctx *cdb)
 {
     TALLOC_CTX *tmpctx;
+    struct sss_domain_info *dom;
     char *domain, *name;
-    const char **domains;
     char **filter_list;
-    int ret, num, i, j;
+    int ret, i;
 
     tmpctx = talloc_new(nctx);
     if (!tmpctx) return ENOMEM;
@@ -166,20 +166,12 @@ static int nss_get_config(struct nss_ctx *nctx,
                 continue;
             }
         } else {
-            ret = btreemap_get_keys(tmpctx, rctx->domain_map,
-                                    (const void ***)&domains, &num);
-            if (ret != EOK) {
-                DEBUG(0, ("Unable to find domains!\n"));
-                return ret;
-            }
-
-            for (j = 0; j < num; j++) {
-                ret = nss_ncache_set_user(nctx->ncache,
-                                          true, domains[j], name);
+            for (dom = rctx->domains; dom; dom = dom->next) {
+                ret = nss_ncache_set_user(nctx->ncache, true, dom->name, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent user filter for"
                              " [%s:%s] (%d [%s])\n",
-                             domains[j], filter_list[i],
+                             dom->name, filter_list[i],
                              ret, strerror(ret)));
                     continue;
                 }
@@ -208,20 +200,12 @@ static int nss_get_config(struct nss_ctx *nctx,
                 continue;
             }
         } else {
-            ret = btreemap_get_keys(tmpctx, rctx->domain_map,
-                                    (const void ***)&domains, &num);
-            if (ret != EOK) {
-                DEBUG(0, ("Unable to find domains!\n"));
-                return ret;
-            }
-
-            for (j = 0; j < num; j++) {
-                ret = nss_ncache_set_group(nctx->ncache,
-                                           true, domains[j], name);
+            for (dom = rctx->domains; dom; dom = dom->next) {
+                ret = nss_ncache_set_group(nctx->ncache, true, dom->name, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent group filter for"
                              " [%s:%s] (%d [%s])\n",
-                             domains[j], filter_list[i],
+                             dom->name, filter_list[i],
                              ret, strerror(ret)));
                     continue;
                 }

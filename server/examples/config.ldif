@@ -41,6 +41,7 @@ description: InfoPipe Configuration
 dn: cn=domains,cn=config
 cn: domains
 description: Domains served by SSSD
+domains: LOCAL, EXAMPLE.COM, TEST
 
 dn: cn=LOCAL,cn=domains,cn=config
 cn: LOCAL

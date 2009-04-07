@@ -9,7 +9,7 @@ struct tools_ctx {
     struct confdb_ctx *confdb;
     struct sysdb_ctx *sysdb;
 
-    struct btreemap *domains;
+    struct sss_domain_info *domains;
 };
 
 int setup_db(struct tools_ctx **ctx);

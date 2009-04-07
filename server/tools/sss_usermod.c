@@ -210,6 +210,7 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
+    struct sss_domain_info *dom;
     struct user_mod_ctx *user_ctx = NULL;
     struct tools_ctx *ctx = NULL;
     char *groups;
@@ -328,10 +329,15 @@ int main(int argc, const char **argv)
 
 
     /* arguments processed, go on to actual work */
-    user_ctx->domain = btreemap_get_value(ctx->domains, "LOCAL");
-    if (user_ctx->domain == NULL) {
-        VAR_CHECK(ret, EOK, "Could not set default values\n");
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, "LOCAL") == 0) break;
     }
+    if (dom == NULL) {
+        DEBUG(0, ("Could not get domain info\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    user_ctx->domain = dom;
 
     ret = sysdb_transaction(ctx, ctx->sysdb, mod_user, user_ctx);
     if (ret != EOK) {
