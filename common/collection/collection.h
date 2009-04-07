@@ -182,7 +182,8 @@ struct collection_iterator;
  */
 
 /* Function that creates an named collection */
-int create_collection(struct collection_item **ci, char *name,unsigned cclass);
+int create_collection(struct collection_item **ci, const char *name,
+                      unsigned cclass);
 
 /* Function that destroys a collection */
 void destroy_collection(struct collection_item *ci);
@@ -192,34 +193,34 @@ void destroy_collection(struct collection_item *ci);
 /* Family includes the following convinience functions: */
 /* Add a string property to collection. The length should include the
  * terminating 0 */
-int add_str_property(struct collection_item *ci, char *subcollection,
-                     char *property, char *string, int length);
+int add_str_property(struct collection_item *ci, const char *subcollection,
+                     const char *property, char *string, int length);
 /* Add a binary property to collection.  */
-int add_binary_property(struct collection_item *ci, char *subcollection,
-                        char *property, void *binary_data, int length);
+int add_binary_property(struct collection_item *ci, const char *subcollection,
+                        const char *property, void *binary_data, int length);
 /* Add an int property to collection. */
-int add_int_property(struct collection_item *ci, char *subcollection,
-                     char *property, int number);
+int add_int_property(struct collection_item *ci, const char *subcollection,
+                     const char *property, int number);
 /* Add an unsigned int property. */
-int add_unsigned_property(struct collection_item *ci, char *subcollection,
-                          char *property,unsigned int number);
+int add_unsigned_property(struct collection_item *ci, const char *subcollection,
+                          const char *property,unsigned int number);
 /* Add a long property. */
-int add_long_property(struct collection_item *ci, char *subcollection,
-                      char *property, long number);
+int add_long_property(struct collection_item *ci, const char *subcollection,
+                      const char *property, long number);
 /* Add an unsigned long property. */
-int add_ulong_property(struct collection_item *ci, char *subcollection,
-                       char *property, unsigned long number);
+int add_ulong_property(struct collection_item *ci, const char *subcollection,
+                       const char *property, unsigned long number);
 /* Add a double property. */
-int add_double_property(struct collection_item *ci, char *subcollection,
-                        char *property,double number);
+int add_double_property(struct collection_item *ci, const char *subcollection,
+                        const char *property,double number);
 /* Add a bool property. */
-int add_bool_property(struct collection_item *ci, char *subcollection,
-                      char *property, unsigned char logical);
+int add_bool_property(struct collection_item *ci, const char *subcollection,
+                      const char *property, unsigned char logical);
 
 /* Add any property */
 int add_any_property(struct collection_item *ci,    /* A collection of items */
-                     char *subcollection,           /* Subcollection */
-                     char *property,                /* Name */
+                     const char *subcollection,     /* Subcollection */
+                     const char *property,          /* Name */
                      int type,                      /* Data type */
                      void *data,                    /* Pointer to the data */
                      int length);                   /* Length of the data. For
@@ -229,40 +230,43 @@ int add_any_property(struct collection_item *ci,    /* A collection of items */
 /* The functions that add an item and immediately return you this item
  * in the ret_ref parameter */
 int add_str_property_with_ref(struct collection_item *ci,
-                              char *subcollection,
-                              char *property, char *string, int length,
+                              const char *subcollection,
+                              const char *property,
+                              char *string, int length,
                               struct collection_item **ret_ref);
 int add_binary_property_with_ref(struct collection_item *ci,
-                                 char *subcollection,
-                                 char *property, void *binary_data, int length,
+                                 const char *subcollection,
+                                 const char *property,
+                                 void *binary_data, int length,
                                  struct collection_item **ret_ref);
 int add_int_property_with_ref(struct collection_item *ci,
-                              char *subcollection,
-                              char *property, int number,
+                              const char *subcollection,
+                              const char *property, int number,
                               struct collection_item **ret_ref);
 int add_unsigned_property_with_ref(struct collection_item *ci,
-                                   char *subcollection,
-                                   char *property,unsigned int number,
+                                   const char *subcollection,
+                                   const char *property, unsigned int number,
                                    struct collection_item **ret_ref);
 int add_long_property_with_ref(struct collection_item *ci,
-                               char *subcollection,
-                               char *property, long number,
+                               const char *subcollection,
+                               const char *property, long number,
                                struct collection_item **ret_ref);
 int add_ulong_property_with_ref(struct collection_item *ci,
-                                char *subcollection,
-                                char *property, unsigned long number,
+                                const char *subcollection,
+                                const char *property, unsigned long number,
                                 struct collection_item **ret_ref);
 int add_double_property_with_ref(struct collection_item *ci,
-                                 char *subcollection,
-                                 char *property, double number,
+                                 const char *subcollection,
+                                 const char *property, double number,
                                  struct collection_item **ret_ref);
 int add_bool_property_with_ref(struct collection_item *ci,
-                               char *subcollection,
-                               char *property, unsigned char logical,
+                               const char *subcollection,
+                               const char *property, unsigned char logical,
                                struct collection_item **ret_ref);
 int add_any_property_with_ref(struct collection_item *ci,
-                              char *subcollection,
-                              char *property, int type, void *data, int length,
+                              const char *subcollection,
+                              const char *property,
+                              int type, void *data, int length,
                               struct collection_item **ret_ref);
 
 /* FIXME - does not belong here - move to other place */
@@ -281,34 +285,34 @@ int set_timestamp(struct collection_item *ci,
  */
 /* Update a string property in the collection.
  * Length should include the terminating 0  */
-int update_str_property(struct collection_item *ci, char *property,
+int update_str_property(struct collection_item *ci, const char *property,
                         int mode_flags, char *string,int length);
 /* Update a binary property in the collection.  */
-int update_binary_property(struct collection_item *ci, char *property,
+int update_binary_property(struct collection_item *ci, const char *property,
                            int mode_flags, void *binary_data,int length);
 /* Update an int property in the collection. */
-int update_int_property(struct collection_item *ci, char *property,
+int update_int_property(struct collection_item *ci, const char *property,
                         int mode_flags, int number);
 /* Update an unsigned int property. */
-int update_unsigned_property(struct collection_item *ci, char *property,
+int update_unsigned_property(struct collection_item *ci, const char *property,
                              int mode_flags, unsigned int number);
 /* Update a long property. */
-int update_long_property(struct collection_item *ci, char *property,
+int update_long_property(struct collection_item *ci, const char *property,
                          int mode_flags, long number);
 /* Update an unsigned long property. */
-int update_ulong_property(struct collection_item *ci, char *property,
+int update_ulong_property(struct collection_item *ci, const char *property,
                           int mode_flags, unsigned long number);
 /* Update a double property. */
-int update_double_property(struct collection_item *ci, char *property,
+int update_double_property(struct collection_item *ci, const char *property,
                            int mode_flags, double number);
 /* Update a double property. */
-int update_bool_property(struct collection_item *ci, char *property,
+int update_bool_property(struct collection_item *ci, const char *property,
                          int mode_flags, unsigned char logical);
 
 
 /* Update property in the collection */
 int update_property(struct collection_item *ci, /* A collection of items */
-                    char *property_to_find,     /* Name to match */
+                    const char *property_to_find,/* Name to match */
                     int type,                   /* Data type */
                     void *new_data,             /* Pointer to the data */
                     int length,                 /* Length of the data. For
@@ -321,10 +325,10 @@ int update_property(struct collection_item *ci, /* A collection of items */
 
 /* Add collection to collection */
 int add_collection_to_collection(struct collection_item *ci,                   /* Collection handle to with we add another collection */
-                                 char *sub_collection_name,                    /* Name of the sub collection to which
+                                 const char *sub_collection_name,              /* Name of the sub collection to which
                                                                                   collection needs to be added as a property.
                                                                                   If NULL high level collection is assumed. */
-                                 char *as_property,                            /* Name of the collection property.
+                                 const char *as_property,                      /* Name of the collection property.
                                                                                   If NULL, same property as the name of
                                                                                   the collection being added will be used. */
                                  struct collection_item *collection_to_add,    /* Collection to add */
@@ -334,11 +338,11 @@ int add_collection_to_collection(struct collection_item *ci,                   /
 /* Referenced collections of the donor are copied as sub collections. */
 int copy_collection(struct collection_item **collection_copy,
                     struct collection_item *collection_to_copy,
-                    char *name_to_use);
+                    const char *name_to_use);
 
 /* Signature of the callback that needs to be used when
    traversing a collection or looking for a specific item */
-typedef int (*item_fn)(char *property,   /* The name of the property will be passed in this parameter. */
+typedef int (*item_fn)(const char *property,   /* The name of the property will be passed in this parameter. */
                        int property_len, /* Length of the property name will be passed in this parameter. */
                        int type,         /* Type of the data will be passed in this parameter */
                        void *data,       /* Pointer to the data will be passed in this parameter */
@@ -362,7 +366,7 @@ int traverse_collection(struct collection_item *ci,    /* Collection to traverse
    that the action was performed.
  */
 int get_item_and_do(struct collection_item *ci,  /* A collection of items */
-                    char *property_to_find,      /* Name to match */
+                    const char *property_to_find,/* Name to match */
                     int type,                    /* Type filter */
                     int mode_flags,              /* How to traverse the collection */
                     item_fn item_handler,        /* Function to call when the item is found */
@@ -378,7 +382,7 @@ int get_item_and_do(struct collection_item *ci,  /* A collection of items */
  * may cause problems in future if the internal implementation changes.
  */
 int get_item(struct collection_item *ci,       /* Collection to find things in */
-             char *property_to_find,           /* Name to match */
+             const char *property_to_find,     /* Name to match */
              int type,                         /* Type filter */
              int mode_flags,                   /* How to traverse the collection */
              struct collection_item **item);   /* Found item */
@@ -398,49 +402,49 @@ void *get_item_data(struct collection_item *ci);
  * Previous type and data of the item is destroyed.
  */
 int modify_item(struct collection_item *item,
-                char *property,
+                const char *property,
                 int type,
                 void *data,
                 int length);
 
 /* Convenience functions that wrap modify_tem(). */
 int modify_str_item(struct collection_item *item,
-                    char *property,
+                    const char *property,
                     char *string,
                     int length);
 int modify_binary_item(struct collection_item *item,
-                       char *property,
+                       const char *property,
                        void *binary_data,
                        int length);
 int modify_bool_item(struct collection_item *item,
-                     char *property,
+                     const char *property,
                      unsigned char logical);
 int modify_int_item(struct collection_item *item,
-                    char *property,
+                    const char *property,
                     int number);
 int modify_long_item(struct collection_item *item,
-                     char *property,
+                     const char *property,
                      long number);
 int modify_ulong_item(struct collection_item *item,
-                      char *property,
+                      const char *property,
                       unsigned long number);
 int modify_unsigned_item(struct collection_item *item,
-                         char *property,
+                         const char *property,
                          unsigned number);
 int modify_double_item(struct collection_item *item,
-                       char *property,
+                       const char *property,
                        double number);
 
 /* Delete property from the collection */
 int delete_property(struct collection_item *ci,    /* A collection of items */
-                    char *property_to_find,        /* Name to match */
+                    const char *property_to_find,  /* Name to match */
                     int type,                      /* Type filter */
                     int mode_flags);               /* How to traverse the collection  */
 
 
 /* Convenience function to check if the property is indeed in the collection */
 int is_item_in_collection(struct collection_item *ci,  /* Collection to find things in */
-                          char *property_to_find,      /* Name to match */
+                          const char *property_to_find,/* Name to match */
                           int type,                    /* Type filter */
                           int mode_flags,              /* How to traverse the collection */
                           int *found);                 /* Boolean that turns to nonzero if the match is found */
@@ -450,7 +454,7 @@ int is_item_in_collection(struct collection_item *ci,  /* Collection to find thi
 /* Delete extracted collection after use to decrease reference count. */
 int get_collection_reference(struct collection_item *ci,          /* High level collection */
                              struct collection_item **acceptor,   /* The pointer that will accept extracted handle */
-                             char *collection_to_find);           /* Name to of the collection */
+                             const char *collection_to_find);     /* Name to of the collection */
 
 /* Get collection - if current item is a reference get a real collection from it. */
 /* Delete extracted collection after use to decrease reference count. */

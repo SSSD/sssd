@@ -30,7 +30,7 @@
 #include "collection_tools.h"
 
 /* Debug handle */
-int debug_handle(char *property,
+int debug_handle(const char *property,
                  int property_len,
                  int type,
                  void *data,
@@ -319,7 +319,7 @@ int grow_buffer(struct serial_data *buf_data, int len)
 }
 
 /* Specail function to add different formatting symbols to the output */
-int put_marker(struct serial_data *buf_data, void *data, int len)
+int put_marker(struct serial_data *buf_data, const void *data, int len)
 {
     int error = EOK;
 
@@ -340,7 +340,7 @@ int put_marker(struct serial_data *buf_data, void *data, int len)
 }
 
 /* Add item's data */
-int serialize(char *property_in,
+int serialize(const char *property_in,
               int property_len_in,
               int type,
               void *data_in,
@@ -350,8 +350,8 @@ int serialize(char *property_in,
 {
     int len;
     struct serial_data *buf_data;
-    char *property;
-    void *data;
+    const char *property;
+    const void *data;
     int  property_len;
     int length;
     int error = EOK;

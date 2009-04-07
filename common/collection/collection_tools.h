@@ -62,10 +62,10 @@ int get_data_len(int type, int length);
 int grow_buffer(struct serial_data *buf_data, int len);
 
 /* Specail function to add different formatting symbols to the output */
-int put_marker(struct serial_data *buf_data, void *data, int len);
+int put_marker(struct serial_data *buf_data, const void *data, int len);
 
 /* Serialization of data user handler */
-int serialize(char *property_in,
+int serialize(const char *property_in,
               int property_len_in,
               int type,
               void *data_in,
@@ -74,7 +74,7 @@ int serialize(char *property_in,
               int *dummy);
 
 /* Debug handle */
-int debug_handle(char *property,
+int debug_handle(const char *property,
                  int property_len,
                  int type,
                  void *data,

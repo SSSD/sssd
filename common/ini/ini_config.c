@@ -813,7 +813,7 @@ int get_config_item(const char *section,
 {
     int error = EOK;
     struct collection_item *section_handle = NULL;
-    char *to_find;
+    const char *to_find;
     char default_section[] = INI_DEFAULT_SECTION;
 
     TRACE_FLOW_STRING("get_config_item", "Entry");
