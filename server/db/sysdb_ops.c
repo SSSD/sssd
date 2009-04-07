@@ -792,7 +792,6 @@ int sysdb_check_name_unique(struct sysdb_req *sysreq,
 static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep)
 {
     struct sysdb_cb_ctx *cbctx;
-    struct sysdb_ctx *ctx;
     int err;
 
     cbctx = talloc_get_type(req->context, struct sysdb_cb_ctx);

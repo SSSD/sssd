@@ -114,7 +114,6 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
 
 bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
 {
-    int ret;
     DBusMessageIter iter;
     DBusMessageIter sub_iter;
     int type;

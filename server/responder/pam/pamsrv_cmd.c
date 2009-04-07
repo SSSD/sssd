@@ -3,6 +3,7 @@
 
 #include "util/util.h"
 #include "confdb/confdb.h"
+#include "responder/common/responder_packet.h"
 #include "responder/pam/pam_LOCAL_domain.h"
 #include "responder/pam/pamsrv.h"
 
@@ -22,7 +23,7 @@ static int pam_parse_in_data(struct sss_names_ctx *snctx,
     for (start = end; end < last; end++) if (body[end] == '\0') break;
     if (body[end++] != '\0') return EINVAL;
 
-    ret = sss_parse_name(pd, snctx, &body[start], &pd->domain, &pd->user);
+    ret = sss_parse_name(pd, snctx, (char *)&body[start], &pd->domain, &pd->user);
     if (ret != EOK) return ret;
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
@@ -100,7 +101,6 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
 static void pam_reply(struct pam_data *pd)
 {
     struct cli_ctx *cctx;
-    struct sss_cmd_ctx *rctx;
     uint8_t *body;
     size_t blen;
     int ret;

@@ -164,12 +164,12 @@ sha512_crypt_r (const char *key, const char *salt, char *buffer, int buflen)
   HASH_Begin(ctx);
 
   /* Add the key string.  */
-  HASH_Update(ctx, key, key_len);
+  HASH_Update(ctx, (const unsigned char *)key, key_len);
 
   /* The last part is the salt string.  This must be at most 16
      characters and it ends at the first `$' character (for
      compatibility with existing implementations).  */
-  HASH_Update(ctx, salt, salt_len);
+  HASH_Update(ctx, (const unsigned char *)salt, salt_len);
 
 
   /* Compute alternate SHA512 sum with input KEY, SALT, and KEY.  The
@@ -177,13 +177,13 @@ sha512_crypt_r (const char *key, const char *salt, char *buffer, int buflen)
   HASH_Begin(alt_ctx);
 
   /* Add key.  */
-  HASH_Update(alt_ctx, key, key_len);
+  HASH_Update(alt_ctx, (const unsigned char *)key, key_len);
 
   /* Add salt.  */
-  HASH_Update(alt_ctx, salt, salt_len);
+  HASH_Update(alt_ctx, (const unsigned char *)salt, salt_len);
 
   /* Add key again.  */
-  HASH_Update(alt_ctx, key, key_len);
+  HASH_Update(alt_ctx, (const unsigned char *)key, key_len);
 
   /* Now get result of this (64 bytes) and add it to the other
      context.  */
@@ -201,7 +201,7 @@ sha512_crypt_r (const char *key, const char *salt, char *buffer, int buflen)
     if ((cnt & 1) != 0) {
       HASH_Update(ctx, alt_result, 64);
     } else {
-      HASH_Update(ctx, key, key_len);
+      HASH_Update(ctx, (const unsigned char *)key, key_len);
     }
 
   /* Create intermediate result.  */
@@ -212,7 +212,7 @@ sha512_crypt_r (const char *key, const char *salt, char *buffer, int buflen)
 
   /* For every character in the password add the entire password.  */
   for (cnt = 0; cnt < key_len; ++cnt) {
-    HASH_Update(alt_ctx, key, key_len);
+    HASH_Update(alt_ctx, (const unsigned char *)key, key_len);
   }
 
   /* Finish the digest.  */
@@ -229,7 +229,7 @@ sha512_crypt_r (const char *key, const char *salt, char *buffer, int buflen)
 
   /* For every character in the password add the entire password.  */
   for (cnt = 0; cnt < 16 + alt_result[0]; ++cnt) {
-    HASH_Update(alt_ctx, salt, salt_len);
+    HASH_Update(alt_ctx, (const unsigned char *)salt, salt_len);
   }
 
   /* Finish the digest.  */
@@ -250,26 +250,26 @@ sha512_crypt_r (const char *key, const char *salt, char *buffer, int buflen)
 
       /* Add key or last result.  */
       if ((cnt & 1) != 0) {
-        HASH_Update(ctx, p_bytes, key_len);
+        HASH_Update(ctx, (const unsigned char *)p_bytes, key_len);
       } else {
         HASH_Update(ctx, alt_result, 64);
       }
 
       /* Add salt for numbers not divisible by 3.  */
       if (cnt % 3 != 0) {
-        HASH_Update(ctx, s_bytes, salt_len);
+        HASH_Update(ctx, (const unsigned char *)s_bytes, salt_len);
       }
 
       /* Add key for numbers not divisible by 7.  */
       if (cnt % 7 != 0) {
-        HASH_Update(ctx, p_bytes, key_len);
+        HASH_Update(ctx, (const unsigned char *)p_bytes, key_len);
       }
 
       /* Add key or last result.  */
       if ((cnt & 1) != 0) {
         HASH_Update(ctx, alt_result, 64);
       } else {
-        HASH_Update(ctx, p_bytes, key_len);
+        HASH_Update(ctx, (const unsigned char *)p_bytes, key_len);
       }
 
       /* Create intermediate result.  */

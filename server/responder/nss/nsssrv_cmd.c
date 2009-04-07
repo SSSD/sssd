@@ -192,7 +192,7 @@ static int fill_pwent(struct sss_packet *packet,
         rp += 2*sizeof(uint32_t);
 
         if (add_domain) {
-            ret = snprintf(&body[rp], s1, namefmt, name, domain);
+            ret = snprintf((char *)&body[rp], s1, namefmt, name, domain);
             if (ret >= s1) {
                 /* need more space, got creative with the print format ? */
                 t = ret - s1 + 1;
@@ -206,7 +206,7 @@ static int fill_pwent(struct sss_packet *packet,
                 sss_packet_get_body(packet, &body, &blen);
 
                 /* retry */
-                ret = snprintf(&body[rp], s1, namefmt, name, domain);
+                ret = snprintf((char *)&body[rp], s1, namefmt, name, domain);
             }
 
             if (ret != s1-1) {
@@ -1375,7 +1375,7 @@ static int fill_grent(struct sss_packet *packet,
 
             /*  8-X: sequence of strings (name, passwd, mem..) */
             if (add_domain) {
-                ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
                 if (ret >= name_len) {
                     /* need more space, got creative with the print format ? */
                     t = ret - name_len + 1;
@@ -1389,7 +1389,7 @@ static int fill_grent(struct sss_packet *packet,
                     sss_packet_get_body(packet, &body, &blen);
 
                     /* retry */
-                    ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                    ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
                 }
 
                 if (ret != name_len-1) {
@@ -1441,7 +1441,7 @@ static int fill_grent(struct sss_packet *packet,
                     rp = blen - rsize;
 
                     if (add_domain) {
-                        ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                        ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
                         if (ret >= name_len) {
                             /* need more space, got creative with the print format ? */
                             t = ret - name_len + 1;
@@ -1455,7 +1455,7 @@ static int fill_grent(struct sss_packet *packet,
                             sss_packet_get_body(packet, &body, &blen);
 
                             /* retry */
-                            ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                            ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
                         }
 
                         if (ret != name_len-1) {
@@ -1531,7 +1531,7 @@ static int fill_grent(struct sss_packet *packet,
             rp = blen - rsize;
 
             if (add_domain) {
-                ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
                 if (ret >= name_len) {
                     /* need more space, got creative with the print format ? */
                     t = ret - name_len + 1;
@@ -1545,7 +1545,7 @@ static int fill_grent(struct sss_packet *packet,
                     sss_packet_get_body(packet, &body, &blen);
 
                     /* retry */
-                    ret = snprintf(&body[rp], name_len, namefmt, name, domain);
+                    ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
                 }
 
                 if (ret != name_len-1) {
