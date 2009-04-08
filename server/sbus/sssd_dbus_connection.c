@@ -600,6 +600,8 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
             /* Reply DBUS_ERROR_UNKNOWN_METHOD */
             DEBUG(1, ("No matching method found for %s.\n", method));
             reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
+            sbus_conn_send_reply(ctx->conn_ctx, reply);
+            dbus_message_unref(reply);
         }
     }
     else {
