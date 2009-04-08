@@ -91,6 +91,14 @@ static int service_check_alive(struct mt_svc *svc);
 
 static void set_tasks_checker(struct mt_svc *srv);
 static void set_global_checker(struct mt_ctx *ctx);
+static int monitor_kill_service (struct mt_svc *svc);
+
+static int get_service_config(struct mt_ctx *ctx, const char *name,
+                              struct mt_svc **svc_cfg);
+static int get_provider_config(struct mt_ctx *ctx, const char *name,
+                              struct mt_svc **svc_cfg);
+static int add_new_service (struct mt_ctx *ctx, const char *name);
+static int add_new_provider (struct mt_ctx *ctx, const char *name);
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -248,12 +256,7 @@ static void tasks_check_handler(struct tevent_context *ev,
         if (svc->last_pong != 0) {
             if ((now - svc->last_pong) > 30) { /* TODO: get val from config */
                 /* too long since we last heard of this process */
-                ret = kill(svc->pid, SIGUSR1);
-                if (ret != EOK) {
-                    DEBUG(0,("Sending signal to child (%s:%d) failed! "
-                             "Ignore and pretend child is dead.\n",
-                             svc->name, svc->pid));
-                }
+                monitor_kill_service(svc);
                 process_alive = false;
             }
         }
@@ -340,6 +343,173 @@ static void set_global_checker(struct mt_ctx *ctx)
     }
 }
 
+static int monitor_kill_service (struct mt_svc *svc)
+{
+    int ret;
+    ret = kill(svc->pid, SIGTERM);
+    if (ret != EOK) {
+        DEBUG(0,("Sending signal to child (%s:%d) failed! "
+                 "Ignore and pretend child is dead.\n",
+                 svc->name, svc->pid));
+    }
+
+    return ret;
+}
+
+static void shutdown_reply(DBusPendingCall *pending, void *data)
+{
+    DBusMessage *reply;
+    int type;
+    struct sbus_conn_ctx *conn_ctx;
+    struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
+
+    conn_ctx = svc->mt_conn->conn_ctx;
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("A reply callback was called but no reply was received"
+                  " and no timeout occurred\n"));
+
+        /* Destroy this connection */
+        monitor_kill_service(svc);
+        goto done;
+    }
+
+    type = dbus_message_get_type(reply);
+    switch(type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        /* Ok, we received a confirmation of shutdown */
+        break;
+
+    default:
+        /* Something went wrong on the client side
+         * Time to forcibly kill the service
+         */
+        DEBUG(0, ("Received an error shutting down service.\n"));
+        monitor_kill_service(svc);
+    }
+
+    /* No matter what happened here, we need to free the service */
+    talloc_free(svc);
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+}
+
+/* monitor_shutdown_service
+ * Orders a monitored service to shut down cleanly
+ * This function will free the memory for svc once it
+ * completes.
+ */
+static int monitor_shutdown_service(struct mt_svc *svc)
+{
+    DBusConnection *conn;
+    DBusMessage *msg;
+    DBusPendingCall *pending_reply;
+    dbus_bool_t dbret;
+
+    /* Stop the service checker */
+
+    conn = sbus_get_connection(svc->mt_conn->conn_ctx);
+
+    /* Construct a shutdown message */
+    msg = dbus_message_new_method_call(NULL,
+                                       SERVICE_PATH,
+                                       SERVICE_INTERFACE,
+                                       SERVICE_METHOD_SHUTDOWN);
+    if (!msg) {
+        DEBUG(0,("Out of memory?!\n"));
+        monitor_kill_service(svc);
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            svc->mt_ctx->service_id_timeout);
+    if (!dbret) {
+        DEBUG(0, ("D-BUS send failed.\n"));
+        dbus_message_unref(msg);
+        monitor_kill_service(svc);
+        talloc_free(svc);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, shutdown_reply, svc, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+
+static void reload_reply(DBusPendingCall *pending, void *data)
+{
+    DBusMessage *reply;
+    struct sbus_conn_ctx *conn_ctx;
+    struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
+
+    conn_ctx = svc->mt_conn->conn_ctx;
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("A reply callback was called but no reply was received"
+                  " and no timeout occurred\n"));
+
+        /* Destroy this connection */
+        sbus_disconnect(conn_ctx);
+        goto done;
+    }
+
+    /* TODO: Handle cases where the call has timed out or returned
+     * with an error.
+     */
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+}
+
+static int service_signal_reload(struct mt_svc *svc)
+{
+    DBusMessage *msg;
+    dbus_bool_t dbret;
+    DBusConnection *conn;
+    DBusPendingCall *pending_reply;
+
+    conn = sbus_get_connection(svc->mt_conn->conn_ctx);
+    msg = dbus_message_new_method_call(NULL,
+                                       SERVICE_PATH,
+                                       SERVICE_INTERFACE,
+                                       SERVICE_METHOD_RELOAD);
+    if (!msg) {
+        DEBUG(0,("Out of memory?!\n"));
+        monitor_kill_service(svc);
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+                                            svc->mt_ctx->service_id_timeout);
+    if (!dbret) {
+        DEBUG(0, ("D-BUS send failed.\n"));
+        dbus_message_unref(msg);
+        monitor_kill_service(svc);
+        talloc_free(svc);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, reload_reply, svc, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
@@ -360,7 +530,432 @@ int get_monitor_config(struct mt_ctx *ctx)
         return EINVAL;
     }
 
+    ret = confdb_get_domains(ctx->cdb, ctx, &ctx->domains);
+    if (ret != EOK) {
+        DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
+        return ret;
+    }
+
     return EOK;
+}
+
+static int get_service_config(struct mt_ctx *ctx, const char *name,
+                              struct mt_svc **svc_cfg)
+{
+    int ret;
+    char *path;
+    struct mt_svc *svc;
+
+    *svc_cfg = NULL;
+
+    svc = talloc_zero(ctx, struct mt_svc);
+    if (!svc) {
+        return ENOMEM;
+    }
+    svc->mt_ctx = ctx;
+
+    svc->name = talloc_strdup(svc, name);
+    if (!svc->name) {
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    svc->identity = talloc_strdup(svc, name);
+    if (!svc->identity) {
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    path = talloc_asprintf(svc, "config/services/%s", svc->name);
+    if (!path) {
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(ctx->cdb, svc, path, "command",
+                            NULL, &svc->command);
+    if (ret != EOK) {
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        talloc_free(svc);
+        return ret;
+    }
+
+    if (!svc->command) {
+        svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d",
+                                       SSSD_LIBEXEC_PATH, svc->name,
+                                       debug_level);
+        if (!svc->command) {
+            talloc_free(svc);
+            return ENOMEM;
+        }
+    }
+
+    ret = confdb_get_int(ctx->cdb, svc, path, "timeout",
+                         MONITOR_DEF_PING_TIME, &svc->ping_time);
+    if (ret != EOK) {
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        talloc_free(svc);
+        return ret;
+    }
+
+    *svc_cfg = svc;
+    talloc_free(path);
+
+    return EOK;
+}
+
+static int add_new_service (struct mt_ctx *ctx, const char *name)
+{
+    int ret;
+    struct mt_svc *svc;
+
+    ret = get_service_config(ctx, name, &svc);
+
+    ret = start_service(svc);
+    if (ret != EOK) {
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        talloc_free(svc);
+    }
+
+    return ret;
+}
+
+static int get_provider_config(struct mt_ctx *ctx, const char *name,
+                              struct mt_svc **svc_cfg)
+{
+    int ret;
+    char *path;
+    struct mt_svc *svc;
+
+    *svc_cfg = NULL;
+
+    svc = talloc_zero(ctx, struct mt_svc);
+    if (!svc) {
+        return ENOMEM;
+    }
+    svc->mt_ctx = ctx;
+
+    svc->name = talloc_strdup(svc, name);
+    if (!svc->name) {
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    svc->identity = talloc_asprintf(svc, "%%BE_%s", svc->name);
+    if (!svc->identity) {
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    path = talloc_asprintf(svc, "config/domains/%s", name);
+    if (!path) {
+        talloc_free(svc);
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(ctx->cdb, svc, path,
+                            "provider", NULL, &svc->provider);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to find provider from [%s] configuration\n", name));
+        talloc_free(svc);
+        return ret;
+    }
+
+    ret = confdb_get_string(ctx->cdb, svc, path,
+                            "command", NULL, &svc->command);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to find command from [%s] configuration\n", name));
+        talloc_free(svc);
+        return ret;
+    }
+
+    ret = confdb_get_int(ctx->cdb, svc, path, "timeout",
+                         MONITOR_DEF_PING_TIME, &svc->ping_time);
+    if (ret != EOK) {
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        talloc_free(svc);
+        return ret;
+    }
+
+    talloc_free(path);
+
+    /* if no provider is present do not run the domain */
+    if (!svc->provider) {
+        talloc_free(svc);
+        return EIO;
+    }
+
+    /* if there are no custom commands, build a default one */
+    if (!svc->command) {
+        svc->command = talloc_asprintf(svc,
+                            "%s/sssd_be -d %d --provider %s --domain %s",
+                            SSSD_LIBEXEC_PATH, debug_level,
+                            svc->provider, svc->name);
+        if (!svc->command) {
+            talloc_free(svc);
+            return ENOMEM;
+        }
+    }
+
+    *svc_cfg = svc;
+    return EOK;
+}
+
+static int add_new_provider (struct mt_ctx *ctx, const char *name)
+{
+    int ret;
+    struct mt_svc *svc;
+
+    ret = get_provider_config(ctx, name, &svc);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not get provider configuration for [%s]\n",
+                  name));
+        return ret;
+    }
+
+    ret = start_service(svc);
+    if (ret != EOK) {
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
+        talloc_free(svc);
+    }
+
+    return ret;
+}
+
+static void remove_service(struct mt_ctx *ctx, const char *name)
+{
+    int ret;
+    struct mt_svc *cur_svc;
+
+    /* Locate the service object in the list */
+    cur_svc = ctx->svc_list;
+    while (cur_svc != NULL) {
+        if (strcasecmp(name, cur_svc->name) == 0)
+            break;
+        cur_svc = cur_svc->next;
+    }
+    if (cur_svc != NULL) {
+        /* Remove the service from the list */
+        DLIST_REMOVE(ctx->svc_list, cur_svc);
+
+        /* Shut it down */
+        ret = monitor_shutdown_service(cur_svc);
+        if (ret != EOK) {
+            DEBUG(0, ("Unable to shut down service [%s]!",
+                      name));
+            /* TODO: Handle this better */
+        }
+    }
+}
+
+static int update_monitor_config(struct mt_ctx *ctx)
+{
+    int ret, i, j;
+    struct mt_svc *cur_svc;
+    struct mt_svc *new_svc;
+    struct sss_domain_info *dom, *new_dom;
+    struct mt_ctx *new_config = talloc_zero(NULL, struct mt_ctx);
+
+    new_config->ev = ctx->ev;
+    new_config->cdb = ctx->cdb;
+    ret = get_monitor_config(new_config);
+
+    ctx->service_id_timeout = new_config->service_id_timeout;
+
+    /* Compare the old and new active services */
+    /* Have any services been shut down? */
+    for (i = 0; ctx->services[i]; i++) {
+        /* Search for this service in the new config */
+        for (j = 0; new_config->services[j]; j++) {
+            if (strcasecmp(ctx->services[i], new_config->services[j]) == 0)
+                break;
+        }
+        if (new_config->services[j] == NULL) {
+            /* This service is no longer configured.
+             * Shut it down.
+             */
+            remove_service(ctx, ctx->services[i]);
+        }
+    }
+
+    /* Have any services been added or changed? */
+    for (i = 0; new_config->services[i]; i++) {
+        /* Search for this service in the old config */
+        for (j = 0; ctx->services[j]; j++) {
+            if (strcasecmp(new_config->services[i], ctx->services[j]) == 0)
+                break;
+        }
+
+        if (ctx->services[j] == NULL) {
+            /* New service added */
+            add_new_service(ctx, new_config->services[i]);
+        }
+        else {
+            /* Service already enabled, check for changes */
+            /* Locate the service object in the list */
+            cur_svc = ctx->svc_list;
+            for (cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
+                if (strcasecmp(ctx->services[i], cur_svc->name) == 0)
+                    break;
+            }
+            if (cur_svc == NULL) {
+                DEBUG(0, ("Service entry missing data\n"));
+                /* This shouldn't be possible, but if it happens
+                 * we'll throw an error
+                 */
+                talloc_free(new_config);
+                return EIO;
+            }
+
+            /* Read in the new configuration and compare it with the
+             * old one.
+             */
+            ret = get_service_config(ctx, new_config->services[i], &new_svc);
+            if (ret != EOK) {
+                DEBUG(0, ("Unable to determine if service has changed.\n"));
+                DEBUG(0, ("Disabling service [%s].\n",
+                          new_config->services[i]));
+                /* Not much we can do here, no way to know whether the
+                 * current configuration is safe, and restarting the
+                 * service won't work because the new startup requires
+                 * this function to work. The only safe thing to do
+                 * is stop the service.
+                 */
+                remove_service(ctx, new_config->services[i]);
+                continue;
+            }
+
+            if (strcmp(cur_svc->command, new_svc->command) != 0) {
+                /* The executable path has changed. We need to
+                 * restart the binary completely. If we send a
+                 * shutdown command, the monitor will automatically
+                 * reload the process with the new command.
+                 */
+                talloc_free(cur_svc->command);
+                talloc_steal(cur_svc, new_svc->command);
+                cur_svc->command = new_svc->command;
+
+                /* TODO: be more graceful about this */
+                monitor_kill_service(cur_svc);
+            }
+
+            cur_svc->ping_time = new_svc->ping_time;
+
+            talloc_free(new_svc);
+        }
+    }
+
+    /* Replace the old service list with the new one */
+    talloc_free(ctx->services);
+    ctx->services = talloc_steal(ctx, new_config->services);
+
+    /* Compare data providers */
+    /* Have any providers been disabled? */
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        for (new_dom = new_config->domains; new_dom; new_dom = new_dom->next) {
+            if (strcasecmp(dom->name, new_dom->name) == 0) break;
+        }
+        if (new_dom == NULL) {
+            /* This provider is no longer configured
+             * Shut it down
+             */
+            remove_service(ctx, dom->name);
+        }
+    }
+
+    /* Have we added or changed any providers? */
+    for (new_dom = new_config->domains; new_dom; new_dom = new_dom->next) {
+        /* Search for this service in the old config */
+        for (dom = ctx->domains; dom; dom = dom->next) {
+            if (strcasecmp(dom->name, new_dom->name) == 0) break;
+        }
+
+        if (dom == NULL) {
+            /* New provider added */
+            add_new_provider(ctx, new_dom->name);
+        }
+        else {
+            /* Provider is already in the list.
+             * Check for changes.
+             */
+            /* Locate the service object in the list */
+            cur_svc = ctx->svc_list;
+            while (cur_svc != NULL) {
+                if (strcasecmp(new_dom->name, cur_svc->name) == 0)
+                    break;
+                cur_svc = cur_svc->next;
+            }
+            if (cur_svc == NULL) {
+                DEBUG(0, ("Service entry missing data\n"));
+                /* This shouldn't be possible
+                 */
+                talloc_free(new_config);
+                return EIO;
+            }
+
+            /* Read in the new configuration and compare it with
+             * the old one.
+             */
+            ret = get_provider_config(ctx, new_dom->name, &new_svc);
+            if (ret != EOK) {
+                DEBUG(0, ("Unable to determine if service has changed.\n"));
+                DEBUG(0, ("Disabling service [%s].\n",
+                          new_config->services[i]));
+                /* Not much we can do here, no way to know whether the
+                 * current configuration is safe, and restarting the
+                 * service won't work because the new startup requires
+                 * this function to work. The only safe thing to do
+                 * is stop the service.
+                 */
+                remove_service(ctx, dom->name);
+                continue;
+            }
+
+            if ((strcmp(cur_svc->command, new_svc->command) != 0) ||
+                (strcmp(cur_svc->provider, new_svc->provider) != 0)) {
+                /* The executable path or the provider has changed.
+                 * We need to restart the binary completely. If we
+                 * send a shutdown command, the monitor will
+                 * automatically reload the process with the new
+                 * command.
+                 */
+                talloc_free(cur_svc->command);
+                talloc_steal(cur_svc, new_svc->command);
+                cur_svc->command = new_svc->command;
+
+                /* TODO: be more graceful about this */
+                monitor_kill_service(cur_svc);
+            }
+
+            cur_svc->ping_time = new_svc->ping_time;
+        }
+
+    }
+
+    /* Replace the old domain list with the new one */
+    talloc_free(ctx->domains);
+    ctx->domains = talloc_steal(ctx, new_config->domains);
+
+    /* Signal all services to reload their configuration */
+    for(cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
+        service_signal_reload(cur_svc);
+    }
+
+    talloc_free(new_config);
+    return EOK;
+}
+
+static void monitor_hup(struct tevent_context *ev,
+                        struct tevent_signal *se,
+                        int signum,
+                        int count,
+                        void *siginfo,
+                        void *private_data)
+{
+    struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
+
+    DEBUG(1, ("Received SIGHUP. Rereading configuration.\n"));
+    update_monitor_config(ctx);
 }
 
 int monitor_process_init(TALLOC_CTX *mem_ctx,
@@ -368,11 +963,10 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
                          struct confdb_ctx *cdb)
 {
     struct mt_ctx *ctx;
-    struct mt_svc *svc;
     struct sysdb_ctx *sysdb;
-    struct sss_domain_info *dom;
-    char *path;
+    struct tevent_signal *tes;
     int ret, i;
+    struct sss_domain_info *dom;
 
     ctx = talloc_zero(mem_ctx, struct mt_ctx);
     if (!ctx) {
@@ -408,159 +1002,24 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 
     /* start all services */
     for (i = 0; ctx->services[i]; i++) {
-
-        svc = talloc_zero(ctx, struct mt_svc);
-        if (!svc) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-        svc->mt_ctx = ctx;
-
-        svc->name = talloc_strdup(svc, ctx->services[i]);
-        if (!svc->name) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        svc->identity = talloc_strdup(svc, ctx->services[i]);
-        if (!svc->identity) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        path = talloc_asprintf(svc, "config/services/%s", svc->name);
-        if (!path) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        ret = confdb_get_string(cdb, svc, path, "command",
-                                NULL, &svc->command);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to start service '%s'\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
-
-        if (!svc->command) {
-            svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d",
-                                           SSSD_LIBEXEC_PATH, svc->name,
-                                           debug_level);
-            if (!svc->command) {
-                talloc_free(ctx);
-                return ENOMEM;
-            }
-        }
-
-        ret = confdb_get_int(cdb, svc, path, "timeout",
-                             MONITOR_DEF_PING_TIME, &svc->ping_time);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to start service '%s'\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
-
-        talloc_free(path);
-
-        /* Add this service to the queue to be started once the monitor
-         * enters its mainloop.
-         */
-        ret = start_service(svc);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to start service '%s'\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
+        add_new_service(ctx, ctx->services[i]);
     }
 
     /* now start the data providers */
-    ret = confdb_get_domains(cdb, ctx, &ctx->domains);
-    if (ret != EOK) {
-        DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
-        return ret;
-    }
-
     for (dom = ctx->domains; dom; dom = dom->next) {
-
-        svc = talloc_zero(ctx, struct mt_svc);
-        if (!svc) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-        svc->mt_ctx = ctx;
-
-        svc->name = talloc_strdup(svc, dom->name);
-        if (!svc->name) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        svc->identity = talloc_asprintf(svc, "%%BE_%s", svc->name);
-        if (!svc->identity) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        path = talloc_asprintf(svc, "config/domains/%s", svc->name);
-        if (!path) {
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        ret = confdb_get_string(cdb, svc, path,
-                                "provider", NULL, &svc->provider);
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to find provider from [%s] configuration\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
-
-        ret = confdb_get_string(cdb, svc, path,
-                                "command", NULL, &svc->command);
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to find command from [%s] configuration\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
-
-        ret = confdb_get_int(cdb, svc, path, "timeout",
-                             MONITOR_DEF_PING_TIME, &svc->ping_time);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to start service '%s'\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
-
-        talloc_free(path);
-
-        /* if no provider is present do not run the domain */
-        if (!svc->provider) {
-            talloc_free(svc);
-            continue;
-        }
-
-        /* if there are no custom commands, build a default one */
-        if (!svc->command) {
-            svc->command = talloc_asprintf(svc,
-                                "%s/sssd_be -d %d --provider %s --domain %s",
-                                SSSD_LIBEXEC_PATH, debug_level,
-                                svc->provider, svc->name);
-            if (!svc->command) {
-                talloc_free(ctx);
-                return ENOMEM;
-            }
-        }
-
-        ret = start_service(svc);
-        if (ret != EOK) {
-            DEBUG(0,("Failed to start provider for '%s'\n", svc->name));
-            talloc_free(svc);
-            continue;
-        }
+        add_new_provider(ctx, dom->name);
     }
 
     /* now start checking for global events */
     set_global_checker(ctx);
+
+    /* Set up an event handler for a SIGHUP */
+    tes = tevent_add_signal(ctx->ev, ctx, SIGHUP, 0,
+                            monitor_hup, ctx);
+    if (tes == NULL) {
+        talloc_free(ctx);
+        return EIO;
+    }
 
     return EOK;
 }
@@ -1031,6 +1490,13 @@ static int start_service(struct mt_svc *svc)
     return EOK;
 }
 
+static int delist_service(void *ptr) {
+    struct mt_svc *svc =
+        talloc_get_type(ptr, struct mt_svc);
+    DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
+    return 0;
+}
+
 static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr)
@@ -1053,6 +1519,7 @@ static void service_startup_handler(struct tevent_context *ev,
         /* Parent */
         mt_svc->last_pong = time(NULL);
         DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
+        talloc_set_destructor((TALLOC_CTX *)mt_svc, delist_service);
         set_tasks_checker(mt_svc);
 
         return;
