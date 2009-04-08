@@ -9,6 +9,20 @@
 #              basis to provide client auditing and policy services for projects
 #              like FreeIPA.
 #
+### BEGIN INIT INFO
+# Provides: sssd
+# Required-Start: $remote_fs $time
+# Should-Start: $syslog
+# Should-Stop: $null
+# Required-Stop: $null
+# Short-Description: System Security Services Daemon
+# Description: Provides a set of daemons to manage access to remote directories
+#              and authentication mechanisms. It provides an NSS and PAM
+#              interface toward the system and a pluggable backend system to
+#              connect to multiple different account sources. It is also the
+#              basis to provide client auditing and policy services for projects
+#              like FreeIPA.
+### END INIT INFO
 
 RETVAL=0
 prog="sssd"
