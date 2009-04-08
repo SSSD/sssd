@@ -390,10 +390,10 @@ int get_item(struct collection_item *ci,       /* Collection to find things in *
 /* Group of functions that allows retrieving individual elements of the collection_item
  * hiding the internal implementation.
  */
-char *get_item_property(struct collection_item *ci,int *property_len);
+const char *get_item_property(struct collection_item *ci,int *property_len);
 int get_item_type(struct collection_item *ci);
 int get_item_length(struct collection_item *ci);
-void *get_item_data(struct collection_item *ci);
+const void *get_item_data(struct collection_item *ci);
 
 /* If you want to modify the item that you got as a result of iterating through collection
  * or by calling get_item(). If you want to rename item provide a new name in the property

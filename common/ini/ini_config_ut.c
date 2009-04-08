@@ -217,6 +217,8 @@ int get_test()
     unsigned long number_ulong;
     unsigned char logical;
     char *str;
+    const char *cstr;
+    const char *cstrn;
     void *binary;
     int length;
     int i;
@@ -224,6 +226,7 @@ int get_test()
     char **strptr;
     int size;
     long *array;
+    double *darray;
 
 	printf("\n\n===== GET TEST START ======\n");
 	printf("Reading collection\n");
@@ -298,9 +301,8 @@ int get_test()
 
     /* Get a string without duplicication */
     /* Negative test */
-    error = 0;
-    str = get_string_config_value(NULL, 0, &error);
-    if(!error) {
+    cstrn = get_const_string_config_value(NULL, NULL);
+    if(cstrn != NULL) {
         printf("Expected error got success.\n");
         destroy_collection(ini_config);
         return -1;
@@ -310,21 +312,21 @@ int get_test()
 
     /* Now get string from the right item */
     error = 0;
-    str = get_string_config_value(item, 0, &error);
+    cstr = get_const_string_config_value(item, &error);
     if(error) {
         printf("Expected success got error %d.\n",error);
         destroy_collection(ini_config);
         return error;
     }
 
-    printf("Value: [%s]\n",str);
+    printf("Value: [%s]\n",cstr);
 
     /* Same thing but create a dup */
 
     printf("Get item as string with duplication from correct item.\n");
 
     error = 0;
-    str = get_string_config_value(item, 1, &error);
+    str = get_string_config_value(item, &error);
     if(error) {
         printf("Expected success got error %d.\n",error);
         destroy_collection(ini_config);
@@ -676,6 +678,39 @@ int get_test()
     for(i=0;i<size;i++) printf("%ld\n",*(array + i));
 
     free_long_config_array(array);
+
+    printf("Get double array item\n");
+
+    item = (struct collection_item *)(NULL);
+    error = get_config_item("domains/EXAMPLE.COM","double_array", ini_config, &item);
+    if(error) {
+        printf("Expected success but got error! %d\n",error);
+        destroy_collection(ini_config);
+        return error;
+    }
+
+    /* Item should be found */
+    if(item == (struct collection_item *)(NULL)) {
+        printf("Expected success but got NULL.\n");
+        destroy_collection(ini_config);
+        return -1;
+    }
+
+    debug_item(item);
+
+    error = 0;
+    size = 0; /* Here size is not optional!!! */
+    darray = get_double_config_array(item, &size, &error);
+    if(error) {
+        printf("Expect success got error %d.\n",error);
+        destroy_collection(ini_config);
+        return error;
+    }
+
+    /* Can be used with this cycle */
+    for(i=0;i<size;i++) printf("%.4f\n",darray[i]);
+
+    free_double_config_array(darray);
 
     printf("Done with get test!\n");
     return EOK;

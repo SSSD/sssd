@@ -54,11 +54,6 @@
 
 #define ERR_MAXPARSE        ERR_LONGKEY
 
-#ifdef HAVE_INI_BEST_EFFORT /* Ignore bad lines in the INI files */
-#define RET_BEST_EFFORT RET_INVALID
-#else
-#define RET_BEST_EFFORT RET_ERROR
-#endif
 
 /* Internal sizes */
 /* FIXME - make them configurable via config.h */
@@ -79,7 +74,7 @@ int config_from_file(const char *application,               /* Name of the appli
                      const char *config_file,               /* Name of the config file - if NULL the collection will be empty */
                      struct collection_item **ini_config,   /* If *ini_config is NULL a new ini object will be allocated, */
                                                             /* otherwise the one that is pointed to will be updated. */
-                     int error_level,                       /* Error level - break for erros, warnings or best effort (don't break) */
+                     int error_level,                       /* Error level - break for errors, warnings or best effort (don't break) */
                      struct collection_item **error_list);  /* List of errors for a file */
 
 
@@ -125,10 +120,10 @@ unsigned long get_ulong_config_value(struct collection_item *item, int strict, u
 double get_double_config_value(struct collection_item *item, int strict, double def, int *error);
 unsigned char get_bool_config_value(struct collection_item *item, unsigned char def, int *error);
 
-/* Function get_string_config_value returns pointer to the string out of item.
- * If 'dup' is not 0 it makes a copyof the string otherwise it does not.
- */
-char *get_string_config_value(struct collection_item *item, int dup, int *error);
+/* Function get_string_config_value returns a newly allocated pointer to the string out of item.*/
+char *get_string_config_value(struct collection_item *item, int *error);
+/* Function returns the string stored in the item */
+const char *get_const_string_config_value(struct collection_item *item, int *error);
 
 /* A get_bin_value and get_xxx_array functions allocate memory.
  * It is the responsibility of the caller to free it after use.
@@ -151,10 +146,15 @@ char **get_string_config_array(struct collection_item *item, char *sep, int *siz
 /* Array of long values - separators are detected automatically. */
 /* The length of the allocated array is returned in "size" */
 long *get_long_config_array(struct collection_item *item, int *size, int *error);
+/* Array of double values - separators are detected automatically. */
+/* The length of the allocated array is returned in "size" */
+double *get_double_config_array(struct collection_item *item, int *size, int *error);
 
 /* Special function to free string config array */
 void free_string_config_array(char **str_config);
 /* Special function to free long config array */
 void free_long_config_array(long *array);
+/* Special function to free double config array */
+void free_double_config_array(double *array);
 
 #endif

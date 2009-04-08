@@ -576,7 +576,7 @@ static int walk_items(struct collection_item *ci,
                       void *custom_data) {
 
     struct collection_item *current;
-    struct collection_item *parent;
+    struct collection_item *parent = NULL;
     struct collection_item *sub;
     int stop = 0;
     int error = EOK;
@@ -2550,7 +2550,7 @@ inline int is_of_class(struct collection_item *item, unsigned cclass)
 }
 
 /* Get propery */
-inline char *get_item_property(struct collection_item *ci,int *property_len)
+inline const char *get_item_property(struct collection_item *ci,int *property_len)
 {
     if (property_len != NULL) *property_len = ci->property_len;
     return ci->property;
@@ -2569,7 +2569,7 @@ inline int get_item_length(struct collection_item *ci)
 }
 
 /* Get data */
-void *get_item_data(struct collection_item *ci)
+inline const void *get_item_data(struct collection_item *ci)
 {
     return ci->data;
 }
@@ -2656,4 +2656,3 @@ int set_timestamp(struct collection_item *ci,
     TRACE_FLOW_STRING("set_timestamp", "Exit point");
     return EOK;
 }
-

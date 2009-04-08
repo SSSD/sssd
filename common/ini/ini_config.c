@@ -26,6 +26,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <locale.h>
 #include "config.h"
 /* For error text */
 #include <libintl.h>
@@ -61,9 +62,6 @@
 #define RET_EOF         5
 #define RET_ERROR       6
 
-/* STATIC INTERNAL FUNCTIONS */
-#ifdef HAVE_PARSE_ERROR
-
 
 /* Function to return parsing error */
 inline const char *parsing_error_str(int parsing_error)
@@ -85,16 +83,6 @@ inline const char *parsing_error_str(int parsing_error)
             return str_error[parsing_error-1];
 }
 
-#else
-
-
-inline const char *parsing_error_str(int parsing_error)
-{
-    const char *placeholder= _("Parsing errors are not compiled.");
-    return placeholder;
-}
-
-#endif
 
 int read_line(FILE *file,char **key,char **value, int *length, int *ext_error);
 
@@ -623,7 +611,7 @@ int read_line(FILE *file, char **key,char **value, int *length, int *ext_error)
     if (eq == NULL) {
         TRACE_ERROR_STRING("No equal sign", buf);
         *ext_error = ERR_NOEQUAL;
-        return RET_BEST_EFFORT;
+        return RET_INVALID;
     }
 
     len -= eq-buffer;
@@ -634,14 +622,14 @@ int read_line(FILE *file, char **key,char **value, int *length, int *ext_error)
     if (i < 0) {
         TRACE_ERROR_STRING("No key", buf);
         *ext_error = ERR_NOKEY;
-        return RET_BEST_EFFORT;
+        return RET_INVALID;
     }
 
     /* Copy key into provided buffer */
     if(i >= MAX_KEY) {
         TRACE_ERROR_STRING("Section name is too long", buf);
         *ext_error = ERR_LONGKEY;
-        return RET_BEST_EFFORT;
+        return RET_INVALID;
     }
     *key = buffer;
     buffer[i + 1] = '\0';
@@ -865,7 +853,8 @@ int get_config_item(const char *section,
 long get_long_config_value(struct collection_item *item,
                            int strict, long def, int *error)
 {
-    char *endptr, *str;
+    const char *str;
+    char *endptr;
     long val = 0;
 
     TRACE_FLOW_STRING("get_long_config_value", "Entry");
@@ -881,7 +870,7 @@ long get_long_config_value(struct collection_item *item,
     if (error) *error = EOK;
 
     /* Try to parse the value */
-    str = (char *)get_item_data(item);
+    str = (const char *)get_item_data(item);
     errno = 0;
     val = strtol(str, &endptr, 10);
 
@@ -931,7 +920,8 @@ unsigned long get_ulong_config_value(struct collection_item *item,
 double get_double_config_value(struct collection_item *item,
                                int strict, double def, int *error)
 {
-    char *endptr, *str;
+    const char *str;
+    char *endptr;
     double val = 0;
 
     TRACE_FLOW_STRING("get_double_config_value", "Entry");
@@ -947,7 +937,7 @@ double get_double_config_value(struct collection_item *item,
     if (error) *error = EOK;
 
     /* Try to parse the value */
-    str = (char *)get_item_data(item);
+    str = (const char *)get_item_data(item);
     errno = 0;
     val = strtod(str, &endptr);
 
@@ -974,7 +964,7 @@ double get_double_config_value(struct collection_item *item,
 unsigned char get_bool_config_value(struct collection_item *item,
                                     unsigned char def, int *error)
 {
-    char *str;
+    const char *str;
     int len;
 
     TRACE_FLOW_STRING("get_bool_config_value", "Entry");
@@ -989,7 +979,7 @@ unsigned char get_bool_config_value(struct collection_item *item,
 
     if (error) *error = EOK;
 
-    str = (char *)get_item_data(item);
+    str = (const char *)get_item_data(item);
     len = get_item_length(item);
 
     /* Try to parse the value */
@@ -1011,7 +1001,7 @@ unsigned char get_bool_config_value(struct collection_item *item,
 
 /* Return a string out of the value */
 char *get_string_config_value(struct collection_item *item,
-                              int dup, int *error)
+                              int *error)
 {
     char *str = NULL;
 
@@ -1025,21 +1015,40 @@ char *get_string_config_value(struct collection_item *item,
         return NULL;
     }
 
-    /* If we are told to dup the value */
-    if (dup) {
-        errno = 0;
-        str = strdup((char *)get_item_data(item));
-        if (str == NULL) {
-            TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
-            if (error) *error = ENOMEM;
-            return NULL;
-        }
+    errno = 0;
+    str = strdup((const char *)get_item_data(item));
+    if (str == NULL) {
+        TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
+        if (error) *error = ENOMEM;
+        return NULL;
     }
-    else str = (char *)get_item_data(item);
 
     if (error) *error = EOK;
 
-    TRACE_FLOW_STRING("get_string_config_value", "Exit");
+    TRACE_FLOW_STRING("get_string_config_value returning", str);
+    return str;
+}
+
+/* Get string from item */
+const char *get_const_string_config_value(struct collection_item *item, int *error)
+{
+    const char *str;
+
+    TRACE_FLOW_STRING("get_const_string_config_value", "Entry");
+
+    /* Do we have the item ? */
+    if ((item == NULL) ||
+        (get_item_type(item) != COL_TYPE_STRING)) {
+        TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
+        if (error) *error = EINVAL;
+        return NULL;
+    }
+
+    str = (const char *)get_item_data(item);
+
+    if (error) *error = EOK;
+
+    TRACE_FLOW_STRING("get_const_string_config_value returning", str);
     return str;
 }
 
@@ -1054,11 +1063,11 @@ char *get_bin_config_value(struct collection_item *item,
 {
     int i;
     char *value = NULL;
-    char *buff;
+    const char *buff;
     int size = 0;
     unsigned char hex;
     int len;
-    char *str;
+    const char *str;
 
     TRACE_FLOW_STRING("get_bin_config_value", "Entry");
 
@@ -1078,7 +1087,7 @@ char *get_bin_config_value(struct collection_item *item,
         return NULL;
     }
 
-    str = (char *)get_item_data(item);
+    str = (const char *)get_item_data(item);
 
     /* Is the format correct ? */
     if ((*str != '\'') ||
@@ -1154,6 +1163,7 @@ char **get_string_config_array(struct collection_item *item,
     char *start;
     int i, j, k;
     int growlen = 0;
+    int dlen;
 
     TRACE_FLOW_STRING("get_string_config_array", "Entry");
 
@@ -1181,7 +1191,8 @@ char **get_string_config_array(struct collection_item *item,
     dest = copy;
     buff = item->data;
     start = buff;
-    for(i = 0; i < item->length; i++) {
+    dlen = item->length - 1;
+    for(i = 0; i < dlen; i++) {
         growlen = 1;
         for(j = 0; j < lensep; j++) {
             if(buff[i] == sep[j]) {
@@ -1199,20 +1210,34 @@ char **get_string_config_array(struct collection_item *item,
                     *dest = '\0';
                     dest++;
                     len = 0;
-                    /* Move forward and trim spaces if any */
-                    start += resume_len + 1;
-                    i++;
+                }
+                /* Move forward and trim spaces if any */
+                start += resume_len + 1;
+                i++;
+                TRACE_INFO_STRING("Other pointer :", buff + i);
+                k = 0;
+                while(1) {
                     TRACE_INFO_STRING("Remaining buffer :", start);
-                    TRACE_INFO_STRING("Other pointer :", buff + i);
-                    k = 0;
-                    while (((i + k) < item->length) && (isspace(*start))) {
+                    while (((i + k) < dlen) && (isspace(*start))) {
                         k++;
                         start++;
                     }
-                    TRACE_INFO_STRING("Remaining buffer after triming spaces:", start);
-                    if (k) i += k - 1;
-                    /* Next iteration of the loop will add 1 */
+                    /* May be we have another separator */
+                    TRACE_INFO_STRING("Remaining before sep check :", start);
+                    if(*start && strchr(sep, *start)) {
+                        TRACE_INFO_NUMBER("Found separator:", *start);
+                        start++;
+                        k++;
+                    }
+                    else {
+                        break;
+                    }
                 }
+
+                TRACE_INFO_STRING("Remaining buffer after triming spaces:", start);
+
+                if (k) i += k - 1;
+                /* Next iteration of the loop will add 1 */
                 /* Break out of the inner loop */
                 growlen = 0;
                 break;
@@ -1221,12 +1246,16 @@ char **get_string_config_array(struct collection_item *item,
         if (growlen) len++;
     }
 
-    /* Copy the remaining piece */
-    memcpy(dest, start, len);
-    count++;
-    dest += len;
-    dest = '\0';
-    dest++;
+    TRACE_INFO_STRING("Last part :", start);
+    TRACE_INFO_NUMBER("Length :", len);
+    if(len) {
+        /* Copy the remaining piece */
+        memcpy(dest, start, len);
+        count++;
+        dest += len;
+        dest = '\0';
+        dest++;
+    }
 
     /* Now we know how many items are there in the list */
     array = malloc((count + 1) * sizeof(char *));
@@ -1240,8 +1269,11 @@ char **get_string_config_array(struct collection_item *item,
     /* Loop again to fill in the pointers */
     start = copy;
     for (i = 0; i < count; i++) {
+        TRACE_INFO_STRING("Token :", start);
+        TRACE_INFO_NUMBER("Item :", i);
         array[i] = start;
-        while (start) start++;
+        /* Move to next item */
+        while(*start) start++;
         start++;
     }
     array[count] = NULL;
@@ -1268,7 +1300,8 @@ void free_string_config_array(char **str_config)
 /* Get an array of long values */
 long *get_long_config_array(struct collection_item *item, int *size, int *error)
 {
-    char *endptr, *str;
+    const char *str;
+    char *endptr;
     long val = 0;
     long *array;
     int count = 0;
@@ -1293,8 +1326,8 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
     }
 
     /* Now parse the string */
-    str = (char *)get_item_data(item);
-    while (str) {
+    str = (const char *)get_item_data(item);
+    while (*str) {
         errno = 0;
         val = strtol(str, &endptr, 10);
         if (((errno == ERANGE) &&
@@ -1314,7 +1347,7 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
         if (*endptr == 0) break;
         /* Advance to the next valid number */
         for (str = endptr; *str; str++) {
-            if (isdigit(*str) || (*str != '-') || (*str != '+')) break;
+            if (isdigit(*str) || (*str == '-') || (*str == '+')) break;
         }
     }
 
@@ -1326,9 +1359,87 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
 
 }
 
+/* Get an array of double values */
+double *get_double_config_array(struct collection_item *item, int *size, int *error)
+{
+    const char *str;
+    char *endptr;
+    double val = 0;
+    double *array;
+    int count = 0;
+    struct lconv *loc;
+
+    TRACE_FLOW_STRING("get_double_config_array", "Entry");
+
+    /* Do we have the item ? */
+    if ((item == NULL) ||
+        (get_item_type(item) != COL_TYPE_STRING) ||
+        (size == NULL)) {
+        TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
+        if (error) *error = EINVAL;
+        return NULL;
+    }
+
+    /* Assume that we have maximum number of different numbers */
+    array = (double *)malloc(sizeof(double) * get_item_length(item)/2);
+    if (array == NULL) {
+        TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
+        if (error) *error = ENOMEM;
+        return NULL;
+    }
+
+    /* Get locale information so that we can check for decimal point character.
+     * Based on the man pages it is unclear if this is an allocated memory or not.
+     * Seems like it is a static thread or process local structure so
+     * I will not try to free it after use.
+     */
+    loc = localeconv();
+
+    /* Now parse the string */
+    str = (const char *)get_item_data(item);
+    while (*str) {
+        errno = 0;
+        TRACE_INFO_STRING("String to convert",str);
+        val = strtod(str, &endptr);
+        if ((errno == ERANGE) ||
+            ((errno != 0) && (val == 0)) ||
+            (endptr == str)) {
+            TRACE_ERROR_NUMBER("Conversion failed", EIO);
+            free(array);
+            if (error) *error = EIO;
+            return NULL;
+        }
+        /* Save value */
+        array[count] = val;
+        count++;
+        /* Are we done? */
+        if (*endptr == 0) break;
+        TRACE_INFO_STRING("End pointer after conversion",endptr);
+        /* Advance to the next valid number */
+        for (str = endptr; *str; str++) {
+            if (isdigit(*str) || (*str == '-') || (*str == '+') ||
+               /* It is ok to do this since the string is null terminated */
+               ((*str == *(loc->decimal_point)) && isdigit(str[1]))) break;
+        }
+    }
+
+    *size = count;
+    if (error) *error = EOK;
+
+    TRACE_FLOW_NUMBER("get_double_config_value returning", val);
+    return array;
+
+}
+
+
 /* Special function to free long config array */
 inline void free_long_config_array(long *array)
 {
     if (array != NULL) free(array);
 }
 
+/* Special function to free double config array */
+inline void free_double_config_array(double *array)
+{
+    if (array != NULL) free(array);
+}
