@@ -128,49 +128,39 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
 {
     struct sbus_method_ctx *sd_ctx;
     struct sbus_srv_ctx *sbus_srv;
-    char *sbus_address;
-    char *default_monitor_address;
+    char *monitor_address;
     int ret;
-
-    default_monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s",
-                                              PIPE_PATH, SSSD_SERVICE_PIPE);
-    if (!default_monitor_address) {
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(ctx->cdb, ctx,
-                            MONITOR_CONF_ENTRY, "sbusAddress",
-                            default_monitor_address, &sbus_address);
-    if (ret != EOK) {
-        talloc_free(default_monitor_address);
-        return ret;
-    }
-    talloc_free(default_monitor_address);
 
     sd_ctx = talloc_zero(ctx, struct sbus_method_ctx);
     if (!sd_ctx) {
-        talloc_free(sbus_address);
+        return ENOMEM;
+    }
+
+    monitor_address = talloc_asprintf(sd_ctx, "unix:path=%s/%s",
+                                      PIPE_PATH, SSSD_SERVICE_PIPE);
+    if (!monitor_address) {
+        talloc_free(sd_ctx);
         return ENOMEM;
     }
 
     /* Set up globally-available D-BUS methods */
     sd_ctx->interface = talloc_strdup(sd_ctx, MONITOR_DBUS_INTERFACE);
     if (!sd_ctx->interface) {
-        talloc_free(sbus_address);
         talloc_free(sd_ctx);
         return ENOMEM;
     }
     sd_ctx->path = talloc_strdup(sd_ctx, MONITOR_DBUS_PATH);
     if (!sd_ctx->path) {
-        talloc_free(sbus_address);
         talloc_free(sd_ctx);
         return ENOMEM;
     }
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(ctx, ctx->ev, sd_ctx, &sbus_srv, sbus_address, dbus_service_init, ctx);
+    ret = sbus_new_server(ctx, ctx->ev, sd_ctx, &sbus_srv, monitor_address, dbus_service_init, ctx);
     ctx->sbus_srv = sbus_srv;
+
+    talloc_free(monitor_address);
 
     return ret;
 }
