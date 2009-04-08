@@ -44,7 +44,6 @@
      "dn: cn=domains,cn=config\n" \
      "cn: domains\n" \
      "description: Domains served by SSSD\n" \
-     "default: LOCAL\n" \
      "domains: LOCAL\n" \
      "\n" \
      "dn: cn=LOCAL,cn=domains,cn=config\n" \
