@@ -227,6 +227,7 @@ int get_test()
     int size;
     long *array;
     double *darray;
+    char **prop_array;
 
 	printf("\n\n===== GET TEST START ======\n");
 	printf("Reading collection\n");
@@ -711,6 +712,49 @@ int get_test()
     for(i=0;i<size;i++) printf("%.4f\n",darray[i]);
 
     free_double_config_array(darray);
+
+    printf("\n\nSection list - no size\n");
+
+    /* Do not care about the error or size */
+    prop_array = get_section_list(ini_config,NULL,NULL);
+    if (prop_array == NULL) {
+        printf("Expect success got error.\n");
+        destroy_collection(ini_config);
+        return -1;
+    }
+
+    i = 0;
+    while (prop_array[i]) {
+		printf("Section: [%s]\n", prop_array[i]);
+		i++;
+    }
+    free_section_list(prop_array);
+
+    printf("\n\nSection list - with size\n");
+
+    /* Do not care about the error or size */
+    prop_array = get_section_list(ini_config, &size, NULL);
+    if (prop_array == NULL) {
+        printf("Expect success got error.\n");
+        destroy_collection(ini_config);
+        return -1;
+    }
+
+    for (i=0;i<size;i++) printf("Section: [%s]\n", prop_array[i]);
+    free_section_list(prop_array);
+
+    printf("\n\nAttributes in the section - with size and error\n");
+
+    /* Do not care about the error or size */
+    prop_array = get_attribute_list(ini_config, "domains/EXAMPLE.COM", &size, &error);
+    if (prop_array == NULL) {
+        printf("Expect success got error.\n");
+        destroy_collection(ini_config);
+        return -1;
+    }
+
+    for (i=0;i<size;i++) printf("Section: [%s]\n", prop_array[i]);
+    free_attribute_list(prop_array);
 
     printf("Done with get test!\n");
     return EOK;

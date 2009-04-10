@@ -98,4 +98,10 @@ int print_collection2(struct collection_item *handle);
 /* Find and print one item using default serialization */
 int print_item(struct collection_item *handle, char *name);
 
+/* Convert collection to list of properties */
+char **collection_to_list(struct collection_item *handle, int *size, int *error);
+
+/* Function to free the list of properties. */
+void free_property_list(char **str_list);
+
 #endif

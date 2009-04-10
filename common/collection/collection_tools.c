@@ -638,4 +638,104 @@ int print_item(struct collection_item *handle, char *name)
     return error;
 }
 
+/* Function to free the list of properties. */
+void free_property_list(char **str_list)
+{
+    int current = 0;
 
+    TRACE_FLOW_STRING("free_property_list","Entry");
+
+    if (str_list != NULL) {
+        while(str_list[current]) {
+            free(str_list[current]);
+            current++;
+        }
+        free(str_list);
+    }
+
+    TRACE_FLOW_STRING("free_property_list","Exit");
+}
+
+
+/* Convert collection to list of properties */
+char **collection_to_list(struct collection_item *handle, int *size, int *error)
+{
+    struct collection_iterator *iterator;
+    struct collection_item *item = NULL;
+    char **list;
+    unsigned count;
+    int err;
+    int current = 0;
+
+    TRACE_FLOW_STRING("collection_to_list","Entry");
+
+    /* Get number of the subsections */
+    err = get_collection_count(handle,&count);
+    if (err) {
+        TRACE_ERROR_NUMBER("Failed to get count of items from collection.", err);
+        if (error) *error = err;
+        return NULL;
+    }
+
+    /* Allocate memory for the sections */
+    errno = 0;
+    list = (char **)calloc(count, sizeof(char *));
+    if (list == NULL) {
+        err = errno;
+        TRACE_ERROR_NUMBER("Failed to get allocate memory.", err);
+        if (error) *error = ENOMEM;
+        return NULL;
+    }
+
+    /* Now iterate to fill in the sections */
+    /* Bind iterator */
+    err =  bind_iterator(&iterator, handle, COL_TRAVERSE_ONELEVEL);
+    if (err) {
+        TRACE_ERROR_NUMBER("Failed to bind.", err);
+        if (error) *error = err;
+        free(list);
+        return NULL;
+    }
+
+    while(1) {
+        /* Loop through a collection */
+        err = iterate_collection(iterator, &item);
+        if (err) {
+            TRACE_ERROR_NUMBER("Failed to iterate collection", err);
+            if (error) *error = err;
+            free_property_list(list);
+            unbind_iterator(iterator);
+            return NULL;
+        }
+
+        /* Are we done ? */
+        if (item == NULL) break;
+
+        TRACE_INFO_STRING("Property:", get_item_property(item, NULL));
+
+        /* Skip head */
+        if(get_item_type(item) == COL_TYPE_COLLECTION) continue;
+
+
+        /* Allocate memory for the new string */
+        errno = 0;
+        list[current] = strdup(get_item_property(item, NULL));
+        if (list[current] == NULL) {
+            err = errno;
+            TRACE_ERROR_NUMBER("Failed to dup string.", err);
+            if (error) *error = ENOMEM;
+            free_property_list(list);
+            return NULL;
+        }
+        current++;
+    }
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    unbind_iterator(iterator);
+
+    if (size) *size = (int)(count - 1);
+    if (error) *error = EOK;
+
+    TRACE_FLOW_STRING("collection_to_list returning", list == NULL ? "NULL" : list[0]);
+    return list;
+}

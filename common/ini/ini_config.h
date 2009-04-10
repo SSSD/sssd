@@ -96,6 +96,22 @@ void print_file_parsing_errors(FILE *file,                           /* File to 
 void print_config_parsing_errors(FILE *file,                           /* File to send errors to */
                                  struct collection_item *error_list);  /* Collection of collections of errors */
 
+/* Get list of sections from the config collection as an array of strings.
+ * Function allocates memory for the array of the sections.
+ */
+char **get_section_list(struct collection_item *ini_config, int *size, int *error);
+
+/* The section array should be freed using this function */
+void free_section_list(char **section_list);
+
+/* Get list of attributes in a section as an array of strings.
+ * Function allocates memory for the array of attributes.
+ */
+char **get_attribute_list(struct collection_item *ini_config, const char *section, int *size, int *error);
+
+/* The attribute array should be freed using this function */
+void free_attribute_list(char **attr_list);
+
 /* Get a configuration item form the configuration */
 int get_config_item(const char *section,                    /* Section. If NULL assumed default */
                     const char *name,                       /* Name of the property to look up */

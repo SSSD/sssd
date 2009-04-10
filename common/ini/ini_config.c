@@ -1443,3 +1443,82 @@ inline void free_double_config_array(double *array)
 {
     if (array != NULL) free(array);
 }
+
+/* The section array should be freed using this function */
+inline void free_section_list(char **section_list)
+{
+    TRACE_FLOW_STRING("free_section_list","Entry");
+
+    free_property_list(section_list);
+
+    TRACE_FLOW_STRING("free_section_list","Exit");
+}
+
+/* The section array should be freed using this function */
+inline void free_attribute_list(char **section_list)
+{
+    TRACE_FLOW_STRING("free_section_list","Entry");
+
+    free_property_list(section_list);
+
+    TRACE_FLOW_STRING("free_section_list","Exit");
+}
+
+
+/* Get list of sections as an array of strings.
+ * Function allocates memory for the array of the sections.
+ */
+char **get_section_list(struct collection_item *ini_config, int *size, int *error)
+{
+    char **list;
+
+    TRACE_FLOW_STRING("get_section_list","Entry");
+    /* Do we have the item ? */
+    if ((ini_config == NULL) ||
+        !is_of_class(ini_config, COL_CLASS_INI_CONFIG)) {
+        TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
+        if (error) *error = EINVAL;
+        return NULL;
+    }
+
+    /* Pass it to the function from collection API */
+    list = collection_to_list(ini_config, size, error);
+
+    TRACE_FLOW_STRING("get_section_list returning", list == NULL ? "NULL" : list[0]);
+    return list;
+}
+
+/* Get list of attributes in a section as an array of strings.
+ * Function allocates memory for the array of the strings.
+ */
+char **get_attribute_list(struct collection_item *ini_config, const char *section, int *size, int *error)
+{
+    struct collection_item *subcollection = NULL;
+    char **list;
+    int err;
+
+    TRACE_FLOW_STRING("get_attribute_list","Entry");
+    /* Do we have the item ? */
+    if ((ini_config == NULL) ||
+        !is_of_class(ini_config, COL_CLASS_INI_CONFIG) ||
+        (section == NULL)) {
+        TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
+        if (error) *error = EINVAL;
+        return NULL;
+    }
+
+    /* Fetch section */
+    err = get_collection_reference(ini_config, &subcollection, section);
+    /* Check error */
+    if (err && (subcollection == NULL)) {
+        TRACE_ERROR_NUMBER("Failed to get section", err);
+        if (error) *error = EINVAL;
+        return NULL;
+    }
+
+    /* Pass it to the function from collection API */
+    list = collection_to_list(subcollection, size, error);
+
+    TRACE_FLOW_STRING("get_attribute_list returning", list == NULL ? "NULL" : list[0]);
+    return list;
+}
