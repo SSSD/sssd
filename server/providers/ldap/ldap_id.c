@@ -1,10 +1,10 @@
 /*
     SSSD
 
-    LDAP Backend Module
+    LDAP Identity Backend Module
 
     Authors:
-        Sumit Bose <sbose@redhat.com>
+        Simo Sorce <ssorce@redhat.com>
 
     Copyright (C) 2008 Red Hat
 
@@ -22,13 +22,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifdef WITH_MOZLDAP
-#define LDAP_OPT_SUCCESS LDAP_SUCCESS
-#define LDAP_TAG_EXOP_MODIFY_PASSWD_ID  ((ber_tag_t) 0x80U)
-#define LDAP_TAG_EXOP_MODIFY_PASSWD_OLD ((ber_tag_t) 0x81U)
-#define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW ((ber_tag_t) 0x82U)
-#endif
-
 #include <errno.h>
 #include <ldap.h>
 #include <sys/time.h>
@@ -40,42 +33,64 @@
 #include "db/sysdb.h"
 #include "../sss_client/sss_cli.h"
 
+struct sdap_conf_ctx {
+    char *base_dn;
+
+    char *usr_base_dn;
+    int usr_search_scope;
+    char *usr_search_filter;
+
+    char *usr_objectclass;
+    char *usr_attr_name;
+    char *usr_attr_pwd;
+    char *usr_attr_uidnum;
+    char *usr_attr_gidnum;
+    char *usr_attr_gecos;
+    char *usr_attr_homedir;
+    char *usr_attr_shell;
+    char **usr_attr_others;
+
+    char *grp_base_dn;
+    int grp_search_scope;
+    char *grp_search_filter;
+
+    char *grp_objectclass;
+    char *grp_attr_name;
+    char *grp_attr_pwd;
+    char *grp_attr_gidnum;
+    char *grp_attr_member;
+    char **grp_attr_others;
+
+    enum sdap_schema {
+        SDAP_SCHEMA_RFC2307,
+        SDAP_SCHEMA_RFC2307BIS
+    } schema;
+};
+
 struct sdap_ctx {
     char *ldap_uri;
-    char *default_bind_dn;
-    char *user_search_base;
-    char *user_name_attribute;
-    char *user_object_class;
-    char *default_authtok_type;
-    uint32_t default_authtok_size;
-    char *default_authtok;
+
+    char *bind_dn;
+    char *auth_method;
+    char *secret;
+    int secret_size;
+
+    struct sdap_conf_ctx *conf;
+
+    LDAP *ldap;
     int network_timeout;
     int opt_timeout;
 };
 
-struct sdap_req;
-
-enum sdap_auth_steps {
-    SDAP_NOOP = 0x0000,
-    SDAP_OP_INIT = 0x0001,
-    SDAP_CHECK_INIT_RESULT,
-    SDAP_CHECK_STD_BIND,
-    SDAP_CHECK_SEARCH_DN_RESULT,
-    SDAP_CHECK_USER_BIND
-};
-
-struct sdap_req {
+#if 0
+struct sdap_id_req {
     struct be_req *req;
-    struct pam_data *pd;
-    struct sdap_ctx *sdap_ctx;
-    LDAP *ldap;
-    char *user_dn;
-    tevent_fd_handler_t next_task;
-    enum sdap_auth_steps next_step;
-    int msgid;
+    struct sdap_srv_ctx *srvctx;
+
+    
 };
 
-static int schedule_next_task(struct sdap_req *lr, struct timeval tv,
+static int schedule_next_task(struct sdap_id_req *lr, struct timeval tv,
                               tevent_timer_handler_t task)
 {
     int ret;
@@ -678,11 +693,14 @@ struct be_auth_ops sdap_auth_ops = {
 };
 
 
-int sssm_ldap_auth_init(struct be_ctx *bectx,
-                        struct be_auth_ops **ops,
-                        void **pvt_data)
+int sssm_ldap_init(struct be_ctx *bectx,
+                   struct be_id_ops **ops, void **pvt_data)
 {
     struct sdap_ctx *ctx;
+}
+
+
+{
     char *ldap_uri;
     char *default_bind_dn;
     char *default_authtok_type;
@@ -764,3 +782,5 @@ done:
     }
     return ret;
 }
+
+#endif

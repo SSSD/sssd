@@ -38,7 +38,8 @@ PROXY_BE_OBJ = \
 	providers/proxy.o
 
 LDAP_BE_OBJ = \
-	providers/ldap_be.o
+	providers/ldap/ldap_id.o \
+	providers/ldap/ldap_auth.o
 
 NSSSRV_OBJ = \
     responder/nss/nsssrv.o \
