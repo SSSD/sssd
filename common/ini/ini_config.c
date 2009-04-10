@@ -145,7 +145,7 @@ static int ini_to_collection(const char *filename,
     if (file == NULL) {
         error = errno;
         TRACE_ERROR_NUMBER("Failed to open file - but this is OK", error);
-        return EOK;
+        return ENOENT;
     }
 
     /* Open the collection of errors */
@@ -416,7 +416,8 @@ int config_for_app(const char *application,
         TRACE_INFO_STRING("Reading master file:", config_file);
         error = ini_to_collection(config_file, *ini_config,
                                   error_level, pass_common);
-        if (error != EOK) {
+        /* ENOENT and EOK are Ok */
+        if (error && (error != ENOENT)) {
             TRACE_ERROR_NUMBER("Failed to read master file", error);
             /* In case of error when we created collection - delete it */
             if(error && created) {
@@ -468,7 +469,8 @@ int config_for_app(const char *application,
 	    error = ini_to_collection(file_name, *ini_config,
                                   error_level, pass_specific);
         free(file_name);
-        if (error) {
+        /* ENOENT and EOK are Ok */
+        if (error && (error != ENOENT)) {
             TRACE_ERROR_NUMBER("Failed to read specific application file", error);
             /* In case of error when we created collection - delete it */
             if (error && created) {

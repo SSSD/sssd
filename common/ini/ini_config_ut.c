@@ -61,6 +61,12 @@ int single_file()
     struct collection_item *ini_config = (struct collection_item *)(NULL);
     struct collection_item *error_set = (struct collection_item *)(NULL);
 
+    error = config_from_file("test", "./ini/not_exist_ini.conf", &ini_config,INI_STOP_ON_NONE,&error_set);
+    if(error) {
+        printf("Attempt to read configuration returned error: %d. EXPECTED.\n\n",error);
+        if(error != ENOENT) return error;
+    }
+
     error = config_from_file("test", "./ini/ini.conf", &ini_config,INI_STOP_ON_NONE,&error_set);
     if(error) {
         printf("Attempt to read configuration returned error: %d\n",error);
