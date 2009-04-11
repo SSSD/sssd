@@ -34,6 +34,7 @@
 #include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
 #include "providers/dp_interfaces.h"
+#include "../sss_client/sss_cli.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"
@@ -79,5 +80,51 @@
 #define BE_REQ_USER 1
 #define BE_REQ_GROUP 2
 #define BE_REQ_INITGROUPS 3
+
+/* AUTH related common data and functions */
+
+#define DEBUG_PAM_DATA(level, pd) do { \
+    if (level <= debug_level) pam_print_data(level, pd); \
+} while(0);
+
+
+struct response_data {
+    int32_t type;
+    int32_t len;
+    uint8_t *data;
+    struct response_data *next;
+};
+
+struct pam_data {
+    int cmd;
+    uint32_t authtok_type;
+    uint32_t authtok_size;
+    uint32_t newauthtok_type;
+    uint32_t newauthtok_size;
+    char *domain;
+    char *user;
+    char *service;
+    char *tty;
+    char *ruser;
+    char *rhost;
+    uint8_t *authtok;
+    uint8_t *newauthtok;
+
+    int pam_status;
+    int response_delay;
+    struct response_data *resp_list;
+
+    bool offline_auth;
+};
+
+void pam_print_data(int l, struct pam_data *pd);
+
+int pam_add_response(struct pam_data *pd, enum response_type type,
+                     int len, const uint8_t *data);
+
+bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
+bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
+bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
+bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
 
 #endif /* __DATA_PROVIDER_ */

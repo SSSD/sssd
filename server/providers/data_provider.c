@@ -41,7 +41,6 @@
 #include "dp_interfaces.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
-#include "responder/pam/pamsrv.h"
 
 #define DP_CONF_ENTRY "config/services/dp"
 

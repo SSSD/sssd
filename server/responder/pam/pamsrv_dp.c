@@ -32,21 +32,15 @@
 #include "providers/dp_sbus.h"
 #include "responder/pam/pamsrv.h"
 
-struct pam_reply_ctx {
-    struct cli_ctx *cctx;
-    struct pam_data *pd;
-    pam_dp_callback_t callback;
-};
-
-static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr)
+static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
 {
     DBusError dbus_error;
     DBusMessage* msg;
     int ret;
     int type;
-    struct pam_reply_ctx *rctx;
+    struct pam_auth_req *preq;
 
-    rctx = talloc_get_type(ptr, struct pam_reply_ctx);
+    preq = talloc_get_type(ptr, struct pam_auth_req);
 
     dbus_error_init(&dbus_error);
 
@@ -54,7 +48,7 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr)
     msg = dbus_pending_call_steal_reply(pending);
     if (msg == NULL) {
         DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
-        rctx->pd->pam_status = PAM_SYSTEM_ERR;
+        preq->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
 
@@ -62,57 +56,44 @@ static void pam_process_dp_reply(DBusPendingCall *pending, void *ptr)
     type = dbus_message_get_type(msg);
     switch (type) {
         case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-            ret = dp_unpack_pam_response(msg, rctx->pd, &dbus_error);
+            ret = dp_unpack_pam_response(msg, preq->pd, &dbus_error);
             if (!ret) {
                 DEBUG(0, ("Failed to parse reply.\n"));
-                rctx->pd->pam_status = PAM_SYSTEM_ERR;
+                preq->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
-            DEBUG(4, ("received: [%d][%s]\n", rctx->pd->pam_status, rctx->pd->domain));
+            DEBUG(4, ("received: [%d][%s]\n", preq->pd->pam_status, preq->pd->domain));
             break;
         case DBUS_MESSAGE_TYPE_ERROR:
             DEBUG(0, ("Reply error.\n"));
-            rctx->pd->pam_status = PAM_SYSTEM_ERR;
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
             break;
         default:
             DEBUG(0, ("Default... what now?.\n"));
-            rctx->pd->pam_status = PAM_SYSTEM_ERR;
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
 
 done:
     dbus_pending_call_unref(pending);
     dbus_message_unref(msg);
-    rctx->callback(rctx->pd);
-
-    talloc_free(rctx);
+    preq->callback(preq);
 }
 
-int pam_dp_send_req(struct cli_ctx *cctx,
-                         pam_dp_callback_t callback,
-                         int timeout, struct pam_data *pd)
+int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
 {
+    struct pam_data *pd = preq->pd;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *conn;
     dbus_bool_t ret;
-    struct pam_reply_ctx *rctx;
 
-    rctx = talloc(cctx, struct pam_reply_ctx);
-    if (rctx == NULL) {
-        DEBUG(0,("Out of memory?!\n"));
-        return ENOMEM;
-    }
-    rctx->cctx = cctx;
-    rctx->callback = callback;
-    rctx->pd = pd;
-
-    if (pd->domain==NULL ||
-        pd->user==NULL ||
-        pd->service==NULL ||
-        pd->tty==NULL ||
-        pd->ruser==NULL ||
-        pd->rhost==NULL ) {
+    if ((pd->domain == NULL) ||
+        (pd->user == NULL) ||
+        (pd->service == NULL) ||
+        (pd->tty == NULL) ||
+        (pd->ruser == NULL) ||
+        (pd->rhost == NULL) ) {
         return EINVAL;
     }
 
@@ -120,12 +101,12 @@ int pam_dp_send_req(struct cli_ctx *cctx,
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!cctx->rctx->dp_ctx) {
+    if (!preq->cctx->rctx->dp_ctx) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    conn = sbus_get_connection(cctx->rctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(preq->cctx->rctx->dp_ctx->scon_ctx);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_CLI_PATH,
@@ -158,8 +139,8 @@ int pam_dp_send_req(struct cli_ctx *cctx,
         return EIO;
     }
 
-    dbus_pending_call_set_notify(pending_reply, pam_process_dp_reply, rctx,
-                                 NULL);
+    dbus_pending_call_set_notify(pending_reply,
+                                 pam_dp_process_reply, preq, NULL);
     dbus_message_unref(msg);
 
     return EOK;

@@ -7,6 +7,7 @@ UTIL_OBJ = \
     util/usertools.o \
     monitor/monitor_sbus.o \
     providers/dp_sbus.o \
+    providers/dp_auth_util.o \
     sbus/sssd_dbus_common.o \
     sbus/sssd_dbus_connection.o \
     sbus/sssd_dbus_server.o \
@@ -30,7 +31,7 @@ DP_OBJ = \
 	providers/data_provider.o
 
 DP_BE_OBJ = \
-	providers/data_provider_be.o \
+	providers/data_provider_be.o
 
 PROXY_BE_OBJ = \
 	providers/proxy.o
@@ -62,15 +63,15 @@ SYSDB_TEST_OBJ = \
 INFP_TEST_OBJ = \
 	tests/infopipe-tests.o
 
-CRYPT_OBJ = util/nss_sha512crypt.o
+CRYPT_OBJ = \
+	util/nss_sha512crypt.o
 
 PAMSRV_OBJ = \
     responder/pam/pamsrv.o \
     responder/pam/pamsrv_cmd.o \
+    responder/pam/pamsrv_cache.o \
     responder/pam/pam_LOCAL_domain.o \
     responder/pam/pamsrv_dp.o
-
-PAMSRV_UTIL_OBJ = responder/pam/pamsrv_util.o
 
 $(LDAP_BE_OBJ): CFLAGS += $(LDAP_CFLAGS)
 $(CRYPT_OBJ): CFLAGS += $(NSS_CFLAGS)
@@ -103,14 +104,14 @@ sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 sbin/sssd_nss: $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ)
 	$(CC) -o sbin/sssd_nss $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
-sbin/sssd_pam: $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(CRYPT_OBJ)
-	$(CC) -o sbin/sssd_pam $(PAMSRV_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(CRYPT_OBJ) $(LDFLAGS) $(LIBS) $(NSS_LIBS)
+sbin/sssd_pam: $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(CRYPT_OBJ)
+	$(CC) -o sbin/sssd_pam $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(CRYPT_OBJ) $(LDFLAGS) $(LIBS) $(NSS_LIBS)
 
-sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ)
-	$(CC) -o sbin/sssd_dp $(DP_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(LDFLAGS) $(LIBS)
+sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ)
+	$(CC) -o sbin/sssd_dp $(DP_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
 sbin/sssd_be: $(DP_BE_OBJ) $(UTIL_OBJ)
-	$(CC) -Wl,-E -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(PAMSRV_UTIL_OBJ) $(LDFLAGS) $(LIBS) $(PAM_LIBS)
+	$(CC) -Wl,-E -o sbin/sssd_be $(DP_BE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(PAM_LIBS)
 
 sbin/sssd_info: $(INFOPIPE_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd_info $(INFOPIPE_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)

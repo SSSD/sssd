@@ -1,10 +1,32 @@
+/*
+   SSSD
+
+   PAM Responder
+
+   Copyright (C) Simo Sorce <ssorce@redhat.com>	2009
+   Copyright (C) Sumit Bose <sbose@redhat.com>	2009
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <errno.h>
 #include <talloc.h>
 
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
-#include "responder/pam/pam_LOCAL_domain.h"
+#include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
 
 static int pam_parse_in_data(struct sss_names_ctx *snctx,
@@ -86,19 +108,20 @@ static int pam_parse_in_data(struct sss_names_ctx *snctx,
     return EOK;
 }
 
-static void pam_reply(struct pam_data *pd);
+static void pam_reply(struct pam_auth_req *preq);
 static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
                             struct timeval tv, void *pvt)
 {
-    struct pam_data *pd;
+    struct pam_auth_req *preq;
+
     DEBUG(4, ("pam_reply_delay get called.\n"));
 
-    pd = talloc_get_type(pvt, struct pam_data);
+    preq = talloc_get_type(pvt, struct pam_auth_req);
 
-    pam_reply(pd);
+    pam_reply(preq);
 }
 
-static void pam_reply(struct pam_data *pd)
+static void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
     uint8_t *body;
@@ -111,13 +134,48 @@ static void pam_reply(struct pam_data *pd)
     int p;
     struct timeval tv;
     struct tevent_timer *te;
+    struct pam_data *pd;
+
+    pd = preq->pd;
 
     DEBUG(4, ("pam_reply get called.\n"));
+
+    if ((pd->cmd == SSS_PAM_AUTHENTICATE) &&
+        (preq->domain->cache_credentials == true) &&
+        (pd->offline_auth == false)) {
+
+        if (pd->pam_status == PAM_SUCCESS) {
+            pd->offline_auth = true;
+            preq->callback = pam_reply;
+            ret = pam_cache_credentials(preq);
+            if (ret == EOK) {
+                return;
+            }
+            else {
+                DEBUG(0, ("Failed to cache credentials"));
+                /* this error is not fatal, continue */
+            }
+        }
+
+        if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
+            /* do auth with offline credentials */
+            pd->offline_auth = true;
+            preq->callback = pam_reply;
+            ret = pam_cache_auth(preq);
+            if (ret == EOK) {
+                return;
+            }
+            else {
+                DEBUG(1, ("Failed to setup offline auth"));
+                /* this error is not fatal, continue */
+            }
+        }
+    }
 
     if (pd->response_delay > 0) {
         ret = gettimeofday(&tv, NULL);
         if (ret != EOK) {
-            DEBUG(0, ("gettimeofday failed [%d][%s].\n",
+            DEBUG(1, ("gettimeofday failed [%d][%s].\n",
                       errno, strerror(errno)));
             err = ret;
             goto done;
@@ -126,9 +184,9 @@ static void pam_reply(struct pam_data *pd)
         tv.tv_usec = 0;
         pd->response_delay = 0;
 
-        te = tevent_add_timer(cctx->ev, cctx, tv, pam_reply_delay, pd);
+        te = tevent_add_timer(cctx->ev, cctx, tv, pam_reply_delay, preq);
         if (te == NULL) {
-            DEBUG(0, ("Failed to add event pam_reply_delay.\n"));
+            DEBUG(1, ("Failed to add event pam_reply_delay.\n"));
             err = ENOMEM;
             goto done;
         }
@@ -136,7 +194,7 @@ static void pam_reply(struct pam_data *pd)
         return;
     }
 
-    cctx = pd->cctx;
+    cctx = preq->cctx;
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
@@ -191,8 +249,7 @@ static void pam_reply(struct pam_data *pd)
     }
 
 done:
-    talloc_free(pd);
-    sss_cmd_done(cctx, NULL);
+    sss_cmd_done(cctx, preq);
 }
 
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
@@ -201,50 +258,60 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     uint8_t *body;
     size_t blen;
     int ret;
+    struct pam_auth_req *preq;
     struct pam_data *pd;
 
-    pd = talloc(cctx, struct pam_data);
-    if (pd == NULL) return ENOMEM;
+    preq = talloc_zero(cctx, struct pam_auth_req);
+    if (!preq) {
+        return ENOMEM;
+    }
+    preq->cctx = cctx;
+
+    preq->pd = talloc_zero(preq, struct pam_data);
+    if (!preq->pd) {
+        talloc_free(preq);
+        return ENOMEM;
+    }
+    pd = preq->pd;
 
     sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t) &&
         ((uint32_t *)(&body[blen - sizeof(uint32_t)]))[0] != END_OF_PAM_REQUEST) {
         DEBUG(1, ("Received data not terminated.\n"));
-        talloc_free(pd);
+        talloc_free(preq);
         return EINVAL;
     }
 
     pd->cmd = pam_cmd;
-    pd->cctx = cctx;
-    ret=pam_parse_in_data(cctx->rctx->names, pd, body, blen);
-    if( ret != 0 ) {
-        talloc_free(pd);
+    ret = pam_parse_in_data(cctx->rctx->names, pd, body, blen);
+    if (ret != 0) {
+        talloc_free(preq);
         return EINVAL;
     }
-    pd->response_delay = 0;
-    pd->resp_list = NULL;
-
 
     if (pd->domain) {
         for (dom = cctx->rctx->domains; dom; dom = dom->next) {
             if (strcasecmp(dom->name, pd->domain) == 0) break;
         }
         if (!dom) {
-            talloc_free(pd);
+            talloc_free(preq);
             return EINVAL;
         }
+        preq->domain = dom;
     }
     else {
         DEBUG(4, ("Domain not provided, using default.\n"));
-        dom = cctx->rctx->domains;
-        pd->domain = dom->name;
+        preq->domain = cctx->rctx->domains;
+        pd->domain = preq->domain->name;
     }
 
-    if (!dom->provider) {
-        return LOCAL_pam_handler(cctx, pam_reply, dom, pd);
+    if (!preq->domain->provider) {
+        preq->callback = pam_reply;
+        return LOCAL_pam_handler(preq);
     };
 
-    ret = pam_dp_send_req(cctx, pam_reply, PAM_DP_TIMEOUT, pd);
+    preq->callback = pam_reply;
+    ret = pam_dp_send_req(preq, PAM_DP_TIMEOUT);
     DEBUG(4, ("pam_dp_send_req returned %d\n", ret));
 
     return ret;

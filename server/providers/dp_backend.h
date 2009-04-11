@@ -24,7 +24,6 @@
 
 #include "providers/data_provider.h"
 #include "db/sysdb.h"
-#include "responder/pam/pamsrv.h"
 
 struct be_ctx;
 struct be_id_ops;

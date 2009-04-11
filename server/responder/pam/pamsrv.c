@@ -3,7 +3,8 @@
 
    PAM Responder
 
-   Copyright (C) Simo Sorce <ssorce@redhat.com>	2008
+   Copyright (C) Simo Sorce <ssorce@redhat.com>	2009
+   Copyright (C) Sumit Bose <sbose@redhat.com>	2009
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
