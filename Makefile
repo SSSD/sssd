@@ -1,7 +1,7 @@
 PACKAGE_NAME = sssd
-PACKAGE_VERSION = 0.1.0
+PACKAGE_VERSION = 0.3.0
 TARGET ?= master
-SUBDIRS = server replace sss_client
+SUBDIRS = common server replace sss_client
 TARBALL_PREFIX = $(PACKAGE_NAME)-$(PACKAGE_VERSION)
 TARBALL = $(TARBALL_PREFIX).tar.gz
 LIBDIR ?= /usr/lib
@@ -15,6 +15,7 @@ clean:
 	rm -Rf $(RPMBUILD)
 
 realdistclean: clean
+	-make -C common maintainer-clean
 	-make -C server realdistclean
 
 archive:

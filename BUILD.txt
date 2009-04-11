@@ -3,63 +3,52 @@ Very Quick Guide to build sssd components
 
 Use the following instructions to build the libraries and the binaries.
 
+External library requirements:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sssd depends on 4 libraries originated in the samba project:
 talloc, tdb, tevent, ldb
 
 They are now available in major distribution development branches.
 
-If you have these libraries installed skip to <<Compiling sssd with system
-installed libraries>>
-
 If you want to build them from source download the latest samba master branch
-and use the following instructions
 
-Compiling libraries yourself
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-NOTE: these instructions are temporary and will most likely change agt some
-point but so far the process I describe here is the best one to get something up
-and working while developing this project.
+Internal Library Requirements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sssd provides several required libraries within its source tree:
+collection
+ini_config
 
-Each library and the sssd service have a --with-shared-build-dir configure option
-that is useful to build the libraries so that you can build all pieces before
-installing each library as a dependency.
-If you just want to make a development build you can provide a temporary
-directory where libraries are installed during the build process in a way that
-let each dependent library find them without having to install each binary into
-its finally system library directory (ie build as user).
-
-I use the following steps to build all pieces.
-
-export LD_LIBRARY_PATH=/tmp/foo/lib
-pushd lib/talloc; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd lib/tdb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd lib/tevent; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-pushd source4/lib/ldb; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make shared-build; popd
-
-Compiling sssd using shared-build
+Compiling sssd internal libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd server; ./autogen.sh && ./configure --with-shared-build-dir=/tmp/foo && make; popd
+pushd common; \
+autoreconf -i -f && \
+./configure --enable-static --disable-shared && \
+make; \
+popd
 
-At this point you can start testing the sssd daemon this way:
-
-cd server
-export LD_LIBRARY_PATH=/tmp/foo/lib
-./sbin/sssd -i
-
-This will start the sssd daemon in interactive mode.
+This will build the libraries statically for linking into the sssd. Currently
+the sssd build system does not support dynamically linking. (The external API
+for collection and ini_config is not yet ready for general consumption).
 
 Compiling sssd with system installed libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd server; ./autogen.sh && ./configure && make; popd
+pushd server; \
+./autogen.sh && \
+./configure && \
+make; \
+popd
 
 Compiling client libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-The nss and pam client doesn't need any dependency nor supports the
-shared-build option.
+The nss and pam client do not require any additional dependencies.
 
-pushd sss_client; ./autogen.sh && ./configure && make; popd
+pushd sss_client; \
+./autogen.sh && \
+./configure && \
+make; \
+popd
 
-Now you have to copy libnss_sss* into /lib (or /lib64) and add the 'sss' traget
+Now you have to copy libnss_sss* into /lib (or /lib64) and add the 'sss' target
 to nsswitch.conf passwd database
 
 For pam copy pam_sss.so into /lib/security (or /lib64/security) and add
@@ -76,4 +65,4 @@ Now you can call pam_test_client:
 ./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
 
 ~~~~~
-Simo.
+Simo and Steve

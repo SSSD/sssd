@@ -1,5 +1,5 @@
 Name: sssd
-Version: 0.2.1
+Version: 0.3.0
 Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
@@ -47,6 +47,14 @@ services for projects like FreeIPA.
 %setup -q
 
 %build
+# common
+pushd common
+autoreconf -i -f
+%configure --disable-shared \
+           --enable-static
+
+make %{?_smp_mflags}
+popd
 
 # sssd
 pushd server
@@ -118,6 +126,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Sun Apr 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.3.0-1
+- Convert to using /etc/sssd/sssd.conf for configuration
+
 * Tue Mar 10 2009 Simo Sorce <ssorce@redhat.com> - 0.2.1-1
 - Bump up to version 0.2.1
 
