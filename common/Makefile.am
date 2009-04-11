@@ -1,1 +1,1 @@
-SUBDIRS = collection ini
+SUBDIRS = collection ini trace

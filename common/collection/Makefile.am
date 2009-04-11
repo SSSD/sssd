@@ -4,14 +4,16 @@ TRACE_LEVEL=@TRACE_VAR@
 topdir=..
 AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace $(TRACE_LEVEL)
 
-# Build static libraty
-noinst_LIBRARIES = libcollection.a
-libcollection_a_SOURCES = collection.c collection_tools.c collection.h trace.h collection_tools.h collection_class.h
+# Set up the pkg-config file
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = collection.pc
 
-# Build shared library - reserved for future
-# lib_LTLIBRARIES = libcollection.la
-# libcollection_la_SOURCES = collection.c collection_tools.c collection.h trace.h collection_tools.h collection_class.h
+# Build libraty
+lib_LTLIBRARIES = libcollection.la
+libcollection_la_SOURCES = collection.c collection_tools.c collection_tools.h collection_class.h
+include_HEADERS = collection.h collection_tools.h
 
+# Build unit test
 noinst_PROGRAMS = collection_ut
 collection_ut_SOURCES = collection_ut.c
-collection_ut_LDADD = libcollection.a -lm -lz
+collection_ut_LDADD = libcollection.la -lm -lz

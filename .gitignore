@@ -9,6 +9,15 @@ Makefile
 cscope.out
 *.so
 *.so.[0-9].[0-9].[0-9]
+*.a
+*.la
+*.lo
+aclocal.m4
+.deps
+.libs
 *.html
 *.[0-9]
 *.pc
+autom4te.cache
+libtool
+stamp-h1

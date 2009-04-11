@@ -17,7 +17,7 @@ AC_ARG_ENABLE([trace],
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
 
-AC_CONFIG_FILES([Makefile collection/Makefile ini/Makefile])
+AC_CONFIG_FILES([Makefile collection/Makefile collection/collection.pc ini/Makefile ini/ini_config.pc trace/Makefile])
 AC_OUTPUT
 
 
