@@ -342,7 +342,8 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
 }
 
 int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
-                             const char *domain, uid_t uid,
+                             struct sss_domain_info *domain,
+                             uid_t uid,
                              sysdb_callback_t fn, void *pvt)
 {
     static const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
@@ -374,7 +375,8 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
     del_ctx->res = talloc_zero(del_ctx, struct ldb_result);
     if (!del_ctx->res) return ENOMEM;
 
-    base_dn = ldb_dn_new_fmt(del_ctx, ctx->ldb, SYSDB_TMPL_USER_BASE, domain);
+    base_dn = ldb_dn_new_fmt(del_ctx, ctx->ldb,
+                             SYSDB_TMPL_USER_BASE, domain->name);
     if (!base_dn) return ENOMEM;
 
     filter = talloc_asprintf(del_ctx, SYSDB_PWUID_FILTER, (unsigned long)uid);
@@ -397,7 +399,8 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
 }
 
 int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
-                              const char *domain, gid_t gid,
+                              struct sss_domain_info *domain,
+                              gid_t gid,
                               sysdb_callback_t fn, void *pvt)
 {
     static const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
@@ -429,7 +432,8 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
     del_ctx->res = talloc_zero(del_ctx, struct ldb_result);
     if (!del_ctx->res) return ENOMEM;
 
-    base_dn = ldb_dn_new_fmt(del_ctx, ctx->ldb, SYSDB_TMPL_GROUP_BASE, domain);
+    base_dn = ldb_dn_new_fmt(del_ctx, ctx->ldb,
+                             SYSDB_TMPL_GROUP_BASE, domain->name);
     if (!base_dn) return ENOMEM;
 
     filter = talloc_asprintf(del_ctx, SYSDB_GRGID_FILTER, (unsigned long)gid);
@@ -453,7 +457,7 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
 
 int sysdb_set_user_attr(struct sysdb_req *sysreq,
                         struct sysdb_ctx *ctx,
-                        const char *domain,
+                        struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attrs,
                         sysdb_callback_t fn, void *pvt)
@@ -479,7 +483,7 @@ int sysdb_set_user_attr(struct sysdb_req *sysreq,
     msg = ldb_msg_new(cbctx);
     if (!msg) return ENOMEM;
 
-    msg->dn = sysdb_user_dn(ctx, msg, domain, name);
+    msg->dn = sysdb_user_dn(ctx, msg, domain->name, name);
     if (!msg->dn) return ENOMEM;
 
     msg->elements = talloc_array(msg, struct ldb_message_element, attrs->num);
@@ -1247,10 +1251,10 @@ int sysdb_set_group_gid(struct sysdb_req *sysreq,
 struct legacy_user_ctx {
     struct sysdb_req *sysreq;
     struct sysdb_cb_ctx *cbctx;
+    struct sss_domain_info *domain;
 
     struct ldb_dn *dn;
 
-    const char *domain;
     const char *name;
     const char *pwd;
     uid_t uid;
@@ -1266,7 +1270,7 @@ static int legacy_user_callback(struct ldb_request *req,
                                 struct ldb_reply *rep);
 
 int sysdb_legacy_store_user(struct sysdb_req *sysreq,
-                            const char *domain,
+                            struct sss_domain_info *domain,
                             const char *name, const char *pwd,
                             uid_t uid, gid_t gid, const char *gecos,
                             const char *homedir, const char *shell,
@@ -1291,7 +1295,7 @@ int sysdb_legacy_store_user(struct sysdb_req *sysreq,
     user_ctx->cbctx = talloc_zero(user_ctx, struct sysdb_cb_ctx);
     if (!user_ctx->cbctx) return ENOMEM;
 
-    user_ctx->dn = sysdb_user_dn(ctx, user_ctx, domain, name);
+    user_ctx->dn = sysdb_user_dn(ctx, user_ctx, domain->name, name);
     if (!user_ctx->dn) return ENOMEM;
 
     user_ctx->sysreq = sysreq;
@@ -1403,11 +1407,12 @@ static int legacy_user_callback(struct ldb_request *req,
             }
         }
 
-        if (user_ctx->pwd && *user_ctx->pwd) {
+        if (user_ctx->domain->legacy_passwords &&
+            user_ctx->pwd && *user_ctx->pwd) {
             ret = add_string(msg, flags, SYSDB_PWD, user_ctx->pwd);
         } else {
             ret = ldb_msg_add_empty(msg, SYSDB_PWD,
-                                     LDB_FLAG_MOD_DELETE, NULL);
+                                    LDB_FLAG_MOD_DELETE, NULL);
         }
         if (ret != LDB_SUCCESS) {
             return sysdb_ret_error(cbctx, ENOMEM, LDB_ERR_OPERATIONS_ERROR);
@@ -1503,10 +1508,10 @@ static int legacy_user_callback(struct ldb_request *req,
 struct legacy_group_ctx {
     struct sysdb_req *sysreq;
     struct sysdb_cb_ctx *cbctx;
+    struct sss_domain_info *domain;
 
     struct ldb_dn *dn;
 
-    const char *domain;
     const char *name;
     gid_t gid;
     const char **members;
@@ -1518,7 +1523,7 @@ static int legacy_group_callback(struct ldb_request *req,
                                  struct ldb_reply *rep);
 
 int sysdb_legacy_store_group(struct sysdb_req *sysreq,
-                             const char *domain,
+                             struct sss_domain_info *domain,
                              const char *name, gid_t gid,
                              const char **members,
                              sysdb_callback_t fn, void *pvt)
@@ -1542,7 +1547,7 @@ int sysdb_legacy_store_group(struct sysdb_req *sysreq,
     group_ctx->cbctx = talloc_zero(group_ctx, struct sysdb_cb_ctx);
     if (!group_ctx->cbctx) return ENOMEM;
 
-    group_ctx->dn = sysdb_group_dn(ctx, group_ctx, domain, name);
+    group_ctx->dn = sysdb_group_dn(ctx, group_ctx, domain->name, name);
     if (!group_ctx->dn) return ENOMEM;
 
     group_ctx->sysreq = sysreq;
@@ -1708,7 +1713,7 @@ static int legacy_group_callback(struct ldb_request *req,
 }
 
 int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
-                                  const char *domain,
+                                  struct sss_domain_info *domain,
                                   const char *group,
                                   const char *member,
                                   sysdb_callback_t fn, void *pvt)
@@ -1736,7 +1741,7 @@ int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
     msg = ldb_msg_new(cbctx);
     if(msg == NULL) return ENOMEM;
 
-    msg->dn = sysdb_group_dn(ctx, cbctx, domain, group);
+    msg->dn = sysdb_group_dn(ctx, cbctx, domain->name, group);
     if (!msg->dn) return ENOMEM;
 
     ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_LEGACY_MEMBER, member);
@@ -1757,7 +1762,7 @@ int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
 }
 
 int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
-                                     const char *domain,
+                                     struct sss_domain_info *domain,
                                      const char *group,
                                      const char *member,
                                      sysdb_callback_t fn, void *pvt)
@@ -1785,7 +1790,7 @@ int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
     msg = ldb_msg_new(cbctx);
     if(msg == NULL) return ENOMEM;
 
-    msg->dn = sysdb_group_dn(ctx, cbctx, domain, group);
+    msg->dn = sysdb_group_dn(ctx, cbctx, domain->name, group);
     if (!msg->dn) return ENOMEM;
 
     ret = add_string(msg, LDB_FLAG_MOD_DELETE, SYSDB_LEGACY_MEMBER, member);

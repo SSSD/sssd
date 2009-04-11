@@ -838,6 +838,111 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+int confdb_get_domain(struct confdb_ctx *cdb,
+                      TALLOC_CTX *mem_ctx,
+                      const char *name,
+                      struct sss_domain_info **_domain)
+{
+    struct sss_domain_info *domain;
+    struct ldb_result *res;
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_dn *dn;
+    const char *tmp;
+    int ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (!tmp_ctx) return ENOMEM;
+
+    dn = ldb_dn_new_fmt(tmp_ctx, cdb->ldb,
+                        "cn=%s,%s", name, CONFDB_DOMAIN_BASEDN);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
+                     LDB_SCOPE_BASE, NULL, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    if (res->count != 1) {
+        DEBUG(0, ("Unknown domain [%s]\n", name));
+        ret = ENOENT;
+        goto done;
+    }
+
+    domain = talloc_zero(mem_ctx, struct sss_domain_info);
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
+    if (!tmp) {
+        DEBUG(0, ("Invalid configuration entry, fatal error!\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    domain->name = talloc_strdup(domain, tmp);
+    if (!domain->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "provider", NULL);
+    if (tmp) {
+        domain->provider = talloc_strdup(domain, tmp);
+        if (!domain->provider) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
+                                               "timeout", 0);
+
+    /* Determine if this domain can be enumerated */
+    domain->enumerate = ldb_msg_find_attr_as_int(res->msgs[0],
+                                                 "enumerate", 0);
+    if (domain->enumerate == 0) {
+        DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
+    }
+
+    /* Determine if this is a legacy domain */
+    if (ldb_msg_find_attr_as_bool(res->msgs[0], "legacy", 0)) {
+        domain->legacy = true;
+    }
+
+    /* Determine if this is domain uses MPG */
+    if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_MPG, 0)) {
+        domain->mpg = true;
+    }
+
+    /* Determine if user/group names will be Fully Qualified
+     * in NSS interfaces */
+    if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_FQ, 0)) {
+        domain->fqnames = true;
+    }
+
+    domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[0],
+                                               "minId", SSSD_MIN_ID);
+    domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[0],
+                                               "maxId", 0);
+
+    /* Do we allow to cache credentials */
+    if (ldb_msg_find_attr_as_bool(res->msgs[0], "cache-credentials", 0)) {
+        domain->cache_credentials = true;
+    }
+
+    if (ldb_msg_find_attr_as_bool(res->msgs[0], "store-legacy-passwords", 0)) {
+        domain->legacy_passwords = true;
+    }
+
+    *_domain = domain;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
                        struct sss_domain_info **domains)
@@ -895,79 +1000,8 @@ int confdb_get_domains(struct confdb_ctx *cdb,
             p++;
         }
 
-        dn = ldb_dn_new_fmt(tmp_ctx, cdb->ldb,
-                            "cn=%s,%s", cur, CONFDB_DOMAIN_BASEDN);
-        if (!dn) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
-                         LDB_SCOPE_BASE, NULL, NULL);
-        if (ret != LDB_SUCCESS) {
-            ret = EIO;
-            goto done;
-        }
-
-        if (res->count != 1) {
-            DEBUG(0, ("Unknown domain [%s]\n", cur));
-            ret = EINVAL;
-            goto done;
-        }
-
-        domain = talloc_zero(mem_ctx, struct sss_domain_info);
-
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
-        if (!tmp) {
-            DEBUG(0, ("Invalid configuration entry, fatal error!\n"));
-            ret = EINVAL;
-            goto done;
-        }
-        domain->name = talloc_strdup(domain, tmp);
-        if (!domain->name) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        tmp = ldb_msg_find_attr_as_string(res->msgs[0], "provider", NULL);
-        if (tmp) {
-            domain->provider = talloc_strdup(domain, tmp);
-            if (!domain->provider) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
-                                                   "timeout", 0);
-
-        /* Determine if this domain can be enumerated */
-        domain->enumerate = ldb_msg_find_attr_as_int(res->msgs[0],
-                                                     "enumerate", 0);
-        if (domain->enumerate == 0) {
-            DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
-        }
-
-        /* Determine if this is a legacy domain */
-        if (ldb_msg_find_attr_as_bool(res->msgs[0], "legacy", 0)) {
-            domain->legacy = true;
-        }
-
-        /* Determine if this is domain uses MPG */
-        if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_MPG, 0)) {
-            domain->mpg = true;
-        }
-
-        /* Determine if user/group names will be Fully Qualified
-         * in NSS interfaces */
-        if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_FQ, 0)) {
-            domain->fqnames = true;
-        }
-
-        domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[0],
-                                                   "minId", SSSD_MIN_ID);
-        domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[0],
-                                                   "maxId", 0);
+        ret = confdb_get_domain(cdb, mem_ctx, cur, &domain);
+        if (ret) goto done;
 
         if (first == NULL) {
             first = domain;

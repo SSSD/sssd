@@ -141,7 +141,7 @@ static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     if (!ctx) return EINVAL;
 
     DEBUG(4,("Sending ID reply: (%d,%d,%s,%s)\n",
-             clitype, version, ctx->name, ctx->domain));
+             clitype, version, ctx->name, ctx->domain->name));
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
@@ -150,7 +150,7 @@ static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
                                    DBUS_TYPE_UINT16, &clitype,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_STRING, &ctx->name,
-                                   DBUS_TYPE_STRING, &ctx->domain,
+                                   DBUS_TYPE_STRING, &ctx->domain->name,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
         dbus_message_unref(reply);
@@ -599,10 +599,10 @@ done:
         talloc_free(be_req);
     }
 
-    DEBUG(4, ("Sending result [%d][%s]\n", pam_status, ctx->domain));
+    DEBUG(4, ("Sending result [%d][%s]\n", pam_status, ctx->domain->name));
     ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_UINT32, &pam_status,
-                                   DBUS_TYPE_STRING, &ctx->domain,
+                                   DBUS_TYPE_STRING, &ctx->domain->name,
                                    DBUS_TYPE_INVALID);
     if (!ret) return EIO;
 
@@ -948,12 +948,17 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ctx->ev = ev;
     ctx->cdb = cdb;
     ctx->name = talloc_strdup(ctx, be_name);
-    ctx->domain = talloc_strdup(ctx, be_domain);
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
     ctx->conf_path = talloc_asprintf(ctx, "config/domains/%s", be_domain);
-    if (!ctx->name || !ctx->domain || !ctx->identity || !ctx->conf_path) {
+    if (!ctx->name || !ctx->identity || !ctx->conf_path) {
         DEBUG(0, ("Out of memory!?\n"));
         return ENOMEM;
+    }
+
+    ret = confdb_get_domain(cdb, ctx, be_domain, &ctx->domain);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error retrieving domain configuration\n"));
+        return ret;
     }
 
     ret = sysdb_init(ctx, ev, cdb, NULL, &ctx->sysdb);

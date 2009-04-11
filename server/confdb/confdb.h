@@ -47,6 +47,9 @@ struct sss_domain_info {
     uint32_t id_min;
     uint32_t id_max;
 
+    bool cache_credentials;
+    bool legacy_passwords;
+
     struct sss_domain_info *next;
 };
 
@@ -79,6 +82,11 @@ int confdb_init(TALLOC_CTX *mem_ctx,
                 struct tevent_context *ev,
                 struct confdb_ctx **cdb_ctx,
                 char *confdb_location);
+
+int confdb_get_domain(struct confdb_ctx *cdb,
+                      TALLOC_CTX *mem_ctx,
+                      const char *name,
+                      struct sss_domain_info **domain);
 
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,

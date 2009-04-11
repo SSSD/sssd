@@ -258,16 +258,18 @@ int sysdb_delete_entry(struct sysdb_req *sysreq,
                        sysdb_callback_t fn, void *pvt);
 
 int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
-                             const char *domain, uid_t uid,
+                             struct sss_domain_info *domain,
+                             uid_t uid,
                              sysdb_callback_t fn, void *pvt);
 
 int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
-                              const char *domain, gid_t gid,
+                              struct sss_domain_info *domain,
+                              gid_t gid,
                               sysdb_callback_t fn, void *pvt);
 
 int sysdb_set_user_attr(struct sysdb_req *sysreq,
                         struct sysdb_ctx *ctx,
-                        const char *domain,
+                        struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attributes,
                         sysdb_callback_t fn, void *ptr);
@@ -292,26 +294,26 @@ int sysdb_set_group_gid(struct sysdb_req *sysreq,
 /* legacy functions for proxy providers */
 
 int sysdb_legacy_store_user(struct sysdb_req *sysreq,
-                            const char *domain,
+                            struct sss_domain_info *domain,
                             const char *name, const char *pwd,
                             uid_t uid, gid_t gid, const char *gecos,
                             const char *homedir, const char *shell,
                             sysdb_callback_t fn, void *pvt);
 
 int sysdb_legacy_store_group(struct sysdb_req *sysreq,
-                             const char *domain,
+                             struct sss_domain_info *domain,
                              const char *name, gid_t gid,
                              const char **members,
                              sysdb_callback_t fn, void *pvt);
 
 int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
-                                  const char *domain,
+                                  struct sss_domain_info *domain,
                                   const char *group,
                                   const char *member,
                                   sysdb_callback_t fn, void *pvt);
 
 int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
-                                     const char *domain,
+                                     struct sss_domain_info *domain,
                                      const char *group,
                                      const char *member,
                                      sysdb_callback_t fn, void *pvt);

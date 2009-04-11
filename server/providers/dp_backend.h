@@ -43,8 +43,8 @@ struct be_ctx {
     struct sysdb_ctx *sysdb;
     struct service_sbus_ctx *ss_ctx;
     struct service_sbus_ctx *dp_ctx;
+    struct sss_domain_info *domain;
     const char *name;
-    const char *domain;
     const char *identity;
     const char *conf_path;
 

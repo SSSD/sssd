@@ -308,7 +308,7 @@ static void get_pw_name(struct be_req *req, char *name)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
         data->dn = sysdb_user_dn(req->be_ctx->sysdb, data,
-                                 req->be_ctx->domain, name);
+                                 req->be_ctx->domain->name, name);
         if (!data->dn)
             return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -376,8 +376,10 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
         /* FIXME: verify user does not have gid=0 as these are invalid values */
         if (data->pwd->pw_gid == 0) {
             data->dn = sysdb_user_dn(req->be_ctx->sysdb, data,
-                                     req->be_ctx->domain, data->pwd->pw_name);
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+                                     req->be_ctx->domain->name,
+                                     data->pwd->pw_name);
+            ret = sysdb_transaction(data, req->be_ctx->sysdb,
+                                    del_db_entry, data);
             break;
         }
 
@@ -580,7 +582,7 @@ static void get_gr_name(struct be_req *req, char *name)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
         data->dn = sysdb_group_dn(req->be_ctx->sysdb, data,
-                                  req->be_ctx->domain, name);
+                                  req->be_ctx->domain->name, name);
         if (!data->dn)
             return proxy_reply(req, ENOMEM, "Out of memory");
 
@@ -647,8 +649,10 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
         /* FIXME: verify group does not have gid=0 as this is invalid */
         if (data->grp->gr_gid == 0) {
             data->dn = sysdb_group_dn(req->be_ctx->sysdb, data,
-                                      req->be_ctx->domain, data->grp->gr_name);
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+                                      req->be_ctx->domain->name,
+                                      data->grp->gr_name);
+            ret = sysdb_transaction(data, req->be_ctx->sysdb,
+                                    del_db_entry, data);
             break;
         }
 
@@ -952,7 +956,7 @@ static void get_initgr_user(struct be_req *req, char *name)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
         data->dn = sysdb_user_dn(req->be_ctx->sysdb, data,
-                                 req->be_ctx->domain, name);
+                                 req->be_ctx->domain->name, name);
         if (!data->dn)
             return proxy_reply(req, ENOMEM, "Out of memory");
 
