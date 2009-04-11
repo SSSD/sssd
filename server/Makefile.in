@@ -18,6 +18,7 @@ builddir = @builddir@
 sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
 EXTRA_OBJ=@EXTRA_OBJ@
+SSSD_CONF_DIR = @sysconfdir@/sssd
 SSSD_LIBEXEC_PATH = @libexecdir@/@PACKAGE_NAME@
 SSSD_LIBDIR = @pluginpath@
 LDB_LIBDIR = @libdir@/ldb
@@ -62,6 +63,12 @@ OPENLDAP_LIBS = @OPENLDAP_LIBS@
 LDAP_CFLAGS = $(OPENLDAP_CFLAGS)
 LDAP_LIBS = $(OPENLDAP_LIBS)
 
+COLLECTION_CFLAGS = -I ../common/collection -I../common/trace
+COLLECTION_LIBS =  -L ../common/collection/.libs/ -lcollection
+
+INI_CFG_CFLAGS = -I ../common/ini
+INI_CFG_LIBS = -L ../common/ini/.libs/ -lini_config
+
 LIBDL = @LIBDL@
 
 SHLIBEXT = @SHLIBEXT@
@@ -72,13 +79,15 @@ SHLD_FLAGS = @SHLD_FLAGS@
 SONAMEFLAG = @SONAMEFLAG@
 
 LDFLAGS += @LDFLAGS@ -L$(srcdir)/lib
-LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(TEVENT_LIBS) $(POPT_LIBS) $(LDB_LIBS) $(DBUS_LIBS) $(PCRE_LIBS)
+LIBS = @LIBS@ $(TALLOC_LIBS) $(TDB_LIBS) $(TEVENT_LIBS) $(POPT_LIBS) $(LDB_LIBS) $(DBUS_LIBS) $(PCRE_LIBS) $(INI_CFG_LIBS) $(COLLECTION_LIBS)
 
 PICFLAG = @PICFLAG@
 CFLAGS := -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
-       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(TEVENT_CFLAGS) $(LDB_CFLAGS) $(DBUS_CFLAGS) $(CHECK_CFLAGS) $(PCRE_CFLAGS) \
+       $(POPT_CFLAGS) $(TALLOC_CFLAGS) $(TDB_CFLAGS) $(TEVENT_CFLAGS) \
+       $(LDB_CFLAGS) $(DBUS_CFLAGS) $(CHECK_CFLAGS) $(PCRE_CFLAGS) \
+       $(COLLECTION_CFLAGS) $(INI_CFG_CFLAGS)\
 	-DLIBDIR=\"$(libdir)\" -DVARDIR=\"$(localstatedir)\" -DSHLIBEXT=\"$(SHLIBEXT)\" -DSSSD_LIBEXEC_PATH=\"$(SSSD_LIBEXEC_PATH)\" \
-	-DSSSD_INTROSPECT_PATH=\"$(SSSD_INTROSPECT_PATH)\" -DUSE_MMAP=1 $(CFLAGS)
+	-DSSSD_INTROSPECT_PATH=\"$(SSSD_INTROSPECT_PATH)\" -DSSSD_CONF_DIR=\"$(SSSD_CONF_DIR)\" -DUSE_MMAP=1 $(CFLAGS)
 
 MDLD = @MDLD@
 MDLD_FLAGS = @MDLD_FLAGS@
@@ -109,6 +118,7 @@ OBJS = $(SERVER_OBJ) $(EXTRA_OBJ)
 headers =
 
 DBUS_SYSBUS_POLICY_DIR = @sysconfdir@/dbus-1/system.d
+SSSD_CONF_FILE = etc/sssd.conf
 
 LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_pam
 ifneq (x$(HAVE_INFOPIPE), x)
@@ -180,7 +190,8 @@ installdirs::
 	          $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe \
 		  $(DESTDIR)$(SSSD_PIPE_PATH)/private \
 		  $(DESTDIR)$(SSSD_DB_PATH) \
-		  $(DESTDIR)$(SSSD_PID_PATH)
+		  $(DESTDIR)$(SSSD_PID_PATH) \
+		  $(DESTDIR)$(SSSD_CONF_DIR)
 
 installheaders:: installdirs
 ifneq (x$(headers), x)

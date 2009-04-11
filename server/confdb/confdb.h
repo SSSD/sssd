@@ -26,9 +26,15 @@
 #include "talloc.h"
 #include "tevent.h"
 #include "util/btreemap.h"
+#include "config.h"
 
 #define CONFDB_FILE "config.ldb"
+#define CONFDB_DEFAULT_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
 #define SSSD_MIN_ID 1000
+
+struct confdb_ctx;
+
+typedef int (*confdb_reconf_fn) (struct confdb_ctx *cdb, void *pvt);
 
 struct sss_domain_info {
     char *name;
@@ -43,8 +49,6 @@ struct sss_domain_info {
 
     struct sss_domain_info *next;
 };
-
-struct confdb_ctx;
 
 int confdb_add_param(struct confdb_ctx *cdb,
                      bool replace,
@@ -79,5 +83,9 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
                        struct sss_domain_info **domains);
+
+int confdb_create_base(struct confdb_ctx *cdb);
+int confdb_test(struct confdb_ctx *cdb);
+int confdb_init_db(const char *config_file, struct confdb_ctx *cdb);
 
 #endif

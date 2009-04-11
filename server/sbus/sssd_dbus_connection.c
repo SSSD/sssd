@@ -573,6 +573,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
     ctx = talloc_get_type(user_data, struct sbus_message_handler_ctx);
 
     method = dbus_message_get_member(message);
+    DEBUG(9, ("Received SBUS method [%s]\n", method));
     path = dbus_message_get_path(message);
     msg_interface = dbus_message_get_interface(message);
 

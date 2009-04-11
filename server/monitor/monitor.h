@@ -1,4 +1,4 @@
-/* 
+/*
    SSSD
 
    Service monitor
@@ -22,8 +22,11 @@
 #ifndef _MONITOR_H_
 #define _MONITOR_H_
 
+#define CONFIG_FILE_POLL_INTERVAL 5 /* seconds */
+
 int monitor_process_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *event_ctx,
-                         struct confdb_ctx *cdb);
+                         struct confdb_ctx *cdb,
+                         const char *config_file);
 
 #endif /* _MONITOR_H */
