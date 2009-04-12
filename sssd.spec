@@ -1,6 +1,6 @@
 Name: sssd
 Version: 0.3.0
-Release: 1%{dist}
+Release: 2%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -61,7 +61,7 @@ pushd server
 ./autogen.sh
 %configure --without-tests     \
            --without-policykit \
-           --with-infopipe \
+           --without-infopipe \
            --with-init-dir=%{_initrddir} \
 
 make %{?_smp_mflags}
@@ -103,8 +103,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
 %{_sharedstatedir}/sss/
-%config(noreplace) %{_sysconfdir}/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
-%{_datadir}/%{name}/introspect/infopipe/org.freedesktop.sssd.infopipe.Introspect.xml
 /%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
@@ -126,6 +124,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Sun Apr 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.3.0-2
+- Remove InfoPipe from RPM build
+
 * Sun Apr 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.3.0-1
 - Convert to using /etc/sssd/sssd.conf for configuration
 
