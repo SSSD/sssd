@@ -104,8 +104,9 @@
                        @param username The user to delete.
                        @param domain The domain from which to delete the user.
                        @return Returns an empty D-BUS reply if the deletion was successful. Failure will return an error.
-                       @error DBUS_ERROR_INVALID_ARGS No such username or domain. See error message for details.
-                       @error DBUS_ACCESS_DENIED Caller did not have permission to delete this user."
+                       @error DBUS_ERROR_INVALID_ARGS No such domain. See error message for details.
+                       @error DBUS_ACCESS_DENIED Caller did not have permission to delete this user.
+                       @note DeleteUser ignores groups that don't exist."
             />
             <arg name="username" type="s" direction="in" />
             <arg name="domain" type="s" direction="in" />
@@ -217,7 +218,7 @@
                         @note DeleteGroup ignores groups that don't exist."
              />
              <arg name="groupname" type="s" direction="in" />
-             <arg name="domain" type="s" direction="out" />
+             <arg name="domain" type="s" direction="in" />
         </method>
 
         <method name="AddGroupMembers1">
@@ -253,6 +254,7 @@
             <arg name="group" type="s" direction="in" />
             <arg name="domain" type="s" direction="in" />
             <arg name="members" type="as" direction="in" />
+            <arg name="membertype" type="y" direction="in" />
         </method>
 
         <method name="Set_YouReallyDoNotWantToUseThisFunction_GroupGID1">
