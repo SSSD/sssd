@@ -543,21 +543,16 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     DBusError dbus_error;
     DBusMessage *reply;
     struct be_ctx *ctx;
-    struct be_req *be_req;
     dbus_bool_t ret;
     void *user_data;
-    struct pam_data *pd;
-    uint32_t pam_status=99;
+    struct pam_data *pd = NULL;
+    struct be_req *be_req = NULL;
+    uint32_t pam_status = PAM_SYSTEM_ERR;
 
     user_data = sbus_conn_get_private_data(sconn);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
-
-    pd = talloc_zero(ctx, struct pam_data);
-    if (!pd) return ENOMEM;
-
-    dbus_error_init(&dbus_error);
 
     reply = dbus_message_new_method_return(message);
     if (!reply) {
@@ -565,6 +560,15 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
         talloc_free(pd);
         return ENOMEM;
     }
+
+    /* return an error if no auth backend is configured */
+    if (!ctx->auth_ops)
+        goto done;
+
+    pd = talloc_zero(ctx, struct pam_data);
+    if (!pd) return ENOMEM;
+
+    dbus_error_init(&dbus_error);
 
     ret = dp_unpack_pam_request(message, pd, &dbus_error);
     if (!ret) {
@@ -576,28 +580,23 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     DEBUG(4, ("Got request with the following data\n"));
     DEBUG_PAM_DATA(4, pd);
 
-    be_req = talloc(ctx, struct be_req);
-    if (!be_req) {
-        pam_status = PAM_SYSTEM_ERR;
+    be_req = talloc_zero(ctx, struct be_req);
+    if (!be_req)
         goto done;
-    }
+
     be_req->be_ctx = ctx;
     be_req->fn = be_pam_handler_callback;
     be_req->pvt = reply;
     be_req->req_data = pd;
 
     ret = be_file_request(ctx, ctx->auth_ops->pam_handler, be_req);
-    if (ret != EOK) {
-        pam_status = PAM_SYSTEM_ERR;
+    if (ret != EOK)
         goto done;
-    }
 
     return EOK;
 
 done:
-    if (be_req) {
-        talloc_free(be_req);
-    }
+    talloc_free(be_req);
 
     DEBUG(4, ("Sending result [%d][%s]\n", pam_status, ctx->domain->name));
     ret = dbus_message_append_args(reply,

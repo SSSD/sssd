@@ -276,8 +276,10 @@ static void tasks_check_handler(struct tevent_context *ev,
         }
 
         if (svc->last_pong != 0) {
-            if ((now - svc->last_pong) > 30) { /* TODO: get val from config */
+            if ((now - svc->last_pong) > (svc->ping_time * 3)) {
                 /* too long since we last heard of this process */
+                DEBUG(1, ("Killing service [%s], not responding to pings!\n",
+                          svc->name));
                 monitor_kill_service(svc);
                 process_alive = false;
             }

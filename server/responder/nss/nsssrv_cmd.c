@@ -347,7 +347,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
                           cmdctx->name));
                 ret = ENOENT;
             }
-            if (dctx->domain == NULL) {
+            if (dom == NULL) {
                 DEBUG(2, ("No matching domain found for [%s], fail!\n",
                           cmdctx->name));
                 ret = ENOENT;
@@ -696,31 +696,22 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
             ret = EOK;
 
-            for (dom = dctx->domain->next; dom; dom = dom->next) {
-
-                ncret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
+            dom = dctx->domain->next;
+            ncret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
                                              cmdctx->id);
-                if (ncret == ENOENT) break;
-
-                neghit = true;
-            }
-            /* reset neghit if we still have a domain to check */
-            if (dom) neghit = false;
-
-            dctx->domain = dom;
-
-           if (neghit) {
+            if (ncret == EEXIST) {
                 DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
                           (unsigned long)cmdctx->id));
                 ret = ENOENT;
             }
-            if (dctx->domain == NULL) {
+            if (dom == NULL) {
                 DEBUG(0, ("No matching domain found for [%lu], fail!\n",
                           (unsigned long)cmdctx->id));
                 ret = ENOENT;
             }
 
             if (ret == EOK) {
+                dctx->domain = dom;
                 dctx->check_provider = (dctx->domain->provider != NULL);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
@@ -1723,7 +1714,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
                           cmdctx->name));
                 ret = ENOENT;
             }
-            if (dctx->domain == NULL) {
+            if (dom == NULL) {
                 DEBUG(2, ("No matching domain found for [%s], fail!\n",
                           cmdctx->name));
                 ret = ENOENT;
@@ -2057,31 +2048,23 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
             ret = EOK;
 
-            for (dom = dctx->domain->next; dom; dom = dom->next) {
+            dom = dctx->domain->next;
 
-                ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
-                                             cmdctx->id);
-                if (ncret == ENOENT) break;
-
-                neghit = true;
-            }
-            /* reset neghit if we still have a domain to check */
-            if (dom) neghit = false;
-
-            dctx->domain = dom;
-
-           if (neghit) {
+            ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
+                                         cmdctx->id);
+            if (ncret == EEXIST) {
                 DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
                           (unsigned long)cmdctx->id));
                 ret = ENOENT;
             }
-            if (dctx->domain == NULL) {
+            if (dom == NULL) {
                 DEBUG(0, ("No matching domain found for [%lu], fail!\n",
                           (unsigned long)cmdctx->id));
                 ret = ENOENT;
             }
 
             if (ret == EOK) {
+                dctx->domain = dom;
                 dctx->check_provider = (dctx->domain->provider != NULL);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;

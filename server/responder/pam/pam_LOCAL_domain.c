@@ -407,7 +407,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
 
     ret = sysdb_get_user_attr(lreq, lreq->dbctx,
                               preq->domain, preq->pd->user, attrs,
-                              local_handler_callback, preq);
+                              local_handler_callback, lreq);
 
     if (ret != EOK) {
         DEBUG(1, ("sysdb_get_user_attr failed.\n"));
