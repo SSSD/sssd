@@ -88,6 +88,8 @@ static struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
     for (dom = doms; dom; dom = dom->next) {
         if (strcasecmp(dom->name, domain) == 0) break;
     }
+    if (!dom) DEBUG(2, ("Unknown domain [%s]!\n", domain));
+
     return dom;
 }
 
@@ -340,8 +342,6 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
             /* reset neghit if we still have a domain to check */
             if (dom) neghit = false;
 
-            dctx->domain = dom;
-
            if (neghit) {
                 DEBUG(2, ("User [%s] does not exist! (negative cache)\n",
                           cmdctx->name));
@@ -354,6 +354,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
             }
 
             if (ret == EOK) {
+                dctx->domain = dom;
                 dctx->check_provider = (dctx->domain->provider != NULL);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
@@ -519,6 +520,10 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
     if (domname) {
         dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
+        if (!dctx->domain) {
+            ret = ENOENT;
+            goto done;
+        }
 
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
@@ -1713,9 +1718,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
             /* reset neghit if we still have a domain to check */
             if (dom) neghit = false;
 
-            dctx->domain = dom;
-
-           if (neghit) {
+            if (neghit) {
                 DEBUG(2, ("Group [%s] does not exist! (negative cache)\n",
                           cmdctx->name));
                 ret = ENOENT;
@@ -1727,6 +1730,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
             }
 
             if (ret == EOK) {
+                dctx->domain = dom;
                 dctx->check_provider = (dctx->domain->provider != NULL);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
@@ -1887,6 +1891,10 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 
     if (domname) {
         dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
+        if (!dctx->domain) {
+            ret = ENOENT;
+            goto done;
+        }
 
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
@@ -2880,20 +2888,19 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
             /* reset neghit if we still have a domain to check */
             if (dom) neghit = false;
 
-            dctx->domain = dom;
-
-           if (neghit) {
+            if (neghit) {
                 DEBUG(2, ("User [%s] does not exist! (negative cache)\n",
                           cmdctx->name));
                 ret = ENOENT;
             }
-            if (dctx->domain == NULL) {
+            if (dom == NULL) {
                 DEBUG(2, ("No matching domain found for [%s], fail!\n",
                           cmdctx->name));
                 ret = ENOENT;
             }
 
             if (ret == EOK) {
+                dctx->domain = dom;
                 dctx->check_provider = (dctx->domain->provider != NULL);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
@@ -3020,6 +3027,10 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 
     if (domname) {
         dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
+        if (!dctx->domain) {
+            ret = ENOENT;
+            goto done;
+        }
 
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
