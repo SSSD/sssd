@@ -16,4 +16,4 @@ include_HEADERS = ini_config.h
 # Build unit test
 noinst_PROGRAMS = ini_config_ut
 ini_config_ut_SOURCES = ini_config_ut.c
-ini_config_ut_LDADD = libini_config.la -lm -lz ../collection/libcollection.la
+ini_config_ut_LDADD = libini_config.la ../collection/libcollection.la

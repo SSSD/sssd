@@ -16,4 +16,4 @@ include_HEADERS = collection.h collection_tools.h
 # Build unit test
 noinst_PROGRAMS = collection_ut
 collection_ut_SOURCES = collection_ut.c
-collection_ut_LDADD = libcollection.la -lm -lz
+collection_ut_LDADD = libcollection.la
