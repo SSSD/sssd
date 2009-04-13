@@ -1,5 +1,5 @@
 AC_PREREQ(2.50)
-AC_INIT(nss_sss, 0.2.1)
+AC_INIT(nss_sss, 0.3.1)
 AC_CONFIG_HEADER(config.h)
 
 AC_LIBREPLACE_ALL_CHECKS

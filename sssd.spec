@@ -1,6 +1,6 @@
 Name: sssd
-Version: 0.3.0
-Release: 2%{dist}
+Version: 0.3.1
+Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -128,6 +128,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Mon Apr 13 2009 Simo Sorce <ssorce@redhat.com> - 0.3.1-1
+- bugfix release
+
 * Sun Apr 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.3.0-2
 - Remove InfoPipe from RPM build
 
