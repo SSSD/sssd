@@ -163,8 +163,8 @@ static int pam_process_init(struct main_context *main_ctx,
 
     /* FIXME: "retries" is too generic, either get it from a global config
      * or specify these retries are about the sbus connections to DP */
-    ret = confdb_get_int(rctx->cdb, rctx, rctx->confdb_service_path,
-                         "retries", 3, &max_retries);
+    ret = confdb_get_int(rctx->cdb, rctx, SERVICE_CONF_ENTRY,
+                         "reconnection_retries", 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;

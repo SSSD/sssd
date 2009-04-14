@@ -32,6 +32,8 @@
 #define CONFDB_DEFAULT_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
 #define SSSD_MIN_ID 1000
 
+#define SERVICE_CONF_ENTRY "config/services"
+
 struct confdb_ctx;
 
 typedef int (*confdb_reconf_fn) (struct confdb_ctx *cdb, void *pvt);

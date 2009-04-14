@@ -297,12 +297,9 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Enable automatic reconnection to the Data Provider */
-
-    /* FIXME: "retries" is too generic, either get it from a global config
-     * or specify these retries are about the sbus connections to DP */
     ret = confdb_get_int(nctx->rctx->cdb, nctx->rctx,
-                         nctx->rctx->confdb_service_path,
-                         "retries", 3, &max_retries);
+                         SERVICE_CONF_ENTRY,
+                         "reconnection_retries", 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;

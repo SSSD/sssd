@@ -558,7 +558,7 @@ int get_monitor_config(struct mt_ctx *ctx)
     }
 
     ret = confdb_get_string(ctx->cdb, ctx,
-                            "config/services", "activeServices",
+                            SERVICE_CONF_ENTRY, "activeServices",
                             NULL, &svcs);
 
     if (ret != EOK || svcs == NULL) {

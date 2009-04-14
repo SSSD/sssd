@@ -681,8 +681,8 @@ static int be_cli_init(struct be_ctx *ctx)
     }
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
-                         "retries", 3, &max_retries);
+    ret = confdb_get_int(ctx->cdb, ctx, SERVICE_CONF_ENTRY,
+                         "reconnection_retries", 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;
