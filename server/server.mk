@@ -63,6 +63,9 @@ SYSDB_TEST_OBJ = \
 INFP_TEST_OBJ = \
 	tests/infopipe-tests.o
 
+STRESS_TEST_OBJ = \
+	tests/stress-tests.o
+
 CRYPT_OBJ = \
 	util/nss_sha512crypt.o
 
@@ -137,6 +140,9 @@ tests/sysdb-tests: $(SYSDB_TEST_OBJ) $(UTIL_OBJ)
 
 tests/infopipe-tests: $(INFP_TEST_OBJ) $(UTIL_OBJ)
 	$(CC) -o tests/infopipe-tests $(INFP_TEST_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(CHECK_LIBS)
+
+tests/stress-tests: $(STRESS_TEST_OBJ) $(UTIL_OBJ)
+	$(CC) -o tests/stress-tests $(STRESS_TEST_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(CHECK_LIBS)
 
 #Tools
 sbin/sss_useradd: $(USERADD_OBJ) $(TOOLS_OBJ) $(UTIL_OBJ)

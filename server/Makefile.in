@@ -133,7 +133,7 @@ TOOLSBINS = sbin/sss_useradd sbin/sss_userdel sbin/sss_groupadd sbin/sss_groupde
 BINS = sbin/sssd $(LIBEXECBINS) $(TOOLSBINS)
 
 ifneq (x$(HAVE_TESTS), x)
-    TESTS = tests/sysdb-tests tests/infopipe-tests
+    TESTS = tests/sysdb-tests tests/infopipe-tests tests/stress-tests
     TESTS_DATA = tests/tests.ldb tests/tests_conf.ldb tests/introspect.ref
 endif
 
