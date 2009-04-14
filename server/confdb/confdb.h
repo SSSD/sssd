@@ -80,6 +80,10 @@ int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                     const char *section, const char *attribute,
                     bool defval, bool *result);
 
+int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                              const char *section, const char *attribute,
+                              char ***result);
+
 int confdb_init(TALLOC_CTX *mem_ctx,
                 struct tevent_context *ev,
                 struct confdb_ctx **cdb_ctx,

@@ -138,18 +138,20 @@ static int nss_get_config(struct nss_ctx *nctx,
 
     ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
                          "EntryCacheTimeout", 600,
-                         &nctx->enum_cache_timeout);
+                         &nctx->cache_timeout);
     if (ret != EOK) goto done;
 
     ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
                          "EntryNegativeTimeout", 15,
-                         &nctx->enum_cache_timeout);
+                         &nctx->neg_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_param(cdb, nctx, NSS_SRV_CONFIG,
-                           "filterUsers", &filter_list);
-    if (ret != EOK) goto done;
-    for (i = 0; filter_list[i]; i++) {
+    ret = confdb_get_string_as_list(cdb, tmpctx, NSS_SRV_CONFIG,
+                                    "filterUsers", &filter_list);
+    if (ret == ENOENT) filter_list = NULL;
+    else if (ret != EOK) goto done;
+
+    for (i = 0; (filter_list && filter_list[i]); i++) {
         ret = sss_parse_name(tmpctx, nctx->rctx->names,
                              filter_list[i], &domain, &name);
         if (ret != EOK) {
@@ -178,11 +180,12 @@ static int nss_get_config(struct nss_ctx *nctx,
             }
         }
     }
-    talloc_free(filter_list);
 
-    ret = confdb_get_param(cdb, nctx, NSS_SRV_CONFIG,
-                           "filterGroups", &filter_list);
-    if (ret != EOK) goto done;
+    ret = confdb_get_string_as_list(cdb, tmpctx, NSS_SRV_CONFIG,
+                                    "filterGroups", &filter_list);
+    if (ret == ENOENT) filter_list = NULL;
+    else if (ret != EOK) goto done;
+
     for (i = 0; filter_list[i]; i++) {
         ret = sss_parse_name(tmpctx, nctx->rctx->names,
                              filter_list[i], &domain, &name);
@@ -212,7 +215,6 @@ static int nss_get_config(struct nss_ctx *nctx,
             }
         }
     }
-    talloc_free(filter_list);
 
 done:
     talloc_free(tmpctx);

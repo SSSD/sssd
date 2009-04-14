@@ -544,11 +544,6 @@ static int service_signal_reload(struct mt_svc *svc)
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
-    size_t svc_count = 0;
-    char *svcs;
-    char *cur, *p, *t;
-    char **svc_list = NULL;
-    char **tmp_list = NULL;
 
     ret = confdb_get_int(ctx->cdb, ctx,
                          MONITOR_CONF_ENTRY, "sbusTimeout",
@@ -557,49 +552,12 @@ int get_monitor_config(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = confdb_get_string(ctx->cdb, ctx,
-                            SERVICE_CONF_ENTRY, "activeServices",
-                            NULL, &svcs);
-
-    if (ret != EOK || svcs == NULL) {
+    ret = confdb_get_string_as_list(ctx->cdb, ctx, SERVICE_CONF_ENTRY,
+                                    "activeServices", &ctx->services);
+    if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
         return EINVAL;
     }
-
-    cur = p = talloc_strdup(svcs, svcs);
-    while (p && *p) {
-        for (cur = p; (*cur == ' ' || *cur == '\t'); cur++) /* trim */ ;
-        if (!*cur) break;
-
-        p = strchr(cur, ',');
-        if (p) {
-            /* terminate element */
-            *p = '\0';
-            /* trim spaces */
-            for (t = p-1; (*t == ' ' || *t == '\t'); t--) *t = '\0';
-            p++;
-        }
-
-        svc_count++;
-        tmp_list = talloc_realloc(svcs, svc_list, char *, svc_count);
-        if (!tmp_list) {
-            ret = ENOMEM;
-            goto done;
-        }
-        svc_list = tmp_list;
-        svc_list[svc_count-1] = talloc_strdup(svc_list, cur);
-    }
-
-    svc_count++;
-    tmp_list = talloc_realloc(svcs, svc_list, char *, svc_count);
-    if (!tmp_list) {
-        ret = ENOMEM;
-        goto done;
-    }
-    svc_list = tmp_list;
-    svc_list[svc_count-1] = NULL;
-
-    ctx->services = talloc_steal(ctx, svc_list);
 
     ret = confdb_get_domains(ctx->cdb, ctx, &ctx->domains);
     if (ret != EOK) {
@@ -607,11 +565,7 @@ int get_monitor_config(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = EOK;
-
-done:
-    talloc_free(svcs);
-    return ret;
+    return EOK;
 }
 
 static int get_service_config(struct mt_ctx *ctx, const char *name,

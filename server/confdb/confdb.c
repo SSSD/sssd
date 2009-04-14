@@ -36,8 +36,8 @@
 #include "ini_config.h"
 
 #define CONFDB_VERSION "1"
-#define CONFDB_BASEDN "cn=config"
-#define CONFDB_DOMAIN_BASEDN "cn=domains,"CONFDB_BASEDN
+#define CONFDB_DOMAINS_PATH "config/domains"
+#define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
 #define CONFDB_DOMAIN_ATTR "cn"
 #define CONFDB_MPG "magicPrivateGroups"
 #define CONFDB_FQ "useFullyQualifiedNames"
@@ -119,6 +119,110 @@ static int parse_section(TALLOC_CTX *mem_ctx, const char *section,
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+/* split a string into an allocated array of strings.
+ * the separator is a string, and is case-sensitive.
+ * optionally single values can be trimmed of of spaces and tabs */
+static int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
+                              char *sep, bool trim, char ***_list, int *size)
+{
+    const char *t, *p, *n;
+    size_t l, s, len;
+    char **list, **r;
+
+    if (!str || !*str || !sep || !*sep || !_list) return EINVAL;
+
+    s = strlen(sep);
+    t = str;
+
+    list = NULL;
+    l = 0;
+
+    if (trim)
+        while (*t == ' ' || *t == '\t') t++;
+
+    while (t && (p = strstr(t, sep))) {
+        len = p - t;
+        n = p + s; /* save next string starting point */
+        if (trim) {
+            while (*t == ' ' || *t == '\t') {
+                t++;
+                len--;
+                if (len == 0) break;
+            }
+            p--;
+            while (len > 0 && (*p == ' ' || *p == '\t')) {
+                len--;
+                p--;
+            }
+        }
+
+        r = talloc_realloc(mem_ctx, list, char *, l + 2);
+        if (!r) {
+            talloc_free(list);
+            return ENOMEM;
+        } else {
+            list = r;
+        }
+
+        if (len == 0) {
+            list[l] = talloc_strdup(list, "");
+        } else {
+            list[l] = talloc_strndup(list, t, len);
+        }
+        if (!list[l]) {
+            talloc_free(list);
+            return ENOMEM;
+        }
+        l++;
+
+        t = n; /* move to next string */
+    }
+
+    if (t) {
+        r = talloc_realloc(mem_ctx, list, char *, l + 2);
+        if (!r) {
+            talloc_free(list);
+            return ENOMEM;
+        } else {
+            list = r;
+        }
+
+        if (trim) {
+            len = strlen(t);
+            while (*t == ' ' || *t == '\t') {
+                t++;
+                len--;
+                if (len == 0) break;
+            }
+            p = t + len - 1;
+            while (len > 0 && (*p == ' ' || *p == '\t')) {
+                len--;
+                p--;
+            }
+
+            if (len == 0) {
+                list[l] = talloc_strdup(list, "");
+            } else {
+                list[l] = talloc_strndup(list, t, len);
+            }
+        } else {
+            list[l] = talloc_strdup(list, t);
+        }
+        if (!list[l]) {
+            talloc_free(list);
+            return ENOMEM;
+        }
+        l++;
+    }
+
+    list[l] = NULL; /* terminate list */
+
+    if (size) *size = l + 1;
+    *_list = list;
+
+    return EOK;
 }
 
 int confdb_add_param(struct confdb_ctx *cdb,
@@ -493,6 +597,43 @@ failed:
     talloc_free(values);
     DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
               attribute, section, ret, strerror(ret)));
+    return ret;
+}
+
+/* WARNING: Unlike other similar functions, this one does NOT take a default,
+ * and returns ENOENT if the attribute was not found ! */
+int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
+                              const char *section, const char *attribute,
+                              char ***result)
+{
+    char **values = NULL;
+    int ret;
+
+    ret = confdb_get_param(cdb, ctx, section, attribute, &values);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    if (values && values[0]) {
+        if (values[1] != NULL) {
+            /* too many values */
+            ret = EINVAL;
+            goto done;
+        }
+    } else {
+        /* Did not return a value */
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = split_on_separator(ctx, values[0], ",", true, result, NULL);
+
+done:
+    talloc_free(values);
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(2, ("Failed to get [%s] from [%s], error [%d] (%s)",
+                  attribute, section, ret, strerror(ret)));
+    }
     return ret;
 }
 
@@ -948,60 +1089,32 @@ int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ldb_dn *dn;
-    struct ldb_result *res;
     struct sss_domain_info *domain, *prevdom;
     struct sss_domain_info *first = NULL;
-    const char *attrs[] = { "domains", NULL };
-    const char *tmp;
-    char *cur, *p, *t;
-    int ret;
+    char **domlist;
+    int ret, i;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
 
-    dn = ldb_dn_new(tmp_ctx, cdb->ldb, CONFDB_DOMAIN_BASEDN);
-    if (!dn) {
-        ret = EIO;
-        goto done;
-    }
-
-    ret = ldb_search(cdb->ldb, tmp_ctx, &res, dn,
-                     LDB_SCOPE_BASE, attrs, NULL);
-    if (ret != LDB_SUCCESS) {
-        ret = EIO;
-        goto done;
-    }
-
-    if (res->count != 1) {
-        ret = EFAULT;
-        goto done;
-    }
-
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "domains",  NULL);
-    if (!tmp) {
+    ret = confdb_get_string_as_list(cdb, tmp_ctx,
+                                    CONFDB_DOMAINS_PATH, "domains", &domlist);
+    if (ret == ENOENT) {
         DEBUG(0, ("No domains configured, fatal error!\n"));
-        ret = EINVAL;
         goto done;
     }
-    cur = p = talloc_strdup(tmp_ctx, tmp);
+    if (ret != EOK ) {
+        DEBUG(0, ("Fatal error retrieving domains list!\n"));
+        goto done;
+    }
 
-    while (p && *p) {
-
-        for (cur = p; (*cur == ' ' || *cur == '\t'); cur++) /* trim */ ;
-        if (!*cur) break;
-
-        p = strchr(cur, ',');
-        if (p) {
-            /* terminate element */
-            *p = '\0';
-            /* trim spaces */
-            for (t = p-1; (*t == ' ' || *t == '\t'); t--) *t = '\0';
-            p++;
+    for (i = 0; domlist[i]; i++) {
+        ret = confdb_get_domain(cdb, mem_ctx, domlist[i], &domain);
+        if (ret) {
+            DEBUG(0, ("Error (%d [%s]) retrieving domain %s, skipping!\n",
+                      ret, strerror(ret), domains[i]));
+            continue;
         }
-
-        ret = confdb_get_domain(cdb, mem_ctx, cur, &domain);
-        if (ret) goto done;
 
         if (first == NULL) {
             first = domain;
@@ -1014,7 +1127,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
 
     if (first == NULL) {
         DEBUG(0, ("No domains configured, fatal error!\n"));
-        ret = EINVAL;
+        ret = ENOENT;
     }
 
     *domains = first;
