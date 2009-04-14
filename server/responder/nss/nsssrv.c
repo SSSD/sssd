@@ -219,6 +219,41 @@ done:
     return ret;
 }
 
+static void nss_shutdown(struct resp_ctx *rctx)
+{
+    /* TODO: Do clean-up here */
+
+    /* Nothing left to do but exit() */
+    exit(0);
+}
+
+
+static void nss_dp_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt)
+{
+    int ret;
+    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
+
+    /* Did we reconnect successfully? */
+    if (status == SBUS_RECONNECT_SUCCESS) {
+        /* Add the methods back to the new connection */
+        ret = sbus_conn_add_method_ctx(rctx->dp_ctx->scon_ctx,
+                                       rctx->dp_ctx->sm_ctx);
+        if (ret != EOK) {
+            DEBUG(0, ("Could not re-add methods on reconnection.\n"));
+            nss_shutdown(rctx);
+        }
+
+        DEBUG(1, ("Reconnected to the Data Provider.\n"));
+        return;
+    }
+
+    /* Handle failure */
+    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    /* Kill the backend and let the monitor restart it */
+    nss_shutdown(rctx);
+}
+
+
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
@@ -226,7 +261,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct sbus_method *nss_dp_methods;
     struct sss_cmd_table *nss_cmds;
     struct nss_ctx *nctx;
-    int ret;
+    int ret, max_retries;
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
@@ -260,6 +295,22 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error getting nss config\n"));
         return ret;
     }
+
+    /* Enable automatic reconnection to the Data Provider */
+
+    /* FIXME: "retries" is too generic, either get it from a global config
+     * or specify these retries are about the sbus connections to DP */
+    ret = confdb_get_int(nctx->rctx->cdb, nctx->rctx,
+                         nctx->rctx->confdb_service_path,
+                         "retries", 3, &max_retries);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        return ret;
+    }
+
+    sbus_reconnect_init(nctx->rctx->dp_ctx->scon_ctx,
+                        max_retries,
+                        nss_dp_reconnect_init, nctx->rctx);
 
     DEBUG(1, ("NSS Initialization complete\n"));
 
