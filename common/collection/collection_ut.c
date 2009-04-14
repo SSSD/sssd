@@ -480,6 +480,7 @@ int mixed_collection_test()
     /* Traverse collection again - peer should still be there */
     error = print_collection(event);
     if(error) {
+        destroy_collection(event);
         printf("Error printing collection %d\n",error);
         return error;
     }
@@ -488,18 +489,17 @@ int mixed_collection_test()
 
     error = debug_collection(event,COL_TRAVERSE_DEFAULT);
     if(error) {
+        destroy_collection(event);
         printf("Error printing collection %d\n",error);
         return error;
     }
 
     printf("Attempt to add property to a referenced collection.\n");
 
-    /* Some negative tests */
-    /* Can't add attributes to the referenced collection */
     error = add_int_property(event,"host","session",500);
-    if(error != 0) printf("Error was NOT able to add property to a referenced collection.\n");
-    else {
-        printf("Unexpected success which is an implementation error.\n");
+    if(error) {
+        destroy_collection(event);
+        printf("Error was NOT able to add property to a referenced collection %d.\n", error);
         return error;
     }
 
@@ -508,6 +508,7 @@ int mixed_collection_test()
     /* Can't delete non exitent property */
     error = delete_property(event,"host.host",COL_TYPE_ANY, COL_TRAVERSE_DEFAULT);
     if(error == 0) {
+        destroy_collection(event);
         printf("Error was able to delete property that does not exist.\n");
         return -1;
     }
@@ -516,12 +517,14 @@ int mixed_collection_test()
     /* Set collection class */
     error = set_collection_class(event,2);
     if(error != 0) {
+        destroy_collection(event);
         printf("Error was NOT able to set class.\n");
         return error;
     }
 
     error = get_collection_class(event,&class);
     if(error != 0) {
+        destroy_collection(event);
         printf("Error was NOT able to get class.\n");
         return error;
     }
@@ -529,6 +532,7 @@ int mixed_collection_test()
 
     if(is_of_class(event,2)) printf("Class mathced!\n");
     else {
+        destroy_collection(event);
         printf("Error - bad class.\n");
         return -1;
     }
@@ -706,4 +710,3 @@ int main()
     /* Add other tests here ... */
     return error;
 }
-

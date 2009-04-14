@@ -303,7 +303,6 @@ int get_test()
 
     debug_item(item);
 
-
     printf("Get item as string without duplication from NULL item.\n");
 
     /* Get a string without duplicication */
@@ -759,9 +758,10 @@ int get_test()
         return -1;
     }
 
-    for (i=0;i<size;i++) printf("Section: [%s]\n", prop_array[i]);
+    for (i=0;i<size;i++) printf("Attribute: [%s]\n", prop_array[i]);
     free_attribute_list(prop_array);
 
+    destroy_collection(ini_config);
     printf("Done with get test!\n");
     return EOK;
 }

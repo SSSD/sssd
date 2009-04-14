@@ -83,8 +83,14 @@ inline const char *parsing_error_str(int parsing_error)
             return str_error[parsing_error-1];
 }
 
-
-int read_line(FILE *file,char **key,char **value, int *length, int *ext_error);
+/* Internal function to read line from INI file */
+int read_line(FILE *file,
+              char *buf,
+              int read_size,
+              char **key,
+              char **value,
+              int *length,
+              int *ext_error);
 
 /* Add to collection or update - CONSIDER moving to the collection.c */
 static int add_or_update(struct collection_item *current_section,
@@ -137,6 +143,8 @@ static int ini_to_collection(const char *filename,
     struct parse_error pe;
     int line = 0;
     int created = 0;
+    char buf[BUFFER_SIZE+1];
+
 
     TRACE_FLOW_STRING("ini_to_collection", "Entry");
 
@@ -162,7 +170,8 @@ static int ini_to_collection(const char *filename,
 
     /* Read file lines */
     while (1) {
-        status = read_line(file, &key, &value, &length, &ext_err);
+        /* Always read one less than the buffer */
+        status = read_line(file, buf, BUFFER_SIZE+1, &key, &value, &length, &ext_err);
         if (status == RET_EOF) break;
 
         line++;
@@ -505,11 +514,15 @@ int config_for_app(const char *application,
 }
 
 /* Reads a line from the file */
-int read_line(FILE *file, char **key,char **value, int *length, int *ext_error)
+int read_line(FILE *file,
+              char *buf,
+              int read_size,
+              char **key, char **value,
+              int *length,
+              int *ext_error)
 {
 
     char *res;
-    char buf[BUFFER_SIZE+1];
     int len;
     char *buffer;
     int i;
@@ -522,11 +535,14 @@ int read_line(FILE *file, char **key,char **value, int *length, int *ext_error)
     buffer = buf;
 
     /* Get data from file */
-    res = fgets(buffer, BUFFER_SIZE, file);
+    res = fgets(buffer, read_size - 1, file);
     if (res == NULL) {
         TRACE_ERROR_STRING("Read nothing", "");
         return RET_EOF;
     }
+
+    /* Make sure the buffer is NULL terminated */
+    buffer[read_size - 1] = '\0';
 
     len = strlen(buffer);
     if (len == 0) {
@@ -550,7 +566,8 @@ int read_line(FILE *file, char **key,char **value, int *length, int *ext_error)
     TRACE_INFO_STRING("BUFFER before trimming:", buffer);
 
     /* Trucate trailing spaces and CRs */
-    while (isspace(buffer[len - 1])) {
+    /* Make sure not to step before the beginning */
+    while (len && isspace(buffer[len - 1])) {
         buffer[len - 1] = '\0';
         len--;
     }
@@ -846,6 +863,9 @@ int get_config_item(const char *section,
     /* Get item */
     error = get_item(section_handle, name,
                      COL_TYPE_STRING, COL_TRAVERSE_ONELEVEL, item);
+
+    /* Make sure we free the section we found */
+    destroy_collection(section_handle);
 
     TRACE_FLOW_NUMBER("get_config_item returning", error);
     return error;
@@ -1520,6 +1540,8 @@ char **get_attribute_list(struct collection_item *ini_config, const char *sectio
 
     /* Pass it to the function from collection API */
     list = collection_to_list(subcollection, size, error);
+
+    destroy_collection(subcollection);
 
     TRACE_FLOW_STRING("get_attribute_list returning", list == NULL ? "NULL" : list[0]);
     return list;
