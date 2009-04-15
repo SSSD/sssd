@@ -163,7 +163,7 @@ static int ini_to_collection(const char *filename,
         if (error) {
             TRACE_ERROR_NUMBER("Failed to create error collection", error);
             fclose(file);
-            return EOK;
+            return error;
         }
         created = 1;
     }
@@ -195,7 +195,10 @@ static int ini_to_collection(const char *filename,
                         TRACE_ERROR_NUMBER("Failed to create collection", error);
                         fclose(file);
                         destroy_collection(current_section);
-                        if (created) destroy_collection(*error_list);
+                        if (created) {
+                            destroy_collection(*error_list);
+                            *error_list = NULL;
+                        }
                         return error;
                     }
                 }
@@ -209,7 +212,10 @@ static int ini_to_collection(const char *filename,
                 TRACE_ERROR_NUMBER("Failed to add pair to collection", error);
                 fclose(file);
                 destroy_collection(current_section);
-                if (created) destroy_collection(*error_list);
+                if (created) {
+                    destroy_collection(*error_list);
+                    *error_list = NULL;
+                }
                 return error;
             }
             break;
@@ -231,7 +237,10 @@ static int ini_to_collection(const char *filename,
                     TRACE_ERROR_NUMBER("Failed to add collection", error);
                     fclose(file);
                     destroy_collection(current_section);
-                    if (created) destroy_collection(*error_list);
+                    if (created) {
+                        destroy_collection(*error_list);
+                        *error_list = NULL;
+                    }
                     return error;
                 }
             }
@@ -255,7 +264,10 @@ static int ini_to_collection(const char *filename,
                 TRACE_ERROR_NUMBER("Failed to add error to collection", error);
                 fclose(file);
                 destroy_collection(current_section);
-                if (created) destroy_collection(*error_list);
+                if (created) {
+                    destroy_collection(*error_list);
+                    *error_list = NULL;
+                }
                 return error;
             }
             /* Exit if there was an error parsing file */
@@ -277,7 +289,10 @@ static int ini_to_collection(const char *filename,
                 TRACE_ERROR_NUMBER("Failed to add warning to collection", error);
                 fclose(file);
                 destroy_collection(current_section);
-                if (created) destroy_collection(*error_list);
+                if (created) {
+                    destroy_collection(*error_list);
+                    *error_list = NULL;
+                }
                 return error;
             }
             /* Exit if we are told to exit on warnings */
