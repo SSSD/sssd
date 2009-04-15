@@ -35,6 +35,9 @@
 #define COL_CLASS_INI_SECTION     COL_CLASS_INI_BASE + 1 /* A one level collection of key value pairs where values are always stings */
 #define COL_CLASS_INI_PERROR      COL_CLASS_INI_BASE + 2 /* A one level collection of parse errors - store parse_error structs */
 #define COL_CLASS_INI_PESET       COL_CLASS_INI_BASE + 3 /* A one level collection of parse error collections */
+#define COL_CLASS_INI_GERROR      COL_CLASS_INI_BASE + 4 /* A one level collection of grammar errors - store parse_error structs */
+#define COL_CLASS_INI_VERROR      COL_CLASS_INI_BASE + 5 /* A one level collection of validation errors - store parse_error structs */
+#define COL_CLASS_INI_LINES       COL_CLASS_INI_BASE + 6 /* A one level collection of lines in INI file */
 
 
 /* Error levels */
@@ -54,6 +57,15 @@
 
 #define ERR_MAXPARSE        ERR_LONGKEY
 
+/* Grammar errors and warnings */
+/* Placeholder for now... */
+#define ERR_MAXGRAMMAR      0
+
+/* Validation errors and warnings */
+/* Placeholder for now... */
+#define ERR_MAXVALID        0
+
+
 
 /* Internal sizes */
 /* FIXME - make them configurable via config.h */
@@ -69,6 +81,19 @@ struct parse_error {
 /* Function to return parsing error */
 const char *parsing_error_str(int parsing_error);
 
+/* Function to return grammar error in template.
+ * This error is returned when the template
+ * is translated into the grammar object.
+ */
+const char *grammar_error_str(int parsing_error);
+
+/* Function to return validation error.
+ * This is the error that it is returned when
+ * the INI file is validated against the
+ * grammar object.
+ */
+const char *validation_error_str(int parsing_error);
+
 /* Read configuration information from a file */
 int config_from_file(const char *application,               /* Name of the application - will be used as name of the collection */
                      const char *config_file,               /* Name of the config file - if NULL the collection will be empty */
@@ -76,6 +101,17 @@ int config_from_file(const char *application,               /* Name of the appli
                                                             /* otherwise the one that is pointed to will be updated. */
                      int error_level,                       /* Error level - break for errors, warnings or best effort (don't break) */
                      struct collection_item **error_list);  /* List of errors for a file */
+
+
+/* Read configuration information from a file with extra collection of line numbers */
+int config_from_file_with_lines(
+                     const char *application,               /* Name of the application - will be used as name of the collection */
+                     const char *config_file,               /* Name of the config file - if NULL the collection will be empty */
+                     struct collection_item **ini_config,   /* If *ini_config is NULL a new ini object will be allocated, */
+                                                            /* otherwise the one that is pointed to will be updated. */
+                     int error_level,                       /* Error level - break for errors, warnings or best effort (don't break) */
+                     struct collection_item **error_list,   /* List of errors for a file */
+                     struct collection_item **lines);       /* Collection of pairs where key is the key and value is line number */
 
 
 /* Read default config file and then overwrite it with a specific one from the directory */
@@ -90,6 +126,19 @@ int config_for_app(const char *application,               /* Name of the applica
 /* Use this function to print results of the config_from_file() call */
 void print_file_parsing_errors(FILE *file,                           /* File to send errors to */
                                struct collection_item *error_list);  /* List of parsing errors */
+
+
+/* Print errors and warnings that were detected while
+ * checking grammar of the template.
+ */
+void print_grammar_errors(FILE *file,                           /* File to send errors to */
+                          struct collection_item *error_list);  /* List of grammar errors */
+
+/* Print errors and warnings that were detected while
+ * checking INI file against grammar object.
+ */
+void print_validation_errors(FILE *file,                           /* File to send errors to */
+                             struct collection_item *error_list);  /* List of validation errors */
 
 /* Print errors and warnings that were detected parsing configuration as a whole */
 /* Use this function to print results of the config_for_app() call */
@@ -118,7 +167,7 @@ int get_config_item(const char *section,                    /* Section. If NULL 
                     struct collection_item *ini_config,     /* Collection to search */
                     struct collection_item **item);         /* Item returned. Will be NULL is not found. */
 
-/* Convertion functions for the configuration item.
+/* Conversion functions for the configuration item.
  * Sets error to EINVAL if the item is bad.
  * Sets error to EIO if the conversion failed.
  * These functions do not allocate memory.
@@ -143,7 +192,7 @@ const char *get_const_string_config_value(struct collection_item *item, int *err
 
 /* A get_bin_value and get_xxx_array functions allocate memory.
  * It is the responsibility of the caller to free it after use.
- * free_xxx conviniece wrappers are provided for this purpose.
+ * free_xxx convenience wrappers are provided for this purpose.
  * Functions will return NULL if conversion failed.
  */
 /* A special hex format is assumed.

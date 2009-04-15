@@ -46,12 +46,23 @@
 #define FILE_ERROR_SET  "ini_file_error_set"
 
 /* Text error strings used when errors are printed out */
-#define WARNING_TXT        _("Warning")
-#define ERROR_TXT          _("Error")
-#define WRONG_COLLECTION   _("Passed in list is not a list of parse errors.\n")
-#define FAILED_TO_PROCCESS _("Internal Error. Failed to process error list.\n")
-#define ERROR_HEADER       _("Parsing errors and warnings in file: %s\n")
-#define LINE_FORMAT        _("%s (%d) on line %d: %s\n")
+#define WARNING_TXT         _("Warning")
+#define ERROR_TXT           _("Error")
+/* For parse errors */
+#define WRONG_COLLECTION    _("Passed in list is not a list of parse errors.\n")
+#define FAILED_TO_PROCCESS  _("Internal Error. Failed to process error list.\n")
+#define ERROR_HEADER        _("Parsing errors and warnings in file: %s\n")
+/* For grammar errors */
+#define WRONG_GRAMMAR       _("Passed in list is not a list of grammar errors.\n")
+#define FAILED_TO_PROC_G    _("Internal Error. Failed to process list of grammar errors.\n")
+#define ERROR_HEADER_G      _("Logical errors and warnings in file: %s\n")
+/* For validation errors */
+#define WRONG_VALIDATION    _("Passed in list is not a list of validation errors.\n")
+#define FAILED_TO_PROC_V    _("Internal Error. Failed to process list of validation errors.\n")
+#define ERROR_HEADER_V      _("Validation errors and warnings in file: %s\n")
+
+#define LINE_FORMAT         _("%s (%d) on line %d: %s\n")
+
 
 /* Codes that parsing function can return */
 #define RET_PAIR        0
@@ -62,11 +73,13 @@
 #define RET_EOF         5
 #define RET_ERROR       6
 
+/* Different error string functions can be passed as callbacks */
+typedef const char * (*error_fn)(int error);
 
 /* Function to return parsing error */
 inline const char *parsing_error_str(int parsing_error)
 {
-    const char *placeholder= _("Unknown error.");
+    const char *placeholder= _("Unknown pasing error.");
     const char *str_error[] = { _("Data is too long."),
                                 _("No closing bracket."),
                                 _("Section name is missing."),
@@ -82,6 +95,47 @@ inline const char *parsing_error_str(int parsing_error)
     else
             return str_error[parsing_error-1];
 }
+
+/* Function to return grammar error */
+inline const char *grammar_error_str(int grammar_error)
+{
+    const char *placeholder= _("Unknown grammar error.");
+    const char *str_error[] = { _(""),
+                                _(""),
+                                _(""),
+                                _(""),
+                                _(""),
+                                _(""),
+                                _("")
+    };
+
+    /* Check the range */
+    if ((grammar_error < 1) || (grammar_error > ERR_MAXGRAMMAR))
+            return placeholder;
+    else
+            return str_error[grammar_error-1];
+}
+
+/* Function to return validation error */
+inline const char *validation_error_str(int validation_error)
+{
+    const char *placeholder= _("Unknown validation error.");
+    const char *str_error[] = { _(""),
+                                _(""),
+                                _(""),
+                                _(""),
+                                _(""),
+                                _(""),
+                                _("")
+    };
+
+    /* Check the range */
+    if ((validation_error < 1) || (validation_error > ERR_MAXVALID))
+            return placeholder;
+    else
+            return str_error[validation_error-1];
+}
+
 
 /* Internal function to read line from INI file */
 int read_line(FILE *file,
@@ -100,7 +154,7 @@ static int add_or_update(struct collection_item *current_section,
                          int type)
 {
     int found = COL_NOMATCH;
-	int error;
+    int error;
 
     TRACE_FLOW_STRING("add_or_update", "Entry");
 
@@ -129,7 +183,8 @@ static int add_or_update(struct collection_item *current_section,
 static int ini_to_collection(const char *filename,
                              struct collection_item *ini_config,
                              int error_level,
-                             struct collection_item **error_list)
+                             struct collection_item **error_list,
+                             struct collection_item **lines)
 {
     FILE *file;
     int error;
@@ -178,6 +233,21 @@ static int ini_to_collection(const char *filename,
 
         switch (status) {
         case RET_PAIR:
+            /* Add line to the collection of lines */
+            if (lines) {
+                error = add_int_property(*lines, NULL, key, line);
+                if (error) {
+                    TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
+                    fclose(file);
+                    destroy_collection(current_section);
+                    if (created) {
+                        destroy_collection(*error_list);
+                        *error_list = NULL;
+                    }
+                    return error;
+                }
+            }
+
             /* Do we have a section at the top of the file ? */
             if (section_count == 0) {
                 /* Check if collection already exists */
@@ -221,6 +291,21 @@ static int ini_to_collection(const char *filename,
             break;
 
         case RET_SECTION:
+            /* Add line to the collection of lines */
+            if (lines) {
+                error = add_int_property(*lines, NULL, key, line);
+                if (error) {
+                    TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
+                    fclose(file);
+                    destroy_collection(current_section);
+                    if (created) {
+                        destroy_collection(*error_list);
+                        *error_list = NULL;
+                    }
+                    return error;
+                }
+            }
+
             /* Read a new section */
             destroy_collection(current_section);
             current_section = NULL;
@@ -324,14 +409,38 @@ static int ini_to_collection(const char *filename,
 
 /*********************************************************************/
 /* Read configuration information from a file */
-int config_from_file(const char *application,
+inline int config_from_file(const char *application,
                      const char *config_file,
                      struct collection_item **ini_config,
                      int error_level,
                      struct collection_item **error_list)
 {
     int error;
+
+    TRACE_FLOW_STRING("config_from_file", "Entry");
+    error = config_from_file_with_lines(application,
+                                        config_file,
+                                        ini_config,
+                                        error_level,
+                                        error_list,
+                                        NULL);
+    TRACE_FLOW_NUMBER("config_from_file. Returns", error);
+    return error;
+}
+
+/* Function to read the ini file and have a collection
+ * of which item appers on which line
+ */
+int config_from_file_with_lines(const char *application,
+                                const char *config_file,
+                                struct collection_item **ini_config,
+                                int error_level,
+                                struct collection_item **error_list,
+                                struct collection_item **lines)
+{
+    int error;
     int created = 0;
+    int created_lines = 0;
 
     TRACE_FLOW_STRING("config_from_file", "Entry");
 
@@ -358,13 +467,46 @@ int config_from_file(const char *application,
         return EINVAL;
     }
 
+
+    /* Create collection if needed */
+    if (lines) {
+
+        /* Make sure that the lines collection is empty */
+        if (*lines) {
+            TRACE_ERROR_NUMBER("Collection of lines is not empty", EINVAL);
+            if (created) {
+                destroy_collection(*ini_config);
+                *ini_config = NULL;
+            }
+            return EINVAL;
+        }
+
+        error = create_collection(lines,
+                                  application,
+                                  COL_CLASS_INI_LINES);
+        if (error != EOK) {
+            TRACE_ERROR_NUMBER("Failed to create collection", error);
+            if (created) {
+                destroy_collection(*ini_config);
+                *ini_config = NULL;
+            }
+            return error;
+        }
+        created_lines = 1;
+    }
+
     /* Do the actual work */
     error = ini_to_collection(config_file, *ini_config,
-                              error_level, error_list);
+                              error_level, error_list, lines);
     /* In case of error when we created collection - delete it */
     if (error && created) {
         destroy_collection(*ini_config);
         *ini_config = NULL;
+    }
+    /* Also create collection of lines if we created it */
+    if (error && created_lines) {
+        destroy_collection(*lines);
+        *lines = NULL;
     }
 
     TRACE_FLOW_NUMBER("config_from_file. Returns", error);
@@ -439,7 +581,7 @@ int config_for_app(const char *application,
     if (config_file != NULL) {
         TRACE_INFO_STRING("Reading master file:", config_file);
         error = ini_to_collection(config_file, *ini_config,
-                                  error_level, pass_common);
+                                  error_level, pass_common, NULL);
         /* ENOENT and EOK are Ok */
         if (error && (error != ENOENT)) {
             TRACE_ERROR_NUMBER("Failed to read master file", error);
@@ -490,8 +632,8 @@ int config_for_app(const char *application,
         TRACE_INFO_STRING("Opening file:", file_name);
 
         /* Read master file */
-	    error = ini_to_collection(file_name, *ini_config,
-                                  error_level, pass_specific);
+        error = ini_to_collection(file_name, *ini_config,
+                                  error_level, pass_specific, NULL);
         free(file_name);
         /* ENOENT and EOK are Ok */
         if (error && (error != ENOENT)) {
@@ -688,9 +830,16 @@ int read_line(FILE *file,
 }
 
 
-/* Print errors and warnings that were detected while parsing one file */
-void print_file_parsing_errors(FILE *file,
-                               struct collection_item *error_list)
+
+/* Internal function that prints errors */
+static void print_error_list(FILE *file,
+                             struct collection_item *error_list,
+                             int cclass,
+                             char *wrong_col_error,
+                             char *failed_to_process,
+                             char *error_header,
+                             char *line_format,
+                             error_fn error_function)
 {
     struct collection_iterator *iterator;
     int error;
@@ -698,7 +847,7 @@ void print_file_parsing_errors(FILE *file,
     struct parse_error *pe;
     unsigned int count;
 
-    TRACE_FLOW_STRING("print_file_parsing_errors", "Entry");
+    TRACE_FLOW_STRING("print_error_list", "Entry");
 
     /* If we have something to print print it */
     if (error_list == NULL) {
@@ -707,17 +856,17 @@ void print_file_parsing_errors(FILE *file,
     }
 
     /* Make sure we go the right collection */
-    if (!is_of_class(error_list, COL_CLASS_INI_PERROR)) {
-        TRACE_ERROR_STRING("Wrong collection class:", WRONG_COLLECTION);
-        fprintf(file,"%s\n", WRONG_COLLECTION);
+    if (!is_of_class(error_list, cclass)) {
+        TRACE_ERROR_STRING("Wrong collection class:", wrong_col_error);
+        fprintf(file,"%s\n", wrong_col_error);
         return;
     }
 
     /* Bind iterator */
     error =  bind_iterator(&iterator, error_list, COL_TRAVERSE_DEFAULT);
     if (error) {
-        TRACE_ERROR_STRING("Error (bind):", FAILED_TO_PROCCESS);
-        fprintf(file, "%s\n", FAILED_TO_PROCCESS);
+        TRACE_ERROR_STRING("Error (bind):", failed_to_process);
+        fprintf(file, "%s\n", failed_to_process);
         return;
     }
 
@@ -725,8 +874,8 @@ void print_file_parsing_errors(FILE *file,
         /* Loop through a collection */
         error = iterate_collection(iterator, &item);
         if (error) {
-            TRACE_ERROR_STRING("Error (iterate):", FAILED_TO_PROCCESS);
-            fprintf(file, "%s\n", FAILED_TO_PROCCESS);
+            TRACE_ERROR_STRING("Error (iterate):", failed_to_process);
+            fprintf(file, "%s\n", failed_to_process);
             unbind_iterator(iterator);
             return;
         }
@@ -738,17 +887,17 @@ void print_file_parsing_errors(FILE *file,
         if (get_item_type(item) == COL_TYPE_COLLECTION) {
             get_collection_count(item, &count);
             if (count > 1)
-                fprintf(file, ERROR_HEADER, get_item_property(item, NULL));
+                fprintf(file, error_header, get_item_property(item, NULL));
             else break;
         }
         else {
             /* Put error into provided format */
             pe = (struct parse_error *)(get_item_data(item));
-            fprintf(file, LINE_FORMAT,
+            fprintf(file, line_format,
                     get_item_property(item, NULL),      /* Error or warning */
                     pe->error,                          /* Error */
-					pe->line,                           /* Line */
-                    parsing_error_str(pe->error));      /* Error str */
+                    pe->line,                           /* Line */
+                    error_function(pe->error));         /* Error str */
         }
 
     }
@@ -756,9 +905,51 @@ void print_file_parsing_errors(FILE *file,
     /* Do not forget to unbind iterator - otherwise there will be a leak */
     unbind_iterator(iterator);
 
-    TRACE_FLOW_STRING("print_file_parsing_errors", "Exit");
+    TRACE_FLOW_STRING("print_error_list", "Exit");
 }
 
+/* Print errors and warnings that were detected while parsing one file */
+void inline print_file_parsing_errors(FILE *file,
+                                      struct collection_item *error_list)
+{
+    print_error_list(file,
+                     error_list,
+                     COL_CLASS_INI_PERROR,
+                     WRONG_COLLECTION,
+                     FAILED_TO_PROCCESS,
+                     ERROR_HEADER,
+                     LINE_FORMAT,
+                     parsing_error_str);
+}
+
+
+/* Print errors and warnings that were detected while processing grammar */
+void inline print_grammar_errors(FILE *file,
+                                 struct collection_item *error_list)
+{
+    print_error_list(file,
+                     error_list,
+                     COL_CLASS_INI_GERROR,
+                     WRONG_GRAMMAR,
+                     FAILED_TO_PROC_G,
+                     ERROR_HEADER_G,
+                     LINE_FORMAT,
+                     grammar_error_str);
+}
+
+/* Print errors and warnings that were detected while validating INI file. */
+void inline print_validation_errors(FILE *file,
+                                    struct collection_item *error_list)
+{
+    print_error_list(file,
+                     error_list,
+                     COL_CLASS_INI_VERROR,
+                     WRONG_VALIDATION,
+                     FAILED_TO_PROC_V,
+                     ERROR_HEADER_V,
+                     LINE_FORMAT,
+                     validation_error_str);
+}
 
 /* Print errors and warnings that were detected while parsing
  * the whole configuration */
