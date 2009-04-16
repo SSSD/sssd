@@ -19,6 +19,9 @@ struct pam_auth_req {
     struct pam_data *pd;
 
     pam_dp_callback_t *callback;
+
+    bool check_provider;
+    void *data;
 };
 
 struct sbus_method *register_pam_dp_methods(void);

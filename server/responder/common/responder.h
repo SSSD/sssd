@@ -115,4 +115,16 @@ int sss_cmd_get_version(struct cli_ctx *cctx);
 /* responder_dp.c */
 int sss_dp_init(struct resp_ctx *rctx, struct sbus_method dp_methods[]);
 
+#define NSS_DP_USER 1
+#define NSS_DP_GROUP 2
+#define NSS_DP_INITGROUPS 3
+
+typedef void (*nss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
+                                  const char *err_msg, void *ptr);
+
+int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
+                         nss_dp_callback_t callback, void *callback_ctx,
+                         int timeout, const char *domain, int type,
+                         const char *opt_name, uint32_t opt_id);
+
 #endif /* __SSS_RESPONDER_H__ */
