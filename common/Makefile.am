@@ -1,1 +1,1 @@
-SUBDIRS = collection ini trace
+SUBDIRS = collection ini trace dhash
