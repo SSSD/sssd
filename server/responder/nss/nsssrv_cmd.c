@@ -858,6 +858,9 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     }
     cmdctx->id = *((uint32_t *)body);
 
+    /* this is a multidomain search */
+    cmdctx->check_next = true;
+
     for (dom = cctx->rctx->domains; dom; dom = dom->next) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
@@ -890,6 +893,8 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
         }
+
+        break;
     }
 
 done:
@@ -2205,6 +2210,9 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     }
     cmdctx->id = *((uint32_t *)body);
 
+    /* this is a multidomain search */
+    cmdctx->check_next = true;
+
     for (dom = cctx->rctx->domains; dom; dom = dom->next) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
@@ -2237,6 +2245,8 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         if (ret != EOK) {
             DEBUG(1, ("Failed to make request to our cache!\n"));
         }
+
+        break;
     }
 
 done:
