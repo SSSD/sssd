@@ -21,11 +21,9 @@
 
 #define _GNU_SOURCE
 
-#include "talloc.h"
-#include "tevent.h"
+#include <sys/stat.h>
 #include "config.h"
 #include "ldb.h"
-#include "ldb_errors.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_private.h"
@@ -875,9 +873,36 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     char *config_ldif;
     struct ldb_ldif *ldif;
     TALLOC_CTX *tmp_ctx;
+    char *lasttimestr, timestr[21];
+    const char *vals[2] = { timestr, NULL };
+    struct stat cstat;
 
     tmp_ctx = talloc_new(cdb);
-    if(tmp_ctx == NULL) return ENOMEM;
+    if (tmp_ctx == NULL) return ENOMEM;
+
+    /* ok, first of all stat conf file */
+    ret = stat(config_file, &cstat);
+    if (ret != 0) {
+        DEBUG(0, ("Unable to stat config file [%s]! (%d [%s])\n",
+                  config_file, errno, strerror(errno)));
+        return errno;
+    }
+    ret = snprintf(timestr, 21, "%llu", (long long unsigned)cstat.st_mtime);
+    if (ret <= 0 || ret >= 21) {
+        DEBUG(0, ("Failed to convert time_t to string ??\n"));
+        return errno ? errno: EFAULT;
+    }
+
+    /* check if we need to re-init the db */
+    ret = confdb_get_string(cdb, tmp_ctx, "config", "lastUpdate", NULL, &lasttimestr);
+    if (ret == EOK && lasttimestr != NULL) {
+
+        /* now check if we lastUpdate and last file modification change differ*/
+        if (strcmp(lasttimestr, timestr) == 0) {
+            /* not changed, get out, nothing more to do */
+            return EOK;
+        }
+    }
 
     /* Set up a transaction to replace the configuration */
     ret = ldb_transaction_start(cdb->ldb);
@@ -925,6 +950,14 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
             goto done;
         }
         ldb_ldif_read_free(cdb->ldb, ldif);
+    }
+
+    /* now store the lastUpdate time so that we do not re-init if nothing
+     * changed on restart */
+
+    ret = confdb_add_param(cdb, true, "config", "lastUpdate", vals);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to set last update time on db!\n"));
     }
 
     ret = EOK;
