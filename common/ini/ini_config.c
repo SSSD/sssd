@@ -77,7 +77,7 @@
 typedef const char * (*error_fn)(int error);
 
 /* Function to return parsing error */
-inline const char *parsing_error_str(int parsing_error)
+const char *parsing_error_str(int parsing_error)
 {
     const char *placeholder= _("Unknown pasing error.");
     const char *str_error[] = { _("Data is too long."),
@@ -97,7 +97,7 @@ inline const char *parsing_error_str(int parsing_error)
 }
 
 /* Function to return grammar error */
-inline const char *grammar_error_str(int grammar_error)
+const char *grammar_error_str(int grammar_error)
 {
     const char *placeholder= _("Unknown grammar error.");
     const char *str_error[] = { _(""),
@@ -117,7 +117,7 @@ inline const char *grammar_error_str(int grammar_error)
 }
 
 /* Function to return validation error */
-inline const char *validation_error_str(int validation_error)
+const char *validation_error_str(int validation_error)
 {
     const char *placeholder= _("Unknown validation error.");
     const char *str_error[] = { _(""),
@@ -409,7 +409,7 @@ static int ini_to_collection(const char *filename,
 
 /*********************************************************************/
 /* Read configuration information from a file */
-inline int config_from_file(const char *application,
+int config_from_file(const char *application,
                      const char *config_file,
                      struct collection_item **ini_config,
                      int error_level,
@@ -909,8 +909,8 @@ static void print_error_list(FILE *file,
 }
 
 /* Print errors and warnings that were detected while parsing one file */
-void inline print_file_parsing_errors(FILE *file,
-                                      struct collection_item *error_list)
+void print_file_parsing_errors(FILE *file,
+                               struct collection_item *error_list)
 {
     print_error_list(file,
                      error_list,
@@ -924,8 +924,8 @@ void inline print_file_parsing_errors(FILE *file,
 
 
 /* Print errors and warnings that were detected while processing grammar */
-void inline print_grammar_errors(FILE *file,
-                                 struct collection_item *error_list)
+void print_grammar_errors(FILE *file,
+                          struct collection_item *error_list)
 {
     print_error_list(file,
                      error_list,
@@ -938,8 +938,8 @@ void inline print_grammar_errors(FILE *file,
 }
 
 /* Print errors and warnings that were detected while validating INI file. */
-void inline print_validation_errors(FILE *file,
-                                    struct collection_item *error_list)
+void print_validation_errors(FILE *file,
+                             struct collection_item *error_list)
 {
     print_error_list(file,
                      error_list,
@@ -1124,8 +1124,8 @@ long get_long_config_value(struct collection_item *item,
 }
 
 /* Get integer value from config item */
-inline int get_int_config_value(struct collection_item *item,
-                                int strict, int def, int *error)
+int get_int_config_value(struct collection_item *item,
+                         int strict, int def, int *error)
 {
     return get_long_config_value(item, strict, def, error);
 }
@@ -1370,7 +1370,7 @@ char *get_bin_config_value(struct collection_item *item,
 }
 
 /* Function to free binary configuration value */
-inline void free_bin_config_value(char *value)
+void free_bin_config_value(char *value)
 {
     if (value) free(value);
 }
@@ -1661,19 +1661,19 @@ double *get_double_config_array(struct collection_item *item, int *size, int *er
 
 
 /* Special function to free long config array */
-inline void free_long_config_array(long *array)
+void free_long_config_array(long *array)
 {
     if (array != NULL) free(array);
 }
 
 /* Special function to free double config array */
-inline void free_double_config_array(double *array)
+void free_double_config_array(double *array)
 {
     if (array != NULL) free(array);
 }
 
 /* The section array should be freed using this function */
-inline void free_section_list(char **section_list)
+void free_section_list(char **section_list)
 {
     TRACE_FLOW_STRING("free_section_list","Entry");
 
@@ -1683,7 +1683,7 @@ inline void free_section_list(char **section_list)
 }
 
 /* The section array should be freed using this function */
-inline void free_attribute_list(char **section_list)
+void free_attribute_list(char **section_list)
 {
     TRACE_FLOW_STRING("free_section_list","Entry");
 
