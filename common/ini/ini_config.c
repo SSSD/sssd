@@ -295,7 +295,10 @@ static int ini_to_collection(const char *filename,
         case RET_SECTION:
             /* Add line to the collection of lines */
             if (lines) {
-                error = add_int_property(*lines, NULL, key, line);
+                /* For easier search make line numbers for the sections negative.
+                 * This would allow differentiating sections and attributes.
+                 */
+                error = add_int_property(*lines, NULL, key, -1 * line);
                 if (error) {
                     TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
                     fclose(file);
