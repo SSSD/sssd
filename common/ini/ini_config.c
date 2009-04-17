@@ -100,6 +100,7 @@ const char *parsing_error_str(int parsing_error)
 const char *grammar_error_str(int grammar_error)
 {
     const char *placeholder= _("Unknown grammar error.");
+    /* FIXME - this is a temporary placeholder !!!! */
     const char *str_error[] = { _(""),
                                 _(""),
                                 _(""),
@@ -120,6 +121,7 @@ const char *grammar_error_str(int grammar_error)
 const char *validation_error_str(int validation_error)
 {
     const char *placeholder= _("Unknown validation error.");
+    /* FIXME - this is a temporary placeholder !!!! */
     const char *str_error[] = { _(""),
                                 _(""),
                                 _(""),
