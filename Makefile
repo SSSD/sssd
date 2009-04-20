@@ -1,5 +1,5 @@
 PACKAGE_NAME = sssd
-PACKAGE_VERSION = 0.3.0
+PACKAGE_VERSION = 0.3.2
 TARGET ?= master
 SUBDIRS = common server replace sss_client
 TARBALL_PREFIX = $(PACKAGE_NAME)-$(PACKAGE_VERSION)

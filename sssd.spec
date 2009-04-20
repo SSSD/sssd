@@ -1,5 +1,5 @@
 Name: sssd
-Version: 0.3.1
+Version: 0.3.2
 Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
@@ -128,6 +128,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Mon Apr 20 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.3.2-1
+- bugfix release 0.3.2
+
 * Mon Apr 13 2009 Simo Sorce <ssorce@redhat.com> - 0.3.1-1
 - bugfix release
 
