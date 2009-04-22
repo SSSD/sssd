@@ -868,6 +868,19 @@ int sysdb_add_user(struct sysdb_req *sysreq,
         return EINVAL;
     }
 
+    if (domain->id_max != 0 && (uid < domain->id_min || uid > domain->id_max)) {
+        DEBUG(2, ("Supplied uid [%d] is not in the allowed range [%d-%d].\n",
+                  uid, domain->id_min, domain->id_max));
+        return EINVAL;
+    }
+
+    if (domain->id_max != 0 && (gid < domain->id_min || gid > domain->id_max)) {
+        DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
+                  gid, domain->id_min, domain->id_max));
+        return EINVAL;
+    }
+
+
     user_ctx = talloc(sysreq, struct user_add_ctx);
     if (!user_ctx) return ENOMEM;
 
@@ -1049,6 +1062,12 @@ int sysdb_add_group(struct sysdb_req *sysreq,
 
     if (!sysdb_req_check_running(sysreq)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
+        return EINVAL;
+    }
+
+    if (domain->id_max != 0 && (gid < domain->id_min || gid > domain->id_max)) {
+        DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
+                  gid, domain->id_min, domain->id_max));
         return EINVAL;
     }
 

@@ -77,7 +77,7 @@ static void add_group(struct sysdb_req *req, void *pvt)
 
 int main(int argc, const char **argv)
 {
-    gid_t pc_gid;
+    gid_t pc_gid = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, "The GID of the group", NULL },
