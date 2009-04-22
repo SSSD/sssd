@@ -172,6 +172,8 @@ static void pam_reply(struct pam_auth_req *preq)
         }
     }
 
+    cctx = preq->cctx;
+
     if (pd->response_delay > 0) {
         ret = gettimeofday(&tv, NULL);
         if (ret != EOK) {
@@ -193,8 +195,6 @@ static void pam_reply(struct pam_auth_req *preq)
 
         return;
     }
-
-    cctx = preq->cctx;
 
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
