@@ -24,11 +24,25 @@
 #include <talloc.h>
 #include <popt.h>
 #include <errno.h>
+#include <grp.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+
+#ifndef GROUPMOD
+#define GROUPMOD SHADOW_UTILS_PATH"/groupmod "
+#endif
+
+#ifndef GROUPMOD_GID
+#define GROUPMOD_GID "-g %u "
+#endif
+
+#ifndef GROUPMOD_GROUPNAME
+#define GROUPMOD_GROUPNAME "%s "
+#endif
 
 struct group_mod_ctx {
     struct sysdb_req *sysreq;
@@ -175,6 +189,48 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
     group_ctx->cur++;
 }
 
+static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ctx, int old_domain)
+{
+    int ret = EOK;
+    char *command = NULL;
+    struct sss_domain_info *dom = NULL;
+
+    APPEND_STRING(command, GROUPMOD);
+
+    if (ctx->addgroups || ctx->rmgroups) {
+        DEBUG(0, ("Groups nesting is not supported in this domain\n"));
+        talloc_free(command);
+        return EINVAL;
+    }
+
+    if (ctx->gid) {
+        ret = find_domain_for_id(tools_ctx, ctx->gid, &dom);
+        if (ret == old_domain) {
+            APPEND_PARAM(command, GROUPMOD_GID, ctx->gid);
+        } else {
+            DEBUG(0, ("Changing gid only allowed inside the same domain\n"));
+            talloc_free(command);
+            return EINVAL;
+        }
+    }
+
+    APPEND_PARAM(command, GROUPMOD_GROUPNAME, ctx->groupname);
+
+    ret = system(command);
+    if (ret) {
+        if (ret == -1) {
+            DEBUG(0, ("system(3) failed\n"));
+        } else {
+            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+        }
+        talloc_free(command);
+        return EFAULT;
+    }
+
+    talloc_free(command);
+    return ret;
+}
+
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
@@ -191,6 +247,8 @@ int main(int argc, const char **argv)
     struct tools_ctx *ctx = NULL;
     char *groups;
     int ret;
+    struct group *grp_info;
+    gid_t old_gid = 0;
 
     debug_prg_name = argv[0];
 
@@ -247,16 +305,38 @@ int main(int argc, const char **argv)
     group_ctx->gid = pc_gid;
 
     /* arguments processed, go on to actual work */
+    grp_info = getgrnam(group_ctx->groupname);
+    if (grp_info) {
+       old_gid = grp_info->gr_gid;
+    }
 
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+    ret = find_domain_for_id(ctx, old_gid, &dom);
+    switch (ret) {
+        case ID_IN_LOCAL:
+            group_ctx->domain = dom;
+            break;
+
+        case ID_OUTSIDE:
+            DEBUG(5, ("Group ID outside range\n"));
+            ret = groupmod_legacy(ctx, group_ctx, ret);
+            goto fini;
+
+        case ID_IN_LEGACY_LOCAL:
+            DEBUG(5, ("group ID in legacy domain\n"));
+            group_ctx->domain = dom;
+            ret = groupmod_legacy(ctx, group_ctx, ret);
+            goto fini;
+
+        case ID_IN_OTHER:
+            DEBUG(0, ("Cannot modify group from domain %s\n", dom->name));
+            ret = EXIT_FAILURE;
+            goto fini;
+
+        default:
+            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            ret = EXIT_FAILURE;
+            goto fini;
     }
-    if (dom == NULL) {
-        DEBUG(0, ("Could not get domain info\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    group_ctx->domain = dom;
 
     ret = sysdb_transaction(ctx, ctx->sysdb, mod_group, group_ctx);
     if (ret != EOK) {

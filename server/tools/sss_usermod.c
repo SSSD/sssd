@@ -24,7 +24,9 @@
 #include <talloc.h>
 #include <popt.h>
 #include <errno.h>
+#include <pwd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
@@ -40,6 +42,43 @@
             goto fini; \
         } \
 } while(0)
+
+/* Define default command strings if not redefined by user */
+#ifndef USERMOD
+#define USERMOD SHADOW_UTILS_PATH"/usermod "
+#endif
+
+#ifndef USERMOD_UID
+#define USERMOD_UID "-u %u "
+#endif
+
+#ifndef USERMOD_GID
+#define USERMOD_GID "-g %u "
+#endif
+
+#ifndef USERMOD_GECOS
+#define USERMOD_GECOS "-c %s "
+#endif
+
+#ifndef USERMOD_HOME
+#define USERMOD_HOME "-d %s "
+#endif
+
+#ifndef USERMOD_SHELL
+#define USERMOD_SHELL "-s %s "
+#endif
+
+#ifndef USERMOD_LOCK
+#define USERMOD_LOCK  "--lock "
+#endif
+
+#ifndef USERMOD_UNLOCK
+#define USERMOD_UNLOCK "--unlock "
+#endif
+
+#ifndef USERMOD_USERNAME
+#define USERMOD_USERNAME "%s"
+#endif
 
 struct user_mod_ctx {
     struct sysdb_req *sysreq;
@@ -188,6 +227,68 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
     user_ctx->cur++;
 }
 
+static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
+                          uid_t uid, gid_t gid,
+                          const char *gecos, const char *home,
+                          const char *shell, int lock, int old_domain)
+{
+    int ret = EOK;
+    char *command = NULL;
+    struct sss_domain_info *dom = NULL;
+
+    APPEND_STRING(command, USERMOD);
+
+    if (uid) {
+        ret = find_domain_for_id(tools_ctx, uid, &dom);
+        if (ret == old_domain) {
+            APPEND_PARAM(command, USERMOD_UID, uid);
+        } else {
+            DEBUG(0, ("Changing uid only allowed inside the same domain\n"));
+            talloc_free(command);
+            return EINVAL;
+        }
+    }
+
+    if (gid) {
+        ret = find_domain_for_id(tools_ctx, gid, &dom);
+        if (ret == old_domain) {
+            APPEND_PARAM(command, USERMOD_GID, gid);
+        } else {
+            DEBUG(0, ("Changing gid only allowed inside the same domain\n"));
+            talloc_free(command);
+            return EINVAL;
+        }
+    }
+
+    APPEND_PARAM(command, USERMOD_GECOS, gecos);
+    APPEND_PARAM(command, USERMOD_HOME, home);
+    APPEND_PARAM(command, USERMOD_SHELL, shell);
+
+    if (lock == DO_LOCK) {
+        APPEND_STRING(command, USERMOD_LOCK);
+    }
+
+    if (lock == DO_UNLOCK) {
+        APPEND_STRING(command, USERMOD_UNLOCK);
+    }
+
+    APPEND_PARAM(command, USERMOD_USERNAME, ctx->username);
+
+    ret = system(command);
+    if (ret) {
+        if (ret == -1) {
+            DEBUG(0, ("system(3) failed\n"));
+        } else {
+            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+        }
+        talloc_free(command);
+        return EFAULT;
+    }
+
+    talloc_free(command);
+    return ret;
+}
+
 int main(int argc, const char **argv)
 {
     int pc_lock;
@@ -215,6 +316,8 @@ int main(int argc, const char **argv)
     struct tools_ctx *ctx = NULL;
     char *groups;
     int ret;
+    struct passwd *pwd_info;
+    uid_t old_uid = 0;
 
     debug_prg_name = argv[0];
 
@@ -272,6 +375,35 @@ int main(int argc, const char **argv)
         usage(pc, "Specify user to modify\n");
         ret = EXIT_FAILURE;
         goto fini;
+    }
+
+    pwd_info = getpwnam(user_ctx->username);
+    if (pwd_info) {
+        old_uid = pwd_info->pw_uid;
+    }
+
+    ret = find_domain_for_id(ctx, old_uid, &dom);
+    switch (ret) {
+        case ID_IN_LOCAL:
+            user_ctx->domain = dom;
+            break;
+
+        case ID_IN_LEGACY_LOCAL:
+            user_ctx->domain = dom;
+        case ID_OUTSIDE:
+            ret = usermod_legacy(ctx, user_ctx, pc_uid, pc_gid, pc_gecos,
+                                 pc_home, pc_shell, pc_lock, ret);
+            goto fini;
+
+        case ID_IN_OTHER:
+            DEBUG(0, ("Cannot delete user from domain %s\n", dom->name));
+            ret = EXIT_FAILURE;
+            goto fini;
+
+        default:
+            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            ret = EXIT_FAILURE;
+            goto fini;
     }
 
     /* add parameters to changeset */

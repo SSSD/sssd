@@ -28,6 +28,94 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
+/*
+ * Returns:
+ * 0 = yes, local domain proxying to files
+ * -1 = no, other type of domain
+ * > 0 = error code
+ */
+static int is_domain_local_legacy(struct tools_ctx *ctx, struct sss_domain_info *dom)
+{
+    char *libname = NULL;
+    char *conf_path = NULL;
+    int ret = -1;
+
+    /* Is there a better way to find out? Having LEGACYLOCAL as reserved would help */
+    conf_path = talloc_asprintf(ctx, "config/domains/%s", dom->name);
+    if (conf_path == NULL ) {
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string(ctx->confdb, ctx, conf_path,
+                            "libName", NULL, &libname);
+    if (ret != EOK) {
+        talloc_free(conf_path);
+        return ret;
+    }
+    if (libname == NULL) {
+        talloc_free(conf_path);
+        return -1;
+    }
+
+    if (strcasecmp(libname, "files") == 0) {
+        talloc_free(conf_path);
+        talloc_free(libname);
+        return EOK;
+    }
+
+    talloc_free(conf_path);
+    talloc_free(libname);
+    return -1;
+}
+
+enum id_domain find_domain_for_id(struct tools_ctx *ctx,
+                                  uint32_t id,
+                                  struct sss_domain_info **dom_ret)
+{
+    struct sss_domain_info *dom = NULL;
+
+    if (id) {
+        /* ID specified, find which domain it's in */
+        for (dom = ctx->domains; dom; dom = dom->next) {
+            if (id < dom->id_min || id > dom->id_max) {
+                continue;
+            } else {
+                if (strcasecmp(dom->name, "LOCAL") == 0) {
+                    *dom_ret = dom;
+                    return ID_IN_LOCAL;
+                } else if (is_domain_local_legacy(ctx, dom) == 0) {
+                    *dom_ret = dom;
+                    return ID_IN_LEGACY_LOCAL;
+                } else {
+                    *dom_ret = dom;
+                    return ID_IN_OTHER;
+                }
+            }
+        }
+        if (dom == NULL) {
+            *dom_ret = NULL;
+            return ID_OUTSIDE;
+        }
+    } else {
+        /* No ID specified, find LOCAL */
+        for (dom = ctx->domains; dom; dom = dom->next) {
+            if (strcasecmp(dom->name, "LOCAL") == 0) {
+                *dom_ret = dom;
+                return ID_IN_LOCAL;
+            }
+        }
+        if (dom == NULL) {
+            DEBUG(0, ("Could not get LOCAL domain info\n"));
+            *dom_ret = dom;
+            return ID_ERROR;
+        }
+    }
+
+    /* We should never end up here */
+    *dom_ret = NULL;
+    return ID_ERROR;
+}
+
 int setup_db(struct tools_ctx **tools_ctx)
 {
     TALLOC_CTX *tmp_ctx;

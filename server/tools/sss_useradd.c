@@ -26,10 +26,53 @@
 #include <popt.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+
+/* Define default command strings if not redefined by user */
+#ifndef USERADD
+#define USERADD SHADOW_UTILS_PATH"/useradd "
+#endif
+
+#ifndef USERADD_UID
+#define USERADD_UID "-u %u "
+#endif
+
+#ifndef USERADD_GID
+#define USERADD_GID "-g %u "
+#endif
+
+#ifndef USERADD_GECOS
+#define USERADD_GECOS "-c %s "
+#endif
+
+#ifndef USERADD_HOME
+#define USERADD_HOME "-d %s "
+#endif
+
+#ifndef USERADD_SHELL
+#define USERADD_SHELL "-s %s "
+#endif
+
+#ifndef USERADD_GROUPS
+#define USERADD_GROUPS "-G %s "
+#endif
+
+#ifndef USERADD_UID_MIN
+#define USERADD_UID_MIN "-K UID_MIN=%d "
+#endif
+
+#ifndef USERADD_UID_MAX
+#define USERADD_UID_MAX "-K UID_MAX=%d "
+#endif
+
+#ifndef USERADD_USERNAME
+#define USERADD_USERNAME "%s "
+#endif
+
 
 struct user_add_ctx {
     struct sysdb_req *sysreq;
@@ -215,6 +258,46 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
     user_ctx->cur++;
 }
 
+static int useradd_legacy(struct user_add_ctx *ctx, char *grouplist)
+{
+    int ret = EOK;
+    char *command = NULL;
+
+    APPEND_STRING(command, USERADD);
+
+    APPEND_PARAM(command, USERADD_SHELL, ctx->shell);
+
+    APPEND_PARAM(command, USERADD_GECOS, ctx->gecos);
+
+    APPEND_PARAM(command, USERADD_HOME, ctx->home);
+
+    APPEND_PARAM(command, USERADD_UID, ctx->uid);
+
+    APPEND_PARAM(command, USERADD_GID, ctx->gid);
+
+    APPEND_PARAM(command, USERADD_UID_MIN, ctx->domain->id_min);
+
+    APPEND_PARAM(command, USERADD_UID_MAX, ctx->domain->id_max);
+
+    APPEND_PARAM(command, USERADD_GROUPS, grouplist);
+
+    APPEND_PARAM(command, USERADD_USERNAME, ctx->username);
+
+    ret = system(command);
+    if (ret) {
+        if (ret == -1) {
+            DEBUG(0, ("system(3) failed\n"));
+        } else {
+            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+        }
+        talloc_free(command);
+        return EFAULT;
+    }
+
+    talloc_free(command);
+    return ret;
+}
+
 int main(int argc, const char **argv)
 {
     uid_t pc_uid = 0;
@@ -233,10 +316,10 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct sss_domain_info *dom;
+    struct sss_domain_info *dom = NULL;
     struct user_add_ctx *user_ctx = NULL;
     struct tools_ctx *ctx = NULL;
-    char *groups;
+    char *groups = NULL;
     int ret;
 
     debug_prg_name = argv[0];
@@ -267,7 +350,6 @@ int main(int argc, const char **argv)
             }
 
             ret = parse_groups(ctx, groups, &user_ctx->groups);
-            free(groups);
             if (ret != EOK) {
                 break;
             }
@@ -332,16 +414,28 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
+    ret = find_domain_for_id(ctx, user_ctx->uid, &dom);
+    switch (ret) {
+        case ID_IN_LOCAL:
+            user_ctx->domain = dom;
+            break;
 
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+        case ID_IN_LEGACY_LOCAL:
+            user_ctx->domain = dom;
+        case ID_OUTSIDE:
+            ret = useradd_legacy(user_ctx, groups);
+            goto fini;
+
+        case ID_IN_OTHER:
+            DEBUG(0, ("Cannot add user to domain %s\n", dom->name));
+            ret = EXIT_FAILURE;
+            goto fini;
+
+        default:
+            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            ret = EXIT_FAILURE;
+            goto fini;
     }
-    if (dom == NULL) {
-        DEBUG(0, ("Could not get domain info\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    user_ctx->domain = dom;
 
     /* useradd */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_user, user_ctx);
@@ -368,5 +462,6 @@ int main(int argc, const char **argv)
 fini:
     poptFreeContext(pc);
     talloc_free(ctx);
+    free(groups);
     exit(ret);
 }

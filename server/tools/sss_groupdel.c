@@ -23,16 +23,28 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
+#include <grp.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 
+#ifndef GROUPDEL
+#define GROUPDEL SHADOW_UTILS_PATH"/groupdel "
+#endif
+
+#ifndef GROUPDEL_GROUPNAME
+#define GROUPDEL_GROUPNAME "%s "
+#endif
+
+
 struct group_del_ctx {
     struct sysdb_req *sysreq;
     sysdb_callback_t next_fn;
 
+    gid_t gid;
     const char *groupname;
     struct ldb_dn *group_dn;
 
@@ -74,12 +86,36 @@ static void group_del(struct sysdb_req *req, void *pvt)
         groupdel_done(group_ctx, ret, NULL);
 }
 
+static int groupdel_legacy(struct group_del_ctx *ctx)
+{
+    int ret = EOK;
+    char *command = NULL;
+
+    APPEND_STRING(command, GROUPDEL);
+    APPEND_PARAM(command, GROUPDEL_GROUPNAME, ctx->groupname);
+
+    ret = system(command);
+    if (ret) {
+        if (ret == -1) {
+            DEBUG(0, ("system(3) failed\n"));
+        } else {
+            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+        }
+        talloc_free(command);
+        return EFAULT;
+    }
+
+    talloc_free(command);
+    return ret;
+}
+
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     struct group_del_ctx *group_ctx = NULL;
     struct tools_ctx *ctx = NULL;
     struct sss_domain_info *dom;
+    struct group *grp_info;
 
     poptContext pc = NULL;
     struct poptOption long_options[] = {
@@ -120,17 +156,33 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
-
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+    grp_info = getgrnam(group_ctx->groupname);
+    if (grp_info) {
+        group_ctx->gid = grp_info->gr_gid;
     }
-    if (dom == NULL) {
-        DEBUG(0, ("Could not get domain info\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    group_ctx->domain = dom;
 
+    ret = find_domain_for_id(ctx, group_ctx->gid, &dom);
+    switch (ret) {
+        case ID_IN_LOCAL:
+            group_ctx->domain = dom;
+            break;
+
+        case ID_IN_LEGACY_LOCAL:
+            group_ctx->domain = dom;
+        case ID_OUTSIDE:
+            ret = groupdel_legacy(group_ctx);
+            break; /* Also delete possible cached entries in sysdb */
+
+        case ID_IN_OTHER:
+            DEBUG(0, ("Cannot delete group from domain %s\n", dom->name));
+            ret = EXIT_FAILURE;
+            goto fini;
+
+        default:
+            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            ret = EXIT_FAILURE;
+            goto fini;
+    }
 
     group_ctx->group_dn = sysdb_group_dn(ctx->sysdb, ctx,
                                          group_ctx->domain->name,

@@ -25,10 +25,23 @@
 #include <popt.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+
+#ifndef GROUPADD
+#define GROUPADD SHADOW_UTILS_PATH"/groupadd "
+#endif
+
+#ifndef GROUPADD_GID
+#define GROUPADD_GID "-g %u "
+#endif
+
+#ifndef GROUPADD_GROUPNAME
+#define GROUPADD_GROUPNAME "%s "
+#endif
 
 struct group_add_ctx {
     struct sysdb_req *sysreq;
@@ -75,6 +88,34 @@ static void add_group(struct sysdb_req *req, void *pvt)
         add_group_done(group_ctx, ret, NULL);
 }
 
+static int groupadd_legacy(struct group_add_ctx *ctx)
+{
+    int ret = EOK;
+    char *command = NULL;
+
+    command = talloc_asprintf(ctx, "%s ", GROUPADD);
+    if (command == NULL) {
+        return ENOMEM;
+    }
+
+    APPEND_PARAM(command, GROUPADD_GID, ctx->gid);
+    APPEND_STRING(command, ctx->groupname);
+
+    ret = system(command);
+    if (ret) {
+        if (ret == -1) {
+            DEBUG(0, ("system(3) failed\n"));
+        } else {
+            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+        }
+        talloc_free(command);
+        return EFAULT;
+    }
+
+    talloc_free(command);
+    return ret;
+}
+
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
@@ -91,8 +132,6 @@ int main(int argc, const char **argv)
 
     debug_prg_name = argv[0];
 
-
-    /* arguments processed, go on to actual work */
     ret = setup_db(&ctx);
     if(ret != EOK) {
         DEBUG(0, ("Could not set up database\n"));
@@ -127,16 +166,28 @@ int main(int argc, const char **argv)
     group_ctx->gid = pc_gid;
 
     /* arguments processed, go on to actual work */
+    ret = find_domain_for_id(ctx, group_ctx->gid, &dom);
+    switch (ret) {
+        case ID_IN_LOCAL:
+            group_ctx->domain = dom;
+            break;
 
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+        case ID_IN_LEGACY_LOCAL:
+            group_ctx->domain = dom;
+        case ID_OUTSIDE:
+            ret = groupadd_legacy(group_ctx);
+            goto fini;
+
+        case ID_IN_OTHER:
+            DEBUG(0, ("Cannot add group to domain %s\n", dom->name));
+            ret = EXIT_FAILURE;
+            goto fini;
+
+        default:
+            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            ret = EXIT_FAILURE;
+            goto fini;
     }
-    if (dom == NULL) {
-        DEBUG(0, ("Could not get domain info\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    group_ctx->domain = dom;
 
     /* add_group */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_group, group_ctx);

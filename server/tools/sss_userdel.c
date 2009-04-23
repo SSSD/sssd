@@ -23,15 +23,27 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <pwd.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
 #include "tools/tools_util.h"
 
+#ifndef USERDEL
+#define USERDEL SHADOW_UTILS_PATH"/userdel "
+#endif
+
+#ifndef USERDEL_USERNAME
+#define USERDEL_USERNAME    "%s "
+#endif
+
 struct user_del_ctx {
     struct sysdb_req *sysreq;
     sysdb_callback_t next_fn;
 
+    uid_t uid;
     const char *username;
     struct ldb_dn *user_dn;
 
@@ -73,12 +85,36 @@ static void user_del(struct sysdb_req *req, void *pvt)
         userdel_done(user_ctx, ret, NULL);
 }
 
+static int userdel_legacy(struct user_del_ctx *ctx)
+{
+    int ret = EOK;
+    char *command = NULL;
+
+    APPEND_STRING(command, USERDEL);
+    APPEND_PARAM(command, USERDEL_USERNAME, ctx->username);
+
+    ret = system(command);
+    if (ret) {
+        if (ret == -1) {
+            DEBUG(0, ("system(3) failed\n"));
+        } else {
+            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+        }
+        talloc_free(command);
+        return EFAULT;
+    }
+
+    talloc_free(command);
+    return ret;
+}
+
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     struct user_del_ctx *user_ctx = NULL;
     struct tools_ctx *ctx = NULL;
     struct sss_domain_info *dom;
+    struct passwd *pwd_info;
 
     poptContext pc = NULL;
     struct poptOption long_options[] = {
@@ -119,16 +155,33 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
+    pwd_info = getpwnam(user_ctx->username);
+    if (pwd_info) {
+        user_ctx->uid = pwd_info->pw_uid;
+    }
 
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, "LOCAL") == 0) break;
+    ret = find_domain_for_id(ctx, user_ctx->uid, &dom);
+    switch (ret) {
+        case ID_IN_LOCAL:
+            user_ctx->domain = dom;
+            break;
+
+        case ID_IN_LEGACY_LOCAL:
+            user_ctx->domain = dom;
+        case ID_OUTSIDE:
+            ret = userdel_legacy(user_ctx);
+            break; /* Also delete possible cached entries in sysdb */
+
+        case ID_IN_OTHER:
+            DEBUG(0, ("Cannot delete user from domain %s\n", dom->name));
+            ret = EXIT_FAILURE;
+            goto fini;
+
+        default:
+            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            ret = EXIT_FAILURE;
+            goto fini;
     }
-    if (dom == NULL) {
-        DEBUG(0, ("Could not get domain info\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    user_ctx->domain = dom;
 
     user_ctx->user_dn = sysdb_user_dn(ctx->sysdb, ctx,
                                       user_ctx->domain->name,
