@@ -295,6 +295,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     }
 
     pd->cmd = pam_cmd;
+    pd->priv = cctx->priv;
     ret = pam_parse_in_data(cctx->rctx->names, pd, body, blen);
     if (ret != EOK) {
         talloc_free(preq);

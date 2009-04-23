@@ -115,6 +115,7 @@ struct pam_data {
     struct response_data *resp_list;
 
     bool offline_auth;
+    int priv;
 };
 
 void pam_print_data(int l, struct pam_data *pd);

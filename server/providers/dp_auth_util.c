@@ -34,6 +34,7 @@ void pam_print_data(int l, struct pam_data *pd)
     DEBUG(l, ("authtok size: %d\n", pd->authtok_size));
     DEBUG(l, ("newauthtok type: %d\n", pd->newauthtok_type));
     DEBUG(l, ("newauthtok size: %d\n", pd->newauthtok_size));
+    DEBUG(l, ("priv: %d\n", pd->priv));
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,
@@ -74,6 +75,7 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                        &(pd->newauthtok),
                                        pd->newauthtok_size,
+                                   DBUS_TYPE_INT32, &(pd->priv),
                                    DBUS_TYPE_INVALID);
 
     return ret;
@@ -99,6 +101,7 @@ bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbu
                                 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                     &(pd->newauthtok),
                                     &(pd->newauthtok_size),
+                                DBUS_TYPE_INT32, &(pd->priv),
                                 DBUS_TYPE_INVALID);
 
     return ret;

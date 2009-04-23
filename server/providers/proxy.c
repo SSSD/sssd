@@ -66,8 +66,8 @@ struct proxy_auth_ctx {
 };
 
 struct authtok_conv {
-    char *authtok;
-    char *oldauthtok;
+    uint32_t authtok_size;
+    uint8_t *authtok;
 };
 
 static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
@@ -90,7 +90,11 @@ static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
             case PAM_PROMPT_ECHO_OFF:
                 DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
                 reply[i].resp_retcode = 0;
-                reply[i].resp = strdup(auth_data->authtok);
+                reply[i].resp = calloc(auth_data->authtok_size + 1,
+                                       sizeof(char));
+                if (reply[i].resp == NULL) goto failed;
+                memcpy(reply[i].resp, auth_data->authtok, auth_data->authtok_size);
+
                 break;
             default:
                 DEBUG(1, ("Conversation style %d not supported.\n",
@@ -142,9 +146,8 @@ static void proxy_pam_handler(struct be_req *req) {
         }
         switch (pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
-/* FIXME: \0 missing at the end */
-                auth_data->authtok=(char *) pd->authtok;
-                auth_data->oldauthtok=NULL;
+                auth_data->authtok_size = pd->authtok_size;
+                auth_data->authtok = pd->authtok;
                 pam_status=pam_authenticate(pamh, 0);
                 break;
             case SSS_PAM_SETCRED:
@@ -160,9 +163,14 @@ static void proxy_pam_handler(struct be_req *req) {
                 pam_status=pam_close_session(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK:
-/* FIXME: \0 missing at the end */
-                auth_data->authtok=(char *) pd->newauthtok;
-                auth_data->oldauthtok=(char *) pd->authtok;
+                if (pd->priv != 1) {
+                    auth_data->authtok_size = pd->authtok_size;
+                    auth_data->authtok = pd->authtok;
+                    pam_status=pam_authenticate(pamh, 0);
+                    if (pam_status != PAM_SUCCESS) break;
+                }
+                auth_data->authtok_size = pd->newauthtok_size;
+                auth_data->authtok = pd->newauthtok;
                 pam_status=pam_chauthtok(pamh, 0);
                 break;
             default:
