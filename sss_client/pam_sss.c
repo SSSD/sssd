@@ -170,8 +170,17 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
     struct pam_response *resp=NULL;
     int pam_status;
     char *newpwd[2];
+    int forward_pass = 0;
 
     D(("Hello pam_sssd: %d", task));
+
+    for (; argc-- > 0; ++argv) {
+        if (strcmp(*argv, "forward_pass") == 0) {
+            forward_pass = 1;
+        } else {
+            D(("unknown option: %s", *argv));
+        }
+    }
 
 /* TODO: add useful prelim check */
     if (task == SSS_PAM_CHAUTHTOK && (flags & PAM_PRELIM_CHECK)) {
@@ -226,6 +235,13 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
             pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
         }
         pi.pam_authtok_size=strlen(pi.pam_authtok);
+
+        if (forward_pass != 0) {
+            ret = pam_set_item(pamh, PAM_AUTHTOK, resp[0].resp);
+            if (ret != PAM_SUCCESS) {
+                D(("Failed to set PAM_AUTHTOK, authtok may not be available for other modules"));
+            }
+        }
     }
 
     if (task == SSS_PAM_CHAUTHTOK) {
