@@ -217,7 +217,7 @@ static void pam_reply(struct pam_auth_req *preq)
         resp = resp->next;
     }
 
-    ret = sss_packet_grow(cctx->creq->out, sizeof(int32_t) + strlen(pd->domain)+1 +
+    ret = sss_packet_grow(cctx->creq->out, sizeof(int32_t) +
                                            sizeof(int32_t) +
                                            resp_c * 2* sizeof(int32_t) +
                                            resp_size);
