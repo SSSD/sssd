@@ -456,6 +456,23 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                 }
             } while( (msg=ldap_next_message(lr->ldap, msg)) != NULL );
 
+            switch (lr->pd->cmd) {
+                case SSS_PAM_AUTHENTICATE:
+                case SSS_PAM_CHAUTHTOK:
+                    break;
+                case SSS_PAM_ACCT_MGMT:
+                case SSS_PAM_SETCRED:
+                case SSS_PAM_OPEN_SESSION:
+                case SSS_PAM_CLOSE_SESSION:
+                    pam_status = PAM_SUCCESS;
+                    goto done;
+                    break;
+                default:
+                    DEBUG(1, ("Unknown pam command %d.\n", lr->pd->cmd));
+                    pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+            }
+
             ret = sdap_bind(lr);
             if (ret != LDAP_SUCCESS) {
                 DEBUG(1, ("sdap_bind failed.\n"));
