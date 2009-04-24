@@ -868,13 +868,15 @@ int sysdb_add_user(struct sysdb_req *sysreq,
         return EINVAL;
     }
 
-    if (domain->id_max != 0 && (uid < domain->id_min || uid > domain->id_max)) {
+    if (domain->id_max != 0 && uid != 0 &&
+        (uid < domain->id_min || uid > domain->id_max)) {
         DEBUG(2, ("Supplied uid [%d] is not in the allowed range [%d-%d].\n",
                   uid, domain->id_min, domain->id_max));
         return EINVAL;
     }
 
-    if (domain->id_max != 0 && (gid < domain->id_min || gid > domain->id_max)) {
+    if (domain->id_max != 0 && gid != 0 &&
+        (gid < domain->id_min || gid > domain->id_max)) {
         DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
                   gid, domain->id_min, domain->id_max));
         return EINVAL;
@@ -1065,7 +1067,8 @@ int sysdb_add_group(struct sysdb_req *sysreq,
         return EINVAL;
     }
 
-    if (domain->id_max != 0 && (gid < domain->id_min || gid > domain->id_max)) {
+    if (domain->id_max != 0 && gid != 0 &&
+        (gid < domain->id_min || gid > domain->id_max)) {
         DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
                   gid, domain->id_min, domain->id_max));
         return EINVAL;
