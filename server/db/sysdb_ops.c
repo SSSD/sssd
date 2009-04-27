@@ -864,13 +864,6 @@ int sysdb_add_user(struct sysdb_req *sysreq,
         return EINVAL;
     }
 
-    if ((uid == 0 || gid == 0) && (uid != 0 || gid != 0)) {
-        /* you either set both or neither, we will not guess only one */
-        DEBUG(1, ("You have to either specify both uid and gid or neither"
-                  " (preferred) [passed in uid=%u, gid =%u]\n", uid, gid));
-        return EINVAL;
-    }
-
     if (domain->id_max != 0 && uid != 0 &&
         (uid < domain->id_min || uid > domain->id_max)) {
         DEBUG(2, ("Supplied uid [%d] is not in the allowed range [%d-%d].\n",
@@ -933,7 +926,13 @@ static void user_check_callback(void *pvt, int error, struct ldb_result *res)
 
 static int user_add_id(struct user_add_ctx *user_ctx)
 {
-    if (user_ctx->uid == 0 && user_ctx->gid == 0) {
+    if (user_ctx->uid != 0 && user_ctx->gid == 0) {
+        if(user_ctx->domain->mpg) {
+            user_ctx->gid = user_ctx->uid;
+        }
+    }
+
+    if (user_ctx->uid == 0 || user_ctx->gid == 0) {
         /* Must generate uid/gid pair */
         return sysdb_get_next_available_id(user_ctx->sysreq,
                                            user_ctx->domain,
@@ -955,9 +954,14 @@ static void user_add_id_callback(void *pvt, int error, struct ldb_result *res)
         return;
     }
 
-    /* ok id has been allocated, fill in uid and gid fields */
-    user_ctx->uid = user_ctx->id.id;
-    user_ctx->gid = user_ctx->id.id;
+    /* ok id has been allocated, fill in uid and gid fields if not
+     * already set */
+    if (user_ctx->uid == 0) {
+        user_ctx->uid = user_ctx->id.id;
+    }
+    if (user_ctx->gid == 0) {
+        user_ctx->gid = user_ctx->id.id;
+    }
 
     ret = user_add_call(user_ctx);
     if (ret != EOK) {
