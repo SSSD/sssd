@@ -554,6 +554,10 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
+    else if (!rctx->dp_ctx) {
+        DEBUG(0, ("Data Provider is not yet available. Retrying.\n"));
+        return EIO;
+    }
 
     ret = sysdb_init(rctx, ev, cdb, NULL, &rctx->sysdb);
     if (ret != EOK) {
