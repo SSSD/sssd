@@ -11,7 +11,7 @@ AC_DEFUN([SMB_MODULE_DEFAULT], [echo -n ""])
 AC_DEFUN([SMB_LIBRARY_ENABLE], [echo -n ""])
 AC_DEFUN([SMB_EXT_LIB], [echo -n ""])
 AC_DEFUN([SMB_ENABLE], [echo -n ""])
-AC_INIT(sssd, 0.3.2)
+AC_INIT(sssd, 0.3.3)
 AC_CONFIG_SRCDIR([autogen.sh])
 
 AC_LIBREPLACE_ALL_CHECKS

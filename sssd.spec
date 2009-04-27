@@ -1,5 +1,5 @@
 Name: sssd
-Version: 0.3.2
+Version: 0.3.3
 Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
