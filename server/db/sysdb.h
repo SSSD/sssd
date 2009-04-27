@@ -63,6 +63,8 @@
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
 
+#define SYSDB_CACHEDPWD "cachedPassword"
+
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
 #define SYSDB_UC "objectclass="SYSDB_USER_CLASS

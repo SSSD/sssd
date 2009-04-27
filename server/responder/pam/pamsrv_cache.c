@@ -149,7 +149,7 @@ int pam_cache_credentials(struct pam_auth_req *preq)
         goto done;
     }
 
-    ret = sysdb_attrs_add_string(ctx->attrs, SYSDB_PWD, comphash);
+    ret = sysdb_attrs_add_string(ctx->attrs, SYSDB_CACHEDPWD, comphash);
     if (ret) goto done;
 
     /* FIXME: should we use a different attribute for chache passwords ?? */
@@ -219,7 +219,7 @@ static void pam_cache_auth_callback(void *pvt, int ldb_status,
         goto done;
     }
 
-    userhash = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
+    userhash = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_CACHEDPWD, NULL);
     if (userhash == NULL || *userhash == '\0') {
         DEBUG(4, ("Cached credentials not available.\n"));
         ret = PAM_AUTHINFO_UNAVAIL;
@@ -253,7 +253,7 @@ int pam_cache_auth(struct pam_auth_req *preq)
     int ret;
 
     static const char *attrs[] = {SYSDB_NAME,
-                                  SYSDB_PWD,
+                                  SYSDB_CACHEDPWD,
                                   SYSDB_DISABLED,
                                   SYSDB_LAST_LOGIN,
                                   "lastPasswordChange",
