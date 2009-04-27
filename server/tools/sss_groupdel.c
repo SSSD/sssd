@@ -112,6 +112,7 @@ static int groupdel_legacy(struct group_del_ctx *ctx)
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
+    int pc_debug = 0;
     struct group_del_ctx *group_ctx = NULL;
     struct tools_ctx *ctx = NULL;
     struct sss_domain_info *dom;
@@ -120,6 +121,7 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
         POPT_TABLEEND
     };
 
@@ -147,6 +149,8 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
+
+    debug_level = pc_debug;
 
     group_ctx->groupname = poptGetArg(pc);
     if(group_ctx->groupname == NULL) {

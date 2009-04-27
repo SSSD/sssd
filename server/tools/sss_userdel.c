@@ -116,9 +116,11 @@ int main(int argc, const char **argv)
     struct sss_domain_info *dom;
     struct passwd *pwd_info;
 
+    int pc_debug = 0;
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
         POPT_TABLEEND
     };
 
@@ -146,6 +148,8 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
+
+    debug_level = pc_debug;
 
     user_ctx->username = poptGetArg(pc);
     if(user_ctx->username == NULL) {

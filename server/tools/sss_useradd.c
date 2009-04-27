@@ -305,8 +305,10 @@ int main(int argc, const char **argv)
     const char *pc_gecos = NULL;
     const char *pc_home = NULL;
     const char *pc_shell = NULL;
+    int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
         { "uid",   'u', POPT_ARG_INT, &pc_uid, 0, "The UID of the user", NULL },
         { "gid",   'g', POPT_ARG_STRING, &pc_group, 0, "The GID or group name of the user", NULL },
         { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, "The comment string", NULL },
@@ -355,6 +357,8 @@ int main(int argc, const char **argv)
             }
         }
     }
+
+    debug_level = pc_debug;
 
     if(ret != -1) {
         usage(pc, poptStrerror(ret));

@@ -234,8 +234,10 @@ static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ct
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
+    int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
         { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', "Groups to add this group to", NULL },
         { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', "Groups to remove this group from", NULL },
         { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, "The GID of the group", NULL },
@@ -287,6 +289,8 @@ int main(int argc, const char **argv)
             }
         }
     }
+
+    debug_level = pc_debug;
 
     if(ret != -1) {
         usage(pc, poptStrerror(ret));

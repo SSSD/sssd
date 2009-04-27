@@ -291,14 +291,16 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
 
 int main(int argc, const char **argv)
 {
-    int pc_lock;
+    int pc_lock = 0;
     uid_t pc_uid = 0;
     gid_t pc_gid = 0;
     const char *pc_gecos = NULL;
     const char *pc_home = NULL;
     const char *pc_shell = NULL;
+    int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
         { "uid",   'u', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_uid, 0, "The UID of the user", NULL },
         { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, "The GID of the user", NULL },
         { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, "The comment string", NULL },
@@ -306,8 +308,8 @@ int main(int argc, const char **argv)
         { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, "Login shell", NULL },
         { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', "Groups to add this user to", NULL },
         { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', "Groups to remove this user from", NULL },
-        { "lock", 'L', POPT_ARG_INT, &pc_lock, DO_LOCK, "Lock the account", NULL },
-        { "unlock", 'U', POPT_ARG_INT, &pc_lock, DO_UNLOCK, "Unlock the account", NULL },
+        { "lock", 'L', POPT_ARG_NONE, NULL, 'L', "Lock the account", NULL },
+        { "unlock", 'U', POPT_ARG_NONE, NULL, 'U', "Unlock the account", NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -360,8 +362,14 @@ int main(int argc, const char **argv)
             if (ret != EOK) {
                 break;
             }
+        } else if (ret == 'L') {
+            pc_lock = DO_LOCK;
+        } else if (ret == 'U') {
+            pc_lock = DO_UNLOCK;
         }
     }
+
+    debug_level = pc_debug;
 
     if(ret != -1) {
         usage(pc, poptStrerror(ret));

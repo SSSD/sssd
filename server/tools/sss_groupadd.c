@@ -119,8 +119,10 @@ static int groupadd_legacy(struct group_add_ctx *ctx)
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
+    int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
+        { "debug",'\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
         { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, "The GID of the group", NULL },
         POPT_TABLEEND
     };
@@ -154,6 +156,8 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
+
+    debug_level = pc_debug;
 
     /* groupname is an argument, not option */
     group_ctx->groupname = poptGetArg(pc);
