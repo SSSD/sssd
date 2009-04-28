@@ -172,6 +172,16 @@ static void pam_reply(struct pam_auth_req *preq)
         }
     }
 
+/* TODO: we need the pam session cookie here to make sure that cached
+ * authentication was successful */
+    if ((pd->cmd == SSS_PAM_SETCRED || pd->cmd == SSS_PAM_ACCT_MGMT ||
+         pd->cmd == SSS_PAM_OPEN_SESSION || pd->cmd == SSS_PAM_CLOSE_SESSION) &&
+        pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
+        DEBUG(2, ("Assuming offline authentication "
+                  "setting status for pam call %d to PAM_SUCCESS.\n", pd->cmd));
+        pd->pam_status = PAM_SUCCESS;
+    }
+
     cctx = preq->cctx;
 
     if (pd->response_delay > 0) {
