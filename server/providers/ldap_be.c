@@ -49,6 +49,8 @@ struct sdap_ctx {
     char *default_authtok_type;
     uint32_t default_authtok_size;
     char *default_authtok;
+    int network_timeout;
+    int opt_timeout;
 };
 
 struct sdap_ops;
@@ -197,6 +199,8 @@ static int sdap_init(struct sdap_req *lr)
     int status=EOK;
     int ldap_vers = LDAP_VERSION3;
     int msgid;
+    struct timeval network_timeout;
+    struct timeval opt_timeout;
 
     ret = ldap_initialize(&(lr->ldap), lr->sdap_ctx->ldap_uri);
     if (ret != LDAP_SUCCESS) {
@@ -212,13 +216,35 @@ static int sdap_init(struct sdap_req *lr)
         goto cleanup;
     }
 
+    network_timeout.tv_sec = lr->sdap_ctx->network_timeout;
+    network_timeout.tv_usec = 0;
+    opt_timeout.tv_sec = lr->sdap_ctx->opt_timeout;
+    opt_timeout.tv_usec = 0;
+    ret = ldap_set_option(lr->ldap, LDAP_OPT_NETWORK_TIMEOUT, &network_timeout);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+        status = EIO;
+        goto cleanup;
+    }
+    ret = ldap_set_option(lr->ldap, LDAP_OPT_TIMEOUT, &opt_timeout);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+        status = EIO;
+        goto cleanup;
+    }
+
     /* For now TLS is forced. Maybe it would be necessary to make this
      * configurable to allow people to expose their passwords over the
      * network. */
     ret = ldap_start_tls(lr->ldap, NULL, NULL, &msgid);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_start_tls failed: %s\n", ldap_err2string(ret)));
-        status = EIO;
+        DEBUG(1, ("ldap_start_tls failed: [%d][%s]\n", ret,
+                  ldap_err2string(ret)));
+        if (ret == LDAP_SERVER_DOWN) {
+            status = EAGAIN;
+        } else {
+            status = EIO;
+        }
         goto cleanup;
     }
 
@@ -289,7 +315,11 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
             if (ret != EOK) {
                 DEBUG(1, ("sdap_init failed.\n"));
                 lr->ldap = NULL;
-                pam_status = PAM_SYSTEM_ERR;
+                if (ret == EAGAIN) {
+                    pam_status = PAM_AUTHINFO_UNAVAIL;
+                } else {
+                    pam_status = PAM_SYSTEM_ERR;
+                }
                 goto done;
             }
         case SDAP_CHECK_INIT_RESULT:
@@ -573,7 +603,11 @@ static void sdap_start(struct tevent_context *ev, struct tevent_timer *te,
     if (ret != EOK) {
         DEBUG(1, ("sdap_init failed.\n"));
         lr->ldap = NULL;
-        pam_status = PAM_SYSTEM_ERR;
+        if (ret == EAGAIN) {
+            pam_status = PAM_AUTHINFO_UNAVAIL;
+        } else {
+            pam_status = PAM_SYSTEM_ERR;
+        }
         goto done;
     }
 
@@ -663,6 +697,8 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
     char *user_search_base;
     char *user_name_attribute;
     char *user_object_class;
+    int network_timeout;
+    int opt_timeout;
     int ret;
 
     ctx = talloc(bectx, struct sdap_ctx);
@@ -715,7 +751,15 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
     ctx->default_authtok = default_authtok;
     ctx->default_authtok_size = (default_authtok==NULL?0:strlen(default_authtok));
 
+    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
+                         "network_timeout", 5, &network_timeout);
+    if (ret != EOK) goto done;
+    ctx->network_timeout = network_timeout;
 
+    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
+                         "opt_timeout", 5, &opt_timeout);
+    if (ret != EOK) goto done;
+    ctx->network_timeout = opt_timeout;
 
     *ops = &sdap_mod_ops;
     *pvt_data = ctx;
