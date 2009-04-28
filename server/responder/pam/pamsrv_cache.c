@@ -153,7 +153,7 @@ int pam_cache_credentials(struct pam_auth_req *preq)
     if (ret) goto done;
 
     /* FIXME: should we use a different attribute for chache passwords ?? */
-    ret = sysdb_attrs_add_long(ctx->attrs, "lastPasswordChange",
+    ret = sysdb_attrs_add_long(ctx->attrs, "lastCachedPasswordChange",
                                (long)time(NULL));
     if (ret) goto done;
 
@@ -256,7 +256,7 @@ int pam_cache_auth(struct pam_auth_req *preq)
                                   SYSDB_CACHEDPWD,
                                   SYSDB_DISABLED,
                                   SYSDB_LAST_LOGIN,
-                                  "lastPasswordChange",
+                                  "lastCachedPasswordChange",
                                   "accountExpires",
                                   "failedLoginAttempts",
                                   "lastFailedLogin",
