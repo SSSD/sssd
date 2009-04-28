@@ -605,7 +605,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     }
     else {
         preq->callback = pam_reply;
-        ret = pam_dp_send_req(preq, PAM_DP_TIMEOUT);
+        ret = pam_dp_send_req(preq, SSS_CLI_SOCKET_TIMEOUT/2);
         DEBUG(4, ("pam_dp_send_req returned %d\n", ret));
     }
 

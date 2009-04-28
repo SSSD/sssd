@@ -6,8 +6,6 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder.h"
 
-#define PAM_DP_TIMEOUT 5000
-
 struct pam_auth_req;
 
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
