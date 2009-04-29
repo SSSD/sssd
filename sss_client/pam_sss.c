@@ -149,8 +149,14 @@ static void print_pam_items(struct pam_items pi)
     D(("Tty: %s", *pi.pam_tty!='\0' ? pi.pam_tty : "(not available)"));
     D(("Ruser: %s", *pi.pam_ruser!='\0' ? pi.pam_ruser : "(not available)"));
     D(("Rhost: %s", *pi.pam_rhost!='\0' ? pi.pam_rhost : "(not available)"));
-    D(("Authtok: %s", *pi.pamstack_authtok!='\0' ? pi.pamstack_authtok : "(not available)"));
-    D(("Oldauthtok: %s", *pi.pamstack_oldauthtok!='\0' ? pi.pamstack_oldauthtok : "(not available)"));
+    D(("Pamstack_Authtok: %s", *pi.pamstack_authtok!='\0' ? pi.pamstack_authtok : "(not available)"));
+    D(("Pamstack_Oldauthtok: %s", *pi.pamstack_oldauthtok!='\0' ? pi.pamstack_oldauthtok : "(not available)"));
+    if (pi.pam_authtok != NULL) {
+        D(("Authtok: %s", *pi.pam_authtok!='\0' ? pi.pam_authtok : "(not available)"));
+    }
+    if (pi.pam_newauthtok != NULL) {
+        D(("Newauthtok: %s", *pi.pam_newauthtok!='\0' ? pi.pam_newauthtok : "(not available)"));
+    }
 }
 
 static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
@@ -171,12 +177,15 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
     int pam_status;
     char *newpwd[2];
     int forward_pass = 0;
+    int use_first_pass = 0;
 
     D(("Hello pam_sssd: %d", task));
 
     for (; argc-- > 0; ++argv) {
         if (strcmp(*argv, "forward_pass") == 0) {
             forward_pass = 1;
+        } else if (strcmp(*argv, "use_first_pass") == 0) {
+            use_first_pass = 1;
         } else {
             D(("unknown option: %s", *argv));
         }
@@ -194,6 +203,16 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
         return ret;
     }
 
+    if (use_first_pass != 0 &&
+        (*pi.pamstack_authtok != '\0' || *pi.pamstack_oldauthtok != '\0') &&
+        (task == SSS_PAM_AUTHENTICATE || task == SSS_PAM_CHAUTHTOK)) {
+        pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi.pam_authtok = strdup(pi.pamstack_authtok);
+        pi.pam_authtok_size = strlen(pi.pamstack_authtok);
+        pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi.pam_newauthtok =  strdup(pi.pamstack_oldauthtok);
+        pi.pam_newauthtok_size = strlen(pi.pamstack_oldauthtok);
+    } else {
     pi.pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
     pi.pam_authtok = NULL;
     pi.pam_authtok_size = 0;
@@ -296,6 +315,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int flags, int argc,
         free(newpwd[0]);
         _pam_overwrite((void *)newpwd[1]);
         free(newpwd[1]);
+    }
     }
 
     print_pam_items(pi);
