@@ -285,7 +285,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
         default:
             DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
-            ret = nss_cmd_send_error(cmdctx, ret);
+            ret = nss_cmd_send_error(cmdctx, ENOENT);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
@@ -654,7 +654,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
         default:
             DEBUG(1, ("getpwuid call returned more than one result !?!\n"));
-            ret = nss_cmd_send_error(cmdctx, ret);
+            ret = nss_cmd_send_error(cmdctx, ENOENT);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
@@ -951,7 +951,7 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     int ret;
 
     if (status != LDB_SUCCESS) {
-        ret = nss_cmd_send_error(cmdctx, ret);
+        ret = nss_cmd_send_error(cmdctx, ENOENT);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
@@ -2303,7 +2303,7 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     int ret;
 
     if (status != LDB_SUCCESS) {
-        ret = nss_cmd_send_error(cmdctx, ret);
+        ret = nss_cmd_send_error(cmdctx, ENOENT);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
@@ -2824,7 +2824,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
 
         default:
             DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
-            ret = nss_cmd_send_error(cmdctx, ret);
+            ret = nss_cmd_send_error(cmdctx, ENOENT);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
