@@ -1219,6 +1219,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     struct sysdb_ctx *sysdb;
     struct tevent_signal *tes;
     int ret, i;
+    char *cdb_file;
     struct sss_domain_info *dom;
 
     ctx = talloc_zero(mem_ctx, struct mt_ctx);
@@ -1232,9 +1233,26 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     /* Initialize the CDB from the configuration file */
     ret = confdb_test(ctx->cdb);
     if (ret == ENOENT) {
-        /* First-time setup
-         * Load special entries
+        /* First-time setup */
+
+        /* Purge any existing confdb in case an old
+         * misconfiguration gets in the way
          */
+        talloc_free(ctx->cdb);
+        cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+        if (cdb_file == NULL) {
+            DEBUG(0,("Out of memory, aborting!\n"));
+            return ENOMEM;
+        }
+
+        unlink(cdb_file);
+        ret = confdb_init(ctx, ctx->ev, &ctx->cdb, cdb_file);
+        if (ret != EOK) {
+            DEBUG(0,("The confdb initialization failed\n"));
+            return ret;
+        }
+
+        /* Load special entries */
         ret = confdb_create_base(cdb);
         if (ret != EOK) {
             talloc_free(ctx);
