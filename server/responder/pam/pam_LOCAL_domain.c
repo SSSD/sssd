@@ -230,14 +230,14 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
     memset(pd->newauthtok, 0, pd->newauthtok_size);
 
-    salt = gen_salt();
-    NULL_CHECK_OR_JUMP(salt, ("Salt generation failed.\n"),
-                       lreq->error, EFAULT, done);
+    ret = s3crypt_gen_salt(lreq, &salt);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("Salt generation failed.\n"),
+                      lreq->error, ret, done);
     DEBUG(4, ("Using salt [%s]\n", salt));
 
-    new_hash = nss_sha512_crypt(newauthtok, salt);
-    NULL_CHECK_OR_JUMP(new_hash, ("Hash generation failed.\n"),
-                       lreq->error, EFAULT, done);
+    ret = s3crypt_sha512(lreq, newauthtok, salt, &new_hash);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("Hash generation failed.\n"),
+                      lreq->error, ret, done);
     DEBUG(4, ("New hash [%s]\n", new_hash));
     memset(newauthtok, 0, pd->newauthtok_size);
 
@@ -323,10 +323,10 @@ static void local_handler_callback(void *pvt, int ldb_status,
                                lreq->error, ret, done);
             DEBUG(4, ("user: [%s], password hash: [%s]\n", username, password));
 
-            new_hash = nss_sha512_crypt(authtok, password);
+            ret = s3crypt_sha512(lreq, authtok, password, &new_hash);
             memset(authtok, 0, pd->authtok_size);
-            NULL_CHECK_OR_JUMP(new_hash, ("nss_sha512_crypt failed.\n"),
-                               lreq->error, EFAULT, done);
+            NEQ_CHECK_OR_JUMP(ret, EOK, ("nss_sha512_crypt failed.\n"),
+                              lreq->error, ret, done);
 
             DEBUG(4, ("user: [%s], new hash: [%s]\n", username, new_hash));
 

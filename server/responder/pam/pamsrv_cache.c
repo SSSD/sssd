@@ -122,17 +122,15 @@ int pam_cache_credentials(struct pam_auth_req *preq)
         goto done;
     }
 
-    salt = gen_salt();
-    if (!salt) {
+    ret = s3crypt_gen_salt(preq, &salt);
+    if (ret) {
         DEBUG(4, ("Failed to generate random salt.\n"));
-        ret = EFAULT;
         goto done;
     }
 
-    comphash = nss_sha512_crypt(password, salt);
-    if (!comphash) {
+    ret = s3crypt_sha512(preq, password, salt, &comphash);
+    if (ret) {
         DEBUG(4, ("Failed to create password hash.\n"));
-        ret = EFAULT;
         goto done;
     }
 
@@ -181,7 +179,7 @@ static void pam_cache_auth_callback(void *pvt, int ldb_status,
     struct pam_auth_req *preq;
     struct pam_data *pd;
     const char *userhash;
-    const char *comphash;
+    char *comphash;
     char *password = NULL;
     int i, ret;
 
@@ -226,8 +224,8 @@ static void pam_cache_auth_callback(void *pvt, int ldb_status,
         goto done;
     }
 
-    comphash = nss_sha512_crypt(password, userhash);
-    if (!comphash) {
+    ret = s3crypt_sha512(preq, password, userhash, &comphash);
+    if (ret) {
         DEBUG(4, ("Failed to create password hash.\n"));
         ret = PAM_SYSTEM_ERR;
         goto done;
