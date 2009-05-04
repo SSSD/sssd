@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <sys/param.h>
 #include <time.h>
 #include <string.h>
 #include "config.h"
@@ -544,6 +545,35 @@ static int service_signal_reload(struct mt_svc *svc)
     return EOK;
 }
 
+static int check_domain_ranges(struct sss_domain_info *domains)
+{
+    struct sss_domain_info *dom = domains, *other = NULL;
+    uint32_t id_min, id_max;
+
+    while (dom) {
+        other = dom->next;
+        if (dom->id_max && dom->id_min > dom->id_max) {
+            DEBUG(1, ("Domain '%s' does not have a valid ID range\n",
+                      dom->name));
+            return EINVAL;
+        }
+
+        while (other) {
+            id_min = MAX(dom->id_min, other->id_min);
+            id_max = MIN((dom->id_max ? dom->id_max : UINT32_MAX),
+                         (other->id_max ? other->id_max : UINT32_MAX));
+            if (id_min <= id_max) {
+                DEBUG(1, ("Domains '%s' and '%s' overlap in range %u - %u\n",
+                          dom->name, other->name, id_min, id_max));
+            }
+            other = other->next;
+        }
+        dom = dom->next;
+    }
+
+    return EOK;
+}
+
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
@@ -565,6 +595,12 @@ int get_monitor_config(struct mt_ctx *ctx)
     ret = confdb_get_domains(ctx->cdb, ctx, &ctx->domains);
     if (ret != EOK) {
         DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
+        return ret;
+    }
+
+    /* Check UID/GID overlaps */
+    ret = check_domain_ranges(ctx->domains);
+    if (ret != EOK) {
         return ret;
     }
 
