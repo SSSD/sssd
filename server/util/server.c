@@ -74,6 +74,8 @@ static void close_low_fds(bool stderr_too)
 
 void become_daemon(bool Fork)
 {
+        int ret;
+
 	if (Fork) {
 		if (fork()) {
 			_exit(0);
@@ -82,6 +84,15 @@ void become_daemon(bool Fork)
 
     /* detach from the terminal */
 	setsid();
+
+        /* chdir to / to be sure we're not on a remote filesystem */
+        errno = 0;
+        if(chdir("/") == -1) {
+            ret = errno;
+            DEBUG(0, ("Cannot change directory (%d [%s])\n",
+                    ret, strerror(ret)));
+            return;
+        }
 
 	/* Close fd's 0,1,2. Needed if started by rsh */
 	close_low_fds(false);  /* Don't close stderr, let the debug system
