@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <sys/un.h>
 #include <errno.h>
+#include <stdbool.h>
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"

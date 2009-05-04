@@ -22,7 +22,6 @@
 #ifndef __SYS_DB_H__
 #define __SYS_DB_H__
 
-#include "ldb.h"
 #include "confdb/confdb.h"
 
 #define SYSDB_CONF_SECTION "config/sysdb"

@@ -23,7 +23,6 @@
 
 #include <sys/stat.h>
 #include "config.h"
-#include "ldb.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_private.h"
