@@ -24,6 +24,7 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <time.h>
+#include <string.h>
 #include "config.h"
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
@@ -121,6 +122,7 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name);
 
 static int monitor_signal_reconf(struct confdb_ctx *cdb, void *pvt);
 static int update_monitor_config(struct mt_ctx *ctx);
+static int monitor_cleanup();
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -987,6 +989,55 @@ static void monitor_hup(struct tevent_context *ev,
     update_monitor_config(ctx);
 }
 
+static int monitor_cleanup(void)
+{
+    char *file;
+    int ret;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return;
+
+    file = talloc_asprintf(tmp_ctx, "%s/%s.pid", PID_PATH, "sssd");
+    if (file == NULL) {
+        return ENOMEM;
+    }
+
+    errno = 0;
+    ret = unlink(file);
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(0, ("Error removing pidfile! (%d [%s])\n",
+                ret, strerror(ret)));
+        talloc_free(file);
+        return errno;
+    }
+
+    talloc_free(file);
+    return EOK;
+}
+
+static void monitor_quit(struct tevent_context *ev,
+                         struct tevent_signal *se,
+                         int signum,
+                         int count,
+                         void *siginfo,
+                         void *private_data)
+{
+    struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
+
+    monitor_cleanup();
+
+#if HAVE_GETPGRP
+    if (getpgrp() == getpid()) {
+        DEBUG(0,("%s: killing children\n", strsignal(signum)));
+        kill(-getpgrp(), SIGTERM);
+    }
+#endif
+
+    exit(0);
+}
+
 #ifdef HAVE_SYS_INOTIFY_H
 static void config_file_changed(struct tevent_context *ev,
                                        struct tevent_fd *fde,
@@ -1314,6 +1365,22 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     /* Set up an event handler for a SIGHUP */
     tes = tevent_add_signal(ctx->ev, ctx, SIGHUP, 0,
                             monitor_hup, ctx);
+    if (tes == NULL) {
+        talloc_free(ctx);
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGINT */
+    tes = tevent_add_signal(ctx->ev, ctx, SIGINT, 0,
+                            monitor_quit, ctx);
+    if (tes == NULL) {
+        talloc_free(ctx);
+        return EIO;
+    }
+
+    /* Set up an event handler for a SIGTERM */
+    tes = tevent_add_signal(ctx->ev, ctx, SIGTERM, 0,
+                            monitor_quit, ctx);
     if (tes == NULL) {
         talloc_free(ctx);
         return EIO;
@@ -1901,6 +1968,9 @@ int main(int argc, const char *argv[])
 
     /* loop on main */
     server_loop(main_ctx);
+
+    ret = monitor_cleanup();
+    if (ret != EOK) return 5;
 
     return 0;
 }

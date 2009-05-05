@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include "util/util.h"
 #include "ldb.h"
 #include "confdb/confdb.h"
@@ -110,10 +111,17 @@ int pidfile(const char *path, const char *name)
             if (pid != 0) {
                 errno = 0;
                 ret = kill(pid, 0);
-                if (ret != 0 && errno != ESRCH) {
+                /* succeeded in signaling the process -> another sssd process */
+                if (ret == 0) {
                     close(fd);
                     free(file);
                     return EEXIST;
+                }
+                if (ret != 0 && errno != ESRCH) {
+                    err = errno;
+                    close(fd);
+                    free(file);
+                    return err;
                 }
             }
         }
