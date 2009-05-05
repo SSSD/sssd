@@ -39,6 +39,8 @@
 #include "tevent.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_setup.h"
+#include "collection.h"
+#include "ini_config.h"
 #include "db/sysdb.h"
 #include "monitor/monitor.h"
 #include "dbus/dbus.h"
@@ -1078,6 +1080,26 @@ static void monitor_quit(struct tevent_context *ev,
     exit(0);
 }
 
+int read_config_file(const char *config_file)
+{
+    int ret;
+    struct collection_item *sssd_config = NULL;
+    struct collection_item *error_list = NULL;
+
+    /* Read the configuration into a collection */
+    ret = config_from_file("sssd", config_file, &sssd_config,
+                           INI_STOP_ON_ANY, &error_list);
+    if (ret != EOK) {
+        DEBUG(0, ("Parse error reading configuration file [%s]\n",
+                  config_file));
+        print_file_parsing_errors(stderr, error_list);
+    }
+
+    destroy_collection(error_list);
+    destroy_collection(sssd_config);
+    return ret;
+}
+
 #ifdef HAVE_SYS_INOTIFY_H
 static void config_file_changed(struct tevent_context *ev,
                                        struct tevent_fd *fde,
@@ -2012,6 +2034,10 @@ int main(int argc, const char *argv[])
 
     /* we want a pid file check */
     flags |= FLAGS_PID_FILE;
+
+    /* Parse config file, fail if cannot be done */
+    ret = read_config_file(config_file);
+    if (ret != EOK) return 4;
 
     /* set up things like debug , signals, daemonization, etc... */
     ret = server_setup("sssd", flags, MONITOR_CONF_ENTRY, &main_ctx);
