@@ -230,6 +230,13 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
                       lreq->error, ret, done);
     memset(pd->newauthtok, 0, pd->newauthtok_size);
 
+    if (strlen(newauthtok) == 0) {
+        /* TODO: should we allow null passwords via a config option ? */
+        DEBUG(1, ("Empty passwords are not allowed!"));
+        ret = EINVAL;
+        goto done;
+    }
+
     ret = s3crypt_gen_salt(lreq, &salt);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("Salt generation failed.\n"),
                       lreq->error, ret, done);
