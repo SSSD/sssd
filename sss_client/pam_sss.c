@@ -8,8 +8,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <syslog.h>
+
 #include <security/pam_modules.h>
 #include <security/pam_misc.h>
+#include <security/pam_ext.h>
 
 #include "sss_cli.h"
 
@@ -37,6 +40,36 @@ struct pam_items {
     int pam_newauthtok_type;
     size_t pam_newauthtok_size;
 };
+
+#define DEBUG_MGS_LEN 1024
+
+static void logger(pam_handle_t *pamh, int level, const char *fmt, ...) {
+    va_list ap;
+
+    va_start(ap, fmt);
+
+#ifdef DEBUG
+    va_list apd;
+    char debug_msg[DEBUG_MGS_LEN];
+    int ret;
+    va_copy(apd, ap);
+
+    ret = vsnprintf(debug_msg, DEBUG_MGS_LEN, fmt, apd);
+    if (ret >= DEBUG_MGS_LEN) {
+        D(("the following message is truncated: %s", debug_msg));
+    } else if (ret < 0) {
+        D(("vsnprintf failed to format debug message!"));
+    } else {
+        D((debug_msg));
+    }
+
+    va_end(apd);
+#endif
+
+    pam_vsyslog(pamh, LOG_AUTHPRIV|level, fmt, ap);
+
+    va_end(ap);
+}
 
 static int pack_message(struct pam_items *pi, size_t *size, uint8_t **buffer) {
     int len;
@@ -170,7 +203,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
 
             if (state == PAM_CONV_REENTER) {
                 if (null_strcmp(*answer, resp[0].resp) != 0) {
-                    D(("Passwords do not match."));
+                    logger(pamh, LOG_NOTICE, "Passwords do not match.");
                     _pam_overwrite((void *)resp[0].resp);
                     free(resp[0].resp);
                     if (*answer != NULL) {
@@ -262,7 +295,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                     D(("user info does not end with \\0."));
                     break;
                 }
-                D(("user info: [%s]", &buf[p]));
+                logger(pamh, LOG_INFO, "user info: [%s]", &buf[p]);
                 ret = do_pam_conversation(pamh, PAM_USER_INFO, (char *) &buf[p],
                                           NULL, NULL);
                 if (ret != PAM_SUCCESS) {
@@ -399,7 +432,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
         } else if (strcmp(*argv, "use_authtok") == 0) {
             flags |= FLAGS_USE_AUTHTOK;
         } else {
-            D(("unknown option: %s", *argv));
+            logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
     }
 
@@ -542,7 +575,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
     ret = sss_pam_make_request(task, &rd, &repbuf, &replen, &errnop);
 
     if (ret != NSS_STATUS_SUCCESS) {
-        D(("sss_pam_make_request failed."));
+        logger(pamh, LOG_ERR, "Request to sssd failed.");
         pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
@@ -561,7 +594,9 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
         pam_status = ret;
         goto done;
     }
-    D(("received: %d (%s)", pam_status, pam_strerror(pamh,pam_status)));
+    logger(pamh, (pam_status == PAM_SUCCESS ? LOG_INFO : LOG_NOTICE),
+           "received for user %s: %d (%s)", pi.pam_user, pam_status,
+           pam_strerror(pamh,pam_status));
 
 done:
     if (buf != NULL ) {
