@@ -43,6 +43,12 @@ struct cli_request {
     struct sss_packet *out;
 };
 
+struct cli_protocol_version {
+    uint32_t version;
+    char *date;
+    char *description;
+};
+
 struct sss_names_ctx {
     char *re_pattern;
     char *fq_fmt;
@@ -83,6 +89,7 @@ struct cli_ctx {
     struct tevent_fd *cfde;
     struct sockaddr_un addr;
     struct cli_request *creq;
+    struct cli_protocol_version *cli_protocol_version;
     int priv;
 };
 
@@ -111,6 +118,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
 int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);
 void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
+struct cli_protocol_version *register_cli_protocol_version(void);
 
 /* responder_dp.c */
 int sss_dp_init(struct resp_ctx *rctx, struct sbus_method dp_methods[]);

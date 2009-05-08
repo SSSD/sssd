@@ -295,15 +295,29 @@ static enum nss_status sss_nss_make_request_nochecks(
  * 0-3: 32bit unsigned version number
  */
 
-static int sss_nss_check_version(void)
+static int sss_nss_check_version(const char *socket_name)
 {
     uint8_t *repbuf;
     size_t replen;
     enum nss_status nret;
     int errnop;
     int res = NSS_STATUS_UNAVAIL;
+    uint32_t expected_version;
+    struct sss_cli_req_data req;
 
-    nret = sss_nss_make_request_nochecks(SSS_GET_VERSION, NULL,
+    if (strcmp(socket_name, SSS_NSS_SOCKET_NAME) == 0) {
+        expected_version = SSS_NSS_PROTOCOL_VERSION;
+    } else if (strcmp(socket_name, SSS_PAM_SOCKET_NAME) == 0 ||
+               strcmp(socket_name, SSS_PAM_PRIV_SOCKET_NAME) == 0) {
+        expected_version = SSS_PAM_PROTOCOL_VERSION;
+    } else {
+        return NSS_STATUS_UNAVAIL;
+    }
+
+    req.len = sizeof(expected_version);
+    req.data = &expected_version;
+
+    nret = sss_nss_make_request_nochecks(SSS_GET_VERSION, &req,
                                          &repbuf, &replen, &errnop);
     if (nret != NSS_STATUS_SUCCESS) {
         return nret;
@@ -313,7 +327,7 @@ static int sss_nss_check_version(void)
         return res;
     }
 
-    if (((uint32_t *)repbuf)[0] == SSS_PROTOCOL_VERSION) {
+    if (((uint32_t *)repbuf)[0] == expected_version) {
         res = NSS_STATUS_SUCCESS;
     }
 
@@ -555,7 +569,7 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
 
     sss_cli_sd = mysd;
 
-    if (sss_nss_check_version()) {
+    if (sss_nss_check_version(socket_name) == NSS_STATUS_SUCCESS) {
         return SSS_STATUS_SUCCESS;
     }
 

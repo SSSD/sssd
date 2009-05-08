@@ -3105,6 +3105,16 @@ done:
     return EOK;
 }
 
+struct cli_protocol_version *register_cli_protocol_version(void)
+{
+    static struct cli_protocol_version nss_cli_protocol_version[] = {
+        {1, "2008-09-05", "initial version, \\0 terminated strings"},
+        {0, NULL, NULL}
+    };
+
+    return nss_cli_protocol_version;
+}
+
 static struct sss_cmd_table nss_cmds[] = {
     {SSS_GET_VERSION, sss_cmd_get_version},
     {SSS_NSS_GETPWNAM, nss_cmd_getpwnam},

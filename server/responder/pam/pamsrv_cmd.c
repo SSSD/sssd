@@ -656,7 +656,18 @@ static int pam_cmd_chauthtok(struct cli_ctx *cctx) {
     return pam_forwarder(cctx, SSS_PAM_CHAUTHTOK);
 }
 
-struct sss_cmd_table *register_sss_cmds(void) {
+struct cli_protocol_version *register_cli_protocol_version(void)
+{
+    static struct cli_protocol_version pam_cli_protocol_version[] = {
+        {1, "2008-09-05", "initial version, \\0 terminated strings"},
+        {0, NULL, NULL}
+    };
+
+    return pam_cli_protocol_version;
+}
+
+struct sss_cmd_table *register_sss_cmds(void)
+{
     static struct sss_cmd_table sss_cmds[] = {
         {SSS_GET_VERSION, sss_cmd_get_version},
         {SSS_PAM_AUTHENTICATE, pam_cmd_authenticate},

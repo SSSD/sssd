@@ -36,9 +36,39 @@ void sss_cmd_done(struct cli_ctx *cctx, void *freectx)
 
 int sss_cmd_get_version(struct cli_ctx *cctx)
 {
+    uint8_t *req_body;
+    size_t req_blen;
     uint8_t *body;
     size_t blen;
     int ret;
+    uint32_t client_version;
+    int i;
+    static struct cli_protocol_version *cli_protocol_version = NULL;
+
+    cctx->cli_protocol_version = NULL;
+
+    if (cli_protocol_version == NULL) {
+        cli_protocol_version = register_cli_protocol_version();
+    }
+
+    if (cli_protocol_version != NULL) {
+        cctx->cli_protocol_version = &cli_protocol_version[0];
+
+        sss_packet_get_body(cctx->creq->in, &req_body, &req_blen);
+        if (req_blen == sizeof(uint32_t)) {
+            client_version = (uint32_t ) *req_body;
+            DEBUG(4, ("Received client version [%d].\n", client_version));
+
+            i=0;
+            while(cli_protocol_version[i].version>0) {
+                if (cli_protocol_version[i].version == client_version) {
+                    cctx->cli_protocol_version = &cli_protocol_version[i];
+                    break;
+                }
+                i++;
+            }
+        }
+    }
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, sizeof(uint32_t),
@@ -48,7 +78,9 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
         return ret;
     }
     sss_packet_get_body(cctx->creq->out, &body, &blen);
-    ((uint32_t *)body)[0] = SSS_PROTOCOL_VERSION;
+    ((uint32_t *)body)[0] = cctx->cli_protocol_version!=NULL ?
+                                cctx->cli_protocol_version->version : 0;
+    DEBUG(4, ("Offered version [%d].\n", ((uint32_t *)body)[0]));
 
     sss_cmd_done(cctx, NULL);
     return EOK;
