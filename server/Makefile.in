@@ -17,6 +17,8 @@ srcdir = @srcdir@
 builddir = @builddir@
 sharedbuilddir = @sharedbuilddir@
 INSTALLCMD = @INSTALL@
+XSLTPROC = @XSLTPROC@
+XMLLINT = @XMLLINT@
 EXTRA_OBJ=@EXTRA_OBJ@
 SSSD_CONF_DIR = @sysconfdir@/sssd
 SSSD_LIBEXEC_PATH = @libexecdir@/@PACKAGE_NAME@
@@ -25,10 +27,12 @@ LDB_LIBDIR = @libdir@/ldb
 SSSD_INTROSPECT_PATH=@datarootdir@/@PACKAGE_NAME@/introspect
 PACKAGE_VERSION = @PACKAGE_VERSION@
 srvdir = @srcdir@
+mansrcdir = @srcdir@/man
 SSSD_PIPE_PATH = @pipepath@
 SSSD_DB_PATH = @dbpath@
 SSSD_PID_PATH = @pidpath@
 SHADOW_UTILS_PATH = @shadow_utils_path@
+SGML_CATALOG_FILES = @SGML_CATALOG_FILES@
 
 TALLOC_LIBS = @TALLOC_LIBS@
 TALLOC_CFLAGS = @TALLOC_CFLAGS@
@@ -94,9 +98,14 @@ CFLAGS := -I$(srcdir)/include -Iinclude -I$(srcdir) -I$(srcdir)/.. \
 MDLD = @MDLD@
 MDLD_FLAGS = @MDLD_FLAGS@
 
+export SGML_CATALOG_FILES
+XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
+XSLTPROC_FLAGS = --catalogs --xinclude --nonet
+
 HAVE_INFOPIPE = @HAVE_INFOPIPE@
 HAVE_POLICYKIT = @HAVE_POLICYKIT@
 HAVE_TESTS = @HAVE_TESTS@
+HAVE_MANPAGES = @HAVE_MANPAGES@
 
 MEMBEROF_SOBASE=memberof.$(SHLIBEXT)
 MEMBEROF_SONAME=$(MEMBEROF_SOBASE).0
@@ -122,6 +131,13 @@ headers =
 DBUS_SYSBUS_POLICY_DIR = @sysconfdir@/dbus-1/system.d
 SSSD_CONF_FILE = etc/sssd.conf
 
+DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
+MANPAGES = man/sss_useradd.8
+
+ifneq (x$(HAVE_MANPAGES), x)
+    GENDOC = $(MANPAGES)
+endif
+
 LIBEXECBINS =  sbin/sssd_nss sbin/sssd_dp sbin/sssd_be sbin/sssd_pam
 ifneq (x$(HAVE_INFOPIPE), x)
     LIBEXECBINS += sbin/sssd_info
@@ -146,7 +162,7 @@ SOBASELIBS = lib/$(PROXY_BE_SOBASE) lib/$(MEMBEROF_SOBASE) lib/$(LDAP_BE_SOBASE)
 
 DIRS = sbin lib
 
-all: showflags dirs $(OBJS) $(BINS) $(SOBASELIBS)
+all: showflags dirs $(OBJS) $(BINS) $(SOBASELIBS) $(GENDOC)
 
 shared-build: all
 
@@ -161,6 +177,7 @@ clean:: testclean
 	rm -f *.o */*.o */*/*.o
 	rm -f $(BINS)
 	rm -f $(SOBASELIBS) $(SONAMELIBS) $(SOLIBS) $(LDBLIBS)
+	rm -f $(MANPAGES)
 
 distclean:: clean
 	rm -rf $(DIRS)
@@ -173,7 +190,7 @@ realdistclean:: distclean
 testclean::
 	rm -f $(TESTS) $(TESTS_DATA)
 
-install:: all installdirs installheaders installlibs installbin installsupport
+install:: all installdirs installheaders installlibs installbin installsupport installdoc
 	${INSTALLCMD} -d $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 755 sbin/sssd $(DESTDIR)$(sbindir)
 	${INSTALLCMD} -m 755 $(TOOLSBINS) $(DESTDIR)$(sbindir)
@@ -186,6 +203,7 @@ installdirs::
 	          $(DESTDIR)$(libdir) \
 	          $(DESTDIR)$(sbindir) \
 		  $(DESTDIR)$(initdir) \
+		  $(DESTDIR)$(mandir) \
 		  $(DESTDIR)$(SSSD_LIBDIR) \
 		  $(DESTDIR)$(LDB_LIBDIR) \
 	          $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR) \
@@ -219,4 +237,17 @@ installsupport:: installdirs
 ifneq (x$(HAVE_INFOPIPE), x)
 	cp $(DBUS_SYSBUS_POLICIES) $(DESTDIR)$(DBUS_SYSBUS_POLICY_DIR)
 	cp $(INFP_INTROSPECT_XML) $(DESTDIR)$(SSSD_INTROSPECT_PATH)/infopipe
+endif
+
+doc:: $(if $(HAVE_MANPAGES),$(MANPAGES), \
+        $(info Please use configure option --with-manpages to enable))
+
+installdoc:: installdirs
+ifneq (x$(HAVE_MANPAGES), x)
+	for mp in $(MANPAGES); do \
+	    FNAME=`basename $${mp}`; \
+	    SECTION=`echo $${mp} | grep -o .$$`; \
+	    SECTION_DIR=man$${SECTION}; \
+	    $(INSTALLCMD) -D -m 644 $${mp} $(DESTDIR)$(mandir)/$${SECTION_DIR}/$${FNAME}; \
+	done ;
 endif

@@ -39,6 +39,8 @@ BuildRequires: pam-devel
 BuildRequires: nss-devel
 BuildRequires: nspr-devel
 BuildRequires: pcre-devel
+BuildRequires: libxslt
+BuildRequires: libxml2
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -110,6 +112,7 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
+%{_mandir}/man8/*
 
 %post
 /sbin/ldconfig

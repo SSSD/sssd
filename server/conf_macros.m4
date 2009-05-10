@@ -143,3 +143,33 @@ AC_DEFUN(WITH_SHADOW_UTILS_PATH,
     fi
     AC_SUBST(shadow_utils_path)
   ])
+
+AC_DEFUN(WITH_MANPAGES,
+  [ AC_ARG_WITH([manpages],
+                [AC_HELP_STRING([--with-manpages],
+                                [Whether to regenerate man pages from DocBook sources [yes]]
+                               )
+                ],
+                [],
+                with_manpages=yes
+               )
+    if test x"$with_manpages" == xyes; then
+        HAVE_MANPAGES=1
+        AC_SUBST(HAVE_MANPAGES)
+    fi
+  ])
+
+AC_DEFUN([WITH_XML_CATALOG],
+  [ AC_ARG_WITH([xml-catalog-path],
+                [AC_HELP_STRING([--with-xml-catalog-path=PATH],
+                                [Where to look for XML catalog [/etc/xml/catalog]]
+                               )
+                ]
+               )
+    SGML_CATALOG_FILES="/etc/xml/catalog"
+    if test x"$with_xml_catalog_path" != x; then
+        SGML_CATALOG_FILES="$with_xml_catalog_path"
+    fi
+    AC_SUBST([SGML_CATALOG_FILES])
+  ])
+

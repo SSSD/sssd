@@ -40,6 +40,8 @@ WITH_POLICYKIT
 WITH_TESTS
 WITH_INIT_DIR
 WITH_SHADOW_UTILS_PATH
+WITH_MANPAGES
+WITH_XML_CATALOG
 
 m4_include(pkg.m4)
 m4_include(libpopt.m4)
@@ -63,6 +65,12 @@ if test x$HAVE_TESTS != x; then
     PKG_CHECK_MODULES([CHECK],[check])
 fi
 PKG_CHECK_MODULES([NSS],[nss])
+
+if test x$HAVE_MANPAGES != x; then
+    AC_CHECK_FILE($SGML_CATALOG_FILES, [], [AC_MSG_ERROR([could not find XML catalog])])
+    AC_PATH_PROG([XSLTPROC], [xsltproc])
+    AC_PATH_PROG([XMLLINT], [xmllint])
+fi
 
 AC_SUBST(TESTS)
 AC_SUBST(EXTRA_OBJ)
