@@ -112,7 +112,7 @@ done:
  * the separator is a string, and is case-sensitive.
  * optionally single values can be trimmed of of spaces and tabs */
 static int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
-                              char *sep, bool trim, char ***_list, int *size)
+                              const char *sep, bool trim, char ***_list, int *size)
 {
     const char *t, *p, *n;
     size_t l, s, len;

@@ -123,7 +123,7 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name);
 
 static int monitor_signal_reconf(struct confdb_ctx *cdb, void *pvt);
 static int update_monitor_config(struct mt_ctx *ctx);
-static int monitor_cleanup();
+static int monitor_cleanup(void);
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -997,7 +997,7 @@ static int monitor_cleanup(void)
     TALLOC_CTX *tmp_ctx;
 
     tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return;
+    if (!tmp_ctx) return ENOMEM;
 
     file = talloc_asprintf(tmp_ctx, "%s/%s.pid", PID_PATH, "sssd");
     if (file == NULL) {
@@ -1025,8 +1025,6 @@ static void monitor_quit(struct tevent_context *ev,
                          void *siginfo,
                          void *private_data)
 {
-    struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
-
     monitor_cleanup();
 
 #if HAVE_GETPGRP
@@ -1915,6 +1913,7 @@ int main(int argc, const char *argv[])
     int opt_daemon = 0;
     int opt_interactive = 0;
     char *opt_config_file = NULL;
+    char *config_file = NULL;
     int flags = 0;
     struct main_context *main_ctx;
     int ret;
@@ -1952,7 +1951,13 @@ int main(int argc, const char *argv[])
 
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) flags |= FLAGS_INTERACTIVE;
-    if (!opt_config_file) opt_config_file = CONFDB_DEFAULT_CONFIG_FILE;
+
+    if (opt_config_file)
+        config_file = talloc_strdup(NULL, opt_config_file);
+    else
+        config_file = talloc_strdup(NULL, CONFDB_DEFAULT_CONFIG_FILE);
+    if(!config_file)
+        return 6;
 
     /* we want a pid file check */
     flags |= FLAGS_PID_FILE;
@@ -1964,8 +1969,9 @@ int main(int argc, const char *argv[])
     ret = monitor_process_init(main_ctx,
                                main_ctx->event_ctx,
                                main_ctx->confdb_ctx,
-                               opt_config_file);
+                               config_file);
     if (ret != EOK) return 3;
+    talloc_free(config_file);
 
     /* loop on main */
     server_loop(main_ctx);
