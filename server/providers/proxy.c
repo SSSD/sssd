@@ -70,6 +70,12 @@ struct authtok_conv {
     uint8_t *authtok;
 };
 
+static void cache_password(struct be_req *req,
+                           char *username,
+                           struct authtok_conv *ac);
+static void proxy_reply(struct be_req *req,
+                        int error, const char *errstr);
+
 static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
                             struct pam_response **response,
                             void *appdata_ptr) {
@@ -121,12 +127,13 @@ static void proxy_pam_handler(struct be_req *req) {
     struct pam_conv conv;
     struct pam_data *pd;
     struct proxy_auth_ctx *ctx;;
+    bool cache_auth_data = false;
 
     ctx = talloc_get_type(req->be_ctx->pvt_auth_data, struct proxy_auth_ctx);
     pd = talloc_get_type(req->req_data, struct pam_data);
 
     conv.conv=proxy_internal_conv;
-    auth_data = talloc_zero(req->be_ctx, struct authtok_conv);
+    auth_data = talloc_zero(req, struct authtok_conv);
     conv.appdata_ptr=auth_data;
 
     ret = pam_start(ctx->pam_target, pd->user, &conv, &pamh);
@@ -148,7 +155,11 @@ static void proxy_pam_handler(struct be_req *req) {
             case SSS_PAM_AUTHENTICATE:
                 auth_data->authtok_size = pd->authtok_size;
                 auth_data->authtok = pd->authtok;
-                pam_status=pam_authenticate(pamh, 0);
+                pam_status = pam_authenticate(pamh, 0);
+                if ((pam_status == PAM_SUCCESS) &&
+                    (req->be_ctx->domain->cache_credentials)) {
+                    cache_auth_data = true;
+                }
                 break;
             case SSS_PAM_SETCRED:
                 pam_status=pam_setcred(pamh, 0);
@@ -166,12 +177,16 @@ static void proxy_pam_handler(struct be_req *req) {
                 if (pd->priv != 1) {
                     auth_data->authtok_size = pd->authtok_size;
                     auth_data->authtok = pd->authtok;
-                    pam_status=pam_authenticate(pamh, 0);
+                    pam_status = pam_authenticate(pamh, 0);
                     if (pam_status != PAM_SUCCESS) break;
                 }
                 auth_data->authtok_size = pd->newauthtok_size;
                 auth_data->authtok = pd->newauthtok;
-                pam_status=pam_chauthtok(pamh, 0);
+                pam_status = pam_chauthtok(pamh, 0);
+                if ((pam_status == PAM_SUCCESS) &&
+                    (req->be_ctx->domain->cache_credentials)) {
+                    cache_auth_data = true;
+                }
                 break;
             default:
                 DEBUG(1, ("unknown PAM call"));
@@ -191,15 +206,14 @@ static void proxy_pam_handler(struct be_req *req) {
         pam_status = PAM_SYSTEM_ERR;
     }
 
-    talloc_free(auth_data);
-
     pd->pam_status = pam_status;
-    req->fn(req, EOK, NULL);
-}
 
-static void proxy_reply(struct be_req *req, int error, const char *errstr)
-{
-    return req->fn(req, error, errstr);
+    if (cache_auth_data) {
+        cache_password(req, pd->user, auth_data);
+        return;
+    }
+
+    proxy_reply(req, EOK, NULL);
 }
 
 struct proxy_data {
@@ -221,6 +235,94 @@ struct proxy_data {
 
     sysdb_callback_t next_fn;
 };
+
+static void proxy_reply(struct be_req *req, int error, const char *errstr)
+{
+    return req->fn(req, error, errstr);
+}
+
+static void cache_pw_return(void *pvt, int error, struct ldb_result *ignore)
+{
+    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
+    const char *err = "Success";
+
+    if (error != EOK) {
+        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                  error, strerror(error)));
+    }
+
+    sysdb_transaction_done(data->sysreq, error);
+
+    /* password caching failures are not fatal errors */
+    return proxy_reply(data->req, EOK, NULL);
+}
+
+static void cache_pw_op(struct sysdb_req *req, void *pvt)
+{
+    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
+    int ret;
+
+    data->sysreq = req;
+
+    ret = sysdb_set_cached_password(req,
+                                    data->req->be_ctx->domain,
+                                    data->pwd->pw_name,
+                                    data->pwd->pw_passwd,
+                                    cache_pw_return, data);
+    if (ret != EOK) {
+        /* password caching failures are not fatal errors */
+        proxy_reply(data->req, EOK, NULL);
+    }
+}
+
+static int password_destructor(void *memctx)
+{
+    char *password = (char *)memctx;
+    int i;
+
+    /* zero out password */
+    for (i = 0; password[i]; i++) password[i] = '\0';
+
+    return 0;
+}
+
+static void cache_password(struct be_req *req,
+                           char *username,
+                           struct authtok_conv *ac)
+{
+    struct proxy_data *data;
+    struct proxy_ctx *ctx;
+    int ret;
+
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
+
+    data = talloc_zero(req, struct proxy_data);
+    if (!data)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+    data->req = req;
+    data->ctx = ctx;
+    data->pwd = talloc(data, struct passwd);
+    if (!data->pwd)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+    data->pwd->pw_name = username;
+    data->pwd->pw_passwd = talloc_size(data, ac->authtok_size + 1);
+    if (!data->pwd->pw_passwd)
+        return proxy_reply(req, ENOMEM, "Out of memory");
+    memcpy(data->pwd->pw_passwd, ac->authtok, ac->authtok_size);
+    data->pwd->pw_passwd[ac->authtok_size] = '\0';
+
+    talloc_set_destructor((TALLOC_CTX *)data->pwd->pw_passwd,
+                          password_destructor);
+
+    ret = sysdb_transaction(data, req->be_ctx->sysdb, cache_pw_op, data);
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+        /* password caching failures are not fatal errors */
+        return proxy_reply(req, EOK, NULL);
+    }
+}
 
 static void proxy_return(void *pvt, int error, struct ldb_result *ignore)
 {

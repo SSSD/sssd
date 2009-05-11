@@ -1349,7 +1349,6 @@ static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt)
 
     DEBUG(9, ("Setting attributes for user [%s]\n", infp_setattr_req->usernames[infp_setattr_req->index]));
     ret = sysdb_set_user_attr(infp_setattr_req->sysdb_req,
-                              infp_setattr_req->infp_req->infp->sysdb,
                               infp_setattr_req->infp_req->domain,
                               infp_setattr_req->usernames[infp_setattr_req->index],
                               infp_setattr_req->changes[infp_setattr_req->index],
@@ -1714,7 +1713,6 @@ static void infp_do_user_set_uid(struct sysdb_req *req, void *pvt)
 
     DEBUG(9, ("Setting UID for user [%s]\n", infp_setuid_req->username));
     ret = sysdb_set_user_attr(infp_setuid_req->sysdb_req,
-                              infp_setuid_req->infp_req->infp->sysdb,
                               infp_setuid_req->infp_req->domain,
                               infp_setuid_req->username,
                               infp_setuid_req->uid_attr,

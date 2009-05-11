@@ -115,7 +115,7 @@ static void set_user_attr_req(struct sysdb_req *req, void *pvt)
 
     lreq->sysdb_req = req;
 
-    ret = sysdb_set_user_attr(req, lreq->dbctx, lreq->preq->domain,
+    ret = sysdb_set_user_attr(req, lreq->preq->domain,
                               lreq->preq->pd->user, lreq->mod_attrs,
                               set_user_attr_callback, lreq);
     if (ret != EOK)

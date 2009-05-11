@@ -5,6 +5,7 @@ UTIL_OBJ = \
     util/memory.o \
     util/btreemap.o \
     util/usertools.o \
+	util/nss_sha512crypt.o \
     monitor/monitor_sbus.o \
     providers/dp_sbus.o \
     providers/dp_auth_util.o \
@@ -68,9 +69,6 @@ INFP_TEST_OBJ = \
 STRESS_TEST_OBJ = \
 	tests/stress-tests.o
 
-CRYPT_OBJ = \
-	util/nss_sha512crypt.o
-
 PAMSRV_OBJ = \
     responder/pam/pamsrv.o \
     responder/pam/pamsrv_cmd.o \
@@ -79,8 +77,7 @@ PAMSRV_OBJ = \
     responder/pam/pamsrv_dp.o
 
 $(LDAP_BE_OBJ): CFLAGS += $(LDAP_CFLAGS)
-$(CRYPT_OBJ): CFLAGS += $(NSS_CFLAGS)
-
+$(UTIL_OBJ): CFLAGS += $(NSS_CFLAGS)
 
 TOOLS_OBJ = \
     tools/tools_util.o
@@ -109,8 +106,8 @@ sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
 sbin/sssd_nss: $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ)
 	$(CC) -o sbin/sssd_nss $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
-sbin/sssd_pam: $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(CRYPT_OBJ)
-	$(CC) -o sbin/sssd_pam $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(CRYPT_OBJ) $(LDFLAGS) $(LIBS) $(NSS_LIBS)
+sbin/sssd_pam: $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ)
+	$(CC) -o sbin/sssd_pam $(PAMSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(LDFLAGS) $(LIBS)
 
 sbin/sssd_dp: $(DP_OBJ) $(UTIL_OBJ)
 	$(CC) -o sbin/sssd_dp $(DP_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)

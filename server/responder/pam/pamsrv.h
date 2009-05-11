@@ -27,7 +27,6 @@ struct sss_cmd_table *register_sss_cmds(void);
 
 int pam_dp_send_req(struct pam_auth_req *preq, int timeout);
 
-int pam_cache_credentials(struct pam_auth_req *preq);
 int pam_cache_auth(struct pam_auth_req *preq);
 
 int LOCAL_pam_handler(struct pam_auth_req *preq);

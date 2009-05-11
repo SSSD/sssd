@@ -283,6 +283,8 @@ static int sdap_bind(struct sdap_req *lr)
     return LDAP_SUCCESS;
 }
 
+static void sdap_cache_password(struct sdap_req *lr);
+
 static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                          uint16_t fd, void *pvt)
 {
@@ -290,7 +292,6 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
     int pam_status=PAM_SUCCESS;
     int ldap_ret;
     struct sdap_req *lr;
-    struct pam_data *pd;
     struct be_req *req;
     LDAPMessage *result=NULL;
     LDAPMessage *msg=NULL;
@@ -573,11 +574,17 @@ done:
     talloc_free(filter);
     if (lr->ldap != NULL) ldap_unbind_ext(lr->ldap, NULL, NULL);
     req = lr->req;
-    pd = talloc_get_type(lr->req->req_data, struct pam_data);
-    pd->pam_status = pam_status;
+    lr->pd->pam_status = pam_status;
+
+    if (((lr->pd->cmd == SSS_PAM_AUTHENTICATE) ||
+         (lr->pd->cmd == SSS_PAM_CHAUTHTOK)) &&
+        (lr->pd->pam_status == PAM_SUCCESS) &&
+        lr->req->be_ctx->domain->cache_credentials) {
+        sdap_cache_password(lr);
+        return;
+    }
 
     talloc_free(lr);
-
     req->fn(req, pam_status, NULL);
 }
 
@@ -617,8 +624,7 @@ static void sdap_start(struct tevent_context *ev, struct tevent_timer *te,
 done:
     if (lr->ldap != NULL ) ldap_unbind_ext(lr->ldap, NULL, NULL);
     req = lr->req;
-    pd = talloc_get_type(lr->req->req_data, struct pam_data);
-    pd->pam_status = pam_status;
+    lr->pd->pam_status = pam_status;
 
     talloc_free(lr);
 
@@ -664,6 +670,111 @@ done:
 
     pd->pam_status = pam_status;
     req->fn(req, pam_status, NULL);
+}
+
+struct sdap_pw_cache {
+    struct sysdb_req *sysreq;
+    struct sdap_req *lr;
+};
+
+static int password_destructor(void *memctx)
+{
+    char *password = (char *)memctx;
+    int i;
+
+    /* zero out password */
+    for (i = 0; password[i]; i++) password[i] = '\0';
+
+    return 0;
+}
+
+static void sdap_reply(struct be_req *req, int ret, char *errstr)
+{
+    req->fn(req, ret, errstr);
+}
+
+static void sdap_cache_pw_callback(void *pvt, int error,
+                                   struct ldb_result *ignore)
+{
+    struct sdap_pw_cache *data = talloc_get_type(pvt, struct sdap_pw_cache);
+    if (error != EOK) {
+        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                  error, strerror(error)));
+    }
+
+    sysdb_transaction_done(data->sysreq, error);
+
+    /* password caching failures are not fatal errors */
+    sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
+}
+
+static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
+{
+    struct sdap_pw_cache *data = talloc_get_type(pvt, struct sdap_pw_cache);
+    struct pam_data *pd;
+    const char *username;
+    const char *password;
+    int ret;
+
+    data->sysreq = req;
+
+    pd = data->lr->pd;
+    username = pd->user;
+
+    if (pd->cmd == SSS_PAM_AUTHENTICATE) {
+        password = talloc_strndup(data, pd->authtok, pd->authtok_size);
+    }
+    else if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+        password = talloc_strndup(data, pd->newauthtok, pd->newauthtok_size);
+    }
+    else {
+        DEBUG(1, ("Attempting password caching on invalid Op!\n"));
+        /* password caching failures are not fatal errors */
+        sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
+        return;
+    }
+
+    if (!password) {
+        DEBUG(2, ("Out of Memory!\n"));
+        /* password caching failures are not fatal errors */
+        sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
+        return;
+    }
+
+    ret = sysdb_set_cached_password(req,
+                                    data->lr->req->be_ctx->domain,
+                                    username,
+                                    password,
+                                    sdap_cache_pw_callback, data);
+    if (ret != EOK) {
+        /* password caching failures are not fatal errors */
+        sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
+    }
+}
+
+static void sdap_cache_password(struct sdap_req *lr)
+{
+    struct sdap_pw_cache *data;
+    int ret;
+
+    data = talloc_zero(lr, struct sdap_pw_cache);
+    if (!data) {
+        DEBUG(2, ("Out of Memory!\n"));
+        /* password caching failures are not fatal errors */
+        sdap_reply(data->lr->req, lr->pd->pam_status, NULL);
+        return;
+    }
+    data->lr = lr;
+
+    ret = sysdb_transaction(data, lr->req->be_ctx->sysdb,
+                            sdap_cache_pw_op, data);
+
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+        /* password caching failures are not fatal errors */
+        sdap_reply(data->lr->req, lr->pd->pam_status, NULL);
+    }
 }
 
 static void sdap_shutdown(struct be_req *req)

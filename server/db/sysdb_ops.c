@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "db/sysdb_private.h"
+#include "util/nss_sha512crypt.h"
 #include <time.h>
 
 struct sysdb_cb_ctx {
@@ -456,12 +457,12 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
 }
 
 int sysdb_set_user_attr(struct sysdb_req *sysreq,
-                        struct sysdb_ctx *ctx,
                         struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attrs,
                         sysdb_callback_t fn, void *pvt)
 {
+    struct sysdb_ctx *ctx;
     struct sysdb_cb_ctx *cbctx;
     struct ldb_message *msg;
     struct ldb_request *req;
@@ -473,6 +474,8 @@ int sysdb_set_user_attr(struct sysdb_req *sysreq,
     }
 
     if (attrs->num == 0) return EINVAL;
+
+    ctx = sysdb_req_get_ctx(sysreq);
 
     cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
@@ -1832,3 +1835,48 @@ int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
     return EOK;
 }
 
+int sysdb_set_cached_password(struct sysdb_req *sysreq,
+                              struct sss_domain_info *domain,
+                              const char *user,
+                              const char *password,
+                              sysdb_callback_t fn, void *pvt)
+{
+    struct sysdb_ctx *ctx;
+    struct sysdb_attrs *attrs;
+    char *hash = NULL;
+    char *salt;
+    int ret;
+
+    ctx = sysdb_req_get_ctx(sysreq);
+    if (!ctx) return EFAULT;
+
+    ret = s3crypt_gen_salt(sysreq, &salt);
+    if (ret) {
+        DEBUG(4, ("Failed to generate random salt.\n"));
+        return ret;
+    }
+
+    ret = s3crypt_sha512(sysreq, password, salt, &hash);
+    if (ret) {
+        DEBUG(4, ("Failed to create password hash.\n"));
+        return ret;
+    }
+
+    attrs = sysdb_new_attrs(sysreq);
+    if (!attrs) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_CACHEDPWD, hash);
+    if (ret) return ret;
+
+    /* FIXME: should we use a different attribute for chache passwords ?? */
+    ret = sysdb_attrs_add_long(attrs, "lastCachedPasswordChange",
+                               (long)time(NULL));
+    if (ret) return ret;
+
+    ret = sysdb_set_user_attr(sysreq, domain, user, attrs, fn, pvt);
+    if (ret) return ret;
+
+    return EOK;
+}

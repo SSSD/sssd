@@ -269,7 +269,6 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
                               sysdb_callback_t fn, void *pvt);
 
 int sysdb_set_user_attr(struct sysdb_req *sysreq,
-                        struct sysdb_ctx *ctx,
                         struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attributes,

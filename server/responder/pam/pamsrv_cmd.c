@@ -263,19 +263,6 @@ static void pam_reply(struct pam_auth_req *preq)
         (preq->domain->cache_credentials == true) &&
         (pd->offline_auth == false)) {
 
-        if (pd->pam_status == PAM_SUCCESS) {
-            pd->offline_auth = true;
-            preq->callback = pam_reply;
-            ret = pam_cache_credentials(preq);
-            if (ret == EOK) {
-                return;
-            }
-            else {
-                DEBUG(0, ("Failed to cache credentials"));
-                /* this error is not fatal, continue */
-            }
-        }
-
         if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
             /* do auth with offline credentials */
             pd->offline_auth = true;

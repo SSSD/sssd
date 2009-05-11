@@ -125,7 +125,6 @@ static void mod_user(struct sysdb_req *req, void *pvt)
         add_to_groups(user_ctx, EOK, NULL);
     } else {
         ret = sysdb_set_user_attr(req,
-                                  sysdb_req_get_ctx(req),
                                   user_ctx->domain,
                                   user_ctx->username,
                                   user_ctx->attrs,
