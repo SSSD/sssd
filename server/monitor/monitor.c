@@ -37,6 +37,7 @@
 #include "popt.h"
 #include "tevent.h"
 #include "confdb/confdb.h"
+#include "confdb/confdb_setup.h"
 #include "db/sysdb.h"
 #include "monitor/monitor.h"
 #include "dbus/dbus.h"

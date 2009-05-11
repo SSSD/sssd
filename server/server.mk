@@ -25,7 +25,8 @@ RESPONDER_UTIL_OBJ = \
     responder/common/responder_cmd.o
 
 SERVER_OBJ = \
-    monitor/monitor.o
+    monitor/monitor.o \
+    confdb/confdb_setup.o
 
 DP_OBJ = \
 	providers/data_provider.o
@@ -102,7 +103,7 @@ GROUPMOD_OBJ = \
 	tools/sss_groupmod.o
 
 sbin/sssd: $(SERVER_OBJ) $(UTIL_OBJ)
-	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS)
+	$(CC) -o sbin/sssd $(SERVER_OBJ) $(UTIL_OBJ) $(LDFLAGS) $(LIBS) $(INI_CFG_LIBS) $(COLLECTION_LIBS)
 
 sbin/sssd_nss: $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ)
 	$(CC) -o sbin/sssd_nss $(NSSSRV_OBJ) $(UTIL_OBJ) $(RESPONDER_UTIL_OBJ) $(LDFLAGS) $(LIBS)

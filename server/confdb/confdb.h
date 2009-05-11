@@ -100,8 +100,4 @@ int confdb_get_domains(struct confdb_ctx *cdb,
                        TALLOC_CTX *mem_ctx,
                        struct sss_domain_info **domains);
 
-int confdb_create_base(struct confdb_ctx *cdb);
-int confdb_test(struct confdb_ctx *cdb);
-int confdb_init_db(const char *config_file, struct confdb_ctx *cdb);
-
 #endif
