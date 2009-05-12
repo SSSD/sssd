@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: collection
+Name: @PACKAGE_NAME@
 Description: A data-type to collect data in a heirarchical structure for easy iteration and serialization
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lcollection

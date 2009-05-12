@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: ini_config
+Name: @PACKAGE_NAME@
 Description: Library to process config files in INI format into a libcollection data structure
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lini_config

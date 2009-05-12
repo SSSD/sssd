@@ -3,12 +3,13 @@ TRACE_LEVEL=@TRACE_VAR@
 
 topdir=..
 AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace $(TRACE_LEVEL)
+ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = collection.pc
 
-# Build libraty
+# Build library
 lib_LTLIBRARIES = libcollection.la
 libcollection_la_SOURCES = collection.c collection_tools.c collection_tools.h collection_class.h
 include_HEADERS = collection.h collection_tools.h

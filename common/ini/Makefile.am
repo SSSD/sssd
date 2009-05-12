@@ -3,6 +3,7 @@ TRACE_LEVEL=@TRACE_VAR@
 
 topdir=..
 AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
+ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
@@ -10,7 +11,7 @@ pkgconfig_DATA = ini_config.pc
 
 # Build library
 lib_LTLIBRARIES = libini_config.la
-libini_config_la_SOURCES = ini_config.c collection.h collection_tools.h collection_class.h
+libini_config_la_SOURCES = ini_config.c
 include_HEADERS = ini_config.h
 
 # Build unit test

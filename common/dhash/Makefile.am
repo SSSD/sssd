@@ -1,4 +1,5 @@
 AM_CPPFLAGS = -Wall
+ACLOCAL_AMFLAGS = -I m4
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = dhash.pc

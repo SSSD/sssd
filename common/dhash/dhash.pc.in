@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: dhash
+Name: @PACKAGE_NAME@
 Description: A hash table which will dynamically resize to achieve optimal storage & access time properties
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -ldhash
