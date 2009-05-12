@@ -23,8 +23,17 @@ AC_CONFIG_FILES([Makefile
 
 AC_CONFIG_SUBDIRS([collection dhash ini])
 
+AC_DEFUN([WITH_SINGLELIB],
+  [ AC_ARG_WITH([singlelib],
+                [AC_HELP_STRING([--with-singlelib],
+                                [Whether to build a shared object containing all sssd_utils [no]]
+                               )
+                ],
+                [],
+                with_singlelib=yes
+               )
+  ])
+
+AM_CONDITIONAL([SINGLELIB], [test x$with_singlelib = xyes ])
+
 AC_OUTPUT
-
-
-
-

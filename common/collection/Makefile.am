@@ -11,7 +11,13 @@ pkgconfig_DATA = collection.pc
 
 # Build library
 lib_LTLIBRARIES = libcollection.la
-libcollection_la_SOURCES = collection.c collection_tools.c collection_tools.h collection_class.h
+libcollection_la_SOURCES = \
+    collection.c \
+    collection_tools.c
+
+noinst_HEADERS = \
+    collection_priv.h
+
 include_HEADERS = collection.h collection_tools.h
 
 # Build unit test
