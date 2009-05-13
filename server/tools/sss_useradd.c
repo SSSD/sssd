@@ -456,7 +456,15 @@ int main(int argc, const char **argv)
 
     if (user_ctx->error) {
         ret = user_ctx->error;
-        DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+        switch (ret) {
+            case EEXIST:
+                DEBUG(0, ("The user %s already exists\n", user_ctx->username));
+                break;
+
+            default:
+                DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+                break;
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }

@@ -208,7 +208,15 @@ int main(int argc, const char **argv)
 
     if (group_ctx->error) {
         ret = group_ctx->error;
-        DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+        switch (ret) {
+            case EEXIST:
+                DEBUG(0, ("The group %s already exists\n", group_ctx->groupname));
+                break;
+
+            default:
+                DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+                break;
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }
