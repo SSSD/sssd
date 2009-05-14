@@ -88,15 +88,6 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     DBusConnection *conn;
     dbus_bool_t ret;
 
-    if ((pd->domain == NULL) ||
-        (pd->user == NULL) ||
-        (pd->service == NULL) ||
-        (pd->tty == NULL) ||
-        (pd->ruser == NULL) ||
-        (pd->rhost == NULL) ) {
-        return EINVAL;
-    }
-
     /* double check dp_ctx has actually been initialized.
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.

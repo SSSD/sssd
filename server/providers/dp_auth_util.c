@@ -59,6 +59,13 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
 {
     int ret;
 
+    if (pd->user == NULL || pd->domain == NULL) return false;
+    if (pd->service == NULL) pd->service = "";
+    if (pd->tty == NULL) pd->tty = "";
+    if (pd->ruser == NULL) pd->ruser = "";
+    if (pd->rhost == NULL) pd->rhost = "";
+
+
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_INT32,  &(pd->cmd),
                                    DBUS_TYPE_STRING, &(pd->domain),

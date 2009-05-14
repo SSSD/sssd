@@ -141,6 +141,7 @@ static void pam_reply(struct pam_auth_req *preq)
     DEBUG(4, ("pam_reply get called.\n"));
 
     if ((pd->cmd == SSS_PAM_AUTHENTICATE) &&
+        (preq->domain != NULL) &&
         (preq->domain->cache_credentials == true) &&
         (pd->offline_auth == false)) {
 
