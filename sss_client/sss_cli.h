@@ -22,7 +22,7 @@
 #define SSS_PAM_PRIV_SOCKET_NAME "/var/lib/sss/pipes/private/pam"
 
 #define SSS_NSS_PROTOCOL_VERSION 1
-#define SSS_PAM_PROTOCOL_VERSION 1
+#define SSS_PAM_PROTOCOL_VERSION 2
 
 enum sss_cli_command {
 /* null */
@@ -138,7 +138,20 @@ enum sss_authtok_type {
     SSS_AUTHTOK_TYPE_PASSWORD =  0x0001,
 };
 
+#define START_OF_PAM_REQUEST 0x4d415049
 #define END_OF_PAM_REQUEST 0x4950414d
+
+enum pam_item_type {
+    PAM_ITEM_EMPTY = 0x0000,
+    PAM_ITEM_USER,
+    PAM_ITEM_SERVICE,
+    PAM_ITEM_TTY,
+    PAM_ITEM_RUSER,
+    PAM_ITEM_RHOST,
+    PAM_ITEM_AUTHTOK,
+    PAM_ITEM_NEWAUTHTOK,
+    PAM_CLI_LOCALE,
+};
 
 #define SSS_NSS_MAX_ENTRIES 256
 #define SSS_NSS_HEADER_SIZE (sizeof(uint32_t) * 4)

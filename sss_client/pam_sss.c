@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <syslog.h>
+#include <locale.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_misc.h>
@@ -39,6 +40,8 @@ struct pam_items {
     size_t pam_authtok_size;
     int pam_newauthtok_type;
     size_t pam_newauthtok_size;
+    char *pam_cli_locale;
+    size_t pam_cli_locale_size;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -69,6 +72,126 @@ static void logger(pam_handle_t *pamh, int level, const char *fmt, ...) {
     pam_vsyslog(pamh, LOG_AUTHPRIV|level, fmt, ap);
 
     va_end(ap);
+}
+
+
+static size_t add_authtok_item(enum pam_item_type type,
+                               enum sss_authtok_type authtok_type,
+                               const char *tok, const size_t size,
+                               uint8_t *buf) {
+    size_t rp=0;
+
+    if (tok == NULL) return 0;
+
+    ((uint32_t *)(&buf[rp]))[0] = type;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf[rp]))[0] = size + sizeof(uint32_t);
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf[rp]))[0] = authtok_type;
+    rp += sizeof(uint32_t);
+
+    memcpy(&buf[rp], tok, size);
+    rp += size;
+
+    return rp;
+}
+
+static size_t add_string_item(enum pam_item_type type, const char *str,
+                           const size_t size, uint8_t *buf) {
+    size_t rp=0;
+
+    if (*str == '\0') return 0;
+
+    ((uint32_t *)(&buf[rp]))[0] = type;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf[rp]))[0] = size;
+    rp += sizeof(uint32_t);
+
+    memcpy(&buf[rp], str, size);
+    rp += size;
+
+    return rp;
+}
+
+static int pack_message_v2(struct pam_items *pi, size_t *size, uint8_t **buffer) {
+    int len;
+    uint8_t *buf;
+    int rp;
+
+    len = sizeof(uint32_t) +
+          2*sizeof(uint32_t) + pi->pam_user_size +
+          sizeof(uint32_t);
+    len +=  *pi->pam_service != '\0' ?
+                2*sizeof(uint32_t) + pi->pam_service_size : 0;
+    len +=  *pi->pam_tty != '\0' ?
+                2*sizeof(uint32_t) + pi->pam_tty_size : 0;
+    len +=  *pi->pam_ruser != '\0' ?
+                2*sizeof(uint32_t) + pi->pam_ruser_size : 0;
+    len +=  *pi->pam_rhost != '\0' ?
+                2*sizeof(uint32_t) + pi->pam_rhost_size : 0;
+    len +=  *pi->pam_cli_locale != '\0' ?
+                2*sizeof(uint32_t) + pi->pam_cli_locale_size : 0;
+    len +=  pi->pam_authtok != NULL ?
+                3*sizeof(uint32_t) + pi->pam_authtok_size : 0;
+    len +=  pi->pam_newauthtok != NULL ?
+                3*sizeof(uint32_t) + pi->pam_newauthtok_size : 0;
+
+    buf = malloc(len);
+    if (buf == NULL) {
+        D(("malloc failed."));
+        return PAM_BUF_ERR;
+    }
+
+    rp = 0;
+    ((uint32_t *)(&buf[rp]))[0] = START_OF_PAM_REQUEST;
+    rp += sizeof(uint32_t);
+
+    rp += add_string_item(PAM_ITEM_USER, pi->pam_user, pi->pam_user_size,
+                          &buf[rp]);
+
+    rp += add_string_item(PAM_ITEM_SERVICE, pi->pam_service,
+                          pi->pam_service_size, &buf[rp]);
+
+    rp += add_string_item(PAM_ITEM_TTY, pi->pam_tty, pi->pam_tty_size,
+                          &buf[rp]);
+
+    rp += add_string_item(PAM_ITEM_RUSER, pi->pam_ruser, pi->pam_ruser_size,
+                          &buf[rp]);
+
+    rp += add_string_item(PAM_ITEM_RHOST, pi->pam_rhost, pi->pam_rhost_size,
+                          &buf[rp]);
+
+    rp += add_string_item(PAM_CLI_LOCALE, pi->pam_cli_locale,
+                          pi->pam_cli_locale_size, &buf[rp]);
+
+    rp += add_authtok_item(PAM_ITEM_AUTHTOK, pi->pam_authtok_type,
+                           pi->pam_authtok, pi->pam_authtok_size, &buf[rp]);
+    _pam_overwrite_n((void *)pi->pam_authtok, pi->pam_authtok_size);
+    free((void *)pi->pam_authtok);
+    pi->pam_authtok = NULL;
+
+    rp += add_authtok_item(PAM_ITEM_NEWAUTHTOK, pi->pam_newauthtok_type,
+                           pi->pam_newauthtok, pi->pam_newauthtok_size,
+                           &buf[rp]);
+    _pam_overwrite_n((void *)pi->pam_newauthtok,  pi->pam_newauthtok_size);
+    free((void *)pi->pam_newauthtok);
+    pi->pam_newauthtok = NULL;
+
+    ((uint32_t *)(&buf[rp]))[0] = END_OF_PAM_REQUEST;
+    rp += sizeof(uint32_t);
+
+    if (rp != len) {
+        D(("error during packet creation."));
+        return PAM_BUF_ERR;
+    }
+
+    *size = len;
+    *buffer = buf;
+
+    return 0;
 }
 
 static int pack_message(struct pam_items *pi, size_t *size, uint8_t **buffer) {
@@ -347,6 +470,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
 static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
+    char *cli_locale;
 
     pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
     pi->pam_authtok = NULL;
@@ -388,6 +512,15 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     if (ret != PAM_SUCCESS) return ret;
     if (pi->pamstack_oldauthtok == NULL) pi->pamstack_oldauthtok="";
 
+    cli_locale = setlocale(LC_ALL, NULL);
+    if (cli_locale == NULL) {
+        pi->pam_cli_locale = "";
+    } else {
+        pi->pam_cli_locale = strdup(cli_locale);
+        if (pi->pam_cli_locale == NULL) return PAM_BUF_ERR;
+    }
+    pi->pam_cli_locale_size = strlen(pi->pam_cli_locale)+1;
+
     return PAM_SUCCESS;
 }
 
@@ -406,6 +539,7 @@ static void print_pam_items(struct pam_items pi)
     if (pi.pam_newauthtok != NULL) {
         D(("Newauthtok: %s", *pi.pam_newauthtok!='\0' ? pi.pam_newauthtok : "(not available)"));
     }
+    D(("Locale: %s", *pi.pam_cli_locale!='\0' ? pi.pam_cli_locale : "(not available)"));
 }
 
 static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
@@ -550,7 +684,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
                     goto done;
                 }
                 pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-                pi.pam_newauthtok_size=strlen(pi.pam_authtok);
+                pi.pam_newauthtok_size=strlen(pi.pam_newauthtok);
             }
 
             if (flags & FLAGS_FORWARD_PASS) {
@@ -564,7 +698,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
 
     print_pam_items(pi);
 
-    ret = pack_message(&pi, &rd.len, &buf);
+    ret = pack_message_v2(&pi, &rd.len, &buf);
     if (ret != 0) {
         D(("pack_message failed."));
         pam_status = PAM_SYSTEM_ERR;

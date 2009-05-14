@@ -29,6 +29,124 @@
 #include "responder/pam/pamsrv.h"
 #include "db/sysdb.h"
 
+static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_t *body, size_t blen, size_t *c) {
+    size_t data_size;
+
+    if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
+
+    data_size = ((uint32_t *)&body[*c])[0];
+    *c += sizeof(uint32_t);
+    if (data_size < sizeof(uint32_t) || (*c)+(data_size) > blen) return EINVAL;
+    *size = data_size - sizeof(uint32_t);
+
+    *type = ((uint32_t *)&body[*c])[0];
+    *c += sizeof(uint32_t);
+
+    *tok = body+(*c);
+
+    *c += (*size);
+
+    return EOK;
+}
+
+static int extract_string(char **var, uint8_t *body, size_t blen, size_t *c) {
+    uint32_t size;
+    uint8_t *str;
+
+    if (blen-(*c) < sizeof(uint32_t)+1) return EINVAL;
+
+    size = ((uint32_t *)&body[*c])[0];
+    *c += sizeof(uint32_t);
+    if (*c+size > blen) return EINVAL;
+
+    str = body+(*c);
+
+    if (str[size-1]!='\0') return EINVAL;
+
+    *c += size;
+
+    *var = (char *) str;
+
+    return EOK;
+}
+
+static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
+                             struct pam_data *pd,
+                             uint8_t *body, size_t blen)
+{
+    size_t c;
+    uint32_t type;
+    uint32_t size;
+    char *pam_user;
+    int ret;
+
+    if (blen < 4*sizeof(uint32_t)+2 ||
+        ((uint32_t *)body)[0] != START_OF_PAM_REQUEST ||
+        ((uint32_t *)(&body[blen - sizeof(uint32_t)]))[0] != END_OF_PAM_REQUEST) {
+        DEBUG(1, ("Received data is invalid.\n"));
+        return EINVAL;
+    }
+
+    c = sizeof(uint32_t);
+    do {
+        type = ((uint32_t *)&body[c])[0];
+        c += sizeof(uint32_t);
+        if (c > blen) return EINVAL;
+
+        switch(type) {
+            case PAM_ITEM_USER:
+                ret = extract_string(&pam_user, body, blen, &c);
+                if (ret != EOK) return ret;
+
+                ret = sss_parse_name(pd, snctx, pam_user,
+                                     &pd->domain, &pd->user);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_SERVICE:
+                ret = extract_string(&pd->service, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_TTY:
+                ret = extract_string(&pd->tty, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_RUSER:
+                ret = extract_string(&pd->ruser, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_RHOST:
+                ret = extract_string(&pd->rhost, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_AUTHTOK:
+                ret = extract_authtok(&pd->authtok_type, &pd->authtok_size,
+                                      &pd->authtok, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_NEWAUTHTOK:
+                ret = extract_authtok(&pd->newauthtok_type,
+                                      &pd->newauthtok_size,
+                                      &pd->newauthtok, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case END_OF_PAM_REQUEST:
+                if (c != blen) return EINVAL;
+                break;
+            default:
+                DEBUG(1,("Ignoring unknown data type [%d].\n", type));
+                size = ((uint32_t *)&body[c])[0];
+                c += size+sizeof(uint32_t);
+        }
+    } while(c < blen);
+
+    if (pd->user == NULL || *pd->user == '\0') return EINVAL;
+
+    DEBUG_PAM_DATA(4, pd);
+
+    return EOK;
+
+}
+
 static int pam_parse_in_data(struct sss_names_ctx *snctx,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
@@ -307,7 +425,19 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     pd->cmd = pam_cmd;
     pd->priv = cctx->priv;
-    ret = pam_parse_in_data(cctx->rctx->names, pd, body, blen);
+
+    switch (cctx->cli_protocol_version->version) {
+        case 1:
+            ret = pam_parse_in_data(cctx->rctx->names, pd, body, blen);
+            break;
+        case 2:
+            ret = pam_parse_in_data_v2(cctx->rctx->names, pd, body, blen);
+            break;
+        default:
+            DEBUG(1, ("Illegal protocol version [%d].\n",
+                      cctx->cli_protocol_version->version));
+            ret = EINVAL;
+    }
     if (ret != EOK) {
         talloc_free(preq);
         ret = EINVAL;
@@ -660,6 +790,7 @@ struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version pam_cli_protocol_version[] = {
         {1, "2008-09-05", "initial version, \\0 terminated strings"},
+        {2, "2009-05-12", "new format <type><size><data>"},
         {0, NULL, NULL}
     };
 
