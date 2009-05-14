@@ -516,6 +516,11 @@ static int service_signal_reload(struct mt_svc *svc)
     DBusConnection *conn;
     DBusPendingCall *pending_reply;
 
+    if (svc->provider && strcasecmp(svc->provider, "local") == 0) {
+        /* The local provider requires no signaling */
+        return EOK;
+    }
+
     conn = sbus_get_connection(svc->mt_conn->conn_ctx);
     msg = dbus_message_new_method_call(NULL,
                                        SERVICE_PATH,
@@ -954,7 +959,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
                 cur_svc = cur_svc->next;
             }
             if (cur_svc == NULL) {
-                DEBUG(0, ("Service entry missing data\n"));
+                DEBUG(0, ("Service entry missing data for [%s]\n", new_dom->name));
                 /* This shouldn't be possible
                  */
                 talloc_free(new_config);
@@ -1908,6 +1913,16 @@ static void service_startup_handler(struct tevent_context *ev,
 
     mt_svc = talloc_get_type(ptr, struct mt_svc);
     if (mt_svc == NULL) {
+        return;
+    }
+
+    if (mt_svc->provider && strcasecmp(mt_svc->provider, "local") == 0) {
+        /* The LOCAL provider requires no back-end currently
+         * We'll add it to the service list, but we don't need
+         * to poll it.
+         */
+        DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
+        talloc_set_destructor((TALLOC_CTX *)mt_svc, delist_service);
         return;
     }
 
