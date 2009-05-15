@@ -59,6 +59,7 @@ struct proxy_nss_ops {
 
 struct proxy_ctx {
     struct proxy_nss_ops ops;
+    bool offline;
 };
 
 struct proxy_auth_ctx {
@@ -75,6 +76,49 @@ static void cache_password(struct be_req *req,
                            struct authtok_conv *ac);
 static void proxy_reply(struct be_req *req,
                         int error, const char *errstr);
+
+static void offline_timeout(struct tevent_context *ev, struct tevent_timer *tt,
+                            struct timeval tv, void *pvt)
+{
+    struct proxy_ctx *ctx;
+
+    ctx = talloc_get_type(pvt, struct proxy_ctx);
+    ctx->offline = false;
+}
+
+static void go_offline(struct be_ctx *be_ctx)
+{
+    struct proxy_ctx *ctx;
+    struct tevent_timer *tt;
+    struct timeval timeout;
+    int ret;
+
+    ctx = talloc_get_type(be_ctx->pvt_id_data, struct proxy_ctx);
+
+    ret = gettimeofday(&timeout, NULL);
+    if (ret == -1) {
+        DEBUG(1, ("gettimeofday failed [%d][%s].\n", errno, strerror(errno)));
+        return;
+    }
+    timeout.tv_sec += 15; /* TODO: get from conf */
+
+    tt = tevent_add_timer(be_ctx->ev, ctx, timeout, offline_timeout, ctx);
+    if (tt == NULL) {
+        DEBUG(1, ("Failed to add timer\n"));
+        return;
+    }
+
+    ctx->offline = true;
+}
+
+static bool is_offline(struct be_ctx *be_ctx)
+{
+    struct proxy_ctx *ctx;
+
+    ctx = talloc_get_type(be_ctx->pvt_id_data, struct proxy_ctx);
+
+    return ctx->offline;
+}
 
 static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
                             struct pam_response **response,
@@ -436,10 +480,15 @@ static void get_pw_name(struct be_req *req, char *name)
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
         break;
 
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(req->be_ctx);
+        return proxy_reply(req, EAGAIN, "Offline");
+
     default:
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
-                  name, ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
+        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n", name, status));
+        return proxy_reply(req, EOK, "Operation failed");
     }
 
     if (ret != EOK) {
@@ -495,6 +544,12 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
 
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
         break;
+
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(req->be_ctx);
+        return proxy_reply(req, EAGAIN, "Offline");
 
     default:
         DEBUG(2, ("proxy -> getpwuid_r failed for '%lu' (%d)[%s]\n",
@@ -581,6 +636,12 @@ retry:
             proxy_return(data, ret, NULL);
         }
         break;
+
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(data->req->be_ctx);
+        return proxy_return(data, EAGAIN, NULL);
 
     default:
         DEBUG(2, ("proxy -> getpwent_r failed (%d)[%s]\n",
@@ -709,6 +770,12 @@ static void get_gr_name(struct be_req *req, char *name)
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_gr_name, data);
         break;
 
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(req->be_ctx);
+        return proxy_reply(req, EAGAIN, "Offline");
+
     default:
         DEBUG(2, ("proxy -> getgrnam_r failed for '%s' (%d)[%s]\n",
                   name, ret, strerror(ret)));
@@ -768,6 +835,12 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
 
         ret = sysdb_transaction(data, req->be_ctx->sysdb, set_gr_name, data);
         break;
+
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(req->be_ctx);
+        return proxy_reply(req, EAGAIN, "Offline");
 
     default:
         DEBUG(2, ("proxy -> getgrgid_r failed for '%lu' (%d)[%s]\n",
@@ -846,6 +919,12 @@ retry:
             proxy_return(data, ret, NULL);
         }
         break;
+
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(data->req->be_ctx);
+        return proxy_return(data, EAGAIN, NULL);
 
     default:
         DEBUG(2, ("proxy -> getgrent_r failed (%d)[%s]\n",
@@ -1093,6 +1172,12 @@ static void get_initgr_user(struct be_req *req, char *name)
             break;
         }
 
+    case NSS_STATUS_UNAVAIL:
+        /* "remote" backend unavailable. Enter offline mode */
+        DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
+        go_offline(req->be_ctx);
+        return proxy_reply(req, EAGAIN, "Offline");
+
     default:
         DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
                   name, ret, strerror(ret)));
@@ -1113,7 +1198,11 @@ static void proxy_check_online(struct be_req *req)
 
     oreq = talloc_get_type(req->req_data, struct be_online_req);
 
-    oreq->online = MOD_ONLINE;
+    if (is_offline(req->be_ctx)) {
+        oreq->online = MOD_OFFLINE;
+    } else {
+        oreq->online = MOD_ONLINE;
+    }
 
     req->fn(req, EOK, NULL);
 }
@@ -1126,6 +1215,10 @@ static void proxy_get_account_info(struct be_req *req)
     gid_t gid;
 
     ar = talloc_get_type(req->req_data, struct be_acct_req);
+
+    if (is_offline(req->be_ctx)) {
+        return proxy_reply(req, EAGAIN, "Offline");
+    }
 
     switch (ar->entry_type) {
     case BE_REQ_USER: /* user */
@@ -1269,7 +1362,7 @@ int sssm_proxy_init(struct be_ctx *bectx,
     void *handle;
     int ret;
 
-    ctx = talloc(bectx, struct proxy_ctx);
+    ctx = talloc_zero(bectx, struct proxy_ctx);
     if (!ctx) {
         return ENOMEM;
     }
