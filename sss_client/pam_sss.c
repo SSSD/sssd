@@ -194,6 +194,7 @@ static int pack_message_v2(struct pam_items *pi, size_t *size, uint8_t **buffer)
     return 0;
 }
 
+#if 0
 static int pack_message(struct pam_items *pi, size_t *size, uint8_t **buffer) {
     int len;
     uint8_t *buf;
@@ -262,6 +263,7 @@ static int pack_message(struct pam_items *pi, size_t *size, uint8_t **buffer) {
 
     return 0;
 }
+#endif
 
 static int null_strcmp(const char *s1, const char *s2) {
     if (s1 == NULL && s2 == NULL) return 0;
