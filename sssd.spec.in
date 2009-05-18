@@ -1,12 +1,12 @@
-Name: sssd
-Version: 0.3.3
+Name: @PACKAGE_NAME@
+Version: @PACKAGE_VERSION@
 Release: 1%{dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
 License: GPLv3+ and LGPLv3+
 URL: http://www.freeipa.org/
-Source0: sssd-%{version}.tar.gz
+Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 ### Patches ###
@@ -41,6 +41,7 @@ BuildRequires: nspr-devel
 BuildRequires: pcre-devel
 BuildRequires: libxslt
 BuildRequires: libxml2
+BuildRequires: docbook-style-xsl
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -53,43 +54,61 @@ services for projects like FreeIPA.
 %setup -q
 
 %build
-# common
-pushd common
-autoreconf -i -f
-%configure --disable-shared \
-           --enable-static
+%configure \
+    --without-tests \
+    --without-policykit \
+    --without-infopipe \
+    --with-init-dir=%{_initrddir} \
+    --enable-nsslibdir=/%{_lib}
 
 make %{?_smp_mflags}
-popd
-
-# sssd
-pushd server
-./autogen.sh
-%configure --without-tests     \
-           --without-policykit \
-           --without-infopipe \
-           --with-init-dir=%{_initrddir} \
-
-make %{?_smp_mflags}
-popd
-
-pushd sss_client
-./autogen.sh
-%configure --libdir=/%{_lib}
-make %{?_smp_mflags}
-popd
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-# sssd
-pushd server
 make install DESTDIR=$RPM_BUILD_ROOT
-popd
 
-pushd sss_client
-make install DESTDIR=$RPM_BUILD_ROOT
-popd
+# Delete files that we do not want to package for now
+# Eventually some of these will be added to a -devel package
+rm -f \
+    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.a \
+    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
+    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.so.2.0.0 \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.a \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.so.1 \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.so.1.0.0 \
+    $RPM_BUILD_ROOT/%{_includedir}/collection.h \
+    $RPM_BUILD_ROOT/%{_includedir}/collection_tools.h \
+    $RPM_BUILD_ROOT/%{_includedir}/dhash.h \
+    $RPM_BUILD_ROOT/%{_includedir}/ini_config.h \
+    $RPM_BUILD_ROOT/%{_includedir}/trace.h \
+    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.a \
+    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libcollection.a \
+    $RPM_BUILD_ROOT/%{_libdir}/libcollection.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libcollection.so \
+    $RPM_BUILD_ROOT/%{_libdir}/libcollection.so.0 \
+    $RPM_BUILD_ROOT/%{_libdir}/libcollection.so.0.0.0 \
+    $RPM_BUILD_ROOT/%{_libdir}/libdhash.a \
+    $RPM_BUILD_ROOT/%{_libdir}/libdhash.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libdhash.so \
+    $RPM_BUILD_ROOT/%{_libdir}/libdhash.so.0 \
+    $RPM_BUILD_ROOT/%{_libdir}/libdhash.so.0.0.0 \
+    $RPM_BUILD_ROOT/%{_libdir}/libini_config.a \
+    $RPM_BUILD_ROOT/%{_libdir}/libini_config.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libini_config.so \
+    $RPM_BUILD_ROOT/%{_libdir}/libini_config.so.0 \
+    $RPM_BUILD_ROOT/%{_libdir}/libini_config.so.0.0.0 \
+    $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/collection.pc \
+    $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/dhash.pc \
+    $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/ini_config.pc \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.a \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.a \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
+    $RPM_BUILD_ROOT/%{_docdir}/dhash/examples/dhash_example.c \
+    $RPM_BUILD_ROOT/%{_docdir}/dhash/examples/dhash_test.c
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -131,6 +150,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Mon May 18 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.4.0-1
+- Convert build system to automake
+
 * Mon Apr 20 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.3.2-1
 - bugfix release 0.3.2
 

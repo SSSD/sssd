@@ -12,18 +12,43 @@ They are now available in major distribution development branches.
 
 If you want to build them from source download the latest samba master branch
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to build everything in one go (Preferred approach)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+From the root of the source, run:
+autoreconf -i -f && \
+./configure && \
+make
+
+Optionally, parallel builds are possible with:
+autoreconf -i -f && \
+mkdir parallelbuilddir && cd parallelbuilddir && \
+../configure && \
+make
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+How to build components individually
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Internal Library Requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 sssd provides several required libraries within its source tree:
 collection
 ini_config
+libreplace
 
 Compiling sssd internal libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd common; \
+pushd replace;
+autoreconf -i -f && \
+./configure && \
+make;
+popd
+
+pushd common;
 autoreconf -i -f && \
 ./configure --enable-static --disable-shared && \
-make; \
+make;
 popd
 
 This will build the libraries statically for linking into the sssd. Currently
@@ -33,7 +58,7 @@ for collection and ini_config is not yet ready for general consumption).
 Compiling sssd with system installed libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pushd server; \
-./autogen.sh && \
+autoreconf -i -f && \
 ./configure && \
 make; \
 popd
@@ -43,7 +68,7 @@ Compiling client libraries
 The nss and pam client do not require any additional dependencies.
 
 pushd sss_client; \
-./autogen.sh && \
+autoreconf -i -f && \
 ./configure && \
 make; \
 popd
@@ -65,4 +90,4 @@ Now you can call pam_test_client:
 ./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
 
 ~~~~~
-Simo and Steve
+Simo and Steve (Last updated for 0.4.0)
