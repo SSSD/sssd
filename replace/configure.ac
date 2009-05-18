@@ -1,8 +1,10 @@
 AC_PREREQ(2.50)
-AC_INIT(replace.c)
+AC_INIT([libreplace], [0.0])
 AC_CONFIG_SRCDIR([replace.c])
 AC_CONFIG_HEADER(config.h)
-
+AC_CONFIG_AUX_DIR([build])
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
+AC_PROG_RANLIB
 CFLAGS="$CFLAGS -I$srcdir"
 
 AC_LIBREPLACE_ALL_CHECKS
@@ -30,4 +32,6 @@ AC_SUBST(LIBS)
 
 AC_SUBST(LDFLAGS)
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT
