@@ -1,4 +1,4 @@
-AC_DEFUN(WITH_DB_PATH,
+AC_DEFUN([WITH_DB_PATH],
   [ AC_ARG_WITH([db-path],
                 [AC_HELP_STRING([--with-db-path=PATH],
                                 [Path to the SSSD databases [/var/lib/sss/db]]
@@ -15,7 +15,7 @@ AC_DEFUN(WITH_DB_PATH,
     AC_DEFINE_UNQUOTED(DB_PATH, "$config_dbpath", [Path to the SSSD databases])
   ])
 
-AC_DEFUN(WITH_PLUGIN_PATH,
+AC_DEFUN([WITH_PLUGIN_PATH],
   [ AC_ARG_WITH([plugin-path],
                 [AC_HELP_STRING([--with-plugin-path=PATH],
                                 [Path to the SSSD data provider plugins [/usr/lib/sssd]]
@@ -32,7 +32,7 @@ AC_DEFUN(WITH_PLUGIN_PATH,
     AC_DEFINE_UNQUOTED(DATA_PROVIDER_PLUGINS_PATH, "$config_pluginpath", [Path to the SSSD data provider plugins])
   ])
 
-AC_DEFUN(WITH_PID_PATH,
+AC_DEFUN([WITH_PID_PATH],
   [ AC_ARG_WITH([pid-path],
                 [AC_HELP_STRING([--with-pid-path=PATH],
                                 [Where to store pid files for the SSSD [/var/run]]
@@ -49,7 +49,7 @@ AC_DEFUN(WITH_PID_PATH,
     AC_DEFINE_UNQUOTED(PID_PATH, "$config_pidpath", [Where to store pid files for the SSSD])
   ])
 
-AC_DEFUN(WITH_PIPE_PATH,
+AC_DEFUN([WITH_PIPE_PATH],
   [ AC_ARG_WITH([pipe-path],
                 [AC_HELP_STRING([--with-pipe-path=PATH],
                                 [Where to store pipe files for the SSSD interconnects [/var/lib/sss/pipes]]
@@ -66,7 +66,7 @@ AC_DEFUN(WITH_PIPE_PATH,
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
-AC_DEFUN(WITH_POLICYKIT,
+AC_DEFUN([WITH_POLICYKIT],
   [ AC_ARG_WITH([policykit],
                 [AC_HELP_STRING([--with-policykit],
                                 [Whether to include PolicyKit support [yes]]
@@ -81,8 +81,9 @@ AC_DEFUN(WITH_POLICYKIT,
         AC_SUBST(HAVE_POLICYKIT)
     fi
   ])
+AM_CONDITIONAL([BUILD_POLICYKIT], [test x$with_policykit = xyes])
 
-AC_DEFUN(WITH_INFOPIPE,
+AC_DEFUN([WITH_INFOPIPE],
   [ AC_ARG_WITH([infopipe],
                 [AC_HELP_STRING([--with-infopipe],
                                 [Whether to include InfoPipe support [yes]]
@@ -97,8 +98,9 @@ AC_DEFUN(WITH_INFOPIPE,
         AC_SUBST(HAVE_INFOPIPE)
     fi
   ])
+AM_CONDITIONAL([BUILD_INFOPIPE], [test x$with_infopipe = xyes])
 
-AC_DEFUN(WITH_TESTS,
+AC_DEFUN([WITH_TESTS],
   [ AC_ARG_WITH([tests],
                 [AC_HELP_STRING([--with-tests],
                                 [Whether to build tests [no]]
@@ -114,8 +116,9 @@ AC_DEFUN(WITH_TESTS,
         AC_SUBST(HAVE_TESTS)
     fi
   ])
+AM_CONDITIONAL([BUILD_TESTS], [test x$with_tests = xyes])
 
-AC_DEFUN(WITH_INIT_DIR,
+AC_DEFUN([WITH_INIT_DIR],
   [ AC_ARG_WITH([init-dir],
                 [AC_HELP_STRING([--with-init-dir=DIR],
                                 [Where to store init script for sssd [/etc/rc.d/init.d]]
@@ -130,7 +133,7 @@ AC_DEFUN(WITH_INIT_DIR,
   ])
 
 
-AC_DEFUN(WITH_SHADOW_UTILS_PATH,
+AC_DEFUN([WITH_SHADOW_UTILS_PATH],
   [ AC_ARG_WITH([shadow-utils-path],
                 [AC_HELP_STRING([--with-shadow-utils-path=PATH],
                                 [Where to look for shadow-utils binaries [/usr/sbin]]
@@ -144,7 +147,7 @@ AC_DEFUN(WITH_SHADOW_UTILS_PATH,
     AC_SUBST(shadow_utils_path)
   ])
 
-AC_DEFUN(WITH_MANPAGES,
+AC_DEFUN([WITH_MANPAGES],
   [ AC_ARG_WITH([manpages],
                 [AC_HELP_STRING([--with-manpages],
                                 [Whether to regenerate man pages from DocBook sources [yes]]
@@ -158,6 +161,7 @@ AC_DEFUN(WITH_MANPAGES,
         AC_SUBST(HAVE_MANPAGES)
     fi
   ])
+AM_CONDITIONAL([BUILD_MANPAGES], [test x$with_manpages = xyes])
 
 AC_DEFUN([WITH_XML_CATALOG],
   [ AC_ARG_WITH([xml-catalog-path],

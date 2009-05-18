@@ -11,10 +11,14 @@ AC_DEFUN([SMB_MODULE_DEFAULT], [echo -n ""])
 AC_DEFUN([SMB_LIBRARY_ENABLE], [echo -n ""])
 AC_DEFUN([SMB_EXT_LIB], [echo -n ""])
 AC_DEFUN([SMB_ENABLE], [echo -n ""])
-AC_INIT(sssd, 0.3.3)
-AC_CONFIG_SRCDIR([autogen.sh])
+AC_INIT([sss_daemon], [0.4.0])
+AC_CONFIG_SRCDIR([conf_macros.m4])
+AC_CONFIG_AUX_DIR([build])
 
-AC_LIBREPLACE_ALL_CHECKS
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
+AM_PROG_CC_C_O
+AC_PROG_LIBTOOL
+AC_CONFIG_MACRO_DIR([m4])
 
 if test "$ac_cv_prog_gcc" = yes; then
    CFLAGS="$CFLAGS -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings"
@@ -26,9 +30,8 @@ AC_CONFIG_HEADER(config.h)
 TESTS=""
 EXTRA_OBJ=""
 
-m4_include(build_macros.m4)
+m4_include([build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
-AC_LD_SONAMEFLAG
 
 m4_include(conf_macros.m4)
 WITH_DB_PATH
@@ -43,16 +46,16 @@ WITH_SHADOW_UTILS_PATH
 WITH_MANPAGES
 WITH_XML_CATALOG
 
-m4_include(pkg.m4)
-m4_include(libpopt.m4)
-m4_include(libtalloc.m4)
-m4_include(libtdb.m4)
-m4_include(libtevent.m4)
-m4_include(libldb.m4)
-m4_include(pam.m4)
-m4_include(ldap.m4)
-m4_include(libpcre.m4)
-m4_include(util/signal.m4)
+m4_include([external/pkg.m4])
+m4_include([external/libpopt.m4])
+m4_include([external/libtalloc.m4])
+m4_include([external/libtdb.m4])
+m4_include([external/libtevent.m4])
+m4_include([external/libldb.m4])
+m4_include([external/pam.m4])
+m4_include([external/ldap.m4])
+m4_include([external/libpcre.m4])
+m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
 if test x$has_dbus != xno; then
@@ -75,16 +78,8 @@ fi
 AC_SUBST(TESTS)
 AC_SUBST(EXTRA_OBJ)
 
-AC_LD_EXPORT_DYNAMIC
-AC_LD_PICFLAG
-AC_LD_SHLIBEXT
-AC_LD_SONAMEFLAG
-AC_LIBREPLACE_SHLD
-AC_LIBREPLACE_SHLD_FLAGS
-AC_LIBREPLACE_MDLD
-AC_LIBREPLACE_MDLD_FLAGS
-AC_LIBREPLACE_RUNTIME_LIB_PATH_VAR
-
 AC_CHECK_HEADERS([sys/inotify.h])
 
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT
