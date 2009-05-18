@@ -1,7 +1,7 @@
 #DEBUG_FLAGS=@DEBUG_VAR@
 TRACE_LEVEL=@TRACE_VAR@
 
-topdir=..
+topdir=$(srcdir)/..
 AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace $(TRACE_LEVEL)
 ACLOCAL_AMFLAGS = -I m4
 
@@ -13,10 +13,9 @@ pkgconfig_DATA = collection.pc
 lib_LTLIBRARIES = libcollection.la
 libcollection_la_SOURCES = \
     collection.c \
-    collection_tools.c
-
-noinst_HEADERS = \
-    collection_priv.h
+    collection_tools.c \
+    collection_priv.h \
+    trace.h
 
 include_HEADERS = collection.h collection_tools.h
 

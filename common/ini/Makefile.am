@@ -1,7 +1,7 @@
 #DEBUG_FLAGS=@DEBUG_VAR@
 TRACE_LEVEL=@TRACE_VAR@
 
-topdir=..
+topdir=$(srcdir)/..
 AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
 ACLOCAL_AMFLAGS = -I m4
 

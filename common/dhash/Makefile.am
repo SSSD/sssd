@@ -6,7 +6,7 @@ pkgconfig_DATA = dhash.pc
 
 lib_LTLIBRARIES = libdhash.la
 libdhash_la_SOURCES = dhash.c
-pkginclude_HEADERS = dhash.h
+include_HEADERS = dhash.h
 
 check_PROGRAMS = dhash_test dhash_example
 dhash_test_LDADD = dhash.o
