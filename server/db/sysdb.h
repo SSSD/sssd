@@ -317,4 +317,10 @@ int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
                                      const char *group,
                                      const char *member,
                                      sysdb_callback_t fn, void *pvt);
+
+int sysdb_set_cached_password(struct sysdb_req *sysreq,
+                              struct sss_domain_info *domain,
+                              const char *user,
+                              const char *password,
+                              sysdb_callback_t fn, void *pvt);
 #endif /* __SYS_DB_H__ */
