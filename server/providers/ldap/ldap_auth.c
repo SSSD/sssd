@@ -327,14 +327,9 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = sdap_pam_loop;
                 lr->next_step = SDAP_CHECK_INIT_RESULT;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
                 return;
             }
+            lr->next_step = SDAP_NOOP;
 
             ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, NULL, NULL, NULL, 0);
             if (ret != LDAP_SUCCESS) {
@@ -375,14 +370,9 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = sdap_pam_loop;
                 lr->next_step = SDAP_CHECK_STD_BIND;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
                 return;
             }
+            lr->next_step = SDAP_NOOP;
 
             ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, &errmsgp,
                                     NULL, NULL, 0);
@@ -433,14 +423,9 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = sdap_pam_loop;
                 lr->next_step = SDAP_CHECK_SEARCH_DN_RESULT;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
                 return;
             }
+            lr->next_step = SDAP_NOOP;
 
             msg = ldap_first_message(lr->ldap, result);
             if (msg == NULL) {
@@ -514,14 +499,9 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                 DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
                 lr->next_task = sdap_pam_loop;
                 lr->next_step = SDAP_CHECK_USER_BIND;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
                 return;
             }
+            lr->next_step = SDAP_NOOP;
 
             ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, &errmsgp,
                                     NULL, NULL, 0);
@@ -563,6 +543,9 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                     pam_status = PAM_SYSTEM_ERR;
             }
             break;
+        case SDAP_NOOP:
+            DEBUG(1, ("current task is SDAP_NOOP, please check your workflow.\n"));
+            return;
         default:
             DEBUG(1, ("Unknown ldap backend operation %d.\n", lr->next_step));
             pam_status = PAM_SYSTEM_ERR;
@@ -595,7 +578,6 @@ static void sdap_start(struct tevent_context *ev, struct tevent_timer *te,
     int pam_status;
     struct sdap_req *lr;
     struct be_req *req;
-    struct pam_data *pd;
 
     lr = talloc_get_type(pvt, struct sdap_req);
 
@@ -722,10 +704,10 @@ static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
     username = pd->user;
 
     if (pd->cmd == SSS_PAM_AUTHENTICATE) {
-        password = talloc_strndup(data, pd->authtok, pd->authtok_size);
+        password = talloc_strndup(data, (char *) pd->authtok, pd->authtok_size);
     }
     else if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        password = talloc_strndup(data, pd->newauthtok, pd->newauthtok_size);
+        password = talloc_strndup(data, (char *) pd->newauthtok, pd->newauthtok_size);
     }
     else {
         DEBUG(1, ("Attempting password caching on invalid Op!\n"));
@@ -733,6 +715,8 @@ static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
         sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
         return;
     }
+    talloc_set_destructor((TALLOC_CTX *) password, password_destructor);
+
 
     if (!password) {
         DEBUG(2, ("Out of Memory!\n"));
