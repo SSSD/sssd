@@ -1,6 +1,6 @@
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
-Release: 1%{dist}
+Release: 0%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -96,6 +96,10 @@ rm -f \
     $RPM_BUILD_ROOT/%{_docdir}/dhash/examples/dhash_example.c \
     $RPM_BUILD_ROOT/%{_docdir}/dhash/examples/dhash_test.c
 
+# Copy default sssd.conf file
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
+install -m600 server/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.conf
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
@@ -113,7 +117,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so*
-%{_sharedstatedir}/sss/
+%dir %{_sharedstatedir}/sss/
+%attr(700,root,root) %dir %{_sharedstatedir}/sss/db
+%dir %{_sharedstatedir}/sss/pipes
+%attr(700,root,root) %dir %{_sharedstatedir}/sss/pipes/private
+%dir %{_sysconfdir}/sssd
+%config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 /%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/libnss_sss.so.2.0.0
