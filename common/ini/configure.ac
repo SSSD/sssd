@@ -1,9 +1,9 @@
-AC_INIT([ini_config], [0.3.3], [freeipa-devel@redhat.com])
+AC_INIT([ini_config],[0.3.3],[freeipa-devel@redhat.com])
 AC_CONFIG_SRCDIR([ini_config.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_CC
-AC_PROG_LIBTOOL
+LT_INIT([disable-shared])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_INSTALL
 

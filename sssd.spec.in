@@ -71,13 +71,8 @@ make install DESTDIR=$RPM_BUILD_ROOT
 # Delete files that we do not want to package for now
 # Eventually some of these will be added to a -devel package
 rm -f \
-    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.a \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
-    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.so.2.0.0 \
-    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.a \
     $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
-    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.so.1 \
-    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.so.1.0.0 \
     $RPM_BUILD_ROOT/%{_includedir}/collection.h \
     $RPM_BUILD_ROOT/%{_includedir}/collection_tools.h \
     $RPM_BUILD_ROOT/%{_includedir}/dhash.h \
@@ -87,19 +82,10 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
     $RPM_BUILD_ROOT/%{_libdir}/libcollection.a \
     $RPM_BUILD_ROOT/%{_libdir}/libcollection.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libcollection.so \
-    $RPM_BUILD_ROOT/%{_libdir}/libcollection.so.0 \
-    $RPM_BUILD_ROOT/%{_libdir}/libcollection.so.0.0.0 \
     $RPM_BUILD_ROOT/%{_libdir}/libdhash.a \
     $RPM_BUILD_ROOT/%{_libdir}/libdhash.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libdhash.so \
-    $RPM_BUILD_ROOT/%{_libdir}/libdhash.so.0 \
-    $RPM_BUILD_ROOT/%{_libdir}/libdhash.so.0.0.0 \
     $RPM_BUILD_ROOT/%{_libdir}/libini_config.a \
     $RPM_BUILD_ROOT/%{_libdir}/libini_config.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libini_config.so \
-    $RPM_BUILD_ROOT/%{_libdir}/libini_config.so.0 \
-    $RPM_BUILD_ROOT/%{_libdir}/libini_config.so.0.0.0 \
     $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/collection.pc \
     $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/dhash.pc \
     $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/ini_config.pc \
@@ -116,7 +102,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %doc COPYING
-%{_initrddir}/%{name}
+%attr(755,root,root) %{_initrddir}/%{name}
 %{_sbindir}/sssd
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
@@ -130,7 +116,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_sharedstatedir}/sss/
 /%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
+/%{_lib}/libnss_sss.so.2.0.0
 /%{_lib}/security/pam_sss.so
+/%{_lib}/security/pam_sss.so.1
+/%{_lib}/security/pam_sss.so.1.0.0
 %{_mandir}/man8/*
 
 %post
