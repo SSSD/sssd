@@ -1,4 +1,4 @@
-AC_INIT([collection], [0.3.3], [dpal@redhat.com])
+AC_INIT([collection], [0.3.3], [freeipa-devel@redhat.com])
 AC_CONFIG_SRCDIR([collection.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

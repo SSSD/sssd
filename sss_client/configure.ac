@@ -1,5 +1,5 @@
 AC_PREREQ(2.50)
-AC_INIT([sss_client], 0.4.0, [sgallagh@redhat.com])
+AC_INIT([sss_client], 0.4.0, [freeipa-devel@redhat.com])
 AC_CONFIG_SRCDIR([common.c])
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR([build])
