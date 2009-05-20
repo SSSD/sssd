@@ -39,6 +39,7 @@ endif
 if BUILD_INFOPIPE
 sssd_info = sssd_info
 infopipe_tests = infopipe-tests
+infopipe_privileged_tests = infopipe-privileged-tests
 infopipe_headers = \
     infopipe/infopipe_private.h \
     infopipe/sysbus.h \
@@ -57,7 +58,8 @@ if BUILD_TESTS
 noinst_PROGRAMS = \
     sysdb-tests \
     stress-tests \
-    $(infopipe_tests)
+    $(infopipe_tests) \
+    $(infopipe_privileged_tests)
 endif
 
 sssdlib_LTLIBRARIES = \
@@ -332,6 +334,15 @@ infopipe_tests_SOURCES = \
 infopipe_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 infopipe_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
+
+infopipe_privileged_tests_SOURCES = \
+    tests/infopipe-privileged-tests.c \
+    $(SSSD_UTIL_OBJ)
+infopipe_privileged_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+infopipe_privileged_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
 endif #BUILD_INFOPIPE
