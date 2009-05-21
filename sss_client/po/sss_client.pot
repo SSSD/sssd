@@ -1,0 +1,21 @@
+# System Security Services Daemon
+# Copyright (C) 2009 Red Hat, Inc.
+# This file is distributed under the same license as the sssd package.
+# Stephen Gallagher <sgallagh@redhat.com>, 2009.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: sss_client 0.4.0\n"
+"Report-Msgid-Bugs-To: freeipa-devel@redhat.com\n"
+"POT-Creation-Date: 2009-05-21 14:10-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Stephen Gallagher <sgallagh@redhat.com>\n"
+"Language-Team: LANGUAGE <freeipa-devel@redhat.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: pam_sss.c:344
+msgid "Passwords do not match"
+msgstr ""

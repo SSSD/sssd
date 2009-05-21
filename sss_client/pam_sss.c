@@ -17,6 +17,10 @@
 
 #include "sss_cli.h"
 
+#include <libintl.h>
+#define _(STRING) dgettext (PACKAGE, STRING)
+#include "config.h"
+
 #define FLAGS_USE_FIRST_PASS (1 << 0)
 #define FLAGS_FORWARD_PASS   (1 << 1)
 #define FLAGS_USE_AUTHTOK    (1 << 2)
@@ -337,7 +341,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                         *answer = NULL;
                     }
                     ret = do_pam_conversation(pamh, PAM_ERROR_MSG,
-                                              "Passwords do not match", NULL,
+                                              _("Passwords do not match"), NULL,
                                               NULL);
                     if (ret != PAM_SUCCESS) {
                         D(("do_pam_conversation failed."));
@@ -557,6 +561,8 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
     int pam_status;
     uint32_t flags = 0;
     char *answer;
+
+    bindtextdomain(PACKAGE, LOCALEDIR);
 
     D(("Hello pam_sssd: %d", task));
 

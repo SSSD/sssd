@@ -1,6 +1,6 @@
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
-Release: 1%{?dist}
+Release: 0%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -118,6 +118,7 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/security/pam_sss.so.1
 /%{_lib}/security/pam_sss.so.1.0.0
 %{_mandir}/man8/*
+%{_datadir}/locale/*/LC_MESSAGES/sss_client.mo
 
 %post
 /sbin/ldconfig

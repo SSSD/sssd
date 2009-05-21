@@ -8,6 +8,7 @@ AM_PROG_CC_C_O
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
+AM_GNU_GETTEXT([external])
 
 AC_SUBST(PAM_LIBS)
 
@@ -23,5 +24,5 @@ AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nssdir],
               [nsslibdir=$enableval],
               [nsslibdir=$prefix/lib64])
 AC_SUBST(nsslibdir)
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile po/Makefile.in])
 AC_OUTPUT

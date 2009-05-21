@@ -1,0 +1,6 @@
+# List of source files which contain translatable strings.
+common.c
+group.c
+pam_sss.c
+pam_test_client.c
+passwd.c

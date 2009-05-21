@@ -1,5 +1,9 @@
+SUBDIRS = po
+
 topdir=.
-AM_CPPFLAGS = -I$(topdir)
+AM_CPPFLAGS = \
+    -I$(topdir) \
+    -DLOCALEDIR=\"\$(localedir)\"
 ACLOCAL_AMFLAGS = -I m4
 
 nsslibdir = @nsslibdir@
@@ -35,3 +39,5 @@ noinst_PROGRAMS = pam_test_client
 pam_test_client_SOURCES = pam_test_client.c
 pam_test_client_LDFLAGS = -lpam -lpam_misc
 
+
+EXTRA_DIST = build/config.rpath m4/ChangeLog

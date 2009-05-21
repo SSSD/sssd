@@ -4,7 +4,6 @@ config.log
 config.status
 config.h
 config.h.in
-config.rpath
 Makefile
 cscope.out
 *.so
@@ -27,4 +26,3 @@ ltmain.sh
 missing
 Makefile
 Makefile.in
-build
