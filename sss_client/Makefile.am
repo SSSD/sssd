@@ -34,3 +34,4 @@ pam_sss_la_LDFLAGS = \
 noinst_PROGRAMS = pam_test_client
 pam_test_client_SOURCES = pam_test_client.c
 pam_test_client_LDFLAGS = -lpam -lpam_misc
+

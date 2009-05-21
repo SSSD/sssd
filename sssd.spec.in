@@ -1,6 +1,6 @@
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
-Release: 0%{?dist}
+Release: 1%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
@@ -63,42 +63,30 @@ services for projects like FreeIPA.
 
 make %{?_smp_mflags}
 
+# Remove .la files created by libtool
+rm -f \
+    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
+    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la
+
 %install
 rm -rf $RPM_BUILD_ROOT
 
 make install DESTDIR=$RPM_BUILD_ROOT
 
-# Delete files that we do not want to package for now
-# Eventually some of these will be added to a -devel package
-rm -f \
-    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
-    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
-    $RPM_BUILD_ROOT/%{_includedir}/collection.h \
-    $RPM_BUILD_ROOT/%{_includedir}/collection_tools.h \
-    $RPM_BUILD_ROOT/%{_includedir}/dhash.h \
-    $RPM_BUILD_ROOT/%{_includedir}/ini_config.h \
-    $RPM_BUILD_ROOT/%{_includedir}/trace.h \
-    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.a \
-    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libcollection.a \
-    $RPM_BUILD_ROOT/%{_libdir}/libcollection.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libdhash.a \
-    $RPM_BUILD_ROOT/%{_libdir}/libdhash.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libini_config.a \
-    $RPM_BUILD_ROOT/%{_libdir}/libini_config.la \
-    $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/collection.pc \
-    $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/dhash.pc \
-    $RPM_BUILD_ROOT/%{_libdir}/pkgconfig/ini_config.pc \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.a \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.a \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
-    $RPM_BUILD_ROOT/%{_docdir}/dhash/examples/dhash_example.c \
-    $RPM_BUILD_ROOT/%{_docdir}/dhash/examples/dhash_test.c
-
 # Copy default sssd.conf file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
 install -m600 server/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.conf
+
+# Remove .la files created by libtool
+rm -f \
+    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
+    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la
 
 %clean
 rm -rf $RPM_BUILD_ROOT

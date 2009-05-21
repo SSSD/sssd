@@ -7,17 +7,17 @@ ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = collection.pc
+dist_noinst_DATA = collection.pc
 
 # Build library
-lib_LTLIBRARIES = libcollection.la
+noinst_LTLIBRARIES = libcollection.la
 libcollection_la_SOURCES = \
     collection.c \
     collection_tools.c \
+    collection.h \
+    collection_tools.h \
     collection_priv.h \
-    trace.h
-
-include_HEADERS = collection.h collection_tools.h
+    ../trace/trace.h
 
 # Build unit test
 noinst_PROGRAMS = collection_ut

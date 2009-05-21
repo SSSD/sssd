@@ -3,10 +3,7 @@ AC_CONFIG_SRCDIR([collection.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_CC
-
-#Until the API is stabilized, we'll statically link
-LT_INIT([disable-shared])
-
+AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_INSTALL
 

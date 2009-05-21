@@ -17,7 +17,8 @@ AC_CONFIG_AUX_DIR([build])
 
 AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
 AM_PROG_CC_C_O
-LT_INIT([disable-static])
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 
 if test "$ac_cv_prog_gcc" = yes; then

@@ -7,12 +7,13 @@ ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = ini_config.pc
+dist_noinst_DATA = ini_config.pc
 
 # Build library
-lib_LTLIBRARIES = libini_config.la
-libini_config_la_SOURCES = ini_config.c
-include_HEADERS = ini_config.h
+noinst_LTLIBRARIES = libini_config.la
+libini_config_la_SOURCES = \
+    ini_config.c \
+    ini_config.h
 
 # Build unit test
 noinst_PROGRAMS = ini_config_ut
