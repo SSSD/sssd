@@ -76,7 +76,7 @@ fi
 ])
 
 dnl AC_PROG_CC_FLAG(flag)
-AC_DEFUN(AC_PROG_CC_FLAG,
+AC_DEFUN([AC_PROG_CC_FLAG],
 [AC_CACHE_CHECK(whether ${CC-cc} accepts -$1, ac_cv_prog_cc_$1,
 [echo 'void f(){}' > conftest.c
 if test -z "`${CC-cc} -$1 -c conftest.c 2>&1`"; then
@@ -90,7 +90,7 @@ rm -f conftest*
 dnl see if a declaration exists for a function or variable
 dnl defines HAVE_function_DECL if it exists
 dnl AC_HAVE_DECL(var, includes)
-AC_DEFUN(AC_HAVE_DECL,
+AC_DEFUN([AC_HAVE_DECL],
 [
  AC_CACHE_CHECK([for $1 declaration],ac_cv_have_$1_decl,[
     AC_TRY_COMPILE([$2],[int i = (int)$1],
@@ -283,7 +283,7 @@ m4_ifdef([AS_HELP_STRING], , [m4_define([AS_HELP_STRING], m4_defn([AC_HELP_STRIN
 
 dnl check if the prototype in the header matches the given one
 dnl AC_VERIFY_C_PROTOTYPE(prototype,functionbody,[IF-TRUE].[IF-FALSE],[extraheaders])
-AC_DEFUN(AC_VERIFY_C_PROTOTYPE,
+AC_DEFUN([AC_VERIFY_C_PROTOTYPE],
 [AC_CACHE_CHECK([for prototype $1], AS_TR_SH([ac_cv_c_prototype_$1]),
 	AC_COMPILE_IFELSE([AC_LANG_SOURCE([
 		AC_INCLUDES_DEFAULT
@@ -301,7 +301,7 @@ AC_DEFUN(AC_VERIFY_C_PROTOTYPE,
 AS_IF([test $AS_TR_SH([ac_cv_c_prototype_$1]) = yes],[$3],[$4])
 ])
 
-AC_DEFUN(LIBREPLACE_PROVIDE_HEADER, 
+AC_DEFUN([LIBREPLACE_PROVIDE_HEADER], 
 [AC_CHECK_HEADER([$1], 
 		[ AC_CONFIG_COMMANDS(rm-$1, [rm -f $libreplacedir/$1], [libreplacedir=$libreplacedir]) ],
 		[ AC_CONFIG_COMMANDS(mk-$1, [echo "#include \"replace.h\"" > $libreplacedir/$1], [libreplacedir=$libreplacedir]) ]
