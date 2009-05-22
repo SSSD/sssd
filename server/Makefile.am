@@ -37,6 +37,7 @@ polkit_headers = \
 endif
 
 if BUILD_INFOPIPE
+infpintrospectdir = $(dbusintrospectdir)/infopipe
 sssd_info = sssd_info
 infopipe_tests = infopipe-tests
 infopipe_privileged_tests = infopipe-privileged-tests
@@ -254,6 +255,8 @@ sssd_info_SOURCES = \
     $(SSSD_UTIL_OBJ)
 sssd_info_LDADD = $(SSSD_LIBS)
 dbuspolicy_DATA = \
+    infopipe/org.freedesktop.sssd.infopipe.conf
+infpintrospect_DATA = \
     infopipe/org.freedesktop.sssd.infopipe.Introspect.xml
 endif
 
@@ -430,6 +433,7 @@ installsssddirs::
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
     $(DESTDIR)$(dbuspolicydir) \
+    $(DESTDIR)$(infpintrospectdir) \
     $(DESTDIR)$(dbusintrospectdir) \
     $(DESTDIR)$(pipepath)/private \
     $(DESTDIR)$(sssdlibdir) \
