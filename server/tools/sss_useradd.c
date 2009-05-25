@@ -73,6 +73,14 @@
 #define USERADD_USERNAME "%s "
 #endif
 
+/* Default settings for user attributes */
+#define CONFDB_DFL_SECTION "config/user_defaults"
+
+#define DFL_SHELL_ATTR     "defaultShell"
+#define DFL_BASEDIR_ATTR   "baseDirectory"
+
+#define DFL_SHELL_VAL      "/bin/bash"
+#define DFL_BASEDIR_VAL    "/home"
 
 struct user_add_ctx {
     struct sysdb_req *sysreq;
@@ -304,7 +312,8 @@ int main(int argc, const char **argv)
     const char *pc_group = NULL;
     const char *pc_gecos = NULL;
     const char *pc_home = NULL;
-    const char *pc_shell = NULL;
+    char *pc_shell = NULL;
+    char *basedir = NULL;
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -401,7 +410,14 @@ int main(int argc, const char **argv)
     if (pc_home) {
         user_ctx->home = talloc_strdup(user_ctx, pc_home);
     } else {
-        user_ctx->home = talloc_asprintf(user_ctx, "/home/%s", user_ctx->username);
+        ret = confdb_get_string(user_ctx->ctx->confdb, user_ctx,
+                                CONFDB_DFL_SECTION, DFL_BASEDIR_ATTR,
+                                DFL_BASEDIR_VAL, &basedir);
+        if (ret != EOK) {
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+        user_ctx->home = talloc_asprintf(user_ctx, "%s/%s", basedir, user_ctx->username);
     }
     if (!user_ctx->home) {
         ret = EXIT_FAILURE;
@@ -409,7 +425,13 @@ int main(int argc, const char **argv)
     }
 
     if (!pc_shell) {
-        pc_shell = "/bin/bash";
+        ret = confdb_get_string(user_ctx->ctx->confdb, user_ctx,
+                                CONFDB_DFL_SECTION, DFL_SHELL_ATTR,
+                                DFL_SHELL_VAL, &pc_shell);
+        if (ret != EOK) {
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
     }
     user_ctx->shell = talloc_strdup(user_ctx, pc_shell);
     if (!user_ctx->shell) {
