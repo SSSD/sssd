@@ -28,6 +28,7 @@
 #include "infopipe/infopipe_private.h"
 #include "infopipe/sysbus.h"
 #include "db/sysdb.h"
+#include "responder/common/responder.h"
 
 static int attr_comparator(const void *key1, const void *key2);
 static int username_comparator(const void *key1, const void *key2);
@@ -1213,9 +1214,8 @@ int infp_users_get_attr(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     infp_getattr_req->infp_req->domain =
                 infp_get_domain_obj(infp_getattr_req->infp_req->infp, domain);
-    if (infp_getattr_req->infp_req->domain->provider) {
-        infp_getattr_req->check_provider = true;
-    }
+    infp_getattr_req->check_provider =
+                NEED_CHECK_PROVIDER(infp_getattr_req->infp_req->domain->provider);
 
     /* Copy the username list */
     infp_getattr_req->usernames = talloc_array(infp_getattr_req, char *, username_count);

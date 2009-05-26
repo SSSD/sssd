@@ -355,7 +355,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
             if (ret == EOK) {
                 dctx->domain = dom;
-                dctx->check_provider = (dctx->domain->provider != NULL);
+                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
 
@@ -563,7 +563,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
         goto done;
     }
 
-    dctx->check_provider = (dctx->domain->provider != NULL);
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     if (!domname) {
         /* this is a multidomain search */
@@ -712,7 +712,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
             if (ret == EOK) {
                 dctx->domain = dom;
-                dctx->check_provider = (dctx->domain->provider != NULL);
+                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
 
@@ -882,7 +882,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         }
 
         dctx->domain = dom;
-        dctx->check_provider = (dom->provider != NULL);
+        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
@@ -997,7 +997,7 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
         if (cmdctx->enum_cached) {
             dctx->check_provider = false;
         } else {
-            dctx->check_provider = (dom->provider != NULL);
+            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         }
 
         if (dctx->check_provider) {
@@ -1130,7 +1130,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
     if (cmdctx->enum_cached) {
         dctx->check_provider = false;
     } else {
-        dctx->check_provider = (dom->provider != NULL);
+        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
     }
 
     if (dctx->check_provider) {
@@ -1727,7 +1727,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
             if (ret == EOK) {
                 dctx->domain = dom;
-                dctx->check_provider = (dctx->domain->provider != NULL);
+                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
 
@@ -1930,7 +1930,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
         goto done;
     }
 
-    dctx->check_provider = (dctx->domain->provider != NULL);
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     if (!domname) {
         /* this is a multidomain search */
@@ -2070,7 +2070,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
             if (ret == EOK) {
                 dctx->domain = dom;
-                dctx->check_provider = (dctx->domain->provider != NULL);
+                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
 
@@ -2234,7 +2234,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         }
 
         dctx->domain = dom;
-        dctx->check_provider = (dom->provider != NULL);
+        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
@@ -2345,7 +2345,7 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
         if (cmdctx->enum_cached) {
             dctx->check_provider = false;
         } else {
-            dctx->check_provider = (dom->provider != NULL);
+            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
         }
 
         if (dctx->check_provider) {
@@ -2478,7 +2478,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
     if (cmdctx->enum_cached) {
         dctx->check_provider = false;
     } else {
-        dctx->check_provider = (dom->provider != NULL);
+        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
     }
 
     if (dctx->check_provider) {
@@ -2894,7 +2894,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
 
             if (ret == EOK) {
                 dctx->domain = dom;
-                dctx->check_provider = (dctx->domain->provider != NULL);
+                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
                 if (dctx->res) talloc_free(res);
                 dctx->res = NULL;
 
@@ -3063,7 +3063,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
         goto done;
     }
 
-    dctx->check_provider = (dctx->domain->provider != NULL);
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
     if (!domname) {
         /* this is a multidomain search */

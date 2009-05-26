@@ -33,6 +33,10 @@
 #include "../sss_client/sss_cli.h"
 #include "util/btreemap.h"
 
+/* if there is a provider other than the special local */
+#define NEED_CHECK_PROVIDER(provider) \
+    (provider != NULL && strcmp(provider, "local") != 0)
+
 /* needed until nsssrv.h is updated */
 struct cli_request {
 
