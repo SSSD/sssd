@@ -42,6 +42,7 @@ static int nspr_nss_init(void)
 }
 
 /* added for completness, so far not used */
+#if 0
 static int nspr_nss_cleanup(void)
 {
     int ret;
@@ -53,6 +54,7 @@ static int nspr_nss_cleanup(void)
     nspr_nss_init_done = 0;
     return 0;
 }
+#endif
 
 /* Define our magic string to mark salt for SHA512 "encryption" replacement. */
 const char sha512_salt_prefix[] = "$6$";

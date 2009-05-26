@@ -209,7 +209,7 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
         return ENOMEM;
     }
 
-    n = orig;
+    n = o = orig;
     for (i = 0; i < tokens; i++) {
         o = n;
         n = strchr(n, delim);

@@ -299,7 +299,7 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
     char *errmsgp = NULL;
 /* FIXME: user timeout form config */
     char *filter=NULL;
-    char *attrs[] = { LDAP_NO_ATTRS, NULL };
+    char *attrs[2] = { NULL, NULL };
 
     lr = talloc_get_type(pvt, struct sdap_req);
 
@@ -394,6 +394,7 @@ static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
                                      lr->sdap_ctx->user_name_attribute,
                                      lr->pd->user,
                                      lr->sdap_ctx->user_object_class);
+            attrs[0] = talloc_strdup(lr->sdap_ctx, LDAP_NO_ATTRS);
 
             DEBUG(4, ("calling ldap_search_ext with [%s].\n", filter));
             ret = ldap_search_ext(lr->ldap,
@@ -695,7 +696,7 @@ static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
     struct sdap_pw_cache *data = talloc_get_type(pvt, struct sdap_pw_cache);
     struct pam_data *pd;
     const char *username;
-    const char *password;
+    char *password;
     int ret;
 
     data->sysreq = req;

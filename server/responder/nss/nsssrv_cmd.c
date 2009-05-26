@@ -834,6 +834,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     int ret;
     int ncret;
 
+    ret = ENOENT;
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
@@ -1342,7 +1343,9 @@ static int fill_grent(struct sss_packet *packet,
 
     num = 0;
     mnump = 0;
+    memnum = 0;
     get_members = false;
+    skip_members = false;
     for (i = 0; i < count; i++) {
         msg = msgs[i];
 
@@ -2186,6 +2189,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     int ret;
     int ncret;
 
+    ret = ENOENT;
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);

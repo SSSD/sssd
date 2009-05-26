@@ -60,10 +60,10 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
     int ret;
 
     if (pd->user == NULL || pd->domain == NULL) return false;
-    if (pd->service == NULL) pd->service = "";
-    if (pd->tty == NULL) pd->tty = "";
-    if (pd->ruser == NULL) pd->ruser = "";
-    if (pd->rhost == NULL) pd->rhost = "";
+    if (pd->service == NULL) pd->service = talloc_strdup(pd, "");
+    if (pd->tty == NULL) pd->tty = talloc_strdup(pd, "");
+    if (pd->ruser == NULL) pd->ruser = talloc_strdup(pd, "");
+    if (pd->rhost == NULL) pd->rhost = talloc_strdup(pd, "");
 
 
     ret = dbus_message_append_args(msg,

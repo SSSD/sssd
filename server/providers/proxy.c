@@ -72,7 +72,7 @@ struct authtok_conv {
 };
 
 static void cache_password(struct be_req *req,
-                           char *username,
+                           const char *username,
                            struct authtok_conv *ac);
 static void proxy_reply(struct be_req *req,
                         int error, const char *errstr);
@@ -288,7 +288,6 @@ static void proxy_reply(struct be_req *req, int error, const char *errstr)
 static void cache_pw_return(void *pvt, int error, struct ldb_result *ignore)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    const char *err = "Success";
 
     if (error != EOK) {
         DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
@@ -331,7 +330,7 @@ static int password_destructor(void *memctx)
 }
 
 static void cache_password(struct be_req *req,
-                           char *username,
+                           const char *username,
                            struct authtok_conv *ac)
 {
     struct proxy_data *data;
@@ -348,7 +347,9 @@ static void cache_password(struct be_req *req,
     data->pwd = talloc(data, struct passwd);
     if (!data->pwd)
         return proxy_reply(req, ENOMEM, "Out of memory");
-    data->pwd->pw_name = username;
+    data->pwd->pw_name = talloc_strdup(data, username);
+    if (!data->pwd->pw_name)
+        return proxy_reply(req, ENOMEM, "Out of memory");
     data->pwd->pw_passwd = talloc_size(data, ac->authtok_size + 1);
     if (!data->pwd->pw_passwd)
         return proxy_reply(req, ENOMEM, "Out of memory");

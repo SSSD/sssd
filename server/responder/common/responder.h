@@ -49,8 +49,8 @@ struct cli_request {
 
 struct cli_protocol_version {
     uint32_t version;
-    char *date;
-    char *description;
+    const char *date;
+    const char *description;
 };
 
 struct sss_names_ctx {

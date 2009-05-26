@@ -64,7 +64,7 @@ int parse_section(TALLOC_CTX *mem_ctx, const char *section,
                   char **sec_dn, const char **rdn_name)
 {
     TALLOC_CTX *tmp_ctx;
-    char *dn;
+    char *dn = NULL;
     char *p;
     const char *s;
     int l, ret;
@@ -776,7 +776,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
                        struct sss_domain_info **domains)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sss_domain_info *domain, *prevdom;
+    struct sss_domain_info *domain, *prevdom = NULL;
     struct sss_domain_info *first = NULL;
     char **domlist;
     int ret, i;

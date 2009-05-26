@@ -279,7 +279,7 @@ static int delete_permanent(struct tdb_context *tdb,
                             TDB_DATA key, TDB_DATA data, void *state)
 {
     unsigned long long int timestamp;
-    bool remove = false;
+    bool remove_key = false;
     char *ep;
 
     if (strncmp((char *)key.dptr,
@@ -292,17 +292,17 @@ static int delete_permanent(struct tdb_context *tdb,
     timestamp = strtoull((const char *)data.dptr, &ep, 0);
     if (errno != 0 || *ep != '\0') {
         /* Malformed entry, remove it */
-        remove = true;
+        remove_key = true;
         goto done;
     }
 
     if (timestamp == 0) {
         /* a 0 timestamp means this is a permanent entry */
-        remove = true;
+        remove_key = true;
     }
 
 done:
-    if (remove) {
+    if (remove_key) {
         return tdb_delete(tdb, key);
     }
 

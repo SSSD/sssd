@@ -88,12 +88,11 @@ static int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val)
 {
-    struct ldb_message_element *el;
+    struct ldb_message_element *el = NULL;
     struct ldb_val *vals;
     int ret;
 
     ret = sysdb_attrs_get_el(attrs, name, &el);
-
 
     vals = talloc_realloc(attrs->a, el->values,
                           struct ldb_val, el->num_values+1);
@@ -116,7 +115,7 @@ int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
 {
     struct ldb_val v;
 
-    v.data = (uint8_t *)str;
+    v.data = (uint8_t *)discard_const(str);
     v.length = strlen(str);
 
     return sysdb_attrs_add_val(attrs, name, &v);
