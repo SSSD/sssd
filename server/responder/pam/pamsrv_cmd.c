@@ -543,7 +543,8 @@ static void pam_check_user_callback(void *ptr, int status,
     struct sss_domain_info *dom;
     uint64_t lastUpdate;
     bool call_provider = false;
-    int timeout;
+    time_t timeout;
+    time_t cache_timeout;
     int ret;
 
     if (status != LDB_SUCCESS) {
@@ -561,11 +562,11 @@ static void pam_check_user_callback(void *ptr, int status,
             break;
 
         case 1:
-            timeout = 30; /* FIXME: read from conf */
+            cache_timeout = 30; /* FIXME: read from conf */
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < time(NULL)) {
+            if (lastUpdate + cache_timeout < time(NULL)) {
                 call_provider = true;
             }
             break;
