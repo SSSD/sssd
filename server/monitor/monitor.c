@@ -1128,7 +1128,7 @@ static void config_file_changed(struct tevent_context *ev,
 
     total_len = 0;
     while (total_len < event_size) {
-        len = read(file_ctx->fd, &buf+total_len, event_size-total_len);
+        len = read(file_ctx->fd, buf+total_len, event_size-total_len);
         if (len == -1 && errno != EINTR) {
             DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
             talloc_free(tmp_ctx);
@@ -1137,7 +1137,7 @@ static void config_file_changed(struct tevent_context *ev,
         total_len += len;
     }
 
-    in_event = (struct inotify_event *)&buf;
+    in_event = (struct inotify_event *)buf;
 
     if (in_event->len > 0) {
         /* Read in the name, even though we don't use it,
