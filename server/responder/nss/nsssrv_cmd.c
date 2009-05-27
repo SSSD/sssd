@@ -93,6 +93,22 @@ static struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
     return dom;
 }
 
+static int fill_empty(struct sss_packet *packet)
+{
+    uint8_t *body;
+    size_t blen;
+    int ret;
+
+    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+    if (ret != EOK) return ret;
+
+    sss_packet_get_body(packet, &body, &blen);
+    ((uint32_t *)body)[0] = 0; /* num results */
+    ((uint32_t *)body)[1] = 0; /* reserved */
+
+    return EOK;
+}
+
 /****************************************************************************
  * PASSWD db related functions
  ***************************************************************************/
@@ -120,12 +136,15 @@ static int fill_pwent(struct sss_packet *packet,
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
     const char *namefmt = nctx->rctx->names->fq_fmt;
+    bool packet_initialized = false;
     int ncret;
 
     if (add_domain) dom_len = strlen(domain);
 
     /* first 2 fields (len and reserved), filled up later */
     ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+    if (ret != EOK) return ret;
+
     rp = 2*sizeof(uint32_t);
 
     num = 0;
@@ -159,6 +178,13 @@ static int fill_pwent(struct sss_packet *packet,
                 DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
                           name, domain));
             continue;
+        }
+
+        if (!packet_initialized) {
+            /* first 2 fields (len and reserved), filled up later */
+            ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+            if (ret != EOK) return ret;
+            packet_initialized = true;
         }
 
         gecos = ldb_msg_find_attr_as_string(msg, SYSDB_GECOS, NULL);
@@ -229,6 +255,10 @@ static int fill_pwent(struct sss_packet *packet,
     }
 
 done:
+    /* if there are no results just return ENOENT,
+     * let the caller decide if this is the last packet or not */
+    if (!packet_initialized) return ENOENT;
+
     sss_packet_get_body(packet, &body, &blen);
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
@@ -408,6 +438,9 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
                          dctx->domain,
                          nctx, false,
                          res->msgs, res->count);
+        if (ret == ENOENT) {
+            ret = fill_empty(cctx->creq->out);
+        }
         sss_packet_set_error(cctx->creq->out, ret);
 
         break;
@@ -765,6 +798,9 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
                          dctx->domain,
                          nctx, true,
                          res->msgs, res->count);
+        if (ret == ENOENT) {
+            ret = fill_empty(cctx->creq->out);
+        }
         sss_packet_set_error(cctx->creq->out, ret);
 
         break;
@@ -1195,13 +1231,15 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
     struct nss_ctx *nctx;
     struct getent_ctx *pctx;
     struct ldb_message **msgs = NULL;
-    struct dom_ctx *pdom;
+    struct dom_ctx *pdom = NULL;
     int n = 0;
+    int ret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     pctx = nctx->pctx;
 
-    if (pctx->cur >= pctx->num) goto done;
+retry:
+    if (pctx->cur >= pctx->num) goto none;
 
     pdom = &pctx->doms[pctx->cur];
 
@@ -1212,15 +1250,19 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
         n = pdom->res->count - pdom->cur;
     }
 
-    if (!n) goto done;
+    if (!n) goto none;
 
     if (n > num) n = num;
 
     msgs = &(pdom->res->msgs[pdom->cur]);
     pdom->cur += n;
 
-done:
-    return fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, n);
+    ret = fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, n);
+    if (ret == ENOENT) goto retry;
+    return ret;
+
+none:
+    return fill_empty(cctx->creq->out);
 }
 
 /* used only if a process calls getpwent() without first calling setpwent()
@@ -1333,12 +1375,11 @@ static int fill_grent(struct sss_packet *packet,
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
     const char *namefmt = nctx->rctx->names->fq_fmt;
+    bool packet_initialized = false;
     int ncret;
 
     if (add_domain) dom_len = strlen(domain);
 
-    /* first 2 fields (len and reserved), filled up later */
-    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
     rp = 2*sizeof(uint32_t);
 
     num = 0;
@@ -1389,6 +1430,13 @@ static int fill_grent(struct sss_packet *packet,
                               name, domain));
                 skip_members = true;
                 continue;
+            }
+
+            if (!packet_initialized) {
+                /* first 2 fields (len and reserved), filled up later */
+                ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+                if (ret != EOK) return ret;
+                packet_initialized = true;
             }
 
             /* fill in gid and name and set pointer for number of members */
@@ -1614,6 +1662,10 @@ static int fill_grent(struct sss_packet *packet,
     }
 
 done:
+    /* if there are no results just return ENOENT,
+     * let the caller decide if this is the last packet or not */
+    if (!packet_initialized) return ENOENT;
+
     sss_packet_get_body(packet, &body, &blen);
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
@@ -1787,6 +1839,9 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
                          dctx->domain,
                          nctx, false,
                          res->msgs, res->count);
+        if (ret == ENOENT) {
+            ret = fill_empty(cctx->creq->out);
+        }
         sss_packet_set_error(cctx->creq->out, ret);
     }
 
@@ -2129,6 +2184,9 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
                          dctx->domain,
                          nctx, true,
                          res->msgs, res->count);
+        if (ret == ENOENT) {
+            ret = fill_empty(cctx->creq->out);
+        }
         sss_packet_set_error(cctx->creq->out, ret);
     }
 
@@ -2545,13 +2603,15 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     struct nss_ctx *nctx;
     struct getent_ctx *gctx;
     struct ldb_message **msgs = NULL;
-    struct dom_ctx *gdom;
+    struct dom_ctx *gdom = NULL;
     int n = 0;
+    int ret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     gctx = nctx->gctx;
 
-    if (gctx->cur >= gctx->num) goto done;
+retry:
+    if (gctx->cur >= gctx->num) goto none;
 
     gdom = &gctx->doms[gctx->cur];
 
@@ -2562,15 +2622,19 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
         n = gdom->res->count - gdom->cur;
     }
 
-    if (!n) goto done;
+    if (!n) goto none;
 
     if (n > num) n = num;
 
     msgs = &(gdom->res->msgs[gdom->cur]);
     gdom->cur += n;
 
-done:
-    return fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, n);
+    ret = fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, n);
+    if (ret == ENOENT) goto retry;
+    return ret;
+
+none:
+    return fill_empty(cctx->creq->out);
 }
 
 /* used only if a process calls getpwent() without first calling setpwent()
