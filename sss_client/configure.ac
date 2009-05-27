@@ -9,6 +9,7 @@ AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 AM_GNU_GETTEXT([external])
+AM_GNU_GETTEXT_VERSION([0.17])
 
 AC_SUBST(PAM_LIBS)
 
@@ -19,10 +20,10 @@ AC_CHECK_HEADERS([security/pam_appl.h security/pam_misc.h security/pam_modules.h
 )
 
 #Set the NSS library install path
-AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nssdir],
-                                        [Where to install nss libraries ($(prefix)/lib)])],
+AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nsslibdir],
+                                        [Where to install nss libraries ($libdir)])],
               [nsslibdir=$enableval],
-              [nsslibdir=$prefix/lib64])
+              [nsslibdir=$libdir])
 AC_SUBST(nsslibdir)
 AC_CONFIG_FILES([Makefile po/Makefile.in])
 AC_OUTPUT
