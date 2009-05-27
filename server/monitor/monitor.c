@@ -581,6 +581,33 @@ static int check_domain_ranges(struct sss_domain_info *domains)
     return EOK;
 }
 
+static int append_data_provider(struct mt_ctx *ctx)
+{
+    int i;
+    char **new_services;
+
+    for (i = 0; ctx->services[i]; i++) {
+        if (strcasecmp(ctx->services[i], "dp") == 0) {
+            return EOK;
+        }
+    }
+
+    new_services = talloc_realloc(ctx, ctx->services, char *, i+2);
+    if (new_services == NULL) {
+        return ENOMEM;
+    }
+    ctx->services = new_services;
+
+    ctx->services[i] = talloc_asprintf(ctx, "dp");
+    if (ctx->services[i] == NULL) {
+        return ENOMEM;
+    }
+    ctx->services[i+1] = NULL;
+    DEBUG(4, ("Added mandatory service Data Provider\n"));
+
+    return EOK;
+}
+
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
@@ -597,6 +624,11 @@ int get_monitor_config(struct mt_ctx *ctx)
     if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
         return EINVAL;
+    }
+    ret = append_data_provider(ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not add Data Provider to the list of services!\n"));
+        return ret;
     }
 
     ret = confdb_get_domains(ctx->cdb, ctx, &ctx->domains);
