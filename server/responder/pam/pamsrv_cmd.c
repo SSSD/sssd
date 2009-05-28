@@ -478,7 +478,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
                                    preq->pd->user, 0);
     }
     else {
-        preq->check_provider = (preq->domain->provider != NULL);
+        preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
 
         ret = sysdb_getpwnam(preq, cctx->rctx->sysdb,
                              preq->domain, preq->pd->user,
@@ -665,7 +665,7 @@ static void pam_check_user_callback(void *ptr, int status,
                                                preq->pd->user, 0);
                 }
                 else {
-                    preq->check_provider = (preq->domain->provider != NULL);
+                    preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
 
                     ret = sysdb_getpwnam(preq, preq->cctx->rctx->sysdb,
                                          preq->domain, preq->pd->user,
