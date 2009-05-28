@@ -104,19 +104,15 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_groupmod
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
-%{_libdir}/ldb/memberof.so*
+%{_libdir}/ldb/memberof.so
 %dir %{_sharedstatedir}/sss/
 %attr(700,root,root) %dir %{_sharedstatedir}/sss/db
 %dir %{_sharedstatedir}/sss/pipes
 %attr(700,root,root) %dir %{_sharedstatedir}/sss/pipes/private
 %dir %{_sysconfdir}/sssd
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
-/%{_lib}/libnss_sss.so
 /%{_lib}/libnss_sss.so.2
-/%{_lib}/libnss_sss.so.2.0.0
 /%{_lib}/security/pam_sss.so
-/%{_lib}/security/pam_sss.so.1
-/%{_lib}/security/pam_sss.so.1.0.0
 %{_mandir}/man8/*
 %{_datadir}/locale/*/LC_MESSAGES/sss_client.mo
 

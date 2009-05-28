@@ -386,7 +386,7 @@ memberof_la_SOURCES = \
 memberof_la_CFLAGS = \
     $(AM_CFLAGS)
 memberof_la_LDFLAGS = \
-    -version-info 1:0:0 \
+    -avoid-version \
     -module
 
 ############
