@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd.conf</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd.conf</refname>
+        <refpurpose>the configuration file for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='file-format'>
+        <title>FILE FORMAT</title>
+
+        <para>
+            The file has an ini-style syntax and consists of sections and
+            parameters. A section begins with the name of the section in
+            square brackets and continues until the next section begins. An
+            example of section with single and multi-valued parameters:
+            <programlisting>
+                <replaceable>[section]</replaceable>
+                <replaceable>key</replaceable> = <replaceable>value</replaceable>
+                <replaceable>key2</replaceable> = <replaceable>value2,value3</replaceable>
+            </programlisting>
+        </para>
+
+        <para>
+            The data types used are string (no quotes needed), integer
+            and bool (with values of <quote>TRUE/FALSE</quote>).
+        </para>
+
+        <para>
+            A line comment starts with a hash sign (<quote>#</quote>) or a
+            semicolon (<quote>;</quote>)
+        </para>
+
+        <para>
+            All sections can have an optional
+            <replaceable>description</replaceable> parameter. Its function
+            is only as a label for the section.
+        </para>
+    </refsect1>
+
+    <refsect1 id='special-sections'>
+        <title>SPECIAL SECTIONS</title>
+
+        <refsect2 id='services'>
+            <title>The [services] section</title>
+            <para>
+                Individual pieces of SSSD functionality are provided by special
+                SSSD services that are started and stopped together with SSSD.
+                The services are managed by a special service called
+                <quote>monitor</quote>.
+                <variablelist>
+                    <title>Section parameters</title>
+                    <varlistentry>
+                        <term>activeServices</term>
+                        <listitem>
+                            <para>
+                                Comma separated list of services that are
+                                started when sssd itself starts. Since Data
+                                Provider (<quote>dp</quote>) is a required
+                                service, it will be started even if omitted.
+                            </para>
+                            <para>
+                                Default: dp
+                            </para>
+                            <para>
+                                Supported services: dp, nss, pam
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>reconnection_retries</term>
+                        <listitem>
+                            <para>
+                                Number of times services should attempt to
+                                reconnect in the event of a Data Provider
+                                crash or restart before they give up
+                            </para>
+                            <para>
+                                Default: 3
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                </variablelist>
+            </para>
+        </refsect2>
+
+        <refsect2 id='domains'>
+            <title>The [domains] section</title>
+            <para>
+                A domain is a database containing user information. SSSD can
+                use more domains at the same time, but at least one must
+                be configured or SSSD won't start.
+            </para>
+            <variablelist>
+                <title>Section parameters</title>
+                <varlistentry>
+                    <term>domains</term>
+                    <listitem>
+                        <para>
+                            The list of domains in the order you want them
+                            to be queried
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
+        <refsect2 id='names'>
+            <title>The [names] section</title>
+            <para>
+                This section allows to configure how a name, or a fully qualified
+                name looks like. These settings are used by both the PAM and NSS
+                responders.
+            </para>
+            <variablelist>
+                <title>Section parameters</title>
+                <varlistentry>
+                    <term>re-expression (string)</term>
+                    <listitem>
+                        <para>
+                            Regular expression that describes how to parse the string
+                            containing user name and domain into these components.
+                        </para>
+                        <para>
+                            Default: <quote>(?&lt;name&gt;[^@]+)@?(?&lt;domain&gt;[^@]*$)</quote>
+                            which translates to "the name is everything up to the
+                            <quote>@</quote> sign, the domain everything after that"
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>full-name-format (string)</term>
+                    <listitem>
+                        <para>
+                            A <citerefentry>
+                                <refentrytitle>printf</refentrytitle>
+                                <manvolnum>3</manvolnum>
+                            </citerefentry>-compatible format that describes how to
+                            translate a (name, domain) tuple into a fully qualified
+                            name.
+                        </para>
+                        <para>
+                            Default: <quote>%1$s@%2$s</quote>.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
+        <refsect2 id='user_defaults'>
+            <title>The [user_defaults] section</title>
+            <para>
+                This section contains settings that alter default values used
+                when adding a user with SSSD userspace tools (sss_useradd).
+            </para>
+            <variablelist>
+                <title>Section parameters</title>
+                <varlistentry>
+                    <term>defaultShell (string)</term>
+                    <listitem>
+                        <para>
+                            The default shell for users created
+                            with SSSD userspace tools.
+                        </para>
+                        <para>
+                            Default: <filename>/bin/bash</filename>
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>baseDirectory (string)</term>
+                    <listitem>
+                        <para>
+                            The tools append the login name to
+                            <replaceable>baseDirectory</replaceable> and
+                            use that as the home directory.
+                        </para>
+                        <para>
+                            Default: <filename>/home</filename>
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
+    </refsect1>
+
+    <refsect1 id='services-sections'>
+        <title>SERVICES SECTIONS</title>
+        <para>
+            Settings that can be used to configure different services
+            are described in this section. They should reside in the
+            [services/<replaceable>NAME</replaceable>] section, for example,
+            for NSS service, the section would be <quote>[services/nss]</quote>
+        </para>
+
+        <refsect2 id='general'>
+            <title>General service configuration options</title>
+            <para>
+                These options can be used to configure any service.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>debug-level (integer)</term>
+                    <listitem>
+                        <para>
+                            Sets the debug level for the service. The
+                            value can be in range from 0 (only critical
+                            messages) to 10 (very verbose).
+                        </para>
+                        <para>
+                            Default: 0
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>reconnection_retries (integer)</term>
+                    <listitem>
+                        <para>
+                            Number of times services should attempt to
+                            reconnect in the event of a Data Provider
+                            crash or restart before they give up
+                        </para>
+                        <para>
+                            Default: 3
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>command (string)</term>
+                    <listitem>
+                        <para>
+                            By default, the executable
+                            representing this service is called
+                            <command>sssd_${service_name}</command>.
+                            This directive allows to change the executable
+                            name for the service. In the vast majority of
+                            configurations, the default values should suffice.
+                        </para>
+                        <para>
+                            Default: <command>sssd_${service_name}</command>
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
+        <refsect2 id='Monitor'>
+            <title>Monitor configuration options</title>
+            <para>
+                Monitor is the central controller of the SSSD. It is
+                responsible for running all the other services that provide
+                specific pieces of functionality.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>sbusAddress (string)</term>
+                    <listitem>
+                        <para>
+                            The services in sssd communicate over an internal
+                            wrapper on top of D-Bus called S-Bus. This
+                            directive can be used to specify the address
+                            to connect to.  The vast majority of configurations
+                            will not need to change this setting.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>sbusTimeout (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout for messages sent over the SBUS.
+                        </para>
+                        <para>
+                            Default: -1  (implies a reasonable timeout as defined
+                            by the D-BUS library)
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
+        <refsect2 id='NSS'>
+            <title>NSS configuration options</title>
+            <para>
+                These options can be used to configure the
+                Name Service Switch (NSS) service.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>EnumCacheTimeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How long should nss_sss cache enumerations
+                            (requests for info about all users)
+                        </para>
+                        <para>
+                            Default: 120
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>EntryCacheTimeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How long should nss_sss cache positive cache hits
+                            (that is, queries for valid database entries) before
+                            asking the backend again
+                        </para>
+                        <para>
+                            Default: 600
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>EntryNegativeTimeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How long should nss_sss cache negative cache hits
+                            (that is, queries for invalid database entries, like
+                            nonexistent ones) before asking the backend again
+                        </para>
+                        <para>
+                            Default: 15
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>filterUsers, filterGroups (string)</term>
+                    <listitem>
+                        <para>
+                            Exclude certain users from being fetched from the sss
+                            NSS database. This is particulary useful for system
+                            accounts like root.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+    </refsect1>
+
+    <refsect1 id='domain-sections'>
+        <title>DOMAIN SECTIONS</title>
+        <para>
+            These configuration options can be present in a domain
+            configuration section, that is, in a section called
+            <quote>[domains/<replaceable>NAME</replaceable>]</quote>
+            <variablelist>
+                <varlistentry>
+                    <term>minId,maxId (integer)</term>
+                    <listitem>
+                        <para>
+                            UID limits for the domain. If a domain contains
+                            entry that is outside these limits, it is ignored
+                        </para>
+                        <para>
+                            Default: 0 (no limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Timeout in seconds for this particular domain.
+                            Raising this timeout might prove useful for slower
+                            backends like distant LDAP servers.
+                        </para>
+                        <para>
+                            Default: 0 (no timeout)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>magicPrivateGroups (bool)</term>
+                    <listitem>
+                        <para>
+                            By using the Magic Private Groups option, you
+                            are imposing two limitations to the ID space
+                            and name space:
+                        </para>
+                        <para>
+                            1. Users and groups in the domain share a common
+                            name space. There can never be an explicit group
+                            with the same name as a user
+                        </para>
+                        <para>
+                            2. Users and groups share a common ID
+                            space, there can never be an explicit group with
+                            a same ID as a user
+                        </para>
+                        <para>
+                            Using Magic Private groups bring the benefit of
+                            better Windows Interoperability (in Windows,
+                            the ID and name spaces are unique) and also
+                            avoids creating a group for every user,
+                            thus cluttering the group space. Also, for
+                            NSS calls, every user is actually returned
+                            as user's private group without having to
+                            explicitly create the group, thus having the
+                            same effect as User Private Groups
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>enumerate (integer)</term>
+                    <listitem>
+                        <para>
+                            Determines if a domain can be enumerated. This
+                            parameter can have one of the following values:
+                        </para>
+                        <para>
+                            0 = No enumeration
+                        </para>
+                        <para>
+                            1 = Enumerate users
+                        </para>
+                        <para>
+                            2 = Enumerate groups
+                        </para>
+                        <para>
+                            3 = Enumerate both
+                        </para>
+                        <para>
+                            Default: 0
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>cache-credentials (bool)</term>
+                    <listitem>
+                        <para>
+                            Determines if user credentials are also cached
+                            in the local LDB cache
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>legacy (bool)</term>
+                    <listitem>
+                        <para>
+                            A legacy domain is a strictly POSIX domain in
+                            terms of attributes it supports. Groups in legacy
+                            domains can't be nested.
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>store-legacy-passwords (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether to also store passwords in a legacy domain
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>provider (string)</term>
+                    <listitem>
+                        <para>
+                            The Data Provider backend to use for this domain.
+                        </para>
+                        <para>
+                            Supported backends:
+                        </para>
+                        <para>
+                            proxy: Support a legacy NSS provider
+                        </para>
+                        <para>
+                            local: SSSD internal local provider
+                        </para>
+                        <para>
+                            ldap:  LDAP provider
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>useFullyQualifiedNames (bool)</term>
+                    <listitem>
+                        <para>
+                            If set to TRUE, all requests to this domain
+                            must use fully qualified names. For example,
+                            if used in LOCAL domain that contains a "test"
+                            user, <command>getent passwd test</command>
+                            wouldn't find the user while <command>getent
+                            passwd test@LOCAL</command> would.
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+
+        <para>
+            Options valid for proxy domains.
+
+            <variablelist>
+                <varlistentry>
+                    <term>auth-module (string)</term>
+                    <listitem>
+                        <para>
+                            The authentication module used. Two
+                            authentication modules are provided -
+                            <quote>ldap</quote> for native LDAP authentication
+                            and <quote>proxy</quote>, used for relaying
+                            authentication to some other PAM target.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>pam-target (string)</term>
+                    <listitem>
+                        <para>
+                            The proxy target PAM proxies to.
+                        </para>
+                        <para>
+                            Default: sssd_pam_proxy_default
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>libName (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the NSS library to use in proxy
+                            domains. The NSS functions searched for in the
+                            library are in the form of
+                            _nss_$(libName)_$(function), for example
+                            _nss_files_getpwent.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>libPath (string)</term>
+                    <listitem>
+                        <para>
+                            File name (including .so) of NSS library
+                            used. For instance, ldap NSS library is named
+                            libnss_ldap.so, the standard files NSS library
+                            is named libnss_files.so
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example shows a typical SSSD config. It does
+            not describe configuration of the domains themselves - refer to
+            documentation on configuring domains for more details.
+<programlisting>
+[services]
+description =  Local Service Configuration
+activeServices = nss, pam
+reconnection_retries = 3
+
+[services/nss]
+description = NSS Responder Configuration
+filterGroups = root
+filterUsers = root
+debug-level = 4
+
+[services/dp]
+description = Data Provider Configuration
+debug-level = 4
+
+[services/pam]
+description = PAM Responder Configuration
+
+[services/monitor]
+description = Service Monitor Configuration
+
+[domains]
+description = Domains served by SSSD
+domains = LOCAL
+
+[domains/LOCAL]
+description = LOCAL Users domain
+enumerate = 3
+minId = 5000
+maxId = 30000
+legacy = FALSE
+magicPrivateGroups = TRUE
+provider = local
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+</refentry>
+</reference>
