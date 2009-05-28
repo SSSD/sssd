@@ -92,6 +92,14 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
+    val[0] = "3";
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "enumerate", val);
+    if (ret != EOK) {
+        fail("Could not initialize LOCAL domain");
+        talloc_free(test_ctx);
+        return ret;
+    }
+
     ret = sysdb_init(test_ctx, test_ctx->ev, test_ctx->confdb, "tests.ldb",
                      &test_ctx->sysdb);
     if (ret != EOK) {
