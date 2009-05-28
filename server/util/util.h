@@ -11,6 +11,7 @@
 #include "config.h"
 #include "talloc.h"
 #include "tevent.h"
+#include "ldb.h"
 
 extern const char *debug_prg_name;
 extern int debug_level;
@@ -53,6 +54,10 @@ struct main_context {
 };
 
 #include "util/dlinklist.h"
+
+/* From debug.c */
+void ldb_debug_messages(void *context, enum ldb_debug_level level,
+                        const char *fmt, va_list ap);
 
 /* from server.c */
 int server_setup(const char *name, int flags,

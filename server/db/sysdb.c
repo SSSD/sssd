@@ -334,6 +334,12 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
+    ret = ldb_set_debug(ctx->ldb, ldb_debug_messages, NULL);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(ctx);
+        return EIO;
+    }
+
     ret = ldb_connect(ctx->ldb, ctx->ldb_file, 0, NULL);
     if (ret != LDB_SUCCESS) {
         talloc_free(ctx);

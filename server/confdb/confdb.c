@@ -660,6 +660,12 @@ int confdb_init(TALLOC_CTX *mem_ctx,
         talloc_free(cdb);
         return EIO;
     }
+    ret = ldb_set_debug(cdb->ldb, ldb_debug_messages, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(0,("Could not set up debug fn.\n"));
+        talloc_free(cdb);
+        return EIO;
+    }
 
     *cdb_ctx = cdb;
 
