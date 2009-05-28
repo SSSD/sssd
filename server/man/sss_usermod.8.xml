@@ -7,18 +7,18 @@
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
 
     <refmeta>
-        <refentrytitle>sss_useradd</refentrytitle>
+        <refentrytitle>sss_usermod</refentrytitle>
         <manvolnum>8</manvolnum>
     </refmeta>
 
     <refnamediv id='name'>
-        <refname>sss_useradd</refname>
-        <refpurpose>create a new user</refpurpose>
+        <refname>sss_usermod</refname>
+        <refpurpose>modify a user account</refpurpose>
     </refnamediv>
 
     <refsynopsisdiv id='synopsis'>
         <cmdsynopsis>
-            <command>sss_useradd</command>
+            <command>sss_usermod</command>
             <arg choice='opt'>
                 <replaceable>options</replaceable>
             </arg>
@@ -29,40 +29,15 @@
     <refsect1 id='description'>
         <title>DESCRIPTION</title>
         <para>
-            <command>sss_useradd</command> creates a new user account using
-            the values specified on the command line plus the default values from
-            the system.
+            <command>sss_usermod</command> modifies the
+            account specified by <replaceable>LOGIN</replaceable>
+            to reflect the changes that are specified on the command line.
         </para>
     </refsect1>
 
     <refsect1 id='options'>
         <title>OPTIONS</title>
         <variablelist remap='IP'>
-            <varlistentry>
-                <term>
-                    <option>-u</option>,<option>--uid</option>
-                    <replaceable>UID</replaceable>
-                </term>
-                <listitem>
-                    <para>
-                        Set the UID of the user to the value of <replaceable>UID</replaceable>.
-                        If not given, it is chosen automatically.
-                    </para>
-                </listitem>
-            </varlistentry>
-            <varlistentry>
-                <term>
-                    <option>-g</option>,<option>--gid</option>
-                    <replaceable>GID</replaceable>
-                </term>
-                <listitem>
-                    <para>
-                        Set the GID or group membership of the user to the value
-                        of <replaceable>GID</replaceable>. If not given, it is
-                        chosen automatically.
-                    </para>
-                </listitem>
-            </varlistentry>
             <varlistentry>
                 <term>
                     <option>-c</option>,<option>--gecos</option>
@@ -83,10 +58,6 @@
                 <listitem>
                     <para>
                         The home directory of the user account.
-                        The default is to append the <replaceable>LOGIN</replaceable> name
-                        to <filename>/home</filename> and use that as the home directory.
-                        The base that is prepended before <replaceable>LOGIN</replaceable> is tunable
-                        with <quote>user_defaults/baseDirectory</quote> setting in sssd.conf.
                     </para>
                 </listitem>
             </varlistentry>
@@ -97,21 +68,54 @@
                 </term>
                 <listitem>
                     <para>
-                        The user's login shell. The default is currently <filename>/bin/bash</filename>.
-                        The default can be changed with
-                        <quote>user_defaults/defaultShell</quote> setting
-                        in sssd.conf.
+                        The user's login shell.
                     </para>
                 </listitem>
             </varlistentry>
             <varlistentry>
                 <term>
-                    <option>-G</option>,<option>--groups</option>
+                    <option>-a</option>,<option>--append-group</option>
                     <replaceable>GROUPS</replaceable>
                 </term>
                 <listitem>
                     <para>
-                        A list of existing groups this user is also a member of.
+                        Append this user to groups specified by the
+                        <replaceable>GROUPS</replaceable> parameter.
+                        The <replaceable>GROUPS</replaceable> parameter
+                        is a comma separated list of group names.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-r</option>,<option>--remove-group</option>
+                    <replaceable>GROUPS</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Remove this user from groups specified by the
+                        <replaceable>GROUPS</replaceable> parameter.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-l</option>,<option>--lock</option>
+                </term>
+                <listitem>
+                    <para>
+                        Lock the user account. The user won't be able
+                        to log in.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-u</option>,<option>--unlock</option>
+                </term>
+                <listitem>
+                    <para>
+                        Unlock the user account.
                     </para>
                 </listitem>
             </varlistentry>
@@ -132,10 +136,10 @@
                 <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
-                <refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum>
+                <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
-                <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
+                <refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>.
         </para>
     </refsect1>

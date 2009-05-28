@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd</refname>
+        <refpurpose>System Security Services Daemon</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sssd</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>SSSD</command> provides a set of daemons to manage access to remote
+            directories and authentication mechanisms. It provides an NSS and
+            PAM interface toward the system and a pluggable backend system to
+            connect to multiple different account sources as well as D-Bus
+            interface. It is also the basis to provide client auditing and
+            policy services for projects like FreeIPA. It provides a more robust database
+            to store local users as well as extended user data.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--debug-level</option>
+                    <replaceable>LEVEL</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Debug level to run the daemon with. 0 is the default as well
+                        as the lowest allowed value, 10 is the most verbose mode. This setting
+                        overrides the settings from config file. This parameter implies <option>-i</option>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-D</option>,<option>--daemon</option>
+                </term>
+                <listitem>
+                    <para>
+                        Become a daemon after starting up.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-i</option>,<option>--interactive</option>
+                </term>
+                <listitem>
+                    <para>
+                        Run in the foreground, don't become a daemon.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-c</option>,<option>--config</option>
+                </term>
+                <listitem>
+                    <para>
+                        Specify a non-default config file. The default is
+                        <filename>/etc/sssd/sssd.conf</filename>. For reference
+                        on the config file syntax and options, consult the
+                        <citerefentry>
+                            <refentrytitle>sssd.conf</refentrytitle>
+                            <manvolnum>5</manvolnum>
+                        </citerefentry>
+                        manual page.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_userdel</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+</refentry>
+</reference>

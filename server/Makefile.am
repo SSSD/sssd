@@ -399,7 +399,9 @@ DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/docbo
 XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
 XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 
-dist_man_MANS = man/sss_useradd.8
+dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
+		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
+		man/sssd.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
