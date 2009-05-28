@@ -92,6 +92,7 @@ static inline void b64_from_24bit(char **dest, size_t *len, size_t n,
     *dest += i;
 }
 
+#define PTR_2_INT(x) ((x) - ((__typeof__ (x)) NULL))
 #define ALIGN64 __alignof__(uint64_t)
 
 static int sha512_crypt_r(const char *key,
@@ -142,14 +143,14 @@ static int sha512_crypt_r(const char *key,
     salt_len = MIN(strcspn(salt, "$"), SALT_LEN_MAX);
     key_len = strlen(key);
 
-    if ((((uint64_t)key) % ALIGN64) != 0) {
+    if ((PTR_2_INT(key) % ALIGN64) != 0) {
         tmp = (char *)alloca(key_len + ALIGN64);
-        key = copied_key = memcpy(tmp + ALIGN64 - (((uint64_t)tmp) % ALIGN64), key, key_len);
+        key = copied_key = memcpy(tmp + ALIGN64 - PTR_2_INT(tmp) % ALIGN64, key, key_len);
     }
 
-    if (((uint64_t)salt) % ALIGN64 != 0) {
+    if (PTR_2_INT(salt) % ALIGN64 != 0) {
         tmp = (char *)alloca(salt_len + ALIGN64);
-        salt = copied_salt = memcpy(tmp + ALIGN64 - ((uint64_t)tmp) % ALIGN64, salt, salt_len);
+        salt = copied_salt = memcpy(tmp + ALIGN64 - PTR_2_INT(tmp) % ALIGN64, salt, salt_len);
     }
 
     if (!nspr_nss_init_done) {
