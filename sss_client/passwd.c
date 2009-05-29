@@ -72,9 +72,8 @@ struct sss_nss_pw_rep {
 static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
                                  uint8_t *buf, size_t *len)
 {
-    size_t i, slen;
+    size_t i, slen, dlen;
     char *sbuf;
-    int err;
 
     if (*len < 13) { /* not enough space for data, bad packet */
         return EBADMSG;
@@ -84,70 +83,90 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
     pr->result->pw_gid = ((uint32_t *)buf)[1];
 
     sbuf = (char *)&buf[8];
-    if (*len < pr->buflen) {
-        slen = *len;
-        err = EBADMSG;
-    } else {
-        slen = pr->buflen;
-        err = ENOMEM;
-    }
+    slen = *len - 8;
+    dlen = pr->buflen;
 
     pr->result->pw_name = &(pr->buffer[0]);
     i = 0;
-    while (i < slen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (i == slen) { /* premature end of buf */
-        return err;
+    if (slen <= i) { /* premature end of buf */
+        return EBADMSG;
     }
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+    }
+    i++;
+    dlen--;
 
     i++;
     pr->result->pw_passwd = &(pr->buffer[i]);
-    while (i < slen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (i == slen) { /* premature end of buf */
-        return err;
+    if (slen <= i) { /* premature end of buf */
+        return EBADMSG;
     }
-
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+    }
     i++;
+    dlen--;
+
     pr->result->pw_gecos = &(pr->buffer[i]);
-    while (i < slen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (i == slen) { /* premature end of buf */
-        return err;
+    if (slen <= i) { /* premature end of buf */
+        return EBADMSG;
     }
-
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+    }
     i++;
+    dlen--;
+
     pr->result->pw_dir = &(pr->buffer[i]);
-    while (i < slen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (i == slen) { /* premature end of buf */
-        return err;
+    if (slen <= i) { /* premature end of buf */
+        return EBADMSG;
     }
-
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+    }
     i++;
+    dlen--;
+
     pr->result->pw_shell = &(pr->buffer[i]);
-    while (i < slen) {
+    while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
         i++;
+        dlen--;
     }
-    if (pr->buffer[i] != '\0') { /* premature end of buf */
-        return err;
+    if (slen <= i) { /* premature end of buf */
+        return EBADMSG;
+    }
+    if (dlen <= 0) { /* not enough memory */
+        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
     }
 
-    *len = *len -8 -i -1;
+    *len = slen -i -1;
 
     return 0;
 }
