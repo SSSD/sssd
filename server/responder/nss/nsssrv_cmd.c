@@ -141,10 +141,6 @@ static int fill_pwent(struct sss_packet *packet,
 
     if (add_domain) dom_len = strlen(domain);
 
-    /* first 2 fields (len and reserved), filled up later */
-    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
-    if (ret != EOK) return ret;
-
     rp = 2*sizeof(uint32_t);
 
     num = 0;
