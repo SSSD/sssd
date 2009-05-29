@@ -80,7 +80,6 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     ssize_t dlen;
     char *sbuf;
     uint32_t mem_num;
-    int err;
 
     if (*len < 11) { /* not enough space for data, bad packet */
         return EBADMSG;
@@ -129,10 +128,10 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     /* now members */
     pr->result->gr_mem = (char **)&(pr->buffer[i]);
     ptmem = sizeof(char *) * (mem_num + 1);
-    dlen -= ptmem;
-    if (0 > dlen) { /* not enough mem in buffer */
+    if (ptmem > dlen) {
         return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
     }
+    dlen -= ptmem;
     ptmem += i;
     pr->result->gr_mem[mem_num] = NULL; /* terminate array */
 
@@ -140,19 +139,19 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
         pr->result->gr_mem[l] = &(pr->buffer[ptmem]);
         while ((slen > i) && (dlen > 0)) {
             pr->buffer[ptmem] = sbuf[i];
+            if (pr->buffer[ptmem] == '\0') break;
             i++;
             dlen--;
-            if (pr->buffer[ptmem] == '\0') break;
             ptmem++;
         }
-        if (pr->buffer[ptmem] != '\0') {
-            if (slen <= i) { /* premature end of buf */
-                return EBADMSG;
-            }
-            if (dlen <= 0) { /* not enough memory */
-                return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-            }
+        if (slen <= i) { /* premature end of buf */
+            return EBADMSG;
         }
+        if (dlen <= 0) { /* not enough memory */
+            return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+        }
+        i++;
+        dlen--;
         ptmem++;
     }
 
