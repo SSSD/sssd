@@ -48,6 +48,10 @@ void debug_fn(const char *format, ...);
 #define FLAGS_INTERACTIVE 0x0002
 #define FLAGS_PID_FILE 0x0004
 
+#ifndef talloc_zfree
+#define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
+#endif
+
 struct main_context {
     struct tevent_context *event_ctx;
     struct confdb_ctx *confdb_ctx;
