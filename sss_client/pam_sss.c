@@ -520,7 +520,7 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 
     cli_locale = setlocale(LC_ALL, NULL);
     if (cli_locale == NULL) {
-        pi->pam_cli_locale = "";
+        pi->pam_cli_locale = strdup("");
     } else {
         pi->pam_cli_locale = strdup(cli_locale);
         if (pi->pam_cli_locale == NULL) return PAM_BUF_ERR;
