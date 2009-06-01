@@ -7,6 +7,9 @@ AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_INSTALL
 
+m4_pattern_allow([AM_SILENT_RULES])
+AM_SILENT_RULES
+
 AC_CONFIG_HEADERS([config.h])
 
 # Enable trace build

@@ -11,6 +11,9 @@ AC_LIBREPLACE_NETWORK_CHECKS
 
 AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
 
+m4_pattern_allow([AM_SILENT_RULES])
+AM_SILENT_RULES
+
 if test "$ac_cv_prog_gcc" = yes; then
    CFLAGS="$CFLAGS -Wall"
    CFLAGS="$CFLAGS -W"

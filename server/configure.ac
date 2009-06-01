@@ -21,6 +21,9 @@ AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 
+m4_pattern_allow([AM_SILENT_RULES])
+AM_SILENT_RULES
+
 if test "$ac_cv_prog_gcc" = yes; then
    CFLAGS="$CFLAGS -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings"
 fi

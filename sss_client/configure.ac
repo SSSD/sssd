@@ -11,6 +11,9 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.17])
 
+m4_pattern_allow([AM_SILENT_RULES])
+AM_SILENT_RULES
+
 AC_SUBST(PAM_LIBS)
 
 #Check for PAM headers
