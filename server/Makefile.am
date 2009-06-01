@@ -238,6 +238,7 @@ sssd_be_SOURCES = \
     providers/data_provider_be.c \
     $(SSSD_UTIL_OBJ)
 sssd_be_LDADD = $(SSSD_LIBS)
+sssd_be_LDFLAGS = -export-dynamic
 
 if BUILD_POLICYKIT
 sssd_pk_SOURCES = \
@@ -357,8 +358,7 @@ endif #BUILD_TESTS
 ####################
 libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
-    providers/ldap/ldap_auth.c \
-    $(SSSD_UTIL_OBJ)
+    providers/ldap/ldap_auth.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS)
@@ -370,8 +370,7 @@ libsss_ldap_la_LDFLAGS = \
     -module
 
 libsss_proxy_la_SOURCES = \
-    providers/proxy.c \
-    $(SSSD_UTIL_OBJ)
+    providers/proxy.c
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
