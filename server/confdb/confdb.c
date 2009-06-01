@@ -655,14 +655,15 @@ int confdb_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
-    if (ret != LDB_SUCCESS) {
-        talloc_free(cdb);
-        return EIO;
-    }
     ret = ldb_set_debug(cdb->ldb, ldb_debug_messages, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(0,("Could not set up debug fn.\n"));
+        talloc_free(cdb);
+        return EIO;
+    }
+
+    ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
+    if (ret != LDB_SUCCESS) {
         talloc_free(cdb);
         return EIO;
     }
