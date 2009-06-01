@@ -86,8 +86,8 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
     slen = *len - 8;
     dlen = pr->buflen;
 
-    pr->result->pw_name = &(pr->buffer[0]);
     i = 0;
+    pr->result->pw_name = &(pr->buffer[i]);
     while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
         if (pr->buffer[i] == '\0') break;
@@ -103,7 +103,6 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
     i++;
     dlen--;
 
-    i++;
     pr->result->pw_passwd = &(pr->buffer[i]);
     while (slen > i && dlen > 0) {
         pr->buffer[i] = sbuf[i];
