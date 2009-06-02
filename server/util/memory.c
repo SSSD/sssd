@@ -1,30 +1,47 @@
 #include "talloc.h"
+#include "util/util.h"
 
 /*
- * sssd_mem_takeover
- * This function will take a non-talloc pointer and add it to a talloc
+ * sssd_mem_attach
+ * This function will take a non-talloc pointer and "attach" it to a talloc
  * memory context. It will accept a destructor for the original pointer
  * so that when the parent memory context is freed, the non-talloc
  * pointer will also be freed properly.
  */
-TALLOC_CTX *sssd_mem_takeover(TALLOC_CTX *mem_ctx,
-                              void *ptr,
-                              int (*destructor)(void **))
+
+int password_destructor(void *memctx)
 {
-    TALLOC_CTX **handle;
+    char *password = (char *)memctx;
+    int i;
 
-    if (ptr == NULL) {
-        return NULL;
-    }
+    /* zero out password */
+    for (i = 0; password[i]; i++) password[i] = '\0';
 
-    handle = talloc_named_const(mem_ctx, sizeof(void *),
-                                "sssd_mem_takeover destructor handle");
-    if (handle == NULL) {
-        return NULL;
-    }
+    return 0;
+}
 
-    *handle = ptr;
-    talloc_set_destructor(handle, destructor);
+static int mem_holder_destructor(void *ptr)
+{
+    struct mem_holder *h;
 
-    return handle;
+    h = talloc_get_type(ptr, struct mem_holder);
+    return h->fn(h->mem);
+}
+
+void *sss_mem_attach(TALLOC_CTX *mem_ctx,
+                     void *ptr,
+                     void_destructor_fn_t *fn)
+{
+    struct mem_holder *h;
+
+    if (!ptr || !fn) return NULL;
+
+    h = talloc(mem_ctx, struct mem_holder);
+    if (!h) return NULL;
+
+    h->mem = ptr;
+    h->fn = fn;
+    talloc_set_destructor((TALLOC_CTX *)h, mem_holder_destructor);
+
+    return h;
 }

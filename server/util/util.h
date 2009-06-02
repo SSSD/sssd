@@ -52,11 +52,6 @@ void debug_fn(const char *format, ...);
 #define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
 #endif
 
-struct main_context {
-    struct tevent_context *event_ctx;
-    struct confdb_ctx *confdb_ctx;
-};
-
 #include "util/dlinklist.h"
 
 /* From debug.c */
@@ -64,6 +59,11 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
 
 /* from server.c */
+struct main_context {
+    struct tevent_context *event_ctx;
+    struct confdb_ctx *confdb_ctx;
+};
+
 int server_setup(const char *name, int flags,
                  const char *conf_entry,
                  struct main_context **main_ctx);
@@ -77,9 +77,18 @@ void CatchChild(void);
 void CatchChildLeaveStatus(void);
 
 /* from memory.c */
-TALLOC_CTX *sssd_mem_takeover(TALLOC_CTX *mem_ctx,
-                              void *ptr,
-                              int (*destructor)(void **));
+typedef int (void_destructor_fn_t)(void *);
+
+struct mem_holder {
+    void *mem;
+    void_destructor_fn_t *fn;
+};
+
+void *sss_mem_attach(TALLOC_CTX *mem_ctx,
+                     void *ptr,
+                     void_destructor_fn_t *fn);
+
+int password_destructor(void *memctx);
 
 /* from usertools.c */
 char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);

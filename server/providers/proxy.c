@@ -318,17 +318,6 @@ static void cache_pw_op(struct sysdb_req *req, void *pvt)
     }
 }
 
-static int password_destructor(void *memctx)
-{
-    char *password = (char *)memctx;
-    int i;
-
-    /* zero out password */
-    for (i = 0; password[i]; i++) password[i] = '\0';
-
-    return 0;
-}
-
 static void cache_password(struct be_req *req,
                            const char *username,
                            struct authtok_conv *ac)
