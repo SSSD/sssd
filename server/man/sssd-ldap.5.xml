@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-ldap</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-ldap</refname>
+        <refpurpose>the configuration file for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of LDAP
+            domains for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For detailed syntax reference, please refer to
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page, section <quote>FILE FORMAT</quote>
+        </para>
+        <para>
+            There can be more than one LDAP domain configured with SSSD.
+        </para>
+    </refsect1>
+
+    <refsect1 id='file-format'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>
+            All the common configuration options for SSSD domains apply
+            for LDAP domains, too. See the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>
+
+            <variablelist>
+                <varlistentry>
+                    <term>ldapUri (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the URI of the LDAP server to which
+                            SSSD should connect.
+                        </para>
+                        <para>
+                            Default: ldap://localhost
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>defaultBindDn (string)</term>
+                    <listitem>
+                        <para>
+                            The default bind DN to use for
+                            performing LDAP operations.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userSearchBase (string)</term>
+                    <listitem>
+                        <para>
+                            The default base DN to use for
+                            performing LDAP operations.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userNameAttribute (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            user's login name.
+                        </para>
+                        <para>
+                            Default: uid
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userObjectClass (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a user entry in LDAP.
+                        </para>
+                        <para>
+                            Default: posixAccount
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>network_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout (in seconds) after which
+                            the
+                            <citerefentry>
+                                <refentrytitle>poll</refentrytitle>
+                                <manvolnum>2</manvolnum>
+                            </citerefentry>/<citerefentry>
+                                <refentrytitle>select</refentrytitle>
+                                <manvolnum>2</manvolnum>
+                            </citerefentry>
+                            following a
+                            <citerefentry>
+                                <refentrytitle>connect</refentrytitle>
+                                <manvolnum>2</manvolnum>
+                            </citerefentry>
+                            returns in case of no activity.
+                        </para>
+                        <para>
+                            Default: 5
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>opt_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies a timeout (in seconds) after which
+                            calls to synchronous LDAP APIs will abort if no
+                            response is received.
+                        </para>
+                        <para>
+                            Default: 5
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>tls_reqcert (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies what checks to perform on server
+                            certificates in a TLS session, if any. It
+                            can be specified as one of the following
+                            values:
+                        </para>
+                        <para>
+                            <emphasis>never</emphasis> = The client will
+                            not request or check any server certificate.
+                        </para>
+                        <para>
+                            <emphasis>allow</emphasis> = The  server
+                            certificate is requested. If no certificate is
+                            provided, the session proceeds normally. If a
+                            bad certificate is provided, it will be ignored
+                            and the session proceeds normally.
+                        </para>
+                        <para>
+                            <emphasis>try</emphasis> = The server certificate
+                            is requested. If no certificate is provided, the
+                            session proceeds normally. If a bad certificate
+                            is provided, the session is immediately terminated.
+                        </para>
+                        <para>
+                            <emphasis>demand</emphasis> = The server
+                            certificate is requested. If no certificate
+                            is provided, or a bad certificate is provided,
+                            the session is immediately terminated.
+                        </para>
+                        <para>
+                            <emphasis>hard</emphasis> = Same as
+                            <quote>demand</quote>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and LDAP is set set one of the domains in the
+            <replaceable>[domains]</replaceable> section.
+        </para>
+        <para>
+<programlisting>
+    [domains/LDAP]
+    auth-module = ldap
+    ldapUri = ldap://ldap.mydomain.org
+    userSearchBase = dc=mydomain,dc=org
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            Description of some of the configuration options in this manual
+            page is based on <citerefentry>
+                <refentrytitle>ldap.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page from the OpenLDAP 2.4 distribution.
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>
+        </para>
+    </refsect1>
+</refentry>
+</reference>
