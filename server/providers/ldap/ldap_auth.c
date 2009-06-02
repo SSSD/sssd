@@ -786,6 +786,8 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
     char *user_search_base;
     char *user_name_attribute;
     char *user_object_class;
+    char *tls_reqcert;
+    int ldap_opt_x_tls_require_cert;
     int network_timeout;
     int opt_timeout;
     int ret;
@@ -849,6 +851,36 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
                          "opt_timeout", 5, &opt_timeout);
     if (ret != EOK) goto done;
     ctx->network_timeout = opt_timeout;
+
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                         "tls_reqcert", NULL, &tls_reqcert);
+    if (ret != EOK) goto done;
+    if (tls_reqcert != NULL ) {
+        if (strcasecmp(tls_reqcert, "never") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;
+        } else if (strcasecmp(tls_reqcert, "allow") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_ALLOW;
+        } else if (strcasecmp(tls_reqcert, "try") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_TRY;
+        } else if (strcasecmp(tls_reqcert, "demand") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
+        } else if (strcasecmp(tls_reqcert, "hard") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
+        } else {
+            DEBUG(1, ("Unknown value for tls_reqcert.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option, because
+         * the SSL/TLS context is initialized from this value. */
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT,
+                              &ldap_opt_x_tls_require_cert);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            ret = EIO;
+            goto done;
+        }
+    }
 
     *ops = &sdap_auth_ops;
     *pvt_data = ctx;
