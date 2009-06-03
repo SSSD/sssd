@@ -48,7 +48,7 @@ int verbose;
  * Look up one user. If the user is not found using getpwnam, the success
  * or failure depends on enoent_fail being set.
  */
-int test_lookup_user(const char *name, int verbose, int enoent_fail)
+int test_lookup_user(const char *name, int enoent_fail)
 {
     struct passwd *pwd = NULL;
     int ret = 0;
@@ -76,7 +76,7 @@ int test_lookup_user(const char *name, int verbose, int enoent_fail)
  * Look up one group. If the user is not found using getgrnam, the success
  * or failure depends on enoent_fail being set.
  */
-int test_lookup_group(const char *name, int verbose, int enoent_fail)
+int test_lookup_group(const char *name, int enoent_fail)
 {
     struct group *grp = NULL;
     int ret = 0;
@@ -98,10 +98,13 @@ int test_lookup_group(const char *name, int verbose, int enoent_fail)
     return ret;
 }
 
-int run_one_testcase(const char *name, int group, int verbose, int enoent_fail)
+int run_one_testcase(const char *name, int group, int enoent_fail)
 {
-    return group ? test_lookup_group(name, verbose, enoent_fail) : \
-                   test_lookup_user(name, verbose, enoent_fail);
+    if (group) {
+        return test_lookup_group(name, enoent_fail);
+    } else {
+        return test_lookup_user(name, enoent_fail);
+    }
 }
 
 /*
@@ -136,20 +139,20 @@ int generate_names(TALLOC_CTX *mem_ctx, const char *prefix,
 {
     char **out;
     int num_names = stop-start+1;
-    int index = 0;
+    int idx = 0;
 
     out = talloc_array(mem_ctx, char *, num_names+1);
     if (out == NULL) {
         return ENOMEM;
     }
 
-    for (index = 0; index < num_names; ++index) {
-        out[index] = talloc_asprintf(mem_ctx, "%s%d", prefix, index);
-        if (out[index] == NULL) {
+    for (idx = 0; idx < num_names; ++idx) {
+        out[idx] = talloc_asprintf(mem_ctx, "%s%d", prefix, idx);
+        if (out[idx] == NULL) {
             return ENOMEM;
         }
     }
-    out[index] = NULL;
+    out[idx] = NULL;
 
     *_out = out;
     return EOK;
@@ -181,7 +184,7 @@ int read_names(TALLOC_CTX *mem_ctx, FILE *stream, char ***_out)
         }
     }
 
-    if (ret = ferror(stream)) {
+    if ((ret = ferror(stream))) {
         return ret;
     }
     out[n] = NULL;
@@ -203,7 +206,7 @@ int main(int argc, const char *argv[])
     TALLOC_CTX *ctx = NULL;
     char **names = NULL;
 
-    int status, index, ret;
+    int status, idx, ret;
     pid_t   pid;
     struct sigaction action, old_action;
 
@@ -211,7 +214,7 @@ int main(int argc, const char *argv[])
         POPT_AUTOHELP
         { "groups", 'g', POPT_ARG_NONE, &pc_groups, 0,
                     "Lookup in groups instead of users" },
-        { "prefix", '\0', POPT_ARG_STRING, &pc_prefix, NULL,
+        { "prefix", '\0', POPT_ARG_STRING, &pc_prefix, 0,
                     "The username prefix", NULL },
         { "start",  '\0', POPT_ARG_INT | POPT_ARGFLAG_SHOW_DEFAULT,
                     &pc_start, 0,
@@ -276,8 +279,8 @@ int main(int argc, const char *argv[])
     sigaction(SIGCHLD, &action, &old_action);
 
     /* Fire up the child processes */
-    index = 0;
-    for (index=0; names[index]; index++) {
+    idx = 0;
+    for (idx=0; names[idx]; idx++) {
         pid = fork();
         if (pid == -1) {
             /* Try again in hope that some child has exited */
@@ -288,8 +291,7 @@ int main(int argc, const char *argv[])
             exit(EXIT_FAILURE);
         } else if ( pid == 0 ) {
             /* child */
-            ret = run_one_testcase(names[index], pc_groups,
-                                   pc_verbosity, pc_enoent_fail);
+            ret = run_one_testcase(names[idx], pc_groups, pc_enoent_fail);
             exit(ret);
         }
     }
@@ -318,8 +320,8 @@ int main(int argc, const char *argv[])
     if (pc_verbosity) {
         fprintf(stderr,
                 "Total tests run: %d\nPassed: %d\nFailed: %d\n",
-                index,
-                index - failure_count,
+                idx,
+                idx - failure_count,
                 failure_count);
     }
     return (failure_count==0 ? EXIT_SUCCESS : EXIT_FAILURE);
