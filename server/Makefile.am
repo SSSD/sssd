@@ -363,8 +363,7 @@ libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS)
 libsss_ldap_la_LIBADD = \
-    $(PAM_LIBS) \
-    libsss_crypt.la
+    $(PAM_LIBS)
 libsss_ldap_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
@@ -374,8 +373,7 @@ libsss_proxy_la_SOURCES = \
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
-    $(PAM_LIBS) \
-    libsss_crypt.la
+    $(PAM_LIBS)
 libsss_proxy_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
