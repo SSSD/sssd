@@ -113,6 +113,7 @@ rm -rf $RPM_BUILD_ROOT
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
+%{_mandir}/man5/*
 %{_mandir}/man8/*
 %{_datadir}/locale/*/LC_MESSAGES/sss_client.mo
 
