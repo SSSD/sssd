@@ -462,10 +462,16 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         preq->domain = dom;
     }
 
+    if (preq->domain->provider == NULL) {
+        DEBUG(1, ("Domain [%s] has no auth provider.\n", preq->domain->name));
+        ret = EINVAL;
+        goto done;
+    }
+
     /* When auth is requested always search the provider first,
      * do not rely on cached data unless the provider is completely
      * offline */
-    if (preq->domain->provider &&
+    if (NEED_CHECK_PROVIDER(preq->domain->provider) &&
         (pam_cmd == SSS_PAM_AUTHENTICATE || pam_cmd == SSS_PAM_SETCRED)) {
 
         /* no need to re-check later on */
@@ -650,7 +656,7 @@ static void pam_check_user_callback(void *ptr, int status,
                 /* When auth is requested always search the provider first,
                  * do not rely on cached data unless the provider is
                  * completely offline */
-                if (preq->domain->provider &&
+                if (NEED_CHECK_PROVIDER(preq->domain->provider) &&
                     (preq->pd->cmd == SSS_PAM_AUTHENTICATE ||
                      preq->pd->cmd == SSS_PAM_SETCRED)) {
 
@@ -728,7 +734,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         preq->pd->domain = preq->domain->name;
     }
 
-    if (!preq->domain->provider) {
+    if (!NEED_CHECK_PROVIDER(preq->domain->provider)) {
         preq->callback = pam_reply;
         ret = LOCAL_pam_handler(preq);
     }
