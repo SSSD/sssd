@@ -12,9 +12,16 @@ void debug_fn(const char *format, ...)
 {
     va_list ap;
     char *s = NULL;
+    int ret;
 
     va_start(ap, format);
-    vasprintf(&s, format, ap);
+
+    ret = vasprintf(&s, format, ap);
+    if (ret < 0) {
+        /* ENOMEM */
+        return;
+    }
+
     va_end(ap);
 
     /*write(state.fd, s, strlen(s));*/
@@ -26,6 +33,9 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap)
 {
     int loglevel = -1;
+    int ret;
+    char * message = NULL;
+
     switch(level) {
     case LDB_DEBUG_FATAL:
         loglevel = 0;
@@ -41,5 +51,12 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         break;
     }
 
-    DEBUG(loglevel, (fmt, ap));
+    ret = vasprintf(&message, fmt, ap);
+    if (ret < 0) {
+        /* ENOMEM */
+        return;
+    }
+
+    DEBUG(loglevel, (message));
+    free(message);
 }
