@@ -63,14 +63,6 @@ services for projects like FreeIPA.
 
 make %{?_smp_mflags}
 
-# Remove .la files created by libtool
-rm -f \
-    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
-    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
-    $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la
-
 %install
 rm -rf $RPM_BUILD_ROOT
 
