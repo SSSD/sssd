@@ -730,6 +730,11 @@ int confdb_get_domain(struct confdb_ctx *cdb,
             goto done;
         }
     }
+    else {
+        DEBUG(0, ("Domain [%s] does not specify a provider, disabling!\n",
+                  domain->name));
+        ret = EINVAL;
+    }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
                                                "timeout", 0);
@@ -805,8 +810,8 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     for (i = 0; domlist[i]; i++) {
         ret = confdb_get_domain(cdb, mem_ctx, domlist[i], &domain);
         if (ret) {
-            DEBUG(0, ("Error (%d [%s]) retrieving domain %s, skipping!\n",
-                      ret, strerror(ret), domains[i]));
+            DEBUG(0, ("Error (%d [%s]) retrieving domain [%s], skipping!\n",
+                      ret, strerror(ret), domlist[i]));
             continue;
         }
 
