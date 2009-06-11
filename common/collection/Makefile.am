@@ -14,6 +14,7 @@ noinst_LTLIBRARIES = libcollection.la
 libcollection_la_SOURCES = \
     collection.c \
     collection_tools.c \
+    collection_cnv.c \
     collection.h \
     collection_tools.h \
     collection_priv.h \

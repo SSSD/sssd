@@ -31,8 +31,8 @@
 
 int ref_collection_test()
 {
-    struct collection_item *peer;
-    struct collection_item *socket;
+    struct collection_item *peer = NULL;
+    struct collection_item *socket = NULL;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
     int error = EOK;
@@ -46,7 +46,7 @@ int ref_collection_test()
        (error=add_str_property(peer,NULL,"hostname","peerhost.mytest.com",0)) ||
        (error=add_str_property(peer,NULL,"IPv4","10.10.10.10",12)) || /* Expect trailing zero to be truncated */
        (error=add_str_property(peer,NULL,"IPv6","bla:bla:bla:bla:bla:bla",0))) {
-        printf("Failed to add property. Error %d",error);
+        printf("Failed to add property. Error %d\n",error);
         destroy_collection(peer);
         return error;
     }
@@ -109,7 +109,7 @@ int ref_collection_test()
 
 int single_collection_test()
 {
-    struct collection_item *handle;
+    struct collection_item *handle = NULL;
     int error = EOK;
 
     TRACE_FLOW_STRING("single_collection_test","Entry.");
@@ -165,8 +165,8 @@ int single_collection_test()
 
 int add_collection_test()
 {
-    struct collection_item *peer;
-    struct collection_item *socket;
+    struct collection_item *peer = NULL;
+    struct collection_item *socket = NULL;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
     int error = EOK;
@@ -692,6 +692,160 @@ int iterator_test()
 }
 
 
+int insert_extract_test()
+{
+    struct collection_item *col;
+    struct collection_item *col2;
+    int error = EOK;
+    struct collection_item *item = (struct collection_item *)(NULL);
+
+    printf("\n\n==== INSERTION TEST ====\n\n");
+
+    if ((error = create_collection(&col, "insertion", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_END,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property1", "value1", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_END,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property2", "value2", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_FRONT,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property0", "value0", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_BEFORE,
+                                     "property0", 0, COL_INSERT_NOCHECK,
+                                     "property_-1", "value_-1", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_BEFORE,
+                                     "property1", 0, COL_INSERT_NOCHECK,
+                                     "property0_5", "value0_5", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_BEFORE,
+                                     "property2", 0, COL_INSERT_NOCHECK,
+                                     "property1_5", "value1_5", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_AFTER,
+                                     "property_-1", 0, COL_INSERT_NOCHECK,
+                                     "property_-0_5", "value_-0_5", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_AFTER,
+                                     "property1_5", 0, COL_INSERT_NOCHECK,
+                                     "property1_6", "value1_6", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_INDEX,
+                                     NULL, 10, COL_INSERT_NOCHECK,
+                                     "property10", "value10", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_INDEX,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property_-2", "value_-2", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_INDEX,
+                                     NULL, 1, COL_INSERT_NOCHECK,
+                                     "property_-1_5", "value_-1_5", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_FIRSTDUP,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property0", "value0firstdup", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_LASTDUP,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property0", "value0lastdup", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_NDUP,
+                                     NULL, 1, COL_INSERT_NOCHECK,
+                                     "property0", "value0middledup", 0)) ||
+        (error = insert_str_property(col, NULL, 0,
+                                     NULL, 0, COL_INSERT_DUPOVER ,
+                                     "property0", "value0firstdupupdate", 0)) ||
+        (error = insert_str_property(col, NULL, 0,
+                                     NULL, 0, COL_INSERT_DUPOVERT,
+                                     "property1", "value1update", 0)) ||
+        ((error = insert_str_property(col, NULL, 0,
+                                       NULL, 0, COL_INSERT_DUPERROR,
+                                       "property0", "does not matter", 0)) != EEXIST) ||
+        (error = insert_str_property(col, NULL, COL_DSP_NDUP,
+                                     NULL, 5, COL_INSERT_NOCHECK,
+                                     "property10", "value10dup", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_LASTDUP,
+                                     NULL, 0, COL_INSERT_NOCHECK,
+                                     "property10", "value10lastdup", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_END,
+                                     NULL, 0, COL_INSERT_DUPMOVET,
+                                     "property_-2", "value-2moved_to_bottom", 0)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_FRONT,
+                                     NULL, 0, COL_INSERT_DUPMOVE,
+                                     "property1_6", "value_1_6_moved_moved_to_front", 0))) {
+
+        printf("ERROR in the ITERATION TEST\n");
+        debug_collection(col,COL_TRAVERSE_DEFAULT);
+        destroy_collection(col);
+        return error;
+    }
+
+    printf("\n\nCollection:\n\n");
+    debug_collection(col,COL_TRAVERSE_DEFAULT);
+
+
+    printf("\n\n==== EXTRACTION TEST ====\n\n");
+
+    if ((error = create_collection(&col2, "extraction", 0)) ||
+        (error = extract_item(col, NULL, COL_DSP_FRONT,
+                              NULL, 0, 0, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_FRONT,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = extract_item(col, NULL, COL_DSP_END,
+                              NULL, 0, 0, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = insert_str_property(col, NULL, COL_DSP_INDEX,
+                                     NULL, 100, COL_INSERT_NOCHECK,
+                                     "property100", "value100", 0)) ||
+        (error = extract_item(col, NULL, COL_DSP_AFTER,
+                              "property10", 0, COL_TYPE_STRING, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = extract_item(col, NULL, COL_DSP_BEFORE,
+                              "property0", 0, COL_TYPE_STRING, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = extract_item(col, NULL, COL_DSP_INDEX,
+                              NULL, 1, 0, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = extract_item(col, NULL, COL_DSP_NDUP,
+                              "property0", 1, 0, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = extract_item(col, NULL, COL_DSP_LASTDUP,
+                              "property0", 0, 0, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT)) ||
+        (error = extract_item(col, NULL, COL_DSP_FIRSTDUP,
+                              "property0", 0, 0, &item)) ||
+        (error = insert_item(col2, NULL, item, COL_DSP_END,
+                              NULL, 0, COL_INSERT_NOCHECK)) ||
+        (debug_collection(col2,COL_TRAVERSE_DEFAULT))) {
+
+        printf("ERROR in the EXTRACTION TEST\n");
+        printf("Collection 1\n");
+        debug_collection(col,COL_TRAVERSE_DEFAULT);
+        printf("Collection 2\n");
+        debug_collection(col2,COL_TRAVERSE_DEFAULT);
+        destroy_collection(col);
+        destroy_collection(col2);
+        return error;
+    }
+
+    printf("Collection 1\n");
+    debug_collection(col,COL_TRAVERSE_DEFAULT);
+    printf("Collection 2\n");
+    debug_collection(col2,COL_TRAVERSE_DEFAULT);
+
+    destroy_collection(col2);
+    destroy_collection(col);
+
+
+    return EOK;
+}
+
+
 /* Main function of the unit test */
 
 int main()
@@ -703,7 +857,8 @@ int main()
        (error=single_collection_test()) ||
        (error=add_collection_test()) ||
        (error=mixed_collection_test()) ||
-       (error=iterator_test())) {
+       (error=iterator_test()) ||
+       (error=insert_extract_test())) {
         printf("Failed!\n");
     }
     else printf("Success!\n");

@@ -22,6 +22,8 @@
 #ifndef COLLECTION_PRIV_H
 #define COLLECTION_PRIV_H
 
+#include <stdint.h>
+
 /* Define real strcutures */
 /* Structure that holds one property.
  * This structure should never be assumed and used directly other than
@@ -43,6 +45,7 @@ struct collection_item {
     int type;
     int length;
     void *data;
+    uint64_t phash;
 };
 
 
@@ -67,4 +70,3 @@ struct collection_header {
 };
 
 #endif
-

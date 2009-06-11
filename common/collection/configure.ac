@@ -19,5 +19,8 @@ AC_ARG_ENABLE([trace],
               [trace_level="0"])
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
+AC_CHECK_SIZEOF([long])
+AC_CHECK_SIZEOF([long long])
+
 AC_CONFIG_FILES([Makefile collection.pc])
 AC_OUTPUT
