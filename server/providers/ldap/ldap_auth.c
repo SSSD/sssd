@@ -660,17 +660,6 @@ struct sdap_pw_cache {
     struct sdap_req *lr;
 };
 
-static int password_destructor(void *memctx)
-{
-    char *password = (char *)memctx;
-    int i;
-
-    /* zero out password */
-    for (i = 0; password[i]; i++) password[i] = '\0';
-
-    return 0;
-}
-
 static void sdap_reply(struct be_req *req, int ret, char *errstr)
 {
     req->fn(req, ret, errstr);
