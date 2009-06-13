@@ -212,6 +212,8 @@ dist_noinst_HEADERS = \
     providers/dp_backend.h \
     providers/providers.h \
     providers/krb5/krb5_auth.h \
+    providers/ldap/sdap.h \
+    providers/ldap/sdap_async.h \
     tools/tools_util.h \
     krb5_plugin/sssd_krb5_locator_plugin.h \
     $(infopipe_headers) \
@@ -381,7 +383,9 @@ endif #BUILD_TESTS
 ####################
 libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
-    providers/ldap/ldap_auth.c
+    providers/ldap/ldap_auth.c \
+    providers/ldap/sdap_async.c \
+    providers/ldap/sdap.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS)

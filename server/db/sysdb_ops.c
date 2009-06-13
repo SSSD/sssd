@@ -297,6 +297,7 @@ struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct sysdb_handle *handle,
                                            struct ldb_dn *base_dn,
+                                           int scope,
                                            const char *filter,
                                            const char **attrs)
 {
@@ -314,8 +315,8 @@ struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,
     state->ldbreply = NULL;
 
     ret = ldb_build_search_req(&ldbreq, handle->ctx->ldb, state,
-                               base_dn, LDB_SCOPE_SUBTREE,
-                               filter, attrs, NULL, NULL, NULL, NULL);
+                               base_dn, scope, filter, attrs,
+                               NULL, NULL, NULL, NULL);
     if (ret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
                   ldb_strerror(ret), ret, ldb_errstring(handle->ctx->ldb)));
@@ -423,7 +424,6 @@ struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,
     struct sysdb_search_user_state *state;
     static const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     struct ldb_dn *base_dn;
-    char *filter;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_search_user_state);
@@ -433,17 +433,12 @@ struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,
     state->handle = handle;
     state->msg = NULL;
 
-    base_dn = ldb_dn_new_fmt(state, handle->ctx->ldb,
-                             SYSDB_TMPL_USER_BASE, domain->name);
+    base_dn = sysdb_user_dn(handle->ctx, state, domain->name, name);
     if (!base_dn)
         ERROR_OUT(ret, ENOMEM, fail);
 
-    filter = talloc_asprintf(state, SYSDB_PWNAM_FILTER, name);
-    if (!filter)
-        ERROR_OUT(ret, ENOMEM, fail);
-
-    subreq = sysdb_search_entry_send(state, ev, handle,
-                                     base_dn, filter, attrs);
+    subreq = sysdb_search_entry_send(state, ev, handle, base_dn,
+                                     LDB_SCOPE_BASE, NULL, attrs);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
@@ -486,8 +481,8 @@ struct tevent_req *sysdb_search_user_by_uid_send(TALLOC_CTX *mem_ctx,
     if (!filter)
         ERROR_OUT(ret, ENOMEM, fail);
 
-    subreq = sysdb_search_entry_send(state, ev, handle,
-                                     base_dn, filter, attrs);
+    subreq = sysdb_search_entry_send(state, ev, handle, base_dn,
+                                     LDB_SCOPE_ONELEVEL, filter, attrs);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
@@ -640,7 +635,6 @@ struct tevent_req *sysdb_search_group_by_name_send(TALLOC_CTX *mem_ctx,
     struct sysdb_search_group_state *state;
     static const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
     struct ldb_dn *base_dn;
-    char *filter;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_search_group_state);
@@ -650,17 +644,12 @@ struct tevent_req *sysdb_search_group_by_name_send(TALLOC_CTX *mem_ctx,
     state->handle = handle;
     state->msg = NULL;
 
-    base_dn = ldb_dn_new_fmt(state, handle->ctx->ldb,
-                             SYSDB_TMPL_GROUP_BASE, domain->name);
+    base_dn = sysdb_group_dn(handle->ctx, state, domain->name, name);
     if (!base_dn)
         ERROR_OUT(ret, ENOMEM, fail);
 
-    filter = talloc_asprintf(state, SYSDB_GRNAM_FILTER, name);
-    if (!filter)
-        ERROR_OUT(ret, ENOMEM, fail);
-
-    subreq = sysdb_search_entry_send(state, ev, handle,
-                                     base_dn, filter, attrs);
+    subreq = sysdb_search_entry_send(state, ev, handle, base_dn,
+                                     LDB_SCOPE_BASE, NULL, attrs);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
@@ -703,8 +692,8 @@ struct tevent_req *sysdb_search_group_by_gid_send(TALLOC_CTX *mem_ctx,
     if (!filter)
         ERROR_OUT(ret, ENOMEM, fail);
 
-    subreq = sysdb_search_entry_send(state, ev, handle,
-                                     base_dn, filter, attrs);
+    subreq = sysdb_search_entry_send(state, ev, handle, base_dn,
+                                     LDB_SCOPE_ONELEVEL, filter, attrs);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
     }

@@ -65,6 +65,10 @@
 
 #define SYSDB_CACHEDPWD "cachedPassword"
 
+#define SYSDB_ORIG_DN "originalDN"
+#define SYSDB_UUID "uniqueID"
+#define SYSDB_UPN "UserPrincipalName"
+
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
 #define SYSDB_UC "objectclass="SYSDB_USER_CLASS
@@ -139,6 +143,8 @@ struct sysdb_attrs {
 
 /* sysdb_attrs helper functions */
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx);
+
+/* values are copied in the structure, allocated on "attrs" */
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val);
 int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
@@ -269,6 +275,7 @@ struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct sysdb_handle *handle,
                                            struct ldb_dn *base_dn,
+                                           int scope,
                                            const char *filter,
                                            const char **attrs);
 int sysdb_search_entry_recv(struct tevent_req *req,
