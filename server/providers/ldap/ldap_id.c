@@ -23,756 +23,791 @@
 */
 
 #include <errno.h>
-#include <ldap.h>
+#include <time.h>
 #include <sys/time.h>
 
-#include <security/pam_modules.h>
-
 #include "util/util.h"
-#include "providers/dp_backend.h"
 #include "db/sysdb.h"
-#include "../sss_client/sss_cli.h"
+#include "providers/dp_backend.h"
+#include "providers/ldap/sdap_async.h"
 
-struct sdap_conf_ctx {
-    char *base_dn;
+struct sdap_id_ctx {
+    struct sdap_options *opts;
 
-    char *usr_base_dn;
-    int usr_search_scope;
-    char *usr_search_filter;
+    /* global sdap handler */
+    struct sdap_handle *gsh;
 
-    char *usr_objectclass;
-    char *usr_attr_name;
-    char *usr_attr_pwd;
-    char *usr_attr_uidnum;
-    char *usr_attr_gidnum;
-    char *usr_attr_gecos;
-    char *usr_attr_homedir;
-    char *usr_attr_shell;
-    char **usr_attr_others;
-
-    char *grp_base_dn;
-    int grp_search_scope;
-    char *grp_search_filter;
-
-    char *grp_objectclass;
-    char *grp_attr_name;
-    char *grp_attr_pwd;
-    char *grp_attr_gidnum;
-    char *grp_attr_member;
-    char **grp_attr_others;
-
-    enum sdap_schema {
-        SDAP_SCHEMA_RFC2307,
-        SDAP_SCHEMA_RFC2307BIS
-    } schema;
+    time_t went_offline;
+    bool offline;
 };
 
-struct sdap_ctx {
-    char *ldap_uri;
-
-    char *bind_dn;
-    char *auth_method;
-    char *secret;
-    int secret_size;
-
-    struct sdap_conf_ctx *conf;
-
-    LDAP *ldap;
-    int network_timeout;
-    int opt_timeout;
-};
-
-#if 0
-struct sdap_id_req {
-    struct be_req *req;
-    struct sdap_srv_ctx *srvctx;
-
-    
-};
-
-static int schedule_next_task(struct sdap_id_req *lr, struct timeval tv,
-                              tevent_timer_handler_t task)
+static void sdap_req_done(struct be_req *req, int ret, const char *err)
 {
-    int ret;
-    struct tevent_timer *te;
-    struct timeval timeout;
+    return req->fn(req, ret, err);
+}
 
-    ret = gettimeofday(&timeout, NULL);
-    if (ret == -1) {
-        DEBUG(1, ("gettimeofday failed [%d][%s].\n", errno, strerror(errno)));
-        return ret;
+static bool is_offline(struct sdap_id_ctx *ctx)
+{
+    time_t now = time(NULL);
+
+    if (ctx->went_offline + ctx->opts->offline_timeout < now) {
+        return false;
     }
-    timeout.tv_sec += tv.tv_sec;
-    timeout.tv_usec += tv.tv_usec;
+    return ctx->offline;
+}
 
+static void sdap_check_online(struct be_req *req)
+{
+    struct be_online_req *oreq;
+    struct sdap_id_ctx *ctx;
 
-    te = tevent_add_timer(lr->req->be_ctx->ev, lr, timeout, task, lr);
-    if (te == NULL) {
-        return EIO;
+    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct sdap_id_ctx);
+    oreq = talloc_get_type(req->req_data, struct be_online_req);
+
+    if (is_offline(ctx)) {
+        oreq->online = MOD_OFFLINE;
+    } else {
+        oreq->online = MOD_ONLINE;
     }
+
+    sdap_req_done(req, EOK, NULL);
+}
+
+static int build_attrs_from_map(TALLOC_CTX *memctx,
+                                struct sdap_id_map *map,
+                                size_t size,
+                                const char ***_attrs)
+{
+    char **attrs;
+    int i;
+
+    attrs = talloc_array(memctx, char *, size + 1);
+    if (!attrs) return ENOMEM;
+
+    /* first attribute is the objectclass value not the attribute name */
+    attrs[0] = talloc_strdup(memctx, "objectClass");
+    if (!attrs[0]) return ENOMEM;
+
+    /* add the others */
+    for (i = 1; i < size; i++) {
+        attrs[i] = map[i].name;
+    }
+    attrs[i] = NULL;
+
+    *_attrs = (const char **)attrs;
 
     return EOK;
 }
 
-static int wait_for_fd(struct sdap_req *lr)
-{
-    int ret;
-    int fd;
-    struct tevent_fd *fde;
 
-    ret = ldap_get_option(lr->ldap, LDAP_OPT_DESC, &fd);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("ldap_get_option failed.\n"));
-        return ret;
+/* =Connection-handling-functions========================================= */
+
+static bool connected(struct sdap_id_ctx *ctx)
+{
+    if (ctx->gsh) {
+        return ctx->gsh->connected;
     }
 
-    fde = tevent_add_fd(lr->req->be_ctx->ev, lr, fd, TEVENT_FD_READ, lr->next_task, lr);
-    if (fde == NULL) {
+    return false;
+}
+
+struct sdap_id_connect_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    bool use_start_tls;
+
+    struct sdap_handle *sh;
+};
+
+static void sdap_id_connect_done(struct tevent_req *subreq);
+static void sdap_id_anon_bind_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
+                                        struct tevent_context *ev,
+                                        struct sdap_options *opts,
+                                        bool use_start_tls)
+{
+    struct tevent_req *req, *subreq;
+    struct sdap_id_connect_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_id_connect_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+    state->use_start_tls = use_start_tls;
+
+    subreq = sdap_connect_send(state, ev, opts, use_start_tls);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_id_connect_done, req);
+
+    return req;
+}
+
+static void sdap_id_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_id_connect_state *state = tevent_req_data(req,
+                                                struct sdap_id_connect_state);
+    int ret;
+
+    ret = sdap_connect_recv(subreq, state, &state->sh);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* TODO: use authentication (SASL/GSSAPI) when necessary */
+    subreq = sdap_auth_send(state, state->ev, state->sh, NULL, NULL);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, sdap_id_anon_bind_done, req);
+}
+
+static void sdap_id_anon_bind_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    enum sdap_result result;
+    int ret;
+
+    ret = sdap_auth_recv(subreq, &result);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    if (result != SDAP_AUTH_SUCCESS) {
+        tevent_req_error(req, EACCES);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static int sdap_id_connect_recv(struct tevent_req *req,
+                                TALLOC_CTX *memctx, struct sdap_handle **sh)
+{
+    struct sdap_id_connect_state *state = tevent_req_data(req,
+                                                struct sdap_id_connect_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (err) return err;
         return EIO;
     }
 
+    *sh = talloc_steal(memctx, state->sh);
+    if (!*sh) {
+        return ENOMEM;
+    }
     return EOK;
 }
 
-static int sdap_pam_chauthtok(struct sdap_req *lr)
+
+/* =Users-Related-Functions-(by-name,by-uid)============================== */
+
+struct users_get_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *ctx;
+
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+
+    char *filter;
+    const char **attrs;
+};
+
+static void users_get_connect_done(struct tevent_req *subreq);
+static void users_get_op_done(struct tevent_req *subreq);
+
+static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_id_ctx *ctx,
+                                         struct be_ctx *bectx,
+                                         const char *wildcard,
+                                         int filter_type,
+                                         int attrs_type)
 {
-    BerElement *ber=NULL;
+    struct tevent_req *req, *subreq;
+    struct users_get_state *state;
+    const char *attr_name;
     int ret;
-    int pam_status=PAM_SUCCESS;
-    struct berval *bv;
-    int msgid;
-    LDAPMessage *result=NULL;
-    int ldap_ret;
 
-    ber = ber_alloc_t( LBER_USE_DER );
-    if (ber == NULL) {
-        DEBUG(1, ("ber_alloc_t failed.\n"));
-        return PAM_SYSTEM_ERR;
+    req = tevent_req_create(memctx, &state, struct users_get_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+    state->dom = bectx->domain;
+    state->sysdb = bectx->sysdb;
+
+    switch(filter_type) {
+    case BE_FILTER_NAME:
+        attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
+        break;
+    case BE_FILTER_IDNUM:
+        attr_name = ctx->opts->user_map[SDAP_AT_USER_UID].name;
+        break;
+    default:
+        ret = EINVAL;
+        goto fail;
     }
 
-    ret = ber_printf( ber, "{tststs}", LDAP_TAG_EXOP_MODIFY_PASSWD_ID,
-                     lr->user_dn,
-                     LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, lr->pd->authtok,
-                     LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, lr->pd->newauthtok);
-    if (ret == -1) {
-        DEBUG(1, ("ber_printf failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto cleanup;
+    state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                                    attr_name, wildcard,
+                                    ctx->opts->user_map[SDAP_OC_USER].name);
+    if (!state->filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        ret = ENOMEM;
+        goto fail;
     }
 
-    ret = ber_flatten(ber, &bv);
-    if (ret == -1) {
-        DEBUG(1, ("ber_flatten failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto cleanup;
-    }
+    /* TODO: handle attrs_type */
+    ret = build_attrs_from_map(state, ctx->opts->user_map,
+                               SDAP_OPTS_USER, &state->attrs);
+    if (ret != EOK) goto fail;
 
-    ret = ldap_extended_operation(lr->ldap, LDAP_EXOP_MODIFY_PASSWD, bv,
-                                  NULL, NULL, &msgid);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_extended_operation failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto cleanup;
-    }
+    if (!connected(ctx)) {
 
-    ret = ldap_result(lr->ldap, msgid, FALSE, NULL, &result);
-    if (ret == -1) {
-        DEBUG(1, ("ldap_result failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto cleanup;
-    }
-    ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, NULL, NULL,
-                            NULL, 0);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_parse_result failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto cleanup;
-    }
-    DEBUG(3, ("LDAP_EXOP_MODIFY_PASSWD result: [%d][%s]\n", ldap_ret,
-              ldap_err2string(ldap_ret)));
+        if (ctx->gsh) talloc_zfree(ctx->gsh);
 
-    ldap_msgfree(result);
-
-    if (ldap_ret != LDAP_SUCCESS) pam_status = PAM_SYSTEM_ERR;
-
-cleanup:
-    ber_bvfree(bv);
-    ber_free(ber, 1);
-    return pam_status;
-}
-
-static int sdap_init(struct sdap_req *lr)
-{
-    int ret;
-    int status=EOK;
-    int ldap_vers = LDAP_VERSION3;
-    int msgid;
-    struct timeval network_timeout;
-    struct timeval opt_timeout;
-
-    ret = ldap_initialize(&(lr->ldap), lr->sdap_ctx->ldap_uri);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_initialize failed: %s\n", strerror(errno)));
-        return EIO;
-    }
-
-    /* LDAPv3 is needed for TLS */
-    ret = ldap_set_option(lr->ldap, LDAP_OPT_PROTOCOL_VERSION, &ldap_vers);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
-        status = EIO;
-        goto cleanup;
-    }
-
-    network_timeout.tv_sec = lr->sdap_ctx->network_timeout;
-    network_timeout.tv_usec = 0;
-    opt_timeout.tv_sec = lr->sdap_ctx->opt_timeout;
-    opt_timeout.tv_usec = 0;
-    ret = ldap_set_option(lr->ldap, LDAP_OPT_NETWORK_TIMEOUT, &network_timeout);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
-        status = EIO;
-        goto cleanup;
-    }
-    ret = ldap_set_option(lr->ldap, LDAP_OPT_TIMEOUT, &opt_timeout);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
-        status = EIO;
-        goto cleanup;
-    }
-
-    /* For now TLS is forced. Maybe it would be necessary to make this
-     * configurable to allow people to expose their passwords over the
-     * network. */
-    ret = ldap_start_tls(lr->ldap, NULL, NULL, &msgid);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_start_tls failed: [%d][%s]\n", ret,
-                  ldap_err2string(ret)));
-        if (ret == LDAP_SERVER_DOWN) {
-            status = EAGAIN;
-        } else {
-            status = EIO;
+        /* FIXME: add option to decide if tls should be used
+         * or SASL/GSSAPI, etc ... */
+        subreq = sdap_id_connect_send(state, ev, ctx->opts, false);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
         }
-        goto cleanup;
+
+        tevent_req_set_callback(subreq, users_get_connect_done, req);
+
+        return req;
     }
 
-    lr->msgid = msgid;
+    subreq = sdap_get_users_send(state, state->ev,
+                                 state->dom, bectx->sysdb,
+                                 state->ctx->opts, state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, users_get_op_done, req);
 
-    return EOK;
+    return req;
 
-cleanup:
-    ldap_unbind_ext(lr->ldap, NULL, NULL);
-    lr->ldap = NULL;
-    return status;
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
 }
 
-static int sdap_bind(struct sdap_req *lr)
+static void users_get_connect_done(struct tevent_req *subreq)
 {
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct users_get_state *state = tevent_req_data(req,
+                                                     struct users_get_state);
     int ret;
-    int msgid;
-    char *dn=NULL;
-    struct berval pw;
 
-    pw.bv_len = 0;
-    pw.bv_val = NULL;
-
-    if (lr->user_dn != NULL) {
-        dn = lr->user_dn;
-        pw.bv_len = lr->pd->authtok_size;
-        pw.bv_val = (char *) lr->pd->authtok;
-    }
-    if (lr->user_dn == NULL && lr->sdap_ctx->default_bind_dn != NULL) {
-        dn = lr->sdap_ctx->default_bind_dn;
-        pw.bv_len = lr->sdap_ctx->default_authtok_size;
-        pw.bv_val = lr->sdap_ctx->default_authtok;
+    ret = sdap_id_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
     }
 
-    DEBUG(3, ("Trying to bind as [%s][%*s]\n", dn, pw.bv_len, pw.bv_val));
-    ret = ldap_sasl_bind(lr->ldap, dn, LDAP_SASL_SIMPLE, &pw, NULL, NULL,
-                         &msgid);
-    if (ret == -1 || msgid == -1) {
-        DEBUG(1, ("ldap_bind failed\n"));
-        return LDAP_OTHER;
+    subreq = sdap_get_users_send(state, state->ev,
+                                 state->dom, state->sysdb,
+                                 state->ctx->opts, state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
     }
-    lr->msgid = msgid;
-    return LDAP_SUCCESS;
+    tevent_req_set_callback(subreq, users_get_op_done, req);
 }
 
-static void sdap_pam_loop(struct tevent_context *ev, struct tevent_fd *te,
-                         uint16_t fd, void *pvt)
+static void users_get_op_done(struct tevent_req *subreq)
 {
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
     int ret;
-    int pam_status=PAM_SUCCESS;
-    int ldap_ret;
-    struct sdap_req *lr;
-    struct pam_data *pd;
-    struct be_req *req;
-    LDAPMessage *result=NULL;
-    LDAPMessage *msg=NULL;
-    struct timeval no_timeout={0, 0};
-    char *errmsgp = NULL;
-/* FIXME: user timeout form config */
-    char *filter=NULL;
-    char *attrs[] = { LDAP_NO_ATTRS, NULL };
 
-    lr = talloc_get_type(pvt, struct sdap_req);
+    ret = sdap_get_users_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
 
-    switch (lr->next_step) {
-        case SDAP_OP_INIT:
-            ret = sdap_init(lr);
-            if (ret != EOK) {
-                DEBUG(1, ("sdap_init failed.\n"));
-                lr->ldap = NULL;
-                if (ret == EAGAIN) {
-                    pam_status = PAM_AUTHINFO_UNAVAIL;
-                } else {
-                    pam_status = PAM_SYSTEM_ERR;
-                }
-                goto done;
-            }
-        case SDAP_CHECK_INIT_RESULT:
-            ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
-            if (ret == -1) {
-                DEBUG(1, ("ldap_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            if (ret == 0) {
-                DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = sdap_pam_loop;
-                lr->next_step = SDAP_CHECK_INIT_RESULT;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-                return;
-            }
+    tevent_req_done(req);
+}
 
-            ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, NULL, NULL, NULL, 0);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_parse_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            DEBUG(3, ("ldap_start_tls result: [%d][%s]\n", ldap_ret, ldap_err2string(ldap_ret)));
+static void users_get_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    enum tevent_req_state tstate;
+    uint64_t err;
+    const char *error = NULL;
+    int ret = EOK;
 
-            if (ldap_ret != LDAP_SUCCESS) {
-                DEBUG(1, ("setting up TLS failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        ret = err;
+    }
 
-/* FIXME: take care that ldap_install_tls might block */
-            ret = ldap_install_tls(lr->ldap);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_install_tls failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+    if (ret) error = "Enum Users Failed";
 
-            ret = sdap_bind(lr);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("sdap_bind failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-        case SDAP_CHECK_STD_BIND:
-            ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
-            if (ret == -1) {
-                DEBUG(1, ("ldap_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            if (ret == 0) {
-                DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = sdap_pam_loop;
-                lr->next_step = SDAP_CHECK_STD_BIND;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-                return;
-            }
+    return sdap_req_done(breq, ret, error);
+}
 
-            ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, &errmsgp,
-                                    NULL, NULL, 0);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_parse_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            DEBUG(3, ("Bind result: [%d][%s][%s]\n", ldap_ret,
-                      ldap_err2string(ldap_ret), errmsgp));
-            if (ldap_ret != LDAP_SUCCESS) {
-                DEBUG(1, ("bind failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+/* =Groups-Related-Functions-(by-name,by-uid)============================= */
 
-            filter = talloc_asprintf(lr->sdap_ctx,
-                                     "(&(%s=%s)(objectclass=%s))",
-                                     lr->sdap_ctx->user_name_attribute,
-                                     lr->pd->user,
-                                     lr->sdap_ctx->user_object_class);
+struct groups_get_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *ctx;
 
-            DEBUG(4, ("calling ldap_search_ext with [%s].\n", filter));
-            ret = ldap_search_ext(lr->ldap,
-                                  lr->sdap_ctx->user_search_base,
-                                  LDAP_SCOPE_SUBTREE,
-                                  filter,
-                                  attrs,
-                                  TRUE,
-                                  NULL,
-                                  NULL,
-                                  NULL,
-                                  0,
-                                  &(lr->msgid));
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_search_ext failed [%d][%s].\n", ret, ldap_err2string(ret)));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-        case SDAP_CHECK_SEARCH_DN_RESULT:
-            ret = ldap_result(lr->ldap, lr->msgid, TRUE, &no_timeout, &result);
-            if (ret == -1) {
-                DEBUG(1, ("ldap_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            if (ret == 0) {
-                DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = sdap_pam_loop;
-                lr->next_step = SDAP_CHECK_SEARCH_DN_RESULT;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-                return;
-            }
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
 
-            msg = ldap_first_message(lr->ldap, result);
-            if (msg == NULL) {
-                DEBUG(1, ("ldap_first_message failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
+    char *filter;
+    const char **attrs;
+};
 
-            do {
-                switch ( ldap_msgtype(msg) ) {
-                    case LDAP_RES_SEARCH_ENTRY:
-                        if (lr->user_dn != NULL) {
-                            DEBUG(1, ("Found more than one object with filter [%s].\n",
-                                      filter));
-                            pam_status = PAM_SYSTEM_ERR;
-                            goto done;
-                        }
-                        lr->user_dn = ldap_get_dn(lr->ldap, msg);
-                        if (lr->user_dn == NULL) {
-                            DEBUG(1, ("ldap_get_dn failed.\n"));
-                            pam_status = PAM_SYSTEM_ERR;
-                            goto done;
-                        }
+static void groups_get_connect_done(struct tevent_req *subreq);
+static void groups_get_op_done(struct tevent_req *subreq);
 
-                        if ( *(lr->user_dn) == '\0' ) {
-                            DEBUG(1, ("No user found.\n"));
-                            pam_status = PAM_USER_UNKNOWN;
-                            goto done;
-                        }
-                        DEBUG(3, ("Found dn: %s\n",lr->user_dn));
+static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx,
+                                          struct be_ctx *bectx,
+                                          const char *wildcard,
+                                          int filter_type,
+                                          int attrs_type)
+{
+    struct tevent_req *req, *subreq;
+    struct groups_get_state *state;
+    const char *attr_name;
+    int ret;
 
-                        ldap_msgfree(result);
-                        result = NULL;
-                        break;
-                    default:
-                        DEBUG(3, ("ignoring message with type %d.\n", ldap_msgtype(msg)));
-                }
-            } while( (msg=ldap_next_message(lr->ldap, msg)) != NULL );
+    req = tevent_req_create(memctx, &state, struct groups_get_state);
+    if (!req) return NULL;
 
-            switch (lr->pd->cmd) {
-                case SSS_PAM_AUTHENTICATE:
-                case SSS_PAM_CHAUTHTOK:
-                    break;
-                case SSS_PAM_ACCT_MGMT:
-                case SSS_PAM_SETCRED:
-                case SSS_PAM_OPEN_SESSION:
-                case SSS_PAM_CLOSE_SESSION:
-                    pam_status = PAM_SUCCESS;
-                    goto done;
-                    break;
-                default:
-                    DEBUG(1, ("Unknown pam command %d.\n", lr->pd->cmd));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-            }
+    state->ev = ev;
+    state->ctx = ctx;
+    state->dom = bectx->domain;
+    state->sysdb = bectx->sysdb;
 
-            ret = sdap_bind(lr);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("sdap_bind failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-        case SDAP_CHECK_USER_BIND:
-            ret = ldap_result(lr->ldap, lr->msgid, FALSE, &no_timeout, &result);
-            if (ret == -1) {
-                DEBUG(1, ("ldap_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            if (ret == 0) {
-                DEBUG(1, ("ldap_result not ready yet, waiting.\n"));
-                lr->next_task = sdap_pam_loop;
-                lr->next_step = SDAP_CHECK_USER_BIND;
-                ret = wait_for_fd(lr);
-                if (ret != EOK) {
-                    DEBUG(1, ("schedule_next_task failed.\n"));
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-                }
-                return;
-            }
+    switch(filter_type) {
+    case BE_FILTER_NAME:
+        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
+        break;
+    case BE_FILTER_IDNUM:
+        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_GID].name;
+        break;
+    default:
+        ret = EINVAL;
+        goto fail;
+    }
 
-            ret = ldap_parse_result(lr->ldap, result, &ldap_ret, NULL, &errmsgp,
-                                    NULL, NULL, 0);
-            if (ret != LDAP_SUCCESS) {
-                DEBUG(1, ("ldap_parse_result failed.\n"));
-                pam_status = PAM_SYSTEM_ERR;
-                goto done;
-            }
-            DEBUG(3, ("Bind result: [%d][%s][%s]\n", ldap_ret,
-                      ldap_err2string(ldap_ret), errmsgp));
-            switch (ldap_ret) {
-                case LDAP_SUCCESS:
-                    pam_status = PAM_SUCCESS;
-                    break;
-                case LDAP_INVALID_CREDENTIALS:
-                    pam_status = PAM_CRED_INSUFFICIENT;
-                    goto done;
-                    break;
-                default:
-                    pam_status = PAM_SYSTEM_ERR;
-                    goto done;
-            }
+    state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                                    attr_name, wildcard,
+                                    ctx->opts->group_map[SDAP_OC_GROUP].name);
+    if (!state->filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
 
-            switch (lr->pd->cmd) {
-                case SSS_PAM_AUTHENTICATE:
-                    pam_status = PAM_SUCCESS;
-                    break;
-                case SSS_PAM_CHAUTHTOK:
-                    pam_status = sdap_pam_chauthtok(lr);
-                    break;
-                case SSS_PAM_ACCT_MGMT:
-                case SSS_PAM_SETCRED:
-                case SSS_PAM_OPEN_SESSION:
-                case SSS_PAM_CLOSE_SESSION:
-                    pam_status = PAM_SUCCESS;
-                    break;
-                default:
-                    DEBUG(1, ("Unknown pam command %d.\n", lr->pd->cmd));
-                    pam_status = PAM_SYSTEM_ERR;
-            }
+    /* TODO: handle attrs_type */
+    ret = build_attrs_from_map(state, ctx->opts->group_map,
+                               SDAP_OPTS_GROUP, &state->attrs);
+    if (ret != EOK) goto fail;
+
+    if (!connected(ctx)) {
+
+        if (ctx->gsh) talloc_zfree(ctx->gsh);
+
+        /* FIXME: add option to decide if tls should be used
+         * or SASL/GSSAPI, etc ... */
+        subreq = sdap_id_connect_send(state, ev, ctx->opts, false);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        tevent_req_set_callback(subreq, groups_get_connect_done, req);
+
+        return req;
+    }
+
+    subreq = sdap_get_groups_send(state, state->ev,
+                                 state->dom, bectx->sysdb,
+                                 state->ctx->opts, state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, groups_get_op_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void groups_get_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct users_get_state *state = tevent_req_data(req,
+                                                     struct users_get_state);
+    int ret;
+
+    ret = sdap_id_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_get_groups_send(state, state->ev,
+                                 state->dom, state->sysdb,
+                                 state->ctx->opts, state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, groups_get_op_done, req);
+}
+
+static void groups_get_op_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sdap_get_groups_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void groups_get_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    enum tevent_req_state tstate;
+    uint64_t err;
+    const char *error = NULL;
+    int ret = EOK;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        ret = err;
+    }
+
+    if (ret) error = "Enum Groups Failed";
+
+    return sdap_req_done(breq, ret, error);
+}
+
+/* =Get-Groups-for-User================================================== */
+
+struct groups_by_user_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *ctx;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+    const char *name;
+    const char **attrs;
+};
+
+static void groups_by_user_connect_done(struct tevent_req *subreq);
+static void groups_by_user_op_done(struct tevent_req *subreq);
+
+static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
+                                              struct tevent_context *ev,
+                                              struct sdap_id_ctx *ctx,
+                                              struct sss_domain_info *dom,
+                                              struct sysdb_ctx *sysdb,
+                                              const char *name)
+{
+    struct tevent_req *req, *subreq;
+    struct groups_by_user_state *state;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct groups_by_user_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+    state->dom = dom;
+    state->sysdb = sysdb;
+    state->name = name;
+
+    ret = build_attrs_from_map(state, ctx->opts->group_map,
+                               SDAP_OPTS_GROUP, &state->attrs);
+    if (ret != EOK) goto fail;
+
+    if (!connected(ctx)) {
+
+        if (ctx->gsh) talloc_zfree(ctx->gsh);
+
+        /* FIXME: add option to decide if tls should be used
+         * or SASL/GSSAPI, etc ... */
+        subreq = sdap_id_connect_send(state, ev, ctx->opts, false);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        tevent_req_set_callback(subreq, groups_by_user_connect_done, req);
+
+        return req;
+    }
+
+    subreq = sdap_get_initgr_send(state, state->ev,
+                                  state->dom, state->sysdb,
+                                  state->ctx->opts, state->ctx->gsh,
+                                  state->name, state->attrs);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, groups_by_user_op_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void groups_by_user_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct groups_by_user_state *state = tevent_req_data(req,
+                                                     struct groups_by_user_state);
+    int ret;
+
+    ret = sdap_id_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_get_initgr_send(state, state->ev,
+                                  state->dom, state->sysdb,
+                                  state->ctx->opts, state->ctx->gsh,
+                                  state->name, state->attrs);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, groups_by_user_op_done, req);
+}
+
+static void groups_by_user_op_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sdap_get_initgr_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static void groups_by_user_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    enum tevent_req_state tstate;
+    uint64_t err;
+    const char *error = NULL;
+    int ret = EOK;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        ret = err;
+    }
+
+    if (ret) error = "Init Groups Failed";
+
+    return sdap_req_done(breq, ret, error);
+}
+
+
+
+/* =Get-Account-Info-Call================================================= */
+
+/* FIXME: embed this function in sssd_be and only call out
+ * specific functions from modules */
+static void sdap_get_account_info(struct be_req *breq)
+{
+    struct sdap_id_ctx *ctx;
+    struct be_acct_req *ar;
+    struct tevent_req *req;
+    const char *err = "Unknown Error";
+    int ret = EOK;
+
+    ctx = talloc_get_type(breq->be_ctx->pvt_id_data, struct sdap_id_ctx);
+
+    if (is_offline(ctx)) {
+        return sdap_req_done(breq, EAGAIN, "Offline");
+    }
+
+    ar = talloc_get_type(breq->req_data, struct be_acct_req);
+
+    switch (ar->entry_type) {
+    case BE_REQ_USER: /* user */
+
+        req = users_get_send(breq, breq->be_ctx->ev,
+                             ctx, breq->be_ctx,
+                             ar->filter_value,
+                             ar->filter_type,
+                             ar->attr_type);
+        if (!req) {
+            return sdap_req_done(breq, ENOMEM, "Out of memory");
+        }
+
+        tevent_req_set_callback(req, users_get_done, breq);
+
+        break;
+
+    case BE_REQ_GROUP: /* group */
+
+        req = groups_get_send(breq, breq->be_ctx->ev,
+                              ctx, breq->be_ctx,
+                              ar->filter_value,
+                              ar->filter_type,
+                              ar->attr_type);
+        if (!req) {
+            return sdap_req_done(breq, ENOMEM, "Out of memory");
+        }
+
+        tevent_req_set_callback(req, groups_get_done, breq);
+
+        break;
+
+    case BE_REQ_INITGROUPS: /* init groups for user */
+        if (ar->filter_type != BE_FILTER_NAME) {
+            ret = EINVAL;
+            err = "Invalid filter type";
             break;
-        default:
-            DEBUG(1, ("Unknown ldap backend operation %d.\n", lr->next_step));
-            pam_status = PAM_SYSTEM_ERR;
-    }
-
-done:
-    ldap_memfree(errmsgp);
-    ldap_msgfree(result);
-    talloc_free(filter);
-    if (lr->ldap != NULL) ldap_unbind_ext(lr->ldap, NULL, NULL);
-    req = lr->req;
-    pd = talloc_get_type(lr->req->req_data, struct pam_data);
-    pd->pam_status = pam_status;
-
-    talloc_free(lr);
-
-    req->fn(req, pam_status, NULL);
-}
-
-static void sdap_start(struct tevent_context *ev, struct tevent_timer *te,
-                       struct timeval tv, void *pvt)
-{
-    int ret;
-    int pam_status;
-    struct sdap_req *lr;
-    struct be_req *req;
-    struct pam_data *pd;
-
-    lr = talloc_get_type(pvt, struct sdap_req);
-
-    ret = sdap_init(lr);
-    if (ret != EOK) {
-        DEBUG(1, ("sdap_init failed.\n"));
-        lr->ldap = NULL;
-        if (ret == EAGAIN) {
-            pam_status = PAM_AUTHINFO_UNAVAIL;
-        } else {
-            pam_status = PAM_SYSTEM_ERR;
         }
-        goto done;
+        if (ar->attr_type != BE_ATTR_CORE) {
+            ret = EINVAL;
+            err = "Invalid attr type";
+            break;
+        }
+        if (strchr(ar->filter_value, '*')) {
+            ret = EINVAL;
+            err = "Invalid filter value";
+            break;
+        }
+        req = groups_by_user_send(breq, breq->be_ctx->ev, ctx,
+                                  breq->be_ctx->domain, breq->be_ctx->sysdb,
+                                  ar->filter_value);
+        if (!req) ret = ENOMEM;
+        /* tevent_req_set_callback(req, groups_by_user_done, breq); */
+
+        tevent_req_set_callback(req, groups_by_user_done, breq);
+
+        break;
+
+    default: /*fail*/
+        ret = EINVAL;
+        err = "Invalid request type";
     }
 
-    lr->next_task = sdap_pam_loop;
-    lr->next_step = SDAP_CHECK_INIT_RESULT;
-    ret = wait_for_fd(lr);
-    if (ret != EOK) {
-        DEBUG(1, ("schedule_next_task failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-    return;
-
-done:
-    if (lr->ldap != NULL ) ldap_unbind_ext(lr->ldap, NULL, NULL);
-    req = lr->req;
-    pd = talloc_get_type(lr->req->req_data, struct pam_data);
-    pd->pam_status = pam_status;
-
-    talloc_free(lr);
-
-    req->fn(req, pam_status, NULL);
-}
-
-static void sdap_pam_handler(struct be_req *req)
-{
-    int ret;
-    int pam_status=PAM_SUCCESS;
-    struct sdap_req *lr;
-    struct sdap_ctx *sdap_ctx;
-    struct pam_data *pd;
-    struct timeval timeout;
-
-    pd = talloc_get_type(req->req_data, struct pam_data);
-
-    sdap_ctx = talloc_get_type(req->be_ctx->pvt_auth_data, struct sdap_ctx);
-
-    lr = talloc(req, struct sdap_req);
-
-    lr->ldap = NULL;
-    lr->req = req;
-    lr->pd = pd;
-    lr->sdap_ctx = sdap_ctx;
-    lr->user_dn = NULL;
-    lr->next_task = NULL;
-    lr->next_step = SDAP_NOOP;
-
-    timeout.tv_sec=0;
-    timeout.tv_usec=0;
-    ret = schedule_next_task(lr, timeout, sdap_start);
-    if (ret != EOK) {
-        DEBUG(1, ("schedule_next_task failed.\n"));
-        pam_status = PAM_SYSTEM_ERR;
-        goto done;
-    }
-
-    return;
-
-done:
-    talloc_free(lr);
-
-    pd->pam_status = pam_status;
-    req->fn(req, pam_status, NULL);
+    if (ret != EOK) return sdap_req_done(breq, ret, err);
 }
 
 static void sdap_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
-    req->fn(req, EOK, NULL);
+    sdap_req_done(req, EOK, NULL);
 }
 
-struct be_auth_ops sdap_auth_ops = {
-    .pam_handler = sdap_pam_handler,
+struct be_id_ops sdap_id_ops = {
+    .check_online = sdap_check_online,
+    .get_account_info = sdap_get_account_info,
     .finalize = sdap_shutdown
 };
 
-
 int sssm_ldap_init(struct be_ctx *bectx,
-                   struct be_id_ops **ops, void **pvt_data)
+                   struct be_id_ops **ops,
+                   void **pvt_data)
 {
-    struct sdap_ctx *ctx;
-}
-
-
-{
-    char *ldap_uri;
-    char *default_bind_dn;
-    char *default_authtok_type;
-    char *default_authtok;
-    char *user_search_base;
-    char *user_name_attribute;
-    char *user_object_class;
-    int network_timeout;
-    int opt_timeout;
+    int ldap_opt_x_tls_require_cert;
+    struct sdap_id_ctx *ctx;
+    char *tls_reqcert;
     int ret;
 
-    ctx = talloc(bectx, struct sdap_ctx);
-    if (!ctx) {
-        return ENOMEM;
+    ctx = talloc_zero(bectx, struct sdap_id_ctx);
+    if (!ctx) return ENOMEM;
+
+    ret = sdap_get_options(ctx, bectx->cdb, bectx->conf_path,
+                           &ctx->opts);
+
+    tls_reqcert = ctx->opts->basic[SDAP_TLS_REQCERT].value;
+    if (tls_reqcert) {
+        if (strcasecmp(tls_reqcert, "never") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;
+        }
+        else if (strcasecmp(tls_reqcert, "allow") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_ALLOW;
+        }
+        else if (strcasecmp(tls_reqcert, "try") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_TRY;
+        }
+        else if (strcasecmp(tls_reqcert, "demand") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
+        }
+        else if (strcasecmp(tls_reqcert, "hard") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
+        }
+        else {
+            DEBUG(1, ("Unknown value for tls_reqcert.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option,
+         * because the SSL/TLS context is initialized from this value. */
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT,
+                              &ldap_opt_x_tls_require_cert);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            ret = EIO;
+            goto done;
+        }
     }
 
-/* TODO: add validation checks for ldapUri, user_search_base,
- * user_name_attribute, etc */
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "ldapUri", "ldap://localhost", &ldap_uri);
-    if (ret != EOK) goto done;
-    ctx->ldap_uri = ldap_uri;
-
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "defaultBindDn", NULL, &default_bind_dn);
-    if (ret != EOK) goto done;
-    ctx->default_bind_dn = default_bind_dn;
-
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "defaultAuthtokType", NULL, &default_authtok_type);
-    if (ret != EOK) goto done;
-    ctx->default_authtok_type = default_authtok_type;
-
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "userSearchBase", NULL, &user_search_base);
-    if (ret != EOK) goto done;
-    if (user_search_base == NULL) {
-        DEBUG(1, ("missing userSearchBase.\n"));
-        ret = EINVAL;
-        goto done;
-    }
-    ctx->user_search_base = user_search_base;
-
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "userNameAttribute", "uid", &user_name_attribute);
-    if (ret != EOK) goto done;
-    ctx->user_name_attribute = user_name_attribute;
-
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "userObjectClass", "posixAccount",
-                           &user_object_class);
-    if (ret != EOK) goto done;
-    ctx->user_object_class = user_object_class;
-
-/* TODO: better to have a blob object than a string here */
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "defaultAuthtok", NULL, &default_authtok);
-    if (ret != EOK) goto done;
-    ctx->default_authtok = default_authtok;
-    ctx->default_authtok_size = (default_authtok==NULL?0:strlen(default_authtok));
-
-    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
-                         "network_timeout", 5, &network_timeout);
-    if (ret != EOK) goto done;
-    ctx->network_timeout = network_timeout;
-
-    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
-                         "opt_timeout", 5, &opt_timeout);
-    if (ret != EOK) goto done;
-    ctx->network_timeout = opt_timeout;
-
-    *ops = &sdap_auth_ops;
+    *ops = &sdap_id_ops;
     *pvt_data = ctx;
     ret = EOK;
 
@@ -782,5 +817,3 @@ done:
     }
     return ret;
 }
-
-#endif

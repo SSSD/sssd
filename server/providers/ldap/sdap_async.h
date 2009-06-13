@@ -45,7 +45,6 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
                                      bool use_start_tls);
-
 int sdap_connect_recv(struct tevent_req *req,
                       TALLOC_CTX *memctx,
                       struct sdap_handle **sh);
@@ -58,7 +57,6 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *wildcard);
-
 int sdap_get_users_recv(struct tevent_req *req);
 
 struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
@@ -69,7 +67,6 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *wildcard);
-
 int sdap_get_groups_recv(struct tevent_req *req);
 
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
@@ -77,5 +74,14 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct sdap_handle *sh,
                                   const char *user_dn,
                                   const char *password);
-
 int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result);
+
+struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
+                                        struct tevent_context *ev,
+                                        struct sss_domain_info *dom,
+                                        struct sysdb_ctx *sysdb,
+                                        struct sdap_options *opts,
+                                        struct sdap_handle *sh,
+                                        const char *name,
+                                        const char **grp_attrs);
+int sdap_get_initgr_recv(struct tevent_req *req);

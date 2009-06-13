@@ -110,6 +110,48 @@ int sdap_get_options(TALLOC_CTX *memctx,
                   opts->basic[i].opt_name, opts->basic[i].value));
     }
 
+    /* re-read special options that are easier to be consumed after they are
+     * transformed */
+
+/* TODO: better to have a blob object than a string here */
+    ret = confdb_get_string(cdb, opts, conf_path,
+                            "defaultAuthtok", NULL,
+                            &opts->default_authtok);
+    if (ret != EOK) goto done;
+    if (opts->default_authtok) {
+        opts->default_authtok_size = strlen(opts->default_authtok);
+    }
+
+    ret = confdb_get_int(cdb, opts, conf_path,
+                         "network_timeout", 5,
+                         &opts->network_timeout);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_int(cdb, opts, conf_path,
+                         "opt_timeout", 5,
+                         &opts->opt_timeout);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_int(cdb, opts, conf_path,
+                         "offline_timeout", 60,
+                         &opts->offline_timeout);
+    if (ret != EOK) goto done;
+
+    /* schema type */
+    if (strcasecmp(opts->basic[SDAP_SCHEMA].value, "rfc2307") == 0) {
+        opts->schema_type = SDAP_SCHEMA_RFC2307;
+    } else
+    if (strcasecmp(opts->basic[SDAP_SCHEMA].value, "rfc2307bis") == 0) {
+        opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
+    } else {
+        DEBUG(0, ("Unrecognized schema type: %s\n",
+                  opts->basic[SDAP_SCHEMA].value));
+        ret = EINVAL;
+        goto done;
+    }
+
+
+/* FIXME: make defaults per schema type memberUid vs member, etc... */
     for (i = 0; i < SDAP_OPTS_USER; i++) {
 
         opts->user_map[i].opt_name = default_user_map[i].opt_name;
@@ -153,33 +195,6 @@ int sdap_get_options(TALLOC_CTX *memctx,
         DEBUG(5, ("Option %s has value %s\n",
                   opts->group_map[i].opt_name, opts->group_map[i].name));
     }
-
-    /* re-read special options that are easier to be consumed after they are
-     * transformed */
-
-/* TODO: better to have a blob object than a string here */
-    ret = confdb_get_string(cdb, opts, conf_path,
-                            "defaultAuthtok", NULL,
-                            &opts->default_authtok);
-    if (ret != EOK) goto done;
-    if (opts->default_authtok) {
-        opts->default_authtok_size = strlen(opts->default_authtok);
-    }
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "network_timeout", 5,
-                         &opts->network_timeout);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "opt_timeout", 5,
-                         &opts->opt_timeout);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "offline_timeout", 60,
-                         &opts->offline_timeout);
-    if (ret != EOK) goto done;
 
     ret = EOK;
     *_opts = opts;

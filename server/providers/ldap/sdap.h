@@ -113,6 +113,13 @@ struct sdap_options {
     int network_timeout;
     int opt_timeout;
     int offline_timeout;
+
+    /* supported schema types */
+    enum schema_type {
+        SDAP_SCHEMA_RFC2307 = 1,    /* memberUid = uid */
+        SDAP_SCHEMA_RFC2307BIS = 2, /* member = dn */
+        SDAP_SCHEMA_IPA_V1 = 3      /* member/memberof with unrolling */
+    } schema_type;
 };
 
 int sdap_get_options(TALLOC_CTX *memctx,

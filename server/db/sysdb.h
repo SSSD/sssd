@@ -292,14 +292,18 @@ int sysdb_search_entry_recv(struct tevent_req *req,
 /* Search User (by uid or name) */
 struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
+                                                  struct sysdb_ctx *sysdb,
                                                   struct sysdb_handle *handle,
                                                   struct sss_domain_info *domain,
-                                                  const char *name);
+                                                  const char *name,
+                                                  const char **attrs);
 struct tevent_req *sysdb_search_user_by_uid_send(TALLOC_CTX *mem_ctx,
                                                  struct tevent_context *ev,
+                                                 struct sysdb_ctx *sysdb,
                                                  struct sysdb_handle *handle,
                                                  struct sss_domain_info *domain,
-                                                 uid_t uid);
+                                                 uid_t uid,
+                                                 const char **attrs);
 int sysdb_search_user_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            struct ldb_message **msg);
@@ -314,15 +318,19 @@ int sysdb_delete_user_by_uid_recv(struct tevent_req *req);
 
 /* Search Group (gy gid or name) */
 struct tevent_req *sysdb_search_group_by_name_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  const char *name);
+                                                   struct tevent_context *ev,
+                                                   struct sysdb_ctx *sysdb,
+                                                   struct sysdb_handle *handle,
+                                                   struct sss_domain_info *domain,
+                                                   const char *name,
+                                                   const char **attrs);
 struct tevent_req *sysdb_search_group_by_gid_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
+                                                  struct sysdb_ctx *sysdb,
                                                   struct sysdb_handle *handle,
                                                   struct sss_domain_info *domain,
-                                                 gid_t gid);
+                                                  gid_t gid,
+                                                  const char **attrs);
 int sysdb_search_group_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
                             struct ldb_message **msg);
