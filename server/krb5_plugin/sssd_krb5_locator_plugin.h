@@ -1,0 +1,8 @@
+#ifndef __SSSD_KRB5_LOCATOR_PLUGIN_H__
+#define __SSSD_KRB5_LOCATOR_PLUGIN_H__
+
+#define SSSD_KDC "SSSD_KDC"
+#define SSSD_REALM "SSSD_REALM"
+
+#endif /* __SSSD_KRB5_LOCATOR_PLUGIN_H__ */
+

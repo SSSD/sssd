@@ -3,6 +3,7 @@ topdir=.
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 ldblibdir = $(libdir)/ldb
+krb5plugindir = @krb5pluginpath@
 sssdconfdir = $(sysconfdir)/sssd
 dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
@@ -79,6 +80,9 @@ sssdlib_LTLIBRARIES = \
 
 ldblib_LTLIBRARIES = \
     memberof.la
+
+krb5plugin_LTLIBRARIES = \
+    sssd_krb5_locator_plugin.la
 
 noinst_LTLIBRARIES = \
     libsss_crypt.la
@@ -208,6 +212,7 @@ dist_noinst_HEADERS = \
     providers/dp_backend.h \
     providers/providers.h \
     tools/tools_util.h \
+    krb5_plugin/sssd_krb5_locator_plugin.h \
     $(infopipe_headers) \
     $(polkit_headers)
 
@@ -400,6 +405,15 @@ memberof_la_SOURCES = \
 memberof_la_CFLAGS = \
     $(AM_CFLAGS)
 memberof_la_LDFLAGS = \
+    -avoid-version \
+    -module
+
+sssd_krb5_locator_plugin_la_SOURCES = \
+    krb5_plugin/sssd_krb5_locator_plugin.c
+sssd_krb5_locator_plugin_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS)
+sssd_krb5_locator_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 

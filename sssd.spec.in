@@ -42,6 +42,7 @@ BuildRequires: pcre-devel
 BuildRequires: libxslt
 BuildRequires: libxml2
 BuildRequires: docbook-style-xsl
+BuildRequires: krb5-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
@@ -78,7 +79,8 @@ rm -f \
     $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
     $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
+    $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -97,6 +99,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so
+%{_libdir}/krb5/plugins/libkrb5/*
 %dir %{_sharedstatedir}/sss/
 %attr(700,root,root) %dir %{_sharedstatedir}/sss/db
 %dir %{_sharedstatedir}/sss/pipes

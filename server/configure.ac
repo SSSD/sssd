@@ -49,6 +49,7 @@ WITH_INIT_DIR
 WITH_SHADOW_UTILS_PATH
 WITH_MANPAGES
 WITH_XML_CATALOG
+WITH_KRB5_PLUGIN_PATH
 
 m4_include([external/pkg.m4])
 m4_include([external/libpopt.m4])
@@ -59,6 +60,7 @@ m4_include([external/libldb.m4])
 m4_include([external/pam.m4])
 m4_include([external/ldap.m4])
 m4_include([external/libpcre.m4])
+m4_include([external/krb5.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])

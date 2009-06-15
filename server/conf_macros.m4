@@ -132,7 +132,6 @@ AC_DEFUN([WITH_INIT_DIR],
     AC_SUBST(initdir)
   ])
 
-
 AC_DEFUN([WITH_SHADOW_UTILS_PATH],
   [ AC_ARG_WITH([shadow-utils-path],
                 [AC_HELP_STRING([--with-shadow-utils-path=PATH],
@@ -177,3 +176,16 @@ AC_DEFUN([WITH_XML_CATALOG],
     AC_SUBST([SGML_CATALOG_FILES])
   ])
 
+AC_DEFUN([WITH_KRB5_PLUGIN_PATH],
+  [ AC_ARG_WITH([krb5-plugin-path],
+                [AC_HELP_STRING([--with-krb5-plugin-path=PATH],
+                                [Path to kerberos plugin store [/usr/lib/krb5/plugins/libkrb5]]
+                               )
+                ]
+               )
+    krb5pluginpath="${libdir}/krb5/plugins/libkrb5"
+    if test x"$with_krb5_plugin_path" != x; then
+        krb5pluginpath=$with_krb5_plugin_path
+    fi
+    AC_SUBST(krb5pluginpath)
+  ])
