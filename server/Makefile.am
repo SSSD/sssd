@@ -421,7 +421,7 @@ SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 # Installation Extras #
 #######################
 
-dist_init_DATA = \
+dist_init_SCRIPTS = \
     sysv/sssd
 
 installsssddirs::

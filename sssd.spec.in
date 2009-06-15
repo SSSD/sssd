@@ -86,7 +86,7 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %doc COPYING
-%attr(755,root,root) %{_initrddir}/%{name}
+%{_initrddir}/%{name}
 %{_sbindir}/sssd
 %{_sbindir}/sss_useradd
 %{_sbindir}/sss_userdel
