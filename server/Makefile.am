@@ -76,6 +76,7 @@ endif
 
 sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
+    libsss_krb5.la \
     libsss_proxy.la
 
 ldblib_LTLIBRARIES = \
@@ -211,6 +212,7 @@ dist_noinst_HEADERS = \
     providers/dp_interfaces.h \
     providers/dp_backend.h \
     providers/providers.h \
+    providers/krb5/krb5_auth.h \
     tools/tools_util.h \
     krb5_plugin/sssd_krb5_locator_plugin.h \
     $(infopipe_headers) \
@@ -400,6 +402,19 @@ libsss_proxy_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
 
+libsss_krb5_la_SOURCES = \
+    providers/krb5/krb5_auth.c \
+    providers/krb5/tgt_req_child.c
+libsss_krb5_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS)
+libsss_krb5_la_LIBADD = \
+    $(PAM_LIBS) \
+    $(KRB5_LIBS)
+libsss_krb5_la_LDFLAGS = \
+    -version-info 1:0:0 \
+    -module
+
 memberof_la_SOURCES = \
     ldb_modules/memberof.c
 memberof_la_CFLAGS = \
@@ -429,7 +444,7 @@ XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 
 dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
 		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
-		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5
+		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:

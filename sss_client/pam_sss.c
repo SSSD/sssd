@@ -426,7 +426,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                     break;
                 }
                 logger(pamh, LOG_INFO, "user info: [%s]", &buf[p]);
-                ret = do_pam_conversation(pamh, PAM_USER_INFO, (char *) &buf[p],
+                ret = do_pam_conversation(pamh, PAM_TEXT_INFO, (char *) &buf[p],
                                           NULL, NULL);
                 if (ret != PAM_SUCCESS) {
                     D(("do_pam_conversation, canot display user info."));

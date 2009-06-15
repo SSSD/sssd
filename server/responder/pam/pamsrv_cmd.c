@@ -22,6 +22,7 @@
 
 #include <time.h>
 #include "util/util.h"
+#include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
@@ -387,7 +388,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     size_t blen;
     int timeout;
     int ret;
-
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
         return ENOMEM;
@@ -716,6 +716,24 @@ static void pam_check_user_callback(void *ptr, int status,
     case 1:
 
         /* BINGO */
+        preq->pd->pw_uid =
+            ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_UIDNUM, -1);
+        if (preq->pd->pw_uid == -1) {
+            DEBUG(1, ("Failed to find uid for user [%s] in domain [%s].\n",
+                      preq->pd->user, preq->pd->domain));
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
+            pam_reply(preq);
+        }
+
+        preq->pd->gr_gid =
+            ldb_msg_find_attr_as_int(res->msgs[0], SYSDB_GIDNUM, -1);
+        if (preq->pd->gr_gid == -1) {
+            DEBUG(1, ("Failed to find gid for user [%s] in domain [%s].\n",
+                      preq->pd->user, preq->pd->domain));
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
+            pam_reply(preq);
+        }
+
         pam_dom_forwarder(preq);
         return;
 
