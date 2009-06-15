@@ -1,0 +1,9 @@
+# List of source files which contain translatable strings.
+confdb/confdb_setup.c
+tools/sss_groupdel.c
+tools/sss_groupmod.c
+tools/sss_userdel.c
+tools/tools_util.c
+tools/sss_useradd.c
+tools/sss_groupadd.c
+tools/sss_usermod.c

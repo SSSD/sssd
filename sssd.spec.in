@@ -108,6 +108,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/*
 %{_mandir}/man8/*
 %{_datadir}/locale/*/LC_MESSAGES/sss_client.mo
+%{_datadir}/locale/*/LC_MESSAGES/sss_daemon.mo
 
 %post
 /sbin/ldconfig

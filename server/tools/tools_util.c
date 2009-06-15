@@ -228,3 +228,23 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     return EOK;
 }
 
+int init_sss_tools(struct tools_ctx **ctx)
+{
+    int ret;
+    /* Set up LOCALE */
+    setlocale (LC_ALL, "");
+    bindtextdomain (PACKAGE, LOCALEDIR);
+    textdomain (PACKAGE);
+
+    /* Connect to the database */
+    ret = setup_db(ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not set up database\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    ret = EOK;
+fini:
+    return ret;
+}

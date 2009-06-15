@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "util/util.h"
+#include "util/sssd-i18n.h"
 #include "ldb.h"
 #include "confdb/confdb.h"
 
@@ -279,6 +280,11 @@ int server_setup(const char *name, int flags,
             return ret;
         }
     }
+
+    /* Set up locale */
+    setlocale (LC_ALL, "");
+    bindtextdomain (PACKAGE, LOCALEDIR);
+    textdomain (PACKAGE);
 
     /* the event context is the top level structure.
      * Everything else should hang off that */

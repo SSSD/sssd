@@ -1,3 +1,4 @@
+SUBDIRS = po
 topdir=.
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
@@ -122,7 +123,10 @@ AM_CPPFLAGS = -Wall \
     -DSHADOW_UTILS_PATH=\"$(shadow_utils_path)\" \
     -DSSSD_INTROSPECT_PATH=\"$(dbusinstropectdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
-    -DUSE_MMAP=1
+    -DUSE_MMAP=1 \
+    -DLOCALEDIR=\"\$(localedir)\"
+
+EXTRA_DIST = build/config.rpath
 
 SSSD_DEBUG_OBJ = \
     util/debug.c
@@ -175,6 +179,7 @@ dist_noinst_HEADERS = \
     util/btreemap.h \
     util/nss_sha512crypt.h \
     util/dlinklist.h \
+    util/sssd-i18n.h \
     util/util.h \
     config.h \
     monitor/monitor.h \

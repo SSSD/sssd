@@ -31,6 +31,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+#include "util/sssd-i18n.h"
 
 /* Define default command strings if not redefined by user */
 #ifndef USERADD
@@ -335,9 +336,9 @@ int main(int argc, const char **argv)
 
     debug_prg_name = argv[0];
 
-    ret = setup_db(&ctx);
+    ret = init_sss_tools(&ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up database\n"));
+        DEBUG(0, ("Could not set up tools\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -480,7 +481,7 @@ int main(int argc, const char **argv)
         ret = user_ctx->error;
         switch (ret) {
             case EEXIST:
-                DEBUG(0, ("The user %s already exists\n", user_ctx->username));
+                DEBUG(0, (_("The user %s already exists\n"), user_ctx->username));
                 break;
 
             default:

@@ -37,3 +37,4 @@ stamp-po
 ABOUT-NLS
 build
 *.patch
+*.swp

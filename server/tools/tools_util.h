@@ -1,6 +1,8 @@
 #ifndef __TOOLS_UTIL_H__
 #define __TOOLS_UTIL_H__
 
+#include "util/sssd-i18n.h"
+
 #define UID_NOT_SET 0
 #define GID_NOT_SET 0
 
@@ -35,6 +37,8 @@ struct tools_ctx {
 
     struct sss_domain_info *domains;
 };
+
+int init_sss_tools(struct tools_ctx **ctx);
 
 int setup_db(struct tools_ctx **ctx);
 
