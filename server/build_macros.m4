@@ -13,3 +13,9 @@ AC_DEFUN([BUILD_WITH_SHARED_BUILD_DIR],
     AC_SUBST(sharedbuilddir)
   ])
 
+AC_DEFUN([BUILD_WITH_AUX_INFO],
+  [ AC_ARG_WITH([aux-info],
+                [AC_HELP_STRING([--with-aux-info],
+                                [Build with -aux-info output])])
+  ])
+AM_CONDITIONAL([WANT_AUX_INFO], [test x$with_aux_info = xyes])

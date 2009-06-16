@@ -13,6 +13,11 @@ pipepath = @pipepath@
 initdir = @initdir@
 shadow_utils_path = @shadow_utils_path@
 
+AM_CFLAGS =
+if WANT_AUX_INFO
+    AM_CFLAGS += -aux-info $@.X
+endif
+
 REPLACE_CFLAGS = \
     -I $(srcdir)/../replace
 REPLACE_LIBS = \
