@@ -243,7 +243,9 @@ sssd_be_SOURCES = \
     providers/data_provider_be.c \
     $(SSSD_UTIL_OBJ)
 sssd_be_LDADD = $(SSSD_LIBS)
-sssd_be_LDFLAGS = -export-dynamic
+sssd_be_LDFLAGS = \
+    -Wl,--version-script,$(srcdir)/providers/sssd_be.exports \
+    -export-dynamic
 
 if BUILD_POLICYKIT
 sssd_pk_SOURCES = \
@@ -270,7 +272,8 @@ dist_noinst_DATA = \
     examples/sssd.conf \
     examples/sssdproxylocal \
     examples/sssdproxytest \
-    examples/sudo
+    examples/sudo \
+    providers/sssd_be.exports
 
 ######################
 # Command-line Tools #
