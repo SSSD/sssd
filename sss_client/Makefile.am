@@ -6,6 +6,11 @@ AM_CPPFLAGS = \
     -DLOCALEDIR=\"\$(localedir)\"
 ACLOCAL_AMFLAGS = -I m4
 
+AM_CFLAGS =
+if WANT_AUX_INFO
+    AM_CFLAGS += -aux-info $@.X
+endif
+
 nsslibdir = @nsslibdir@
 pamlibdir = $(nsslibdir)/security
 
