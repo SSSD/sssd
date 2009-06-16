@@ -24,7 +24,8 @@ libnss_sss_la_SOURCES = \
     sss_cli.h
 libnss_sss_la_LDFLAGS = \
     -module \
-    -avoid-version
+    -avoid-version \
+    -Wl,--version-script,$(srcdir)/sss_nss.exports
 
 pam_sss_la_SOURCES = \
     pam_sss.c \
@@ -38,7 +39,8 @@ pam_sss_la_LDFLAGS = \
     -lpam \
     -lpam_misc \
     -module \
-    -avoid-version
+    -avoid-version \
+    -Wl,--version-script,$(srcdir)/sss_pam.exports
 
 noinst_PROGRAMS = pam_test_client
 pam_test_client_SOURCES = pam_test_client.c
@@ -46,6 +48,9 @@ pam_test_client_LDFLAGS = -lpam -lpam_misc
 
 
 EXTRA_DIST = build/config.rpath
+dist_noinst_DATA = \
+    sss_nss.exports \
+    sss_pam.exports
 
 install-data-hook:
 	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
