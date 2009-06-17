@@ -491,3 +491,4 @@ installsssddirs::
 
 install-exec-hook: installsssddirs
 
+CLEANFILES = *.X */*.X */*/*.X

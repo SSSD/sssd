@@ -39,3 +39,4 @@ ABOUT-NLS
 build
 *.patch
 *.swp
+*.X
