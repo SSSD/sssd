@@ -32,9 +32,6 @@ pam_sss_la_SOURCES = \
     common.c \
     sss_cli.h
 
-pam_sss_la_CFLAGS = \
-    -Wall \
-    -Werror
 pam_sss_la_LDFLAGS = \
     -lpam \
     -lpam_misc \
