@@ -26,9 +26,7 @@ AM_GNU_GETTEXT_VERSION([0.17])
 m4_pattern_allow([AM_SILENT_RULES])
 AM_SILENT_RULES
 
-if test "$ac_cv_prog_gcc" = yes; then
-   CFLAGS="$CFLAGS -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings"
-fi
+AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 
 AC_CHECK_HEADERS(stdint.h dlfcn.h)
 AC_CONFIG_HEADER(config.h)
