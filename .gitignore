@@ -20,7 +20,8 @@ Makefile.in.in
 autom4te.cache
 libtool
 stamp-h1
-*.m4
+m4/
+aclocal.m4
 depcomp
 ltmain.sh
 missing
