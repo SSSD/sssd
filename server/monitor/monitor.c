@@ -525,6 +525,15 @@ static int service_signal_reload(struct mt_svc *svc)
         return EOK;
     }
 
+    if (!svc->mt_conn) {
+        /* Avoid a race condition where we are trying to
+         * order a service to reload that hasn't started
+         * yet.
+         */
+        DEBUG(1,("Could not reload service [%s].\n", svc->name));
+        return EIO;
+    }
+
     conn = sbus_get_connection(svc->mt_conn->conn_ctx);
     msg = dbus_message_new_method_call(NULL,
                                        SERVICE_PATH,
