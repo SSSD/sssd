@@ -198,7 +198,7 @@ static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ct
     APPEND_STRING(command, GROUPMOD);
 
     if (ctx->addgroups || ctx->rmgroups) {
-        DEBUG(0, ("Groups nesting is not supported in this domain\n"));
+        ERROR("Group nesting is not supported in this domain\n");
         talloc_free(command);
         return EINVAL;
     }
@@ -208,7 +208,7 @@ static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ct
         if (ret == old_domain) {
             APPEND_PARAM(command, GROUPMOD_GID, ctx->gid);
         } else {
-            DEBUG(0, ("Changing gid only allowed inside the same domain\n"));
+            ERROR("Changing gid only allowed inside the same domain\n");
             talloc_free(command);
             return EINVAL;
         }
@@ -219,9 +219,9 @@ static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ct
     ret = system(command);
     if (ret) {
         if (ret == -1) {
-            DEBUG(0, ("system(3) failed\n"));
+            DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -237,10 +237,10 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
-        { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', "Groups to add this group to", NULL },
-        { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', "Groups to remove this group from", NULL },
-        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, "The GID of the group", NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
+        { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', _("Groups to add this group to"), NULL },
+        { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', _("Groups to remove this group from"), NULL },
+        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, _("The GID of the group"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -256,14 +256,16 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up tools\n"));
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     group_ctx = talloc_zero(ctx, struct group_mod_ctx);
     if (group_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for group_ctx context\n"));
+        DEBUG(1, ("Could not allocate memory for group_ctx context\n"));
+        ERROR("Out of memory\n");
         return ENOMEM;
     }
     group_ctx->ctx = ctx;
@@ -301,7 +303,7 @@ int main(int argc, const char **argv)
     /* groupname is an argument without --option */
     group_ctx->groupname = poptGetArg(pc);
     if (group_ctx->groupname == NULL) {
-        usage(pc, "Specify group to modify\n");
+        usage(pc, _("Specify group to modify\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -320,32 +322,32 @@ int main(int argc, const char **argv)
             group_ctx->domain = dom;
             break;
 
-        case ID_OUTSIDE:
-            DEBUG(5, ("Group ID outside range\n"));
-            ret = groupmod_legacy(ctx, group_ctx, ret);
-            goto fini;
-
         case ID_IN_LEGACY_LOCAL:
-            DEBUG(5, ("group ID in legacy domain\n"));
             group_ctx->domain = dom;
+        case ID_OUTSIDE:
             ret = groupmod_legacy(ctx, group_ctx, ret);
+            if(ret != EOK) {
+                ERROR("Cannot delete group from domain using the legacy tools\n");
+            }
             goto fini;
 
         case ID_IN_OTHER:
-            DEBUG(0, ("Cannot modify group from domain %s\n", dom->name));
+            DEBUG(1, ("Cannot modify group from domain %s\n", dom->name));
+            ERROR("Unsupported domain type\n");
             ret = EXIT_FAILURE;
             goto fini;
 
         default:
-            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
     }
 
     ret = sysdb_transaction(ctx, ctx->sysdb, mod_group, group_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not start transaction (%d)[%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not modify group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -356,7 +358,8 @@ int main(int argc, const char **argv)
 
     if (group_ctx->error) {
         ret = group_ctx->error;
-        DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+        DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not modify group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }

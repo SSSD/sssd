@@ -159,7 +159,7 @@ static int get_gid(struct user_add_ctx *user_ctx, const char *groupname)
                              user_ctx->domain, groupname,
                              get_gid_callback, data);
         if (ret != EOK) {
-            DEBUG(0, ("sysdb_getgrnam failed: %d\n", ret));
+            DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
             goto done;
         }
 
@@ -168,6 +168,7 @@ static int get_gid(struct user_add_ctx *user_ctx, const char *groupname)
         }
 
         if (data->error) {
+            DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
             ret = data->error;
             goto done;
         }
@@ -295,9 +296,9 @@ static int useradd_legacy(struct user_add_ctx *ctx, char *grouplist)
     ret = system(command);
     if (ret) {
         if (ret == -1) {
-            DEBUG(0, ("system(3) failed\n"));
+            DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -318,13 +319,13 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
-        { "uid",   'u', POPT_ARG_INT, &pc_uid, 0, "The UID of the user", NULL },
-        { "gid",   'g', POPT_ARG_STRING, &pc_group, 0, "The GID or group name of the user", NULL },
-        { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, "The comment string", NULL },
-        { "home",  'h', POPT_ARG_STRING, &pc_home, 0, "Home directory", NULL },
-        { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, "Login shell", NULL },
-        { "groups", 'G', POPT_ARG_STRING, NULL, 'G', "Groups", NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
+        { "uid",   'u', POPT_ARG_INT, &pc_uid, 0, _("The UID of the user"), NULL },
+        { "gid",   'g', POPT_ARG_STRING, &pc_group, 0, _("The GID or group name of the user"), NULL },
+        { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, _("The comment string"), NULL },
+        { "home",  'h', POPT_ARG_STRING, &pc_home, 0, _("Home directory"), NULL },
+        { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, _("Login shell"), NULL },
+        { "groups", 'G', POPT_ARG_STRING, NULL, 'G', _("Groups"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -338,14 +339,16 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up tools\n"));
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     user_ctx = talloc_zero(ctx, struct user_add_ctx);
     if (user_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for user_ctx context\n"));
+        DEBUG(1, ("Could not allocate memory for user_ctx context\n"));
+        ERROR("Out of memory\n");
         return ENOMEM;
     }
     user_ctx->ctx = ctx;
@@ -379,7 +382,7 @@ int main(int argc, const char **argv)
     /* username is an argument without --option */
     user_ctx->username = poptGetArg(pc);
     if (user_ctx->username == NULL) {
-        usage(pc, "Specify user to add\n");
+        usage(pc, (_("Specify user to add\n")));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -388,6 +391,7 @@ int main(int argc, const char **argv)
     if (pc_group != NULL) {
         ret = get_gid(user_ctx, pc_group);
         if (ret != EOK) {
+            ERROR("Cannot get group information for the user\n");
             ret = EXIT_FAILURE;
             goto fini;
         }
@@ -419,6 +423,10 @@ int main(int argc, const char **argv)
             goto fini;
         }
         user_ctx->home = talloc_asprintf(user_ctx, "%s/%s", basedir, user_ctx->username);
+        if (!user_ctx->home) {
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
     }
     if (!user_ctx->home) {
         ret = EXIT_FAILURE;
@@ -451,15 +459,20 @@ int main(int argc, const char **argv)
             user_ctx->domain = dom;
         case ID_OUTSIDE:
             ret = useradd_legacy(user_ctx, groups);
+            if(ret != EOK) {
+                ERROR("Cannot add user to domain using the legacy tools\n");
+            }
             goto fini;
 
         case ID_IN_OTHER:
-            DEBUG(0, ("Cannot add user to domain %s\n", dom->name));
+            DEBUG(1, ("Cannot add user to domain %s\n", dom->name));
+            ERROR("Unsupported domain type\n");
             ret = EXIT_FAILURE;
             goto fini;
 
         default:
-            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
     }
@@ -467,8 +480,8 @@ int main(int argc, const char **argv)
     /* useradd */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_user, user_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not start transaction (%d)[%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not modify user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -481,11 +494,12 @@ int main(int argc, const char **argv)
         ret = user_ctx->error;
         switch (ret) {
             case EEXIST:
-                DEBUG(0, (_("The user %s already exists\n"), user_ctx->username));
+                ERROR("The user %s already exists\n", user_ctx->username);
                 break;
 
             default:
-                DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+                DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+                ERROR("Transaction error. Could not modify user.\n");
                 break;
         }
         ret = EXIT_FAILURE;

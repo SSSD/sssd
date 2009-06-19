@@ -95,6 +95,7 @@ static int groupadd_legacy(struct group_add_ctx *ctx)
 
     command = talloc_asprintf(ctx, "%s ", GROUPADD);
     if (command == NULL) {
+        DEBUG(1, ("Cannot allocate memory for command string\n"));
         return ENOMEM;
     }
 
@@ -104,9 +105,9 @@ static int groupadd_legacy(struct group_add_ctx *ctx)
     ret = system(command);
     if (ret) {
         if (ret == -1) {
-            DEBUG(0, ("system(3) failed\n"));
+            DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -122,8 +123,8 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug",'\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
-        { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, "The GID of the group", NULL },
+        { "debug",'\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
+        { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, _("The GID of the group"), NULL },
         POPT_TABLEEND
     };
     struct sss_domain_info *dom;
@@ -136,14 +137,16 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&ctx);
     if(ret != EOK) {
-        DEBUG(0, ("Could not set up tools\n"));
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     group_ctx = talloc_zero(NULL, struct group_add_ctx);
     if (group_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for group_ctx context\n"));
+        DEBUG(1, ("Could not allocate memory for group_ctx context\n"));
+        ERROR("Out of memory.\n");
         return ENOMEM;
     }
     group_ctx->ctx = ctx;
@@ -162,7 +165,7 @@ int main(int argc, const char **argv)
     /* groupname is an argument, not option */
     group_ctx->groupname = poptGetArg(pc);
     if(group_ctx->groupname == NULL) {
-        usage(pc, "Specify group to add\n");
+        usage(pc, _("Specify group to add\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -180,15 +183,20 @@ int main(int argc, const char **argv)
             group_ctx->domain = dom;
         case ID_OUTSIDE:
             ret = groupadd_legacy(group_ctx);
+            if(ret != EOK) {
+                ERROR("Cannot add group to domain using the legacy tools\n");
+            }
             goto fini;
 
         case ID_IN_OTHER:
-            DEBUG(0, ("Cannot add group to domain %s\n", dom->name));
+            DEBUG(1, ("Cannot add group to domain %s\n", dom->name));
+            ERROR("Unsupported domain type");
             ret = EXIT_FAILURE;
             goto fini;
 
         default:
-            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
     }
@@ -196,8 +204,8 @@ int main(int argc, const char **argv)
     /* add_group */
     ret = sysdb_transaction(ctx, ctx->sysdb, add_group, group_ctx);
     if(ret != EOK) {
-        DEBUG(1, ("Could not start transaction (%d)[%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not add group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -210,11 +218,12 @@ int main(int argc, const char **argv)
         ret = group_ctx->error;
         switch (ret) {
             case EEXIST:
-                DEBUG(0, ("The group %s already exists\n", group_ctx->groupname));
+                ERROR("The group %s already exists\n", group_ctx->groupname);
                 break;
 
             default:
-                DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+                DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+                ERROR("Transaction error. Could not add group.\n");
                 break;
         }
         ret = EXIT_FAILURE;

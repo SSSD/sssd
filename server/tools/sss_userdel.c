@@ -96,9 +96,9 @@ static int userdel_legacy(struct user_del_ctx *ctx)
     ret = system(command);
     if (ret) {
         if (ret == -1) {
-            DEBUG(0, ("system(3) failed\n"));
+            DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -120,7 +120,7 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
         POPT_TABLEEND
     };
 
@@ -128,14 +128,16 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&ctx);
     if(ret != EOK) {
-        DEBUG(0, ("Could not set up tools\n"));
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     user_ctx = talloc_zero(NULL, struct user_del_ctx);
     if (user_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for user_ctx context\n"));
+        DEBUG(1, ("Could not allocate memory for user_ctx context\n"));
+        ERROR("Out of memory\n");
         return ENOMEM;
     }
     user_ctx->ctx = ctx;
@@ -153,7 +155,7 @@ int main(int argc, const char **argv)
 
     user_ctx->username = poptGetArg(pc);
     if(user_ctx->username == NULL) {
-        usage(pc, "Specify user to delete\n");
+        usage(pc, _("Specify user to delete\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -174,15 +176,22 @@ int main(int argc, const char **argv)
             user_ctx->domain = dom;
         case ID_OUTSIDE:
             ret = userdel_legacy(user_ctx);
+            if(ret != EOK) {
+                ERROR("Cannot delete user from domain using the legacy tools\n");
+                ret = EXIT_FAILURE;
+                goto fini;
+            }
             break; /* Also delete possible cached entries in sysdb */
 
         case ID_IN_OTHER:
-            DEBUG(0, ("Cannot delete user from domain %s\n", dom->name));
+            DEBUG(1, ("Cannot remove user from domain %s\n", dom->name));
+            ERROR("Unsupported domain type\n");
             ret = EXIT_FAILURE;
             goto fini;
 
         default:
-            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
     }
@@ -191,7 +200,8 @@ int main(int argc, const char **argv)
                                       user_ctx->domain->name,
                                       user_ctx->username);
     if(user_ctx->user_dn == NULL) {
-        DEBUG(0, ("Could not construct an user DN\n"));
+        DEBUG(1, ("Could not construct a user DN\n"));
+        ERROR("Internal database error. Could not remove user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -201,6 +211,7 @@ int main(int argc, const char **argv)
     ret = sysdb_transaction(ctx, ctx->sysdb, user_del, user_ctx);
     if(ret != EOK) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not remove user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -211,7 +222,8 @@ int main(int argc, const char **argv)
 
     if (user_ctx->error) {
         ret = user_ctx->error;
-        DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+        DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not remove user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }

@@ -105,7 +105,7 @@ enum id_domain find_domain_for_id(struct tools_ctx *ctx,
             }
         }
         if (dom == NULL) {
-            DEBUG(0, ("Could not get LOCAL domain info\n"));
+            DEBUG(1, ("Could not get LOCAL domain info\n"));
             *dom_ret = dom;
             return ID_ERROR;
         }
@@ -239,7 +239,7 @@ int init_sss_tools(struct tools_ctx **ctx)
     /* Connect to the database */
     ret = setup_db(ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up database\n"));
+        DEBUG(1, ("Could not set up database\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }

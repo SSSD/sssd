@@ -35,9 +35,10 @@
 #define DO_LOCK     1
 #define DO_UNLOCK   2
 
-#define VAR_CHECK(var, val, msg) do { \
+#define VAR_CHECK(var, val, attr, msg) do { \
         if (var != (val)) { \
-            DEBUG(0, (msg)); \
+            DEBUG(1, (msg" attribute: %s", attr)); \
+            ERROR(msg); \
             var = EXIT_FAILURE; \
             goto fini; \
         } \
@@ -242,7 +243,7 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
         if (ret == old_domain) {
             APPEND_PARAM(command, USERMOD_UID, uid);
         } else {
-            DEBUG(0, ("Changing uid only allowed inside the same domain\n"));
+            ERROR("Changing uid only allowed inside the same domain\n");
             talloc_free(command);
             return EINVAL;
         }
@@ -253,7 +254,7 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
         if (ret == old_domain) {
             APPEND_PARAM(command, USERMOD_GID, gid);
         } else {
-            DEBUG(0, ("Changing gid only allowed inside the same domain\n"));
+            ERROR("Changing gid only allowed inside the same domain\n");
             talloc_free(command);
             return EINVAL;
         }
@@ -276,9 +277,9 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
     ret = system(command);
     if (ret) {
         if (ret == -1) {
-            DEBUG(0, ("system(3) failed\n"));
+            DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -299,16 +300,16 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
-        { "uid",   'u', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_uid, 0, "The UID of the user", NULL },
-        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, "The GID of the user", NULL },
-        { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, "The comment string", NULL },
-        { "home",  'h', POPT_ARG_STRING, &pc_home, 0, "Home directory", NULL },
-        { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, "Login shell", NULL },
-        { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', "Groups to add this user to", NULL },
-        { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', "Groups to remove this user from", NULL },
-        { "lock", 'L', POPT_ARG_NONE, NULL, 'L', "Lock the account", NULL },
-        { "unlock", 'U', POPT_ARG_NONE, NULL, 'U', "Unlock the account", NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
+        { "uid",   'u', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_uid, 0, _("The UID of the user"), NULL },
+        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, _("The GID of the user"), NULL },
+        { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, _("The comment string"), NULL },
+        { "home",  'h', POPT_ARG_STRING, &pc_home, 0, _("Home directory"), NULL },
+        { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, _("Login shell"), NULL },
+        { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', _("Groups to add this user to"), NULL },
+        { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', _("Groups to remove this user from"), NULL },
+        { "lock", 'L', POPT_ARG_NONE, NULL, 'L', _("Lock the account"), NULL },
+        { "unlock", 'U', POPT_ARG_NONE, NULL, 'U', _("Unlock the account"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -324,21 +325,24 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up tools\n"));
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     user_ctx = talloc_zero(ctx, struct user_mod_ctx);
     if (user_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for user_ctx context\n"));
+        DEBUG(1, ("Could not allocate memory for user_ctx context\n"));
+        ERROR("Out of memory\n");
         return ENOMEM;
     }
     user_ctx->ctx = ctx;
 
     user_ctx->attrs = sysdb_new_attrs(ctx);
     if (user_ctx->attrs == NULL) {
-        DEBUG(0, ("Could not allocate memory for sysdb_attrs\n"));
+        DEBUG(1, ("Could not allocate memory for sysdb_attrs context\n"));
+        ERROR("Out of memory\n");
         return ENOMEM;
     }
 
@@ -379,7 +383,7 @@ int main(int argc, const char **argv)
     /* username is an argument without --option */
     user_ctx->username = poptGetArg(pc);
     if (user_ctx->username == NULL) {
-        usage(pc, "Specify user to modify\n");
+        usage(pc, _("Specify user to modify\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -400,15 +404,20 @@ int main(int argc, const char **argv)
         case ID_OUTSIDE:
             ret = usermod_legacy(ctx, user_ctx, pc_uid, pc_gid, pc_gecos,
                                  pc_home, pc_shell, pc_lock, ret);
+            if(ret != EOK) {
+                ERROR("Cannot delete user from domain using the legacy tools\n");
+            }
             goto fini;
 
         case ID_IN_OTHER:
-            DEBUG(0, ("Cannot delete user from domain %s\n", dom->name));
+            DEBUG(1, ("Cannot modify user from domain %s\n", dom->name));
+            ERROR("Unsupported domain type\n");
             ret = EXIT_FAILURE;
             goto fini;
 
         default:
-            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
     }
@@ -420,42 +429,48 @@ int main(int argc, const char **argv)
         ret = sysdb_attrs_add_string(user_ctx->attrs,
                                      SYSDB_SHELL,
                                      pc_shell);
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_SHELL,
+                  "Could not add attribute to changeset\n");
     }
 
     if(pc_home) {
         ret = sysdb_attrs_add_string(user_ctx->attrs,
                                      SYSDB_HOMEDIR,
                                      pc_home);
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_HOMEDIR,
+                  "Could not add attribute to changeset\n");
     }
 
     if(pc_gecos) {
         ret = sysdb_attrs_add_string(user_ctx->attrs,
                                      SYSDB_GECOS,
                                      pc_gecos);
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_GECOS,
+                  "Could not add attribute to changeset\n");
     }
 
     if(pc_uid) {
         ret = sysdb_attrs_add_long(user_ctx->attrs,
                                    SYSDB_UIDNUM,
                                    pc_uid);
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_UIDNUM,
+                  "Could not add attribute to changeset\n");
     }
 
     if(pc_gid) {
         ret = sysdb_attrs_add_long(user_ctx->attrs,
                                    SYSDB_GIDNUM,
                                    pc_gid);
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_GIDNUM,
+                  "Could not add attribute to changeset\n");
     }
 
     if(pc_lock == DO_LOCK) {
         ret = sysdb_attrs_add_string(user_ctx->attrs,
                                      SYSDB_DISABLED,
                                      "true");
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_DISABLED,
+                  "Could not add attribute to changeset\n");
     }
 
     if(pc_lock == DO_UNLOCK) {
@@ -463,7 +478,8 @@ int main(int argc, const char **argv)
         ret = sysdb_attrs_add_string(user_ctx->attrs,
                                      SYSDB_DISABLED,
                                      "false");
-        VAR_CHECK(ret, EOK, "Could not add attribute to changeset\n");
+        VAR_CHECK(ret, EOK, SYSDB_DISABLED,
+                  "Could not add attribute to changeset\n");
     }
 
 
@@ -472,7 +488,7 @@ int main(int argc, const char **argv)
         if (strcasecmp(dom->name, "LOCAL") == 0) break;
     }
     if (dom == NULL) {
-        DEBUG(0, ("Could not get domain info\n"));
+        ERROR("Could not get LOCAL domain info\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -480,8 +496,8 @@ int main(int argc, const char **argv)
 
     ret = sysdb_transaction(ctx, ctx->sysdb, mod_user, user_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not start transaction (%d)[%s]\n",
-                  ret, strerror(ret)));
+        DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not modify user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -492,7 +508,8 @@ int main(int argc, const char **argv)
 
     if (user_ctx->error) {
         ret = user_ctx->error;
-        DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+        DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not modify user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }

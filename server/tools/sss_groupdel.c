@@ -97,9 +97,9 @@ static int groupdel_legacy(struct group_del_ctx *ctx)
     ret = system(command);
     if (ret) {
         if (ret == -1) {
-            DEBUG(0, ("system(3) failed\n"));
+            DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(0,("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -121,7 +121,7 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, "The debug level to run with", NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
         POPT_TABLEEND
     };
 
@@ -129,14 +129,16 @@ int main(int argc, const char **argv)
 
     ret = init_sss_tools(&ctx);
     if(ret != EOK) {
-        DEBUG(0, ("Could not set up tools\n"));
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     group_ctx = talloc_zero(NULL, struct group_del_ctx);
     if (group_ctx == NULL) {
-        DEBUG(0, ("Could not allocate memory for group_ctx context\n"));
+        DEBUG(1, ("Could not allocate memory for group_ctx context\n"));
+        ERROR("Out of memory\n");
         return ENOMEM;
     }
     group_ctx->ctx = ctx;
@@ -154,7 +156,7 @@ int main(int argc, const char **argv)
 
     group_ctx->groupname = poptGetArg(pc);
     if(group_ctx->groupname == NULL) {
-        usage(pc, "Specify group to delete\n");
+        usage(pc, _("Specify group to delete\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -175,15 +177,22 @@ int main(int argc, const char **argv)
             group_ctx->domain = dom;
         case ID_OUTSIDE:
             ret = groupdel_legacy(group_ctx);
+            if(ret != EOK) {
+                ERROR("Cannot delete group from domain using the legacy tools\n");
+                ret = EXIT_FAILURE;
+                goto fini;
+            }
             break; /* Also delete possible cached entries in sysdb */
 
         case ID_IN_OTHER:
-            DEBUG(0, ("Cannot delete group from domain %s\n", dom->name));
+            DEBUG(1, ("Cannot remove group from domain %s\n", dom->name));
+            ERROR("Unsupported domain type\n");
             ret = EXIT_FAILURE;
             goto fini;
 
         default:
-            DEBUG(0, ("Unknown return code from find_domain_for_id"));
+            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
     }
@@ -192,7 +201,8 @@ int main(int argc, const char **argv)
                                          group_ctx->domain->name,
                                          group_ctx->groupname);
     if(group_ctx->group_dn == NULL) {
-        DEBUG(0, ("Could not construct a group DN\n"));
+        DEBUG(1, ("Could not construct a group DN\n"));
+        ERROR("Internal database error. Could not remove group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -201,6 +211,7 @@ int main(int argc, const char **argv)
     ret = sysdb_transaction(ctx, ctx->sysdb, group_del, group_ctx);
     if(ret != EOK) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not remove group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -211,7 +222,8 @@ int main(int argc, const char **argv)
 
     if (group_ctx->error) {
         ret = group_ctx->error;
-        DEBUG(0, ("Operation failed (%d)[%s]\n", ret, strerror(ret)));
+        DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+        ERROR("Transaction error. Could not remove group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
