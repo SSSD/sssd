@@ -149,6 +149,8 @@ int sysdb_attrs_add_uint32(struct sysdb_attrs *attrs,
                            const char *name, uint32_t value);
 int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
                            const char *name, time_t value);
+int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
+                       struct ldb_message_element **el);
 
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);

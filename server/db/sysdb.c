@@ -52,8 +52,8 @@ struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx)
     return talloc_zero(memctx, struct sysdb_attrs);
 }
 
-static int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
-                              struct ldb_message_element **el)
+int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
+                       struct ldb_message_element **el)
 {
     struct ldb_message_element *e = NULL;
     int i;
