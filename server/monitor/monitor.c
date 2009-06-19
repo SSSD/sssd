@@ -84,7 +84,9 @@ struct mt_svc {
 struct mt_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
+    TALLOC_CTX *domain_ctx; /* Memory context for domain list */
     struct sss_domain_info *domains;
+    TALLOC_CTX *service_ctx; /* Memory context for services */
     char **services;
     struct mt_svc *svc_list;
     struct sbus_srv_ctx *sbus_srv;
@@ -619,8 +621,13 @@ int get_monitor_config(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = confdb_get_string_as_list(ctx->cdb, ctx, SERVICE_CONF_ENTRY,
-                                    "activeServices", &ctx->services);
+    ctx->service_ctx = talloc_new(ctx);
+    if(!ctx->service_ctx) {
+        return ENOMEM;
+    }
+    ret = confdb_get_string_as_list(ctx->cdb, ctx->service_ctx,
+                                    SERVICE_CONF_ENTRY, "activeServices",
+                                    &ctx->services);
     if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
         return EINVAL;
@@ -631,7 +638,11 @@ int get_monitor_config(struct mt_ctx *ctx)
         return ret;
     }
 
-    ret = confdb_get_domains(ctx->cdb, ctx, &ctx->domains);
+    ctx->domain_ctx = talloc_new(ctx);
+    if(!ctx->domain_ctx) {
+        return ENOMEM;
+    }
+    ret = confdb_get_domains(ctx->cdb, ctx->domain_ctx, &ctx->domains);
     if (ret != EOK) {
         DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
         return ret;
@@ -861,7 +872,12 @@ static int update_monitor_config(struct mt_ctx *ctx)
     struct mt_svc *cur_svc;
     struct mt_svc *new_svc;
     struct sss_domain_info *dom, *new_dom;
-    struct mt_ctx *new_config = talloc_zero(NULL, struct mt_ctx);
+    struct mt_ctx *new_config;
+
+    new_config = talloc_zero(NULL, struct mt_ctx);
+    if(!new_config) {
+        return ENOMEM;
+    }
 
     new_config->ev = ctx->ev;
     new_config->cdb = ctx->cdb;
@@ -953,8 +969,9 @@ static int update_monitor_config(struct mt_ctx *ctx)
     }
 
     /* Replace the old service list with the new one */
-    talloc_free(ctx->services);
-    ctx->services = talloc_steal(ctx, new_config->services);
+    talloc_free(ctx->service_ctx);
+    ctx->service_ctx = talloc_steal(ctx, new_config->service_ctx);
+    ctx->services = new_config->services;
 
     /* Compare data providers */
     /* Have any providers been disabled? */
@@ -1040,8 +1057,9 @@ static int update_monitor_config(struct mt_ctx *ctx)
     }
 
     /* Replace the old domain list with the new one */
-    talloc_free(ctx->domains);
-    ctx->domains = talloc_steal(ctx, new_config->domains);
+    talloc_free(ctx->domain_ctx);
+    ctx->domain_ctx = talloc_steal(ctx, new_config->domain_ctx);
+    ctx->domains = new_config->domains;
 
     /* Signal all services to reload their configuration */
     for(cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {

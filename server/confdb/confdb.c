@@ -709,6 +709,10 @@ int confdb_get_domain(struct confdb_ctx *cdb,
     }
 
     domain = talloc_zero(mem_ctx, struct sss_domain_info);
+    if (!domain) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
     if (!tmp) {
