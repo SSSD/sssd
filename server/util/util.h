@@ -29,6 +29,9 @@ void debug_fn(const char *format, ...);
     } \
 } while(0);
 
+#define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
+#define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)
+
 #ifndef discard_const
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
 #endif
