@@ -37,8 +37,9 @@
 #define SERVICE_CONF_ENTRY "config/services"
 
 struct confdb_ctx;
+struct config_file_ctx;
 
-typedef int (*confdb_reconf_fn) (struct confdb_ctx *cdb, void *pvt);
+typedef int (*confdb_reconf_fn) (struct config_file_ctx *file_ctx);
 
 struct sss_domain_info {
     char *name;
