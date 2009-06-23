@@ -255,7 +255,7 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
     }
     dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
-    if (!dbret) {
+    if (!dbret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection
@@ -536,7 +536,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
 
     ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
-    if (!ret) {
+    if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection
@@ -830,7 +830,7 @@ static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
 
     ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
-    if (!ret) {
+    if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection

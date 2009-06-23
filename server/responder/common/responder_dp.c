@@ -272,7 +272,7 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
 
     ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
-    if (!ret) {
+    if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection

@@ -119,7 +119,7 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     }
 
     ret = dbus_connection_send_with_reply(conn, msg, &pending_reply, timeout);
-    if (!ret) {
+    if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection

@@ -462,7 +462,7 @@ static int monitor_shutdown_service(struct mt_svc *svc)
 
     dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
-    if (!dbret) {
+    if (!dbret || pending_reply == NULL) {
         DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         monitor_kill_service(svc);
@@ -548,7 +548,7 @@ static int service_signal_reload(struct mt_svc *svc)
 
     dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
-    if (!dbret) {
+    if (!dbret || pending_reply == NULL) {
         DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         monitor_kill_service(svc);
@@ -1602,7 +1602,7 @@ static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
     }
     dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             ctx->service_id_timeout);
-    if (!dbret) {
+    if (!dbret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection
@@ -1750,7 +1750,7 @@ static int service_send_ping(struct mt_svc *svc)
 
     dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
-    if (!dbret) {
+    if (!dbret || pending_reply == NULL) {
         /*
          * Critical Failure
          * We can't communicate on this connection
