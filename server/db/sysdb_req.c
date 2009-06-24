@@ -25,38 +25,38 @@
 #include "db/sysdb_private.h"
 #include "ldb.h"
 
-struct sysdb_req {
-    struct sysdb_req *next, *prev;
+struct sysdb_handle {
+    struct sysdb_handle *next, *prev;
     struct sysdb_ctx *ctx;
-    sysdb_req_fn_t fn;
+    sysdb_fn_t fn;
     void *pvt;
     int status;
     bool transaction_active;
 };
 
-bool sysdb_req_check_running(struct sysdb_req *req)
+bool sysdb_handle_check_running(struct sysdb_handle *handle)
 {
-    if (req->ctx->queue == req) return true;
+    if (handle->ctx->queue == handle) return true;
     return false;
 }
 
-struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req)
+struct sysdb_ctx *sysdb_handle_get_ctx(struct sysdb_handle *handle)
 {
-    return req->ctx;
+    return handle->ctx;
 }
 
-static void sysdb_req_run(struct tevent_context *ev,
+static void sysdb_queue_run(struct tevent_context *ev,
                           struct tevent_timer *te,
                           struct timeval tv, void *ptr)
 {
-    struct sysdb_req *req = talloc_get_type(ptr, struct sysdb_req);
+    struct sysdb_handle *handle = talloc_get_type(ptr, struct sysdb_handle);
 
-    if (req != req->ctx->queue) abort();
+    if (handle != handle->ctx->queue) abort();
 
-    req->fn(req, req->pvt);
+    handle->fn(handle, handle->pvt);
 }
 
-static int sysdb_req_schedule(struct sysdb_req *req)
+static int sysdb_queue_schedule(struct sysdb_handle *handle)
 {
     struct tevent_timer *te = NULL;
     struct timeval tv;
@@ -65,7 +65,7 @@ static int sysdb_req_schedule(struct sysdb_req *req)
     tv.tv_sec = 0;
     tv.tv_usec = 0;
 
-    te = tevent_add_timer(req->ctx->ev, req, tv, sysdb_req_run, req);
+    te = tevent_add_timer(handle->ctx->ev, handle, tv, sysdb_queue_run, handle);
     if (te == NULL) {
         return EIO;
     }
@@ -73,180 +73,180 @@ static int sysdb_req_schedule(struct sysdb_req *req)
     return EOK;
 }
 
-static int sysdb_req_enqueue(struct sysdb_req *req)
+static int sysdb_enqueue(struct sysdb_handle *handle)
 {
     int ret = EOK;
 
-    DLIST_ADD_END(req->ctx->queue, req, struct sysdb_req *);
+    DLIST_ADD_END(handle->ctx->queue, handle, struct sysdb_handle *);
 
-    if (req->ctx->queue == req) {
-        ret = sysdb_req_schedule(req);
+    if (handle->ctx->queue == handle) {
+        ret = sysdb_queue_schedule(handle);
     }
 
     return ret;
 }
 
-static void sysdb_transaction_end(struct sysdb_req *req);
+static void sysdb_transaction_end(struct sysdb_handle *handle);
 
-static int sysdb_req_destructor(void *ptr)
+static int sysdb_handle_destructor(void *ptr)
 {
-    struct sysdb_req *req;
+    struct sysdb_handle *handle;
     int ret;
 
-    req = talloc_get_type(ptr, struct sysdb_req);
+    handle = talloc_get_type(ptr, struct sysdb_handle);
 
-    if (req->ctx->queue != req) {
-        DLIST_REMOVE(req->ctx->queue, req);
+    if (handle->ctx->queue != handle) {
+        DLIST_REMOVE(handle->ctx->queue, handle);
         return 0;
     }
 
-    /* req is the currently running operation or
+    /* handle is the currently running operation or
      * scheduled to run operation */
 
-    if (req->transaction_active) {
+    if (handle->transaction_active) {
         /* freeing before the transaction is complete */
-        req->status = ETIMEDOUT;
-        sysdb_transaction_end(req);
+        handle->status = ETIMEDOUT;
+        sysdb_transaction_end(handle);
     }
 
-    DLIST_REMOVE(req->ctx->queue, req);
+    DLIST_REMOVE(handle->ctx->queue, handle);
 
     /* make sure we schedule the next in line if any */
-    if (req->ctx->queue) {
-        ret = sysdb_req_schedule(req->ctx->queue);
+    if (handle->ctx->queue) {
+        ret = sysdb_queue_schedule(handle->ctx->queue);
         if (ret != EOK) abort();
     }
 
     return 0;
 }
 
-static struct sysdb_req *sysdb_new_req(TALLOC_CTX *memctx,
+static struct sysdb_handle *sysdb_new_req(TALLOC_CTX *memctx,
                                        struct sysdb_ctx *ctx,
-                                       sysdb_req_fn_t fn, void *pvt)
+                                       sysdb_fn_t fn, void *pvt)
 {
-    struct sysdb_req *req;
+    struct sysdb_handle *handle;
 
-    req = talloc_zero(memctx, struct sysdb_req);
-    if (!req) return NULL;
+    handle = talloc_zero(memctx, struct sysdb_handle);
+    if (!handle) return NULL;
 
-    req->ctx = ctx;
-    req->fn = fn;
-    req->pvt = pvt;
+    handle->ctx = ctx;
+    handle->fn = fn;
+    handle->pvt = pvt;
 
-    talloc_set_destructor((TALLOC_CTX *)req, sysdb_req_destructor);
+    talloc_set_destructor((TALLOC_CTX *)handle, sysdb_handle_destructor);
 
-    return req;
+    return handle;
 }
 
-static void sysdb_transaction_int(struct sysdb_req *intreq, void *pvt)
+static void sysdb_transaction_int(struct sysdb_handle *ihandle, void *pvt)
 {
-    struct sysdb_req *req = talloc_get_type(pvt, struct sysdb_req);
+    struct sysdb_handle *handle = talloc_get_type(pvt, struct sysdb_handle);
     int ret;
 
-    /* first of all swap this internal request with the real one on the queue
+    /* first of all swap this internal handle with the real one on the queue
      * otherwise request_done() will later abort */
-    DLIST_REMOVE(req->ctx->queue, intreq);
-    DLIST_ADD(req->ctx->queue, req);
+    DLIST_REMOVE(handle->ctx->queue, ihandle);
+    DLIST_ADD(handle->ctx->queue, handle);
 
-    if (intreq->status != EOK) {
-        req->status = intreq->status;
-        req->fn(req, req->pvt);
+    if (ihandle->status != EOK) {
+        handle->status = ihandle->status;
+        handle->fn(handle, handle->pvt);
         return;
     }
 
-    ret = ldb_transaction_start(req->ctx->ldb);
+    ret = ldb_transaction_start(handle->ctx->ldb);
     if (ret != LDB_SUCCESS) {
         DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
-        req->status = sysdb_error_to_errno(ret);
+        handle->status = sysdb_error_to_errno(ret);
     }
-    req->transaction_active = true;
+    handle->transaction_active = true;
 
-    req->fn(req, req->pvt);
+    handle->fn(handle, handle->pvt);
 }
 
-static void sysdb_transaction_end(struct sysdb_req *req)
+static void sysdb_transaction_end(struct sysdb_handle *handle)
 {
     int ret;
 
-    if (req->status == EOK) {
-        ret = ldb_transaction_commit(req->ctx->ldb);
+    if (handle->status == EOK) {
+        ret = ldb_transaction_commit(handle->ctx->ldb);
         if (ret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
         }
     } else {
         DEBUG(4, ("Canceling transaction (%d[%s])\n",
-                  req->status, strerror(req->status)));
-        ret = ldb_transaction_cancel(req->ctx->ldb);
+                  handle->status, strerror(handle->status)));
+        ret = ldb_transaction_cancel(handle->ctx->ldb);
         if (ret != LDB_SUCCESS) {
             DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
             /* FIXME: abort() ? */
         }
     }
-    req->transaction_active = false;
+    handle->transaction_active = false;
 }
 
 int sysdb_transaction(TALLOC_CTX *memctx, struct sysdb_ctx *ctx,
-                      sysdb_req_fn_t fn, void *pvt)
+                      sysdb_fn_t fn, void *pvt)
 {
-    struct sysdb_req *req, *intreq;
+    struct sysdb_handle *handle, *ihandle;
 
-    req = sysdb_new_req(memctx, ctx, fn, pvt);
-    if (!req) return ENOMEM;
+    handle = sysdb_new_req(memctx, ctx, fn, pvt);
+    if (!handle) return ENOMEM;
 
-    intreq = sysdb_new_req(req, ctx, sysdb_transaction_int, req);
-    if (!intreq) {
-        talloc_free(intreq);
+    ihandle = sysdb_new_req(handle, ctx, sysdb_transaction_int, handle);
+    if (!ihandle) {
+        talloc_free(ihandle);
         return ENOMEM;
     }
 
-    return sysdb_req_enqueue(intreq);
+    return sysdb_enqueue(ihandle);
 }
 
-void sysdb_transaction_done(struct sysdb_req *req, int status)
+void sysdb_transaction_done(struct sysdb_handle *handle, int status)
 {
     int ret;
 
-    if (req->ctx->queue != req) abort();
-    if (!req->transaction_active) abort();
+    if (handle->ctx->queue != handle) abort();
+    if (!handle->transaction_active) abort();
 
-    req->status = status;
+    handle->status = status;
 
-    sysdb_transaction_end(req);
+    sysdb_transaction_end(handle);
 
-    DLIST_REMOVE(req->ctx->queue, req);
+    DLIST_REMOVE(handle->ctx->queue, handle);
 
-    if (req->ctx->queue) {
-        ret = sysdb_req_schedule(req->ctx->queue);
+    if (handle->ctx->queue) {
+        ret = sysdb_queue_schedule(handle->ctx->queue);
         if (ret != EOK) abort();
     }
 
-    talloc_free(req);
+    talloc_free(handle);
 }
 
 int sysdb_operation(TALLOC_CTX *memctx, struct sysdb_ctx *ctx,
-                    sysdb_req_fn_t fn, void *pvt)
+                    sysdb_fn_t fn, void *pvt)
 {
-    struct sysdb_req *req;
+    struct sysdb_handle *handle;
 
-    req = sysdb_new_req(memctx, ctx, fn, pvt);
-    if (!req) return ENOMEM;
+    handle = sysdb_new_req(memctx, ctx, fn, pvt);
+    if (!handle) return ENOMEM;
 
-    return sysdb_req_enqueue(req);
+    return sysdb_enqueue(handle);
 }
 
-void sysdb_operation_done(struct sysdb_req *req)
+void sysdb_operation_done(struct sysdb_handle *handle)
 {
     int ret;
 
-    if (req->ctx->queue != req) abort();
+    if (handle->ctx->queue != handle) abort();
 
-    DLIST_REMOVE(req->ctx->queue, req);
+    DLIST_REMOVE(handle->ctx->queue, handle);
 
-    if (req->ctx->queue) {
-        ret = sysdb_req_schedule(req->ctx->queue);
+    if (handle->ctx->queue) {
+        ret = sysdb_queue_schedule(handle->ctx->queue);
         if (ret != EOK) abort();
     }
 
-    talloc_free(req);
+    talloc_free(handle);
 }
 

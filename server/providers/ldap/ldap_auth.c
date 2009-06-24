@@ -656,7 +656,7 @@ done:
 }
 
 struct sdap_pw_cache {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sdap_req *lr;
 };
 
@@ -674,13 +674,13 @@ static void sdap_cache_pw_callback(void *pvt, int error,
                   error, strerror(error)));
     }
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     /* password caching failures are not fatal errors */
     sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
 }
 
-static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
+static void sdap_cache_pw_op(struct sysdb_handle *handle, void *pvt)
 {
     struct sdap_pw_cache *data = talloc_get_type(pvt, struct sdap_pw_cache);
     struct pam_data *pd;
@@ -688,7 +688,7 @@ static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
     char *password;
     int ret;
 
-    data->sysreq = req;
+    data->handle = handle;
 
     pd = data->lr->pd;
     username = pd->user;
@@ -715,7 +715,7 @@ static void sdap_cache_pw_op(struct sysdb_req *req, void *pvt)
         return;
     }
 
-    ret = sysdb_set_cached_password(req,
+    ret = sysdb_set_cached_password(handle,
                                     data->lr->req->be_ctx->domain,
                                     username,
                                     password,

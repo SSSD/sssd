@@ -84,7 +84,7 @@
 #define DFL_BASEDIR_VAL    "/home"
 
 struct user_add_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
 
     struct sss_domain_info *domain;
     struct tools_ctx *ctx;
@@ -196,22 +196,22 @@ static void add_user_done(void *pvt, int error, struct ldb_result *ignore)
 
     data->done = true;
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     if (error)
         data->error = error;
 }
 
-/* sysdb_req_fn_t */
-static void add_user(struct sysdb_req *req, void *pvt)
+/* sysdb_fn_t */
+static void add_user(struct sysdb_handle *handle, void *pvt)
 {
     struct user_add_ctx *user_ctx;
     int ret;
 
     user_ctx = talloc_get_type(pvt, struct user_add_ctx);
-    user_ctx->sysreq = req;
+    user_ctx->handle = handle;
 
-    ret = sysdb_add_user(req, user_ctx->domain,
+    ret = sysdb_add_user(handle, user_ctx->domain,
                          user_ctx->username,
                          user_ctx->uid,
                          user_ctx->gid,
@@ -258,7 +258,7 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
         return;
     }
 
-    ret = sysdb_add_group_member(user_ctx->sysreq,
+    ret = sysdb_add_group_member(user_ctx->handle,
                                  user_dn, group_dn,
                                  add_to_groups, user_ctx);
     if (ret != EOK)

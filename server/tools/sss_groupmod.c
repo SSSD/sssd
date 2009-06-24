@@ -45,7 +45,7 @@
 #endif
 
 struct group_mod_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sss_domain_info *domain;
 
     struct tools_ctx *ctx;
@@ -68,7 +68,7 @@ static void mod_group_done(void *pvt, int error, struct ldb_result *ignore)
 
     data->done = true;
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     if (error)
         data->error = error;
@@ -76,19 +76,19 @@ static void mod_group_done(void *pvt, int error, struct ldb_result *ignore)
 
 static void add_to_groups(void *, int, struct ldb_result *);
 
-/* sysdb_req_fn_t */
-static void mod_group(struct sysdb_req *req, void *pvt)
+/* sysdb_fn_t */
+static void mod_group(struct sysdb_handle *handle, void *pvt)
 {
     struct group_mod_ctx *group_ctx;
     int ret;
 
     group_ctx = talloc_get_type(pvt, struct group_mod_ctx);
-    group_ctx->sysreq = req;
+    group_ctx->handle = handle;
 
     if(group_ctx->gid == 0) {
         add_to_groups(group_ctx, EOK, NULL);
     } else {
-        ret = sysdb_set_group_gid(req,
+        ret = sysdb_set_group_gid(handle,
                                   group_ctx->domain,
                                   group_ctx->groupname,
                                   group_ctx->gid,
@@ -134,7 +134,7 @@ static void remove_from_groups(void *pvt, int error, struct ldb_result *ignore)
         return;
     }
 
-    ret = sysdb_remove_group_member(group_ctx->sysreq,
+    ret = sysdb_remove_group_member(group_ctx->handle,
                                     group_dn, parent_group_dn,
                                     remove_from_groups, group_ctx);
     if (ret != EOK)
@@ -179,7 +179,7 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
         return;
     }
 
-    ret = sysdb_add_group_member(group_ctx->sysreq,
+    ret = sysdb_add_group_member(group_ctx->handle,
                                  group_dn, parent_group_dn,
                                  add_to_groups, group_ctx);
     if (ret != EOK)

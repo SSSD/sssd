@@ -127,7 +127,7 @@
 
 struct confdb_ctx;
 struct sysdb_ctx;
-struct sysdb_req;
+struct sysdb_handle;
 
 struct sysdb_attrs {
     int num;
@@ -148,11 +148,11 @@ int sysdb_error_to_errno(int ldberr);
 
 /* callbacks */
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
-typedef void (*sysdb_req_fn_t)(struct sysdb_req *, void *pvt);
+typedef void (*sysdb_fn_t)(struct sysdb_handle *, void *pvt);
 
 /* service functions */
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
-struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
+struct sysdb_ctx *sysdb_handle_get_ctx(struct sysdb_handle *req);
 
 /* function to start and finish a transaction
  * After sysdb_transaction() is successfully called,
@@ -165,16 +165,16 @@ struct sysdb_ctx *sysdb_req_get_ctx(struct sysdb_req *req);
  */
 int sysdb_transaction(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx *ctx,
-                      sysdb_req_fn_t fn, void *pvt);
-void sysdb_transaction_done(struct sysdb_req *req, int error);
+                      sysdb_fn_t fn, void *pvt);
+void sysdb_transaction_done(struct sysdb_handle *req, int error);
 
 /* An operation blocks the transaction queue as well, but does not
  * start a transaction, normally useful only for search type calls.
  * Cannot be called within a transaction */
 int sysdb_operation(TALLOC_CTX *mem_ctx,
                       struct sysdb_ctx *ctx,
-                      sysdb_req_fn_t fn, void *pvt);
-void sysdb_operation_done(struct sysdb_req *req);
+                      sysdb_fn_t fn, void *pvt);
+void sysdb_operation_done(struct sysdb_handle *req);
 
 struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
                              const char *domain, const char *name);
@@ -244,81 +244,81 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
 /* functions that modify the databse
  * they have to be called within a transaction
  * See sysdb_transaction() */
-int sysdb_add_group_member(struct sysdb_req *sysreq,
+int sysdb_add_group_member(struct sysdb_handle *handle,
                            struct ldb_dn *member_dn,
                            struct ldb_dn *group_dn,
                            sysdb_callback_t fn, void *pvt);
 
-int sysdb_remove_group_member(struct sysdb_req *sysreq,
+int sysdb_remove_group_member(struct sysdb_handle *handle,
                               struct ldb_dn *member_dn,
                               struct ldb_dn *group_dn,
                               sysdb_callback_t fn, void *pvt);
 
-int sysdb_delete_entry(struct sysdb_req *sysreq,
+int sysdb_delete_entry(struct sysdb_handle *handle,
                        struct ldb_dn *dn,
                        sysdb_callback_t fn, void *pvt);
 
-int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
+int sysdb_delete_user_by_uid(struct sysdb_handle *handle,
                              struct sss_domain_info *domain,
                              uid_t uid,
                              sysdb_callback_t fn, void *pvt);
 
-int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
+int sysdb_delete_group_by_gid(struct sysdb_handle *handle,
                               struct sss_domain_info *domain,
                               gid_t gid,
                               sysdb_callback_t fn, void *pvt);
 
-int sysdb_set_user_attr(struct sysdb_req *sysreq,
+int sysdb_set_user_attr(struct sysdb_handle *handle,
                         struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attributes,
                         sysdb_callback_t fn, void *ptr);
 
-int sysdb_add_user(struct sysdb_req *sysreq,
+int sysdb_add_user(struct sysdb_handle *handle,
                    struct sss_domain_info *domain,
                    const char *name,
                    uid_t uid, gid_t gid, const char *fullname,
                    const char *homedir, const char *shell,
                    sysdb_callback_t fn, void *pvt);
 
-int sysdb_add_group(struct sysdb_req *sysreq,
+int sysdb_add_group(struct sysdb_handle *handle,
                     struct sss_domain_info *domain,
                     const char *name, gid_t gid,
                     sysdb_callback_t fn, void *pvt);
 
-int sysdb_set_group_gid(struct sysdb_req *sysreq,
+int sysdb_set_group_gid(struct sysdb_handle *handle,
                         struct sss_domain_info *domain,
                         const char *name, gid_t gid,
                         sysdb_callback_t fn, void *pvt);
 
 /* legacy functions for proxy providers */
 
-int sysdb_legacy_store_user(struct sysdb_req *sysreq,
+int sysdb_legacy_store_user(struct sysdb_handle *handle,
                             struct sss_domain_info *domain,
                             const char *name, const char *pwd,
                             uid_t uid, gid_t gid, const char *gecos,
                             const char *homedir, const char *shell,
                             sysdb_callback_t fn, void *pvt);
 
-int sysdb_legacy_store_group(struct sysdb_req *sysreq,
+int sysdb_legacy_store_group(struct sysdb_handle *handle,
                              struct sss_domain_info *domain,
                              const char *name, gid_t gid,
                              const char **members,
                              sysdb_callback_t fn, void *pvt);
 
-int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
+int sysdb_legacy_add_group_member(struct sysdb_handle *handle,
                                   struct sss_domain_info *domain,
                                   const char *group,
                                   const char *member,
                                   sysdb_callback_t fn, void *pvt);
 
-int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
+int sysdb_legacy_remove_group_member(struct sysdb_handle *handle,
                                      struct sss_domain_info *domain,
                                      const char *group,
                                      const char *member,
                                      sysdb_callback_t fn, void *pvt);
 
-int sysdb_set_cached_password(struct sysdb_req *sysreq,
+int sysdb_set_cached_password(struct sysdb_handle *handle,
                               struct sss_domain_info *domain,
                               const char *user,
                               const char *password,

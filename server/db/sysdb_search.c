@@ -30,7 +30,7 @@ typedef void (*gen_callback)(struct sysdb_search_ctx *);
 
 struct sysdb_search_ctx {
     struct sysdb_ctx *ctx;
-    struct sysdb_req *req;
+    struct sysdb_handle *handle;
 
     struct sss_domain_info *domain;
 
@@ -75,19 +75,19 @@ static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
 
 static void request_ldberror(struct sysdb_search_ctx *sctx, int error)
 {
-    sysdb_operation_done(sctx->req);
+    sysdb_operation_done(sctx->handle);
     sctx->callback(sctx->ptr, sysdb_error_to_errno(error), NULL);
 }
 
 static void request_error(struct sysdb_search_ctx *sctx, int error)
 {
-    sysdb_operation_done(sctx->req);
+    sysdb_operation_done(sctx->handle);
     sctx->callback(sctx->ptr, error, NULL);
 }
 
 static void request_done(struct sysdb_search_ctx *sctx)
 {
-    sysdb_operation_done(sctx->req);
+    sysdb_operation_done(sctx->handle);
     sctx->callback(sctx->ptr, EOK, sctx->res);
 }
 
@@ -162,7 +162,7 @@ static int get_gen_callback(struct ldb_request *req,
 
 /* users */
 
-static void user_search(struct sysdb_req *sysreq, void *ptr)
+static void user_search(struct sysdb_handle *handle, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
     struct ldb_request *req;
@@ -170,7 +170,7 @@ static void user_search(struct sysdb_req *sysreq, void *ptr)
     int ret;
 
     sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->req = sysreq;
+    sctx->handle = handle;
 
     base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
                              SYSDB_TMPL_USER_BASE, sctx->domain->name);
@@ -478,7 +478,7 @@ static int get_grp_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
-static void grp_search(struct sysdb_req *sysreq, void *ptr)
+static void grp_search(struct sysdb_handle *handle, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
@@ -487,7 +487,7 @@ static void grp_search(struct sysdb_req *sysreq, void *ptr)
     int ret;
 
     sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->req = sysreq;
+    sctx->handle = handle;
 
     if (sctx->domain->mpg) {
         base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
@@ -720,7 +720,7 @@ static void initgr_mem_search(struct sysdb_search_ctx *sctx)
     }
 }
 
-static void initgr_search(struct sysdb_req *sysreq, void *ptr)
+static void initgr_search(struct sysdb_handle *handle, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
@@ -729,7 +729,7 @@ static void initgr_search(struct sysdb_req *sysreq, void *ptr)
     int ret;
 
     sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->req = sysreq;
+    sctx->handle = handle;
 
     if (sctx->domain->legacy) {
         sctx->gen_aux_fn = initgr_mem_legacy;

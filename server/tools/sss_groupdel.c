@@ -41,7 +41,7 @@
 
 
 struct group_del_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     sysdb_callback_t next_fn;
 
     gid_t gid;
@@ -62,22 +62,22 @@ static void groupdel_done(void *pvt, int error, struct ldb_result *ignore)
 
     data->done = true;
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     if (error)
         data->error = error;
 }
 
-/* sysdb_req_fn_t */
-static void group_del(struct sysdb_req *req, void *pvt)
+/* sysdb_fn_t */
+static void group_del(struct sysdb_handle *handle, void *pvt)
 {
     struct group_del_ctx *group_ctx;
     int ret;
 
     group_ctx = talloc_get_type(pvt, struct group_del_ctx);
-    group_ctx->sysreq = req;
+    group_ctx->handle = handle;
 
-    ret = sysdb_delete_entry(req,
+    ret = sysdb_delete_entry(handle,
                              group_ctx->group_dn,
                              groupdel_done,
                              group_ctx);

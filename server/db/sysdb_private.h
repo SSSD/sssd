@@ -68,15 +68,15 @@
 
 #include "db/sysdb.h"
 
-struct sysdb_req;
+struct sysdb_handle;
 
 struct sysdb_ctx {
     struct tevent_context *ev;
     struct ldb_context *ldb;
     char *ldb_file;
-    struct sysdb_req *queue;
+    struct sysdb_handle *queue;
 };
 
-bool sysdb_req_check_running(struct sysdb_req *req);
+bool sysdb_handle_check_running(struct sysdb_handle *handle);
 
 #endif /* __INT_SYS_DB_H__ */

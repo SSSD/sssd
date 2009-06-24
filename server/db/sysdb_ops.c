@@ -114,7 +114,7 @@ static int sysdb_op_callback(struct ldb_request *req, struct ldb_reply *rep)
     return sysdb_ret_done(cbctx);
 }
 
-int sysdb_add_group_member(struct sysdb_req *sysreq,
+int sysdb_add_group_member(struct sysdb_handle *handle,
                            struct ldb_dn *member_dn,
                            struct ldb_dn *group_dn,
                            sysdb_callback_t fn, void *pvt)
@@ -126,14 +126,14 @@ int sysdb_add_group_member(struct sysdb_req *sysreq,
     const char *dn;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
 
     cbctx->fn = fn;
@@ -168,7 +168,7 @@ int sysdb_add_group_member(struct sysdb_req *sysreq,
     return EOK;
 }
 
-int sysdb_remove_group_member(struct sysdb_req *sysreq,
+int sysdb_remove_group_member(struct sysdb_handle *handle,
                               struct ldb_dn *member_dn,
                               struct ldb_dn *group_dn,
                               sysdb_callback_t fn, void *pvt)
@@ -180,14 +180,14 @@ int sysdb_remove_group_member(struct sysdb_req *sysreq,
     const char *dn;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
 
     cbctx->fn = fn;
@@ -222,7 +222,7 @@ int sysdb_remove_group_member(struct sysdb_req *sysreq,
     return EOK;
 }
 
-int sysdb_delete_entry(struct sysdb_req *sysreq,
+int sysdb_delete_entry(struct sysdb_handle *handle,
                        struct ldb_dn *dn,
                        sysdb_callback_t fn, void *pvt)
 {
@@ -231,14 +231,14 @@ int sysdb_delete_entry(struct sysdb_req *sysreq,
     struct ldb_request *req;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
 
     cbctx->fn = fn;
@@ -261,7 +261,7 @@ int sysdb_delete_entry(struct sysdb_req *sysreq,
 }
 
 struct delete_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sysdb_cb_ctx *cbctx;
 
 	struct ldb_result *res;
@@ -278,7 +278,7 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
     int ret, err;
 
     del_ctx = talloc_get_type(req->context, struct delete_ctx);
-    ctx = sysdb_req_get_ctx(del_ctx->sysreq);
+    ctx = sysdb_handle_get_ctx(del_ctx->handle);
     cbctx = del_ctx->cbctx;
     res = del_ctx->res;
 
@@ -342,7 +342,7 @@ static int delete_callback(struct ldb_request *req, struct ldb_reply *rep)
     return LDB_SUCCESS;
 }
 
-int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
+int sysdb_delete_user_by_uid(struct sysdb_handle *handle,
                              struct sss_domain_info *domain,
                              uid_t uid,
                              sysdb_callback_t fn, void *pvt)
@@ -355,20 +355,20 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
     char *filter;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    del_ctx = talloc_zero(sysreq, struct delete_ctx);
+    del_ctx = talloc_zero(handle, struct delete_ctx);
     if (!del_ctx) return ENOMEM;
 
     del_ctx->cbctx = talloc_zero(del_ctx, struct sysdb_cb_ctx);
     if (!del_ctx->cbctx) return ENOMEM;
 
-    del_ctx->sysreq = sysreq;
+    del_ctx->handle = handle;
     del_ctx->cbctx->fn = fn;
     del_ctx->cbctx->pvt = pvt;
     del_ctx->cbctx->ignore_not_found = true;
@@ -399,7 +399,7 @@ int sysdb_delete_user_by_uid(struct sysdb_req *sysreq,
     return EOK;
 }
 
-int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
+int sysdb_delete_group_by_gid(struct sysdb_handle *handle,
                               struct sss_domain_info *domain,
                               gid_t gid,
                               sysdb_callback_t fn, void *pvt)
@@ -412,20 +412,20 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
     char *filter;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    del_ctx = talloc_zero(sysreq, struct delete_ctx);
+    del_ctx = talloc_zero(handle, struct delete_ctx);
     if (!del_ctx) return ENOMEM;
 
     del_ctx->cbctx = talloc_zero(del_ctx, struct sysdb_cb_ctx);
     if (!del_ctx->cbctx) return ENOMEM;
 
-    del_ctx->sysreq = sysreq;
+    del_ctx->handle = handle;
     del_ctx->cbctx->fn = fn;
     del_ctx->cbctx->pvt = pvt;
     del_ctx->cbctx->ignore_not_found = true;
@@ -456,7 +456,7 @@ int sysdb_delete_group_by_gid(struct sysdb_req *sysreq,
     return EOK;
 }
 
-int sysdb_set_user_attr(struct sysdb_req *sysreq,
+int sysdb_set_user_attr(struct sysdb_handle *handle,
                         struct sss_domain_info *domain,
                         const char *name,
                         struct sysdb_attrs *attrs,
@@ -468,16 +468,16 @@ int sysdb_set_user_attr(struct sysdb_req *sysreq,
     struct ldb_request *req;
     int i, ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
     if (attrs->num == 0) return EINVAL;
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
 
     cbctx->fn = fn;
@@ -516,7 +516,7 @@ struct next_id {
 };
 
 struct next_id_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sss_domain_info *domain;
     struct sysdb_cb_ctx *cbctx;
 
@@ -531,7 +531,7 @@ struct next_id_ctx {
 
 static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep);
 
-static int sysdb_get_next_available_id(struct sysdb_req *sysreq,
+static int sysdb_get_next_available_id(struct sysdb_handle *handle,
                                        struct sss_domain_info *domain,
                                        struct next_id *result,
                                        sysdb_callback_t fn, void *pvt)
@@ -542,21 +542,21 @@ static int sysdb_get_next_available_id(struct sysdb_req *sysreq,
     struct ldb_request *req;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    idctx = talloc_zero(sysreq, struct next_id_ctx);
+    idctx = talloc_zero(handle, struct next_id_ctx);
     if (!idctx) return ENOMEM;
 
-    idctx->sysreq = sysreq;
+    idctx->handle = handle;
     idctx->domain = domain;
     idctx->result = result;
 
-    idctx->cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    idctx->cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!idctx->cbctx) return ENOMEM;
 
     idctx->cbctx->fn = fn;
@@ -597,7 +597,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
     int ret, err;
 
     idctx = talloc_get_type(req->context, struct next_id_ctx);
-    ctx = sysdb_req_get_ctx(idctx->sysreq);
+    ctx = sysdb_handle_get_ctx(idctx->handle);
     cbctx = idctx->cbctx;
     res = idctx->res;
 
@@ -748,7 +748,7 @@ static int nextid_callback(struct ldb_request *req, struct ldb_reply *rep)
 
 static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep);
 
-int sysdb_check_name_unique(struct sysdb_req *sysreq,
+int sysdb_check_name_unique(struct sysdb_handle *handle,
                             struct sss_domain_info *domain,
                             TALLOC_CTX *mem_ctx, const char *name,
                             sysdb_callback_t fn, void *pvt)
@@ -761,12 +761,12 @@ int sysdb_check_name_unique(struct sysdb_req *sysreq,
     char *filter;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
     cbctx = talloc_zero(mem_ctx, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
@@ -831,7 +831,7 @@ static int check_name_callback(struct ldb_request *req, struct ldb_reply *rep)
 
 
 struct user_add_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sysdb_cb_ctx *cbctx;
     struct sss_domain_info *domain;
 
@@ -850,7 +850,7 @@ static int user_add_id(struct user_add_ctx *user_ctx);
 static void user_add_id_callback(void *pvt, int error, struct ldb_result *res);
 static int user_add_call(struct user_add_ctx *user_ctx);
 
-int sysdb_add_user(struct sysdb_req *sysreq,
+int sysdb_add_user(struct sysdb_handle *handle,
                    struct sss_domain_info *domain,
                    const char *name,
                    uid_t uid, gid_t gid, const char *fullname,
@@ -859,7 +859,7 @@ int sysdb_add_user(struct sysdb_req *sysreq,
 {
     struct user_add_ctx *user_ctx;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
@@ -879,13 +879,13 @@ int sysdb_add_user(struct sysdb_req *sysreq,
     }
 
 
-    user_ctx = talloc(sysreq, struct user_add_ctx);
+    user_ctx = talloc(handle, struct user_add_ctx);
     if (!user_ctx) return ENOMEM;
 
     user_ctx->cbctx = talloc_zero(user_ctx, struct sysdb_cb_ctx);
     if (!user_ctx->cbctx) return ENOMEM;
 
-    user_ctx->sysreq = sysreq;
+    user_ctx->handle = handle;
     user_ctx->domain = domain;
     user_ctx->cbctx->fn = fn;
     user_ctx->cbctx->pvt = pvt;
@@ -900,7 +900,7 @@ int sysdb_add_user(struct sysdb_req *sysreq,
         /* if the domain is mpg we need to check we do not have there are no
          * name conflicts */
 
-        return sysdb_check_name_unique(sysreq, domain, user_ctx, name,
+        return sysdb_check_name_unique(handle, domain, user_ctx, name,
                                        user_check_callback, user_ctx);
     }
 
@@ -934,7 +934,7 @@ static int user_add_id(struct user_add_ctx *user_ctx)
 
     if (user_ctx->uid == 0 || user_ctx->gid == 0) {
         /* Must generate uid/gid pair */
-        return sysdb_get_next_available_id(user_ctx->sysreq,
+        return sysdb_get_next_available_id(user_ctx->handle,
                                            user_ctx->domain,
                                            &(user_ctx->id),
                                            user_add_id_callback, user_ctx);
@@ -977,7 +977,7 @@ static int user_add_call(struct user_add_ctx *user_ctx)
     int flags = LDB_FLAG_MOD_ADD;
     int ret;
 
-    ctx = sysdb_req_get_ctx(user_ctx->sysreq);
+    ctx = sysdb_handle_get_ctx(user_ctx->handle);
 
     msg = ldb_msg_new(user_ctx);
     if (!msg) return ENOMEM;
@@ -1047,7 +1047,7 @@ static int user_add_call(struct user_add_ctx *user_ctx)
 }
 
 struct group_add_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sysdb_cb_ctx *cbctx;
     struct sss_domain_info *domain;
 
@@ -1062,14 +1062,14 @@ static int group_add_id(struct group_add_ctx *group_ctx);
 static void group_add_id_callback(void *pvt, int error, struct ldb_result *res);
 static int group_add_call(struct group_add_ctx *group_ctx);
 
-int sysdb_add_group(struct sysdb_req *sysreq,
+int sysdb_add_group(struct sysdb_handle *handle,
                     struct sss_domain_info *domain,
                     const char *name, gid_t gid,
                     sysdb_callback_t fn, void *pvt)
 {
     struct group_add_ctx *group_ctx;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
@@ -1081,13 +1081,13 @@ int sysdb_add_group(struct sysdb_req *sysreq,
         return EINVAL;
     }
 
-    group_ctx = talloc(sysreq, struct group_add_ctx);
+    group_ctx = talloc(handle, struct group_add_ctx);
     if (!group_ctx) return ENOMEM;
 
     group_ctx->cbctx = talloc_zero(group_ctx, struct sysdb_cb_ctx);
     if (!group_ctx->cbctx) return ENOMEM;
 
-    group_ctx->sysreq = sysreq;
+    group_ctx->handle = handle;
     group_ctx->domain = domain;
     group_ctx->cbctx->fn = fn;
     group_ctx->cbctx->pvt = pvt;
@@ -1098,7 +1098,7 @@ int sysdb_add_group(struct sysdb_req *sysreq,
         /* if the domain is mpg we need to check we do not have there are no
          * name conflicts */
 
-        return sysdb_check_name_unique(sysreq, domain, group_ctx, name,
+        return sysdb_check_name_unique(handle, domain, group_ctx, name,
                                        group_check_callback, group_ctx);
     }
 
@@ -1126,7 +1126,7 @@ static int group_add_id(struct group_add_ctx *group_ctx)
 {
     if (group_ctx->gid == 0) {
         /* Must generate uid/gid pair */
-        return sysdb_get_next_available_id(group_ctx->sysreq,
+        return sysdb_get_next_available_id(group_ctx->handle,
                                            group_ctx->domain,
                                            &(group_ctx->id),
                                            group_add_id_callback, group_ctx);
@@ -1163,7 +1163,7 @@ static int group_add_call(struct group_add_ctx *group_ctx)
     int flags = LDB_FLAG_MOD_ADD;
     int ret;
 
-    ctx = sysdb_req_get_ctx(group_ctx->sysreq);
+    ctx = sysdb_handle_get_ctx(group_ctx->handle);
 
     msg = ldb_msg_new(group_ctx);
     if (!msg) return ENOMEM;
@@ -1209,7 +1209,7 @@ static int group_add_call(struct group_add_ctx *group_ctx)
  * will perform is whether the requested GID is in the range
  * of IDs allocated for the domain.
  */
-int sysdb_set_group_gid(struct sysdb_req *sysreq,
+int sysdb_set_group_gid(struct sysdb_handle *handle,
                         struct sss_domain_info *domain,
                         const char *name, gid_t gid,
                         sysdb_callback_t fn, void *pvt)
@@ -1221,7 +1221,7 @@ int sysdb_set_group_gid(struct sysdb_req *sysreq,
     int flags = LDB_FLAG_MOD_REPLACE;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
@@ -1233,20 +1233,20 @@ int sysdb_set_group_gid(struct sysdb_req *sysreq,
         return EDOM;
     }
 
-    group_ctx = talloc(sysreq, struct group_add_ctx);
+    group_ctx = talloc(handle, struct group_add_ctx);
     if (!group_ctx) return ENOMEM;
 
     group_ctx->cbctx = talloc_zero(group_ctx, struct sysdb_cb_ctx);
     if (!group_ctx->cbctx) return ENOMEM;
 
-    group_ctx->sysreq = sysreq;
+    group_ctx->handle = handle;
     group_ctx->domain = domain;
     group_ctx->cbctx->fn = fn;
     group_ctx->cbctx->pvt = pvt;
     group_ctx->name = name;
     group_ctx->gid = gid;
 
-    sysdb = sysdb_req_get_ctx(group_ctx->sysreq);
+    sysdb = sysdb_handle_get_ctx(group_ctx->handle);
 
     msg = ldb_msg_new(group_ctx);
     if (!msg) return ENOMEM;
@@ -1278,7 +1278,7 @@ int sysdb_set_group_gid(struct sysdb_req *sysreq,
  * be nested and can't reference foreign sources */
 
 struct legacy_user_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sysdb_cb_ctx *cbctx;
     struct sss_domain_info *domain;
 
@@ -1298,7 +1298,7 @@ struct legacy_user_ctx {
 static int legacy_user_callback(struct ldb_request *req,
                                 struct ldb_reply *rep);
 
-int sysdb_legacy_store_user(struct sysdb_req *sysreq,
+int sysdb_legacy_store_user(struct sysdb_handle *handle,
                             struct sss_domain_info *domain,
                             const char *name, const char *pwd,
                             uid_t uid, gid_t gid, const char *gecos,
@@ -1311,14 +1311,14 @@ int sysdb_legacy_store_user(struct sysdb_req *sysreq,
     struct ldb_request *req;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    user_ctx = talloc(sysreq, struct legacy_user_ctx);
+    user_ctx = talloc(handle, struct legacy_user_ctx);
     if (!user_ctx) return ENOMEM;
 
     user_ctx->cbctx = talloc_zero(user_ctx, struct sysdb_cb_ctx);
@@ -1327,7 +1327,7 @@ int sysdb_legacy_store_user(struct sysdb_req *sysreq,
     user_ctx->dn = sysdb_user_dn(ctx, user_ctx, domain->name, name);
     if (!user_ctx->dn) return ENOMEM;
 
-    user_ctx->sysreq = sysreq;
+    user_ctx->handle = handle;
     user_ctx->cbctx->fn = fn;
     user_ctx->cbctx->pvt = pvt;
     user_ctx->domain = domain;
@@ -1371,7 +1371,7 @@ static int legacy_user_callback(struct ldb_request *req,
     int ret, err;
 
     user_ctx = talloc_get_type(req->context, struct legacy_user_ctx);
-    ctx = sysdb_req_get_ctx(user_ctx->sysreq);
+    ctx = sysdb_handle_get_ctx(user_ctx->handle);
     cbctx = user_ctx->cbctx;
     res = user_ctx->res;
 
@@ -1535,7 +1535,7 @@ static int legacy_user_callback(struct ldb_request *req,
 /* this function does not check that all user members are actually present */
 
 struct legacy_group_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sysdb_cb_ctx *cbctx;
     struct sss_domain_info *domain;
 
@@ -1551,7 +1551,7 @@ struct legacy_group_ctx {
 static int legacy_group_callback(struct ldb_request *req,
                                  struct ldb_reply *rep);
 
-int sysdb_legacy_store_group(struct sysdb_req *sysreq,
+int sysdb_legacy_store_group(struct sysdb_handle *handle,
                              struct sss_domain_info *domain,
                              const char *name, gid_t gid,
                              const char **members,
@@ -1563,14 +1563,14 @@ int sysdb_legacy_store_group(struct sysdb_req *sysreq,
     struct ldb_request *req;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    group_ctx = talloc(sysreq, struct legacy_group_ctx);
+    group_ctx = talloc(handle, struct legacy_group_ctx);
     if (!group_ctx) return ENOMEM;
 
     group_ctx->cbctx = talloc_zero(group_ctx, struct sysdb_cb_ctx);
@@ -1579,7 +1579,7 @@ int sysdb_legacy_store_group(struct sysdb_req *sysreq,
     group_ctx->dn = sysdb_group_dn(ctx, group_ctx, domain->name, name);
     if (!group_ctx->dn) return ENOMEM;
 
-    group_ctx->sysreq = sysreq;
+    group_ctx->handle = handle;
     group_ctx->cbctx->fn = fn;
     group_ctx->cbctx->pvt = pvt;
     group_ctx->domain = domain;
@@ -1619,7 +1619,7 @@ static int legacy_group_callback(struct ldb_request *req,
     int i, ret, err;
 
     group_ctx = talloc_get_type(req->context, struct legacy_group_ctx);
-    ctx = sysdb_req_get_ctx(group_ctx->sysreq);
+    ctx = sysdb_handle_get_ctx(group_ctx->handle);
     cbctx = group_ctx->cbctx;
     res = group_ctx->res;
 
@@ -1741,7 +1741,7 @@ static int legacy_group_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
-int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
+int sysdb_legacy_add_group_member(struct sysdb_handle *handle,
                                   struct sss_domain_info *domain,
                                   const char *group,
                                   const char *member,
@@ -1753,14 +1753,14 @@ int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
     struct ldb_message *msg;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
 
     cbctx->fn = fn;
@@ -1790,7 +1790,7 @@ int sysdb_legacy_add_group_member(struct sysdb_req *sysreq,
     return EOK;
 }
 
-int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
+int sysdb_legacy_remove_group_member(struct sysdb_handle *handle,
                                      struct sss_domain_info *domain,
                                      const char *group,
                                      const char *member,
@@ -1802,14 +1802,14 @@ int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
     struct ldb_message *msg;
     int ret;
 
-    if (!sysdb_req_check_running(sysreq)) {
+    if (!sysdb_handle_check_running(handle)) {
         DEBUG(2, ("Invalid request! Not running at this time.\n"));
         return EINVAL;
     }
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
 
-    cbctx = talloc_zero(sysreq, struct sysdb_cb_ctx);
+    cbctx = talloc_zero(handle, struct sysdb_cb_ctx);
     if (!cbctx) return ENOMEM;
 
     cbctx->fn = fn;
@@ -1839,7 +1839,7 @@ int sysdb_legacy_remove_group_member(struct sysdb_req *sysreq,
     return EOK;
 }
 
-int sysdb_set_cached_password(struct sysdb_req *sysreq,
+int sysdb_set_cached_password(struct sysdb_handle *handle,
                               struct sss_domain_info *domain,
                               const char *user,
                               const char *password,
@@ -1851,22 +1851,22 @@ int sysdb_set_cached_password(struct sysdb_req *sysreq,
     char *salt;
     int ret;
 
-    ctx = sysdb_req_get_ctx(sysreq);
+    ctx = sysdb_handle_get_ctx(handle);
     if (!ctx) return EFAULT;
 
-    ret = s3crypt_gen_salt(sysreq, &salt);
+    ret = s3crypt_gen_salt(handle, &salt);
     if (ret) {
         DEBUG(4, ("Failed to generate random salt.\n"));
         return ret;
     }
 
-    ret = s3crypt_sha512(sysreq, password, salt, &hash);
+    ret = s3crypt_sha512(handle, password, salt, &hash);
     if (ret) {
         DEBUG(4, ("Failed to create password hash.\n"));
         return ret;
     }
 
-    attrs = sysdb_new_attrs(sysreq);
+    attrs = sysdb_new_attrs(handle);
     if (!attrs) {
         return ENOMEM;
     }
@@ -1879,7 +1879,7 @@ int sysdb_set_cached_password(struct sysdb_req *sysreq,
                                (long)time(NULL));
     if (ret) return ret;
 
-    ret = sysdb_set_user_attr(sysreq, domain, user, attrs, fn, pvt);
+    ret = sysdb_set_user_attr(handle, domain, user, attrs, fn, pvt);
     if (ret) return ret;
 
     return EOK;

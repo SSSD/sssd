@@ -35,7 +35,7 @@ static int username_comparator(const void *key1, const void *key2);
 
 struct infp_getcached_ctx {
     struct infp_req_ctx *infp_req;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
     char **usernames;
     uint64_t min_last_login;
 };
@@ -195,7 +195,7 @@ error:
 
 struct infp_createuser_ctx {
     struct infp_req_ctx *infp_req;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 
     char *username;
     char *fullname;
@@ -212,7 +212,7 @@ static void infp_do_user_create_callback(void *pvt,
     struct infp_createuser_ctx *infp_createuser_req = talloc_get_type(pvt, struct infp_createuser_ctx);
 
     /* Commit the transaction if it we got a successful response, or cancel it if we did not */
-    sysdb_transaction_done(infp_createuser_req->sysdb_req, status);
+    sysdb_transaction_done(infp_createuser_req->handle, status);
 
     /* Verify that the addition completed successfully
      * If LDB returned an error, run a search to determine
@@ -246,13 +246,13 @@ static void infp_do_user_create_callback(void *pvt,
     talloc_free(infp_createuser_req);
 }
 
-static void infp_do_user_create(struct sysdb_req *req, void *pvt)
+static void infp_do_user_create(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct infp_createuser_ctx *infp_createuser_req = talloc_get_type(pvt, struct infp_createuser_ctx);
-    infp_createuser_req->sysdb_req = req;
+    infp_createuser_req->handle = handle;
 
-    ret = sysdb_add_user(infp_createuser_req->sysdb_req,
+    ret = sysdb_add_user(infp_createuser_req->handle,
                          infp_createuser_req->infp_req->domain,
                          infp_createuser_req->username,
                          0, 0,
@@ -263,7 +263,7 @@ static void infp_do_user_create(struct sysdb_req *req, void *pvt)
                          infp_createuser_req);
     if (ret != EOK) {
         DEBUG(0, ("Could not invoke sysdb_add_user\n"));
-        sysdb_transaction_done(infp_createuser_req->sysdb_req, ret);
+        sysdb_transaction_done(infp_createuser_req->handle, ret);
         infp_return_failure(infp_createuser_req->infp_req, NULL);
         talloc_free(infp_createuser_req);
         return;
@@ -421,7 +421,7 @@ error:
 struct infp_deleteuser_ctx {
     struct infp_req_ctx *infp_req;
     char *username;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
     struct ldb_dn *user_dn;
 };
 
@@ -432,7 +432,7 @@ static void infp_do_user_delete_callback(void *pvt, int status,
         talloc_get_type(pvt, struct infp_deleteuser_ctx);
 
     /* Commit the transaction if it we got a successful response, or cancel it if we did not */
-    sysdb_transaction_done(infp_deleteuser_req->sysdb_req, status);
+    sysdb_transaction_done(infp_deleteuser_req->handle, status);
 
     if (status != EOK) {
         DEBUG(0, ("Failed to delete user from sysdb. Error code %d\n", status));
@@ -445,12 +445,12 @@ static void infp_do_user_delete_callback(void *pvt, int status,
     talloc_free(infp_deleteuser_req);
 }
 
-static void infp_do_user_delete(struct sysdb_req *req, void *pvt)
+static void infp_do_user_delete(struct sysdb_handle *req, void *pvt)
 {
     int ret;
     struct infp_deleteuser_ctx *infp_deleteuser_req = talloc_get_type(pvt, struct infp_deleteuser_ctx);
 
-    infp_deleteuser_req->sysdb_req = req;
+    infp_deleteuser_req->handle = handle;
 
     infp_deleteuser_req->user_dn = sysdb_user_dn(infp_deleteuser_req->infp_req->infp->sysdb,
                                                  infp_deleteuser_req,
@@ -463,7 +463,7 @@ static void infp_do_user_delete(struct sysdb_req *req, void *pvt)
         return;
     }
 
-    ret = sysdb_delete_entry(infp_deleteuser_req->sysdb_req,
+    ret = sysdb_delete_entry(infp_deleteuser_req->handle,
                              infp_deleteuser_req->user_dn,
                              infp_do_user_delete_callback,
                              infp_deleteuser_req);
@@ -1298,7 +1298,7 @@ struct infp_setattr_ctx {
     const char **usernames;
     int username_count;
     uint32_t index;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 
     /* Array of sysdb_attrs objects
      * The number of elements in this array
@@ -1306,7 +1306,7 @@ struct infp_setattr_ctx {
      */
     struct sysdb_attrs **changes;
 };
-static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt);
+static void infp_do_user_set_attr(struct sysdb_handle *req, void *pvt);
 static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb_result *res)
 {
     struct infp_setattr_ctx *infp_setattr_req;
@@ -1317,7 +1317,7 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
     if (ldb_status != LDB_SUCCESS) {
         DEBUG(0, ("Failed to store user attributes to the sysdb\n"));
         /* Cancel the transaction */
-        sysdb_transaction_done(infp_setattr_req->sysdb_req, sysdb_error_to_errno(ldb_status));
+        sysdb_transaction_done(infp_setattr_req->handle, sysdb_error_to_errno(ldb_status));
         infp_return_failure(infp_setattr_req->infp_req, NULL);
         talloc_free(infp_setattr_req);
         return;
@@ -1326,12 +1326,12 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
     /* Process any remaining users */
     infp_setattr_req->index++;
     if(infp_setattr_req->index < infp_setattr_req->username_count) {
-        infp_do_user_set_attr(infp_setattr_req->sysdb_req, infp_setattr_req);
+        infp_do_user_set_attr(infp_setattr_req->handle, infp_setattr_req);
         return;
     }
 
     /* This was the last user. Commit the transaction */
-    sysdb_transaction_done(infp_setattr_req->sysdb_req, EOK);
+    sysdb_transaction_done(infp_setattr_req->handle, EOK);
 
     /* Send reply ack */
     infp_return_success(infp_setattr_req->infp_req);
@@ -1339,16 +1339,16 @@ static void infp_do_user_set_attr_callback(void *ptr, int ldb_status, struct ldb
     talloc_free(infp_setattr_req);
 }
 
-static void infp_do_user_set_attr(struct sysdb_req *req, void *pvt)
+static void infp_do_user_set_attr(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct infp_setattr_ctx *infp_setattr_req;
 
     infp_setattr_req = talloc_get_type(pvt, struct infp_setattr_ctx);
-    infp_setattr_req->sysdb_req = req;
+    infp_setattr_req->handle = handle;
 
     DEBUG(9, ("Setting attributes for user [%s]\n", infp_setattr_req->usernames[infp_setattr_req->index]));
-    ret = sysdb_set_user_attr(infp_setattr_req->sysdb_req,
+    ret = sysdb_set_user_attr(infp_setattr_req->handle,
                               infp_setattr_req->infp_req->domain,
                               infp_setattr_req->usernames[infp_setattr_req->index],
                               infp_setattr_req->changes[infp_setattr_req->index],
@@ -1677,7 +1677,7 @@ error:
 
 struct infp_setuid_ctx {
     struct infp_req_ctx *infp_req;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
     struct sysdb_attrs *uid_attr;
     char *username;
 };
@@ -1687,7 +1687,7 @@ static void infp_do_user_set_uid_callback(void *ptr, int ldb_status, struct ldb_
     struct infp_setuid_ctx *infp_setuid_req = talloc_get_type(ptr, struct infp_setuid_ctx);
 
     /* Commit or cancel the transaction, based on the ldb_status */
-    sysdb_transaction_done(infp_setuid_req->sysdb_req, sysdb_error_to_errno(ldb_status));
+    sysdb_transaction_done(infp_setuid_req->handle, sysdb_error_to_errno(ldb_status));
 
     /* Check the LDB result */
     if (ldb_status != LDB_SUCCESS) {
@@ -1703,23 +1703,23 @@ static void infp_do_user_set_uid_callback(void *ptr, int ldb_status, struct ldb_
     talloc_free(infp_setuid_req);
 }
 
-static void infp_do_user_set_uid(struct sysdb_req *req, void *pvt)
+static void infp_do_user_set_uid(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct infp_setuid_ctx *infp_setuid_req;
 
     infp_setuid_req = talloc_get_type(pvt, struct infp_setuid_ctx);
-    infp_setuid_req->sysdb_req = req;
+    infp_setuid_req->handle = handle;
 
     DEBUG(9, ("Setting UID for user [%s]\n", infp_setuid_req->username));
-    ret = sysdb_set_user_attr(infp_setuid_req->sysdb_req,
+    ret = sysdb_set_user_attr(infp_setuid_req->handle,
                               infp_setuid_req->infp_req->domain,
                               infp_setuid_req->username,
                               infp_setuid_req->uid_attr,
                               infp_do_user_set_uid_callback, infp_setuid_req);
     if (ret != EOK) {
         DEBUG(0, ("Could not invoke sysdb_set_user_attr"));
-        sysdb_transaction_done(infp_setuid_req->sysdb_req, ret);
+        sysdb_transaction_done(infp_setuid_req->handle, ret);
         infp_return_failure(infp_setuid_req->infp_req, NULL);
         talloc_free(infp_setuid_req);
         return;

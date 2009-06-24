@@ -35,10 +35,10 @@ struct infp_creategroup_ctx {
     char **groupnames;
     uint32_t name_count;
     uint32_t index;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 };
 
-static void infp_do_group_create(struct sysdb_req *req, void *pvt);
+static void infp_do_group_create(struct sysdb_handle *handle, void *pvt);
 static void infp_do_group_create_callback(void *pvt, int status,
                                           struct ldb_result *res)
 {
@@ -48,7 +48,7 @@ static void infp_do_group_create_callback(void *pvt, int status,
         talloc_get_type(pvt, struct infp_creategroup_ctx);
 
     if (status != EOK) {
-        sysdb_transaction_done(grcreate_req->sysdb_req, status);
+        sysdb_transaction_done(grcreate_req->handle, status);
 
         if (status == EEXIST) {
             error_msg =
@@ -72,33 +72,33 @@ static void infp_do_group_create_callback(void *pvt, int status,
     /* Status is okay, add the next group */
     grcreate_req->index++;
     if (grcreate_req->index < grcreate_req->name_count) {
-        infp_do_group_create(grcreate_req->sysdb_req, grcreate_req);
+        infp_do_group_create(grcreate_req->handle, grcreate_req);
         return;
     }
 
     /* We have no more usernames to add, so commit the transaction */
-    sysdb_transaction_done(grcreate_req->sysdb_req, status);
+    sysdb_transaction_done(grcreate_req->handle, status);
 
     infp_return_success(grcreate_req->infp_req);
     talloc_free(grcreate_req);
     return;
 }
 
-static void infp_do_group_create(struct sysdb_req *req, void *pvt)
+static void infp_do_group_create(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct infp_creategroup_ctx *grcreate_req =
         talloc_get_type(pvt, struct infp_creategroup_ctx);
 
-    grcreate_req->sysdb_req = req;
+    grcreate_req->handle = handle;
 
-    ret = sysdb_add_group(grcreate_req->sysdb_req,
+    ret = sysdb_add_group(grcreate_req->handle,
                           grcreate_req->infp_req->domain,
                           grcreate_req->groupnames[grcreate_req->index], 0,
                           infp_do_group_create_callback, grcreate_req);
     if (ret != EOK) {
         DEBUG(0, ("Could not invoke sysdb_add_group\n"));
-        sysdb_transaction_done(grcreate_req->sysdb_req, ret);
+        sysdb_transaction_done(grcreate_req->handle, ret);
         infp_return_failure(grcreate_req->infp_req, NULL);
         talloc_free(grcreate_req);
         return;
@@ -231,7 +231,7 @@ error:
 struct infp_deletegroup_ctx {
     struct infp_req_ctx *infp_req;
     struct ldb_dn *gr_dn;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 };
 
 static void infp_do_group_delete_callback(void *pvt, int status,
@@ -241,7 +241,7 @@ static void infp_do_group_delete_callback(void *pvt, int status,
         talloc_get_type(pvt, struct infp_deletegroup_ctx);
 
     /* Commit or cancel the transaction, based on the status */
-    sysdb_transaction_done(grdel_req->sysdb_req, status);
+    sysdb_transaction_done(grdel_req->handle, status);
 
     if (status != EOK) {
         DEBUG(0, ("Failed to delete group from sysdb. Error code %d\n",
@@ -255,15 +255,15 @@ static void infp_do_group_delete_callback(void *pvt, int status,
     talloc_free(grdel_req);
 }
 
-static void infp_do_group_delete(struct sysdb_req *req, void *pvt)
+static void infp_do_group_delete(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct infp_deletegroup_ctx *grdel_req =
         talloc_get_type(pvt, struct infp_deletegroup_ctx);
 
-    grdel_req->sysdb_req = req;
+    grdel_req->handle = handle;
 
-    ret = sysdb_delete_entry(grdel_req->sysdb_req,
+    ret = sysdb_delete_entry(grdel_req->handle,
                              grdel_req->gr_dn,
                              infp_do_group_delete_callback,
                              grdel_req);
@@ -398,10 +398,10 @@ struct infp_groupmember_ctx {
     uint32_t index;
     uint8_t member_type;
     uint8_t modify_type;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 };
 
-static void infp_do_member(struct sysdb_req *req, void *pvt);
+static void infp_do_member(struct sysdb_handle *handle, void *pvt);
 
 static void infp_do_member_callback(void *pvt, int status,
                                     struct ldb_result *res)
@@ -417,12 +417,12 @@ static void infp_do_member_callback(void *pvt, int status,
     /* Check if there are more members to process */
     grmod_req->index++;
     if(grmod_req->index < grmod_req->member_count) {
-        infp_do_member(grmod_req->sysdb_req, grmod_req);
+        infp_do_member(grmod_req->handle, grmod_req);
         return;
     }
 
     /* This was the last member. Commit the transaction */
-    sysdb_transaction_done(grmod_req->sysdb_req, EOK);
+    sysdb_transaction_done(grmod_req->handle, EOK);
 
     /* Send an ack reply */
     reply = dbus_message_new_method_return(grmod_req->infp_req->req_message);
@@ -435,21 +435,21 @@ static void infp_do_member_callback(void *pvt, int status,
     return;
 
 fail:
-sysdb_transaction_done(grmod_req->sysdb_req, status);
+sysdb_transaction_done(grmod_req->handle, status);
     fail_msg = talloc_asprintf(grmod_req, "Could not modify group");
     infp_return_failure(grmod_req->infp_req, fail_msg);
     talloc_free(grmod_req);
     return;
 }
 
-static void infp_do_member(struct sysdb_req *req, void *pvt)
+static void infp_do_member(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct ldb_dn *member_dn;
     struct infp_groupmember_ctx *grmod_req =
         talloc_get_type(pvt, struct infp_groupmember_ctx);
 
-    grmod_req->sysdb_req = req;
+    grmod_req->handle = handle;
 
     if (grmod_req->member_type == INFP_GR_MEM_USER) {
         member_dn =
@@ -470,14 +470,14 @@ static void infp_do_member(struct sysdb_req *req, void *pvt)
     else goto error;
 
     if (grmod_req->modify_type == INFP_ACTION_TYPE_ADDMEMBER) {
-        ret = sysdb_add_group_member(grmod_req->sysdb_req,
+        ret = sysdb_add_group_member(grmod_req->handle,
                                      member_dn,
                                      grmod_req->group_dn,
                                      infp_do_member_callback,
                                      grmod_req);
     }
     else if (grmod_req->modify_type == INFP_ACTION_TYPE_REMOVEMEMBER) {
-        ret = sysdb_remove_group_member(grmod_req->sysdb_req,
+        ret = sysdb_remove_group_member(grmod_req->handle,
                                         member_dn,
                                         grmod_req->group_dn,
                                         infp_do_member_callback,
@@ -657,7 +657,7 @@ struct infp_setgid_ctx {
     struct infp_req_ctx *infp_req;
     char *group_name;
     gid_t gid;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 };
 
 static void infp_do_gid_callback(void *ptr,
@@ -671,7 +671,7 @@ static void infp_do_gid_callback(void *ptr,
     /* Commit or cancel the transaction, based on the
      * return status
      */
-    sysdb_transaction_done(grmod_req->sysdb_req, status);
+    sysdb_transaction_done(grmod_req->handle, status);
 
     if(status != EOK) {
         if (status == ENOENT) {
@@ -686,7 +686,7 @@ static void infp_do_gid_callback(void *ptr,
     talloc_free(grmod_req);
 }
 
-static void infp_do_gid(struct sysdb_req *req, void *pvt)
+static void infp_do_gid(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     DBusMessage *reply;
@@ -694,9 +694,9 @@ static void infp_do_gid(struct sysdb_req *req, void *pvt)
     gid_t max;
     struct infp_setgid_ctx *grmod_req =
         talloc_get_type(pvt, struct infp_setgid_ctx);
-    grmod_req->sysdb_req = req;
+    grmod_req->handle = handle;
 
-    ret = sysdb_set_group_gid(grmod_req->sysdb_req,
+    ret = sysdb_set_group_gid(grmod_req->handle,
                               grmod_req->infp_req->domain,
                               grmod_req->group_name,
                               grmod_req->gid,

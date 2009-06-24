@@ -82,7 +82,7 @@
 #endif
 
 struct user_mod_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
 
     struct sss_domain_info *domain;
     struct tools_ctx *ctx;
@@ -105,7 +105,7 @@ static void mod_user_done(void *pvt, int error, struct ldb_result *ignore)
 
     data->done = true;
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     if (error)
         data->error = error;
@@ -113,19 +113,19 @@ static void mod_user_done(void *pvt, int error, struct ldb_result *ignore)
 
 static void add_to_groups(void *, int, struct ldb_result *);
 
-/* sysdb_req_fn_t */
-static void mod_user(struct sysdb_req *req, void *pvt)
+/* sysdb_fn_t */
+static void mod_user(struct sysdb_handle *handle, void *pvt)
 {
     struct user_mod_ctx *user_ctx;
     int ret;
 
     user_ctx = talloc_get_type(pvt, struct user_mod_ctx);
-    user_ctx->sysreq = req;
+    user_ctx->handle = handle;
 
     if(user_ctx->attrs->num == 0) {
         add_to_groups(user_ctx, EOK, NULL);
     } else {
-        ret = sysdb_set_user_attr(req,
+        ret = sysdb_set_user_attr(handle,
                                   user_ctx->domain,
                                   user_ctx->username,
                                   user_ctx->attrs,
@@ -172,7 +172,7 @@ static void remove_from_groups(void *pvt, int error, struct ldb_result *ignore)
         return;
     }
 
-    ret = sysdb_remove_group_member(user_ctx->sysreq,
+    ret = sysdb_remove_group_member(user_ctx->handle,
                                     user_dn, group_dn,
                                     remove_from_groups, user_ctx);
     if (ret != EOK)
@@ -217,7 +217,7 @@ static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
         return;
     }
 
-    ret = sysdb_add_group_member(user_ctx->sysreq,
+    ret = sysdb_add_group_member(user_ctx->handle,
                                  user_dn, group_dn,
                                  add_to_groups, user_ctx);
     if (ret != EOK)

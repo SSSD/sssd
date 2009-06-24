@@ -44,7 +44,7 @@
 #endif
 
 struct group_add_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
 
     struct sss_domain_info *domain;
     struct tools_ctx *ctx;
@@ -63,22 +63,22 @@ static void add_group_done(void *pvt, int error, struct ldb_result *ignore)
 
     data->done = true;
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     if (error)
         data->error = error;
 }
 
-/* sysdb_req_fn_t */
-static void add_group(struct sysdb_req *req, void *pvt)
+/* sysdb_fn_t */
+static void add_group(struct sysdb_handle *handle, void *pvt)
 {
     struct group_add_ctx *group_ctx;
     int ret;
 
     group_ctx = talloc_get_type(pvt, struct group_add_ctx);
-    group_ctx->sysreq = req;
+    group_ctx->handle = handle;
 
-    ret = sysdb_add_group(req, group_ctx->domain,
+    ret = sysdb_add_group(handle, group_ctx->domain,
                           group_ctx->groupname,
                           group_ctx->gid,
                           add_group_done,

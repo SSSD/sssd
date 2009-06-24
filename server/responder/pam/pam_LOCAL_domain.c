@@ -49,7 +49,7 @@
 struct LOCAL_request {
     struct sysdb_ctx *dbctx;
     struct sysdb_attrs *mod_attrs;
-    struct sysdb_req *sysdb_req;
+    struct sysdb_handle *handle;
 
     struct ldb_result *res;
     int error;
@@ -95,7 +95,7 @@ static void set_user_attr_callback(void *pvt, int ldb_status, struct ldb_result 
 
     lreq = talloc_get_type(pvt, struct LOCAL_request);
 
-    sysdb_transaction_done(lreq->sysdb_req, sysdb_error_to_errno(ldb_status));
+    sysdb_transaction_done(lreq->handle, sysdb_error_to_errno(ldb_status));
 
     NEQ_CHECK_OR_JUMP(ldb_status, LDB_SUCCESS, ("set_user_attr failed.\n"),
                       lreq->error, sysdb_error_to_errno(ldb_status), done);
@@ -104,7 +104,7 @@ done:
     prepare_reply(lreq);
 }
 
-static void set_user_attr_req(struct sysdb_req *req, void *pvt)
+static void set_user_attr_req(struct sysdb_handle *handle, void *pvt)
 {
     int ret;
     struct LOCAL_request *lreq;
@@ -113,13 +113,13 @@ static void set_user_attr_req(struct sysdb_req *req, void *pvt)
 
     lreq = talloc_get_type(pvt, struct LOCAL_request);
 
-    lreq->sysdb_req = req;
+    lreq->handle = handle;
 
-    ret = sysdb_set_user_attr(req, lreq->preq->domain,
+    ret = sysdb_set_user_attr(handle, lreq->preq->domain,
                               lreq->preq->pd->user, lreq->mod_attrs,
                               set_user_attr_callback, lreq);
     if (ret != EOK)
-        sysdb_transaction_done(lreq->sysdb_req, ret);
+        sysdb_transaction_done(lreq->handle, ret);
 
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
                       lreq->error, ret, done);

@@ -121,7 +121,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 }
 
 struct test_data {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct sss_domain_info *domain;
     struct sysdb_test_ctx *ctx;
 
@@ -173,13 +173,13 @@ static void test_return(void *pvt, int error, struct ldb_result *ignore)
 
     if (error != EOK) err = "Operation failed";
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     data->error = error;
     data->finished = true;
 }
 
-static void test_add_user(struct sysdb_req *req, void *pvt)
+static void test_add_user(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
@@ -190,17 +190,17 @@ static void test_add_user(struct sysdb_req *req, void *pvt)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_add_user(req, data->domain,
+    ret = sysdb_add_user(handle, data->domain,
                          data->username, data->uid, data->gid,
                          gecos, homedir, "/bin/bash",
                          data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
 }
 
-static void test_add_legacy_user(struct sysdb_req *req, void *pvt)
+static void test_add_legacy_user(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
@@ -211,56 +211,56 @@ static void test_add_legacy_user(struct sysdb_req *req, void *pvt)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_legacy_store_user(req, data->domain, data->username, "x",
+    ret = sysdb_legacy_store_user(handle, data->domain, data->username, "x",
                                   data->uid, data->gid, gecos, homedir,
                                   "/bin/bash", data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
 }
 
-static void test_remove_user(struct sysdb_req *req, void *pvt)
+static void test_remove_user(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     struct ldb_dn *user_dn;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
     user_dn = sysdb_user_dn(ctx, data, "LOCAL", data->username);
     if (!user_dn) return test_return(data, ENOMEM, NULL);
 
-    ret = sysdb_delete_entry(req, user_dn, data->next_fn, data);
+    ret = sysdb_delete_entry(handle, user_dn, data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
 }
 
-static void test_remove_user_by_uid(struct sysdb_req *req, void *pvt)
+static void test_remove_user_by_uid(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_delete_user_by_uid(req, data->domain, data->uid,
+    ret = sysdb_delete_user_by_uid(handle, data->domain, data->uid,
                                    data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
 }
 
-static void test_add_group(struct sysdb_req *req, void *pvt)
+static void test_add_group(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_add_group(req, data->domain,
+    ret = sysdb_add_group(handle, data->domain,
                           data->groupname, data->gid,
                           data->next_fn, data);
     if (ret != EOK) {
@@ -268,16 +268,16 @@ static void test_add_group(struct sysdb_req *req, void *pvt)
     }
 }
 
-static void test_add_legacy_group(struct sysdb_req *req, void *pvt)
+static void test_add_legacy_group(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_legacy_store_group(req, data->domain,
+    ret = sysdb_legacy_store_group(handle, data->domain,
                                    data->groupname,
                                    data->gid, NULL,
                                    data->next_fn, data);
@@ -286,47 +286,47 @@ static void test_add_legacy_group(struct sysdb_req *req, void *pvt)
     }
 }
 
-static void test_remove_group(struct sysdb_req *req, void *pvt)
+static void test_remove_group(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     struct ldb_dn *group_dn;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
     group_dn = sysdb_group_dn(ctx, data, "LOCAL", data->groupname);
     if (!group_dn) return test_return(data, ENOMEM, NULL);
 
-    ret = sysdb_delete_entry(req, group_dn, data->next_fn, data);
+    ret = sysdb_delete_entry(handle, group_dn, data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
 }
 
-static void test_remove_group_by_gid(struct sysdb_req *req, void *pvt)
+static void test_remove_group_by_gid(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_delete_group_by_gid(req, data->domain, data->gid,
+    ret = sysdb_delete_group_by_gid(handle, data->domain, data->gid,
                                     data->next_fn, data);
     if (ret != EOK) test_return(data, ret, NULL);
 }
 
-static void test_add_legacy_group_member(struct sysdb_req *req, void *pvt)
+static void test_add_legacy_group_member(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_legacy_add_group_member(req, data->domain,
+    ret = sysdb_legacy_add_group_member(handle, data->domain,
                                         data->groupname,
                                         data->username,
                                         data->next_fn, data);
@@ -335,16 +335,16 @@ static void test_add_legacy_group_member(struct sysdb_req *req, void *pvt)
     }
 }
 
-static void test_remove_legacy_group_member(struct sysdb_req *req, void *pvt)
+static void test_remove_legacy_group_member(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_legacy_remove_group_member(req, data->domain,
+    ret = sysdb_legacy_remove_group_member(handle, data->domain,
                                            data->groupname,
                                            data->username,
                                            data->next_fn, data);
@@ -493,14 +493,14 @@ static void test_enumpwent(void *pvt, int error, struct ldb_result *res)
     data->error = EOK;
 }
 
-static void test_set_user_attr(struct sysdb_req *req, void *pvt)
+static void test_set_user_attr(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     int ret;
 
-    data->sysreq = req;
+    data->handle = handle;
 
-    ret = sysdb_set_user_attr(req,
+    ret = sysdb_set_user_attr(handle,
                               data->domain,
                               data->username,
                               data->attrs,
@@ -534,7 +534,7 @@ static void test_get_user_attr(void *pvt, int error, struct ldb_result *res)
     }
 }
 
-static void test_add_group_member(struct sysdb_req *req, void *pvt)
+static void test_add_group_member(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct ldb_dn *user_dn;
@@ -567,9 +567,9 @@ static void test_add_group_member(struct sysdb_req *req, void *pvt)
         test_return(data, ENOMEM, NULL);
     }
 
-    data->sysreq = req;
+    data->handle = handle;
 
-    ret = sysdb_add_group_member(req,
+    ret = sysdb_add_group_member(handle,
                                  user_dn,
                                  group_dn,
                                  test_return,
@@ -581,7 +581,7 @@ static void test_add_group_member(struct sysdb_req *req, void *pvt)
     talloc_free(tmp_ctx);
 }
 
-static void test_remove_group_member(struct sysdb_req *req, void *pvt)
+static void test_remove_group_member(struct sysdb_handle *handle, void *pvt)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
     struct ldb_dn *user_dn;
@@ -614,9 +614,9 @@ static void test_remove_group_member(struct sysdb_req *req, void *pvt)
         test_return(data, ENOMEM, NULL);
     }
 
-    data->sysreq = req;
+    data->handle = handle;
 
-    ret = sysdb_remove_group_member(req,
+    ret = sysdb_remove_group_member(handle,
                                     user_dn,
                                     group_dn,
                                     test_return,

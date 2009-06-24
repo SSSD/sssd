@@ -40,7 +40,7 @@
 #endif
 
 struct user_del_ctx {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     sysdb_callback_t next_fn;
 
     uid_t uid;
@@ -61,22 +61,22 @@ static void userdel_done(void *pvt, int error, struct ldb_result *ignore)
 
     data->done = true;
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     if (error)
         data->error = error;
 }
 
-/* sysdb_req_fn_t */
-static void user_del(struct sysdb_req *req, void *pvt)
+/* sysdb_fn_t */
+static void user_del(struct sysdb_handle *handle, void *pvt)
 {
     struct user_del_ctx *user_ctx;
     int ret;
 
     user_ctx = talloc_get_type(pvt, struct user_del_ctx);
-    user_ctx->sysreq = req;
+    user_ctx->handle = handle;
 
-    ret = sysdb_delete_entry(req,
+    ret = sysdb_delete_entry(handle,
                              user_ctx->user_dn,
                              userdel_done,
                              user_ctx);

@@ -51,12 +51,6 @@ static int authtok2str(const void *mem_ctx,
     return EOK;
 }
 
-struct set_attrs_ctx {
-    struct pam_auth_req *preq;
-    struct sysdb_req *sysreq;
-    char *password;
-};
-
 static void pam_cache_auth_return(struct pam_auth_req *preq, int error)
 {
     preq->pd->pam_status = error;

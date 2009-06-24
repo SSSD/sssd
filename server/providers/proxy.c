@@ -261,7 +261,7 @@ static void proxy_pam_handler(struct be_req *req) {
 }
 
 struct proxy_data {
-    struct sysdb_req *sysreq;
+    struct sysdb_handle *handle;
     struct proxy_ctx *ctx;
     struct be_req *req;
 
@@ -294,20 +294,20 @@ static void cache_pw_return(void *pvt, int error, struct ldb_result *ignore)
                   error, strerror(error)));
     }
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
 
     /* password caching failures are not fatal errors */
     return proxy_reply(data->req, EOK, NULL);
 }
 
-static void cache_pw_op(struct sysdb_req *req, void *pvt)
+static void cache_pw_op(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     int ret;
 
-    data->sysreq = req;
+    data->handle = handle;
 
-    ret = sysdb_set_cached_password(req,
+    ret = sysdb_set_cached_password(handle,
                                     data->req->be_ctx->domain,
                                     data->pwd->pw_name,
                                     data->pwd->pw_passwd,
@@ -365,35 +365,35 @@ static void proxy_return(void *pvt, int error, struct ldb_result *ignore)
 
     if (error != EOK) err = "Operation failed";
 
-    sysdb_transaction_done(data->sysreq, error);
+    sysdb_transaction_done(data->handle, error);
     return proxy_reply(data->req, error, err);
 }
 
-static void del_db_entry(struct sysdb_req *req, void *pvt)
+static void del_db_entry(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_delete_entry(req, data->dn, data->next_fn, data);
+    ret = sysdb_delete_entry(handle, data->dn, data->next_fn, data);
     if (ret != EOK) {
         proxy_return(data, ret, NULL);
     }
 }
 
-static void del_pw_uid(struct sysdb_req *req, void *pvt)
+static void del_pw_uid(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_delete_user_by_uid(req,
+    ret = sysdb_delete_user_by_uid(handle,
                                    data->req->be_ctx->domain,
                                    data->pwd->pw_uid,
                                    data->next_fn, data);
@@ -402,16 +402,16 @@ static void del_pw_uid(struct sysdb_req *req, void *pvt)
     }
 }
 
-static void set_pw_name(struct sysdb_req *req, void *pvt)
+static void set_pw_name(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_legacy_store_user(req, data->req->be_ctx->domain,
+    ret = sysdb_legacy_store_user(handle, data->req->be_ctx->domain,
                                   data->pwd->pw_name, data->pwd->pw_passwd,
                                   data->pwd->pw_uid, data->pwd->pw_gid,
                                   data->pwd->pw_gecos, data->pwd->pw_dir,
@@ -556,7 +556,7 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
 
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
 
-static void get_pw_entry(struct sysdb_req *req, void *pvt);
+static void get_pw_entry(struct sysdb_handle *handle, void *pvt);
 
 static void get_next_pw_entry(void *pvt, int error, struct ldb_result *ignore)
 {
@@ -564,10 +564,10 @@ static void get_next_pw_entry(void *pvt, int error, struct ldb_result *ignore)
 
     if (error != EOK) proxy_return(data, error, NULL);
 
-    get_pw_entry(data->sysreq, data);
+    get_pw_entry(data->handle, data);
 }
 
-static void get_pw_entry(struct sysdb_req *req, void *pvt)
+static void get_pw_entry(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     enum nss_status status;
@@ -575,8 +575,8 @@ static void get_pw_entry(struct sysdb_req *req, void *pvt)
     char *newb;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
 retry:
     status = data->ctx->ops.getpwent_r(data->pwd,
@@ -611,7 +611,7 @@ retry:
             goto retry; /* skip */
         }
 
-        ret = sysdb_legacy_store_user(req, data->req->be_ctx->domain,
+        ret = sysdb_legacy_store_user(handle, data->req->be_ctx->domain,
                                       data->pwd->pw_name,
                                       data->pwd->pw_passwd,
                                       data->pwd->pw_uid,
@@ -676,16 +676,16 @@ static void enum_users(struct be_req *req)
     }
 }
 
-static void del_gr_gid(struct sysdb_req *req, void *pvt)
+static void del_gr_gid(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_delete_group_by_gid(req,
+    ret = sysdb_delete_group_by_gid(handle,
                                     data->req->be_ctx->domain,
                                     data->grp->gr_gid,
                                     data->next_fn, data);
@@ -694,16 +694,16 @@ static void del_gr_gid(struct sysdb_req *req, void *pvt)
     }
 }
 
-static void set_gr_name(struct sysdb_req *req, void *pvt)
+static void set_gr_name(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     struct sysdb_ctx *ctx;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
-    ret = sysdb_legacy_store_group(req, data->req->be_ctx->domain,
+    ret = sysdb_legacy_store_group(handle, data->req->be_ctx->domain,
                                    data->grp->gr_name,
                                    data->grp->gr_gid,
                                    (const char **)data->grp->gr_mem,
@@ -845,7 +845,7 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
     }
 }
 
-static void get_gr_entry(struct sysdb_req *req, void *pvt);
+static void get_gr_entry(struct sysdb_handle *handle, void *pvt);
 
 static void get_next_gr_entry(void *pvt, int error, struct ldb_result *ignore)
 {
@@ -853,10 +853,10 @@ static void get_next_gr_entry(void *pvt, int error, struct ldb_result *ignore)
 
     if (error != EOK) proxy_return(data, error, NULL);
 
-    get_gr_entry(data->sysreq, data);
+    get_gr_entry(data->handle, data);
 }
 
-static void get_gr_entry(struct sysdb_req *req, void *pvt)
+static void get_gr_entry(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     enum nss_status status;
@@ -864,8 +864,8 @@ static void get_gr_entry(struct sysdb_req *req, void *pvt)
     char *newb;
     int ret;
 
-    data->sysreq = req;
-    ctx = sysdb_req_get_ctx(req);
+    data->handle = handle;
+    ctx = sysdb_handle_get_ctx(handle);
 
 retry:
     status = data->ctx->ops.getgrent_r(data->grp,
@@ -898,7 +898,7 @@ retry:
         if (data->grp->gr_gid == 0) {
             goto retry;
         }
-        ret = sysdb_legacy_store_group(req, data->req->be_ctx->domain,
+        ret = sysdb_legacy_store_group(handle, data->req->be_ctx->domain,
                                        data->grp->gr_name,
                                        data->grp->gr_gid,
                                        (const char **)data->grp->gr_mem,
@@ -959,7 +959,7 @@ static void enum_groups(struct be_req *req)
     }
 }
 
-static void get_gid_entry(struct sysdb_req *req, void *pvt);
+static void get_gid_entry(struct sysdb_handle *handle, void *pvt);
 
 static void get_next_gid_entry(void *pvt, int error, struct ldb_result *ignore)
 {
@@ -967,10 +967,10 @@ static void get_next_gid_entry(void *pvt, int error, struct ldb_result *ignore)
 
     if (error != EOK) proxy_return(data, error, NULL);
 
-    get_gid_entry(data->sysreq, data);
+    get_gid_entry(data->handle, data);
 }
 
-static void get_gid_entry(struct sysdb_req *req, void *pvt)
+static void get_gid_entry(struct sysdb_handle *handle, void *pvt)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
     enum nss_status status;
@@ -978,7 +978,7 @@ static void get_gid_entry(struct sysdb_req *req, void *pvt)
     char *newb;
     int ret;
 
-    ctx = sysdb_req_get_ctx(req);
+    ctx = sysdb_handle_get_ctx(handle);
 
     /* all done */
     if (data->cur == data->num)
@@ -1008,7 +1008,7 @@ retry:
         data->cur++;
         DEBUG(4, ("gid [%lu] not found, removing group\n",
                   (unsigned long)(data->groups[data->cur])));
-        ret = sysdb_delete_group_by_gid(req, data->req->be_ctx->domain,
+        ret = sysdb_delete_group_by_gid(handle, data->req->be_ctx->domain,
                                         data->groups[data->cur-1],
                                         get_next_gid_entry, data);
         if (ret != EOK) {
@@ -1020,7 +1020,7 @@ retry:
 
     case NSS_STATUS_SUCCESS:
         data->cur++;
-        ret = sysdb_legacy_store_group(req, data->req->be_ctx->domain,
+        ret = sysdb_legacy_store_group(handle, data->req->be_ctx->domain,
                                        data->grp->gr_name,
                                        data->grp->gr_gid,
                                        (const char **)data->grp->gr_mem,
@@ -1092,7 +1092,7 @@ retry:
         data->num = start;
         DEBUG(4, ("User [%s] appears to be member of %lu groups\n",
                   name, data->num));
-        get_gid_entry(data->sysreq, data);
+        get_gid_entry(data->handle, data);
         break;
 
     default:
