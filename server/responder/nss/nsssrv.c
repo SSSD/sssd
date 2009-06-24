@@ -29,6 +29,12 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
+
+/* Needed for res_init() */
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
+
 #include "popt.h"
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
@@ -49,11 +55,13 @@
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
 static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn);
 
 struct sbus_method nss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, service_identity},
     {SERVICE_METHOD_PING, service_pong},
     {SERVICE_METHOD_RELOAD, service_reload},
+    {SERVICE_METHOD_RES_INIT, service_res_init},
     {NULL, NULL}
 };
 
@@ -115,6 +123,18 @@ static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn)
      */
 
     /* Send an empty reply to acknowledge receipt */
+    return service_pong(message, sconn);
+}
+
+static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
+{
+    int ret;
+
+    ret = res_init();
+    if(ret != 0) {
+        return EIO;
+    }
+
     return service_pong(message, sconn);
 }
 

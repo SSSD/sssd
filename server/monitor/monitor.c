@@ -34,6 +34,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+/* Needed for res_init() */
+#include <netinet/in.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
+
 #include "util/util.h"
 #include "popt.h"
 #include "tevent.h"
@@ -534,11 +540,17 @@ static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
 }
 
 static int service_signal_dns_reload(struct mt_svc *svc);
-int monitor_update_resolv(struct config_file_ctx *file_ctx,
+static int monitor_update_resolv(struct config_file_ctx *file_ctx,
                           const char *filename)
 {
+    int ret;
     struct mt_svc *cur_svc;
     DEBUG(2, ("Resolv.conf has been updated. Reloading.\n"));
+
+    ret = res_init();
+    if(ret != 0) {
+        return EIO;
+    }
 
     /* Signal all services to reload their DNS configuration */
     for(cur_svc = file_ctx->mt_ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
