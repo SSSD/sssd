@@ -82,6 +82,7 @@
 #endif
 
 struct user_mod_ctx {
+    struct tevent_context *ev;
     struct sysdb_handle *handle;
 
     struct sss_domain_info *domain;
@@ -98,133 +99,214 @@ struct user_mod_ctx {
     bool done;
 };
 
-/* sysdb callback */
-static void mod_user_done(void *pvt, int error, struct ldb_result *ignore)
+static void mod_user_req_done(struct tevent_req *req)
 {
-    struct user_mod_ctx *data = talloc_get_type(pvt, struct user_mod_ctx);
+    struct user_mod_ctx *data = tevent_req_callback_data(req,
+                                                         struct user_mod_ctx);
 
+    data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
 
-    sysdb_transaction_done(data->handle, error);
-
-    if (error)
-        data->error = error;
+    talloc_zfree(data->handle);
 }
 
-static void add_to_groups(void *, int, struct ldb_result *);
-
-/* sysdb_fn_t */
-static void mod_user(struct sysdb_handle *handle, void *pvt)
+static void mod_user_done(struct user_mod_ctx *data, int error)
 {
-    struct user_mod_ctx *user_ctx;
+    struct tevent_req *req;
+
+    if (error != EOK) {
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        error = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, mod_user_req_done, data);
+
+    return;
+
+fail:
+    /* free transaction */
+    talloc_zfree(data->handle);
+
+    data->error = error;
+    data->done = true;
+}
+
+static void mod_user_attr_done(struct tevent_req *req);
+static void mod_user_cont(struct user_mod_ctx *data);
+static void remove_from_groups(struct user_mod_ctx *data);
+static void remove_from_groups_done(struct tevent_req *req);
+static void add_to_groups(struct user_mod_ctx *data);
+static void add_to_groups_done(struct tevent_req *req);
+
+static void mod_user(struct tevent_req *req)
+{
+    struct user_mod_ctx *data;
+    struct tevent_req *subreq;
     int ret;
 
-    user_ctx = talloc_get_type(pvt, struct user_mod_ctx);
-    user_ctx->handle = handle;
+    data = tevent_req_callback_data(req, struct user_mod_ctx);
 
-    if(user_ctx->attrs->num == 0) {
-        add_to_groups(user_ctx, EOK, NULL);
-    } else {
-        ret = sysdb_set_user_attr(handle,
-                                  user_ctx->domain,
-                                  user_ctx->username,
-                                  user_ctx->attrs,
-                                  add_to_groups,
-                                  user_ctx);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return mod_user_done(data, ret);
+    }
 
-        if (ret != EOK) {
-            mod_user_done(user_ctx, ret, NULL);
+    if (data->attrs->num != 0) {
+        subreq = sysdb_set_user_attr_send(data, data->ev, data->handle,
+                                          data->domain, data->username,
+                                          data->attrs, SYSDB_MOD_REP);
+        if (!subreq) {
+            return mod_user_done(data, ret);
         }
+        tevent_req_set_callback(subreq, mod_user_attr_done, data);
+        return;
     }
+
+    return mod_user_cont(data);
 }
 
-static void remove_from_groups(void *pvt, int error, struct ldb_result *ignore)
+static void mod_user_attr_done(struct tevent_req *subreq)
 {
-    struct user_mod_ctx *user_ctx = talloc_get_type(pvt, struct user_mod_ctx);
-    struct ldb_dn *group_dn;
-    struct ldb_dn *user_dn;
+    struct user_mod_ctx *data = tevent_req_callback_data(subreq,
+                                                         struct user_mod_ctx);
     int ret;
 
-    if (error) {
-        mod_user_done(pvt, error, NULL);
-        return;
+    ret = sysdb_set_user_attr_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        return mod_user_done(data, ret);
     }
 
-    /* check if we removed all of them */
-    if (user_ctx->rmgroups == NULL ||
-        user_ctx->rmgroups[user_ctx->cur] == NULL) {
-        mod_user_done(user_ctx, EOK, NULL);
-        return;
+    mod_user_cont(data);
+}
+
+static void mod_user_cont(struct user_mod_ctx *data)
+{
+    if (data->rmgroups != NULL) {
+        return remove_from_groups(data);
     }
 
-    user_dn = sysdb_user_dn(user_ctx->ctx->sysdb, user_ctx,
-                            user_ctx->domain->name, user_ctx->username);
-    if (!user_dn) {
-        mod_user_done(pvt, ENOMEM, NULL);
-        return;
+    if (data->addgroups != NULL) {
+        return add_to_groups(data);
     }
 
-    group_dn = sysdb_group_dn(user_ctx->ctx->sysdb, user_ctx,
-                              user_ctx->domain->name,
-                              user_ctx->rmgroups[user_ctx->cur]);
-    if (!group_dn) {
-        mod_user_done(pvt, ENOMEM, NULL);
-        return;
+    return mod_user_done(data, EOK);
+}
+
+static void remove_from_groups(struct user_mod_ctx *data)
+{
+    struct ldb_dn *parent_dn;
+    struct ldb_dn *member_dn;
+    struct tevent_req *req;
+
+    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->domain->name, data->username);
+    if (!member_dn) {
+        return mod_user_done(data, ENOMEM);
     }
 
-    ret = sysdb_remove_group_member(user_ctx->handle,
-                                    user_dn, group_dn,
-                                    remove_from_groups, user_ctx);
-    if (ret != EOK)
-        mod_user_done(user_ctx, ret, NULL);
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                               data->domain->name,
+                               data->rmgroups[data->cur]);
+    if (!parent_dn) {
+        return mod_user_done(data, ENOMEM);
+    }
+
+    req = sysdb_mod_group_member_send(data,
+                                      data->ev,
+                                      data->handle,
+                                      member_dn,
+                                      parent_dn,
+                                      LDB_FLAG_MOD_DELETE);
+    if (!req) {
+        return mod_user_done(data, ENOMEM);
+    }
+    tevent_req_set_callback(req, remove_from_groups_done, data);
+}
+
+static void remove_from_groups_done(struct tevent_req *req)
+{
+    struct user_mod_ctx *data = tevent_req_callback_data(req,
+                                                 struct user_mod_ctx);
+    int ret;
+
+    ret = sysdb_mod_group_member_recv(req);
+    if (ret) {
+        return mod_user_done(data, ret);
+    }
+    talloc_zfree(req);
 
     /* go on to next group */
-    user_ctx->cur++;
-}
-
-static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
-{
-    struct user_mod_ctx *user_ctx = talloc_get_type(pvt, struct user_mod_ctx);
-    struct ldb_dn *group_dn;
-    struct ldb_dn *user_dn;
-    int ret;
-
-    if (error) {
-        mod_user_done(pvt, error, NULL);
-        return;
-    }
+    data->cur++;
 
     /* check if we added all of them */
-    if (user_ctx->addgroups == NULL ||
-        user_ctx->addgroups[user_ctx->cur] == NULL) {
-        user_ctx->cur = 0;
-        remove_from_groups(user_ctx, EOK, NULL);
-        return;
+    if (data->rmgroups[data->cur] == NULL) {
+        data->cur = 0;
+        if (data->addgroups != NULL) {
+            return remove_from_groups(data);
+        }
+        return mod_user_done(data, EOK);
     }
 
-    user_dn = sysdb_user_dn(user_ctx->ctx->sysdb, user_ctx,
-                            user_ctx->domain->name, user_ctx->username);
-    if (!user_dn) {
-        mod_user_done(pvt, ENOMEM, NULL);
-        return;
+    return remove_from_groups(data);
+}
+
+static void add_to_groups(struct user_mod_ctx *data)
+{
+    struct ldb_dn *parent_dn;
+    struct ldb_dn *member_dn;
+    struct tevent_req *req;
+
+    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->domain->name, data->username);
+    if (!member_dn) {
+        return mod_user_done(data, ENOMEM);
     }
 
-    group_dn = sysdb_group_dn(user_ctx->ctx->sysdb, user_ctx,
-                              user_ctx->domain->name,
-                              user_ctx->addgroups[user_ctx->cur]);
-    if (!group_dn) {
-        mod_user_done(pvt, ENOMEM, NULL);
-        return;
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->domain->name,
+                              data->addgroups[data->cur]);
+    if (!parent_dn) {
+        return mod_user_done(data, ENOMEM);
     }
 
-    ret = sysdb_add_group_member(user_ctx->handle,
-                                 user_dn, group_dn,
-                                 add_to_groups, user_ctx);
-    if (ret != EOK)
-        mod_user_done(user_ctx, ret, NULL);
+    req = sysdb_mod_group_member_send(data,
+                                      data->ev,
+                                      data->handle,
+                                      member_dn,
+                                      parent_dn,
+                                      LDB_FLAG_MOD_ADD);
+    if (!req) {
+        return mod_user_done(data, ENOMEM);
+    }
+    tevent_req_set_callback(req, add_to_groups_done, data);
+}
+
+static void add_to_groups_done(struct tevent_req *req)
+{
+    struct user_mod_ctx *data = tevent_req_callback_data(req,
+                                                 struct user_mod_ctx);
+    int ret;
+
+    ret = sysdb_mod_group_member_recv(req);
+    if (ret) {
+        return mod_user_done(data, ret);
+    }
+    talloc_zfree(req);
 
     /* go on to next group */
-    user_ctx->cur++;
+    data->cur++;
+
+    /* check if we added all of them */
+    if (data->addgroups[data->cur] == NULL) {
+        return mod_user_done(data, EOK);
+    }
+
+    return add_to_groups(data);
 }
 
 static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
@@ -316,6 +398,7 @@ int main(int argc, const char **argv)
     struct sss_domain_info *dom;
     struct user_mod_ctx *user_ctx = NULL;
     struct tools_ctx *ctx = NULL;
+    struct tevent_req *req;
     char *groups;
     int ret;
     struct passwd *pwd_info;
@@ -494,13 +577,14 @@ int main(int argc, const char **argv)
     }
     user_ctx->domain = dom;
 
-    ret = sysdb_transaction(ctx, ctx->sysdb, mod_user, user_ctx);
-    if (ret != EOK) {
+    req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
+    if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
+    tevent_req_set_callback(req, mod_user, user_ctx);
 
     while (!user_ctx->done) {
         tevent_loop_once(ctx->ev);

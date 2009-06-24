@@ -47,6 +47,7 @@
 
 
 struct LOCAL_request {
+    struct tevent_context *ev;
     struct sysdb_ctx *dbctx;
     struct sysdb_attrs *mod_attrs;
     struct sysdb_handle *handle;
@@ -86,51 +87,89 @@ static void prepare_reply(struct LOCAL_request *lreq)
     lreq->preq->callback(lreq->preq);
 }
 
-static void set_user_attr_callback(void *pvt, int ldb_status, struct ldb_result *res)
+static void set_user_attr_done(struct tevent_req *req)
 {
     struct LOCAL_request *lreq;
+    int ret;
 
-    DEBUG(4, ("entering set_user_attr_callback, status [%d][%s]\n",
-              ldb_status, ldb_strerror(ldb_status)));
+    lreq = tevent_req_callback_data(req, struct LOCAL_request);
 
-    lreq = talloc_get_type(pvt, struct LOCAL_request);
+    ret = sysdb_transaction_commit_recv(req);
+    if (ret) {
+        DEBUG(2, ("set_user_attr failed.\n"));
+        lreq->error =ret;
+    }
 
-    sysdb_transaction_done(lreq->handle, sysdb_error_to_errno(ldb_status));
-
-    NEQ_CHECK_OR_JUMP(ldb_status, LDB_SUCCESS, ("set_user_attr failed.\n"),
-                      lreq->error, sysdb_error_to_errno(ldb_status), done);
-
-done:
     prepare_reply(lreq);
 }
 
-static void set_user_attr_req(struct sysdb_handle *handle, void *pvt)
+static void set_user_attr_req_done(struct tevent_req *subreq);
+static void set_user_attr_req(struct tevent_req *req)
 {
+    struct LOCAL_request *lreq = tevent_req_callback_data(req,
+                                                          struct LOCAL_request);
+    struct tevent_req *subreq;
     int ret;
-    struct LOCAL_request *lreq;
 
     DEBUG(4, ("entering set_user_attr_req\n"));
 
-    lreq = talloc_get_type(pvt, struct LOCAL_request);
+    ret = sysdb_transaction_recv(req, lreq, &lreq->handle);
+    if (ret) {
+        lreq->error = ret;
+        return prepare_reply(lreq);
+    }
 
-    lreq->handle = handle;
+    subreq = sysdb_set_user_attr_send(lreq, lreq->ev, lreq->handle,
+                                      lreq->preq->domain,
+                                      lreq->preq->pd->user,
+                                      lreq->mod_attrs, SYSDB_MOD_REP);
+    if (!subreq) {
+        /* cancel transaction */
+        talloc_zfree(lreq->handle);
+        lreq->error = ret;
+        return prepare_reply(lreq);
+    }
+    tevent_req_set_callback(subreq, set_user_attr_req_done, lreq);
+}
 
-    ret = sysdb_set_user_attr(handle, lreq->preq->domain,
-                              lreq->preq->pd->user, lreq->mod_attrs,
-                              set_user_attr_callback, lreq);
-    if (ret != EOK)
-        sysdb_transaction_done(lreq->handle, ret);
+static void set_user_attr_req_done(struct tevent_req *subreq)
+{
+    struct LOCAL_request *lreq = tevent_req_callback_data(subreq,
+                                                          struct LOCAL_request);
+    struct tevent_req *req;
+    int ret;
 
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
-                      lreq->error, ret, done);
+    ret = sysdb_set_user_attr_recv(subreq);
+    talloc_zfree(subreq);
+
+    DEBUG(4, ("set_user_attr_callback, status [%d][%s]\n", ret, strerror(ret)));
+
+    if (ret) {
+        lreq->error = ret;
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(lreq, lreq->ev, lreq->handle);
+    if (!req) {
+        lreq->error = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, set_user_attr_done, lreq);
 
     return;
-done:
+
+fail:
+    DEBUG(2, ("set_user_attr failed.\n"));
+
+    /* cancel transaction */
+    talloc_zfree(lreq->handle);
+
     prepare_reply(lreq);
 }
 
 static void do_successful_login(struct LOCAL_request *lreq)
 {
+    struct tevent_req *req;
     int ret;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
@@ -146,9 +185,12 @@ static void do_successful_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
-                      lreq->error, ret, done);
+    req = sysdb_transaction_send(lreq, lreq->ev, lreq->dbctx);
+    if (!req) {
+        lreq->error = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(req, set_user_attr_req, lreq);
 
     return;
 
@@ -159,6 +201,7 @@ done:
 
 static void do_failed_login(struct LOCAL_request *lreq)
 {
+    struct tevent_req *req;
     int ret;
     int failedLoginAttempts;
     struct pam_data *pd;
@@ -187,9 +230,13 @@ static void do_failed_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
-                      lreq->error, ret, done);
+    req = sysdb_transaction_send(lreq, lreq->ev, lreq->dbctx);
+    if (!req) {
+        lreq->error = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(req, set_user_attr_req, lreq);
+
     return;
 
 done:
@@ -217,6 +264,7 @@ static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
 
 static void do_pam_chauthtok(struct LOCAL_request *lreq)
 {
+    struct tevent_req *req;
     int ret;
     char *newauthtok;
     char *salt;
@@ -261,9 +309,13 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_transaction(lreq, lreq->dbctx, set_user_attr_req, lreq);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_transaction failed.\n"),
-                      lreq->error, ret, done);
+    req = sysdb_transaction_send(lreq, lreq->ev, lreq->dbctx);
+    if (!req) {
+        lreq->error = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(req, set_user_attr_req, lreq);
+
     return;
 done:
 
@@ -408,6 +460,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     }
 
     lreq->dbctx = preq->cctx->rctx->sysdb;
+    lreq->ev = preq->cctx->ev;
     lreq->preq = preq;
 
     preq->pd->pam_status = PAM_SUCCESS;

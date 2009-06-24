@@ -144,7 +144,6 @@ SSSD_UTIL_OBJ = \
     confdb/confdb.c \
     db/sysdb.c \
     db/sysdb_ops.c \
-    db/sysdb_req.c \
     db/sysdb_search.c \
     monitor/monitor_sbus.c \
     providers/dp_auth_util.c \

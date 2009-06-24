@@ -26,7 +26,7 @@
 #include <popt.h>
 #include "util/util.h"
 #include "confdb/confdb_setup.h"
-#include "db/sysdb.h"
+#include "db/sysdb_private.h"
 
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
@@ -84,6 +84,23 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
+    val[0] = "foo";
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "provider", val);
+    if (ret != EOK) {
+        fail("Could not initialize domains placeholder");
+        talloc_free(test_ctx);
+        return ret;
+    }
+/*
+    val[0] = "TRUE";
+    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "legacy", val);
+    if (ret != EOK) {
+        fail("Could not initialize LOCAL domain");
+        talloc_free(test_ctx);
+        return ret;
+    }
+*/
+/*
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "magicPrivateGroups", val);
     if (ret != EOK) {
@@ -91,7 +108,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         talloc_free(test_ctx);
         return ret;
     }
-
+*/
     val[0] = "3";
     ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "enumerate", val);
     if (ret != EOK) {
@@ -121,6 +138,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 }
 
 struct test_data {
+    struct tevent_context *ev;
     struct sysdb_handle *handle;
     struct sss_domain_info *domain;
     struct sysdb_test_ctx *ctx;
@@ -129,8 +147,6 @@ struct test_data {
     const char *groupname;
     uid_t uid;
     gid_t gid;
-
-    sysdb_callback_t next_fn;
 
     bool finished;
     int error;
@@ -166,191 +182,319 @@ static int test_loop(struct test_data *data)
     return data->error;
 }
 
-static void test_return(void *pvt, int error, struct ldb_result *ignore)
+static void test_req_done(struct tevent_req *req)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    const char *err = "Success";
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
 
-    if (error != EOK) err = "Operation failed";
+    data->error = sysdb_transaction_commit_recv(req);
+    data->finished = true;
+}
 
-    sysdb_transaction_done(data->handle, error);
+static void test_return(struct test_data *data, int error)
+{
+    struct tevent_req *req;
+
+    if (error != EOK) {
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        error = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, test_req_done, data);
+
+    return;
+
+fail:
+    /* free transaction */
+    talloc_zfree(data->handle);
 
     data->error = error;
     data->finished = true;
 }
 
-static void test_add_user(struct sysdb_handle *handle, void *pvt)
+static void test_add_user_done(struct tevent_req *subreq);
+
+static void test_add_user(struct tevent_req *subreq)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
     char *homedir;
     char *gecos;
     int ret;
 
+    ret = sysdb_transaction_recv(subreq, data, &data->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_add_user(handle, data->domain,
-                         data->username, data->uid, data->gid,
-                         gecos, homedir, "/bin/bash",
-                         data->next_fn, data);
-    if (ret != EOK) test_return(data, ret, NULL);
+    subreq = sysdb_add_user_send(data, data->ev, data->handle,
+                                 data->domain, data->username,
+                                 data->uid, data->gid,
+                                 gecos, homedir, "/bin/bash",
+                                 NULL);
+    if (!subreq) {
+        return test_return(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, test_add_user_done, data);
 }
 
-static void test_add_legacy_user(struct sysdb_handle *handle, void *pvt)
+static void test_add_user_done(struct tevent_req *subreq)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_add_user_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_store_user_done(struct tevent_req *subreq);
+
+static void test_store_user(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
     char *homedir;
     char *gecos;
     int ret;
 
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_legacy_store_user(handle, data->domain, data->username, "x",
-                                  data->uid, data->gid, gecos, homedir,
-                                  "/bin/bash", data->next_fn, data);
-    if (ret != EOK) test_return(data, ret, NULL);
+    subreq = sysdb_store_user_send(data, data->ev, data->handle,
+                                  data->domain, data->username, "x",
+                                  data->uid, data->gid,
+                                  gecos, homedir, "/bin/bash");
+    if (!subreq) {
+        test_return(data, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, test_store_user_done, data);
 }
 
-static void test_remove_user(struct sysdb_handle *handle, void *pvt)
+static void test_store_user_done(struct tevent_req *subreq)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_store_user_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_remove_user_done(struct tevent_req *subreq);
+
+static void test_remove_user(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
     struct ldb_dn *user_dn;
+    struct tevent_req *subreq;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    user_dn = sysdb_user_dn(ctx, data, "LOCAL", data->username);
-    if (!user_dn) return test_return(data, ENOMEM, NULL);
-
-    ret = sysdb_delete_entry(handle, user_dn, data->next_fn, data);
-    if (ret != EOK) test_return(data, ret, NULL);
-}
-
-static void test_remove_user_by_uid(struct sysdb_handle *handle, void *pvt)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
-    int ret;
-
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_delete_user_by_uid(handle, data->domain, data->uid,
-                                   data->next_fn, data);
-    if (ret != EOK) test_return(data, ret, NULL);
-}
-
-static void test_add_group(struct sysdb_handle *handle, void *pvt)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
-    int ret;
-
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_add_group(handle, data->domain,
-                          data->groupname, data->gid,
-                          data->next_fn, data);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
-        test_return(data, ret, NULL);
+        return test_return(data, ret);
     }
+
+    user_dn = sysdb_user_dn(data->ctx->sysdb, data, "LOCAL", data->username);
+    if (!user_dn) return test_return(data, ENOMEM);
+
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_remove_user_done, data);
 }
 
-static void test_add_legacy_group(struct sysdb_handle *handle, void *pvt)
+static void test_remove_user_done(struct tevent_req *subreq)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
+    ret = sysdb_delete_entry_recv(subreq);
+    talloc_zfree(subreq);
 
-    ret = sysdb_legacy_store_group(handle, data->domain,
-                                   data->groupname,
-                                   data->gid, NULL,
-                                   data->next_fn, data);
-    if (ret != EOK) {
-        test_return(data, ret, NULL);
-    }
+    return test_return(data, ret);
 }
 
-static void test_remove_group(struct sysdb_handle *handle, void *pvt)
+static void test_remove_user_by_uid_done(struct tevent_req *subreq);
+
+static void test_remove_user_by_uid(struct tevent_req *req)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_delete_user_by_uid_send(data,
+                                           data->ev, data->handle,
+                                           data->domain, data->uid);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_remove_user_by_uid_done, data);
+}
+
+static void test_remove_user_by_uid_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_delete_user_by_uid_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_add_group_done(struct tevent_req *subreq);
+
+static void test_add_group(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req,
+                                                      struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_add_group_send(data, data->ev, data->handle,
+                                  data->domain, data->groupname,
+                                  data->gid, NULL);
+    if (!subreq) {
+        test_return(data, ret);
+    }
+    tevent_req_set_callback(subreq, test_add_group_done, data);
+}
+
+static void test_add_group_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_add_group_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_store_group_done(struct tevent_req *subreq);
+
+static void test_store_group(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_store_group_send(data, data->ev, data->handle,
+                                    data->domain, data->groupname,
+                                    data->gid, NULL);
+    if (!subreq) {
+        test_return(data, ret);
+    }
+    tevent_req_set_callback(subreq, test_store_group_done, data);
+}
+
+static void test_store_group_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_store_group_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_remove_group_done(struct tevent_req *subreq);
+
+static void test_remove_group(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
     struct ldb_dn *group_dn;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    group_dn = sysdb_group_dn(ctx, data, "LOCAL", data->groupname);
-    if (!group_dn) return test_return(data, ENOMEM, NULL);
-
-    ret = sysdb_delete_entry(handle, group_dn, data->next_fn, data);
-    if (ret != EOK) test_return(data, ret, NULL);
-}
-
-static void test_remove_group_by_gid(struct sysdb_handle *handle, void *pvt)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
-    int ret;
-
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_delete_group_by_gid(handle, data->domain, data->gid,
-                                    data->next_fn, data);
-    if (ret != EOK) test_return(data, ret, NULL);
-}
-
-static void test_add_legacy_group_member(struct sysdb_handle *handle, void *pvt)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
-    int ret;
-
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_legacy_add_group_member(handle, data->domain,
-                                        data->groupname,
-                                        data->username,
-                                        data->next_fn, data);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
-        test_return(data, ret, NULL);
+        return test_return(data, ret);
     }
+
+    group_dn = sysdb_group_dn(data->ctx->sysdb, data, "LOCAL", data->groupname);
+    if (!group_dn) return test_return(data, ENOMEM);
+
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_remove_group_done, data);
 }
 
-static void test_remove_legacy_group_member(struct sysdb_handle *handle, void *pvt)
+static void test_remove_group_done(struct tevent_req *subreq)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct sysdb_ctx *ctx;
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
+    ret = sysdb_delete_entry_recv(subreq);
+    talloc_zfree(subreq);
 
-    ret = sysdb_legacy_remove_group_member(handle, data->domain,
-                                           data->groupname,
-                                           data->username,
-                                           data->next_fn, data);
+    return test_return(data, ret);
+}
+
+static void test_remove_group_by_gid_done(struct tevent_req *subreq);
+static void test_remove_group_by_gid(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
-        test_return(data, ret, NULL);
+        return test_return(data, ret);
     }
+
+    subreq = sysdb_delete_group_by_gid_send(data, data->ev, data->handle,
+                                            data->domain, data->gid);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_remove_group_by_gid_done, data);
+}
+
+static void test_remove_group_by_gid_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_delete_group_by_gid_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
 }
 
 static void test_getpwent(void *pvt, int error, struct ldb_result *res)
@@ -456,7 +600,8 @@ static void test_getpwuid(void *pvt, int error, struct ldb_result *res)
 static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
-    const int expected = 30; /* 15 groups + 15 users (we're MPG) */
+/*    const int expected = 30; /* 15 groups + 15 users (we're MPG) */
+    const int expected = 15;
 
     data->finished = true;
 
@@ -493,20 +638,36 @@ static void test_enumpwent(void *pvt, int error, struct ldb_result *res)
     data->error = EOK;
 }
 
-static void test_set_user_attr(struct sysdb_handle *handle, void *pvt)
+static void test_set_user_attr_done(struct tevent_req *subreq);
+static void test_set_user_attr(struct tevent_req *req)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
     int ret;
 
-    data->handle = handle;
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
 
-    ret = sysdb_set_user_attr(handle,
-                              data->domain,
-                              data->username,
-                              data->attrs,
-                              data->next_fn,
-                              data);
-    if (ret != EOK) test_return(data, ret, NULL);
+    subreq = sysdb_set_user_attr_send(data, data->ev, data->handle,
+                                      data->domain, data->username,
+                                      data->attrs, SYSDB_MOD_REP);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_set_user_attr_done, data);
+}
+
+static void test_set_user_attr_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_set_user_attr_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
 }
 
 static void test_get_user_attr(void *pvt, int error, struct ldb_result *res)
@@ -534,105 +695,87 @@ static void test_get_user_attr(void *pvt, int error, struct ldb_result *res)
     }
 }
 
-static void test_add_group_member(struct sysdb_handle *handle, void *pvt)
+static void test_add_group_member_done(struct tevent_req *subreq);
+
+static void test_add_group_member(struct tevent_req *req)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct ldb_dn *user_dn;
-    struct ldb_dn *group_dn;
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
     const char *username;
     int ret;
-    TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        test_return(data, ENOMEM, NULL);
-    }
-
-    username = talloc_asprintf(tmp_ctx, "testuser%d", data->uid);
-    if (username == NULL) {
-        test_return(data, ENOMEM, NULL);
-    }
-    user_dn = sysdb_user_dn(data->ctx->sysdb,
-                            data,
-                            data->domain->name,
-                            username);
-    if (user_dn == NULL) {
-        test_return(data, ENOMEM, NULL);
-    }
-    group_dn = sysdb_group_dn(data->ctx->sysdb,
-                              data,
-                              data->domain->name,
-                              data->groupname);
-    if (group_dn == NULL) {
-        test_return(data, ENOMEM, NULL);
-    }
-
-    data->handle = handle;
-
-    ret = sysdb_add_group_member(handle,
-                                 user_dn,
-                                 group_dn,
-                                 test_return,
-                                 data);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
-        talloc_free(tmp_ctx);
-        test_return(data, ret, NULL);
+        return test_return(data, ret);
     }
-    talloc_free(tmp_ctx);
+
+    username = talloc_asprintf(data, "testuser%d", data->uid);
+    if (username == NULL) {
+        test_return(data, ENOMEM);
+    }
+
+    subreq = sysdb_add_group_member_send(data, data->ev,
+                                         data->handle, data->domain,
+                                         data->groupname, username);
+    if (!subreq) {
+        test_return(data, ENOMEM);
+    }
+
+    tevent_req_set_callback(subreq, test_add_group_member_done, data);
 }
 
-static void test_remove_group_member(struct sysdb_handle *handle, void *pvt)
+static void test_add_group_member_done(struct tevent_req *subreq)
 {
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    struct ldb_dn *user_dn;
-    struct ldb_dn *group_dn;
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret = sysdb_add_group_member_recv(subreq);
+
+    test_return(data, ret);
+}
+
+static void test_remove_group_member_done(struct tevent_req *subreq);
+
+static void test_remove_group_member(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
     const char *username;
     int ret;
-    TALLOC_CTX *tmp_ctx;
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        test_return(data, ENOMEM, NULL);
-    }
-
-    username = talloc_asprintf(tmp_ctx, "testuser%d", data->uid);
-    if (username == NULL) {
-        test_return(data, ENOMEM, NULL);
-    }
-    user_dn = sysdb_user_dn(data->ctx->sysdb,
-                            data,
-                            data->domain->name,
-                            username);
-    if (user_dn == NULL) {
-        test_return(data, ENOMEM, NULL);
-    }
-    group_dn = sysdb_group_dn(data->ctx->sysdb,
-                              data,
-                              data->domain->name,
-                              username);
-    if (group_dn == NULL) {
-        test_return(data, ENOMEM, NULL);
-    }
-
-    data->handle = handle;
-
-    ret = sysdb_remove_group_member(handle,
-                                    user_dn,
-                                    group_dn,
-                                    test_return,
-                                    data);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
-        talloc_free(tmp_ctx);
-        test_return(data, ret, NULL);
+        return test_return(data, ret);
     }
 
-    talloc_free(tmp_ctx);
+    username = talloc_asprintf(data, "testuser%d", data->uid);
+    if (username == NULL) {
+        test_return(data, ENOMEM);
+    }
+
+    subreq = sysdb_remove_group_member_send(data, data->ev,
+                                            data->handle, data->domain,
+                                            data->groupname, username);
+    if (!subreq) {
+        test_return(data, ENOMEM);
+    }
+
+    tevent_req_set_callback(subreq, test_remove_group_member_done, data);
 }
 
-START_TEST (test_sysdb_store_legacy_user)
+static void test_remove_group_member_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret = sysdb_remove_group_member_recv(subreq);
+
+    test_return(data, ret);
+}
+
+START_TEST (test_sysdb_store_user)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -644,15 +787,20 @@ START_TEST (test_sysdb_store_legacy_user)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
     data->uid = _i;
     data->gid = _i;
-    data->next_fn = test_return;
     data->username = talloc_asprintf(data, "testuser%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_add_legacy_user, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_store_user, data);
+
         ret = test_loop(data);
     }
 
@@ -661,10 +809,11 @@ START_TEST (test_sysdb_store_legacy_user)
 }
 END_TEST
 
-START_TEST (test_sysdb_store_legacy_group)
+START_TEST (test_sysdb_store_group)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -676,14 +825,19 @@ START_TEST (test_sysdb_store_legacy_group)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
     data->gid = _i;
-    data->next_fn = test_return;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_add_legacy_group, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_store_group, data);
+
         ret = test_loop(data);
     }
 
@@ -692,318 +846,11 @@ START_TEST (test_sysdb_store_legacy_group)
 }
 END_TEST
 
-START_TEST (test_sysdb_get_local_group)
-{
-    int ret;
-    struct sysdb_test_ctx *test_ctx;
-    struct ldb_result *res;
-    struct ldb_dn *base_group_dn;
-    const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
-    const char *name;
-    char *expected_group;
-    gid_t test_gid;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    expected_group = talloc_asprintf(test_ctx, "testgroup%d", _i);
-    fail_if(expected_group == NULL, "Could not allocate expected_group");
-
-    /* Set up the base DN */
-    base_group_dn = ldb_dn_new_fmt(test_ctx, sysdb_ctx_get_ldb(test_ctx->sysdb),
-                                   SYSDB_TMPL_GROUP_BASE, "LOCAL");
-    if (base_group_dn == NULL) {
-        fail("Could not create basedn for LOCAL groups");
-        return;
-    }
-
-    /* Look up the group by gid */
-    ret = ldb_search(sysdb_ctx_get_ldb(test_ctx->sysdb), test_ctx,
-                     &res, base_group_dn, LDB_SCOPE_ONELEVEL,
-                     attrs, SYSDB_GRGID_FILTER, (unsigned long)_i);
-    if (ret != LDB_SUCCESS) {
-        fail("Could not locate group %d", _i);
-        return;
-    }
-
-    if (res->count < 1) {
-        fail("Local group %d doesn't exist.\n", _i);
-        return;
-    }
-    else if (res->count > 1) {
-        fail("More than one group shared gid %d", _i);
-        return;
-    }
-
-    name = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
-    fail_unless(strcmp(name, expected_group) == 0,
-                "Returned group name was %s, expecting %s",
-                name, expected_group);
-    talloc_free(res);
-
-    /* Look up the group by name */
-    ret = ldb_search(sysdb_ctx_get_ldb(test_ctx->sysdb), test_ctx,
-                     &res, base_group_dn, LDB_SCOPE_ONELEVEL,
-                     attrs, SYSDB_GRNAM_FILTER, expected_group);
-    if (ret != LDB_SUCCESS) {
-        fail("Could not locate group %d", _i);
-        return;
-    }
-
-    if (res->count < 1) {
-        fail("Local group %s doesn't exist.", expected_group);
-        return;
-    }
-    else if (res->count > 1) {
-        fail("More than one group shared name %s", expected_group);
-        return;
-    }
-
-    test_gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
-    fail_unless(test_gid == _i,
-                "Returned group id was %lu, expecting %lu",
-                test_gid, _i);
-
-    talloc_free(test_ctx);
-}
-END_TEST
-
-START_TEST (test_sysdb_add_legacy_group_member)
-{
-    struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
-    int ret;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->next_fn = test_return;
-    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
-    data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
-
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_add_legacy_group_member, data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
-    fail_if(ret != EOK, "Failed to add user %s to group %s.",
-                        data->username, data->groupname);
-    talloc_free(test_ctx);
-}
-END_TEST
-
-START_TEST (test_sysdb_verify_legacy_group_members)
-{
-    char found_group;
-    int ret, i;
-    struct sysdb_test_ctx *test_ctx;
-    char *username;
-    char *groupname;
-    struct ldb_dn *group_dn;
-    struct ldb_dn *user_dn;
-    struct ldb_result *res;
-    struct ldb_message_element *el;
-    const char *group_attrs[] = { SYSDB_LEGACY_MEMBER, NULL };
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    username = talloc_asprintf(test_ctx, "testuser%d", _i);
-    fail_if (username == NULL, "Could not allocate username");
-
-    user_dn = sysdb_user_dn(test_ctx->sysdb, test_ctx, "LOCAL", username);
-    fail_if(user_dn == NULL, "Could not create user_dn object");
-
-    groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
-    fail_if (groupname == NULL, "Could not allocate groupname");
-
-    group_dn = sysdb_group_dn(test_ctx->sysdb, test_ctx, "LOCAL", groupname);
-    fail_if(group_dn == NULL, "Could not create group_dn object");
-
-    /* Look up the group by name */
-    ret = ldb_search(sysdb_ctx_get_ldb(test_ctx->sysdb), test_ctx,
-                     &res, group_dn, LDB_SCOPE_BASE,
-                     group_attrs, SYSDB_GRNAM_FILTER, groupname);
-    if (ret != LDB_SUCCESS) {
-        fail("Could not locate group %d", _i);
-        return;
-    }
-
-    if (res->count < 1) {
-        fail("Local group %s doesn't exist.", groupname);
-        return;
-    }
-    else if (res->count > 1) {
-        fail("More than one group shared name testgroup");
-        return;
-    }
-
-    /* Check the members for the requested user */
-    found_group = i = 0;
-    el = ldb_msg_find_element(res->msgs[0], SYSDB_LEGACY_MEMBER);
-    if (el && el->num_values > 0) {
-        while (i < el->num_values && !found_group) {
-            struct ldb_val v = el->values[i];
-            char *value = talloc_strndup(test_ctx, (char *)v.data, v.length);
-            if (strcmp(value, username) == 0) {
-                found_group = 1;
-            }
-            talloc_free(value);
-            i++;
-        }
-    }
-    else {
-        fail("No member attributes for group testgroup");
-    }
-
-    fail_unless(found_group == 1, "testgroup does not have %s as a member",
-                                  username);
-}
-END_TEST
-
-#if 0
-START_TEST (test_sysdb_add_invalid_member)
-{
-    char found_group;
-    int ret, i;
-    struct sysdb_test_ctx *test_ctx;
-    char *username;
-    char *member;
-    char *group;
-    char *group_name;
-    struct ldb_dn *group_dn;
-    struct ldb_result *res;
-    struct ldb_message_element *el;
-    const char *group_attrs[] = { SYSDB_MEMBER, NULL };
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    group_name = talloc_asprintf(test_ctx, "testgroup%d", _i);
-    group = talloc_asprintf(test_ctx,
-                            SYSDB_NAME"=%s,"SYSDB_TMPL_GROUP_BASE,
-                            group_name, "LOCAL");
-    fail_if(group == NULL, "Could not allocate group dn");
-
-    /* Add nonexistent user to test group */
-    username = talloc_asprintf(test_ctx, "nonexistentuser%d", _i);
-    ret = sysdb_add_user_to_group(test_ctx,
-                                            test_ctx->sysdb,
-                                            "LOCAL",
-                                            group,
-                                            username);
-    fail_if(ret == EOK,
-            "Unexpected success adding user %s to group testgroup."
-            "Error was: %d", username, ret);
-
-/* Verify that the member wasn't added anyway */
-
-    member = talloc_asprintf(test_ctx,
-                             SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE,
-                             username, "LOCAL");
-    fail_if(member == NULL, "Could not allocate member dn");
-
-    group_dn = ldb_dn_new_fmt(test_ctx, sysdb_ctx_get_ldb(test_ctx->sysdb), group);
-    fail_if(group_dn == NULL, "Could not create group_dn object");
-
-    /* Look up the group by name */
-    ret = ldb_search(sysdb_ctx_get_ldb(test_ctx->sysdb), test_ctx,
-                     &res, group_dn, LDB_SCOPE_BASE,
-                     group_attrs, SYSDB_GRNAM_FILTER, group_name);
-    if (ret != LDB_SUCCESS) {
-        fail("Could not locate group %d", _i);
-        return;
-    }
-
-    if (res->count < 1) {
-        fail("Local group %s doesn't exist.", group_name);
-        return;
-    }
-    else if (res->count > 1) {
-        fail("More than one group shared name %s", group_name);
-        return;
-    }
-
-    /* Check the members for the requested user */
-    found_group = i = 0;
-    el = ldb_msg_find_element(res->msgs[0], SYSDB_MEMBER);
-    if (el && el->num_values > 0) {
-        while (i < el->num_values && !found_group) {
-            struct ldb_val v = el->values[i];
-            char *value = talloc_strndup(test_ctx, (char *)v.data, v.length);
-            if (strcmp(value, member) == 0) {
-                found_group = 1;
-            }
-            talloc_free(value);
-            i++;
-        }
-    }
-    else {
-        fail("No member attributes for group testgroup");
-    }
-
-    fail_if(found_group == 1, "testgroup has added %s as a member", username);
-    talloc_free(test_ctx);
-}
-END_TEST
-#endif
-
-START_TEST (test_sysdb_remove_legacy_group_member)
-{
-    struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
-    int ret;
-
-    /* Setup */
-    ret = setup_sysdb_tests(&test_ctx);
-    if (ret != EOK) {
-        fail("Could not set up the test");
-        return;
-    }
-
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->next_fn = test_return;
-    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
-    data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
-
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_remove_legacy_group_member, data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
-    fail_if(ret != EOK, "Failed to remove user %s to group %s.",
-                        data->username, data->groupname, ret);
-    talloc_free(test_ctx);
-}
-END_TEST
-
 START_TEST (test_sysdb_remove_local_user)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1015,12 +862,17 @@ START_TEST (test_sysdb_remove_local_user)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_return;
+    data->ev = test_ctx->ev;
     data->username = talloc_asprintf(data, "testuser%d", _i);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_remove_user, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_user, data);
+
         ret = test_loop(data);
     }
 
@@ -1033,6 +885,7 @@ START_TEST (test_sysdb_remove_local_user_by_uid)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1044,13 +897,18 @@ START_TEST (test_sysdb_remove_local_user_by_uid)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_return;
+    data->ev = test_ctx->ev;
     data->uid = _i;
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_remove_user_by_uid, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_user_by_uid, data);
+
         ret = test_loop(data);
     }
 
@@ -1063,6 +921,7 @@ START_TEST (test_sysdb_remove_local_group)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1074,12 +933,17 @@ START_TEST (test_sysdb_remove_local_group)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_return;
+    data->ev = test_ctx->ev;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_remove_group, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_group, data);
+
         ret = test_loop(data);
     }
 
@@ -1092,6 +956,7 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1103,13 +968,18 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_return;
+    data->ev = test_ctx->ev;
     data->gid = _i;
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_remove_group_by_gid, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_group_by_gid, data);
+
         ret = test_loop(data);
     }
 
@@ -1122,6 +992,7 @@ START_TEST (test_sysdb_add_user)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *subreq;
     int ret;
 
     /* Setup */
@@ -1133,16 +1004,20 @@ START_TEST (test_sysdb_add_user)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-
+    data->ev = test_ctx->ev;
     data->uid = _i;
     data->gid = _i;
-    data->next_fn = test_return;
     data->username = talloc_asprintf(data, "testuser%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_add_user, data);
+    subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_add_user, data);
+
         ret = test_loop(data);
     }
 
@@ -1155,6 +1030,7 @@ START_TEST (test_sysdb_add_group)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *subreq;
     int ret;
 
     /* Setup */
@@ -1166,16 +1042,20 @@ START_TEST (test_sysdb_add_group)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-
+    data->ev = test_ctx->ev;
     data->uid = _i;
     data->gid = _i;
-    data->next_fn = test_return;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_add_group, data);
+    subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_add_group, data);
+
         ret = test_loop(data);
     }
 
@@ -1199,7 +1079,6 @@ START_TEST (test_sysdb_getpwnam)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_getpwent;
     data->username = talloc_asprintf(data, "testuser%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
 
@@ -1207,18 +1086,20 @@ START_TEST (test_sysdb_getpwnam)
                          test_ctx->sysdb,
                          data->domain,
                          data->username,
-                         data->next_fn,
+                         test_getpwent,
                          data);
     if (ret == EOK) {
         ret = test_loop(data);
     }
 
-    fail_unless(ret == EOK,
-                "sysdb_getpwnam failed for username %d (%s)",
-                data->username, ret, strerror(ret));
+    if (ret) {
+        fail("sysdb_getpwnam failed for username %s (%d: %s)",
+             data->username, ret, strerror(ret));
+        goto done;
+    }
     fail_unless(data->uid == _i,
                 "Did not find the expected UID");
-
+done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1238,7 +1119,6 @@ START_TEST (test_sysdb_getgrnam)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_getgrent;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
 
@@ -1246,19 +1126,21 @@ START_TEST (test_sysdb_getgrnam)
                          test_ctx->sysdb,
                          data->domain,
                          data->groupname,
-                         data->next_fn,
+                         test_getgrent,
                          data);
     if (ret == EOK) {
         ret = test_loop(data);
     }
 
-    fail_unless(ret == EOK,
-                "sysdb_getgrnam failed for groupname %s (%d: %s)",
-                data->groupname, ret, strerror(ret));
+    if (ret) {
+        fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
+             data->groupname, ret, strerror(ret));
+        goto done;
+    }
     fail_unless(data->gid == _i,
                 "Did not find the expected GID (found %d expected %d)",
                 data->gid, _i);
-
+done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1285,7 +1167,6 @@ START_TEST (test_sysdb_getgrgid)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_getgrgid;
     data->gid = _i;
     data->domain = get_local_domain(test_ctx->domains);
 
@@ -1293,19 +1174,21 @@ START_TEST (test_sysdb_getgrgid)
                          test_ctx->sysdb,
                          data->domain,
                          data->gid,
-                         data->next_fn,
+                         test_getgrgid,
                          data);
     if (ret == EOK) {
         ret = test_loop(data);
     }
 
-    fail_unless(ret == EOK,
-                "sysdb_getgrgid failed for gid %d (%d: %s)",
-                data->gid, ret, strerror(ret));
+    if (ret) {
+        fail("sysdb_getgrgid failed for gid %d (%d: %s)",
+             data->gid, ret, strerror(ret));
+        goto done;
+    }
     fail_unless(strcmp(data->groupname, groupname) == 0,
                 "Did not find the expected groupname (found %s expected %s)",
                 data->groupname, groupname);
-
+done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1332,7 +1215,6 @@ START_TEST (test_sysdb_getpwuid)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_getpwuid;
     data->uid = _i;
     data->domain = get_local_domain(test_ctx->domains);
 
@@ -1340,19 +1222,22 @@ START_TEST (test_sysdb_getpwuid)
                          test_ctx->sysdb,
                          data->domain,
                          data->uid,
-                         data->next_fn,
+                         test_getpwuid,
                          data);
     if (ret == EOK) {
         ret = test_loop(data);
     }
 
-    fail_unless(ret == EOK,
-                "sysdb_getpwuid failed for uid %d (%d: %s)",
-                data->uid, ret, strerror(ret));
+    if (ret) {
+        fail("sysdb_getpwuid failed for uid %d (%d: %s)",
+             data->uid, ret, strerror(ret));
+        goto done;
+    }
+
     fail_unless(strcmp(data->username, username) == 0,
                 "Did not find the expected username (found %s expected %s)",
                 data->username, username);
-
+done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1372,13 +1257,12 @@ START_TEST (test_sysdb_enumgrent)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_enumgrent;
     data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_enumgrent(test_ctx,
                          test_ctx->sysdb,
                          data->domain,
-                         data->next_fn,
+                         test_enumgrent,
                          data);
     if (ret == EOK) {
         ret = test_loop(data);
@@ -1407,14 +1291,13 @@ START_TEST (test_sysdb_enumpwent)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->next_fn = test_enumpwent;
     data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_enumpwent(test_ctx,
                           test_ctx->sysdb,
                           data->domain,
                           NULL,
-                          data->next_fn,
+                          test_enumpwent,
                           data);
     if (ret == EOK) {
         ret = test_loop(data);
@@ -1433,6 +1316,7 @@ START_TEST (test_sysdb_set_user_attr)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1444,9 +1328,9 @@ START_TEST (test_sysdb_set_user_attr)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
     data->username = talloc_asprintf(data, "testuser%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
-    data->next_fn = test_return;
 
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
@@ -1462,9 +1346,14 @@ START_TEST (test_sysdb_set_user_attr)
         return;
     }
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_set_user_attr, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_set_user_attr, data);
+
         ret = test_loop(data);
     }
 
@@ -1492,24 +1381,26 @@ START_TEST (test_sysdb_get_user_attr)
     data->ctx = test_ctx;
     data->username = talloc_asprintf(data, "testuser%d", _i);
     data->domain = get_local_domain(test_ctx->domains);
-    data->next_fn = test_get_user_attr;
 
     ret = sysdb_get_user_attr(data,
                               data->ctx->sysdb,
                               data->domain,
                               data->username,
                               attrs,
-                              data->next_fn,
+                              test_get_user_attr,
                               data);
     if (ret == EOK) {
         ret = test_loop(data);
     }
 
-    fail_if(ret != EOK, "Could not get attributes for user %s", data->username);
+    if (ret) {
+        fail("Could not get attributes for user %s", data->username);
+        goto done;
+    }
     fail_if(strcmp(data->attrval, "/bin/ksh"),
             "Got bad attribute value for user %s",
             data->username);
-
+done:
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1518,6 +1409,7 @@ START_TEST (test_sysdb_add_group_member)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1529,14 +1421,19 @@ START_TEST (test_sysdb_add_group_member)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->uid = _i - 1000; /* the UID of user to add */
     data->domain = get_local_domain(test_ctx->domains);
-    data->next_fn = test_return;
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_add_group_member, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_add_group_member, data);
+
         ret = test_loop(data);
     }
 
@@ -1549,6 +1446,7 @@ START_TEST (test_sysdb_remove_group_member)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -1560,13 +1458,19 @@ START_TEST (test_sysdb_remove_group_member)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->uid = _i - 1000; /* the UID of user to add */
     data->domain = get_local_domain(test_ctx->domains);
 
-    ret = sysdb_transaction(data, test_ctx->sysdb,
-                            test_remove_group_member, data);
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
     if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_group_member, data);
+
         ret = test_loop(data);
     }
 
@@ -1581,28 +1485,16 @@ Suite *create_sysdb_suite(void)
     TCase *tc_sysdb = tcase_create("SYSDB Tests");
 
     /* Create a new user (legacy) */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_store_legacy_user,27000,27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_user,27000,27010);
 
     /* Verify the users were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwnam, 27000, 27010);
 
     /* Create a new group (legacy) */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_store_legacy_group,27000,27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_group,27000,27010);
 
     /* Verify the groups were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getgrnam, 27000, 27010);
-
-    /* Add users to the group */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_legacy_group_member, 27000, 27010);
-
-    /* Verify member and memberOf */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_verify_legacy_group_members, 27000, 27010);
-#if 0
-    /* A negative test: add nonexistent users as members of a group */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_invalid_member, 27000, 27010);
-#endif
-    /* Remove users from their groups */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_legacy_group_member, 27000, 27010);
 
     /* Remove the other half by gid */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 27000, 27005);

@@ -656,6 +656,7 @@ done:
 }
 
 struct sdap_pw_cache {
+    struct tevent_context *ev;
     struct sysdb_handle *handle;
     struct sdap_req *lr;
 };
@@ -665,30 +666,72 @@ static void sdap_reply(struct be_req *req, int ret, char *errstr)
     req->fn(req, ret, errstr);
 }
 
-static void sdap_cache_pw_callback(void *pvt, int error,
-                                   struct ldb_result *ignore)
-{
-    struct sdap_pw_cache *data = talloc_get_type(pvt, struct sdap_pw_cache);
-    if (error != EOK) {
-        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
-                  error, strerror(error)));
-    }
 
-    sysdb_transaction_done(data->handle, error);
+static void sdap_cache_pw_done(struct tevent_req *req)
+{
+    struct sdap_pw_cache *data = tevent_req_callback_data(req,
+                                                     struct sdap_pw_cache);
+    int ret;
+
+    ret = sysdb_transaction_commit_recv(req);
+    if (ret) {
+        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+    }
 
     /* password caching failures are not fatal errors */
     sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
 }
 
-static void sdap_cache_pw_op(struct sysdb_handle *handle, void *pvt)
+static void sdap_cache_pw_callback(struct tevent_req *subreq)
 {
-    struct sdap_pw_cache *data = talloc_get_type(pvt, struct sdap_pw_cache);
+    struct sdap_pw_cache *data = tevent_req_callback_data(subreq,
+                                                          struct sdap_pw_cache);
+    struct tevent_req *req;
+    int ret;
+
+    ret = sysdb_set_cached_password_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, sdap_cache_pw_done, data);
+
+    return;
+
+fail:
+    DEBUG(2, ("Failed to cache password (%d)[%s]!?\n", ret, strerror(ret)));
+
+    /* free transaction */
+    talloc_zfree(data->handle);
+
+    /* password caching failures are not fatal errors */
+    sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
+}
+
+static void sdap_cache_pw_op(struct tevent_req *req)
+{
+    struct sdap_pw_cache *data = tevent_req_callback_data(req,
+                                                     struct sdap_pw_cache);
+    struct tevent_req *subreq;
     struct pam_data *pd;
     const char *username;
     char *password;
     int ret;
 
-    data->handle = handle;
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+        sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
+        return;
+    }
 
     pd = data->lr->pd;
     username = pd->user;
@@ -715,21 +758,20 @@ static void sdap_cache_pw_op(struct sysdb_handle *handle, void *pvt)
         return;
     }
 
-    ret = sysdb_set_cached_password(handle,
-                                    data->lr->req->be_ctx->domain,
-                                    username,
-                                    password,
-                                    sdap_cache_pw_callback, data);
-    if (ret != EOK) {
+    subreq = sysdb_set_cached_password_send(data, data->ev, data->handle,
+                                            data->lr->req->be_ctx->domain,
+                                            username, password);
+    if (!subreq) {
         /* password caching failures are not fatal errors */
         sdap_reply(data->lr->req, data->lr->pd->pam_status, NULL);
     }
+    tevent_req_set_callback(subreq, sdap_cache_pw_callback, data);
 }
 
 static void sdap_cache_password(struct sdap_req *lr)
 {
     struct sdap_pw_cache *data;
-    int ret;
+    struct tevent_req *req;
 
     data = talloc_zero(lr, struct sdap_pw_cache);
     if (!data) {
@@ -739,16 +781,18 @@ static void sdap_cache_password(struct sdap_req *lr)
         return;
     }
     data->lr = lr;
+    data->ev = lr->req->be_ctx->ev;
 
-    ret = sysdb_transaction(data, lr->req->be_ctx->sysdb,
-                            sdap_cache_pw_op, data);
-
-    if (ret != EOK) {
+    req = sysdb_transaction_send(data, data->ev,
+                                 lr->req->be_ctx->sysdb);
+    if (!req) {
         DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
+                  ENOMEM, strerror(ENOMEM)));
         /* password caching failures are not fatal errors */
         sdap_reply(data->lr->req, lr->pd->pam_status, NULL);
     }
+
+    tevent_req_set_callback(req, sdap_cache_pw_op, data);
 }
 
 static void sdap_shutdown(struct be_req *req)

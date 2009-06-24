@@ -1487,6 +1487,7 @@ static int mbof_del_mod_callback(struct ldb_request *req,
                                LDB_ERR_OPERATIONS_ERROR);
     case LDB_REPLY_REFERRAL:
         /* ignore */
+        talloc_free(ares);
         break;
 
     case LDB_REPLY_DONE:
@@ -1499,7 +1500,6 @@ static int mbof_del_mod_callback(struct ldb_request *req,
         }
     }
 
-    talloc_free(ares);
     return LDB_SUCCESS;
 }
 

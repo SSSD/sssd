@@ -41,6 +41,7 @@
 
 
 struct group_del_ctx {
+    struct tevent_context *ev;
     struct sysdb_handle *handle;
     sysdb_callback_t next_fn;
 
@@ -55,35 +56,77 @@ struct group_del_ctx {
     bool done;
 };
 
+static void groupdel_req_done(struct tevent_req *req)
+{
+    struct group_del_ctx *data = tevent_req_callback_data(req,
+                                                     struct group_del_ctx);
+
+    data->error = sysdb_transaction_commit_recv(req);
+    data->done = true;
+
+    talloc_zfree(data->handle);
+}
+
 /* sysdb callback */
 static void groupdel_done(void *pvt, int error, struct ldb_result *ignore)
 {
     struct group_del_ctx *data = talloc_get_type(pvt, struct group_del_ctx);
+    struct tevent_req *req;
 
+    if (error != EOK) {
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        error = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, groupdel_req_done, data);
+
+    return;
+
+fail:
+    /* free transaction */
+    talloc_zfree(data->handle);
+
+    data->error = error;
     data->done = true;
-
-    sysdb_transaction_done(data->handle, error);
-
-    if (error)
-        data->error = error;
 }
 
-/* sysdb_fn_t */
-static void group_del(struct sysdb_handle *handle, void *pvt)
+static void group_del_done(struct tevent_req *subreq);
+
+static void group_del(struct tevent_req *req)
 {
-    struct group_del_ctx *group_ctx;
+    struct group_del_ctx *data = tevent_req_callback_data(req,
+                                                     struct group_del_ctx);
+    struct tevent_req *subreq;
     int ret;
 
-    group_ctx = talloc_get_type(pvt, struct group_del_ctx);
-    group_ctx->handle = handle;
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return groupdel_done(data, ret, NULL);
+    }
 
-    ret = sysdb_delete_entry(handle,
-                             group_ctx->group_dn,
-                             groupdel_done,
-                             group_ctx);
+    subreq = sysdb_delete_entry_send(data,
+                                     data->ev,
+                                     data->handle,
+                                     data->group_dn);
+    if (!subreq)
+        return groupdel_done(data, ret, NULL);
 
-    if(ret != EOK)
-        groupdel_done(group_ctx, ret, NULL);
+    tevent_req_set_callback(subreq, group_del_done, data);
+}
+
+static void group_del_done(struct tevent_req *subreq)
+{
+    struct group_del_ctx *data = tevent_req_callback_data(subreq,
+                                                     struct group_del_ctx);
+    int ret;
+
+    ret = sysdb_delete_entry_recv(subreq);
+
+    return groupdel_done(data, ret, NULL);
 }
 
 static int groupdel_legacy(struct group_del_ctx *ctx)
@@ -115,6 +158,7 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct group_del_ctx *group_ctx = NULL;
     struct tools_ctx *ctx = NULL;
+    struct tevent_req *req;
     struct sss_domain_info *dom;
     struct group *grp_info;
 
@@ -208,13 +252,14 @@ int main(int argc, const char **argv)
     }
 
     /* groupdel */
-    ret = sysdb_transaction(ctx, ctx->sysdb, group_del, group_ctx);
-    if(ret != EOK) {
+    req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
+    if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
+    tevent_req_set_callback(req, group_del, group_ctx);
 
     while (!group_ctx->done) {
         tevent_loop_once(ctx->ev);

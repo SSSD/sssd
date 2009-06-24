@@ -84,6 +84,7 @@
 #define DFL_BASEDIR_VAL    "/home"
 
 struct user_add_ctx {
+    struct tevent_context *ev;
     struct sysdb_handle *handle;
 
     struct sss_domain_info *domain;
@@ -187,85 +188,137 @@ done:
     return ret;
 }
 
-static void add_to_groups(void *, int, struct ldb_result *);
-
-/* sysdb callback */
-static void add_user_done(void *pvt, int error, struct ldb_result *ignore)
+static void add_user_req_done(struct tevent_req *req)
 {
-    struct user_add_ctx *data = talloc_get_type(pvt, struct user_add_ctx);
+    struct user_add_ctx *data = tevent_req_callback_data(req,
+                                                         struct user_add_ctx);
 
+    data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
 
-    sysdb_transaction_done(data->handle, error);
-
-    if (error)
-        data->error = error;
+    talloc_zfree(data->handle);
 }
 
-/* sysdb_fn_t */
-static void add_user(struct sysdb_handle *handle, void *pvt)
+static void add_user_terminate(struct user_add_ctx *data, int error)
 {
-    struct user_add_ctx *user_ctx;
-    int ret;
+    struct tevent_req *req;
 
-    user_ctx = talloc_get_type(pvt, struct user_add_ctx);
-    user_ctx->handle = handle;
+    if (error != EOK) {
+        goto fail;
+    }
 
-    ret = sysdb_add_user(handle, user_ctx->domain,
-                         user_ctx->username,
-                         user_ctx->uid,
-                         user_ctx->gid,
-                         user_ctx->gecos,
-                         user_ctx->home,
-                         user_ctx->shell,
-                         add_to_groups, user_ctx);
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        error = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, add_user_req_done, data);
 
-    if (ret != EOK)
-        add_user_done(user_ctx, ret, NULL);
+    return;
+
+fail:
+    /* free transaction */
+    talloc_zfree(data->handle);
+
+    data->error = error;
+    data->done = true;
 }
 
-static void add_to_groups(void *pvt, int error, struct ldb_result *ignore)
+static void add_user_done(struct tevent_req *subreq);
+static void add_to_groups(struct user_add_ctx *data);
+static void add_to_groups_done(struct tevent_req *req);
+
+static void add_user(struct tevent_req *req)
 {
-    struct user_add_ctx *user_ctx = talloc_get_type(pvt, struct user_add_ctx);
-    struct ldb_dn *group_dn;
-    struct ldb_dn *user_dn;
+    struct user_add_ctx *data = tevent_req_callback_data(req,
+                                                         struct user_add_ctx);
+    struct tevent_req *subreq;
     int ret;
 
-    if (error) {
-        add_user_done(pvt, error, NULL);
-        return;
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return add_user_terminate(data, ret);
     }
 
-    /* check if we added all of them */
-    if (user_ctx->groups == NULL ||
-        user_ctx->groups[user_ctx->cur] == NULL) {
-        add_user_done(user_ctx, EOK, NULL);
-        return;
+    subreq = sysdb_add_user_send(data, data->ev, data->handle,
+                                 data->domain, data->username,
+                                 data->uid, data->gid,
+                                 data->gecos, data->home,
+                                 data->shell, NULL);
+    if (!subreq) {
+        add_user_terminate(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, add_user_done, data);
+}
+
+static void add_user_done(struct tevent_req *subreq)
+{
+    struct user_add_ctx *data = tevent_req_callback_data(subreq,
+                                                         struct user_add_ctx);
+    int ret;
+
+    ret = sysdb_add_user_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        return add_user_terminate(data, ret);
     }
 
-    user_dn = sysdb_user_dn(user_ctx->ctx->sysdb, user_ctx,
-                            user_ctx->domain->name, user_ctx->username);
-    if (!user_dn) {
-        add_user_done(pvt, ENOMEM, NULL);
-        return;
+    if (data->groups) {
+        return add_to_groups(data);
     }
 
-    group_dn = sysdb_group_dn(user_ctx->ctx->sysdb, user_ctx,
-                              user_ctx->domain->name,
-                              user_ctx->groups[user_ctx->cur]);
-    if (!group_dn) {
-        add_user_done(pvt, ENOMEM, NULL);
-        return;
+    return add_user_terminate(data, ret);
+}
+
+static void add_to_groups(struct user_add_ctx *data)
+{
+    struct ldb_dn *parent_dn;
+    struct ldb_dn *member_dn;
+    struct tevent_req *subreq;
+
+    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->domain->name, data->username);
+    if (!member_dn) {
+        return add_user_terminate(data, ENOMEM);
     }
 
-    ret = sysdb_add_group_member(user_ctx->handle,
-                                 user_dn, group_dn,
-                                 add_to_groups, user_ctx);
-    if (ret != EOK)
-        add_user_done(user_ctx, ret, NULL);
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->domain->name,
+                              data->groups[data->cur]);
+    if (!parent_dn) {
+        return add_user_terminate(data, ENOMEM);
+    }
+
+    subreq = sysdb_mod_group_member_send(data, data->ev, data->handle,
+                                         member_dn, parent_dn,
+                                         LDB_FLAG_MOD_ADD);
+    if (!subreq) {
+        return add_user_terminate(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, add_to_groups_done, data);
+}
+
+static void add_to_groups_done(struct tevent_req *subreq)
+{
+    struct user_add_ctx *data = tevent_req_callback_data(subreq,
+                                                 struct user_add_ctx);
+    int ret;
+
+    ret = sysdb_mod_group_member_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        return add_user_terminate(data, ret);
+    }
 
     /* go on to next group */
-    user_ctx->cur++;
+    data->cur++;
+
+    /* check if we added all of them */
+    if (data->groups[data->cur] == NULL) {
+        return add_user_terminate(data, EOK);
+    }
+
+    return add_to_groups(data);
 }
 
 static int useradd_legacy(struct user_add_ctx *ctx, char *grouplist)
@@ -332,6 +385,7 @@ int main(int argc, const char **argv)
     struct sss_domain_info *dom = NULL;
     struct user_add_ctx *user_ctx = NULL;
     struct tools_ctx *ctx = NULL;
+    struct tevent_req *req;
     char *groups = NULL;
     int ret;
 
@@ -352,6 +406,7 @@ int main(int argc, const char **argv)
         return ENOMEM;
     }
     user_ctx->ctx = ctx;
+    user_ctx->ev = ctx->ev;
 
     /* parse user_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
@@ -478,13 +533,14 @@ int main(int argc, const char **argv)
     }
 
     /* useradd */
-    ret = sysdb_transaction(ctx, ctx->sysdb, add_user, user_ctx);
-    if (ret != EOK) {
+    req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
+    if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
+    tevent_req_set_callback(req, add_user, user_ctx);
 
     while (!user_ctx->done) {
         tevent_loop_once(ctx->ev);

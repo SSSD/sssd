@@ -140,6 +140,46 @@ int sysdb_attrs_add_long(struct sysdb_attrs *attrs,
     return ret;
 }
 
+int sysdb_attrs_add_uint32(struct sysdb_attrs *attrs,
+                           const char *name, uint32_t value)
+{
+    unsigned long val = value;
+    struct ldb_val v;
+    char *str;
+    int ret;
+
+    str = talloc_asprintf(attrs, "%lu", val);
+    if (!str) return ENOMEM;
+
+    v.data = (uint8_t *)str;
+    v.length = strlen(str);
+
+    ret = sysdb_attrs_add_val(attrs, name, &v);
+    talloc_free(str);
+
+    return ret;
+}
+
+int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
+                           const char *name, time_t value)
+{
+    long long val = value;
+    struct ldb_val v;
+    char *str;
+    int ret;
+
+    str = talloc_asprintf(attrs, "%lld", val);
+    if (!str) return ENOMEM;
+
+    v.data = (uint8_t *)str;
+    v.length = strlen(str);
+
+    ret = sysdb_attrs_add_val(attrs, name, &v);
+    talloc_free(str);
+
+    return ret;
+}
+
 /* TODO: make a more complete and precise mapping */
 int sysdb_error_to_errno(int ldberr)
 {
@@ -159,9 +199,327 @@ int sysdb_error_to_errno(int ldberr)
     }
 }
 
-/************************************************
- * Initialiazation stuff
- */
+/* =Internal-Operations-Queue============================================= */
+
+static void sysdb_run_operation(struct tevent_context *ev,
+                                struct tevent_timer *te,
+                                struct timeval tv, void *pvt)
+{
+    struct sysdb_handle *handle = talloc_get_type(pvt, struct sysdb_handle);
+
+    tevent_req_done(handle->subreq);
+}
+
+static void sysdb_schedule_operation(struct sysdb_handle *handle)
+{
+    struct timeval tv = { 0, 0 };
+    struct tevent_timer *te;
+
+    te = tevent_add_timer(handle->ctx->ev, handle, tv,
+                          sysdb_run_operation, handle);
+    if (!te) {
+        DEBUG(1, ("Failed to add critical timer to run next handle!\n"));
+    }
+}
+
+static int sysdb_handle_destructor(void *mem)
+{
+    struct sysdb_handle *handle = talloc_get_type(mem, struct sysdb_handle);
+    bool start_next = false;
+    int ret;
+
+    /* if this was the current op start next */
+    if (handle->ctx->queue == handle) {
+        start_next = true;
+    }
+
+    DLIST_REMOVE(handle->ctx->queue, handle);
+
+    if (start_next && handle->ctx->queue) {
+        /* run next */
+        sysdb_schedule_operation(handle->ctx->queue);
+    }
+
+    if (handle->transaction_active) {
+        ret = ldb_transaction_cancel(handle->ctx->ldb);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
+        }
+        /* FIXME: abort() ? */
+        handle->transaction_active = false;
+    }
+
+    return 0;
+}
+
+struct sysdb_get_handle_state {
+    struct tevent_context *ev;
+    struct sysdb_ctx *ctx;
+
+    struct sysdb_handle *handle;
+};
+
+struct tevent_req *sysdb_get_handle_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sysdb_ctx *ctx)
+{
+    struct tevent_req *req;
+    struct sysdb_get_handle_state *state;
+    struct sysdb_handle *handle;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_get_handle_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+
+    handle = talloc_zero(state, struct sysdb_handle);
+    if (!handle) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    handle->ctx = ctx;
+    handle->subreq = req;
+
+    talloc_set_destructor((TALLOC_CTX *)handle, sysdb_handle_destructor);
+
+    DLIST_ADD_END(ctx->queue, handle, struct sysdb_handle *);
+
+    if (ctx->queue == handle) {
+        /* this is the first in the queue, schedule an immediate run */
+        sysdb_schedule_operation(handle);
+    }
+
+    state->handle = handle;
+
+    return req;
+}
+
+static int sysdb_get_handle_recv(struct tevent_req *req, TALLOC_CTX *memctx,
+                                 struct sysdb_handle **handle)
+{
+    struct sysdb_get_handle_state *state = tevent_req_data(req,
+                                             struct sysdb_get_handle_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    *handle = talloc_steal(memctx, state->handle);
+    if (!*handle) return ENOMEM;
+
+    return EOK;
+}
+
+/* =Transactions========================================================== */
+
+struct sysdb_transaction_state {
+    struct tevent_context *ev;
+    struct sysdb_ctx *ctx;
+
+    struct sysdb_handle *handle;
+};
+
+static void sysdb_transaction_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_transaction_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sysdb_ctx *ctx)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_transaction_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_transaction_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+
+    subreq = sysdb_get_handle_send(state, ev, ctx);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    tevent_req_set_callback(subreq, sysdb_transaction_done, req);
+
+    return req;
+}
+
+static void sysdb_transaction_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_transaction_state *state = tevent_req_data(req,
+                                         struct sysdb_transaction_state);
+    int ret;
+
+    ret = sysdb_get_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = ldb_transaction_start(state->ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
+        tevent_req_error(req, sysdb_error_to_errno(ret));
+        return;
+    }
+    state->handle->transaction_active = true;
+
+    tevent_req_done(req);
+}
+
+int sysdb_transaction_recv(struct tevent_req *req, TALLOC_CTX *memctx,
+                           struct sysdb_handle **handle)
+{
+    struct sysdb_transaction_state *state = tevent_req_data(req,
+                                         struct sysdb_transaction_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    *handle = talloc_steal(memctx, state->handle);
+    if (!*handle) return ENOMEM;
+
+    return EOK;
+}
+
+struct tevent_req *sysdb_transaction_commit_send(TALLOC_CTX *mem_ctx,
+                                                 struct tevent_context *ev,
+                                                 struct sysdb_handle *handle)
+{
+    struct tevent_req *req;
+    struct sysdb_transaction_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_transaction_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = handle->ctx;
+    state->handle = handle;
+
+    ret = ldb_transaction_commit(handle->ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
+        tevent_req_error(req, sysdb_error_to_errno(ret));
+    }
+    handle->transaction_active = false;
+
+    /* the following may seem weird but it is actually fine.
+     * _done() will not actually call the callback as it will not be set
+     * until we return. But it will mark the request as done.
+     * _post() will trigger the callback as it schedules after we returned
+     * and actually set the callback */
+    tevent_req_done(req);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+int sysdb_transaction_commit_recv(struct tevent_req *req)
+{
+    struct sysdb_transaction_state *state = tevent_req_data(req,
+                                         struct sysdb_transaction_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    /* finally free handle
+     * this will also trigger the next transaction in the queue if any */
+    talloc_free(state->handle);
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    return EOK;
+}
+
+/* =Operations============================================================ */
+
+struct sysdb_operation_state {
+    struct tevent_context *ev;
+    struct sysdb_ctx *ctx;
+
+    struct sysdb_handle *handle;
+};
+
+static void sysdb_operation_process(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_operation_send(TALLOC_CTX *mem_ctx,
+                                        struct tevent_context *ev,
+                                        struct sysdb_ctx *ctx)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_operation_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_operation_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+
+    subreq = sysdb_get_handle_send(state, ev, ctx);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    tevent_req_set_callback(subreq, sysdb_operation_process, req);
+
+    return req;
+}
+
+static void sysdb_operation_process(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_operation_state *state = tevent_req_data(req,
+                                         struct sysdb_operation_state);
+    int ret;
+
+    ret = sysdb_get_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_operation_recv(struct tevent_req *req, TALLOC_CTX *memctx,
+                         struct sysdb_handle **handle)
+{
+    struct sysdb_operation_state *state = tevent_req_data(req,
+                                             struct sysdb_operation_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    *handle = talloc_steal(memctx, state->handle);
+    if (!*handle) return ENOMEM;
+
+    return EOK;
+}
+
+void sysdb_operation_done(struct sysdb_handle *handle)
+{
+    talloc_free(handle);
+}
+
+/* =Initialization======================================================== */
 
 static int sysdb_read_var(TALLOC_CTX *mem_ctx,
                           struct confdb_ctx *cdb,

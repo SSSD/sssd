@@ -29,6 +29,7 @@ struct sysdb_search_ctx;
 typedef void (*gen_callback)(struct sysdb_search_ctx *);
 
 struct sysdb_search_ctx {
+    struct tevent_context *ev;
     struct sysdb_ctx *ctx;
     struct sysdb_handle *handle;
 
@@ -46,6 +47,8 @@ struct sysdb_search_ctx {
     struct ldb_result *res;
 
     const char **attrs;
+
+    int error;
 };
 
 static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
@@ -61,6 +64,7 @@ static struct sysdb_search_ctx *init_src_ctx(TALLOC_CTX *mem_ctx,
         return NULL;
     }
     sctx->ctx = ctx;
+    sctx->ev = ctx->ev;
     sctx->callback = fn;
     sctx->ptr = ptr;
     sctx->res = talloc_zero(sctx, struct ldb_result);
@@ -162,15 +166,19 @@ static int get_gen_callback(struct ldb_request *req,
 
 /* users */
 
-static void user_search(struct sysdb_handle *handle, void *ptr)
+static void user_search(struct tevent_req *treq)
 {
     struct sysdb_search_ctx *sctx;
     struct ldb_request *req;
     struct ldb_dn *base_dn;
     int ret;
 
-    sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->handle = handle;
+    sctx = tevent_req_callback_data(treq, struct sysdb_search_ctx);
+
+    ret = sysdb_operation_recv(treq, sctx, &sctx->handle);
+    if (ret) {
+        return request_error(sctx, ret);
+    }
 
     base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
                              SYSDB_TMPL_USER_BASE, sctx->domain->name);
@@ -201,6 +209,7 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
 {
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -219,7 +228,15 @@ int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
 
     sctx->attrs = attrs;
 
-    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, user_search, sctx);
+
+    return EOK;
 }
 
 int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
@@ -231,6 +248,7 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *sctx;
     unsigned long int filter_uid = uid;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -249,7 +267,15 @@ int sysdb_getpwuid(TALLOC_CTX *mem_ctx,
 
     sctx->attrs = attrs;
 
-    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, user_search, sctx);
+
+    return EOK;
 }
 
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
@@ -260,6 +286,7 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
 {
     static const char *attrs[] = SYSDB_PW_ATTRS;
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -277,7 +304,15 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
 
     sctx->attrs = attrs;
 
-    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, user_search, sctx);
+
+    return EOK;
 }
 
 /* groups */
@@ -478,7 +513,7 @@ static int get_grp_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
-static void grp_search(struct sysdb_handle *handle, void *ptr)
+static void grp_search(struct tevent_req *treq)
 {
     struct sysdb_search_ctx *sctx;
     static const char *attrs[] = SYSDB_GRSRC_ATTRS;
@@ -486,8 +521,12 @@ static void grp_search(struct sysdb_handle *handle, void *ptr)
     struct ldb_dn *base_dn;
     int ret;
 
-    sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->handle = handle;
+    sctx = tevent_req_callback_data(treq, struct sysdb_search_ctx);
+
+    ret = sysdb_operation_recv(treq, sctx, &sctx->handle);
+    if (ret) {
+        return request_error(sctx, ret);
+    }
 
     if (sctx->domain->mpg) {
         base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
@@ -522,6 +561,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -542,7 +582,15 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    return sysdb_operation(mem_ctx, ctx, grp_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, grp_search, sctx);
+
+    return EOK;
 }
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
@@ -552,6 +600,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -576,7 +625,15 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    return sysdb_operation(mem_ctx, ctx, grp_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, grp_search, sctx);
+
+    return EOK;
 }
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
@@ -585,6 +642,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -601,7 +659,15 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
         sctx->expression = SYSDB_GRENT_FILTER;
     }
 
-    return sysdb_operation(mem_ctx, ctx, grp_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, grp_search, sctx);
+
+    return EOK;
 }
 
 static void initgr_mem_legacy(struct sysdb_search_ctx *sctx)
@@ -720,7 +786,7 @@ static void initgr_mem_search(struct sysdb_search_ctx *sctx)
     }
 }
 
-static void initgr_search(struct sysdb_handle *handle, void *ptr)
+static void initgr_search(struct tevent_req *treq)
 {
     struct sysdb_search_ctx *sctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
@@ -728,8 +794,12 @@ static void initgr_search(struct sysdb_handle *handle, void *ptr)
     struct ldb_dn *base_dn;
     int ret;
 
-    sctx = talloc_get_type(ptr, struct sysdb_search_ctx);
-    sctx->handle = handle;
+    sctx = tevent_req_callback_data(treq, struct sysdb_search_ctx);
+
+    ret = sysdb_operation_recv(treq, sctx, &sctx->handle);
+    if (ret) {
+        return request_error(sctx, ret);
+    }
 
     if (sctx->domain->legacy) {
         sctx->gen_aux_fn = initgr_mem_legacy;
@@ -765,6 +835,7 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -781,7 +852,15 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    return sysdb_operation(mem_ctx, ctx, initgr_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, initgr_search, sctx);
+
+    return EOK;
 }
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
@@ -792,6 +871,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         sysdb_callback_t fn, void *ptr)
 {
     struct sysdb_search_ctx *sctx;
+    struct tevent_req *req;
 
     if (!domain) {
         return EINVAL;
@@ -810,5 +890,13 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
 
     sctx->attrs = attributes;
 
-    return sysdb_operation(mem_ctx, ctx, user_search, sctx);
+    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
+    if (!req) {
+        talloc_free(sctx);
+        return ENOMEM;
+    }
+
+    tevent_req_set_callback(req, user_search, sctx);
+
+    return EOK;
 }

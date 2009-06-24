@@ -261,6 +261,10 @@ static void proxy_pam_handler(struct be_req *req) {
 }
 
 struct proxy_data {
+    struct tevent_context *ev;
+    /* FIXME: should not store it here */
+    struct tevent_req *treq;
+
     struct sysdb_handle *handle;
     struct proxy_ctx *ctx;
     struct be_req *req;
@@ -278,44 +282,85 @@ struct proxy_data {
     struct ldb_dn *dn;
 
     sysdb_callback_t next_fn;
+
+    const char *err;
 };
 
 static void proxy_reply(struct be_req *req, int error, const char *errstr)
 {
+    if (error && !errstr) errstr = "Operation failed";
     return req->fn(req, error, errstr);
 }
 
-static void cache_pw_return(void *pvt, int error, struct ldb_result *ignore)
+static void proxy_req_done(struct tevent_req *req)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-
-    if (error != EOK) {
-        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
-                  error, strerror(error)));
-    }
-
-    sysdb_transaction_done(data->handle, error);
-
-    /* password caching failures are not fatal errors */
-    return proxy_reply(data->req, EOK, NULL);
-}
-
-static void cache_pw_op(struct sysdb_handle *handle, void *pvt)
-{
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
+    struct proxy_data *data = tevent_req_callback_data(req, struct proxy_data);
     int ret;
 
-    data->handle = handle;
+    ret = sysdb_transaction_commit_recv(req);
+    if (ret) {
+        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+    }
 
-    ret = sysdb_set_cached_password(handle,
-                                    data->req->be_ctx->domain,
-                                    data->pwd->pw_name,
-                                    data->pwd->pw_passwd,
-                                    cache_pw_return, data);
+    /* password caching failures are not fatal errors */
+    proxy_reply(data->req, EOK, data->err);
+}
+
+static void cache_pw_return(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    struct tevent_req *req;
+    int ret;
+
+    ret = sysdb_set_cached_password_recv(subreq);
+    talloc_zfree(subreq);
     if (ret != EOK) {
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, proxy_req_done, data);
+
+    return;
+
+fail:
+    DEBUG(2, ("Failed to cache password (%d)[%s]!?\n", ret, strerror(ret)));
+
+    /* free transaction */
+    talloc_zfree(data->handle);
+
+    /* password caching failures are not fatal errors */
+    proxy_reply(data->req, EOK, NULL);
+}
+
+static void cache_pw_op(struct tevent_req *req)
+{
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        /* password caching failures are not fatal errors */
+        return proxy_reply(data->req, EOK, NULL);
+    }
+
+    subreq = sysdb_set_cached_password_send(data, data->ev, data->handle,
+                                            data->req->be_ctx->domain,
+                                            data->pwd->pw_name,
+                                            data->pwd->pw_passwd);
+    if (!subreq) {
         /* password caching failures are not fatal errors */
         proxy_reply(data->req, EOK, NULL);
     }
+    tevent_req_set_callback(subreq, cache_pw_return, data);
 }
 
 static void cache_password(struct be_req *req,
@@ -324,7 +369,7 @@ static void cache_password(struct be_req *req,
 {
     struct proxy_data *data;
     struct proxy_ctx *ctx;
-    int ret;
+    struct tevent_req *treq;
 
     ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
@@ -348,82 +393,165 @@ static void cache_password(struct be_req *req,
     talloc_set_destructor((TALLOC_CTX *)data->pwd->pw_passwd,
                           password_destructor);
 
-    ret = sysdb_transaction(data, req->be_ctx->sysdb, cache_pw_op, data);
+    data->ev = req->be_ctx->ev;
 
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
+    treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+    if (!treq) {
         /* password caching failures are not fatal errors */
         return proxy_reply(req, EOK, NULL);
     }
+
+    tevent_req_set_callback(treq, cache_pw_op, data);
 }
 
 static void proxy_return(void *pvt, int error, struct ldb_result *ignore)
 {
     struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    const char *err = "Success";
-
-    if (error != EOK) err = "Operation failed";
-
-    sysdb_transaction_done(data->handle, error);
-    return proxy_reply(data->req, error, err);
-}
-
-static void del_db_entry(struct sysdb_handle *handle, void *pvt)
-{
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    struct sysdb_ctx *ctx;
+    struct tevent_req *req;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_delete_entry(handle, data->dn, data->next_fn, data);
-    if (ret != EOK) {
-        proxy_return(data, ret, NULL);
+    if (error != EOK) {
+        data->err = "Operation failed";
+        ret = error;
+        goto fail;
     }
+
+    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    if (!req) {
+        data->err = "Operation failed";
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(req, proxy_req_done, data);
+
+    return;
+
+fail:
+    /* free transaction */
+    talloc_zfree(data->handle);
+
+    /* password caching failures are not fatal errors */
+    proxy_reply(data->req, EOK, NULL);
 }
 
-static void del_pw_uid(struct sysdb_handle *handle, void *pvt)
+static void del_db_entry_done(struct tevent_req *subreq);
+static void del_db_entry(struct tevent_req *req)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    struct sysdb_ctx *ctx;
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
+    struct tevent_req *subreq;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
 
-    ret = sysdb_delete_user_by_uid(handle,
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, data->dn);
+    if (!subreq) {
+        proxy_return(data, ENOMEM, NULL);
+    }
+    tevent_req_set_callback(subreq, del_db_entry_done, data);
+}
+
+static void del_db_entry_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_delete_entry_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        return proxy_return(data, ret, NULL);
+    }
+
+    data->next_fn(data, EOK, NULL);
+}
+
+static void del_pw_uid_done(struct tevent_req *subreq);
+static void del_pw_uid(struct tevent_req *req)
+{
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
+
+    subreq = sysdb_delete_user_by_uid_send(data, data->ev, data->handle,
+                                           data->req->be_ctx->domain,
+                                           data->pwd->pw_uid);
+    if (!subreq) {
+        proxy_return(data, ENOMEM, NULL);
+    }
+    tevent_req_set_callback(subreq, del_pw_uid_done, data);
+}
+
+static void del_pw_uid_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_delete_user_by_uid_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        return proxy_return(data, ret, NULL);
+    }
+
+    data->next_fn(data, EOK, NULL);
+}
+
+static void set_pw_name_done(struct tevent_req *subreq);
+
+static void set_pw_name(struct tevent_req *req)
+{
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
+
+    subreq = sysdb_store_user_send(data, data->ev, data->handle,
                                    data->req->be_ctx->domain,
-                                   data->pwd->pw_uid,
-                                   data->next_fn, data);
-    if (ret != EOK) {
+                                   data->pwd->pw_name, data->pwd->pw_passwd,
+                                   data->pwd->pw_uid, data->pwd->pw_gid,
+                                   data->pwd->pw_gecos, data->pwd->pw_dir,
+                                   data->pwd->pw_shell);
+    if (!subreq) {
         proxy_return(data, ret, NULL);
+        return;
     }
+    tevent_req_set_callback(subreq, set_pw_name_done, data);
 }
 
-static void set_pw_name(struct sysdb_handle *handle, void *pvt)
+static void set_pw_name_done(struct tevent_req *subreq)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    struct sysdb_ctx *ctx;
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_legacy_store_user(handle, data->req->be_ctx->domain,
-                                  data->pwd->pw_name, data->pwd->pw_passwd,
-                                  data->pwd->pw_uid, data->pwd->pw_gid,
-                                  data->pwd->pw_gecos, data->pwd->pw_dir,
-                                  data->pwd->pw_shell,
-                                  data->next_fn, data);
-    if (ret != EOK) {
-        proxy_return(data, ret, NULL);
+    ret = sysdb_store_user_recv(subreq);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
     }
+
+    data->next_fn(data, EOK, NULL);
 }
+
 
 static void get_pw_name(struct be_req *req, char *name)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
@@ -436,6 +564,7 @@ static void get_pw_name(struct be_req *req, char *name)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->pwd = talloc(data, struct passwd);
     if (!data->pwd)
@@ -456,18 +585,29 @@ static void get_pw_name(struct be_req *req, char *name)
         if (!data->dn)
             return proxy_reply(req, ENOMEM, "Out of memory");
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
+        tevent_req_set_callback(treq, del_db_entry, data);
         break;
 
     case NSS_STATUS_SUCCESS:
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
         /* FIXME: verify user does not have uid=0 or gid=0 as these are invalid
          * values */
         if (data->pwd->pw_uid == 0 || data->pwd->pw_gid == 0) {
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+
+            tevent_req_set_callback(treq, del_db_entry, data);
             break;
         }
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
+        tevent_req_set_callback(treq, set_pw_name, data);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -480,16 +620,11 @@ static void get_pw_name(struct be_req *req, char *name)
         DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n", name, status));
         return proxy_reply(req, EOK, "Operation failed");
     }
-
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
-    }
 }
 
 static void get_pw_uid(struct be_req *req, uid_t uid)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
@@ -502,6 +637,7 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->pwd = talloc(data, struct passwd);
     if (!data->pwd)
@@ -518,21 +654,32 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
         data->pwd->pw_uid = uid;
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_pw_uid, data);
+
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
+        tevent_req_set_callback(treq, del_pw_uid, data);
         break;
 
     case NSS_STATUS_SUCCESS:
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
         /* FIXME: verify user does not have gid=0 as these are invalid values */
         if (data->pwd->pw_gid == 0) {
             data->dn = sysdb_user_dn(req->be_ctx->sysdb, data,
                                      req->be_ctx->domain->name,
                                      data->pwd->pw_name);
-            ret = sysdb_transaction(data, req->be_ctx->sysdb,
-                                    del_db_entry, data);
+
+            tevent_req_set_callback(treq, del_db_entry, data);
             break;
         }
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
+        tevent_req_set_callback(treq, set_pw_name, data);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -546,37 +693,26 @@ static void get_pw_uid(struct be_req *req, uid_t uid)
                   (unsigned long)uid, ret, strerror(ret)));
         return proxy_reply(req, ret, "Operation failed");
     }
-
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
-    }
 }
 
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
 
-static void get_pw_entry(struct sysdb_handle *handle, void *pvt);
-
-static void get_next_pw_entry(void *pvt, int error, struct ldb_result *ignore)
+static void get_pw_entry_store_done(struct tevent_req *subreq);
+static void get_pw_entry(struct tevent_req *req)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-
-    if (error != EOK) proxy_return(data, error, NULL);
-
-    get_pw_entry(data->handle, data);
-}
-
-static void get_pw_entry(struct sysdb_handle *handle, void *pvt)
-{
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
     enum nss_status status;
-    struct sysdb_ctx *ctx;
+    struct tevent_req *subreq;
     char *newb;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
+    data->treq = req;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
 
 retry:
     status = data->ctx->ops.getpwent_r(data->pwd,
@@ -611,20 +747,20 @@ retry:
             goto retry; /* skip */
         }
 
-        ret = sysdb_legacy_store_user(handle, data->req->be_ctx->domain,
-                                      data->pwd->pw_name,
-                                      data->pwd->pw_passwd,
-                                      data->pwd->pw_uid,
-                                      data->pwd->pw_gid,
-                                      data->pwd->pw_gecos,
-                                      data->pwd->pw_dir,
-                                      data->pwd->pw_shell,
-                                      get_next_pw_entry, data);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
-                      data->pwd->pw_name, ret, strerror(ret)));
-            proxy_return(data, ret, NULL);
+        subreq = sysdb_store_user_send(data, data->ev, data->handle,
+                                       data->req->be_ctx->domain,
+                                       data->pwd->pw_name,
+                                       data->pwd->pw_passwd,
+                                       data->pwd->pw_uid,
+                                       data->pwd->pw_gid,
+                                       data->pwd->pw_gecos,
+                                       data->pwd->pw_dir,
+                                       data->pwd->pw_shell);
+        if (!subreq) {
+            proxy_return(data, ENOMEM, NULL);
+            return;
         }
+        tevent_req_set_callback(subreq, get_pw_entry_store_done, data);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -640,12 +776,30 @@ retry:
     }
 }
 
+static void get_pw_entry_store_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_store_user_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
+                  data->pwd->pw_name, ret, strerror(ret)));
+        proxy_return(data, ret, NULL);
+        return;
+    }
+
+    get_pw_entry(data->treq);
+}
+
 static void enum_users(struct be_req *req)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
-    int ret;
 
     ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
@@ -654,6 +808,7 @@ static void enum_users(struct be_req *req)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->pwd = talloc(data, struct passwd);
     if (!data->pwd)
@@ -668,53 +823,96 @@ static void enum_users(struct be_req *req)
     if (status != NSS_STATUS_SUCCESS)
         return proxy_reply(req, EIO, "Operation failed");
 
-    ret = sysdb_transaction(data, req->be_ctx->sysdb, get_pw_entry, data);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
+    treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+    if (!treq) {
+        return proxy_reply(req, ENOMEM, "Operation failed");
     }
+
+    tevent_req_set_callback(treq, get_pw_entry, data);
 }
 
-static void del_gr_gid(struct sysdb_handle *handle, void *pvt)
+static void del_gr_gid_done(struct tevent_req *subreq);
+static void del_gr_gid(struct tevent_req *req)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    struct sysdb_ctx *ctx;
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
+    struct tevent_req *subreq;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
 
-    ret = sysdb_delete_group_by_gid(handle,
+    subreq = sysdb_delete_group_by_gid_send(data, data->ev, data->handle,
+                                            data->req->be_ctx->domain,
+                                            data->grp->gr_gid);
+    if (!subreq) {
+        proxy_return(data, ENOMEM, NULL);
+    }
+    tevent_req_set_callback(subreq, del_gr_gid_done, data);
+}
+
+static void del_gr_gid_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_delete_group_by_gid_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        return proxy_return(data, ret, NULL);
+    }
+
+    data->next_fn(data, EOK, NULL);
+}
+
+static void set_gr_name_done(struct tevent_req *subreq);
+
+static void set_gr_name(struct tevent_req *req)
+{
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
+
+    subreq = sysdb_store_group_send(data, data->ev, data->handle,
                                     data->req->be_ctx->domain,
+                                    data->grp->gr_name,
                                     data->grp->gr_gid,
-                                    data->next_fn, data);
-    if (ret != EOK) {
+                                    (const char **)data->grp->gr_mem);
+    if (!subreq) {
         proxy_return(data, ret, NULL);
+        return;
     }
+    tevent_req_set_callback(subreq, set_gr_name_done, data);
 }
 
-static void set_gr_name(struct sysdb_handle *handle, void *pvt)
+static void set_gr_name_done(struct tevent_req *subreq)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-    struct sysdb_ctx *ctx;
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
-
-    ret = sysdb_legacy_store_group(handle, data->req->be_ctx->domain,
-                                   data->grp->gr_name,
-                                   data->grp->gr_gid,
-                                   (const char **)data->grp->gr_mem,
-                                   data->next_fn, data);
-    if (ret != EOK) {
+    ret = sysdb_store_group_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
         proxy_return(data, ret, NULL);
+        return;
     }
+
+    data->next_fn(data, EOK, NULL);
 }
 
 static void get_gr_name(struct be_req *req, char *name)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
@@ -727,6 +925,7 @@ static void get_gr_name(struct be_req *req, char *name)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->grp = talloc(data, struct group);
     if (!data->grp)
@@ -747,17 +946,28 @@ static void get_gr_name(struct be_req *req, char *name)
         if (!data->dn)
             return proxy_reply(req, ENOMEM, "Out of memory");
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
+        tevent_req_set_callback(treq, del_db_entry, data);
         break;
 
     case NSS_STATUS_SUCCESS:
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
         /* FIXME: verify group does not have gid=0 as this is invalid */
         if (data->grp->gr_gid == 0) {
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+
+            tevent_req_set_callback(treq, del_db_entry, data);
             break;
         }
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, set_gr_name, data);
+        tevent_req_set_callback(treq, set_gr_name, data);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -771,16 +981,11 @@ static void get_gr_name(struct be_req *req, char *name)
                   name, ret, strerror(ret)));
         return proxy_reply(req, ret, "Operation failed");
     }
-
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
-    }
 }
 
 static void get_gr_gid(struct be_req *req, gid_t gid)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
@@ -793,6 +998,7 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->grp = talloc(data, struct group);
     if (!data->grp)
@@ -809,21 +1015,32 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
         data->grp->gr_gid = gid;
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_gr_gid, data);
+
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
+        tevent_req_set_callback(treq, del_gr_gid, data);
         break;
 
     case NSS_STATUS_SUCCESS:
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
         /* FIXME: verify group does not have gid=0 as this is invalid */
         if (data->grp->gr_gid == 0) {
             data->dn = sysdb_group_dn(req->be_ctx->sysdb, data,
                                       req->be_ctx->domain->name,
                                       data->grp->gr_name);
-            ret = sysdb_transaction(data, req->be_ctx->sysdb,
-                                    del_db_entry, data);
+
+            tevent_req_set_callback(treq, del_db_entry, data);
             break;
         }
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, set_gr_name, data);
+        tevent_req_set_callback(treq, set_gr_name, data);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -837,35 +1054,25 @@ static void get_gr_gid(struct be_req *req, gid_t gid)
                   (unsigned long)gid, ret, strerror(ret)));
         return proxy_reply(req, ret, "Operation failed");
     }
-
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
-    }
 }
 
-static void get_gr_entry(struct sysdb_handle *handle, void *pvt);
+static void get_gr_entry_store_done(struct tevent_req *subreq);
 
-static void get_next_gr_entry(void *pvt, int error, struct ldb_result *ignore)
+static void get_gr_entry(struct tevent_req *req)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-
-    if (error != EOK) proxy_return(data, error, NULL);
-
-    get_gr_entry(data->handle, data);
-}
-
-static void get_gr_entry(struct sysdb_handle *handle, void *pvt)
-{
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
+    struct proxy_data *data = tevent_req_callback_data(req,
+                                                       struct proxy_data);
     enum nss_status status;
-    struct sysdb_ctx *ctx;
+    struct tevent_req *subreq;
     char *newb;
     int ret;
 
-    data->handle = handle;
-    ctx = sysdb_handle_get_ctx(handle);
+    data->treq = req;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret) {
+        return proxy_reply(data->req, ret, NULL);
+    }
 
 retry:
     status = data->ctx->ops.getgrent_r(data->grp,
@@ -898,16 +1105,15 @@ retry:
         if (data->grp->gr_gid == 0) {
             goto retry;
         }
-        ret = sysdb_legacy_store_group(handle, data->req->be_ctx->domain,
-                                       data->grp->gr_name,
-                                       data->grp->gr_gid,
-                                       (const char **)data->grp->gr_mem,
-                                       get_next_gr_entry, data);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
-                      data->grp->gr_name, ret, strerror(ret)));
-            proxy_return(data, ret, NULL);
+        subreq = sysdb_store_group_send(data, data->ev, data->handle,
+                                        data->req->be_ctx->domain,
+                                        data->grp->gr_name,
+                                        data->grp->gr_gid,
+                                        (const char **)data->grp->gr_mem);
+        if (!subreq) {
+            proxy_return(data, ENOMEM, NULL);
         }
+        tevent_req_set_callback(subreq, get_gr_entry_store_done, data);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -923,12 +1129,30 @@ retry:
     }
 }
 
+static void get_gr_entry_store_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_store_group_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
+                  data->grp->gr_name, ret, strerror(ret)));
+        proxy_return(data, ret, NULL);
+        return;
+    }
+
+    get_gr_entry(data->treq);
+}
+
 static void enum_groups(struct be_req *req)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
-    int ret;
 
     ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct proxy_ctx);
 
@@ -937,6 +1161,7 @@ static void enum_groups(struct be_req *req)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->grp = talloc(data, struct group);
     if (!data->grp)
@@ -951,38 +1176,22 @@ static void enum_groups(struct be_req *req)
     if (status != NSS_STATUS_SUCCESS)
         return proxy_reply(req, EIO, "Operation failed");
 
-    ret = sysdb_transaction(data, req->be_ctx->sysdb, get_gr_entry, data);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
+    treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+    if (!treq) {
+        return proxy_reply(req, ENOMEM, "Operation failed");
     }
+
+    tevent_req_set_callback(treq, get_gr_entry, data);
 }
 
-static void get_gid_entry(struct sysdb_handle *handle, void *pvt);
-
-static void get_next_gid_entry(void *pvt, int error, struct ldb_result *ignore)
+static void get_gid_entry_store_done(struct tevent_req *subreq);
+static void get_gid_entry_del_done(struct tevent_req *subreq);
+static void get_gid_entry(struct proxy_data *data)
 {
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
-
-    if (error != EOK) proxy_return(data, error, NULL);
-
-    get_gid_entry(data->handle, data);
-}
-
-static void get_gid_entry(struct sysdb_handle *handle, void *pvt)
-{
-    struct proxy_data *data = talloc_get_type(pvt, struct proxy_data);
+    struct tevent_req *subreq;
     enum nss_status status;
-    struct sysdb_ctx *ctx;
     char *newb;
     int ret;
-
-    ctx = sysdb_handle_get_ctx(handle);
-
-    /* all done */
-    if (data->cur == data->num)
-        return data->next_fn(data, EOK, NULL);
 
 retry:
     status = data->ctx->ops.getgrgid_r(data->groups[data->cur], data->grp,
@@ -1005,31 +1214,29 @@ retry:
         goto retry;
 
     case NSS_STATUS_NOTFOUND:
-        data->cur++;
         DEBUG(4, ("gid [%lu] not found, removing group\n",
                   (unsigned long)(data->groups[data->cur])));
-        ret = sysdb_delete_group_by_gid(handle, data->req->be_ctx->domain,
-                                        data->groups[data->cur-1],
-                                        get_next_gid_entry, data);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
-                      data->grp->gr_name, ret, strerror(ret)));
-            proxy_return(data, ret, NULL);
+        subreq = sysdb_delete_group_by_gid_send(data, data->ev,
+                                                data->handle,
+                                                data->req->be_ctx->domain,
+                                                data->groups[data->cur]);
+        if (!subreq) {
+            proxy_return(data, ENOMEM, NULL);
         }
+        tevent_req_set_callback(subreq, get_gid_entry_del_done, data);
         break;
 
     case NSS_STATUS_SUCCESS:
         data->cur++;
-        ret = sysdb_legacy_store_group(handle, data->req->be_ctx->domain,
-                                       data->grp->gr_name,
-                                       data->grp->gr_gid,
-                                       (const char **)data->grp->gr_mem,
-                                       get_next_gid_entry, data);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
-                      data->grp->gr_name, ret, strerror(ret)));
-            proxy_return(data, ret, NULL);
+        subreq = sysdb_store_group_send(data, data->ev, data->handle,
+                                        data->req->be_ctx->domain,
+                                        data->grp->gr_name,
+                                        data->grp->gr_gid,
+                                        (const char **)data->grp->gr_mem);
+        if (!subreq) {
+            proxy_return(data, ENOMEM, NULL);
         }
+        tevent_req_set_callback(subreq, get_gid_entry_store_done, data);
         break;
 
     default:
@@ -1037,6 +1244,56 @@ retry:
                   ret, strerror(ret)));
         proxy_return(data, ret, NULL);
     }
+}
+
+static void get_gid_entry_del_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_delete_group_by_gid_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
+                  data->grp->gr_name, ret, strerror(ret)));
+        return proxy_return(data, ret, NULL);
+    }
+
+    data->cur++;
+
+    /* all done */
+    if (data->cur == data->num) {
+        return data->next_fn(data, EOK, NULL);
+    }
+
+    /* next item */
+    get_gid_entry(data);
+}
+
+static void get_gid_entry_store_done(struct tevent_req *subreq)
+{
+    struct proxy_data *data = tevent_req_callback_data(subreq,
+                                                       struct proxy_data);
+    int ret;
+
+    ret = sysdb_store_group_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(1, ("Failed to update LDB Cache for '%s' (%d)[%s] !?\n",
+                  data->grp->gr_name, ret, strerror(ret)));
+        return proxy_return(data, ret, NULL);
+    }
+
+    data->cur++;
+
+    /* all done */
+    if (data->cur == data->num) {
+        return data->next_fn(data, EOK, NULL);
+    }
+
+    /* next item */
+    get_gid_entry(data);
 }
 
 static void get_user_groups(void *pvt, int error, struct ldb_result *ignore)
@@ -1092,7 +1349,7 @@ retry:
         data->num = start;
         DEBUG(4, ("User [%s] appears to be member of %lu groups\n",
                   name, data->num));
-        get_gid_entry(data->handle, data);
+        get_gid_entry(data);
         break;
 
     default:
@@ -1104,6 +1361,7 @@ retry:
 
 static void get_initgr_user(struct be_req *req, char *name)
 {
+    struct tevent_req *treq = NULL;
     struct proxy_ctx *ctx;
     enum nss_status status;
     struct proxy_data *data;
@@ -1116,6 +1374,7 @@ static void get_initgr_user(struct be_req *req, char *name)
         return proxy_reply(req, ENOMEM, "Out of memory");
     data->req = req;
     data->ctx = ctx;
+    data->ev = req->be_ctx->ev;
     data->next_fn = proxy_return;
     data->pwd = talloc(data, struct passwd);
     if (!data->pwd)
@@ -1139,28 +1398,40 @@ static void get_initgr_user(struct be_req *req, char *name)
         if (!data->dn)
             return proxy_reply(req, ENOMEM, "Out of memory");
 
-        ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
+        tevent_req_set_callback(treq, del_db_entry, data);
         break;
 
     case NSS_STATUS_SUCCESS:
+        treq = sysdb_transaction_send(data, data->ev, req->be_ctx->sysdb);
+        if (!treq) {
+            return proxy_reply(req, ENOMEM, NULL);
+        }
+
         /* FIXME: verify user does not have uid=0 or gid=0 as these are invalid
          * values */
         if (data->pwd->pw_uid == 0 || data->pwd->pw_gid == 0) {
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, del_db_entry, data);
+
+            tevent_req_set_callback(treq, del_db_entry, data);
             break;
         }
 
         if (ctx->ops.initgroups_dyn) {
             data->next_fn = get_user_groups;
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, set_pw_name, data);
+
+            tevent_req_set_callback(treq, set_pw_name, data);
         } else {
             status = ctx->ops.setgrent();
             if (status != NSS_STATUS_SUCCESS)
                 return proxy_reply(req, EIO, "Operation failed");
 
-            ret = sysdb_transaction(data, req->be_ctx->sysdb, get_gr_entry, data);
-            break;
+            tevent_req_set_callback(treq, get_gr_entry, data);
         }
+        break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -1171,12 +1442,6 @@ static void get_initgr_user(struct be_req *req, char *name)
     default:
         DEBUG(2, ("proxy -> getpwnam_r failed for '%s' (%d)[%s]\n",
                   name, ret, strerror(ret)));
-        return proxy_reply(req, ret, "Operation failed");
-    }
-
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to start transaction (%d)[%s]!?\n",
-                  ret, strerror(ret)));
         return proxy_reply(req, ret, "Operation failed");
     }
 }
