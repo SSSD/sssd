@@ -22,7 +22,11 @@
 #ifndef _MONITOR_H_
 #define _MONITOR_H_
 
+#define RESOLV_CONF_PATH "/etc/resolv.conf"
 #define CONFIG_FILE_POLL_INTERVAL 5 /* seconds */
+
+typedef int (*monitor_reconf_fn) (struct config_file_ctx *file_ctx,
+                                  const char *filename);
 
 int monitor_process_init(TALLOC_CTX *mem_ctx,
                          struct tevent_context *event_ctx,

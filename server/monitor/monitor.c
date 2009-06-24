@@ -81,6 +81,24 @@ struct mt_svc {
     struct tevent_timer *ping_ev;
 };
 
+struct config_file_callback {
+    int wd;
+    int retries;
+    monitor_reconf_fn fn;
+    char *filename;
+    time_t modified;
+    struct config_file_callback *next;
+    struct config_file_callback *prev;
+};
+
+struct config_file_ctx {
+    TALLOC_CTX *parent_ctx;
+    struct tevent_timer *timer;
+    bool needs_update;
+    struct mt_ctx *mt_ctx;
+    struct config_file_callback *callbacks;
+};
+
 struct mt_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
@@ -90,22 +108,9 @@ struct mt_ctx {
     char **services;
     struct mt_svc *svc_list;
     struct sbus_srv_ctx *sbus_srv;
-
+    struct config_file_ctx *file_ctx;
+    int inotify_fd;
     int service_id_timeout;
-};
-
-struct config_file_ctx {
-    TALLOC_CTX *parent_ctx;
-    struct confdb_ctx *cdb;
-    struct tevent_context *ev;
-    int fd;
-    int retries;
-    int wd;
-    char *filename;
-    time_t modified;
-    bool needs_update;
-    confdb_reconf_fn reconf_fn;
-    void *reconf_pvt;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -129,7 +134,8 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
 static int add_new_service(struct mt_ctx *ctx, const char *name);
 static int add_new_provider(struct mt_ctx *ctx, const char *name);
 
-static int monitor_signal_reconf(struct config_file_ctx *file_ctx);
+static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
+                                 const char *filename);
 static int update_monitor_config(struct mt_ctx *ctx);
 static int monitor_cleanup(void);
 
@@ -509,14 +515,14 @@ done:
     dbus_message_unref(reply);
 }
 
-static int monitor_signal_reconf(struct config_file_ctx *file_ctx)
+static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
+                                 const char *filename)
 {
     int ret;
-    struct mt_ctx *ctx = talloc_get_type(file_ctx->reconf_pvt, struct mt_ctx);
     DEBUG(1, ("Configuration has changed. Reloading.\n"));
 
     /* Update the confdb configuration */
-    ret = confdb_init_db(file_ctx->filename, file_ctx->cdb);
+    ret = confdb_init_db(filename, file_ctx->mt_ctx->cdb);
     if (ret != EOK) {
         DEBUG(0, ("Could not reload configuration!"));
         kill(getpid(), SIGTERM);
@@ -524,10 +530,24 @@ static int monitor_signal_reconf(struct config_file_ctx *file_ctx)
     }
 
     /* Update the monitor's configuration and signal children */
-    return update_monitor_config(ctx);
+    return update_monitor_config(file_ctx->mt_ctx);
 }
 
-static int service_signal_reload(struct mt_svc *svc)
+static int service_signal_dns_reload(struct mt_svc *svc);
+int monitor_update_resolv(struct config_file_ctx *file_ctx,
+                          const char *filename)
+{
+    struct mt_svc *cur_svc;
+    DEBUG(2, ("Resolv.conf has been updated. Reloading.\n"));
+
+    /* Signal all services to reload their DNS configuration */
+    for(cur_svc = file_ctx->mt_ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
+        service_signal_dns_reload(cur_svc);
+    }
+    return EOK;
+}
+
+static int service_signal(struct mt_svc *svc, const char *svc_signal)
 {
     DBusMessage *msg;
     dbus_bool_t dbret;
@@ -544,7 +564,7 @@ static int service_signal_reload(struct mt_svc *svc)
          * order a service to reload that hasn't started
          * yet.
          */
-        DEBUG(1,("Could not reload service [%s].\n", svc->name));
+        DEBUG(1,("Could not signal service [%s].\n", svc->name));
         return EIO;
     }
 
@@ -552,7 +572,7 @@ static int service_signal_reload(struct mt_svc *svc)
     msg = dbus_message_new_method_call(NULL,
                                        SERVICE_PATH,
                                        SERVICE_INTERFACE,
-                                       SERVICE_METHOD_RELOAD);
+                                       svc_signal);
     if (!msg) {
         DEBUG(0,("Out of memory?!\n"));
         monitor_kill_service(svc);
@@ -575,6 +595,15 @@ static int service_signal_reload(struct mt_svc *svc)
     dbus_message_unref(msg);
 
     return EOK;
+}
+
+static int service_signal_reload(struct mt_svc *svc)
+{
+    return service_signal(svc, SERVICE_METHOD_RELOAD);
+}
+static int service_signal_dns_reload(struct mt_svc *svc)
+{
+    return service_signal(svc, SERVICE_METHOD_RES_INIT);
 }
 
 static int check_domain_ranges(struct sss_domain_info *domains)
@@ -1210,6 +1239,10 @@ static void config_file_changed(struct tevent_context *ev,
     file_ctx->needs_update = 1;
 }
 
+struct rewatch_ctx {
+    struct config_file_callback *cb;
+    struct config_file_ctx *file_ctx;
+};
 static void rewatch_config_file(struct tevent_context *ev,
                                 struct tevent_timer *te,
                                 struct timeval t, void *ptr);
@@ -1224,6 +1257,8 @@ static void process_config_file(struct tevent_context *ev,
     ssize_t len, total_len;
     ssize_t event_size;
     struct config_file_ctx *file_ctx;
+    struct config_file_callback *cb;
+    struct rewatch_ctx *rw_ctx;
 
     event_size = sizeof(struct inotify_event);
     file_ctx = talloc_get_type(ptr, struct config_file_ctx);
@@ -1241,7 +1276,8 @@ static void process_config_file(struct tevent_context *ev,
 
     total_len = 0;
     while (total_len < event_size) {
-        len = read(file_ctx->fd, buf+total_len, event_size-total_len);
+        len = read(file_ctx->mt_ctx->inotify_fd, buf+total_len,
+                   event_size-total_len);
         if (len == -1 && errno != EINTR) {
             DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
             talloc_free(tmp_ctx);
@@ -1259,7 +1295,7 @@ static void process_config_file(struct tevent_context *ev,
         name = talloc_size(tmp_ctx, len);
         total_len = 0;
         while (total_len < in_event->len) {
-            len = read(file_ctx->fd, &name, in_event->len);
+            len = read(file_ctx->mt_ctx->inotify_fd, &name, in_event->len);
             if (len == -1 && errno != EINTR) {
                 DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
                 talloc_free(tmp_ctx);
@@ -1270,6 +1306,16 @@ static void process_config_file(struct tevent_context *ev,
     }
 
     talloc_free(tmp_ctx);
+
+    for (cb = file_ctx->callbacks; cb; cb = cb->next) {
+        if (cb->wd == in_event->wd) {
+            break;
+        }
+    }
+    if (!cb) {
+        DEBUG(0, ("Unknown watch descriptor\n"));
+        return;
+    }
 
     if (in_event->mask & IN_IGNORED) {
         /* Some text editors will move a new file on top of the
@@ -1283,18 +1329,28 @@ static void process_config_file(struct tevent_context *ev,
         tv.tv_sec = t.tv_sec+5;
         tv.tv_usec = t.tv_usec;
 
-        file_ctx->retries = 0;
-        tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, file_ctx);
+        cb->retries = 0;
+        rw_ctx = talloc(file_ctx, struct rewatch_ctx);
+        if(!rw_ctx) {
+            DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
+            close(file_ctx->mt_ctx->inotify_fd);
+            kill(getpid(), SIGTERM);
+            return;
+        }
+        rw_ctx->cb = cb;
+        rw_ctx->file_ctx = file_ctx;
+
+        tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, rw_ctx);
         if (te == NULL) {
             DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
-            close(file_ctx->fd);
+            close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
         return;
     }
 
     /* Tell the monitor to signal the children */
-    file_ctx->reconf_fn(file_ctx);
+    cb->fn(file_ctx, cb->filename);
     file_ctx->needs_update = 0;
 }
 
@@ -1305,42 +1361,50 @@ static void rewatch_config_file(struct tevent_context *ev,
     int err;
     struct tevent_timer *tev = NULL;
     struct timeval tv;
+    struct config_file_callback *cb;
 
+    struct rewatch_ctx *rw_ctx;
     struct config_file_ctx *file_ctx;
-    file_ctx = talloc_get_type(ptr, struct config_file_ctx);
-    file_ctx->retries++;
+
+    rw_ctx = talloc_get_type(ptr, struct rewatch_ctx);
+
+    cb = rw_ctx->cb;
+    file_ctx = rw_ctx->file_ctx;
 
     /* Retry six times at five-second intervals before giving up */
-    if (file_ctx->retries > 6) {
+    cb->retries++;
+    if (cb->retries > 6) {
         DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
-        close(file_ctx->fd);
+        close(file_ctx->mt_ctx->inotify_fd);
         kill(getpid(), SIGTERM);
     }
 
-    file_ctx->wd = inotify_add_watch(file_ctx->fd, file_ctx->filename,
-                                     IN_MODIFY);
-    if (file_ctx->wd < 0) {
+    cb->wd = inotify_add_watch(file_ctx->mt_ctx->inotify_fd,
+                               cb->filename, IN_MODIFY);
+    if (cb->wd < 0) {
         err = errno;
 
         tv.tv_sec = t.tv_sec+5;
         tv.tv_usec = t.tv_usec;
 
         DEBUG(1, ("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
-                  file_ctx->filename, err, strerror(err)));
+                  cb->filename, err, strerror(err)));
 
-        tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, file_ctx);
+        tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, rw_ctx);
         if (te == NULL) {
             DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
-            close(file_ctx->fd);
+            close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
 
         return;
     }
-    file_ctx->retries = 0;
+    cb->retries = 0;
 
     /* Tell the monitor to signal the children */
-    file_ctx->reconf_fn(file_ctx);
+    cb->fn(file_ctx, cb->filename);
+
+    talloc_free(rw_ctx);
     file_ctx->needs_update = 0;
 }
 #endif
@@ -1352,90 +1416,113 @@ static void poll_config_file(struct tevent_context *ev,
     int ret, err;
     struct stat file_stat;
     struct timeval tv;
-    struct tevent_timer *timer;
-    struct config_file_ctx *file_ctx =
-        talloc_get_type(ptr,struct config_file_ctx);
+    struct config_file_ctx *file_ctx;
+    struct config_file_callback *cb;
 
-    ret = stat(file_ctx->filename, &file_stat);
-    if (ret < 0) {
-        err = errno;
-        DEBUG(0, ("Could not stat file [%s]. Error [%d:%s]\n",
-                  file_ctx->filename, err, strerror(err)));
-        /* TODO: If the config file is missing, should we shut down? */
-        return;
-    }
+    file_ctx = talloc_get_type(ptr,struct config_file_ctx);
 
-    if (file_stat.st_mtime != file_ctx->modified) {
-        /* Parse the configuration file and signal the children */
-        /* Note: this will fire if the modification time changes into the past
-         * as well as the future.
-         */
-        DEBUG(1, ("Config file changed\n"));
-        file_ctx->modified = file_stat.st_mtime;
+    for (cb = file_ctx->callbacks; cb; cb = cb->next) {
+        ret = stat(cb->filename, &file_stat);
+        if (ret < 0) {
+            err = errno;
+            DEBUG(0, ("Could not stat file [%s]. Error [%d:%s]\n",
+                      cb->filename, err, strerror(err)));
+            /* TODO: If the config file is missing, should we shut down? */
+            return;
+        }
 
-        /* Tell the monitor to signal the children */
-        file_ctx->reconf_fn(file_ctx);
+        if (file_stat.st_mtime != cb->modified) {
+            /* Parse the configuration file and signal the children */
+            /* Note: this will fire if the modification time changes into the past
+             * as well as the future.
+             */
+            DEBUG(1, ("Config file changed\n"));
+            cb->modified = file_stat.st_mtime;
+
+            /* Tell the monitor to signal the children */
+            cb->fn(file_ctx, cb->filename);
+        }
     }
 
     gettimeofday(&tv, NULL);
     tv.tv_sec += CONFIG_FILE_POLL_INTERVAL;
     tv.tv_usec = 0;
-    timer = tevent_add_timer(ev, file_ctx->parent_ctx, tv,
+    file_ctx->timer = tevent_add_timer(ev, file_ctx->parent_ctx, tv,
                              poll_config_file, file_ctx);
-    if (!timer) {
+    if (!file_ctx->timer) {
         DEBUG(0, ("Error: Config file no longer monitored for changes!"));
     }
 }
 
-static int try_inotify(struct config_file_ctx *file_ctx)
+static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
+                       monitor_reconf_fn fn)
 {
 #ifdef HAVE_SYS_INOTIFY_H
     int err, fd_args, ret;
     struct tevent_fd *tfd;
+    struct config_file_callback *cb;
 
-    /* Set up inotify to monitor the config file for changes */
-    file_ctx->fd = inotify_init();
-    if (file_ctx->fd < 0) {
-        err = errno;
-        DEBUG(0, ("Could not initialize inotify, error [%d:%s]\n",
-                  err, strerror(err)));
-        return err;
+    /* Monitoring the file descriptor should be global */
+    if (!file_ctx->mt_ctx->inotify_fd) {
+        /* Set up inotify to monitor the config file for changes */
+        file_ctx->mt_ctx->inotify_fd = inotify_init();
+        if (file_ctx->mt_ctx->inotify_fd < 0) {
+            err = errno;
+            DEBUG(0, ("Could not initialize inotify, error [%d:%s]\n",
+                      err, strerror(err)));
+            return err;
+        }
+
+        fd_args = fcntl(file_ctx->mt_ctx->inotify_fd, F_GETFL, NULL);
+        if (fd_args < 0) {
+            /* Could not set nonblocking */
+            close(file_ctx->mt_ctx->inotify_fd);
+            return EINVAL;
+        }
+
+        fd_args |= O_NONBLOCK;
+        ret = fcntl(file_ctx->mt_ctx->inotify_fd, F_SETFL, fd_args);
+        if (ret < 0) {
+            /* Could not set nonblocking */
+            close(file_ctx->mt_ctx->inotify_fd);
+            return EINVAL;
+        }
+
+        /* Add the inotify file descriptor to the TEvent context */
+        tfd = tevent_add_fd(file_ctx->mt_ctx->ev, file_ctx,
+                            file_ctx->mt_ctx->inotify_fd,
+                            TEVENT_FD_READ, config_file_changed,
+                            file_ctx);
+        if (!tfd) {
+            close(file_ctx->mt_ctx->inotify_fd);
+            return EIO;
+        }
     }
 
-    fd_args = fcntl(file_ctx->fd, F_GETFL, NULL);
-    if (fd_args < 0) {
-        /* Could not set nonblocking */
-        close(file_ctx->fd);
-        return EINVAL;
-    }
-
-    fd_args |= O_NONBLOCK;
-    ret = fcntl(file_ctx->fd, F_SETFL, fd_args);
-    if (ret < 0) {
-        /* Could not set nonblocking */
-        close(file_ctx->fd);
-        return EINVAL;
-    }
-
-    file_ctx->wd = inotify_add_watch(file_ctx->fd, file_ctx->filename,
-                                     IN_MODIFY);
-    if (file_ctx->wd < 0) {
-        err = errno;
-        DEBUG(0, ("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
-                  file_ctx->filename, err, strerror(err)));
-        close(file_ctx->fd);
-        return err;
-    }
-
-    /* Add the inotify file descriptor to the TEvent context */
-    tfd = tevent_add_fd(file_ctx->ev, file_ctx, file_ctx->fd,
-                        TEVENT_FD_READ, config_file_changed,
-                        file_ctx);
-    if (!tfd) {
-        inotify_rm_watch(file_ctx->fd, file_ctx->wd);
-        close(file_ctx->fd);
+    cb = talloc_zero(file_ctx, struct config_file_callback);
+    if(!cb) {
+        close(file_ctx->mt_ctx->inotify_fd);
         return EIO;
     }
+
+    cb->filename = talloc_strdup(cb, filename);
+    if (!cb->filename) {
+        close(file_ctx->mt_ctx->inotify_fd);
+        return ENOMEM;
+    }
+    cb->wd = inotify_add_watch(file_ctx->mt_ctx->inotify_fd,
+                               cb->filename, IN_MODIFY);
+    if (cb->wd < 0) {
+        err = errno;
+        DEBUG(0, ("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
+                  cb->filename, err, strerror(err)));
+        close(file_ctx->mt_ctx->inotify_fd);
+        return err;
+    }
+    cb->fn = fn;
+
+    DLIST_ADD(file_ctx->callbacks, cb);
+
     return EOK;
 #else
     return EINVAL;
@@ -1443,19 +1530,14 @@ static int try_inotify(struct config_file_ctx *file_ctx)
 }
 
 static int monitor_config_file(TALLOC_CTX *mem_ctx,
-                        struct confdb_ctx *cdb,
-                        struct tevent_context *ev,
-                        const char *file,
-                        confdb_reconf_fn fn,
-                        void *reconf_pvt)
+                               struct mt_ctx *ctx,
+                               const char *file,
+                               monitor_reconf_fn fn)
 {
     int ret, err;
     struct timeval tv;
-
     struct stat file_stat;
-    struct config_file_ctx *file_ctx;
-
-    struct tevent_timer *timer;
+    struct config_file_callback *cb = NULL;
 
     ret = stat(file, &file_stat);
     if (ret < 0) {
@@ -1464,28 +1546,41 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
                   file, err, strerror(err)));
         return err;
     }
+    if (!ctx->file_ctx) {
+        ctx->file_ctx = talloc_zero(mem_ctx, struct config_file_ctx);
+        if (!ctx->file_ctx) return ENOMEM;
 
-    file_ctx = talloc_zero(mem_ctx, struct config_file_ctx);
-    if (!file_ctx) return ENOMEM;
-
-    file_ctx->parent_ctx = mem_ctx;
-    file_ctx->cdb = cdb;
-    file_ctx->filename = talloc_strdup(file_ctx, file);
-    file_ctx->modified = file_stat.st_mtime;
-    file_ctx->reconf_fn = fn;
-    file_ctx->reconf_pvt = reconf_pvt;
-    file_ctx->ev = ev;
-
-    ret = try_inotify(file_ctx);
+        ctx->file_ctx->parent_ctx = mem_ctx;
+        ctx->file_ctx->mt_ctx = ctx;
+    }
+    ret = try_inotify(ctx->file_ctx, file, fn);
     if (ret != EOK) {
         /* Could not monitor file with inotify, fall back to polling */
-        gettimeofday(&tv, NULL);
-        tv.tv_sec += CONFIG_FILE_POLL_INTERVAL;
-        tv.tv_usec = 0;
-        timer = tevent_add_timer(ev, mem_ctx, tv, poll_config_file, file_ctx);
-        if (!timer) {
-            talloc_free(file_ctx);
-            return EIO;
+        cb = talloc_zero(ctx->file_ctx, struct config_file_callback);
+        if (!cb) {
+            talloc_free(ctx->file_ctx);
+            return ENOMEM;
+        }
+        cb->filename = talloc_strdup(cb, file);
+        if (!cb->filename) {
+            talloc_free(ctx->file_ctx);
+            return ENOMEM;
+        }
+        cb->fn = fn;
+        cb->modified = file_stat.st_mtime;
+
+        DLIST_ADD(ctx->file_ctx->callbacks, cb);
+
+        if(!ctx->file_ctx->timer) {
+            gettimeofday(&tv, NULL);
+            tv.tv_sec += CONFIG_FILE_POLL_INTERVAL;
+            tv.tv_usec = 0;
+            ctx->file_ctx->timer = tevent_add_timer(ctx->ev, mem_ctx, tv,
+                                   poll_config_file, ctx->file_ctx);
+            if (!ctx->file_ctx->timer) {
+                talloc_free(ctx->file_ctx);
+                return EIO;
+            }
         }
     }
 
@@ -1564,7 +1659,15 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     }
 
     /* Watch for changes to the confdb config file */
-    ret = monitor_config_file(ctx, cdb, event_ctx, config_file, monitor_signal_reconf, ctx);
+    ret = monitor_config_file(ctx, ctx, config_file, monitor_signal_reconf);
+    if (ret != EOK) {
+        talloc_free(ctx);
+        return ret;
+    }
+
+    /* Watch for changes to the DNS resolv.conf */
+    ret = monitor_config_file(ctx, ctx, RESOLV_CONF_PATH,
+                              monitor_update_resolv);
     if (ret != EOK) {
         talloc_free(ctx);
         return ret;

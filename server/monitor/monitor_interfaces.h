@@ -39,5 +39,6 @@
 #define SERVICE_METHOD_PING "ping"
 #define SERVICE_METHOD_RELOAD "reloadConfig"
 #define SERVICE_METHOD_SHUTDOWN "shutDown"
+#define SERVICE_METHOD_RES_INIT "resInit"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
