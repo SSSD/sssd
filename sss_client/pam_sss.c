@@ -14,6 +14,7 @@
 #include <security/pam_modules.h>
 #include <security/pam_misc.h>
 #include <security/pam_ext.h>
+#include "sss_pam_macros.h"
 
 #include "sss_cli.h"
 
