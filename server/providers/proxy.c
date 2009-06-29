@@ -1359,11 +1359,15 @@ int sssm_proxy_init(struct be_ctx *bectx,
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                            "libName", NULL, &libname);
-    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "libPath", NULL, &libpath);
     if (ret != EOK) goto done;
-    if (libpath == NULL || libname == NULL) {
+    if (libname == NULL) {
         ret = ENOENT;
+        goto done;
+    }
+
+    libpath = talloc_asprintf(ctx, "libnss_%s.so.2", libname);
+    if (!libpath) {
+        ret = ENOMEM;
         goto done;
     }
 

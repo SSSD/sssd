@@ -564,18 +564,6 @@
                         </para>
                     </listitem>
                 </varlistentry>
-
-                <varlistentry>
-                    <term>libPath (string)</term>
-                    <listitem>
-                        <para>
-                            File name (including .so) of NSS library
-                            used. For instance, ldap NSS library is named
-                            libnss_ldap.so, the standard files NSS library
-                            is named libnss_files.so
-                        </para>
-                    </listitem>
-                </varlistentry>
             </variablelist>
         </para>
     </refsect1>
