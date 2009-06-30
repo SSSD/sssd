@@ -30,7 +30,8 @@ libnss_sss_la_LDFLAGS = \
 pam_sss_la_SOURCES = \
     pam_sss.c \
     common.c \
-    sss_cli.h
+    sss_cli.h \
+    sss_pam_macros.h
 
 pam_sss_la_LDFLAGS = \
     -lpam \
