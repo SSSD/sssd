@@ -1414,6 +1414,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
         if (cdb_file == NULL) {
             DEBUG(0,("Out of memory, aborting!\n"));
+            talloc_free(ctx);
             return ENOMEM;
         }
 
@@ -1421,20 +1422,24 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         ret = confdb_init(ctx, ctx->ev, &ctx->cdb, cdb_file);
         if (ret != EOK) {
             DEBUG(0,("The confdb initialization failed\n"));
+            talloc_free(ctx);
             return ret;
         }
 
         /* Load special entries */
-        ret = confdb_create_base(cdb);
+        ret = confdb_create_base(ctx->cdb);
         if (ret != EOK) {
             talloc_free(ctx);
             return ret;
         }
+    } else if (ret != EOK) {
+        DEBUG(0, ("Fatal error initializing confdb\n"));
+        talloc_free(ctx);
+        return ret;
     }
 
-    ret = confdb_init_db(config_file, cdb);
+    ret = confdb_init_db(config_file, ctx->cdb);
     if (ret != EOK) {
-        talloc_free(cdb);
         DEBUG(0, ("ConfDB initialization has failed [%s]\n",
               strerror(ret)));
         talloc_free(ctx);
@@ -1443,12 +1448,17 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
 
     /* Read in the monitor's configuration */
     ret = get_monitor_config(ctx);
-    if (ret != EOK)
+    if (ret != EOK) {
+        talloc_free(ctx);
         return ret;
+    }
 
     /* Watch for changes to the confdb config file */
     ret = monitor_config_file(ctx, cdb, event_ctx, config_file, monitor_signal_reconf, ctx);
-    if (ret != EOK) return ret;
+    if (ret != EOK) {
+        talloc_free(ctx);
+        return ret;
+    }
 
     /* Avoid a startup race condition between InfoPipe
      * and NSS. If the sysdb doesn't exist yet, both
@@ -1458,8 +1468,10 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
      */
     ret = sysdb_init(mem_ctx, ctx->ev, ctx->cdb,
                      NULL, &sysdb);
-    if (ret != EOK)
+    if (ret != EOK) {
+        talloc_free(ctx);
         return ret;
+    }
     talloc_free(sysdb);
 
     /* Initialize D-BUS Server
@@ -1467,6 +1479,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
      * SSSD processes */
     ret = monitor_dbus_init(ctx);
     if (ret != EOK) {
+        talloc_free(ctx);
         return ret;
     }
 
