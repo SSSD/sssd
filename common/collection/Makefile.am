@@ -15,12 +15,20 @@ libcollection_la_SOURCES = \
     collection.c \
     collection_tools.c \
     collection_cnv.c \
+    collection_queue.c \
+    collection_stack.c \
     collection.h \
     collection_tools.h \
     collection_priv.h \
+    collection_queue.h \
+    collection_stack.h \
     ../trace/trace.h
 
 # Build unit test
-noinst_PROGRAMS = collection_ut
+noinst_PROGRAMS = collection_ut collection_stack_ut collection_queue_ut
 collection_ut_SOURCES = collection_ut.c
 collection_ut_LDADD = libcollection.la
+collection_stack_ut_SOURCES = collection_stack_ut.c
+collection_stack_ut_LDADD = libcollection.la
+collection_queue_ut_SOURCES = collection_queue_ut.c
+collection_queue_ut_LDADD = libcollection.la

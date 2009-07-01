@@ -151,7 +151,7 @@ int insert_unsigned_property(struct collection_item *ci,
                                      index,
                                      flags,
                                      property,
-                                     COL_TYPE_LONG,
+                                     COL_TYPE_UNSIGNED,
                                      (void *)&number,
                                      sizeof(unsigned),
                                      NULL);
