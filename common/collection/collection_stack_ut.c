@@ -42,51 +42,51 @@ int stack_test()
 
     printf("\n\nSTACK TEST!!!.\n\n\n");
 
-    if ((error = create_stack(&stack)) ||
-        (error = push_str_property(stack, "item1", "value 1", 0)) ||
-        (error = push_int_property(stack, "item2", -1)) ||
-        (error = push_unsigned_property(stack, "item3", 1)) ||
-        (error = push_long_property(stack, "item4", 100)) ||
-        (error = push_ulong_property(stack, "item5", 1000)) ||
-        (error = push_double_property(stack, "item6", 1.1)) ||
-        (error = push_bool_property(stack, "item7", 1)) ||
-        (error = push_binary_property(stack, "item8", binary_dump, sizeof(binary_dump)))) {
+    if ((error = col_create_stack(&stack)) ||
+        (error = col_push_str_property(stack, "item1", "value 1", 0)) ||
+        (error = col_push_int_property(stack, "item2", -1)) ||
+        (error = col_push_unsigned_property(stack, "item3", 1)) ||
+        (error = col_push_long_property(stack, "item4", 100)) ||
+        (error = col_push_ulong_property(stack, "item5", 1000)) ||
+        (error = col_push_double_property(stack, "item6", 1.1)) ||
+        (error = col_push_bool_property(stack, "item7", 1)) ||
+        (error = col_push_binary_property(stack, "item8", binary_dump, sizeof(binary_dump)))) {
         printf("Failed to push property. Error %d\n", error);
-        destroy_collection(stack);
+        col_destroy_collection(stack);
         return error;
     }
 
-    debug_collection(stack, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(stack, COL_TRAVERSE_DEFAULT);
 
     printf("Swapping last two items by popping and pushing them back.\n");
 
-    if ((error = pop_item(stack, &item1)) ||
-        (error = pop_item(stack, &item2))) {
+    if ((error = col_pop_item(stack, &item1)) ||
+        (error = col_pop_item(stack, &item2))) {
         printf("Failed to pop items. Error %d\n", error);
-        destroy_collection(stack);
+        col_destroy_collection(stack);
         return error;
     }
 
     printf("\nPopped two last items.\n");
-    debug_collection(stack, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(stack, COL_TRAVERSE_DEFAULT);
 
     printf("\nLast item.\n");
-    debug_item(item1);
+    col_debug_item(item1);
 
     printf("\nPrevious item.\n");
-    debug_item(item2);
+    col_debug_item(item2);
 
-    if ((error = push_item(stack, item1)) ||
-        (error = push_item(stack, item2))) {
+    if ((error = col_push_item(stack, item1)) ||
+        (error = col_push_item(stack, item2))) {
         printf("Failed to pop or push items. Error %d\n", error);
-        destroy_collection(stack);
+        col_destroy_collection(stack);
         return error;
     }
 
     printf("\n\nPushed two items again in reverse order.\n\n");
 
-    debug_collection(stack, COL_TRAVERSE_DEFAULT);
-    destroy_collection(stack);
+    col_debug_collection(stack, COL_TRAVERSE_DEFAULT);
+    col_destroy_collection(stack);
     TRACE_FLOW_NUMBER("stack_test. Returning", error);
 
     printf("\n\nEND OF STACK TEST!!!.\n\n");

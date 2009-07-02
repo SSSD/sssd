@@ -27,9 +27,9 @@
 #include "collection.h"
 
 #ifdef  HAVE_TRACE
-#define DEBUG_COLLECTION(collection) debug_collection(collection,COL_TRAVERSE_DEFAULT);
+#define COL_DEBUG_COLLECTION(collection) col_debug_collection(collection,COL_TRAVERSE_DEFAULT);
 #else
-#define DEBUG_COLLECTION(collection) ;
+#define COL_DEBUG_COLLECTION(collection) ;
 #endif
 
 #define COL_TYPE_NAME_STRING     "string"
@@ -47,7 +47,7 @@
 
 #define BLOCK_SIZE 1024
 
-struct serial_data {
+struct col_serial_data {
     char *buffer;
     int size;
     int length;
@@ -56,52 +56,52 @@ struct serial_data {
 
 
 /* Calculate the potential size of the item */
-int get_data_len(int type, int length);
+int col_get_data_len(int type, int length);
 
 /* Grow buffer to accomodate more space */
-int grow_buffer(struct serial_data *buf_data, int len);
+int col_grow_buffer(struct col_serial_data *buf_data, int len);
 
 /* Specail function to add different formatting symbols to the output */
-int put_marker(struct serial_data *buf_data, const void *data, int len);
+int col_put_marker(struct col_serial_data *buf_data, const void *data, int len);
 
 /* Serialization of data user handler */
-int serialize(const char *property_in,
-              int property_len_in,
-              int type,
-              void *data_in,
-              int length_in,
-              void *custom_data,
-              int *dummy);
+int col_serialize(const char *property_in,
+                  int property_len_in,
+                  int type,
+                  void *data_in,
+                  int length_in,
+                  void *custom_data,
+                  int *dummy);
 
 /* Debug handle */
-int debug_handle(const char *property,
-                 int property_len,
-                 int type,
-                 void *data,
-                 int length,
-                 void *custom_data,
-                 int *dummy);
+int col_debug_handle(const char *property,
+                     int property_len,
+                     int type,
+                     void *data,
+                     int length,
+                     void *custom_data,
+                     int *dummy);
 
 /* Convenience function to debug an item */
-int debug_item(struct collection_item *item);
+int col_debug_item(struct collection_item *item);
 
 /* Print collection for debugging purposes */
-int debug_collection(struct collection_item *handle,int flag);
+int col_debug_collection(struct collection_item *handle,int flag);
 
 /* Print the collection using default serialization */
-int print_collection(struct collection_item *handle);
+int col_print_collection(struct collection_item *handle);
 
 /* Print the collection using iterator */
-int print_collection2(struct collection_item *handle);
+int col_print_collection2(struct collection_item *handle);
 
 
 /* Find and print one item using default serialization */
-int print_item(struct collection_item *handle, char *name);
+int col_print_item(struct collection_item *handle, char *name);
 
 /* Convert collection to list of properties */
-char **collection_to_list(struct collection_item *handle, int *size, int *error);
+char **col_collection_to_list(struct collection_item *handle, int *size, int *error);
 
 /* Function to free the list of properties. */
-void free_property_list(char **str_list);
+void col_free_property_list(char **str_list);
 
 #endif

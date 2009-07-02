@@ -25,36 +25,38 @@
 #include "trace.h"
 
 /* Function that creates a queue object */
-int create_queue(struct collection_item **queue)
+int col_create_queue(struct collection_item **queue)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("create_queue", "Entry point.");
+    TRACE_FLOW_STRING("col_create_queue", "Entry point.");
 
-    error = create_collection(queue, COL_NAME_QUEUE, COL_CLASS_QUEUE);
+    error = col_create_collection(queue, COL_NAME_QUEUE, COL_CLASS_QUEUE);
 
-    TRACE_FLOW_STRING("create_queue", "Exit.");
+    TRACE_FLOW_STRING("col_create_queue", "Exit.");
     return error;
 }
 
 /* Function that destroys a queue object */
-void destroy_queue(struct collection_item *queue)
+void col_destroy_queue(struct collection_item *queue)
 {
-    TRACE_FLOW_STRING("destroy_queue", "Entry point.");
+    TRACE_FLOW_STRING("col_destroy_queue", "Entry point.");
 
-    destroy_collection(queue);
+    col_destroy_collection(queue);
 
-    TRACE_FLOW_STRING("destroy_queue", "Exit");
+    TRACE_FLOW_STRING("col_destroy_queue", "Exit");
 }
 
 
 /* Put a string property into a queue.  */
-int enqueue_str_property(struct collection_item *queue,
-                         const char *property, char *string, int length)
+int col_enqueue_str_property(struct collection_item *queue,
+                             const char *property,
+                             char *string,
+                             int length)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_str_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_str_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -63,24 +65,26 @@ int enqueue_str_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_str_property(queue, NULL, property, string, length);
+    error = col_add_str_property(queue, NULL, property, string, length);
 
-    TRACE_FLOW_STRING("enqueue_str_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_str_property", "Exit.");
     return error;
 }
 
 /* Put a binary property into a queue.  */
-int enqueue_binary_property(struct collection_item *queue,
-                            const char *property, void *binary_data, int length)
+int col_enqueue_binary_property(struct collection_item *queue,
+                                const char *property,
+                                void *binary_data,
+                                int length)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_binary_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_binary_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -89,25 +93,26 @@ int enqueue_binary_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_binary_property(queue, NULL, property, binary_data, length);
+    error = col_add_binary_property(queue, NULL, property, binary_data, length);
 
-    TRACE_FLOW_STRING("enqueue_binary_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_binary_property", "Exit.");
     return error;
 }
 
 
 /* Put an int property into a queue. */
-int enqueue_int_property(struct collection_item *queue,
-                         const char *property, int number)
+int col_enqueue_int_property(struct collection_item *queue,
+                             const char *property,
+                             int number)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_int_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_int_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -116,24 +121,25 @@ int enqueue_int_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_int_property(queue, NULL, property, number);
+    error = col_add_int_property(queue, NULL, property, number);
 
-    TRACE_FLOW_STRING("enqueue_int_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_int_property", "Exit.");
     return error;
 }
 
 /* Put an unsigned int property into a queue. */
-int enqueue_unsigned_property(struct collection_item *queue,
-                              const char *property, unsigned int number)
+int col_enqueue_unsigned_property(struct collection_item *queue,
+                                  const char *property,
+                                  unsigned int number)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_unsigned_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_unsigned_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -142,25 +148,26 @@ int enqueue_unsigned_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_unsigned_property(queue, NULL, property, number);
+    error = col_add_unsigned_property(queue, NULL, property, number);
 
-    TRACE_FLOW_STRING("enqueue_unsigned_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_unsigned_property", "Exit.");
     return error;
 }
 
 
 /* Put a long property. */
-int enqueue_long_property(struct collection_item *queue,
-                          const char *property, long number)
+int col_enqueue_long_property(struct collection_item *queue,
+                              const char *property,
+                              long number)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_long_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_long_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -169,24 +176,25 @@ int enqueue_long_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_long_property(queue, NULL, property, number);
+    error = col_add_long_property(queue, NULL, property, number);
 
-    TRACE_FLOW_STRING("enqueue_long_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_long_property", "Exit.");
     return error;
 }
 
 /* Put an unsigned long property. */
-int enqueue_ulong_property(struct collection_item *queue,
-                           const char *property, unsigned long number)
+int col_enqueue_ulong_property(struct collection_item *queue,
+                               const char *property,
+                               unsigned long number)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_ulong_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_ulong_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -195,24 +203,25 @@ int enqueue_ulong_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_ulong_property(queue, NULL, property, number);
+    error = col_add_ulong_property(queue, NULL, property, number);
 
-    TRACE_FLOW_STRING("enqueue_ulong_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_ulong_property", "Exit.");
     return error;
 }
 
 /* Put a double property. */
-int enqueue_double_property(struct collection_item *queue,
-                            const char *property, double number)
+int col_enqueue_double_property(struct collection_item *queue,
+                                const char *property,
+                                double number)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_double_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_double_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -221,24 +230,25 @@ int enqueue_double_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_double_property(queue, NULL, property, number);
+    error = col_add_double_property(queue, NULL, property, number);
 
     TRACE_FLOW_STRING("enqueue_double_property", "Exit.");
     return error;
 }
 
 /* Put a bool property. */
-int enqueue_bool_property(struct collection_item *queue,
-                          const char *property, unsigned char logical)
+int col_enqueue_bool_property(struct collection_item *queue,
+                              const char *property,
+                              unsigned char logical)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_bool_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_bool_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -247,27 +257,27 @@ int enqueue_bool_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_bool_property(queue, NULL, property, logical);
+    error = col_add_bool_property(queue, NULL, property, logical);
 
-    TRACE_FLOW_STRING("enqueue_bool_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_bool_property", "Exit.");
     return error;
 }
 
 /* Put any property */
-int enqueue_any_property(struct collection_item *queue,
-                         const char *property,
-                         int type,
-                         void *data,
-                         int length)
+int col_enqueue_any_property(struct collection_item *queue,
+                             const char *property,
+                             int type,
+                             void *data,
+                             int length)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_any_property", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_any_property", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -276,24 +286,24 @@ int enqueue_any_property(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = add_any_property(queue, NULL, property, type, data, length);
+    error = col_add_any_property(queue, NULL, property, type, data, length);
 
-    TRACE_FLOW_STRING("enqueue_any_property", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_any_property", "Exit.");
     return error;
 }
 
 /* Enqueue item */
-int enqueue_item(struct collection_item *queue,
-              struct collection_item *item)
+int col_enqueue_item(struct collection_item *queue,
+                     struct collection_item *item)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("enqueue_item", "Entry point.");
+    TRACE_FLOW_STRING("col_enqueue_item", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -302,29 +312,29 @@ int enqueue_item(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = insert_item_into_current(queue,
-                                     item,
-                                     COL_DSP_END,
-                                     NULL,
-                                     0,
-                                     COL_INSERT_NOCHECK);
+    error = col_insert_item_into_current(queue,
+                                         item,
+                                         COL_DSP_END,
+                                         NULL,
+                                         0,
+                                         COL_INSERT_NOCHECK);
 
-    TRACE_FLOW_STRING("enqueue_item", "Exit.");
+    TRACE_FLOW_STRING("col_enqueue_item", "Exit.");
     return error;
 }
 
 /* Dequeue item */
-int dequeue_item(struct collection_item *queue,
-                 struct collection_item **item)
+int col_dequeue_item(struct collection_item *queue,
+                     struct collection_item **item)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("dequeue_item", "Entry point.");
+    TRACE_FLOW_STRING("col_dequeue_item", "Entry point.");
 
     /* Check that queue is not empty */
     if (queue == NULL) {
@@ -333,18 +343,18 @@ int dequeue_item(struct collection_item *queue,
     }
 
     /* Make sure it is a queue */
-    if (!is_of_class(queue, COL_CLASS_QUEUE)) {
+    if (!col_is_of_class(queue, COL_CLASS_QUEUE)) {
         TRACE_ERROR_STRING("Wrong class", "");
         return EINVAL;
     }
 
-    error = extract_item_from_current(queue,
-                                      COL_DSP_FRONT,
-                                      NULL,
-                                      0,
-                                      0,
-                                      item);
+    error = col_extract_item_from_current(queue,
+                                          COL_DSP_FRONT,
+                                          NULL,
+                                          0,
+                                          0,
+                                          item);
 
-    TRACE_FLOW_STRING("dequeue_item", "Exit.");
+    TRACE_FLOW_STRING("col_dequeue_item", "Exit.");
     return error;
 }

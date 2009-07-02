@@ -41,9 +41,9 @@ int basic_test()
         return error;
     }
 
-    debug_collection(ini_config,COL_TRAVERSE_DEFAULT);
-    print_collection(ini_config);
-    print_collection(error_set);
+    col_debug_collection(ini_config,COL_TRAVERSE_DEFAULT);
+    col_print_collection(ini_config);
+    col_print_collection(error_set);
 
     printf("\n\n----------------------\n");
     /* Output parsing errors (if any) */
@@ -51,8 +51,8 @@ int basic_test()
     printf("----------------------\n\n\n");
 
 
-    destroy_collection(ini_config);
-    destroy_collection(error_set);
+    col_destroy_collection(ini_config);
+    col_destroy_collection(error_set);
     return 0;
 }
 
@@ -76,9 +76,9 @@ int single_file()
         return error;
     }
 
-    debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    print_collection(ini_config);
-    print_collection(error_set);
+    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+    col_print_collection(ini_config);
+    col_print_collection(error_set);
 
     printf("\n\n----------------------\n");
     /* Output parsing errors (if any) */
@@ -86,8 +86,8 @@ int single_file()
     printf("----------------------\n\n\n");
 
 
-    destroy_collection(ini_config);
-    destroy_collection(error_set);
+    col_destroy_collection(ini_config);
+    col_destroy_collection(error_set);
 
     ini_config = NULL;
     error_set = NULL;
@@ -102,8 +102,8 @@ int single_file()
         return error;
     }
 
-    debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    debug_collection(lines, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(lines, COL_TRAVERSE_DEFAULT);
 
     printf("\n\n----------------------\n");
     /* Output parsing errors (if any) */
@@ -111,9 +111,9 @@ int single_file()
     printf("----------------------\n\n\n");
 
 
-    destroy_collection(ini_config);
-    destroy_collection(error_set);
-    destroy_collection(lines);
+    col_destroy_collection(ini_config);
+    col_destroy_collection(error_set);
+    col_destroy_collection(lines);
 
     return 0;
 }
@@ -153,14 +153,14 @@ int negative_test()
     }
 
     count = 0;
-    (void)get_collection_count(ini_config, &count);
+    (void)col_get_collection_count(ini_config, &count);
     if (count > 1) {
         printf("Expected empty collection but got contents with %d elements\n", count);
-        print_collection(ini_config);
+        col_print_collection(ini_config);
         return -1;
     }
 
-    destroy_collection(ini_config);
+    col_destroy_collection(ini_config);
     return 0;
 
 }
@@ -184,9 +184,9 @@ int real_test(const char *file)
     }
 
     printf("Debugging the config collection:\n");
-    debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
     printf("Debugging the error collection:\n");
-    debug_collection(error_set, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(error_set, COL_TRAVERSE_DEFAULT);
 
     printf("About to print parsing errors:\n");
     printf("\n\n----------------------\n");
@@ -196,48 +196,48 @@ int real_test(const char *file)
 
     printf("About to bind iterator to print the config file contents.\n");
     /* Bind iterator */
-    error =  bind_iterator(&iterator, ini_config,
+    error =  col_bind_iterator(&iterator, ini_config,
                            COL_TRAVERSE_DEFAULT|COL_TRAVERSE_END);
     if (error) {
         printf("Failed to bind iterator: %d\n",error);
-        destroy_collection(ini_config);
-        destroy_collection(error_set);
+        col_destroy_collection(ini_config);
+        col_destroy_collection(error_set);
         return error;
     }
 
     printf("About to start iteration loop.\n");
     do {
         /* Loop through a collection */
-        error = iterate_collection(iterator, &item);
+        error = col_iterate_collection(iterator, &item);
         if (error) {
             printf("Error iterating collection: %d", error);
-            unbind_iterator(iterator);
+            col_unbind_iterator(iterator);
             return error;
         }
 
         /* Are we done ? */
         if (item == (struct collection_item *)(NULL)) break;
 
-        type = get_item_type(item);
+        type = col_get_item_type(item);
 
         /* Start of the collection */
         if (type == COL_TYPE_COLLECTION)
-            printf("Contents of the configuration for application %s\n", get_item_property(item, NULL));
+            printf("Contents of the configuration for application %s\n", col_get_item_property(item, NULL));
         /* End of section */
         else if (type == COL_TYPE_END) printf("\n");
         /* Section header ? */
-        else if (type == COL_TYPE_COLLECTIONREF) printf("[%s]\n", get_item_property(item, NULL));
+        else if (type == COL_TYPE_COLLECTIONREF) printf("[%s]\n", col_get_item_property(item, NULL));
         /* Anything else - we know they are all strings*/
-        else printf("%s = %s\n", get_item_property(item, NULL), (char *)get_item_data(item));
+        else printf("%s = %s\n", col_get_item_property(item, NULL), (char *)col_get_item_data(item));
     }
     while(1);
 
     /* Do not forget to unbind iterator - otherwise there will be a leak */
     printf("About to clean up.\n");
-    unbind_iterator(iterator);
+    col_unbind_iterator(iterator);
 
-    destroy_collection(ini_config);
-    destroy_collection(error_set);
+    col_destroy_collection(ini_config);
+    col_destroy_collection(error_set);
     return 0;
 }
 
@@ -277,10 +277,10 @@ int get_test()
     }
 
     printf("Debugging the config collection:\n");
-    debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
     printf("Debugging the error collection:\n");
-    debug_collection(error_set, COL_TRAVERSE_DEFAULT);
-    destroy_collection(error_set);
+    col_debug_collection(error_set, COL_TRAVERSE_DEFAULT);
+    col_destroy_collection(error_set);
 
     printf("Negtive test - trying to get non existing key-value pair.\n");
 
@@ -289,14 +289,14 @@ int get_test()
     error = get_config_item("monitor1", "description1", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should not be found */
     if (item != (struct collection_item *)(NULL)) {
         printf("Expected NULL but got something else!\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -305,14 +305,14 @@ int get_test()
     error = get_config_item("monitor", "description1", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should not be found */
     if(item != (struct collection_item *)(NULL)) {
         printf("Expected NULL but got something else!\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -323,18 +323,18 @@ int get_test()
     error = get_config_item("monitor", "description", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected item but got something NULL!\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
-    debug_item(item);
+    col_debug_item(item);
 
     printf("Get item as string without duplication from NULL item.\n");
 
@@ -343,7 +343,7 @@ int get_test()
     cstrn = get_const_string_config_value(NULL, NULL);
     if (cstrn != NULL) {
         printf("Expected error got success.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -354,7 +354,7 @@ int get_test()
     cstr = get_const_string_config_value(item, &error);
     if (error) {
         printf("Expected success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -368,7 +368,7 @@ int get_test()
     str = get_string_config_value(item, &error);
     if (error) {
         printf("Expected success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -383,18 +383,18 @@ int get_test()
     error = get_config_item("monitor", "bad_number", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected item but got something NULL!\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
-    debug_item(item);
+    col_debug_item(item);
 
 
     /* Now try to get value in different ways */
@@ -405,7 +405,7 @@ int get_test()
         printf("Expected error.\n");
         if(number != 10) {
             printf("It failed to set default value.\n");
-            destroy_collection(ini_config);
+            col_destroy_collection(ini_config);
             return -1;
         }
     }
@@ -418,14 +418,14 @@ int get_test()
     if (error) {
         /* We expected error in this case */
         printf("Did not expect error.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     if (number != 5) {
         /* We expected error in this case */
         printf("We expected that the conversion will return 5.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -437,14 +437,14 @@ int get_test()
     error = get_config_item("domains/LOCAL","enumerate", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected success but got NULL.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -455,14 +455,14 @@ int get_test()
     number = get_int_config_value(item, 1, 100, &error);
     if (error) {
         printf("Did not expect error. Got %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* It is 3 in the file */
     if (number != 3) {
         printf("We expected that the conversion will return 3.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -475,14 +475,14 @@ int get_test()
     number_long = get_long_config_value(item, 1, 100, &error);
     if (error) {
         printf("Did not expect error. Got %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* It is 3 in the file */
     if (number_long != 3) {
         printf("We expected that the conversion will return 3.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -495,14 +495,14 @@ int get_test()
     number_unsigned = get_unsigned_config_value(item, 1, 100, &error);
     if (error) {
         printf("Did not expect error. Got %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* It is 3 in the file */
     if(number_unsigned != 3) {
         printf("We expected that the conversion will return 3.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -515,14 +515,14 @@ int get_test()
     number_ulong = get_ulong_config_value(item, 1, 100, &error);
     if (error) {
         printf("Did not expect error. Got %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* It is 3 in the file */
     if (number_ulong != 3) {
         printf("We expected that the conversion will return 3.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -535,14 +535,14 @@ int get_test()
     number_double = get_double_config_value(item, 1, 100., &error);
     if (error) {
         printf("Did not expect error. Got %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* It is 3 in the file */
     if (number_double != 3.) {
         printf("We expected that the conversion will return 3.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -555,7 +555,7 @@ int get_test()
     logical = get_bool_config_value(item, 1, &error);
     if (!error) {
         printf("Expect error. Got success.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -566,14 +566,14 @@ int get_test()
     error = get_config_item("domains/LOCAL","legacy", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n",error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected success but got NULL.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -583,7 +583,7 @@ int get_test()
     logical = get_bool_config_value(item, 1, &error);
     if (error) {
         printf("Expect success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -600,24 +600,24 @@ int get_test()
     error = get_config_item("domains/EXAMPLE.COM","binary_test", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected success but got NULL.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
-    debug_item(item);
+    col_debug_item(item);
 
     error = 0;
     binary = get_bin_config_value(item, &length, &error);
     if (error) {
         printf("Expect success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -635,18 +635,18 @@ int get_test()
     error = get_config_item("domains", "domainsorder", ini_config, &item);
     if(error) {
         printf("Expected success but got error! %d\n",error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected success but got NULL.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
-    debug_item(item);
+    col_debug_item(item);
 
     printf("Get str array without size.\n");
 
@@ -654,7 +654,7 @@ int get_test()
     strarray = get_string_config_array(item, ",", NULL, &error);
     if (error) {
         printf("Expect success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -674,7 +674,7 @@ int get_test()
     strarray = get_string_config_array(item, ",", &size, &error);
     if (error) {
         printf("Expect success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -689,25 +689,25 @@ int get_test()
     error = get_config_item("domains/EXAMPLE.COM", "long_array", ini_config, &item);
     if(error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected success but got NULL.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
-    debug_item(item);
+    col_debug_item(item);
 
     error = 0;
     size = 0; /* Here size is not optional!!! */
     array = get_long_config_array(item, &size, &error);
     if(error) {
         printf("Expect success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -722,25 +722,25 @@ int get_test()
     error = get_config_item("domains/EXAMPLE.COM", "double_array", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
     /* Item should be found */
     if (item == (struct collection_item *)(NULL)) {
         printf("Expected success but got NULL.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
-    debug_item(item);
+    col_debug_item(item);
 
     error = 0;
     size = 0; /* Here size is not optional!!! */
     darray = get_double_config_array(item, &size, &error);
     if (error) {
         printf("Expect success got error %d.\n", error);
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return error;
     }
 
@@ -755,7 +755,7 @@ int get_test()
     prop_array = get_section_list(ini_config, NULL, NULL);
     if (prop_array == NULL) {
         printf("Expect success got error.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -772,7 +772,7 @@ int get_test()
     prop_array = get_section_list(ini_config, &size, NULL);
     if (prop_array == NULL) {
         printf("Expect success got error.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
@@ -785,14 +785,14 @@ int get_test()
     prop_array = get_attribute_list(ini_config, "domains/EXAMPLE.COM", &size, &error);
     if (prop_array == NULL) {
         printf("Expect success got error.\n");
-        destroy_collection(ini_config);
+        col_destroy_collection(ini_config);
         return -1;
     }
 
     for (i=0;i<size;i++) printf("Attribute: [%s]\n", prop_array[i]);
     free_attribute_list(prop_array);
 
-    destroy_collection(ini_config);
+    col_destroy_collection(ini_config);
     printf("Done with get test!\n");
     return EOK;
 }

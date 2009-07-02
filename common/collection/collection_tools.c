@@ -30,18 +30,18 @@
 #include "collection_tools.h"
 
 /* Debug handle */
-int debug_handle(const char *property,
-                 int property_len,
-                 int type,
-                 void *data,
-                 int length,
-                 void *custom_data,
-                 int *dummy)
+int col_debug_handle(const char *property,
+                     int property_len,
+                     int type,
+                     void *data,
+                     int length,
+                     void *custom_data,
+                     int *dummy)
 {
     int i;
     int nest_level;
 
-    TRACE_FLOW_STRING("debug_handle", "Entry.");
+    TRACE_FLOW_STRING("col_debug_handle", "Entry.");
 
 
     nest_level = *(int *)(custom_data);
@@ -146,32 +146,32 @@ int debug_handle(const char *property,
     }
     *(int *)(custom_data) = nest_level;
     TRACE_INFO_NUMBER("Nest level at the end:", nest_level);
-    TRACE_FLOW_STRING("debug_handle", "Success exit.");
+    TRACE_FLOW_STRING("col_debug_handle", "Success exit.");
     return EOK;
 }
 
 /* Convenience function to debug an item */
-inline int debug_item(struct collection_item *item)
+inline int col_debug_item(struct collection_item *item)
 {
     int dummy = 0;
     int nest_level = 0;
-    return debug_handle(item->property,
-                        item->property_len,
-                        item->type,
-                        item->data,
-                        item->length,
-                        (void *)(&nest_level),
-                        &dummy);
+    return col_debug_handle(item->property,
+                            item->property_len,
+                            item->type,
+                            item->data,
+                            item->length,
+                            (void *)(&nest_level),
+                            &dummy);
 }
 
 
 /* Print collection for debugging purposes */
-int debug_collection(struct collection_item *handle, int flag)
+int col_debug_collection(struct collection_item *handle, int flag)
 {
     int error = EOK;
     int nest_level = 0;
 
-    TRACE_FLOW_STRING("debug_collection", "Entry.");
+    TRACE_FLOW_STRING("col_debug_collection", "Entry.");
 
     printf("DEBUG COLLECTION %s\n", handle->property);
 
@@ -180,17 +180,18 @@ int debug_collection(struct collection_item *handle, int flag)
     printf("Traverse flags %d\n", flag);
 
     /* Traverse collection */
-    error = traverse_collection(handle, flag,
-                                debug_handle, (void *)(&nest_level));
+    error = col_traverse_collection(handle, flag,
+                                    col_debug_handle,
+                                    (void *)(&nest_level));
     if (error) printf("Error debuging collection %d\n", error);
 
-    TRACE_FLOW_STRING("debug_collection", "Exit.");
+    TRACE_FLOW_STRING("col_debug_collection", "Exit.");
     return error;
 }
 
 
 /* Return a static string based on type of the element */
-static inline const char *get_type(int type)
+static inline const char *col_get_type(int type)
 {
     switch (type) {
     case COL_TYPE_STRING:
@@ -224,11 +225,11 @@ static inline const char *get_type(int type)
 }
 
 /* Calculate the potential size of the item */
-int get_data_len(int type, int length)
+int col_get_data_len(int type, int length)
 {
     int len = 0;
 
-    TRACE_FLOW_STRING("util_get_item_len", "Entry point");
+    TRACE_FLOW_STRING("col_get_data_len", "Entry point");
 
     switch (type) {
     case COL_TYPE_INTEGER:
@@ -256,13 +257,13 @@ int get_data_len(int type, int length)
         break;
     }
 
-    TRACE_FLOW_STRING("util_get_item_len","Exit point");
+    TRACE_FLOW_STRING("col_get_data_len","Exit point");
 
     return len;
 }
 
 /* Copy data escaping characters */
-static int copy_esc(char *dest, char *source, char esc)
+static int col_copy_esc(char *dest, char *source, char esc)
 {
     int i = 0;
     int j = 0;
@@ -289,11 +290,11 @@ static int copy_esc(char *dest, char *source, char esc)
 }
 
 /* Grow buffer to accomodate more space */
-int grow_buffer(struct serial_data *buf_data, int len)
+int col_grow_buffer(struct col_serial_data *buf_data, int len)
 {
     char *tmp;
 
-    TRACE_FLOW_STRING("grow_buffer", "Entry point");
+    TRACE_FLOW_STRING("col_grow_buffer", "Entry point");
     TRACE_INFO_NUMBER("Current length: ", buf_data->length);
     TRACE_INFO_NUMBER("Increment length: ", len);
     TRACE_INFO_NUMBER("Expected length: ", buf_data->length+len);
@@ -314,42 +315,42 @@ int grow_buffer(struct serial_data *buf_data, int len)
     }
 
     TRACE_INFO_NUMBER("Final size: ", buf_data->size);
-    TRACE_FLOW_STRING("grow_buffer", "Success Exit.");
+    TRACE_FLOW_STRING("col_grow_buffer", "Success Exit.");
     return EOK;
 }
 
 /* Specail function to add different formatting symbols to the output */
-int put_marker(struct serial_data *buf_data, const void *data, int len)
+int col_put_marker(struct col_serial_data *buf_data, const void *data, int len)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("put_marker", "Entry point");
+    TRACE_FLOW_STRING("col_put_marker", "Entry point");
     TRACE_INFO_NUMBER("Marker length: ", len);
 
-    error = grow_buffer(buf_data, len);
+    error = col_grow_buffer(buf_data, len);
     if (error) {
-        TRACE_ERROR_NUMBER("grow_buffer failed with: ", error);
+        TRACE_ERROR_NUMBER("col_grow_buffer failed with: ", error);
         return error;
     }
     memcpy(buf_data->buffer + buf_data->length, data, len);
     buf_data->length += len;
     buf_data->buffer[buf_data->length] = '\0';
 
-    TRACE_FLOW_STRING("put_marker","Success exit");
+    TRACE_FLOW_STRING("col_put_marker","Success exit");
     return error;
 }
 
 /* Add item's data */
-int serialize(const char *property_in,
-              int property_len_in,
-              int type,
-              void *data_in,
-              int length_in,
-              void *custom_data,
-              int *dummy)
+int col_serialize(const char *property_in,
+                  int property_len_in,
+                  int type,
+                  void *data_in,
+                  int length_in,
+                  void *custom_data,
+                  int *dummy)
 {
     int len;
-    struct serial_data *buf_data;
+    struct col_serial_data *buf_data;
     const char *property;
     const void *data;
     int  property_len;
@@ -357,12 +358,12 @@ int serialize(const char *property_in,
     int error = EOK;
     int i;
 
-    TRACE_FLOW_STRING("serialize","Entry point");
+    TRACE_FLOW_STRING("col_serialize","Entry point");
 
     *dummy = 0;
 
     /* Check is there is buffer. If not allocate */
-    buf_data = (struct serial_data *)custom_data;
+    buf_data = (struct col_serial_data *)custom_data;
     if (buf_data == NULL) {
         TRACE_ERROR_STRING("Error.", "Storage data is not passed in!");
         return EINVAL;
@@ -388,7 +389,7 @@ int serialize(const char *property_in,
     if (type == COL_TYPE_COLLECTION) {
         TRACE_INFO_STRING("Serializing collection: ", property_in);
         TRACE_INFO_STRING("First header. ", "");
-        error = put_marker(buf_data, "(", 1);
+        error = col_put_marker(buf_data, "(", 1);
         if (error != EOK) return error;
         property = TEXT_COLLECTION;
         property_len = TEXT_COLLEN;
@@ -400,7 +401,7 @@ int serialize(const char *property_in,
     /* Check for subcollections */
     else if (type == COL_TYPE_COLLECTIONREF) {
         /* Skip */
-        TRACE_FLOW_STRING("serialize", "skip reference return");
+        TRACE_FLOW_STRING("col_serialize", "skip reference return");
         return EOK;
     }
     /* Check for the end of the collection */
@@ -412,10 +413,10 @@ int serialize(const char *property_in,
         }
         if (buf_data->nest_level > 0) {
             buf_data->nest_level--;
-            error = put_marker(buf_data, ")", 1);
+            error = col_put_marker(buf_data, ")", 1);
             if (error != EOK) return error;
         }
-        TRACE_FLOW_STRING("serialize", "end collection item processed returning");
+        TRACE_FLOW_STRING("col_serialize", "end collection item processed returning");
         return EOK;
     }
     else {
@@ -429,18 +430,18 @@ int serialize(const char *property_in,
     TRACE_INFO_NUMBER("Property length: ", property_len);
 
     /* Start with property and "=" */
-    if ((error = put_marker(buf_data, property, property_len)) ||
-        (error = put_marker(buf_data, "=", 1))) {
+    if ((error = col_put_marker(buf_data, property, property_len)) ||
+        (error = col_put_marker(buf_data, "=", 1))) {
         TRACE_ERROR_NUMBER("put_marker returned error: ", error);
         return error;
     }
     /* Get projected length of the item */
-    len = get_data_len(type,length);
+    len = col_get_data_len(type,length);
     TRACE_INFO_NUMBER("Expected data length: ",len);
     TRACE_INFO_STRING("Buffer so far: ", buf_data->buffer);
 
     /* Make sure we have enough space */
-    if ((error = grow_buffer(buf_data, len))) {
+    if ((error = col_grow_buffer(buf_data, len))) {
         TRACE_ERROR_NUMBER("grow_buffer returned error: ", error);
         return error;
     }
@@ -449,7 +450,7 @@ int serialize(const char *property_in,
     switch (type) {
     case COL_TYPE_STRING:
         /* Escape double quotes */
-        len = copy_esc(&buf_data->buffer[buf_data->length], (char *)(data), '"');
+        len = col_copy_esc(&buf_data->buffer[buf_data->length], (char *)(data), '"');
         break;
 
     case COL_TYPE_BINARY:
@@ -503,25 +504,25 @@ int serialize(const char *property_in,
     buf_data->buffer[buf_data->length] = '\0';
 
     /* Always put a comma at the end */
-    error = put_marker(buf_data, ",", 1);
+    error = col_put_marker(buf_data, ",", 1);
     if (error != EOK) {
         TRACE_ERROR_NUMBER("put_marker returned error: ", error);
         return error;
     }
 
     TRACE_INFO_STRING("Data: ", buf_data->buffer);
-    TRACE_FLOW_STRING("serialize", "Exit point");
+    TRACE_FLOW_STRING("col_serialize", "Exit point");
     return EOK;
 
 }
 
 /* Print the collection using default serialization */
-int print_collection(struct collection_item *handle)
+int col_print_collection(struct collection_item *handle)
 {
-    struct serial_data buf_data;
+    struct col_serial_data buf_data;
     int error = EOK;
 
-    TRACE_FLOW_STRING("print_collection", "Entry");
+    TRACE_FLOW_STRING("col_print_collection", "Entry");
 
     printf("COLLECTION:\n");
 
@@ -531,9 +532,9 @@ int print_collection(struct collection_item *handle)
     buf_data.nest_level = 0;
 
     /* Traverse collection */
-    error = traverse_collection(handle,
-                                COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END ,
-                                serialize, (void *)(&buf_data));
+    error = col_traverse_collection(handle,
+                                    COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END ,
+                                    col_serialize, (void *)(&buf_data));
     if (error)
         printf("Error traversing collection %d\n", error);
     else
@@ -541,12 +542,12 @@ int print_collection(struct collection_item *handle)
 
     free(buf_data.buffer);
 
-    TRACE_FLOW_NUMBER("print_collection returning", error);
+    TRACE_FLOW_NUMBER("col_print_collection returning", error);
     return error;
 }
 
 /* Print the collection using iterator */
-int print_collection2(struct collection_item *handle)
+int col_print_collection2(struct collection_item *handle)
 {
     struct collection_iterator *iterator = NULL;
     int error = EOK;
@@ -555,7 +556,7 @@ int print_collection2(struct collection_item *handle)
     int dummy = 0;
     int line = 1;
 
-    TRACE_FLOW_STRING("print_collection2", "Entry");
+    TRACE_FLOW_STRING("col_print_collection2", "Entry");
 
     /* If we have something to print print it */
     if (handle == NULL) {
@@ -564,8 +565,10 @@ int print_collection2(struct collection_item *handle)
     }
 
     /* Bind iterator */
-    error = bind_iterator(&iterator, handle,
-                          COL_TRAVERSE_DEFAULT| COL_TRAVERSE_END| COL_TRAVERSE_SHOWSUB);
+    error = col_bind_iterator(&iterator, handle,
+                              COL_TRAVERSE_DEFAULT |
+                              COL_TRAVERSE_END |
+                              COL_TRAVERSE_SHOWSUB);
     if (error) {
         TRACE_ERROR_NUMBER("Error (bind):", error);
         return error;
@@ -573,10 +576,10 @@ int print_collection2(struct collection_item *handle)
 
     do {
         /* Loop through a collection */
-        error = iterate_collection(iterator, &item);
+        error = col_iterate_collection(iterator, &item);
         if (error) {
             TRACE_ERROR_NUMBER("Error (iterate):", error);
-            unbind_iterator(iterator);
+            col_unbind_iterator(iterator);
             return error;
         }
 
@@ -585,41 +588,42 @@ int print_collection2(struct collection_item *handle)
 
         if (item->type != COL_TYPE_END) printf("%05d", line);
 
-        debug_handle(item->property,
-                     item->property_len,
-                     item->type,
-                     item->data,
-                     item->length,
-                     (void *)(&nest_level),
-                     &dummy);
+        col_debug_handle(item->property,
+                         item->property_len,
+                         item->type,
+                         item->data,
+                         item->length,
+                         (void *)(&nest_level),
+                         &dummy);
         line++;
     }
     while(1);
 
     /* Do not forget to unbind iterator - otherwise there will be a leak */
-    unbind_iterator(iterator);
+    col_unbind_iterator(iterator);
 
-    TRACE_INFO_STRING("print_collection2", "Exit");
+    TRACE_INFO_STRING("col_print_collection2", "Exit");
     return EOK;
 }
 
 /* Find and print one item using default serialization */
-int print_item(struct collection_item *handle, char *name)
+int col_print_item(struct collection_item *handle, char *name)
 {
-    struct serial_data buf_data;
+    struct col_serial_data buf_data;
     int error = EOK;
 
-    TRACE_FLOW_STRING("print_item", "Entry");
+    TRACE_FLOW_STRING("col_print_item", "Entry");
 
-    printf("FIND ITEM:\n");
+    printf("PRINT ITEM:\n");
 
     buf_data.buffer = NULL;
     buf_data.length = 0;
     buf_data.size = 0;
     buf_data.nest_level = 0;
 
-    error =  get_item_and_do(handle, name, COL_TYPE_ANY,
-                             COL_TRAVERSE_DEFAULT, serialize, &buf_data);
+    error =  col_get_item_and_do(handle, name, COL_TYPE_ANY,
+                                 COL_TRAVERSE_DEFAULT,
+                                 col_serialize, &buf_data);
     if(error) printf("Error searching collection %d\n", error);
     else {
         if (buf_data.buffer != NULL) {
@@ -634,16 +638,16 @@ int print_item(struct collection_item *handle, char *name)
         }
     }
 
-    TRACE_FLOW_NUMBER("print_item returning", error);
+    TRACE_FLOW_NUMBER("col_print_item returning", error);
     return error;
 }
 
 /* Function to free the list of properties. */
-void free_property_list(char **str_list)
+void col_free_property_list(char **str_list)
 {
     int current = 0;
 
-    TRACE_FLOW_STRING("free_property_list","Entry");
+    TRACE_FLOW_STRING("col_free_property_list","Entry");
 
     if (str_list != NULL) {
         while(str_list[current]) {
@@ -653,12 +657,12 @@ void free_property_list(char **str_list)
         free(str_list);
     }
 
-    TRACE_FLOW_STRING("free_property_list","Exit");
+    TRACE_FLOW_STRING("col_free_property_list","Exit");
 }
 
 
 /* Convert collection to list of properties */
-char **collection_to_list(struct collection_item *handle, int *size, int *error)
+char **col_collection_to_list(struct collection_item *handle, int *size, int *error)
 {
     struct collection_iterator *iterator;
     struct collection_item *item = NULL;
@@ -667,10 +671,10 @@ char **collection_to_list(struct collection_item *handle, int *size, int *error)
     int err;
     int current = 0;
 
-    TRACE_FLOW_STRING("collection_to_list","Entry");
+    TRACE_FLOW_STRING("col_collection_to_list","Entry");
 
     /* Get number of the subsections */
-    err = get_collection_count(handle,&count);
+    err = col_get_collection_count(handle, &count);
     if (err) {
         TRACE_ERROR_NUMBER("Failed to get count of items from collection.", err);
         if (error) *error = err;
@@ -689,7 +693,7 @@ char **collection_to_list(struct collection_item *handle, int *size, int *error)
 
     /* Now iterate to fill in the sections */
     /* Bind iterator */
-    err =  bind_iterator(&iterator, handle, COL_TRAVERSE_ONELEVEL);
+    err =  col_bind_iterator(&iterator, handle, COL_TRAVERSE_ONELEVEL);
     if (err) {
         TRACE_ERROR_NUMBER("Failed to bind.", err);
         if (error) *error = err;
@@ -699,43 +703,43 @@ char **collection_to_list(struct collection_item *handle, int *size, int *error)
 
     while(1) {
         /* Loop through a collection */
-        err = iterate_collection(iterator, &item);
+        err = col_iterate_collection(iterator, &item);
         if (err) {
             TRACE_ERROR_NUMBER("Failed to iterate collection", err);
             if (error) *error = err;
-            free_property_list(list);
-            unbind_iterator(iterator);
+            col_free_property_list(list);
+            col_unbind_iterator(iterator);
             return NULL;
         }
 
         /* Are we done ? */
         if (item == NULL) break;
 
-        TRACE_INFO_STRING("Property:", get_item_property(item, NULL));
+        TRACE_INFO_STRING("Property:", col_get_item_property(item, NULL));
 
         /* Skip head */
-        if(get_item_type(item) == COL_TYPE_COLLECTION) continue;
+        if(col_get_item_type(item) == COL_TYPE_COLLECTION) continue;
 
 
         /* Allocate memory for the new string */
         errno = 0;
-        list[current] = strdup(get_item_property(item, NULL));
+        list[current] = strdup(col_get_item_property(item, NULL));
         if (list[current] == NULL) {
             err = errno;
             TRACE_ERROR_NUMBER("Failed to dup string.", err);
             if (error) *error = ENOMEM;
-            free_property_list(list);
+            col_free_property_list(list);
             return NULL;
         }
         current++;
     }
 
     /* Do not forget to unbind iterator - otherwise there will be a leak */
-    unbind_iterator(iterator);
+    col_unbind_iterator(iterator);
 
     if (size) *size = (int)(count - 1);
     if (error) *error = EOK;
 
-    TRACE_FLOW_STRING("collection_to_list returning", list == NULL ? "NULL" : list[0]);
+    TRACE_FLOW_STRING("col_collection_to_list returning", list == NULL ? "NULL" : list[0]);
     return list;
 }

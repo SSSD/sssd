@@ -160,19 +160,21 @@ static int add_or_update(struct collection_item *current_section,
 
     TRACE_FLOW_STRING("add_or_update", "Entry");
 
-    error = is_item_in_collection(current_section, key,
-                                  COL_TYPE_ANY, COL_TRAVERSE_IGNORE, &found);
+    error = col_is_item_in_collection(current_section, key,
+                                      COL_TYPE_ANY,
+                                      COL_TRAVERSE_IGNORE,
+                                      &found);
 
     if (found == COL_MATCH) {
         TRACE_INFO_STRING("Updating...", "");
-        error = update_property(current_section,
-                                key, type, value, length,
-                                COL_TRAVERSE_IGNORE);
+        error = col_update_property(current_section,
+                                    key, type, value, length,
+                                    COL_TRAVERSE_IGNORE);
     }
     else {
         TRACE_INFO_STRING("Adding...", "");
-        error = add_any_property(current_section, NULL,
-                                 key, type, value, length);
+        error = col_add_any_property(current_section, NULL,
+                                     key, type, value, length);
     }
 
     TRACE_FLOW_NUMBER("add_or_update returning", error);
@@ -216,7 +218,7 @@ static int ini_to_collection(const char *filename,
     /* Open the collection of errors */
     if (error_list != NULL) {
         *error_list = NULL;
-        error = create_collection(error_list, filename, COL_CLASS_INI_PERROR);
+        error = col_create_collection(error_list, filename, COL_CLASS_INI_PERROR);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to create error collection", error);
             fclose(file);
@@ -237,13 +239,13 @@ static int ini_to_collection(const char *filename,
         case RET_PAIR:
             /* Add line to the collection of lines */
             if (lines) {
-                error = add_int_property(*lines, NULL, key, line);
+                error = col_add_int_property(*lines, NULL, key, line);
                 if (error) {
                     TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
                     fclose(file);
-                    destroy_collection(current_section);
+                    col_destroy_collection(current_section);
                     if (created) {
-                        destroy_collection(*error_list);
+                        col_destroy_collection(*error_list);
                         *error_list = NULL;
                     }
                     return error;
@@ -253,22 +255,22 @@ static int ini_to_collection(const char *filename,
             /* Do we have a section at the top of the file ? */
             if (section_count == 0) {
                 /* Check if collection already exists */
-                error = get_collection_reference(ini_config, &current_section,
-                                                 INI_DEFAULT_SECTION);
+                error = col_get_collection_reference(ini_config, &current_section,
+                                                     INI_DEFAULT_SECTION);
                 if (error != EOK) {
                     /* Create default collection */
-                    if ((error = create_collection(&current_section,
-                                                   INI_DEFAULT_SECTION,
-                                                   COL_CLASS_INI_SECTION)) ||
-                        (error = add_collection_to_collection(ini_config,
-                                                   NULL,NULL,
-                                                   current_section,
-                                                   COL_ADD_MODE_REFERENCE))) {
+                    if ((error = col_create_collection(&current_section,
+                                                       INI_DEFAULT_SECTION,
+                                                       COL_CLASS_INI_SECTION)) ||
+                        (error = col_add_collection_to_collection(ini_config,
+                                                                  NULL,NULL,
+                                                                  current_section,
+                                                                  COL_ADD_MODE_REFERENCE))) {
                         TRACE_ERROR_NUMBER("Failed to create collection", error);
                         fclose(file);
-                        destroy_collection(current_section);
+                        col_destroy_collection(current_section);
                         if (created) {
-                            destroy_collection(*error_list);
+                            col_destroy_collection(*error_list);
                             *error_list = NULL;
                         }
                         return error;
@@ -283,9 +285,9 @@ static int ini_to_collection(const char *filename,
             if (error != EOK) {
                 TRACE_ERROR_NUMBER("Failed to add pair to collection", error);
                 fclose(file);
-                destroy_collection(current_section);
+                col_destroy_collection(current_section);
                 if (created) {
-                    destroy_collection(*error_list);
+                    col_destroy_collection(*error_list);
                     *error_list = NULL;
                 }
                 return error;
@@ -298,13 +300,13 @@ static int ini_to_collection(const char *filename,
                 /* For easier search make line numbers for the sections negative.
                  * This would allow differentiating sections and attributes.
                  */
-                error = add_int_property(*lines, NULL, key, -1 * line);
+                error = col_add_int_property(*lines, NULL, key, -1 * line);
                 if (error) {
                     TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
                     fclose(file);
-                    destroy_collection(current_section);
+                    col_destroy_collection(current_section);
                     if (created) {
-                        destroy_collection(*error_list);
+                        col_destroy_collection(*error_list);
                         *error_list = NULL;
                     }
                     return error;
@@ -312,23 +314,23 @@ static int ini_to_collection(const char *filename,
             }
 
             /* Read a new section */
-            destroy_collection(current_section);
+            col_destroy_collection(current_section);
             current_section = NULL;
 
-            error = get_collection_reference(ini_config, &current_section, key);
+            error = col_get_collection_reference(ini_config, &current_section, key);
             if (error != EOK) {
                 /* Create default collection */
-                if ((error = create_collection(&current_section, key,
-                                               COL_CLASS_INI_SECTION)) ||
-                    (error = add_collection_to_collection(ini_config,
-                                               NULL, NULL,
-                                               current_section,
-                                               COL_ADD_MODE_REFERENCE))) {
+                if ((error = col_create_collection(&current_section, key,
+                                                   COL_CLASS_INI_SECTION)) ||
+                    (error = col_add_collection_to_collection(ini_config,
+                                                              NULL, NULL,
+                                                              current_section,
+                                                              COL_ADD_MODE_REFERENCE))) {
                     TRACE_ERROR_NUMBER("Failed to add collection", error);
                     fclose(file);
-                    destroy_collection(current_section);
+                    col_destroy_collection(current_section);
                     if (created) {
-                        destroy_collection(*error_list);
+                        col_destroy_collection(*error_list);
                         *error_list = NULL;
                     }
                     return error;
@@ -348,14 +350,14 @@ static int ini_to_collection(const char *filename,
         case RET_ERROR:
             pe.line = line;
             pe.error = ext_err;
-            error = add_binary_property(*error_list, NULL,
-                                        ERROR_TXT, &pe, sizeof(pe));
+            error = col_add_binary_property(*error_list, NULL,
+                                            ERROR_TXT, &pe, sizeof(pe));
             if (error) {
                 TRACE_ERROR_NUMBER("Failed to add error to collection", error);
                 fclose(file);
-                destroy_collection(current_section);
+                col_destroy_collection(current_section);
                 if (created) {
-                    destroy_collection(*error_list);
+                    col_destroy_collection(*error_list);
                     *error_list = NULL;
                 }
                 return error;
@@ -363,7 +365,7 @@ static int ini_to_collection(const char *filename,
             /* Exit if there was an error parsing file */
             if (error_level != INI_STOP_ON_NONE) {
                 TRACE_ERROR_STRING("Invalid format of the file", "");
-                destroy_collection(current_section);
+                col_destroy_collection(current_section);
                 fclose(file);
                 return EIO;
             }
@@ -373,14 +375,14 @@ static int ini_to_collection(const char *filename,
         default:
             pe.line = line;
             pe.error = ext_err;
-            error = add_binary_property(*error_list, NULL,
-                                        WARNING_TXT, &pe, sizeof(pe));
+            error = col_add_binary_property(*error_list, NULL,
+                                            WARNING_TXT, &pe, sizeof(pe));
             if (error) {
                 TRACE_ERROR_NUMBER("Failed to add warning to collection", error);
                 fclose(file);
-                destroy_collection(current_section);
+                col_destroy_collection(current_section);
                 if (created) {
-                    destroy_collection(*error_list);
+                    col_destroy_collection(*error_list);
                     *error_list = NULL;
                 }
                 return error;
@@ -388,7 +390,7 @@ static int ini_to_collection(const char *filename,
             /* Exit if we are told to exit on warnings */
             if (error_level == INI_STOP_ON_ANY) {
                 TRACE_ERROR_STRING("Invalid format of the file", "");
-                if (created) destroy_collection(current_section);
+                if (created) col_destroy_collection(current_section);
                 fclose(file);
                 return EIO;
             }
@@ -401,11 +403,11 @@ static int ini_to_collection(const char *filename,
     /* Close file */
     fclose(file);
 
-    DEBUG_COLLECTION(ini_config);
+    COL_DEBUG_COLLECTION(ini_config);
 
-    destroy_collection(current_section);
+    col_destroy_collection(current_section);
 
-    DEBUG_COLLECTION(ini_config);
+    COL_DEBUG_COLLECTION(ini_config);
 
     TRACE_FLOW_STRING("ini_to_collection", "Success Exit");
 
@@ -457,9 +459,9 @@ int config_from_file_with_lines(const char *application,
 
     /* Create collection if needed */
     if (*ini_config == NULL) {
-        error = create_collection(ini_config,
-                                  application,
-                                  COL_CLASS_INI_CONFIG);
+        error = col_create_collection(ini_config,
+                                      application,
+                                      COL_CLASS_INI_CONFIG);
         if (error != EOK) {
             TRACE_ERROR_NUMBER("Failed to create collection", error);
             return error;
@@ -467,7 +469,7 @@ int config_from_file_with_lines(const char *application,
         created = 1;
     }
     /* Is the collection of the right class? */
-    else if (is_of_class(*ini_config, COL_CLASS_INI_CONFIG)) {
+    else if (col_is_of_class(*ini_config, COL_CLASS_INI_CONFIG)) {
         TRACE_ERROR_NUMBER("Wrong collection type", EINVAL);
         return EINVAL;
     }
@@ -480,19 +482,19 @@ int config_from_file_with_lines(const char *application,
         if (*lines) {
             TRACE_ERROR_NUMBER("Collection of lines is not empty", EINVAL);
             if (created) {
-                destroy_collection(*ini_config);
+                col_destroy_collection(*ini_config);
                 *ini_config = NULL;
             }
             return EINVAL;
         }
 
-        error = create_collection(lines,
-                                  application,
-                                  COL_CLASS_INI_LINES);
+        error = col_create_collection(lines,
+                                      application,
+                                      COL_CLASS_INI_LINES);
         if (error != EOK) {
             TRACE_ERROR_NUMBER("Failed to create collection", error);
             if (created) {
-                destroy_collection(*ini_config);
+                col_destroy_collection(*ini_config);
                 *ini_config = NULL;
             }
             return error;
@@ -505,12 +507,12 @@ int config_from_file_with_lines(const char *application,
                               error_level, error_list, lines);
     /* In case of error when we created collection - delete it */
     if (error && created) {
-        destroy_collection(*ini_config);
+        col_destroy_collection(*ini_config);
         *ini_config = NULL;
     }
     /* Also create collection of lines if we created it */
     if (error && created_lines) {
-        destroy_collection(*lines);
+        col_destroy_collection(*lines);
         *lines = NULL;
     }
 
@@ -549,9 +551,9 @@ int config_for_app(const char *application,
         pass_specific = &error_list_specific;
         *error_set = NULL;
         /* Construct the overarching error collection */
-        error = create_collection(error_set,
-                                  FILE_ERROR_SET,
-                                  COL_CLASS_INI_PESET);
+        error = col_create_collection(error_set,
+                                      FILE_ERROR_SET,
+                                      COL_CLASS_INI_PESET);
         if (error != EOK) {
             TRACE_ERROR_NUMBER("Failed to create collection", error);
             return error;
@@ -566,18 +568,18 @@ int config_for_app(const char *application,
     /* Create collection if needed */
     if (*ini_config == NULL) {
         TRACE_INFO_STRING("New config collection. Allocate.", "");
-        error = create_collection(ini_config,
-                                  application,
-                                  COL_CLASS_INI_CONFIG);
+        error = col_create_collection(ini_config,
+                                      application,
+                                      COL_CLASS_INI_CONFIG);
         if (error != EOK) {
             TRACE_ERROR_NUMBER("Failed to create collection", error);
-            destroy_collection(*error_set);
+            col_destroy_collection(*error_set);
             *error_set = NULL;
             return error;
         }
     }
     /* Is the collection of the right class? */
-    else if (is_of_class(*ini_config, COL_CLASS_INI_CONFIG)) {
+    else if (col_is_of_class(*ini_config, COL_CLASS_INI_CONFIG)) {
         TRACE_ERROR_NUMBER("Wrong collection type", EINVAL);
         return EINVAL;
     }
@@ -592,7 +594,7 @@ int config_for_app(const char *application,
             TRACE_ERROR_NUMBER("Failed to read master file", error);
             /* In case of error when we created collection - delete it */
             if(error && created) {
-                destroy_collection(*ini_config);
+                col_destroy_collection(*ini_config);
                 *ini_config = NULL;
             }
             /* We do not clear the error_set here */
@@ -601,15 +603,15 @@ int config_for_app(const char *application,
         /* Add error results if any to the overarching error collection */
         if ((pass_common != NULL) && (*pass_common != NULL)) {
             TRACE_INFO_STRING("Process erros resulting from file:", config_file);
-            error = add_collection_to_collection(*error_set, NULL, NULL,
-                                                 *pass_common,
-                                                 COL_ADD_MODE_EMBED);
+            error = col_add_collection_to_collection(*error_set, NULL, NULL,
+                                                     *pass_common,
+                                                     COL_ADD_MODE_EMBED);
             if (error) {
                 if (created) {
-                    destroy_collection(*ini_config);
+                    col_destroy_collection(*ini_config);
                     *ini_config = NULL;
                 }
-                destroy_collection(*error_set);
+                col_destroy_collection(*error_set);
                 *error_set = NULL;
                 TRACE_ERROR_NUMBER("Failed to add error collection to another error collection", error);
                 return error;
@@ -625,10 +627,10 @@ int config_for_app(const char *application,
             TRACE_ERROR_NUMBER("Failed to allocate memory for file name", error);
             /* In case of error when we created collection - delete it */
             if(error && created) {
-                destroy_collection(*ini_config);
+                col_destroy_collection(*ini_config);
                 *ini_config = NULL;
             }
-            destroy_collection(*error_set);
+            col_destroy_collection(*error_set);
             *error_set = NULL;
             return error;
         }
@@ -645,7 +647,7 @@ int config_for_app(const char *application,
             TRACE_ERROR_NUMBER("Failed to read specific application file", error);
             /* In case of error when we created collection - delete it */
             if (error && created) {
-                destroy_collection(*ini_config);
+                col_destroy_collection(*ini_config);
                 *ini_config = NULL;
             }
             /* We do not clear the error_set here */
@@ -655,15 +657,15 @@ int config_for_app(const char *application,
         /* Add error results if any to the overarching error collection */
         if ((pass_specific != NULL) && (*pass_specific != NULL)) {
             TRACE_INFO_STRING("Process erros resulting from file:", file_name);
-            error = add_collection_to_collection(*error_set, NULL, NULL,
-                                                 *pass_specific,
-                                                 COL_ADD_MODE_EMBED);
+            error = col_add_collection_to_collection(*error_set, NULL, NULL,
+                                                     *pass_specific,
+                                                     COL_ADD_MODE_EMBED);
             if (error) {
                 if (created) {
-                    destroy_collection(*ini_config);
+                    col_destroy_collection(*ini_config);
                     *ini_config = NULL;
                 }
-                destroy_collection(*error_set);
+                col_destroy_collection(*error_set);
                 *error_set = NULL;
                 TRACE_ERROR_NUMBER("Failed to add error collection to another error collection", error);
                 return error;
@@ -861,14 +863,14 @@ static void print_error_list(FILE *file,
     }
 
     /* Make sure we go the right collection */
-    if (!is_of_class(error_list, cclass)) {
+    if (!col_is_of_class(error_list, cclass)) {
         TRACE_ERROR_STRING("Wrong collection class:", wrong_col_error);
         fprintf(file,"%s\n", wrong_col_error);
         return;
     }
 
     /* Bind iterator */
-    error =  bind_iterator(&iterator, error_list, COL_TRAVERSE_DEFAULT);
+    error =  col_bind_iterator(&iterator, error_list, COL_TRAVERSE_DEFAULT);
     if (error) {
         TRACE_ERROR_STRING("Error (bind):", failed_to_process);
         fprintf(file, "%s\n", failed_to_process);
@@ -877,11 +879,11 @@ static void print_error_list(FILE *file,
 
     while(1) {
         /* Loop through a collection */
-        error = iterate_collection(iterator, &item);
+        error = col_iterate_collection(iterator, &item);
         if (error) {
             TRACE_ERROR_STRING("Error (iterate):", failed_to_process);
             fprintf(file, "%s\n", failed_to_process);
-            unbind_iterator(iterator);
+            col_unbind_iterator(iterator);
             return;
         }
 
@@ -889,17 +891,17 @@ static void print_error_list(FILE *file,
         if (item == NULL) break;
 
         /* Process collection header */
-        if (get_item_type(item) == COL_TYPE_COLLECTION) {
-            get_collection_count(item, &count);
+        if (col_get_item_type(item) == COL_TYPE_COLLECTION) {
+            col_get_collection_count(item, &count);
             if (count > 1)
-                fprintf(file, error_header, get_item_property(item, NULL));
+                fprintf(file, error_header, col_get_item_property(item, NULL));
             else break;
         }
         else {
             /* Put error into provided format */
-            pe = (struct parse_error *)(get_item_data(item));
+            pe = (struct parse_error *)(col_get_item_data(item));
             fprintf(file, line_format,
-                    get_item_property(item, NULL),      /* Error or warning */
+                    col_get_item_property(item, NULL),      /* Error or warning */
                     pe->error,                          /* Error */
                     pe->line,                           /* Line */
                     error_function(pe->error));         /* Error str */
@@ -908,7 +910,7 @@ static void print_error_list(FILE *file,
     }
 
     /* Do not forget to unbind iterator - otherwise there will be a leak */
-    unbind_iterator(iterator);
+    col_unbind_iterator(iterator);
 
     TRACE_FLOW_STRING("print_error_list", "Exit");
 }
@@ -975,14 +977,14 @@ void print_config_parsing_errors(FILE *file,
     }
 
     /* Make sure we go the right collection */
-    if (!is_of_class(error_list, COL_CLASS_INI_PESET)) {
+    if (!col_is_of_class(error_list, COL_CLASS_INI_PESET)) {
         TRACE_ERROR_STRING("Wrong collection class:", WRONG_COLLECTION);
         fprintf(file, "%s\n", WRONG_COLLECTION);
         return;
     }
 
     /* Bind iterator */
-    error =  bind_iterator(&iterator, error_list, COL_TRAVERSE_DEFAULT);
+    error =  col_bind_iterator(&iterator, error_list, COL_TRAVERSE_DEFAULT);
     if (error) {
         TRACE_ERROR_STRING("Error (bind):", FAILED_TO_PROCCESS);
         fprintf(file,"%s\n", FAILED_TO_PROCCESS);
@@ -991,11 +993,11 @@ void print_config_parsing_errors(FILE *file,
 
     while(1) {
         /* Loop through a collection */
-        error = iterate_collection(iterator, &item);
+        error = col_iterate_collection(iterator, &item);
         if (error) {
             TRACE_ERROR_STRING("Error (iterate):", FAILED_TO_PROCCESS);
             fprintf(file, "%s\n", FAILED_TO_PROCCESS);
-            unbind_iterator(iterator);
+            col_unbind_iterator(iterator);
             return;
         }
 
@@ -1003,21 +1005,21 @@ void print_config_parsing_errors(FILE *file,
         if (item == NULL) break;
 
         /* Print per file sets of errors */
-        if (get_item_type(item) == COL_TYPE_COLLECTIONREF) {
+        if (col_get_item_type(item) == COL_TYPE_COLLECTIONREF) {
             /* Extract a sub collection */
-            error = get_reference_from_item(item, &file_errors);
+            error = col_get_reference_from_item(item, &file_errors);
             if (error) {
                 TRACE_ERROR_STRING("Error (extract):", FAILED_TO_PROCCESS);
                 fprintf(file, "%s\n", FAILED_TO_PROCCESS);
                 return;
             }
             print_file_parsing_errors(file, file_errors);
-            destroy_collection(file_errors);
+            col_destroy_collection(file_errors);
         }
     }
 
     /* Do not forget to unbind iterator - otherwise there will be a leak */
-    unbind_iterator(iterator);
+    col_unbind_iterator(iterator);
 
     TRACE_FLOW_STRING("print_config_parsing_errors", "Exit");
 }
@@ -1043,7 +1045,7 @@ int get_config_item(const char *section,
     }
 
     /* Is the collection of a right type */
-    if (!is_of_class(ini_config, COL_CLASS_INI_CONFIG)) {
+    if (!col_is_of_class(ini_config, COL_CLASS_INI_CONFIG)) {
         TRACE_ERROR_NUMBER("Wrong collection type", EINVAL);
         return EINVAL;
     }
@@ -1057,7 +1059,7 @@ int get_config_item(const char *section,
     TRACE_INFO_STRING("In Section:", section);
 
     /* Get Subcollection */
-    error = get_collection_reference(ini_config, &section_handle, to_find);
+    error = col_get_collection_reference(ini_config, &section_handle, to_find);
     /* Check error */
     if (error && (error != ENOENT)) {
         TRACE_ERROR_NUMBER("Failed to get section", error);
@@ -1072,11 +1074,11 @@ int get_config_item(const char *section,
     }
 
     /* Get item */
-    error = get_item(section_handle, name,
-                     COL_TYPE_STRING, COL_TRAVERSE_ONELEVEL, item);
+    error = col_get_item(section_handle, name,
+                         COL_TYPE_STRING, COL_TRAVERSE_ONELEVEL, item);
 
     /* Make sure we free the section we found */
-    destroy_collection(section_handle);
+    col_destroy_collection(section_handle);
 
     TRACE_FLOW_NUMBER("get_config_item returning", error);
     return error;
@@ -1094,7 +1096,7 @@ long get_long_config_value(struct collection_item *item,
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-       (get_item_type(item) != COL_TYPE_STRING)) {
+       (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return def;
@@ -1103,7 +1105,7 @@ long get_long_config_value(struct collection_item *item,
     if (error) *error = EOK;
 
     /* Try to parse the value */
-    str = (const char *)get_item_data(item);
+    str = (const char *)col_get_item_data(item);
     errno = 0;
     val = strtol(str, &endptr, 10);
 
@@ -1161,7 +1163,7 @@ double get_double_config_value(struct collection_item *item,
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING)) {
+        (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return def;
@@ -1170,7 +1172,7 @@ double get_double_config_value(struct collection_item *item,
     if (error) *error = EOK;
 
     /* Try to parse the value */
-    str = (const char *)get_item_data(item);
+    str = (const char *)col_get_item_data(item);
     errno = 0;
     val = strtod(str, &endptr);
 
@@ -1204,7 +1206,7 @@ unsigned char get_bool_config_value(struct collection_item *item,
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING)) {
+        (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return def;
@@ -1212,8 +1214,8 @@ unsigned char get_bool_config_value(struct collection_item *item,
 
     if (error) *error = EOK;
 
-    str = (const char *)get_item_data(item);
-    len = get_item_length(item);
+    str = (const char *)col_get_item_data(item);
+    len = col_get_item_length(item);
 
     /* Try to parse the value */
     if ((strncasecmp(str, "true", len) == 0) ||
@@ -1242,14 +1244,14 @@ char *get_string_config_value(struct collection_item *item,
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING)) {
+        (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return NULL;
     }
 
     errno = 0;
-    str = strdup((const char *)get_item_data(item));
+    str = strdup((const char *)col_get_item_data(item));
     if (str == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
         if (error) *error = ENOMEM;
@@ -1271,13 +1273,13 @@ const char *get_const_string_config_value(struct collection_item *item, int *err
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING)) {
+        (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return NULL;
     }
 
-    str = (const char *)get_item_data(item);
+    str = (const char *)col_get_item_data(item);
 
     if (error) *error = EOK;
 
@@ -1306,21 +1308,21 @@ char *get_bin_config_value(struct collection_item *item,
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING)) {
+        (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return NULL;
     }
 
     /* Check the length */
-    len = get_item_length(item)-1;
+    len = col_get_item_length(item)-1;
     if ((len%2) != 0) {
         TRACE_ERROR_STRING("Invalid length for binary data", "");
         if (error) *error = EINVAL;
         return NULL;
     }
 
-    str = (const char *)get_item_data(item);
+    str = (const char *)col_get_item_data(item);
 
     /* Is the format correct ? */
     if ((*str != '\'') ||
@@ -1402,7 +1404,7 @@ char **get_string_config_array(struct collection_item *item,
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING)) {
+        (col_get_item_type(item) != COL_TYPE_STRING)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return NULL;
@@ -1413,7 +1415,7 @@ char **get_string_config_array(struct collection_item *item,
     lensep = strnlen(sep, 3);
 
     /* Allocate memory for the copy of the string */
-    copy = malloc(get_item_length(item));
+    copy = malloc(col_get_item_length(item));
     if (copy == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
         if (error) *error = ENOMEM;
@@ -1543,7 +1545,7 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING) ||
+        (col_get_item_type(item) != COL_TYPE_STRING) ||
         (size == NULL)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
@@ -1551,7 +1553,7 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
     }
 
     /* Assume that we have maximum number of different numbers */
-    array = (long *)malloc(sizeof(long) * get_item_length(item)/2);
+    array = (long *)malloc(sizeof(long) * col_get_item_length(item)/2);
     if (array == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
         if (error) *error = ENOMEM;
@@ -1559,7 +1561,7 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
     }
 
     /* Now parse the string */
-    str = (const char *)get_item_data(item);
+    str = (const char *)col_get_item_data(item);
     while (*str) {
         errno = 0;
         val = strtol(str, &endptr, 10);
@@ -1606,7 +1608,7 @@ double *get_double_config_array(struct collection_item *item, int *size, int *er
 
     /* Do we have the item ? */
     if ((item == NULL) ||
-        (get_item_type(item) != COL_TYPE_STRING) ||
+        (col_get_item_type(item) != COL_TYPE_STRING) ||
         (size == NULL)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
@@ -1614,7 +1616,7 @@ double *get_double_config_array(struct collection_item *item, int *size, int *er
     }
 
     /* Assume that we have maximum number of different numbers */
-    array = (double *)malloc(sizeof(double) * get_item_length(item)/2);
+    array = (double *)malloc(sizeof(double) * col_get_item_length(item)/2);
     if (array == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
         if (error) *error = ENOMEM;
@@ -1629,7 +1631,7 @@ double *get_double_config_array(struct collection_item *item, int *size, int *er
     loc = localeconv();
 
     /* Now parse the string */
-    str = (const char *)get_item_data(item);
+    str = (const char *)col_get_item_data(item);
     while (*str) {
         errno = 0;
         TRACE_INFO_STRING("String to convert",str);
@@ -1682,7 +1684,7 @@ void free_section_list(char **section_list)
 {
     TRACE_FLOW_STRING("free_section_list","Entry");
 
-    free_property_list(section_list);
+    col_free_property_list(section_list);
 
     TRACE_FLOW_STRING("free_section_list","Exit");
 }
@@ -1692,7 +1694,7 @@ void free_attribute_list(char **section_list)
 {
     TRACE_FLOW_STRING("free_section_list","Entry");
 
-    free_property_list(section_list);
+    col_free_property_list(section_list);
 
     TRACE_FLOW_STRING("free_section_list","Exit");
 }
@@ -1708,14 +1710,14 @@ char **get_section_list(struct collection_item *ini_config, int *size, int *erro
     TRACE_FLOW_STRING("get_section_list","Entry");
     /* Do we have the item ? */
     if ((ini_config == NULL) ||
-        !is_of_class(ini_config, COL_CLASS_INI_CONFIG)) {
+        !col_is_of_class(ini_config, COL_CLASS_INI_CONFIG)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
         return NULL;
     }
 
     /* Pass it to the function from collection API */
-    list = collection_to_list(ini_config, size, error);
+    list = col_collection_to_list(ini_config, size, error);
 
     TRACE_FLOW_STRING("get_section_list returning", list == NULL ? "NULL" : list[0]);
     return list;
@@ -1733,7 +1735,7 @@ char **get_attribute_list(struct collection_item *ini_config, const char *sectio
     TRACE_FLOW_STRING("get_attribute_list","Entry");
     /* Do we have the item ? */
     if ((ini_config == NULL) ||
-        !is_of_class(ini_config, COL_CLASS_INI_CONFIG) ||
+        !col_is_of_class(ini_config, COL_CLASS_INI_CONFIG) ||
         (section == NULL)) {
         TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
         if (error) *error = EINVAL;
@@ -1741,7 +1743,7 @@ char **get_attribute_list(struct collection_item *ini_config, const char *sectio
     }
 
     /* Fetch section */
-    err = get_collection_reference(ini_config, &subcollection, section);
+    err = col_get_collection_reference(ini_config, &subcollection, section);
     /* Check error */
     if (err && (subcollection == NULL)) {
         TRACE_ERROR_NUMBER("Failed to get section", err);
@@ -1750,9 +1752,9 @@ char **get_attribute_list(struct collection_item *ini_config, const char *sectio
     }
 
     /* Pass it to the function from collection API */
-    list = collection_to_list(subcollection, size, error);
+    list = col_collection_to_list(subcollection, size, error);
 
-    destroy_collection(subcollection);
+    col_destroy_collection(subcollection);
 
     TRACE_FLOW_STRING("get_attribute_list returning", list == NULL ? "NULL" : list[0]);
     return list;

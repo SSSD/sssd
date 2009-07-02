@@ -74,67 +74,67 @@ struct collection_item dummy = { NULL, "", 0, COL_TYPE_END, 0, NULL };
 /******************** FUNCTION DECLARATIONS ****************************/
 
 /* Have to declare those due to function cross referencing */
-static int find_item_and_do(struct collection_item *ci,
-                            const char *property_to_find,
-                            int type,
-                            int mode_flags,
-                            item_fn item_handler,
-                            void *custom_data,
-                            int action);
+static int col_find_item_and_do(struct collection_item *ci,
+                                const char *property_to_find,
+                                int type,
+                                int mode_flags,
+                                col_item_fn item_handler,
+                                void *custom_data,
+                                int action);
 
 /* Traverse callback for find & delete function */
-static int act_traverse_handler(struct collection_item *head,
-                                struct collection_item *previous,
-                                struct collection_item *current,
-                                void *passed_traverse_data,
-                                item_fn user_item_handler,
-                                void *custom_data,
-                                int *stop);
+static int col_act_traverse_handler(struct collection_item *head,
+                                    struct collection_item *previous,
+                                    struct collection_item *current,
+                                    void *passed_traverse_data,
+                                    col_item_fn user_item_handler,
+                                    void *custom_data,
+                                    int *stop);
 
 /* Traverse handler to find parent of the item */
-static int parent_traverse_handler(struct collection_item *head,
-                                   struct collection_item *previous,
-                                   struct collection_item *current,
-                                   void *traverse_data,
-                                   item_fn user_item_handler,
-                                   void *custom_data,
-                                   int *stop);
+static int col_parent_traverse_handler(struct collection_item *head,
+                                       struct collection_item *previous,
+                                       struct collection_item *current,
+                                       void *traverse_data,
+                                       col_item_fn user_item_handler,
+                                       void *custom_data,
+                                       int *stop);
 
 /* Traverse callback signature */
 typedef int (*internal_item_fn)(struct collection_item *head,
                                 struct collection_item *previous,
                                 struct collection_item *current,
                                 void *traverse_data,
-                                item_fn user_item_handler,
+                                col_item_fn user_item_handler,
                                 void *custom_data,
                                 int *stop);
 /* Function to walk_items */
-static int walk_items(struct collection_item *ci,
-                      int mode_flags,
-                      internal_item_fn traverse_handler,
-                      void *traverse_data,
-                      item_fn user_item_handler,
-                      void *custom_data);
+static int col_walk_items(struct collection_item *ci,
+                          int mode_flags,
+                          internal_item_fn traverse_handler,
+                          void *traverse_data,
+                          col_item_fn user_item_handler,
+                          void *custom_data);
 
 /* Function to get sub collection */
-static int get_subcollection(const char *property,
-                             int property_len,
-                             int type,
-                             void *data,
-                             int length,
-                             void *found,
-                             int *dummy);
+static int col_get_subcollection(const char *property,
+                                  int property_len,
+                                  int type,
+                                  void *data,
+                                  int length,
+                                  void *found,
+                                  int *dummy);
 
 /* Function to destroy collection */
-void destroy_collection(struct collection_item *ci);
+void col_destroy_collection(struct collection_item *ci);
 
 /******************** SUPPLEMENTARY FUNCTIONS ****************************/
 /* BASIC OPERATIONS */
 
 /* Function that checks if property can be added */
-static int validate_property(const char *property)
+static int col_validate_property(const char *property)
 {
-    TRACE_FLOW_STRING("validate_property", "Entry point.");
+    TRACE_FLOW_STRING("col_validate_property", "Entry point.");
     /* Only alpha numeric characters are allowed in names of the properties */
     int invalid = 0;
     const char *check;
@@ -147,19 +147,19 @@ static int validate_property(const char *property)
         }
         check++;
     }
-    TRACE_FLOW_NUMBER("validate_property. Returning ", invalid);
+    TRACE_FLOW_NUMBER("col_validate_property. Returning ", invalid);
     return invalid;
 }
 
 /* Function that cleans the item */
-void delete_item(struct collection_item *item)
+void col_delete_item(struct collection_item *item)
 {
     struct collection_item *other_collection;
 
-    TRACE_FLOW_STRING("delete_item","Entry point.");
+    TRACE_FLOW_STRING("col_delete_item","Entry point.");
 
     if (item == NULL) {
-        TRACE_FLOW_STRING("delete_item","Nothing to delete!");
+        TRACE_FLOW_STRING("col_delete_item","Nothing to delete!");
         return;
     }
 
@@ -168,7 +168,7 @@ void delete_item(struct collection_item *item)
         /* Our data is a pointer to a whole external collection so dereference
          * it or delete */
         other_collection = *((struct collection_item **)(item->data));
-        destroy_collection(other_collection);
+        col_destroy_collection(other_collection);
     }
 
     TRACE_INFO_STRING("Deleting property:", item->property);
@@ -179,27 +179,27 @@ void delete_item(struct collection_item *item)
 
     free(item);
 
-    TRACE_FLOW_STRING("delete_item","Exit.");
+    TRACE_FLOW_STRING("col_delete_item","Exit.");
 }
 
 /* A generic function to allocate a property item */
-static int allocate_item(struct collection_item **ci, const char *property,
-                         void *item_data,int length, int type)
+static int col_allocate_item(struct collection_item **ci, const char *property,
+                             void *item_data,int length, int type)
 {
     struct collection_item *item = NULL;
     int error = 0;
     errno = 0;
 
-    TRACE_FLOW_STRING("allocate_item", "Entry point.");
+    TRACE_FLOW_STRING("col_allocate_item", "Entry point.");
     TRACE_INFO_NUMBER("Will be using type:", type);
 
     /* Check the length */
     if (length >= COL_MAX_DATA) {
-        TRACE_ERROR_STRING("allocate_item", "Data to long.");
+        TRACE_ERROR_STRING("col_allocate_item", "Data to long.");
         return EMSGSIZE;
     }
 
-    if (validate_property(property)) {
+    if (col_validate_property(property)) {
         TRACE_ERROR_STRING("Invalid chracters in the property name", property);
         return EINVAL;
     }
@@ -208,7 +208,7 @@ static int allocate_item(struct collection_item **ci, const char *property,
     item = (struct collection_item *)malloc(sizeof(struct collection_item));
     if (item == NULL)  {
         error = errno;
-        TRACE_ERROR_STRING("allocate_item", "Malloc failed.");
+        TRACE_ERROR_STRING("col_allocate_item", "Malloc failed.");
         return error;
     }
 
@@ -219,8 +219,8 @@ static int allocate_item(struct collection_item **ci, const char *property,
     item->property = strdup(property);
     if (item->property == NULL) {
         error = errno;
-        TRACE_ERROR_STRING("allocate_item", "Failed to dup property.");
-        delete_item(item);
+        TRACE_ERROR_STRING("col_allocate_item", "Failed to dup property.");
+        col_delete_item(item);
         return error;
     }
 
@@ -240,8 +240,8 @@ static int allocate_item(struct collection_item **ci, const char *property,
     /* Deal with data */
     item->data = malloc(length);
     if (item->data == NULL) {
-        TRACE_ERROR_STRING("allocate_item", "Failed to dup data.");
-        delete_item(item);
+        TRACE_ERROR_STRING("col_allocate_item", "Failed to dup data.");
+        col_delete_item(item);
         return errno;
     }
     memcpy(item->data, item_data, length);
@@ -259,7 +259,7 @@ static int allocate_item(struct collection_item **ci, const char *property,
     TRACE_INFO_STRING("Item property", item->property);
     TRACE_INFO_NUMBER("Item property type", item->type);
     TRACE_INFO_NUMBER("Item data length", item->length);
-    TRACE_FLOW_STRING("allocate_item", "Success exit.");
+    TRACE_FLOW_STRING("col_allocate_item", "Success exit.");
     return 0;
 }
 
@@ -276,16 +276,17 @@ struct property_search {
 };
 
 /* Find the parent of the item with given name */
-static int find_property(struct collection_item *collection,
-                         const char *refprop,
-                         int index,
-                         int use_type,
-                         int type,
-                         struct collection_item **parent)
+static int col_find_property(struct collection_item *collection,
+                             const char *refprop,
+                             int index,
+                             int use_type,
+                             int type,
+                             struct collection_item **parent)
 {
-    TRACE_FLOW_STRING("find_property", "Entry.");
     struct property_search ps;
     int i = 0;
+
+    TRACE_FLOW_STRING("col_find_property", "Entry.");
 
     *parent = NULL;
 
@@ -306,36 +307,37 @@ static int find_property(struct collection_item *collection,
     }
 
     /* We do not care about error here */
-    (void)walk_items(collection, COL_TRAVERSE_ONELEVEL, parent_traverse_handler,
-                    (void *)parent, NULL, (void *)&ps);
+    (void)col_walk_items(collection, COL_TRAVERSE_ONELEVEL,
+                         col_parent_traverse_handler,
+                         (void *)parent, NULL, (void *)&ps);
 
     if (*parent) {
         /* Item is found in the collection */
-        TRACE_FLOW_STRING("find_property", "Exit - item found");
+        TRACE_FLOW_STRING("col_find_property", "Exit - item found");
         return 1;
     }
 
     /* Item is not found */
-    TRACE_FLOW_STRING("find_property", "Exit - item NOT found");
+    TRACE_FLOW_STRING("col_find_property", "Exit - item NOT found");
     return 0;
 }
 
 
 
 /* Insert item into the current collection */
-int insert_item_into_current(struct collection_item *collection,
-                             struct collection_item *item,
-                             int disposition,
-                             const char *refprop,
-                             int index,
-                             unsigned flags)
+int col_insert_item_into_current(struct collection_item *collection,
+                                 struct collection_item *item,
+                                 int disposition,
+                                 const char *refprop,
+                                 int index,
+                                 unsigned flags)
 {
     struct collection_header *header = NULL;
     struct collection_item *parent = NULL;
     struct collection_item *current = NULL;
     int refindex = 0;
 
-    TRACE_FLOW_STRING("insert_item_into_current", "Entry point");
+    TRACE_FLOW_STRING("col_insert_item_into_current", "Entry point");
 
     /* Do best effort on the item */
     if ((!item) || (item->next)) {
@@ -344,11 +346,11 @@ int insert_item_into_current(struct collection_item *collection,
     }
 
     if (collection == NULL) {
-        TRACE_INFO_STRING("insert_item_into_current",
+        TRACE_INFO_STRING("col_insert_item_into_current",
                           "Collection accepting is NULL");
         if (item->type == COL_TYPE_COLLECTION) {
             /* This is a special case of self creation */
-            TRACE_INFO_STRING("insert_item_into_current",
+            TRACE_INFO_STRING("col_insert_item_into_current",
                               "Adding header item to new collection.");
             collection = item;
         }
@@ -373,39 +375,39 @@ int insert_item_into_current(struct collection_item *collection,
                                 TRACE_INFO_STRING("Insert without check", "");
                                 break;
     case COL_INSERT_DUPOVER:    /* Find item and overwrite - ignore disposition */
-                                if (find_property(collection, item->property, 0, 0, 0, &parent)) {
+                                if (col_find_property(collection, item->property, 0, 0, 0, &parent)) {
                                     current = parent->next;
                                     item->next = current->next;
                                     parent->next = item;
-                                    delete_item(current);
+                                    col_delete_item(current);
                                     header->count--;
-                                    TRACE_FLOW_STRING("insert_item_into_current", "Dup overwrite exit");
+                                    TRACE_FLOW_STRING("col_insert_item_into_current", "Dup overwrite exit");
                                     return EOK;
                                 }
                                 /* Not found so we fall thorough and add as requested */
                                 break;
 
     case COL_INSERT_DUPOVERT:   /* Find item by name and type and overwrite - ignore disposition */
-                                if (find_property(collection, item->property, 0, 1, item->type, &parent)) {
+                                if (col_find_property(collection, item->property, 0, 1, item->type, &parent)) {
                                     current = parent->next;
                                     item->next = current->next;
                                     parent->next = item;
-                                    delete_item(current);
+                                    col_delete_item(current);
                                     header->count--;
-                                    TRACE_FLOW_STRING("insert_item_into_current", "Dup overwrite exit");
+                                    TRACE_FLOW_STRING("col_insert_item_into_current", "Dup overwrite exit");
                                     return EOK;
                                 }
                                 /* Not found so we fall thorough and add as requested */
                                 break;
 
-    case COL_INSERT_DUPERROR:   if (find_property(collection, item->property, 0, 0, 0, &parent)) {
+    case COL_INSERT_DUPERROR:   if (col_find_property(collection, item->property, 0, 0, 0, &parent)) {
                                     /* Return error */
                                     TRACE_ERROR_NUMBER("Duplicate property", EEXIST);
                                     return EEXIST;
                                 }
                                 break;
 
-    case COL_INSERT_DUPERRORT:  if (find_property(collection, item->property, 0, 1, item->type, &parent)) {
+    case COL_INSERT_DUPERRORT:  if (col_find_property(collection, item->property, 0, 1, item->type, &parent)) {
                                     /* Return error */
                                     TRACE_ERROR_NUMBER("Duplicate property of the same type", EEXIST);
                                     return EEXIST;
@@ -413,10 +415,10 @@ int insert_item_into_current(struct collection_item *collection,
                                 break;
 
     case COL_INSERT_DUPMOVE:    /* Find item and delete */
-                                if (find_property(collection, item->property, 0, 0, 0, &parent)) {
+                                if (col_find_property(collection, item->property, 0, 0, 0, &parent)) {
                                     current = parent->next;
                                     parent->next = current->next;
-                                    delete_item(current);
+                                    col_delete_item(current);
                                     header->count--;
                                 }
                                 /* Now add item according to the disposition */
@@ -425,11 +427,11 @@ int insert_item_into_current(struct collection_item *collection,
     case COL_INSERT_DUPMOVET:   /* Find item and delete */
                                 TRACE_INFO_STRING("Property:", item->property);
                                 TRACE_INFO_NUMBER("Type:", item->type);
-                                if (find_property(collection, item->property, 0, 1, item->type, &parent)) {
+                                if (col_find_property(collection, item->property, 0, 1, item->type, &parent)) {
                                     TRACE_INFO_NUMBER("Current:", (unsigned)(parent->next));
                                     current = parent->next;
                                     parent->next = current->next;
-                                    delete_item(current);
+                                    col_delete_item(current);
                                     header->count--;
                                 }
                                 /* Now add item according to the disposition */
@@ -468,7 +470,7 @@ int insert_item_into_current(struct collection_item *collection,
                             }
 
                             /* We need to find property */
-                            if (find_property(collection, refprop, 0, 0, 0, &parent)) {
+                            if (col_find_property(collection, refprop, 0, 0, 0, &parent)) {
                                 item->next = parent->next;
                                 parent->next = item;
                                 header->count++;
@@ -486,7 +488,7 @@ int insert_item_into_current(struct collection_item *collection,
                             }
 
                             /* We need to find property */
-                            if (find_property(collection, refprop, 0, 0, 0, &parent)) {
+                            if (col_find_property(collection, refprop, 0, 0, 0, &parent)) {
                                 parent = parent->next;
                                 if (parent->next) {
                                     /* It is not the last item */
@@ -546,7 +548,7 @@ int insert_item_into_current(struct collection_item *collection,
                             else refindex = index;
 
                             /* We need to find property based on index */
-                            if (find_property(collection, item->property, refindex, 0, 0, &parent)) {
+                            if (col_find_property(collection, item->property, refindex, 0, 0, &parent)) {
                                 item->next = parent->next;
                                 parent->next = item;
                                 header->count++;
@@ -570,17 +572,17 @@ int insert_item_into_current(struct collection_item *collection,
     TRACE_INFO_NUMBER("Item type.", item->type);
     TRACE_INFO_NUMBER("Number of items in collection now is.", header->count);
 
-    TRACE_FLOW_STRING("insert_item_into_current", "Exit");
+    TRACE_FLOW_STRING("col_insert_item_into_current", "Exit");
     return EOK;
 }
 
 /* Extract item from the current collection */
-int extract_item_from_current(struct collection_item *collection,
-                              int disposition,
-                              const char *refprop,
-                              int index,
-                              int type,
-                              struct collection_item **ret_ref)
+int col_extract_item_from_current(struct collection_item *collection,
+                                  int disposition,
+                                  const char *refprop,
+                                  int index,
+                                  int type,
+                                  struct collection_item **ret_ref)
 {
     struct collection_header *header = NULL;
     struct collection_item *parent = NULL;
@@ -589,7 +591,7 @@ int extract_item_from_current(struct collection_item *collection,
     int refindex = 0;
     int use_type = 0;
 
-    TRACE_FLOW_STRING("extract_item_current", "Entry point");
+    TRACE_FLOW_STRING("col_extract_item_from_current", "Entry point");
 
     /* Check that collection is not empty */
     if ((collection == NULL) || (collection->type != COL_TYPE_COLLECTION)) {
@@ -637,7 +639,7 @@ int extract_item_from_current(struct collection_item *collection,
 
                             /* We have to do it in two steps */
                             /* First find the property that is mentioned */
-                            if (find_property(collection, refprop, 0, use_type, type, &found)) {
+                            if (col_find_property(collection, refprop, 0, use_type, type, &found)) {
                                 /* We found the requested property */
                                 if (found->next == collection->next) {
                                     /* The referenced property is the first in the list */
@@ -668,7 +670,7 @@ int extract_item_from_current(struct collection_item *collection,
                             }
 
                             /* We need to find property */
-                            if (find_property(collection, refprop, 0, use_type, type, &parent)) {
+                            if (col_find_property(collection, refprop, 0, use_type, type, &parent)) {
                                 current = parent->next;
                                 if (current->next) {
                                     *ret_ref = current->next;
@@ -726,7 +728,7 @@ int extract_item_from_current(struct collection_item *collection,
                             else refindex = index;
 
                             /* We need to find property based on index */
-                            if (find_property(collection, refprop, refindex, use_type, type, &parent)) {
+                            if (col_find_property(collection, refprop, refindex, use_type, type, &parent)) {
                                 *ret_ref = parent->next;
                                 parent->next = (*ret_ref)->next;
                                 /* If we removed the last element adjust header */
@@ -753,23 +755,23 @@ int extract_item_from_current(struct collection_item *collection,
     TRACE_INFO_NUMBER("Item type.", (*ret_ref)->type);
     TRACE_INFO_NUMBER("Number of items in collection now is.", header->count);
 
-    TRACE_FLOW_STRING("extract_item_from_current", "Exit");
+    TRACE_FLOW_STRING("col_extract_item_from_current", "Exit");
     return EOK;
 }
 
 /* Extract item from the collection */
-int extract_item(struct collection_item *collection,
-                 const char *subcollection,
-                 int disposition,
-                 const char *refprop,
-                 int index,
-                 int type,
-                 struct collection_item **ret_ref)
+int col_extract_item(struct collection_item *collection,
+                     const char *subcollection,
+                     int disposition,
+                     const char *refprop,
+                     int index,
+                     int type,
+                     struct collection_item **ret_ref)
 {
     struct collection_item *col = NULL;
     int error = 0;
 
-    TRACE_FLOW_STRING("extract_item", "Entry point");
+    TRACE_FLOW_STRING("col_extract_item", "Entry point");
 
     /* Check that collection is not empty */
     if ((collection == NULL) || (collection->type != COL_TYPE_COLLECTION)) {
@@ -783,11 +785,11 @@ int extract_item(struct collection_item *collection,
     }
     else {
         TRACE_INFO_STRING("Subcollection id not null, searching", subcollection);
-        error = find_item_and_do(collection, subcollection,
-                                 COL_TYPE_COLLECTIONREF,
-                                 COL_TRAVERSE_DEFAULT,
-                                 get_subcollection, (void *)(&col),
-                                 COLLECTION_ACTION_FIND);
+        error = col_find_item_and_do(collection, subcollection,
+                                     COL_TYPE_COLLECTIONREF,
+                                     COL_TRAVERSE_DEFAULT,
+                                     col_get_subcollection, (void *)(&col),
+                                     COLLECTION_ACTION_FIND);
         if (error) {
             TRACE_ERROR_NUMBER("Search for subcollection returned error:", error);
             return error;
@@ -801,35 +803,35 @@ int extract_item(struct collection_item *collection,
     }
 
     /* Extract from the current collection */
-    error = extract_item_from_current(col,
-                                      disposition,
-                                      refprop,
-                                      index,
-                                      type,
-                                      ret_ref);
+    error = col_extract_item_from_current(col,
+                                          disposition,
+                                          refprop,
+                                          index,
+                                          type,
+                                          ret_ref);
     if (error) {
         TRACE_ERROR_NUMBER("Failed extract item into current collection", error);
         return error;
     }
 
-    TRACE_FLOW_STRING("extract_item", "Exit");
+    TRACE_FLOW_STRING("col_extract_item", "Exit");
     return EOK;
 }
 
 
 /* Insert the item into the collection or subcollection */
-int insert_item(struct collection_item *collection,
-                const char *subcollection,
-                struct collection_item *item,
-                int disposition,
-                const char *refprop,
-                int index,
-                unsigned flags)
+int col_insert_item(struct collection_item *collection,
+                    const char *subcollection,
+                    struct collection_item *item,
+                    int disposition,
+                    const char *refprop,
+                    int index,
+                    unsigned flags)
 {
     int error;
     struct collection_item *acceptor = NULL;
 
-    TRACE_FLOW_STRING("insert_item", "Entry point.");
+    TRACE_FLOW_STRING("col_insert_item", "Entry point.");
 
     /* Do best effort on the item */
     if ((!item) || (item->next)) {
@@ -849,11 +851,11 @@ int insert_item(struct collection_item *collection,
     }
     else {
         TRACE_INFO_STRING("Subcollection id not null, searching", subcollection);
-        error = find_item_and_do(collection, subcollection,
-                                 COL_TYPE_COLLECTIONREF,
-                                 COL_TRAVERSE_DEFAULT,
-                                 get_subcollection, (void *)(&acceptor),
-                                 COLLECTION_ACTION_FIND);
+        error = col_find_item_and_do(collection, subcollection,
+                                     COL_TYPE_COLLECTIONREF,
+                                     COL_TRAVERSE_DEFAULT,
+                                     col_get_subcollection, (void *)(&acceptor),
+                                     COLLECTION_ACTION_FIND);
         if (error) {
             TRACE_ERROR_NUMBER("Search for subcollection returned error:", error);
             return error;
@@ -867,12 +869,12 @@ int insert_item(struct collection_item *collection,
     }
 
     /* Instert item to the current collection */
-    error = insert_item_into_current(acceptor,
-                                     item,
-                                     disposition,
-                                     refprop,
-                                     index,
-                                     flags);
+    error = col_insert_item_into_current(acceptor,
+                                         item,
+                                         disposition,
+                                         refprop,
+                                         index,
+                                         flags);
 
     if (error) {
         TRACE_ERROR_NUMBER("Failed to insert item into current collection", error);
@@ -888,68 +890,68 @@ int insert_item(struct collection_item *collection,
  * This is internal function so we do not check parameters.
  * See external wrapper below.
  */
-static int insert_property_with_ref_int(struct collection_item *collection,
-                                        const char *subcollection,
-                                        int disposition,
-                                        const char *refprop,
-                                        int index,
-                                        unsigned flags,
-                                        const char *property,
-                                        int type,
-                                        void *data,
-                                        int length,
-                                        struct collection_item **ret_ref)
+static int col_insert_property_with_ref_int(struct collection_item *collection,
+                                            const char *subcollection,
+                                            int disposition,
+                                            const char *refprop,
+                                            int index,
+                                            unsigned flags,
+                                            const char *property,
+                                            int type,
+                                            void *data,
+                                            int length,
+                                            struct collection_item **ret_ref)
 {
     struct collection_item *item = NULL;
     int error;
 
-    TRACE_FLOW_STRING("insert_property_with_ref_int", "Entry point.");
+    TRACE_FLOW_STRING("col_insert_property_with_ref_int", "Entry point.");
 
     /* Create a new property out of the given parameters */
-    error = allocate_item(&item, property, data, length, type);
+    error = col_allocate_item(&item, property, data, length, type);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to allocate item", error);
         return error;
     }
 
     /* Send the property to the insert_item function */
-    error = insert_item(collection,
-                        subcollection,
-                        item,
-                        disposition,
-                        refprop,
-                        index,
-                        flags);
+    error = col_insert_item(collection,
+                            subcollection,
+                            item,
+                            disposition,
+                            refprop,
+                            index,
+                            flags);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to insert item", error);
-        delete_item(item);
+        col_delete_item(item);
         return error;
     }
 
     if (ret_ref) *ret_ref = item;
 
-    TRACE_FLOW_STRING("insert_property_with_ref_int", "Exit");
+    TRACE_FLOW_STRING("col_insert_property_with_ref_int", "Exit");
     return EOK;
 }
 
 /* This is public function so we need to check the validity
  * of the arguments.
  */
-int insert_property_with_ref(struct collection_item *collection,
-                             const char *subcollection,
-                             int disposition,
-                             const char *refprop,
-                             int index,
-                             unsigned flags,
-                             const char *property,
-                             int type,
-                             void *data,
-                             int length,
-                             struct collection_item **ret_ref)
+int col_insert_property_with_ref(struct collection_item *collection,
+                                 const char *subcollection,
+                                 int disposition,
+                                 const char *refprop,
+                                 int index,
+                                 unsigned flags,
+                                 const char *property,
+                                 int type,
+                                 void *data,
+                                 int length,
+                                 struct collection_item **ret_ref)
 {
     int error;
 
-    TRACE_FLOW_STRING("insert_property_with_ref", "Entry point.");
+    TRACE_FLOW_STRING("col_insert_property_with_ref", "Entry point.");
 
     /* Check that collection is not empty */
     if (collection == NULL) {
@@ -957,33 +959,33 @@ int insert_property_with_ref(struct collection_item *collection,
         return EINVAL;
     }
 
-    error = insert_property_with_ref_int(collection,
-                                         subcollection,
-                                         disposition,
-                                         refprop,
-                                         index,
-                                         flags,
-                                         property,
-                                         type,
-                                         data,
-                                         length,
-                                         ret_ref);
+    error = col_insert_property_with_ref_int(collection,
+                                             subcollection,
+                                             disposition,
+                                             refprop,
+                                             index,
+                                             flags,
+                                             property,
+                                             type,
+                                             data,
+                                             length,
+                                             ret_ref);
 
-    TRACE_FLOW_NUMBER("insert_property_with_ref_int Returning:", error);
+    TRACE_FLOW_NUMBER("col_insert_property_with_ref_int Returning:", error);
     return error;
 }
 /* TRAVERSE HANDLERS */
 
 /* Special handler to just set a flag if the item is found */
-static int is_in_item_handler(const char *property,
-                              int property_len,
-                              int type,
-                              void *data,
-                              int length,
-                              void *found,
-                              int *dummy)
+static int col_is_in_item_handler(const char *property,
+                                  int property_len,
+                                  int type,
+                                  void *data,
+                                  int length,
+                                  void *found,
+                                  int *dummy)
 {
-    TRACE_FLOW_STRING("is_in_item_handler", "Entry.");
+    TRACE_FLOW_STRING("col_is_in_item_handler", "Entry.");
     TRACE_INFO_STRING("Property:", property);
     TRACE_INFO_NUMBER("Property length:", property_len);
     TRACE_INFO_NUMBER("Type:", type);
@@ -991,21 +993,21 @@ static int is_in_item_handler(const char *property,
 
     *((int *)(found)) = COL_MATCH;
 
-    TRACE_FLOW_STRING("is_in_item_handler", "Success Exit.");
+    TRACE_FLOW_STRING("col_is_in_item_handler", "Success Exit.");
 
     return EOK;
 }
 
 /* Special handler to retrieve the sub collection */
-static int get_subcollection(const char *property,
-                             int property_len,
-                             int type,
-                             void *data,
-                             int length,
-                             void *found,
-                             int *dummy)
+static int col_get_subcollection(const char *property,
+                                 int property_len,
+                                 int type,
+                                 void *data,
+                                 int length,
+                                 void *found,
+                                 int *dummy)
 {
-    TRACE_FLOW_STRING("get_subcollection", "Entry.");
+    TRACE_FLOW_STRING("col_get_subcollection", "Entry.");
     TRACE_INFO_STRING("Property:", property);
     TRACE_INFO_NUMBER("Property length:", property_len);
     TRACE_INFO_NUMBER("Type:", type);
@@ -1013,7 +1015,7 @@ static int get_subcollection(const char *property,
 
     *((struct collection_item **)(found)) = *((struct collection_item **)(data));
 
-    TRACE_FLOW_STRING("get_subcollection","Success Exit.");
+    TRACE_FLOW_STRING("col_get_subcollection","Success Exit.");
 
     return EOK;
 
@@ -1026,22 +1028,22 @@ static int get_subcollection(const char *property,
 /* Cleans the collection tree including current item. */
 /* The passed in variable should not be used after the call
  * as memory is freed!!! */
-static void delete_collection(struct collection_item *ci)
+static void col_delete_collection(struct collection_item *ci)
 {
-    TRACE_FLOW_STRING("delete_collection", "Entry.");
+    TRACE_FLOW_STRING("col_delete_collection", "Entry.");
 
     if (ci == NULL) {
-        TRACE_FLOW_STRING("delete_collection", "Nothing to do Exit.");
+        TRACE_FLOW_STRING("col_delete_collection", "Nothing to do Exit.");
         return;
     }
 
     TRACE_INFO_STRING("Real work to do","");
 
-    delete_collection(ci->next);
+    col_delete_collection(ci->next);
 
     /* Delete this item */
-    delete_item(ci);
-    TRACE_FLOW_STRING("delete_collection", "Exit.");
+    col_delete_item(ci);
+    TRACE_FLOW_STRING("col_delete_collection", "Exit.");
 }
 
 
@@ -1066,14 +1068,14 @@ struct find_name {
 };
 
 /* Create a new name */
-static int create_path_data(struct path_data **name_path,
-                            const char *name, int length,
-                            const char *property, int property_len)
+static int col_create_path_data(struct path_data **name_path,
+                                const char *name, int length,
+                                const char *property, int property_len)
 {
     int error = EOK;
     struct path_data *new_name_path;
 
-    TRACE_FLOW_STRING("create_path_data", "Entry.");
+    TRACE_FLOW_STRING("col_create_path_data", "Entry.");
 
     TRACE_INFO_STRING("Constructing path from name:", name);
     TRACE_INFO_STRING("Constructing path from property:", property);
@@ -1114,26 +1116,26 @@ static int create_path_data(struct path_data **name_path,
     TRACE_INFO_STRING("Constructed path", new_name_path->name);
 
 
-    TRACE_FLOW_NUMBER("create_path_data. Returning:", error);
+    TRACE_FLOW_NUMBER("col_create_path_data. Returning:", error);
     return error;
 }
 
 /* Matching item name and type */
-static int match_item(struct collection_item *current,
-                      struct find_name *traverse_data)
+static int col_match_item(struct collection_item *current,
+                          struct find_name *traverse_data)
 {
 
     const char *find_str;
     const char *start;
     const char *data_str;
 
-    TRACE_FLOW_STRING("match_item", "Entry");
+    TRACE_FLOW_STRING("col_match_item", "Entry");
 
     if (traverse_data->type_to_match & current->type) {
         /* Check if there is any value to match */
         if ((traverse_data->name_to_find == NULL) ||
             (*(traverse_data->name_to_find) == '\0')) {
-            TRACE_INFO_STRING("match_item",
+            TRACE_INFO_STRING("col_match_item",
                               "Returning MATCH because there is no search criteria!");
             return COL_MATCH;
         }
@@ -1159,7 +1161,7 @@ static int match_item(struct collection_item *current,
                     if (*(find_str-1) == '.') {
                         /* We matched the property but the search string is
                          * longer so we need to continue matching */
-                        TRACE_INFO_STRING("match_item",
+                        TRACE_INFO_STRING("col_match_item",
                                           "Need to continue matching");
                         start = traverse_data->current_path->name;
                         data_str = &start[traverse_data->current_path->length - 1];
@@ -1167,12 +1169,12 @@ static int match_item(struct collection_item *current,
                         continue;
                     }
                     else {
-                        TRACE_INFO_STRING("match_item","Returning NO match!");
+                        TRACE_INFO_STRING("col_match_item","Returning NO match!");
                         return COL_NOMATCH;
                     }
                 }
                 else {
-                    TRACE_INFO_STRING("match_item","Returning MATCH!");
+                    TRACE_INFO_STRING("col_match_item","Returning MATCH!");
                     return COL_MATCH;
                 }
             }
@@ -1181,37 +1183,37 @@ static int match_item(struct collection_item *current,
 
             data_str--;
             find_str--;
-             TRACE_INFO_NUMBER("Searching:", toupper(*find_str));
+            TRACE_INFO_NUMBER("Searching:", toupper(*find_str));
             TRACE_INFO_NUMBER("Have:", toupper(*data_str));
 
         }
     }
 
-    TRACE_FLOW_STRING("match_item","Returning NO match!");
+    TRACE_FLOW_STRING("col_match_item","Returning NO match!");
     return COL_NOMATCH;
 
 }
 
 /* Function to delete the data that contains search path */
-static void delete_path_data(struct path_data *path)
+static void col_delete_path_data(struct path_data *path)
 {
-    TRACE_FLOW_STRING("delete_path_data","Entry.");
+    TRACE_FLOW_STRING("col_delete_path_data","Entry.");
 
     if (path != NULL) {
-        TRACE_INFO_STRING("delete_path_data", "Item to delete exits.");
+        TRACE_INFO_STRING("col_delete_path_data", "Item to delete exits.");
         if (path->previous_path != NULL) {
-            TRACE_INFO_STRING("delete_path_data",
+            TRACE_INFO_STRING("col_delete_path_data",
                               "But previous item to delete exits to. Nesting.");
-            delete_path_data(path->previous_path);
+            col_delete_path_data(path->previous_path);
         }
         if (path->name != NULL) {
-            TRACE_INFO_STRING("delete_path_data Deleting path:", path->name);
+            TRACE_INFO_STRING("col_delete_path_data Deleting path:", path->name);
             free(path->name);
         }
-        TRACE_INFO_STRING("delete_path_data", "Deleting path element");
+        TRACE_INFO_STRING("col_delete_path_data", "Deleting path element");
         free(path);
     }
-    TRACE_FLOW_STRING("delete_path_data", "Exit");
+    TRACE_FLOW_STRING("col_delete_path_data", "Exit");
 }
 
 
@@ -1222,20 +1224,20 @@ static void delete_path_data(struct path_data *path)
    Traverse handler accepts: current item,
    user provided item handler and user provided custom data. */
 /* See below defferent traverse handlers for different cases */
-static int walk_items(struct collection_item *ci,
-                      int mode_flags,
-                      internal_item_fn traverse_handler,
-                      void *traverse_data,
-                      item_fn user_item_handler,
-                      void *custom_data) {
-
+static int col_walk_items(struct collection_item *ci,
+                          int mode_flags,
+                          internal_item_fn traverse_handler,
+                          void *traverse_data,
+                          col_item_fn user_item_handler,
+                          void *custom_data)
+{
     struct collection_item *current;
     struct collection_item *parent = NULL;
     struct collection_item *sub;
     int stop = 0;
     int error = EOK;
 
-    TRACE_FLOW_STRING("walk_items", "Entry.");
+    TRACE_FLOW_STRING("col_walk_items", "Entry.");
     TRACE_INFO_NUMBER("Mode flags:", mode_flags);
 
     current = ci;
@@ -1276,9 +1278,9 @@ static int walk_items(struct collection_item *ci,
                     TRACE_INFO_STRING("Sub collection name", sub->property);
                     TRACE_INFO_NUMBER("Header type", sub->type);
                     /* We need to go into sub collections */
-                    error = walk_items(sub, mode_flags,
-                                       traverse_handler, traverse_data,
-                                       user_item_handler, custom_data);
+                    error = col_walk_items(sub, mode_flags,
+                                           traverse_handler, traverse_data,
+                                           user_item_handler, custom_data);
                     TRACE_INFO_STRING("Returned from sub collection processing", "");
                     TRACE_INFO_STRING("Done processing item:", current->property);
                     TRACE_INFO_NUMBER("Done processing item type:", current->type);
@@ -1321,7 +1323,7 @@ static int walk_items(struct collection_item *ci,
                                  custom_data, &stop);
     }
 
-    TRACE_FLOW_NUMBER("walk_items. Returns: ", error);
+    TRACE_FLOW_NUMBER("col_walk_items. Returns: ", error);
     return error;
 }
 
@@ -1332,19 +1334,19 @@ static int walk_items(struct collection_item *ci,
 /* No pattern matching supported in the first implementation. */
 /* To refer to child properties use dotted notatation like this: */
 /* parent.child.subchild.subsubchild etc.  */
-static int find_item_and_do(struct collection_item *ci,
-                            const char *property_to_find,
-                            int type,
-                            int mode_flags,
-                            item_fn item_handler,
-                            void *custom_data,
-                            int action)
+static int col_find_item_and_do(struct collection_item *ci,
+                                const char *property_to_find,
+                                int type,
+                                int mode_flags,
+                                col_item_fn item_handler,
+                                void *custom_data,
+                                int action)
 {
 
     int error = EOK;
     struct find_name *traverse_data = NULL;
 
-    TRACE_FLOW_STRING("find_item_and_do", "Entry.");
+    TRACE_FLOW_STRING("col_find_item_and_do", "Entry.");
 
     /* Item handler is always required */
     if ((item_handler == NULL) &&
@@ -1370,7 +1372,7 @@ static int find_item_and_do(struct collection_item *ci,
         return error;
     }
 
-    TRACE_INFO_STRING("find_item_and_do", "Filling in traverse data.");
+    TRACE_INFO_STRING("col_find_item_and_do", "Filling in traverse data.");
 
     traverse_data->name_to_find = property_to_find;
     traverse_data->name_len_to_find = strlen(property_to_find);
@@ -1382,16 +1384,16 @@ static int find_item_and_do(struct collection_item *ci,
 
     mode_flags |= COL_TRAVERSE_END;
 
-    TRACE_INFO_STRING("find_item_and_do", "About to walk the tree.");
+    TRACE_INFO_STRING("col_find_item_and_do", "About to walk the tree.");
     TRACE_INFO_NUMBER("Traverse flags", mode_flags);
 
-    error = walk_items(ci, mode_flags, act_traverse_handler,
-                       (void *)traverse_data, item_handler, custom_data);
+    error = col_walk_items(ci, mode_flags, col_act_traverse_handler,
+                           (void *)traverse_data, item_handler, custom_data);
 
     if (traverse_data->current_path != NULL) {
         TRACE_INFO_STRING("find_item_and_do",
                           "Path was not cleared - deleting");
-        delete_path_data(traverse_data->current_path);
+        col_delete_path_data(traverse_data->current_path);
     }
 
     free(traverse_data);
@@ -1407,10 +1409,10 @@ static int find_item_and_do(struct collection_item *ci,
 }
 
 /* Function to replace data in the item */
-static int update_current_item(struct collection_item *current,
-                               struct update_property *update_data)
+static int col_update_current_item(struct collection_item *current,
+                                   struct update_property *update_data)
 {
-    TRACE_FLOW_STRING("update_current_item", "Entry");
+    TRACE_FLOW_STRING("col_update_current_item", "Entry");
 
     /* If type is different or same but it is string or binary we need to
      * replace the storage */
@@ -1444,17 +1446,17 @@ static int update_current_item(struct collection_item *current,
 
 /* Traverse handler for simple traverse function */
 /* Handler must be able to deal with NULL current item */
-static int simple_traverse_handler(struct collection_item *head,
-                                   struct collection_item *previous,
-                                   struct collection_item *current,
-                                   void *traverse_data,
-                                   item_fn user_item_handler,
-                                   void *custom_data,
-                                   int *stop)
+static int col_simple_traverse_handler(struct collection_item *head,
+                                       struct collection_item *previous,
+                                       struct collection_item *current,
+                                       void *traverse_data,
+                                       col_item_fn user_item_handler,
+                                       void *custom_data,
+                                       int *stop)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("simple_traverse_handler", "Entry.");
+    TRACE_FLOW_STRING("col_simple_traverse_handler", "Entry.");
 
     if (current == NULL) current = &dummy;
 
@@ -1466,32 +1468,32 @@ static int simple_traverse_handler(struct collection_item *head,
                               custom_data,
                               stop);
 
-    TRACE_FLOW_NUMBER("simple_traverse_handler. Returning:", error);
+    TRACE_FLOW_NUMBER("col_simple_traverse_handler. Returning:", error);
     return error;
 }
 
 /* Traverse handler for to find parent */
-static int parent_traverse_handler(struct collection_item *head,
-                                   struct collection_item *previous,
-                                   struct collection_item *current,
-                                   void *traverse_data,
-                                   item_fn user_item_handler,
-                                   void *custom_data,
-                                   int *stop)
+static int col_parent_traverse_handler(struct collection_item *head,
+                                       struct collection_item *previous,
+                                       struct collection_item *current,
+                                       void *traverse_data,
+                                       col_item_fn user_item_handler,
+                                       void *custom_data,
+                                       int *stop)
 {
     struct property_search *to_find;
     int done = 0;
     int match = 0;
 
-    TRACE_FLOW_STRING("parent_traverse_handler", "Entry.");
+    TRACE_FLOW_STRING("col_parent_traverse_handler", "Entry.");
 
     to_find = (struct property_search *)custom_data;
 
+    TRACE_INFO_NUMBER("Looking for HASH:", (unsigned)(to_find->hash));
+    TRACE_INFO_NUMBER("Current HASH:", (unsigned)(current->phash));
+
     /* Check hashes first */
     if(to_find->hash == current->phash) {
-
-        TRACE_INFO_NUMBER("Looking for HASH:", (unsigned)(to_find->hash));
-        TRACE_INFO_NUMBER("Current HASH:", (unsigned)(current->phash));
 
         /* Check type if we are asked to use type */
         if ((to_find->use_type) && (!(to_find->type & current->type))) {
@@ -1540,19 +1542,19 @@ static int parent_traverse_handler(struct collection_item *head,
     }
 
 
-    TRACE_FLOW_STRING("parent_traverse_handler. Returning:","Exit");
+    TRACE_FLOW_STRING("col_parent_traverse_handler. Returning:","Exit");
     return EOK;
 }
 
 
 /* Traverse callback for find & delete function */
-static int act_traverse_handler(struct collection_item *head,
-                                struct collection_item *previous,
-                                struct collection_item *current,
-                                void *passed_traverse_data,
-                                item_fn user_item_handler,
-                                void *custom_data,
-                                int *stop)
+static int col_act_traverse_handler(struct collection_item *head,
+                                    struct collection_item *previous,
+                                    struct collection_item *current,
+                                    void *passed_traverse_data,
+                                    col_item_fn user_item_handler,
+                                    void *custom_data,
+                                    int *stop)
 {
     int error = EOK;
     struct find_name *traverse_data = NULL;
@@ -1564,18 +1566,18 @@ static int act_traverse_handler(struct collection_item *head,
     int property_len;
     struct update_property *update_data;
 
-    TRACE_FLOW_STRING("act_traverse_handler", "Entry.");
+    TRACE_FLOW_STRING("col_act_traverse_handler", "Entry.");
 
     traverse_data = (struct find_name *)passed_traverse_data;
 
     /* We can be called when current points to NULL */
     if (current == NULL) {
-        TRACE_INFO_STRING("act_traverse_handler",
+        TRACE_INFO_STRING("col_act_traverse_handler",
                           "Special call at the end of the collection.");
         temp = traverse_data->current_path;
         traverse_data->current_path = temp->previous_path;
         temp->previous_path = NULL;
-        delete_path_data(temp);
+        col_delete_path_data(temp);
         traverse_data->given_name = NULL;
         traverse_data->given_len = 0;
         TRACE_FLOW_NUMBER("Handling end of collection - removed path. Returning:", error);
@@ -1585,7 +1587,7 @@ static int act_traverse_handler(struct collection_item *head,
     /* Create new path at the beginning of a new sub collection */
     if (current->type == COL_TYPE_COLLECTION) {
 
-        TRACE_INFO_STRING("act_traverse_handler",
+        TRACE_INFO_STRING("col_act_traverse_handler",
                           "Processing collection handle.");
 
         /* Create new path */
@@ -1610,12 +1612,12 @@ static int act_traverse_handler(struct collection_item *head,
             property_len = current->property_len;
         }
 
-        TRACE_INFO_STRING("act_traverse_handler", "About to create path data.");
+        TRACE_INFO_STRING("col_act_traverse_handler", "About to create path data.");
 
-        error = create_path_data(&(traverse_data->current_path),
-                                 name, length, property, property_len);
+        error = col_create_path_data(&(traverse_data->current_path),
+                                     name, length, property, property_len);
 
-        TRACE_INFO_NUMBER("create_path_data returned:", error);
+        TRACE_INFO_NUMBER("col_create_path_data returned:", error);
         return error;
     }
 
@@ -1629,7 +1631,7 @@ static int act_traverse_handler(struct collection_item *head,
     TRACE_INFO_STRING("Processing item with property:", current->property);
 
     /* Do here what we do with items */
-    if (match_item(current, traverse_data)) {
+    if (col_match_item(current, traverse_data)) {
         TRACE_INFO_STRING("Matched item:", current->property);
         switch (traverse_data->action) {
         case COLLECTION_ACTION_FIND:
@@ -1672,7 +1674,7 @@ static int act_traverse_handler(struct collection_item *head,
             /* Previous can't be NULL here becuase we never delete
              * header elements */
             previous->next = current->next;
-            delete_item(current);
+            col_delete_item(current);
             TRACE_INFO_STRING("Did the delete of the item.", "");
             break;
 
@@ -1688,7 +1690,7 @@ static int act_traverse_handler(struct collection_item *head,
             if (custom_data != NULL) {
                 update_data = (struct update_property *)custom_data;
                 update_data->found = COL_MATCH;
-                error = update_current_item(current, update_data);
+                error = col_update_current_item(current, update_data);
             }
             else {
                 TRACE_ERROR_STRING("Error - update data is required", "");
@@ -1704,26 +1706,26 @@ static int act_traverse_handler(struct collection_item *head,
         *stop = 1;
     }
 
-    TRACE_FLOW_NUMBER("act_traverse_handler returning", error);
+    TRACE_FLOW_NUMBER("col_act_traverse_handler returning", error);
     return error;
 }
 
 
 /* Traverse handler for copy function */
-static int copy_traverse_handler(struct collection_item *head,
-                                 struct collection_item *previous,
-                                 struct collection_item *current,
-                                 void *passed_traverse_data,
-                                 item_fn user_item_handler,
-                                 void *custom_data,
-                                 int *stop)
+static int col_copy_traverse_handler(struct collection_item *head,
+                                     struct collection_item *previous,
+                                     struct collection_item *current,
+                                     void *passed_traverse_data,
+                                     col_item_fn user_item_handler,
+                                     void *custom_data,
+                                     int *stop)
 {
     int error = EOK;
     struct collection_item *parent;
     struct collection_item *item;
     struct collection_item *new_collection = NULL;
 
-    TRACE_FLOW_STRING("copy_traverse_handler", "Entry.");
+    TRACE_FLOW_STRING("col_copy_traverse_handler", "Entry.");
 
     parent = (struct collection_item *)passed_traverse_data;
 
@@ -1737,9 +1739,9 @@ static int copy_traverse_handler(struct collection_item *head,
         TRACE_INFO_STRING("Found a subcollection we need to copy. Name:",
                           item->property);
 
-        error = copy_collection(&new_collection,
-                                *((struct collection_item **)(item->data)),
-                                item->property);
+        error = col_copy_collection(&new_collection,
+                                    *((struct collection_item **)(item->data)),
+                                    item->property);
         if (error) {
             TRACE_ERROR_NUMBER("Copy subcollection returned error:", error);
             return error;
@@ -1747,17 +1749,17 @@ static int copy_traverse_handler(struct collection_item *head,
 
         /* Add new item to a collection
          * all references are now sub collections */
-        error = insert_property_with_ref_int(parent,
-                                             NULL,
-                                             COL_DSP_END,
-                                             NULL,
-                                             0,
-                                             0,
-                                             item->property,
-                                             COL_TYPE_COLLECTIONREF,
-                                             (void *)(&new_collection),
-                                             sizeof(struct collection_item **),
-                                             NULL);
+        error = col_insert_property_with_ref_int(parent,
+                                                 NULL,
+                                                 COL_DSP_END,
+                                                 NULL,
+                                                 0,
+                                                 0,
+                                                 item->property,
+                                                 COL_TYPE_COLLECTIONREF,
+                                                 (void *)(&new_collection),
+                                                 sizeof(struct collection_item **),
+                                                 NULL);
         if (error) {
             TRACE_ERROR_NUMBER("Add property returned error:", error);
             return error;
@@ -1765,24 +1767,24 @@ static int copy_traverse_handler(struct collection_item *head,
     }
     else {
 
-        error = insert_property_with_ref_int(parent,
-                                             NULL,
-                                             COL_DSP_END,
-                                             NULL,
-                                             0,
-                                             0,
-                                             item->property,
-                                             item->type,
-                                             item->data,
-                                             item->length,
-                                             NULL);
+        error = col_insert_property_with_ref_int(parent,
+                                                 NULL,
+                                                 COL_DSP_END,
+                                                 NULL,
+                                                 0,
+                                                 0,
+                                                 item->property,
+                                                 item->type,
+                                                 item->data,
+                                                 item->length,
+                                                 NULL);
         if (error) {
             TRACE_ERROR_NUMBER("Add property returned error:", error);
             return error;
         }
     }
 
-    TRACE_FLOW_NUMBER("copy_traverse_handler returning", error);
+    TRACE_FLOW_NUMBER("col_copy_traverse_handler returning", error);
     return error;
 }
 
@@ -1794,14 +1796,14 @@ static int copy_traverse_handler(struct collection_item *head,
 /* CREATE */
 
 /* Function that creates an named collection of a given class*/
-int create_collection(struct collection_item **ci, const char *name,
-                      unsigned cclass)
+int col_create_collection(struct collection_item **ci, const char *name,
+                          unsigned cclass)
 {
     struct collection_item *handle = NULL;
     struct collection_header header;
     int error = EOK;
 
-    TRACE_FLOW_STRING("create_collection", "Entry.");
+    TRACE_FLOW_STRING("col_create_collection", "Entry.");
 
     /* Prepare header */
     header.last = NULL;
@@ -1810,24 +1812,24 @@ int create_collection(struct collection_item **ci, const char *name,
     header.cclass = cclass;
 
     /* Create a collection type property */
-    error = insert_property_with_ref_int(NULL,
-                                         NULL,
-                                         COL_DSP_END,
-                                         NULL,
-                                         0,
-                                         0,
-                                         name,
-                                         COL_TYPE_COLLECTION,
-                                         &header,
-                                         sizeof(header),
-                                         &handle);
+    error = col_insert_property_with_ref_int(NULL,
+                                             NULL,
+                                             COL_DSP_END,
+                                             NULL,
+                                             0,
+                                             0,
+                                             name,
+                                             COL_TYPE_COLLECTION,
+                                             &header,
+                                             sizeof(header),
+                                             &handle);
 
 
     if (error) return error;
 
     *ci = handle;
 
-    TRACE_FLOW_STRING("create_collection", "Success Exit.");
+    TRACE_FLOW_STRING("col_create_collection", "Success Exit.");
     return 0;
 }
 
@@ -1835,11 +1837,11 @@ int create_collection(struct collection_item **ci, const char *name,
 /* DESTROY */
 
 /* Function that destroys a collection */
-void destroy_collection(struct collection_item *ci)
+void col_destroy_collection(struct collection_item *ci)
 {
     struct collection_header *header;
 
-    TRACE_FLOW_STRING("destroy_collection", "Entry.");
+    TRACE_FLOW_STRING("col_destroy_collection", "Entry.");
 
     /* Do not try to delete NULL */
     if (ci == NULL) return;
@@ -1860,10 +1862,10 @@ void destroy_collection(struct collection_item *ci)
                           header->reference_count);
     }
     else {
-        delete_collection(ci);
+        col_delete_collection(ci);
     }
 
-    TRACE_FLOW_STRING("destroy_collection", "Exit.");
+    TRACE_FLOW_STRING("col_destroy_collection", "Exit.");
 }
 
 
@@ -1874,16 +1876,16 @@ void destroy_collection(struct collection_item *ci)
 
 /* Create a deep copy of the current collection. */
 /* Referenced collections of the donor are copied as sub collections. */
-int copy_collection(struct collection_item **collection_copy,
-                    struct collection_item *collection_to_copy,
-                    const char *name_to_use)
+int col_copy_collection(struct collection_item **collection_copy,
+                        struct collection_item *collection_to_copy,
+                        const char *name_to_use)
 {
     int error = EOK;
     struct collection_item *new_collection = NULL;
     const char *name;
     struct collection_header *header;
 
-    TRACE_FLOW_STRING("copy_collection", "Entry.");
+    TRACE_FLOW_STRING("col_copy_collection", "Entry.");
 
     /* Determine what name to use */
     if (name_to_use != NULL)
@@ -1894,19 +1896,20 @@ int copy_collection(struct collection_item **collection_copy,
     header = (struct collection_header *)collection_to_copy->data;
 
     /* Create a new collection */
-    error = create_collection(&new_collection, name, header->cclass);
+    error = col_create_collection(&new_collection, name, header->cclass);
     if (error) {
-        TRACE_ERROR_NUMBER("Create_cllection failed returning", error);
+        TRACE_ERROR_NUMBER("col_create_collection failed returning", error);
         return error;
     }
 
-    error = walk_items(collection_to_copy, COL_TRAVERSE_ONELEVEL,
-                       copy_traverse_handler, new_collection, NULL, NULL);
+    error = col_walk_items(collection_to_copy, COL_TRAVERSE_ONELEVEL,
+                           col_copy_traverse_handler, new_collection,
+                           NULL, NULL);
 
     if (!error) *collection_copy = new_collection;
-    else destroy_collection(new_collection);
+    else col_destroy_collection(new_collection);
 
-    TRACE_FLOW_NUMBER("copy_collection returning", error);
+    TRACE_FLOW_NUMBER("col_copy_collection returning", error);
     return error;
 
 }
@@ -1914,15 +1917,15 @@ int copy_collection(struct collection_item **collection_copy,
 /* EXTRACTION */
 
 /* Extract collection */
-int get_collection_reference(struct collection_item *ci,          /* High level collection */
-                             struct collection_item **acceptor,   /* The pointer that will accept extracted handle */
-                             const char *collection_to_find)      /* Name to of the collection */
+int col_get_collection_reference(struct collection_item *ci,
+                                 struct collection_item **acceptor,
+                                 const char *collection_to_find)
 {
     struct collection_header *header;
     struct collection_item *subcollection = NULL;
     int error = EOK;
 
-    TRACE_FLOW_STRING("get_collection_reference", "Entry.");
+    TRACE_FLOW_STRING("col_get_collection_reference", "Entry.");
 
     if ((ci == NULL) ||
         (ci->type != COL_TYPE_COLLECTION) ||
@@ -1935,12 +1938,12 @@ int get_collection_reference(struct collection_item *ci,          /* High level 
     /* Find a sub collection */
     TRACE_INFO_STRING("We are given subcollection name - search it:",
                       collection_to_find);
-    error = find_item_and_do(ci, collection_to_find,
-                             COL_TYPE_COLLECTIONREF,
-                             COL_TRAVERSE_DEFAULT,
-                             get_subcollection,
-                             (void *)(&subcollection),
-                             COLLECTION_ACTION_FIND);
+    error = col_find_item_and_do(ci, collection_to_find,
+                                 COL_TYPE_COLLECTIONREF,
+                                 COL_TRAVERSE_DEFAULT,
+                                 col_get_subcollection,
+                                 (void *)(&subcollection),
+                                 COLLECTION_ACTION_FIND);
     if (error) {
         TRACE_ERROR_NUMBER("Search failed returning error", error);
         return error;
@@ -1958,13 +1961,13 @@ int get_collection_reference(struct collection_item *ci,          /* High level 
     TRACE_INFO_NUMBER("Ref count after increment:", header->reference_count);
     *acceptor = subcollection;
 
-    TRACE_FLOW_STRING("get_collection_reference", "Success Exit.");
+    TRACE_FLOW_STRING("col_get_collection_reference", "Success Exit.");
     return EOK;
 }
 
 /* Get collection - if current item is a reference get a real collection from it. */
-int get_reference_from_item(struct collection_item *ci,
-                            struct collection_item **acceptor)
+int col_get_reference_from_item(struct collection_item *ci,
+                                struct collection_item **acceptor)
 {
     struct collection_header *header;
     struct collection_item *subcollection = NULL;
@@ -1987,7 +1990,7 @@ int get_reference_from_item(struct collection_item *ci,
     TRACE_INFO_NUMBER("Ref count after increment:", header->reference_count);
     *acceptor = subcollection;
 
-    TRACE_FLOW_STRING("get_reference_from_item", "Success Exit.");
+    TRACE_FLOW_STRING("col_get_reference_from_item", "Success Exit.");
     return EOK;
 }
 
@@ -1995,16 +1998,11 @@ int get_reference_from_item(struct collection_item *ci,
 
 /* Add collection to collection */
 /* FIXME - allow to add collection to a collection with disposition */
-int add_collection_to_collection(
-   struct collection_item *ci,                /* Collection handle to with we add another collection */
-   const char *sub_collection_name,           /* Name of the sub collection to which
-                                                 collection needs to be added as a property.
-                                                 If NULL high level collection is assumed. */
-   const char *as_property,                   /* Name of the collection property.
-                                                 If NULL, same property as the name of
-                                                 the collection being added will be used. */
-   struct collection_item *collection_to_add, /* Collection to add */
-   int mode)                                  /* How this collection needs to be added */
+int col_add_collection_to_collection(struct collection_item *ci,
+                                     const char *sub_collection_name,
+                                     const char *as_property,
+                                     struct collection_item *collection_to_add,
+                                     int mode)
 {
     struct collection_item *acceptor = NULL;
     const char *name_to_use;
@@ -2012,7 +2010,7 @@ int add_collection_to_collection(
     struct collection_item *collection_copy;
     int error = EOK;
 
-    TRACE_FLOW_STRING("add_collection_to_collection", "Entry.");
+    TRACE_FLOW_STRING("col_add_collection_to_collection", "Entry.");
 
     if ((ci == NULL) ||
         (ci->type != COL_TYPE_COLLECTION) ||
@@ -2027,12 +2025,12 @@ int add_collection_to_collection(
         /* Find a sub collection */
         TRACE_INFO_STRING("We are given subcollection name - search it:",
                           sub_collection_name);
-        error = find_item_and_do(ci, sub_collection_name,
-                                 COL_TYPE_COLLECTIONREF,
-                                 COL_TRAVERSE_DEFAULT,
-                                 get_subcollection,
-                                 (void *)(&acceptor),
-                                 COLLECTION_ACTION_FIND);
+        error = col_find_item_and_do(ci, sub_collection_name,
+                                     COL_TYPE_COLLECTIONREF,
+                                     COL_TRAVERSE_DEFAULT,
+                                     col_get_subcollection,
+                                     (void *)(&acceptor),
+                                     COLLECTION_ACTION_FIND);
         if (error) {
             TRACE_ERROR_NUMBER("Search failed returning error", error);
             return error;
@@ -2066,17 +2064,17 @@ int add_collection_to_collection(
                           collection_to_add->property);
         /* Create a pointer to external collection */
         /* For future thread safety: Transaction start -> */
-        error = insert_property_with_ref_int(acceptor,
-                                             NULL,
-                                             COL_DSP_END,
-                                             NULL,
-                                             0,
-                                             0,
-                                             name_to_use,
-                                             COL_TYPE_COLLECTIONREF,
-                                             (void *)(&collection_to_add),
-                                             sizeof(struct collection_item **),
-                                             NULL);
+        error = col_insert_property_with_ref_int(acceptor,
+                                                 NULL,
+                                                 COL_DSP_END,
+                                                 NULL,
+                                                 0,
+                                                 0,
+                                                 name_to_use,
+                                                 COL_TYPE_COLLECTIONREF,
+                                                 (void *)(&collection_to_add),
+                                                 sizeof(struct collection_item **),
+                                                 NULL);
 
         TRACE_INFO_NUMBER("Type of the header element after adding property:",
                           collection_to_add->type);
@@ -2107,17 +2105,17 @@ int add_collection_to_collection(
         TRACE_INFO_STRING("Header name we are adding to.",
                           acceptor->property);
 
-        error = insert_property_with_ref_int(acceptor,
-                                             NULL,
-                                             COL_DSP_END,
-                                             NULL,
-                                             0,
-                                             0,
-                                             name_to_use,
-                                             COL_TYPE_COLLECTIONREF,
-                                             (void *)(&collection_to_add),
-                                             sizeof(struct collection_item **),
-                                             NULL);
+        error = col_insert_property_with_ref_int(acceptor,
+                                                 NULL,
+                                                 COL_DSP_END,
+                                                 NULL,
+                                                 0,
+                                                 0,
+                                                 name_to_use,
+                                                 COL_TYPE_COLLECTIONREF,
+                                                 (void *)(&collection_to_add),
+                                                 sizeof(struct collection_item **),
+                                                 NULL);
 
 
         TRACE_INFO_NUMBER("Adding property returned:", error);
@@ -2128,8 +2126,8 @@ int add_collection_to_collection(
         TRACE_INFO_STRING("Name we will use.", name_to_use);
 
         /* For future thread safety: Transaction start -> */
-        error = copy_collection(&collection_copy,
-                                collection_to_add, name_to_use);
+        error = col_copy_collection(&collection_copy,
+                                    collection_to_add, name_to_use);
         if (error) return error;
 
         TRACE_INFO_STRING("We have a collection copy.", collection_copy->property);
@@ -2137,17 +2135,17 @@ int add_collection_to_collection(
         TRACE_INFO_STRING("Acceptor collection.", acceptor->property);
         TRACE_INFO_NUMBER("Acceptor collection type.", acceptor->type);
 
-       error = insert_property_with_ref_int(acceptor,
-                                             NULL,
-                                             COL_DSP_END,
-                                             NULL,
-                                             0,
-                                             0,
-                                             name_to_use,
-                                             COL_TYPE_COLLECTIONREF,
-                                             (void *)(&collection_copy),
-                                             sizeof(struct collection_item **),
-                                             NULL);
+       error = col_insert_property_with_ref_int(acceptor,
+                                                NULL,
+                                                COL_DSP_END,
+                                                NULL,
+                                                0,
+                                                0,
+                                                name_to_use,
+                                                COL_TYPE_COLLECTIONREF,
+                                                (void *)(&collection_copy),
+                                                sizeof(struct collection_item **),
+                                                NULL);
 
         /* -> Transaction end */
         TRACE_INFO_NUMBER("Adding property returned:", error);
@@ -2157,7 +2155,7 @@ int add_collection_to_collection(
         error = EINVAL;
     }
 
-    TRACE_FLOW_NUMBER("add_collection_to_collection returning:", error);
+    TRACE_FLOW_NUMBER("col_add_collection_to_collection returning:", error);
     return error;
 }
 
@@ -2165,48 +2163,48 @@ int add_collection_to_collection(
 
 /* Function to traverse the entire collection including optionally
  * sub collections */
-int traverse_collection(struct collection_item *ci,
-                        int mode_flags,
-                        item_fn item_handler,
-                        void *custom_data)
+int col_traverse_collection(struct collection_item *ci,
+                            int mode_flags,
+                            col_item_fn item_handler,
+                            void *custom_data)
 {
 
     int error = EOK;
-    TRACE_FLOW_STRING("traverse_collection", "Entry.");
+    TRACE_FLOW_STRING("col_traverse_collection", "Entry.");
 
-    error = walk_items(ci, mode_flags, simple_traverse_handler,
-                       NULL, item_handler, custom_data);
+    error = col_walk_items(ci, mode_flags, col_simple_traverse_handler,
+                           NULL, item_handler, custom_data);
 
     if ((error != 0) && (error != EINTR_INTERNAL)) {
         TRACE_ERROR_NUMBER("Error walking tree", error);
         return error;
     }
 
-    TRACE_FLOW_STRING("traverse_collection", "Success exit.");
+    TRACE_FLOW_STRING("col_traverse_collection", "Success exit.");
     return EOK;
 }
 
 /* CHECK */
 
 /* Convenience function to check if specific property is in the collection */
-int is_item_in_collection(struct collection_item *ci,
-                          const char *property_to_find,
-                          int type,
-                          int mode_flags,
-                          int *found)
+int col_is_item_in_collection(struct collection_item *ci,
+                              const char *property_to_find,
+                              int type,
+                              int mode_flags,
+                              int *found)
 {
     int error;
 
-    TRACE_FLOW_STRING("is_item_in_collection","Entry.");
+    TRACE_FLOW_STRING("col_is_item_in_collection","Entry.");
 
     *found = COL_NOMATCH;
-    error = find_item_and_do(ci, property_to_find,
-                             type, mode_flags,
-                             is_in_item_handler,
-                             (void *)found,
-                             COLLECTION_ACTION_FIND);
+    error = col_find_item_and_do(ci, property_to_find,
+                                 type, mode_flags,
+                                 col_is_in_item_handler,
+                                 (void *)found,
+                                 COLLECTION_ACTION_FIND);
 
-    TRACE_FLOW_NUMBER("is_item_in_collection returning", error);
+    TRACE_FLOW_NUMBER("col_is_item_in_collection returning", error);
     return error;
 }
 
@@ -2214,114 +2212,113 @@ int is_item_in_collection(struct collection_item *ci,
 /* Search function. Looks up an item in the collection based on the property.
    Essentually it is a traverse function with spacial traversing logic.
  */
-int get_item_and_do(struct collection_item *ci,       /* Collection to find things in */
-                    const char *property_to_find,     /* Name to match */
-                    int type,                         /* Type filter */
-                    int mode_flags,                   /* How to traverse the collection */
-                    item_fn item_handler,             /* Function to call when the item is found */
-                    void *custom_data)                /* Custom data passed around */
+int col_get_item_and_do(struct collection_item *ci,
+                        const char *property_to_find,
+                        int type,
+                        int mode_flags,
+                        col_item_fn item_handler,
+                        void *custom_data)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("get_item_and_do","Entry.");
+    TRACE_FLOW_STRING("col_get_item_and_do","Entry.");
 
-    error = find_item_and_do(ci, property_to_find,
-                             type, mode_flags,
-                             item_handler,
-                             custom_data,
-                             COLLECTION_ACTION_FIND);
+    error = col_find_item_and_do(ci, property_to_find,
+                                 type, mode_flags,
+                                 item_handler,
+                                 custom_data,
+                                 COLLECTION_ACTION_FIND);
 
-    TRACE_FLOW_NUMBER("get_item_and_do returning", error);
+    TRACE_FLOW_NUMBER("col_get_item_and_do returning", error);
     return error;
 }
 
 
 /* Get raw item */
-int get_item(struct collection_item *ci,       /* Collection to find things in */
-             const char *property_to_find,     /* Name to match */
-             int type,                         /* Type filter */
-             int mode_flags,                   /* How to traverse the collection */
-             struct collection_item **item)    /* Found item */
+int col_get_item(struct collection_item *ci,
+                 const char *property_to_find,
+                 int type,
+                 int mode_flags,
+                 struct collection_item **item)
 {
 
     int error = EOK;
 
-    TRACE_FLOW_STRING("get_item", "Entry.");
+    TRACE_FLOW_STRING("col_get_item", "Entry.");
 
-    error = find_item_and_do(ci, property_to_find,
-                             type, mode_flags,
-                             NULL, (void *)item,
-                             COLLECTION_ACTION_GET);
+    error = col_find_item_and_do(ci, property_to_find,
+                                 type, mode_flags,
+                                 NULL, (void *)item,
+                                 COLLECTION_ACTION_GET);
 
-    TRACE_FLOW_NUMBER("get_item returning", error);
+    TRACE_FLOW_NUMBER("col_get_item returning", error);
     return error;
 }
 
 /* DELETE */
 /* Delete property from the collection */
-int delete_property(struct collection_item *ci,    /* Collection to find things in */
-                    const char *property_to_find,  /* Name to match */
-                    int type,                      /* Type filter */
-                    int mode_flags)                /* How to traverse the collection */
+int col_delete_property(struct collection_item *ci,
+                        const char *property_to_find,
+                        int type,
+                        int mode_flags)
 {
     int error = EOK;
     int found;
 
-    TRACE_FLOW_STRING("delete_property", "Entry.");
+    TRACE_FLOW_STRING("col_delete_property", "Entry.");
     found = COL_NOMATCH;
 
-    error = find_item_and_do(ci, property_to_find,
-                             type, mode_flags,
-                             NULL, (void *)(&found),
-                             COLLECTION_ACTION_DEL);
+    error = col_find_item_and_do(ci, property_to_find,
+                                 type, mode_flags,
+                                 NULL, (void *)(&found),
+                                 COLLECTION_ACTION_DEL);
 
     if ((error == EOK) && (found == COL_NOMATCH))
         error = ENOENT;
 
-    TRACE_FLOW_NUMBER("delete_property returning", error);
+    TRACE_FLOW_NUMBER("col_delete_property returning", error);
     return error;
 }
 
 /* UPDATE */
 /* Update property in the collection */
-int update_property(struct collection_item *ci,    /* Collection to find things in */
-                    const char *property_to_find,  /* Name to match */
-                    int type,                      /* Type of the passed in data */
-                    void *new_data,                /* Pointer to the new data */
-                    int length,                    /* Length of the data. For strings should include trailing 0 */
-                    int mode_flags)                /* How to traverse the collection  */
-
+int col_update_property(struct collection_item *ci,
+                        const char *property_to_find,
+                        int type,
+                        void *new_data,
+                        int length,
+                        int mode_flags)
 {
     int error = EOK;
     struct update_property update_data;
 
-    TRACE_FLOW_STRING("update_property", "Entry.");
+    TRACE_FLOW_STRING("col_update_property", "Entry.");
     update_data.type = type;
     update_data.data = new_data;
     update_data.length = length;
     update_data.found = COL_NOMATCH;
 
-    error = find_item_and_do(ci, property_to_find,
-                             type, mode_flags,
-                             NULL, (void *)(&update_data),
-                             COLLECTION_ACTION_UPDATE);
+    error = col_find_item_and_do(ci, property_to_find,
+                                 type, mode_flags,
+                                 NULL, (void *)(&update_data),
+                                 COLLECTION_ACTION_UPDATE);
 
     if ((error == EOK) && (update_data.found == COL_NOMATCH))
         error = ENOENT;
 
-    TRACE_FLOW_NUMBER("update_property returning", error);
+    TRACE_FLOW_NUMBER("col_update_property returning", error);
     return error;
 }
 
 
 /* Function to modify the item */
-int modify_item(struct collection_item *item,
-                const char *property,
-                int type,
-                void *data,
-                int length)
+int col_modify_item(struct collection_item *item,
+                    const char *property,
+                    int type,
+                    void *data,
+                    int length)
 {
-    TRACE_FLOW_STRING("modify_item", "Entry");
+    TRACE_FLOW_STRING("col_modify_item", "Entry");
 
     if ((item == NULL) ||
         (item->type == COL_TYPE_COLLECTION) ||
@@ -2331,7 +2328,7 @@ int modify_item(struct collection_item *item,
     }
 
     if (property != NULL) {
-        if (validate_property(property)) {
+        if (col_validate_property(property)) {
             TRACE_ERROR_STRING("Invalid chracters in the property name", property);
             return EINVAL;
         }
@@ -2370,20 +2367,19 @@ int modify_item(struct collection_item *item,
             ((char *)(item->data))[item->length - 1] = '\0';
     }
 
-    TRACE_FLOW_STRING("modify_item", "Exit");
+    TRACE_FLOW_STRING("col_modify_item", "Exit");
     return EOK;
 }
 
 
 
-
 /* Grow iteration stack */
-static int grow_stack(struct collection_iterator *iterator, unsigned desired)
+static int col_grow_stack(struct collection_iterator *iterator, unsigned desired)
 {
     int grow_by = 0;
     struct collection_item **temp;
 
-    TRACE_FLOW_STRING("grow_stack", "Entry.");
+    TRACE_FLOW_STRING("col_grow_stack", "Entry.");
 
     if (desired > iterator->stack_size) {
         grow_by = (((desired - iterator->stack_size) / STACK_DEPTH_BLOCK) + 1) * STACK_DEPTH_BLOCK;
@@ -2396,22 +2392,22 @@ static int grow_stack(struct collection_iterator *iterator, unsigned desired)
         iterator->stack = temp;
         iterator->stack_size += grow_by;
     }
-    TRACE_FLOW_STRING("grow_stack", "Exit.");
+    TRACE_FLOW_STRING("col_grow_stack", "Exit.");
     return EOK;
 }
 
 
 
 /* Bind iterator to a collection */
-int bind_iterator(struct collection_iterator **iterator,
-                  struct collection_item *ci,
-                  int mode_flags)
+int col_bind_iterator(struct collection_iterator **iterator,
+                      struct collection_item *ci,
+                      int mode_flags)
 {
     int error;
     struct collection_header *header;
     struct collection_iterator *iter = NULL;
 
-    TRACE_FLOW_STRING("bind_iterator", "Entry.");
+    TRACE_FLOW_STRING("col_bind_iterator", "Entry.");
 
     /* Do some argument checking first */
     if ((iterator == NULL) || (ci == NULL)) {
@@ -2432,7 +2428,7 @@ int bind_iterator(struct collection_iterator **iterator,
     iter->flags = mode_flags;
 
     /* Allocate memory for stack */
-    error = grow_stack(iter, 1);
+    error = col_grow_stack(iter, 1);
     if(error) {
         free(iter);
         TRACE_ERROR_NUMBER("Error growing stack.", error);
@@ -2448,13 +2444,13 @@ int bind_iterator(struct collection_iterator **iterator,
 
     *iterator = iter;
 
-    TRACE_FLOW_STRING("bind_iterator", "Exit");
+    TRACE_FLOW_STRING("col_bind_iterator", "Exit");
     return EOK;
 }
 
 /* Stop processing this subcollection and move to the next item in the
  * collection 'level' levels up.*/
-int iterate_up(struct collection_iterator *iterator, int level)
+int col_iterate_up(struct collection_iterator *iterator, int level)
 {
     TRACE_FLOW_STRING("iterate_up", "Entry");
 
@@ -2468,14 +2464,14 @@ int iterate_up(struct collection_iterator *iterator, int level)
     iterator->stack_depth--;
 
     TRACE_INFO_NUMBER("Stack depth at the end:", iterator->stack_depth);
-    TRACE_FLOW_STRING("iterate_up", "Exit");
+    TRACE_FLOW_STRING("col_iterate_up", "Exit");
     return EOK;
 }
 
 /* How deep are we relative to the top level.*/
-int get_iterator_depth(struct collection_iterator *iterator, int *depth)
+int col_get_iterator_depth(struct collection_iterator *iterator, int *depth)
 {
-    TRACE_FLOW_STRING("iterate_up", "Entry");
+    TRACE_FLOW_STRING("col_get_iterator_depth", "Entry");
 
     if ((iterator == NULL) || (depth == NULL)) {
         TRACE_ERROR_NUMBER("Invalid parameter.", EINVAL);
@@ -2485,32 +2481,32 @@ int get_iterator_depth(struct collection_iterator *iterator, int *depth)
     *depth = iterator->stack_depth -1;
 
     TRACE_INFO_NUMBER("Stack depth at the end:", iterator->stack_depth);
-    TRACE_FLOW_STRING("iterate_up","Exit");
+    TRACE_FLOW_STRING("col_get_iterator_depth","Exit");
     return EOK;
 }
 
 
 /* Unbind the iterator from the collection */
-void unbind_iterator(struct collection_iterator *iterator)
+void col_unbind_iterator(struct collection_iterator *iterator)
 {
-    TRACE_FLOW_STRING("unbind_iterator", "Entry.");
+    TRACE_FLOW_STRING("col_unbind_iterator", "Entry.");
     if (iterator != NULL) {
-        destroy_collection(iterator->top);
+        col_destroy_collection(iterator->top);
         if (iterator->stack != NULL) free(iterator->stack);
         free(iterator);
     }
-    TRACE_FLOW_STRING("unbind_iterator", "Exit");
+    TRACE_FLOW_STRING("col_unbind_iterator", "Exit");
 }
 
 /* Get items from the collection one by one following the tree */
-int iterate_collection(struct collection_iterator *iterator,
-                       struct collection_item **item)
+int col_iterate_collection(struct collection_iterator *iterator,
+                           struct collection_item **item)
 {
     int error;
     struct collection_item *current;
     struct collection_item *other;
 
-    TRACE_FLOW_STRING("iterate_collection", "Entry.");
+    TRACE_FLOW_STRING("col_iterate_collection", "Entry.");
 
     /* Check if we have storage for item */
     if (item == NULL) {
@@ -2545,7 +2541,7 @@ int iterate_collection(struct collection_iterator *iterator,
                 if ((iterator->flags & COL_TRAVERSE_IGNORE) == 0) {
                     /* We should not ignore - then move on */
                     TRACE_INFO_STRING("Collection references are not ignored", "");
-                    error = grow_stack(iterator, iterator->stack_depth + 1);
+                    error = col_grow_stack(iterator, iterator->stack_depth + 1);
                     if (error) {
                         TRACE_ERROR_NUMBER("Error growing stack.", error);
                         return error;
@@ -2635,11 +2631,12 @@ int iterate_collection(struct collection_iterator *iterator,
 }
 
 /* Set collection class */
-int set_collection_class(struct collection_item *item, unsigned cclass)
+int col_set_collection_class(struct collection_item *item,
+                             unsigned cclass)
 {
     struct collection_header *header;
 
-    TRACE_FLOW_STRING("set_collection_class", "Entry");
+    TRACE_FLOW_STRING("col_set_collection_class", "Entry");
 
     if (item->type != COL_TYPE_COLLECTION) {
         TRACE_INFO_NUMBER("Not a collectin object. Type is", item->type);
@@ -2648,17 +2645,17 @@ int set_collection_class(struct collection_item *item, unsigned cclass)
 
     header = (struct collection_header *)item->data;
     header->cclass = cclass;
-    TRACE_FLOW_STRING("set_collection_class", "Exit");
+    TRACE_FLOW_STRING("col_set_collection_class", "Exit");
     return EOK;
 }
 
 /* Get collection class */
-int get_collection_class(struct collection_item *item,
-                         unsigned *cclass)
+int col_get_collection_class(struct collection_item *item,
+                             unsigned *cclass)
 {
     struct collection_header *header;
 
-    TRACE_FLOW_STRING("get_collection_class", "Entry");
+    TRACE_FLOW_STRING("col_get_collection_class", "Entry");
 
     if (item->type != COL_TYPE_COLLECTION) {
         TRACE_ERROR_NUMBER("Not a collection object. Type is", item->type);
@@ -2667,17 +2664,17 @@ int get_collection_class(struct collection_item *item,
 
     header = (struct collection_header *)item->data;
     *cclass  = header->cclass;
-    TRACE_FLOW_STRING("get_collection_class", "Exit");
+    TRACE_FLOW_STRING("col_get_collection_class", "Exit");
     return EOK;
 }
 
 /* Get collection count */
-int get_collection_count(struct collection_item *item,
-                         unsigned *count)
+int col_get_collection_count(struct collection_item *item,
+                             unsigned *count)
 {
     struct collection_header *header;
 
-    TRACE_FLOW_STRING("get_collection_count", "Entry");
+    TRACE_FLOW_STRING("col_get_collection_count", "Entry");
 
     if (item->type != COL_TYPE_COLLECTION) {
         TRACE_ERROR_NUMBER("Not a collectin object. Type is", item->type);
@@ -2686,21 +2683,21 @@ int get_collection_count(struct collection_item *item,
 
     header = (struct collection_header *)item->data;
     *count  = header->count;
-    TRACE_FLOW_STRING("get_collection_count", "Exit");
+    TRACE_FLOW_STRING("col_get_collection_count", "Exit");
     return EOK;
 
 }
 
 /* Convinience function to check if the collection is of the specific class */
 /* In case of internal error assumes that collection is not of the right class */
-int is_of_class(struct collection_item *item, unsigned cclass)
+int col_is_of_class(struct collection_item *item, unsigned cclass)
 {
     int error = EOK;
     unsigned ret_class = 0;
 
-    TRACE_FLOW_STRING("is_of_class invoked", "");
+    TRACE_FLOW_STRING("col_is_of_class invoked", "");
 
-    error = get_collection_class(item, &ret_class);
+    error = col_get_collection_class(item, &ret_class);
     if (error || (ret_class != cclass))
         return 0;
     else
@@ -2708,35 +2705,36 @@ int is_of_class(struct collection_item *item, unsigned cclass)
 }
 
 /* Get propery */
-const char *get_item_property(struct collection_item *ci,int *property_len)
+const char *col_get_item_property(struct collection_item *ci,
+                                  int *property_len)
 {
     if (property_len != NULL) *property_len = ci->property_len;
     return ci->property;
 }
 
 /* Get type */
-int get_item_type(struct collection_item *ci)
+int col_get_item_type(struct collection_item *ci)
 {
     return ci->type;
 }
 
 /* Get length */
-int get_item_length(struct collection_item *ci)
+int col_get_item_length(struct collection_item *ci)
 {
     return ci->length;
 }
 
 /* Get data */
-const void *get_item_data(struct collection_item *ci)
+const void *col_get_item_data(struct collection_item *ci)
 {
     return ci->data;
 }
 
 
 /* Set time stamp in the collection - FIXME move to another level */
-int set_timestamp(struct collection_item *ci,
-                  struct collection_item **timestr_ref,
-                  struct collection_item **timeint_ref)
+int col_set_timestamp(struct collection_item *ci,
+                      struct collection_item **timestr_ref,
+                      struct collection_item **timeint_ref)
 {
     time_t utctime;
     struct tm time_struct;
@@ -2746,22 +2744,22 @@ int set_timestamp(struct collection_item *ci,
     struct collection_item *timeint = NULL;
     int error = EOK;
 
-    TRACE_FLOW_STRING("set_timestamp", "Entry point");
+    TRACE_FLOW_STRING("col_set_timestamp", "Entry point");
 
     utctime = time(NULL);
     localtime_r(&utctime, &time_struct);
 
     len = strftime(time_array, TIME_ARRAY_SIZE, DATE_FORMAT, &time_struct);
     if (len == 0) {
-        TRACE_ERROR_STRING("add_time", "CODING ERROR - INCREASE THE BUFFER");
+        TRACE_ERROR_STRING("col_set_timestamp", "CODING ERROR - INCREASE THE BUFFER");
         return EMSGSIZE;
     }
 
     TRACE_INFO_STRING("Timestamp:", time_array);
 
     /* Check if we have the timestamp item already */
-    error = get_item(ci, TS_NAME, COL_TYPE_STRING,
-                     COL_TRAVERSE_IGNORE, &timestr);
+    error = col_get_item(ci, TS_NAME, COL_TYPE_STRING,
+                         COL_TRAVERSE_IGNORE, &timestr);
     if (error) {
         TRACE_ERROR_NUMBER("search failed with error:", error);
         return error;
@@ -2780,8 +2778,8 @@ int set_timestamp(struct collection_item *ci,
     }
     else {
         /* Add timestamp to the collection */
-        error = add_str_property_with_ref(ci, NULL, TS_NAME,
-                                          time_array, len+1, timestr_ref);
+        error = col_add_str_property_with_ref(ci, NULL, TS_NAME,
+                                              time_array, len+1, timestr_ref);
         if (error) {
             TRACE_ERROR_NUMBER("failed to add timestamp property:", error);
             return error;
@@ -2789,8 +2787,8 @@ int set_timestamp(struct collection_item *ci,
     }
 
     /* Check if we have the time item already */
-    error = get_item(ci, T_NAME, COL_TYPE_INTEGER,
-                     COL_TRAVERSE_IGNORE, &timeint);
+    error = col_get_item(ci, T_NAME, COL_TYPE_INTEGER,
+                         COL_TRAVERSE_IGNORE, &timeint);
     if (error) {
         TRACE_ERROR_NUMBER("search failed with error:", error);
         return error;
@@ -2803,14 +2801,14 @@ int set_timestamp(struct collection_item *ci,
     }
     else {
         /* Add time to the collection */
-        error = add_int_property_with_ref(ci, NULL, T_NAME,
-                                          utctime, timeint_ref);
+        error = col_add_int_property_with_ref(ci, NULL, T_NAME,
+                                              utctime, timeint_ref);
         if (error) {
             TRACE_ERROR_NUMBER("failed to add time property:", error);
             return error;
         }
     }
 
-    TRACE_FLOW_STRING("set_timestamp", "Exit point");
+    TRACE_FLOW_STRING("col_set_timestamp", "Exit point");
     return EOK;
 }

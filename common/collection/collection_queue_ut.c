@@ -42,26 +42,26 @@ int queue_test()
 
     printf("\n\nQUEUE TEST!!!.\n\n\n");
 
-    if((error = create_queue(&queue)) ||
-       (error = enqueue_str_property(queue, "item1","value 1" ,0)) ||
-       (error = enqueue_int_property(queue, "item2", -1)) ||
-       (error = enqueue_unsigned_property(queue, "item3", 1)) ||
-       (error = enqueue_long_property(queue, "item4", 100)) ||
-       (error = enqueue_ulong_property(queue, "item5", 1000)) ||
-       (error = enqueue_double_property(queue, "item6", 1.1)) ||
-       (error = enqueue_bool_property(queue, "item7", 1)) ||
-       (error = enqueue_binary_property(queue, "item8", binary_dump, sizeof(binary_dump)))) {
+    if((error = col_create_queue(&queue)) ||
+       (error = col_enqueue_str_property(queue, "item1","value 1" ,0)) ||
+       (error = col_enqueue_int_property(queue, "item2", -1)) ||
+       (error = col_enqueue_unsigned_property(queue, "item3", 1)) ||
+       (error = col_enqueue_long_property(queue, "item4", 100)) ||
+       (error = col_enqueue_ulong_property(queue, "item5", 1000)) ||
+       (error = col_enqueue_double_property(queue, "item6", 1.1)) ||
+       (error = col_enqueue_bool_property(queue, "item7", 1)) ||
+       (error = col_enqueue_binary_property(queue, "item8", binary_dump, sizeof(binary_dump)))) {
         printf("Failed to enqueue property. Error %d\n", error);
-        destroy_collection(queue);
+        col_destroy_collection(queue);
         return error;
     }
 
-    debug_collection(queue,COL_TRAVERSE_DEFAULT);
+    col_debug_collection(queue,COL_TRAVERSE_DEFAULT);
 
-    error = get_collection_count(queue, &count);
+    error = col_get_collection_count(queue, &count);
     if (error) {
         printf("Failed to get count. Error %d\n", error);
-        destroy_collection(queue);
+        col_destroy_collection(queue);
         return error;
     }
 
@@ -70,16 +70,16 @@ int queue_test()
     printf("Rotate the queue.\n");
 
     for (i = 0; i < count; i++) {
-        if ((error = dequeue_item(queue, &item)) ||
-            (error = enqueue_item(queue, item))) {
+        if ((error = col_dequeue_item(queue, &item)) ||
+            (error = col_enqueue_item(queue, item))) {
             printf("Failed to dequeue or enqueue items. Error %d\n", error);
-            destroy_collection(queue);
+            col_destroy_collection(queue);
             return error;
         }
-        debug_collection(queue,COL_TRAVERSE_DEFAULT);
+        col_debug_collection(queue,COL_TRAVERSE_DEFAULT);
     }
 
-    destroy_collection(queue);
+    col_destroy_collection(queue);
     TRACE_FLOW_NUMBER("queue_test. Returning", error);
 
     printf("\n\nEND OF QUEUE TEST!!!.\n\n\n");
