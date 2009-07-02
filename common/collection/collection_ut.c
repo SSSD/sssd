@@ -874,6 +874,39 @@ int insert_extract_test()
     return EOK;
 }
 
+int delete_test()
+{
+
+    struct collection_item *col;
+    int error = EOK;
+
+    printf("\n\n==== DELETION TEST ====\n\n");
+
+    if ((error = create_collection(&col, "test", 0)) ||
+        (error = add_int_property(col, NULL, "tt", 1)) ||
+        (error = debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = add_int_property(col, NULL, "test", 1)) ||
+        (error = debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = delete_property(col, "test", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT)) ||
+        (error = debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = add_int_property(col, NULL, "test", 1)) ||
+        (error = debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = delete_property(col, "test", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT)) ||
+        (error = debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = add_int_property(col, NULL, "test", 1))) {
+        printf("Error in delete test %d\n", error);
+        destroy_collection(col);
+        return error;
+    }
+
+    debug_collection(col, COL_TRAVERSE_DEFAULT);
+
+    printf("\n\n==== DELETION TEST END ====\n\n");
+
+
+    destroy_collection(col);
+    return error;
+}
 
 /* Main function of the unit test */
 
@@ -887,7 +920,8 @@ int main()
         (error = add_collection_test()) ||
         (error = mixed_collection_test()) ||
         (error = iterator_test()) ||
-        (error = insert_extract_test())) {
+        (error = insert_extract_test()) ||
+        (error = delete_test())) {
         printf("Failed!\n");
     }
     else printf("Success!\n");

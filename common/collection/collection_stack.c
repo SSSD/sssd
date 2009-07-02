@@ -94,7 +94,7 @@ int push_binary_property(struct collection_item *stack,
         return EINVAL;
     }
 
-    error = add_binary_property(stack, NULL, property, binary_data, length)
+    error = add_binary_property(stack, NULL, property, binary_data, length);
 
     TRACE_FLOW_STRING("push_binary_property", "Exit.");
     return error;
