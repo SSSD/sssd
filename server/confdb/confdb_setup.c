@@ -322,13 +322,13 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
         DEBUG(0, ("Parse error reading configuration file [%s]\n",
                   config_file));
         print_file_parsing_errors(stderr, error_list);
-        destroy_collection(error_list);
-        destroy_collection(sssd_config);
+        free_ini_config_errors(error_list);
+        free_ini_config(sssd_config);
         goto done;
     }
 
     ret = confdb_create_ldif(tmp_ctx, sssd_config, &config_ldif);
-    destroy_collection(sssd_config);
+    free_ini_config(sssd_config);
     if (ret != EOK) {
         DEBUG(0, ("Could not create LDIF for confdb\n"));
         goto done;

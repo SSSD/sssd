@@ -415,6 +415,30 @@ static int ini_to_collection(const char *filename,
 }
 
 /*********************************************************************/
+/* Function to free configuration */
+void free_ini_config(struct collection_item *ini_config)
+{
+    TRACE_FLOW_STRING("free_ini_config", "Entry");
+    col_destroy_collection(ini_config);
+    TRACE_FLOW_STRING("free_ini_config", "Exit");
+}
+
+/* Function to free configuration error list */
+void free_ini_config_errors(struct collection_item *error_set)
+{
+    TRACE_FLOW_STRING("free_ini_config_errors", "Entry");
+    col_destroy_collection(error_set);
+    TRACE_FLOW_STRING("free_ini_config_errors", "Exit");
+}
+
+/* Function to free configuration lines list */
+void free_ini_config_lines(struct collection_item *lines)
+{
+    TRACE_FLOW_STRING("free_ini_config_lines", "Entry");
+    col_destroy_collection(lines);
+    TRACE_FLOW_STRING("free_ini_config_lines", "Exit");
+}
+
 /* Read configuration information from a file */
 int config_from_file(const char *application,
                      const char *config_file,

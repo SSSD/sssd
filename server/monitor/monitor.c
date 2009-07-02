@@ -1154,8 +1154,8 @@ int read_config_file(const char *config_file)
         print_file_parsing_errors(stderr, error_list);
     }
 
-    destroy_collection(error_list);
-    destroy_collection(sssd_config);
+    free_ini_config_errors(error_list);
+    free_ini_config(sssd_config);
     return ret;
 }
 
@@ -2130,5 +2130,3 @@ int main(int argc, const char *argv[])
 
     return 0;
 }
-
-

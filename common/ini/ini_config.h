@@ -122,6 +122,15 @@ int config_for_app(const char *application,               /* Name of the applica
                    int error_level,                       /* Level of error tolerance */
                    struct collection_item **error_set);   /* Collection of collections of parsing errors */
 
+/* Function to free configuration */
+void free_ini_config(struct collection_item *ini_config);
+
+/* Function to free configuration error list */
+void free_ini_config_errors(struct collection_item *error_set);
+
+/* Function to free configuration line list */
+void free_ini_config_lines(struct collection_item *lines);
+
 /* Print errors and warnings that were detected while parsing one file */
 /* Use this function to print results of the config_from_file() call */
 void print_file_parsing_errors(FILE *file,                           /* File to send errors to */
