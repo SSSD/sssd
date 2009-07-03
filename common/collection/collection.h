@@ -213,7 +213,7 @@ void col_destroy_collection(struct collection_item *ci);
 int col_add_str_property(struct collection_item *ci,
                          const char *subcollection,
                          const char *property,
-                         char *string,
+                         const char *string,
                          int length);
 /* Add a binary property to collection.  */
 int col_add_binary_property(struct collection_item *ci,
@@ -445,7 +445,7 @@ int col_get_item(struct collection_item *ci,       /* Collection to find things 
 const char *col_get_item_property(struct collection_item *ci,int *property_len);
 int col_get_item_type(struct collection_item *ci);
 int col_get_item_length(struct collection_item *ci);
-const void *col_get_item_data(struct collection_item *ci);
+void *col_get_item_data(struct collection_item *ci);
 
 /* If you want to modify the item that you got as a result of iterating through collection
  * or by calling col_get_item(). If you want to rename item provide a new name in the property
@@ -456,7 +456,7 @@ const void *col_get_item_data(struct collection_item *ci);
 int col_modify_item(struct collection_item *item,
                     const char *property,
                     int type,
-                    void *data,
+                    const void *data,
                     int length);
 
 /* Rename the item */
@@ -469,7 +469,7 @@ int col_modify_item_property(struct collection_item *item,
  */
 int col_modify_str_item(struct collection_item *item,
                         const char *property,
-                        char *string,
+                        const char *string,
                         int length);
 int col_modify_binary_item(struct collection_item *item,
                            const char *property,
@@ -732,7 +732,7 @@ int col_insert_property_with_ref(struct collection_item *ci,        /* A collect
                                  unsigned flags,                    /* Flags that control naming issues */
                                  const char *property,              /* Name */
                                  int type,                          /* Data type */
-                                 void *data,                        /* Pointer to the data */
+                                 const void *data,                  /* Pointer to the data */
                                  int length,                        /* Length of the data. For
                                                                      * strings it includes the
                                                                      * trailing 0
@@ -747,7 +747,7 @@ int col_insert_str_property(struct collection_item *ci,        /* A collection o
                             int index,                         /* Index of the property to add */
                             unsigned flags,                    /* Flags that control naming issues */
                             const char *property,              /* Name */
-                            char *string,                      /* String */
+                            const char *string,                /* String */
                             int length);                       /* Length */
 
 int col_insert_binary_property(struct collection_item *ci,        /* A collection of items */

@@ -38,7 +38,7 @@ void col_destroy_queue(struct collection_item *queue);
 /* Put a string property to queue.  */
 int col_enqueue_str_property(struct collection_item *queue,
                              const char *property,
-                             char *string,
+                             const char *string,
                              int length);
 /* Put a binary property to queue.  */
 int col_enqueue_binary_property(struct collection_item *queue,

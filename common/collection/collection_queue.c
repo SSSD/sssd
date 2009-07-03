@@ -51,7 +51,7 @@ void col_destroy_queue(struct collection_item *queue)
 /* Put a string property into a queue.  */
 int col_enqueue_str_property(struct collection_item *queue,
                              const char *property,
-                             char *string,
+                             const char *string,
                              int length)
 {
     int error = EOK;

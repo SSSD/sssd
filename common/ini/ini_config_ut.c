@@ -28,7 +28,7 @@
 #include "collection_tools.h"
 
 
-int basic_test()
+int basic_test(void)
 {
     int error;
     struct collection_item *ini_config = NULL;
@@ -56,7 +56,7 @@ int basic_test()
     return 0;
 }
 
-int single_file()
+int single_file(void)
 {
     int error;
     struct collection_item *ini_config = NULL;
@@ -118,7 +118,7 @@ int single_file()
     return 0;
 }
 
-int negative_test()
+int negative_test(void)
 {
     int error;
     unsigned int count;
@@ -241,7 +241,7 @@ int real_test(const char *file)
     return 0;
 }
 
-int get_test()
+int get_test(void)
 {
 
     int error;
@@ -797,7 +797,7 @@ int get_test()
     return EOK;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
     int error;
 

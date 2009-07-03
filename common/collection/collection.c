@@ -69,7 +69,7 @@ struct update_property {
 };
 
 /* Dummy structure */
-struct collection_item dummy = { NULL, "", 0, COL_TYPE_END, 0, NULL };
+struct collection_item dummy_item = { NULL, "", 0, COL_TYPE_END, 0, NULL };
 
 /******************** FUNCTION DECLARATIONS ****************************/
 
@@ -184,7 +184,7 @@ void col_delete_item(struct collection_item *item)
 
 /* A generic function to allocate a property item */
 static int col_allocate_item(struct collection_item **ci, const char *property,
-                             void *item_data,int length, int type)
+                             const void *item_data, int length, int type)
 {
     struct collection_item *item = NULL;
     int error = 0;
@@ -278,7 +278,7 @@ struct property_search {
 /* Find the parent of the item with given name */
 static int col_find_property(struct collection_item *collection,
                              const char *refprop,
-                             int index,
+                             int idx,
                              int use_type,
                              int type,
                              struct collection_item **parent)
@@ -293,7 +293,7 @@ static int col_find_property(struct collection_item *collection,
     ps.property = refprop;
     ps.hash = FNV1a_base;
     ps.parent = NULL;
-    ps.index = index;
+    ps.index = idx;
     ps.count = 0;
     ps.found = 0;
     ps.use_type = use_type;
@@ -329,7 +329,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                  struct collection_item *item,
                                  int disposition,
                                  const char *refprop,
-                                 int index,
+                                 int idx,
                                  unsigned flags)
 {
     struct collection_header *header = NULL;
@@ -508,7 +508,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                             }
                             break;
 
-    case COL_DSP_INDEX:     if(index == 0) {
+    case COL_DSP_INDEX:     if(idx == 0) {
                                 /* Same is first */
                                 if (header->count == 1) {
                                     header->last->next = item;
@@ -519,7 +519,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                     collection->next = item;
                                 }
                             }
-                            else if(index >= header->count - 1) {
+                            else if(idx >= header->count - 1) {
                                 /* In this case add to the end */
                                 if (header->last != NULL) header->last->next = item;
                                 /* Make sure we save a new last element */
@@ -529,8 +529,8 @@ int col_insert_item_into_current(struct collection_item *collection,
                                 /* In the middle */
                                 parent = collection;
                                 /* Move to the right position counting */
-                                while (index > 0) {
-                                    index--;
+                                while (idx > 0) {
+                                    idx--;
                                     parent = parent->next;
                                 }
                                 item->next = parent->next;
@@ -545,7 +545,7 @@ int col_insert_item_into_current(struct collection_item *collection,
 
                             if (disposition == COL_DSP_FIRSTDUP) refindex = 0;
                             else if (disposition == COL_DSP_LASTDUP) refindex = -1;
-                            else refindex = index;
+                            else refindex = idx;
 
                             /* We need to find property based on index */
                             if (col_find_property(collection, item->property, refindex, 0, 0, &parent)) {
@@ -580,7 +580,7 @@ int col_insert_item_into_current(struct collection_item *collection,
 int col_extract_item_from_current(struct collection_item *collection,
                                   int disposition,
                                   const char *refprop,
-                                  int index,
+                                  int idx,
                                   int type,
                                   struct collection_item **ret_ref)
 {
@@ -689,7 +689,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                             }
                             break;
 
-    case COL_DSP_INDEX:     if (index == 0) {
+    case COL_DSP_INDEX:     if (idx == 0) {
                                 *ret_ref = collection->next;
                                 collection->next = (*ret_ref)->next;
                                 /* Special case - one data element */
@@ -698,7 +698,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                             /* Index 0 stands for the first data element.
                              * Count includes header element.
                              */
-                            else if (index >= (header->count - 1)) {
+                            else if (idx >= (header->count - 1)) {
                                 TRACE_ERROR_STRING("Index is out of boundaries", refprop);
                                 return ENOENT;
                             }
@@ -707,7 +707,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                                 refindex = 0;
                                 parent = collection;
                                 current = collection->next;
-                                while (refindex < index) {
+                                while (refindex < idx) {
                                     parent = current;
                                     current = current->next;
                                     refindex++;
@@ -725,7 +725,7 @@ int col_extract_item_from_current(struct collection_item *collection,
 
                             if (disposition == COL_DSP_FIRSTDUP) refindex = 0;
                             else if (disposition == COL_DSP_LASTDUP) refindex = -2;
-                            else refindex = index;
+                            else refindex = idx;
 
                             /* We need to find property based on index */
                             if (col_find_property(collection, refprop, refindex, use_type, type, &parent)) {
@@ -764,7 +764,7 @@ int col_extract_item(struct collection_item *collection,
                      const char *subcollection,
                      int disposition,
                      const char *refprop,
-                     int index,
+                     int idx,
                      int type,
                      struct collection_item **ret_ref)
 {
@@ -806,7 +806,7 @@ int col_extract_item(struct collection_item *collection,
     error = col_extract_item_from_current(col,
                                           disposition,
                                           refprop,
-                                          index,
+                                          idx,
                                           type,
                                           ret_ref);
     if (error) {
@@ -825,7 +825,7 @@ int col_insert_item(struct collection_item *collection,
                     struct collection_item *item,
                     int disposition,
                     const char *refprop,
-                    int index,
+                    int idx,
                     unsigned flags)
 {
     int error;
@@ -873,7 +873,7 @@ int col_insert_item(struct collection_item *collection,
                                          item,
                                          disposition,
                                          refprop,
-                                         index,
+                                         idx,
                                          flags);
 
     if (error) {
@@ -894,11 +894,11 @@ static int col_insert_property_with_ref_int(struct collection_item *collection,
                                             const char *subcollection,
                                             int disposition,
                                             const char *refprop,
-                                            int index,
+                                            int idx,
                                             unsigned flags,
                                             const char *property,
                                             int type,
-                                            void *data,
+                                            const void *data,
                                             int length,
                                             struct collection_item **ret_ref)
 {
@@ -920,7 +920,7 @@ static int col_insert_property_with_ref_int(struct collection_item *collection,
                             item,
                             disposition,
                             refprop,
-                            index,
+                            idx,
                             flags);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to insert item", error);
@@ -941,11 +941,11 @@ int col_insert_property_with_ref(struct collection_item *collection,
                                  const char *subcollection,
                                  int disposition,
                                  const char *refprop,
-                                 int index,
+                                 int idx,
                                  unsigned flags,
                                  const char *property,
                                  int type,
-                                 void *data,
+                                 const void *data,
                                  int length,
                                  struct collection_item **ret_ref)
 {
@@ -963,7 +963,7 @@ int col_insert_property_with_ref(struct collection_item *collection,
                                              subcollection,
                                              disposition,
                                              refprop,
-                                             index,
+                                             idx,
                                              flags,
                                              property,
                                              type,
@@ -1458,7 +1458,7 @@ static int col_simple_traverse_handler(struct collection_item *head,
 
     TRACE_FLOW_STRING("col_simple_traverse_handler", "Entry.");
 
-    if (current == NULL) current = &dummy;
+    if (current == NULL) current = &dummy_item;
 
     error = user_item_handler(current->property,
                               current->property_len,
@@ -2315,7 +2315,7 @@ int col_update_property(struct collection_item *ci,
 int col_modify_item(struct collection_item *item,
                     const char *property,
                     int type,
-                    void *data,
+                    const void *data,
                     int length)
 {
     TRACE_FLOW_STRING("col_modify_item", "Entry");
@@ -2616,7 +2616,7 @@ int col_iterate_collection(struct collection_iterator *iterator,
             if ((iterator->flags & COL_TRAVERSE_END) != 0) {
                 /* Return dummy entry to indicate the end of the collection */
                 TRACE_INFO_STRING("Finished level", "told to return END");
-                *item = &dummy;
+                *item = &dummy_item;
                 break;
             }
             else {
@@ -2725,7 +2725,7 @@ int col_get_item_length(struct collection_item *ci)
 }
 
 /* Get data */
-const void *col_get_item_data(struct collection_item *ci)
+void *col_get_item_data(struct collection_item *ci)
 {
     return ci->data;
 }

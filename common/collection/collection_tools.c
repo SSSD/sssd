@@ -263,7 +263,7 @@ int col_get_data_len(int type, int length)
 }
 
 /* Copy data escaping characters */
-static int col_copy_esc(char *dest, char *source, char esc)
+static int col_copy_esc(char *dest, const char *source, char esc)
 {
     int i = 0;
     int j = 0;
@@ -450,14 +450,15 @@ int col_serialize(const char *property_in,
     switch (type) {
     case COL_TYPE_STRING:
         /* Escape double quotes */
-        len = col_copy_esc(&buf_data->buffer[buf_data->length], (char *)(data), '"');
+        len = col_copy_esc(&buf_data->buffer[buf_data->length],
+                           (const char *)(data), '"');
         break;
 
     case COL_TYPE_BINARY:
         buf_data->buffer[buf_data->length] = '\'';
         for (i = 0; i < length; i++)
             sprintf(&buf_data->buffer[buf_data->length + i *2] + 1,
-                    "%02X", (unsigned int)(((unsigned char *)(data))[i]));
+                    "%02X", (unsigned int)(((const unsigned char *)(data))[i]));
         len = length * 2 + 1;
         buf_data->buffer[buf_data->length + len] = '\'';
         len++;
@@ -465,32 +466,32 @@ int col_serialize(const char *property_in,
 
     case COL_TYPE_INTEGER:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%d", *((int *)(data)));
+                      "%d", *((const int *)(data)));
         break;
 
     case COL_TYPE_UNSIGNED:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%u", *((unsigned int *)(data)));
+                      "%u", *((const unsigned int *)(data)));
         break;
 
     case COL_TYPE_LONG:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%ld", *((long *)(data)));
+                      "%ld", *((const long *)(data)));
         break;
 
     case COL_TYPE_ULONG:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%lu", *((unsigned long *)(data)));
+                      "%lu", *((const unsigned long *)(data)));
         break;
 
     case COL_TYPE_DOUBLE:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%.4f", *((double *)(data)));
+                      "%.4f", *((const double *)(data)));
         break;
 
     case COL_TYPE_BOOL:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%s", (*((unsigned char *)(data))) ? "true" : "false");
+                      "%s", (*((const unsigned char *)(data))) ? "true" : "false");
         break;
 
     default:
@@ -607,7 +608,7 @@ int col_print_collection2(struct collection_item *handle)
 }
 
 /* Find and print one item using default serialization */
-int col_print_item(struct collection_item *handle, char *name)
+int col_print_item(struct collection_item *handle, const char *name)
 {
     struct col_serial_data buf_data;
     int error = EOK;

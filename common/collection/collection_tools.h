@@ -96,7 +96,7 @@ int col_print_collection2(struct collection_item *handle);
 
 
 /* Find and print one item using default serialization */
-int col_print_item(struct collection_item *handle, char *name);
+int col_print_item(struct collection_item *handle, const char *name);
 
 /* Convert collection to list of properties */
 char **col_collection_to_list(struct collection_item *handle, int *size, int *error);

@@ -50,7 +50,7 @@ void col_destroy_stack(struct collection_item *stack)
 
 
 int col_push_str_property(struct collection_item *stack,
-                          const char *property, char *string, int length)
+                          const char *property, const char *string, int length)
 {
     int error = EOK;
 

@@ -1408,9 +1408,9 @@ void free_bin_config_value(char *value)
 
 /* Arrays of stings and integers */
 char **get_string_config_array(struct collection_item *item,
-                               char *sep, int *size, int *error)
+                               const char *sep, int *size, int *error)
 {
-    char defsep[] = ",";
+    const char *defsep = ",";
     char *copy = NULL;
     char *dest = NULL;
     int lensep;

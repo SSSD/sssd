@@ -100,7 +100,7 @@ typedef enum
 typedef struct hash_key_t {
     hash_key_enum type;
     union {
-        const char *str;
+        char *str;
         unsigned long ul;
     };
 } hash_key_t;

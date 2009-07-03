@@ -216,7 +216,7 @@ void free_bin_config_value(char *);
 /* Array of stings */
 /* Separator sting includes up to three different separators. If NULL comma is assumed. */
 /* The spaces are trimmed automatically around separators in the string. */
-char **get_string_config_array(struct collection_item *item, char *sep, int *size, int *error);
+char **get_string_config_array(struct collection_item *item, const char *sep, int *size, int *error);
 /* Array of long values - separators are detected automatically. */
 /* The length of the allocated array is returned in "size" */
 long *get_long_config_array(struct collection_item *item, int *size, int *error);

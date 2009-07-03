@@ -38,7 +38,7 @@ void col_destroy_stack(struct collection_item *stack);
 /* Push a string property to stack.  */
 int col_push_str_property(struct collection_item *stack,
                           const char *property,
-                          char *string,
+                          const char *string,
                           int length);
 /* Push a binary property to stack.  */
 int col_push_binary_property(struct collection_item *stack,

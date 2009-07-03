@@ -29,7 +29,7 @@
 #include "collection_tools.h"
 
 
-int ref_collection_test()
+int ref_collection_test(void)
 {
     struct collection_item *peer = NULL;
     struct collection_item *socket = NULL;
@@ -108,7 +108,7 @@ int ref_collection_test()
 }
 
 
-int single_collection_test()
+int single_collection_test(void)
 {
     struct collection_item *handle = NULL;
     int error = EOK;
@@ -164,7 +164,7 @@ int single_collection_test()
     return error;
 }
 
-int add_collection_test()
+int add_collection_test(void)
 {
     struct collection_item *peer = NULL;
     struct collection_item *socket = NULL;
@@ -222,7 +222,7 @@ int add_collection_test()
     return error;
 }
 
-int mixed_collection_test()
+int mixed_collection_test(void)
 {
     struct collection_item *peer;
     struct collection_item *socket1;
@@ -550,7 +550,7 @@ int mixed_collection_test()
 }
 
 
-int iterator_test()
+int iterator_test(void)
 {
     struct collection_item *peer;
     struct collection_item *socket1;
@@ -696,7 +696,7 @@ int iterator_test()
 }
 
 
-int insert_extract_test()
+int insert_extract_test(void)
 {
     struct collection_item *col;
     struct collection_item *col2;
@@ -874,7 +874,7 @@ int insert_extract_test()
     return EOK;
 }
 
-int delete_test()
+int delete_test(void)
 {
 
     struct collection_item *col;
@@ -910,7 +910,7 @@ int delete_test()
 
 /* Main function of the unit test */
 
-int main()
+int main(int argc, char *argv[])
 {
     int error = 0;
 

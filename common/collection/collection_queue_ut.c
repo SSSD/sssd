@@ -29,7 +29,7 @@
 #include "collection_tools.h"
 
 
-int queue_test()
+int queue_test(void)
 {
     struct collection_item *queue = NULL;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -89,7 +89,7 @@ int queue_test()
 
 /* Main function of the unit test */
 
-int main()
+int main(int argc, char *argv[])
 {
     int error = EOK;
 
