@@ -600,7 +600,7 @@ static void test_getpwuid(void *pvt, int error, struct ldb_result *res)
 static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
-/*    const int expected = 30; /* 15 groups + 15 users (we're MPG) */
+/*    const int expected = 30; / * 15 groups + 15 users (we're MPG) */
     const int expected = 15;
 
     data->finished = true;

@@ -32,8 +32,8 @@ struct pam_items {
     const char* pam_tty;
     const char* pam_ruser;
     const char* pam_rhost;
-    const char* pam_authtok;
-    const char* pam_newauthtok;
+    char* pam_authtok;
+    char* pam_newauthtok;
     const char* pamstack_authtok;
     const char* pamstack_oldauthtok;
     size_t pam_service_size;

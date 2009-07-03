@@ -437,8 +437,6 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     struct krb5_req *kr = tevent_req_callback_data(req, struct krb5_req);
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
-    struct krb5_ctx *krb5_ctx = talloc_get_type(be_req->be_ctx->pvt_auth_data,
-                                                struct krb5_ctx);
     struct tgt_req_state *state = tevent_req_data(req, struct tgt_req_state);
     int ret;
     uint8_t *buf;
@@ -505,7 +503,6 @@ int sssm_krb5_auth_init(struct be_ctx *bectx, struct be_auth_ops **ops,
                    void **pvt_auth_data)
 {
     struct krb5_ctx *ctx = NULL;
-    bool bool_value = FALSE;
     char *value = NULL;
     int ret;
     struct tevent_signal *sige;
