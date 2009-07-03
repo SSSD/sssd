@@ -195,6 +195,13 @@ struct tevent_req *sysdb_transaction_commit_send(TALLOC_CTX *mem_ctx,
                                                  struct sysdb_handle *handle);
 int sysdb_transaction_commit_recv(struct tevent_req *req);
 
+
+/* default transaction commit receive function.
+ * This function does not use the request state so it is safe to use
+ * from any caller */
+void sysdb_transaction_complete(struct tevent_req *subreq);
+
+
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
  * the sysdb ctx */
@@ -457,13 +464,19 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
                                                   const char *member);
 int sysdb_remove_group_member_recv(struct tevent_req *req);
 
-struct tevent_req *sysdb_set_cached_password_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  const char *user,
-                                                  const char *password);
-int sysdb_set_cached_password_recv(struct tevent_req *req);
+/* Password caching function.
+ * If you are in a transaction ignore sysdb and pass in the handle.
+ * If you are not in a transaction pass NULL in handle and provide sysdb,
+ * in this case a transaction will be automatically started and the
+ * function will be completely wrapped in it's own sysdb transaction */
+struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_ctx *sysdb,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *username,
+                                             const char *password);
+int sysdb_cache_password_recv(struct tevent_req *req);
 
 /* TODO: remove later
  * These functions are available in the latest tevent and are the ones that

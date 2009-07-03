@@ -158,12 +158,6 @@ failed:
 }
 
 static void proxy_pam_handler_cache_done(struct tevent_req *treq);
-static struct tevent_req *cache_password_send(TALLOC_CTX *mem_ctx,
-                                              struct tevent_context *ev,
-                                              struct sysdb_ctx *sysdb,
-                                              struct sss_domain_info *domain,
-                                              const char *username,
-                                              struct authtok_conv *ac);
 static void proxy_reply(struct be_req *req,
                         int error, const char *errstr);
 
@@ -257,32 +251,46 @@ static void proxy_pam_handler(struct be_req *req) {
     pd->pam_status = pam_status;
 
     if (cache_auth_data) {
-        struct tevent_req *treq;
+        struct tevent_req *subreq;
+        char *password;
 
-        treq = cache_password_send(req, req->be_ctx->ev,
-                                   req->be_ctx->sysdb,
-                                   req->be_ctx->domain,
-                                   pd->user, auth_data);
-        if (!treq) {
+        password = talloc_size(req, auth_data->authtok_size + 1);
+        if (!password) {
             /* password caching failures are not fatal errors */
             return proxy_reply(req, EOK, NULL);
         }
-        tevent_req_set_callback(treq, proxy_pam_handler_cache_done, req);
+        memcpy(password, auth_data->authtok, auth_data->authtok_size);
+        password[auth_data->authtok_size] = '\0';
+        talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        return;
+        subreq = sysdb_cache_password_send(req, req->be_ctx->ev,
+                                           req->be_ctx->sysdb, NULL,
+                                           req->be_ctx->domain,
+                                           pd->user, password);
+        if (!subreq) {
+            /* password caching failures are not fatal errors */
+            return proxy_reply(req, EOK, NULL);
+        }
+        tevent_req_set_callback(subreq, proxy_pam_handler_cache_done, req);
     }
 
     proxy_reply(req, EOK, NULL);
 }
 
-static void proxy_pam_handler_cache_done(struct tevent_req *treq)
+static void proxy_pam_handler_cache_done(struct tevent_req *subreq)
 {
-    struct be_req *req = tevent_req_callback_data(treq, struct be_req);
+    struct be_req *req = tevent_req_callback_data(subreq, struct be_req);
+    int ret;
 
     /* password caching failures are not fatal errors */
+    ret = sysdb_cache_password_recv(subreq);
+    talloc_zfree(subreq);
 
-    /* so we just ignore any return */
-    talloc_zfree(treq);
+    /* so we just log it any return */
+    if (ret) {
+        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+    }
 
     return proxy_reply(req, EOK, NULL);
 }
@@ -339,115 +347,6 @@ static int proxy_default_recv(struct tevent_req *req)
     }
 
     return EOK;
-}
-
-
-/* =Password-Caching======================================================*/
-
-struct cache_pw_state {
-    struct tevent_context *ev;
-    struct sss_domain_info *domain;
-    const char *name;
-    char *passwd;
-
-    struct sysdb_handle *handle;
-};
-
-static void cache_password_process(struct tevent_req *subreq);
-static void cache_password_done(struct tevent_req *subreq);
-
-static struct tevent_req *cache_password_send(TALLOC_CTX *mem_ctx,
-                                              struct tevent_context *ev,
-                                              struct sysdb_ctx *sysdb,
-                                              struct sss_domain_info *domain,
-                                              const char *username,
-                                              struct authtok_conv *ac)
-{
-    struct tevent_req *req, *subreq;
-    struct cache_pw_state *state;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct cache_pw_state);
-    if (!req) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    state->ev = ev;
-    state->handle = NULL;
-    state->name = username;
-
-    state->passwd = talloc_size(state, ac->authtok_size + 1);
-    if (!state->passwd) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    memcpy(state->passwd, ac->authtok, ac->authtok_size);
-    state->passwd[ac->authtok_size] = '\0';
-    talloc_set_destructor((TALLOC_CTX *)state->passwd,
-                          password_destructor);
-
-    subreq = sysdb_transaction_send(state, state->ev, sysdb);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, cache_password_process, req);
-
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void cache_password_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct cache_pw_state *state = tevent_req_data(req,
-                                                   struct cache_pw_state);
-    int ret;
-
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_set_cached_password_send(state, state->ev, state->handle,
-                                            state->domain,
-                                            state->name,
-                                            state->passwd);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, cache_password_done, req);
-}
-
-static void cache_password_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct cache_pw_state *state = tevent_req_data(req,
-                                                   struct cache_pw_state);
-    int ret;
-
-    ret = sysdb_set_cached_password_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
 }
 
 

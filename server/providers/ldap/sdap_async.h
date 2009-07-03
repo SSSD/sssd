@@ -79,12 +79,3 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *password);
 
 int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result);
-
-struct tevent_req *sdap_cache_pw_send(TALLOC_CTX *memctx,
-                                      struct tevent_context *ev,
-                                      struct sysdb_ctx *sysdb,
-                                      struct sss_domain_info *domain,
-                                      const char *username,
-                                      const char *password);
-
-int sdap_cache_pw_recv(struct tevent_req *req);

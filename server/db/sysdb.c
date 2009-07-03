@@ -443,6 +443,26 @@ int sysdb_transaction_commit_recv(struct tevent_req *req)
     return EOK;
 }
 
+/* default transaction commit receive function.
+ * This function does not use the request state so it is safe to use
+ * from any caller */
+void sysdb_transaction_complete(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sysdb_transaction_commit_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+
 /* =Operations============================================================ */
 
 struct sysdb_operation_state {

@@ -2919,20 +2919,32 @@ int sysdb_remove_group_member_recv(struct tevent_req *req)
 }
 
 
-/* ======================================================================= */
+/* =Password-Caching====================================================== */
 
-static void sysdb_set_cached_password_done(struct tevent_req *subreq);
+struct sysdb_cache_pw_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *domain;
 
-struct tevent_req *sysdb_set_cached_password_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  const char *user,
-                                                  const char *password)
+    const char *username;
+    struct sysdb_attrs *attrs;
+
+    struct sysdb_handle *handle;
+    bool commit;
+};
+
+static void sysdb_cache_password_trans(struct tevent_req *subreq);
+static void sysdb_cache_password_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_ctx *sysdb,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *username,
+                                             const char *password)
 {
     struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
-    struct sysdb_attrs *attrs;
+    struct sysdb_cache_pw_state *state;
     char *hash = NULL;
     char *salt;
     int ret;
@@ -2941,9 +2953,8 @@ struct tevent_req *sysdb_set_cached_password_send(TALLOC_CTX *mem_ctx,
     if (!req) return NULL;
 
     state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = false;
-    state->ldbreply = NULL;
+    state->domain = domain;
+    state->username = username;
 
     ret = s3crypt_gen_salt(state, &salt);
     if (ret) {
@@ -2957,25 +2968,42 @@ struct tevent_req *sysdb_set_cached_password_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    attrs = sysdb_new_attrs(state);
-    if (!attrs) {
+    state->attrs = sysdb_new_attrs(state);
+    if (!state->attrs) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
 
-    ret = sysdb_attrs_add_string(attrs, SYSDB_CACHEDPWD, hash);
+    ret = sysdb_attrs_add_string(state->attrs, SYSDB_CACHEDPWD, hash);
     if (ret) goto fail;
 
     /* FIXME: should we use a different attribute for chache passwords ?? */
-    ret = sysdb_attrs_add_long(attrs, "lastCachedPasswordChange",
+    ret = sysdb_attrs_add_long(state->attrs, "lastCachedPasswordChange",
                                (long)time(NULL));
     if (ret) goto fail;
 
-    subreq = sysdb_set_user_attr_send(state, ev, handle, domain,
-                                      user, attrs, SYSDB_MOD_REP);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
+    state->handle = NULL;
+
+    if (handle) {
+        state->handle = handle;
+        state->commit = false;
+
+        subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
+                                          state->domain, state->username,
+                                          state->attrs, SYSDB_MOD_REP);
+        if (!subreq) {
+            ERROR_OUT(ret, ENOMEM, fail);
+        }
+        tevent_req_set_callback(subreq, sysdb_cache_password_done, req);
+    } else {
+        state->commit = true;
+
+        subreq = sysdb_transaction_send(state, state->ev, sysdb);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, sysdb_cache_password_trans, req);
     }
-    tevent_req_set_callback(subreq, sysdb_set_cached_password_done, req);
 
     return req;
 
@@ -2985,10 +3013,36 @@ fail:
     return req;
 }
 
-static void sysdb_set_cached_password_done(struct tevent_req *subreq)
+static void sysdb_cache_password_trans(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                   struct tevent_req);
+    struct sysdb_cache_pw_state *state = tevent_req_data(req,
+                                                  struct sysdb_cache_pw_state);
+    int ret;
+
+    ret = sysdb_transaction_recv(req, state, &state->handle);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
+                                      state->domain, state->username,
+                                      state->attrs, SYSDB_MOD_REP);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_cache_password_done, req);
+}
+
+static void sysdb_cache_password_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct sysdb_cache_pw_state *state = tevent_req_data(req,
+                                                  struct sysdb_cache_pw_state);
     int ret;
 
     ret = sysdb_set_user_attr_recv(subreq);
@@ -2998,10 +3052,21 @@ static void sysdb_set_cached_password_done(struct tevent_req *subreq)
         return;
     }
 
+    if (state->commit) {
+        subreq = sysdb_transaction_commit_send(state, state->ev,
+                                               state->handle);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
+        return;
+    }
+
     tevent_req_done(req);
 }
 
-int sysdb_set_cached_password_recv(struct tevent_req *req)
+int sysdb_cache_password_recv(struct tevent_req *req)
 {
     return sysdb_op_default_recv(req);
 }
