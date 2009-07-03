@@ -27,6 +27,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
@@ -405,6 +406,15 @@ int main(int argc, const char **argv)
     uid_t old_uid = 0;
 
     debug_prg_name = argv[0];
+
+    ret = set_locale();
+    if (ret != EOK) {
+        DEBUG(1, ("set_locale failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error setting the locale\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    CHECK_ROOT(ret, debug_prg_name);
 
     ret = init_sss_tools(&ctx);
     if (ret != EOK) {

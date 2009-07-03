@@ -22,6 +22,7 @@
 #include <talloc.h>
 #include <tevent.h>
 #include <popt.h>
+#include <errno.h>
 
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -228,13 +229,33 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     return EOK;
 }
 
+int set_locale(void)
+{
+    char *c;
+
+    c = setlocale(LC_ALL, "");
+    if (c == NULL) {
+        return EIO;
+    }
+
+    errno = 0;
+    c = bindtextdomain(PACKAGE, LOCALEDIR);
+    if (c == NULL) {
+        return errno;
+    }
+
+    errno = 0;
+    c = textdomain(PACKAGE);
+    if (c == NULL) {
+        return errno;
+    }
+
+    return EOK;
+}
+
 int init_sss_tools(struct tools_ctx **ctx)
 {
     int ret;
-    /* Set up LOCALE */
-    setlocale (LC_ALL, "");
-    bindtextdomain (PACKAGE, LOCALEDIR);
-    textdomain (PACKAGE);
 
     /* Connect to the database */
     ret = setup_db(ctx);
@@ -248,3 +269,4 @@ int init_sss_tools(struct tools_ctx **ctx)
 fini:
     return ret;
 }
+

@@ -24,6 +24,7 @@
 #include <talloc.h>
 #include <popt.h>
 #include <errno.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -175,6 +176,15 @@ int main(int argc, const char **argv)
     int ret = EXIT_SUCCESS;
 
     debug_prg_name = argv[0];
+
+    ret = set_locale();
+    if (ret != EOK) {
+        DEBUG(1, ("set_locale failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error setting the locale\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    CHECK_ROOT(ret, debug_prg_name);
 
     ret = init_sss_tools(&ctx);
     if(ret != EOK) {

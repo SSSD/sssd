@@ -4,6 +4,7 @@ tools/sss_groupdel.c
 tools/sss_groupmod.c
 tools/sss_userdel.c
 tools/tools_util.c
+tools/tools_util.h
 tools/sss_useradd.c
 tools/sss_groupadd.c
 tools/sss_usermod.c

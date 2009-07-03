@@ -22,6 +22,16 @@
     } \
 } while(0)
 
+#define CHECK_ROOT(val, prg_name) do { \
+    val = getuid(); \
+    if (val != 0) { \
+        DEBUG(1, ("Running under %d, must be root\n", val)); \
+        ERROR("%s must be run as root\n", prg_name); \
+        val = EXIT_FAILURE; \
+        goto fini; \
+    } \
+} while(0)
+
 enum id_domain {
     ID_IN_LOCAL = 0,
     ID_IN_LEGACY_LOCAL,
@@ -49,5 +59,7 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out);
 enum id_domain find_domain_for_id(struct tools_ctx *ctx,
                                   uint32_t id,
                                   struct sss_domain_info **dom_ret);
+
+int set_locale(void);
 
 #endif  /* __TOOLS_UTIL_H__ */
