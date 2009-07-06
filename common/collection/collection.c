@@ -68,8 +68,6 @@ struct update_property {
         int found;
 };
 
-/* Dummy structure */
-struct collection_item dummy_item = { NULL, "", 0, COL_TYPE_END, 0, NULL };
 
 /******************** FUNCTION DECLARATIONS ****************************/
 
@@ -1455,10 +1453,17 @@ static int col_simple_traverse_handler(struct collection_item *head,
                                        int *stop)
 {
     int error = EOK;
+    struct collection_item end_item;
+    char zero = '\0';
 
     TRACE_FLOW_STRING("col_simple_traverse_handler", "Entry.");
 
-    if (current == NULL) current = &dummy_item;
+    if (current == NULL) {
+        memset((void *)&end_item, 0, sizeof(struct collection_item));
+        end_item.type = COL_TYPE_END;
+        end_item.property = &zero;
+        current = &end_item;
+    }
 
     error = user_item_handler(current->property,
                               current->property_len,
@@ -2435,6 +2440,14 @@ int col_bind_iterator(struct collection_iterator **iterator,
         return error;
     }
 
+    /* Create a special end item */
+    error = col_allocate_item(&(iter->end_item), "", NULL, 0, COL_TYPE_END);
+    if(error) {
+        free(iter);
+        TRACE_ERROR_NUMBER("Error allocating end item.", error);
+        return error;
+    }
+
     /* Make sure that we tie iterator to the collection */
     header = (struct collection_header *)ci->data;
     header->reference_count++;
@@ -2492,7 +2505,8 @@ void col_unbind_iterator(struct collection_iterator *iterator)
     TRACE_FLOW_STRING("col_unbind_iterator", "Entry.");
     if (iterator != NULL) {
         col_destroy_collection(iterator->top);
-        if (iterator->stack != NULL) free(iterator->stack);
+        free(iterator->end_item);
+        free(iterator->stack);
         free(iterator);
     }
     TRACE_FLOW_STRING("col_unbind_iterator", "Exit");
@@ -2616,7 +2630,7 @@ int col_iterate_collection(struct collection_iterator *iterator,
             if ((iterator->flags & COL_TRAVERSE_END) != 0) {
                 /* Return dummy entry to indicate the end of the collection */
                 TRACE_INFO_STRING("Finished level", "told to return END");
-                *item = &dummy_item;
+                *item = iterator->end_item;
                 break;
             }
             else {
