@@ -268,6 +268,8 @@ static void proxy_pam_handler(struct be_req *req) {
             return proxy_reply(req, EOK, NULL);
         }
         tevent_req_set_callback(treq, proxy_pam_handler_cache_done, req);
+
+        return;
     }
 
     proxy_reply(req, EOK, NULL);
@@ -385,8 +387,8 @@ static struct tevent_req *cache_password_send(TALLOC_CTX *mem_ctx,
     talloc_set_destructor((TALLOC_CTX *)state->passwd,
                           password_destructor);
 
-    req = sysdb_transaction_send(state, state->ev, sysdb);
-    if (!req) {
+    subreq = sysdb_transaction_send(state, state->ev, sysdb);
+    if (!subreq) {
         ret = ENOMEM;
         goto fail;
     }
@@ -408,7 +410,7 @@ static void cache_password_process(struct tevent_req *subreq)
                                                    struct cache_pw_state);
     int ret;
 
-    ret = sysdb_transaction_recv(req, state, &state->handle);
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
     if (ret) {
         tevent_req_error(req, ret);
         return;
