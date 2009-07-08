@@ -66,6 +66,7 @@ void tgt_req_child(int fd, struct krb5_req *kr)
     const char *cc_name;
     char *env;
     const char *krb5_error_msg;
+    int pam_status = PAM_SYSTEM_ERR;
 
     ret = setgid(kr->pd->gr_gid);
     if (ret == -1) {
@@ -103,6 +104,9 @@ void tgt_req_child(int fd, struct krb5_req *kr)
                                         kr->options);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
+        if (kerr == KRB5_KDC_UNREACH) {
+            pam_status = PAM_AUTHINFO_UNAVAIL;
+        }
         goto childfailed;
     }
 
@@ -155,7 +159,7 @@ void tgt_req_child(int fd, struct krb5_req *kr)
 childfailed:
     if (kerr != 0 ) {
         krb5_error_msg = krb5_get_error_message(krb5_error_ctx, kerr);
-        size = pack_response_packet(buf, PAM_SYSTEM_ERR, PAM_USER_INFO,
+        size = pack_response_packet(buf, pam_status, PAM_USER_INFO,
                                     krb5_error_msg);
         if (size < 0) {
             DEBUG(1, ("failed to create response message.\n"));
