@@ -63,8 +63,6 @@ static void userdel_req_done(struct tevent_req *req)
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
-
-    talloc_zfree(data->handle);
 }
 
 /* sysdb callback */

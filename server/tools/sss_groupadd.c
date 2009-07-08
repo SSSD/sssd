@@ -65,8 +65,6 @@ static void add_group_req_done(struct tevent_req *req)
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
-
-    talloc_zfree(data->handle);
 }
 
 static void add_group_terminate(struct group_add_ctx *data, int error)

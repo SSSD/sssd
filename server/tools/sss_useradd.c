@@ -196,8 +196,6 @@ static void add_user_req_done(struct tevent_req *req)
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
-
-    talloc_zfree(data->handle);
 }
 
 static void add_user_terminate(struct user_add_ctx *data, int error)

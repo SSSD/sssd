@@ -70,8 +70,6 @@ static void mod_group_req_done(struct tevent_req *req)
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
-
-    talloc_zfree(data->handle);
 }
 
 static void mod_group_done(struct group_mod_ctx *data, int error)

@@ -107,8 +107,6 @@ static void mod_user_req_done(struct tevent_req *req)
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
-
-    talloc_zfree(data->handle);
 }
 
 static void mod_user_done(struct user_mod_ctx *data, int error)
