@@ -82,34 +82,15 @@
 #define USERMOD_USERNAME "%s"
 #endif
 
-struct user_mod_ctx {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-
-    struct sss_domain_info *domain;
-    struct tools_ctx *ctx;
-
-    const char *username;
-    struct sysdb_attrs *attrs;
-
-    char **addgroups;
-    char **rmgroups;
-    int cur;
-
-    int error;
-    bool done;
-};
-
 static void mod_user_req_done(struct tevent_req *req)
 {
-    struct user_mod_ctx *data = tevent_req_callback_data(req,
-                                                         struct user_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
 }
 
-static void mod_user_done(struct user_mod_ctx *data, int error)
+static void mod_user_done(struct ops_ctx *data, int error)
 {
     struct tevent_req *req;
 
@@ -135,19 +116,19 @@ fail:
 }
 
 static void mod_user_attr_done(struct tevent_req *req);
-static void mod_user_cont(struct user_mod_ctx *data);
-static void remove_from_groups(struct user_mod_ctx *data);
+static void mod_user_cont(struct ops_ctx *data);
+static void remove_from_groups(struct ops_ctx *data);
 static void remove_from_groups_done(struct tevent_req *req);
-static void add_to_groups(struct user_mod_ctx *data);
+static void add_to_groups(struct ops_ctx *data);
 static void add_to_groups_done(struct tevent_req *req);
 
 static void mod_user(struct tevent_req *req)
 {
-    struct user_mod_ctx *data;
+    struct ops_ctx *data;
     struct tevent_req *subreq;
     int ret;
 
-    data = tevent_req_callback_data(req, struct user_mod_ctx);
+    data = tevent_req_callback_data(req, struct ops_ctx);
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
@@ -156,7 +137,7 @@ static void mod_user(struct tevent_req *req)
 
     if (data->attrs->num != 0) {
         subreq = sysdb_set_user_attr_send(data, data->ev, data->handle,
-                                          data->domain, data->username,
+                                          data->domain, data->name,
                                           data->attrs, SYSDB_MOD_REP);
         if (!subreq) {
             return mod_user_done(data, ret);
@@ -170,8 +151,7 @@ static void mod_user(struct tevent_req *req)
 
 static void mod_user_attr_done(struct tevent_req *subreq)
 {
-    struct user_mod_ctx *data = tevent_req_callback_data(subreq,
-                                                         struct user_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_set_user_attr_recv(subreq);
@@ -183,7 +163,7 @@ static void mod_user_attr_done(struct tevent_req *subreq)
     mod_user_cont(data);
 }
 
-static void mod_user_cont(struct user_mod_ctx *data)
+static void mod_user_cont(struct ops_ctx *data)
 {
     if (data->rmgroups != NULL) {
         return remove_from_groups(data);
@@ -196,14 +176,14 @@ static void mod_user_cont(struct user_mod_ctx *data)
     return mod_user_done(data, EOK);
 }
 
-static void remove_from_groups(struct user_mod_ctx *data)
+static void remove_from_groups(struct ops_ctx *data)
 {
     struct ldb_dn *parent_dn;
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                              data->domain->name, data->username);
+    member_dn = sysdb_user_dn(data->ctx->sysdb, data,
+                              data->domain->name, data->name);
     if (!member_dn) {
         return mod_user_done(data, ENOMEM);
     }
@@ -229,8 +209,7 @@ static void remove_from_groups(struct user_mod_ctx *data)
 
 static void remove_from_groups_done(struct tevent_req *req)
 {
-    struct user_mod_ctx *data = tevent_req_callback_data(req,
-                                                 struct user_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     int ret;
 
     ret = sysdb_mod_group_member_recv(req);
@@ -254,21 +233,21 @@ static void remove_from_groups_done(struct tevent_req *req)
     return remove_from_groups(data);
 }
 
-static void add_to_groups(struct user_mod_ctx *data)
+static void add_to_groups(struct ops_ctx *data)
 {
     struct ldb_dn *parent_dn;
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                              data->domain->name, data->username);
+    member_dn = sysdb_user_dn(data->ctx->sysdb, data,
+                              data->domain->name, data->name);
     if (!member_dn) {
         return mod_user_done(data, ENOMEM);
     }
 
     parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                              data->domain->name,
-                              data->addgroups[data->cur]);
+                               data->domain->name,
+                               data->addgroups[data->cur]);
     if (!parent_dn) {
         return mod_user_done(data, ENOMEM);
     }
@@ -287,8 +266,7 @@ static void add_to_groups(struct user_mod_ctx *data)
 
 static void add_to_groups_done(struct tevent_req *req)
 {
-    struct user_mod_ctx *data = tevent_req_callback_data(req,
-                                                 struct user_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     int ret;
 
     ret = sysdb_mod_group_member_recv(req);
@@ -308,7 +286,7 @@ static void add_to_groups_done(struct tevent_req *req)
     return add_to_groups(data);
 }
 
-static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
+static int usermod_legacy(struct tools_ctx *tools_ctx, struct ops_ctx *ctx,
                           uid_t uid, gid_t gid,
                           const char *gecos, const char *home,
                           const char *shell, int lock, int old_domain)
@@ -353,14 +331,15 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct user_mod_ctx *ctx,
         APPEND_STRING(command, USERMOD_UNLOCK);
     }
 
-    APPEND_PARAM(command, USERMOD_USERNAME, ctx->username);
+    APPEND_PARAM(command, USERMOD_USERNAME, ctx->name);
 
     ret = system(command);
     if (ret) {
         if (ret == -1) {
             DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n",
+                      command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -395,7 +374,7 @@ int main(int argc, const char **argv)
     };
     poptContext pc = NULL;
     struct sss_domain_info *dom;
-    struct user_mod_ctx *user_ctx = NULL;
+    struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     char *groups;
@@ -422,22 +401,23 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    user_ctx = talloc_zero(ctx, struct user_mod_ctx);
-    if (user_ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for user_ctx context\n"));
+    data = talloc_zero(ctx, struct ops_ctx);
+    if (data == NULL) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
         ERROR("Out of memory\n");
         return ENOMEM;
     }
-    user_ctx->ctx = ctx;
+    data->ctx = ctx;
+    data->ev = ctx->ev;
 
-    user_ctx->attrs = sysdb_new_attrs(ctx);
-    if (user_ctx->attrs == NULL) {
+    data->attrs = sysdb_new_attrs(ctx);
+    if (data->attrs == NULL) {
         DEBUG(1, ("Could not allocate memory for sysdb_attrs context\n"));
         ERROR("Out of memory\n");
         return ENOMEM;
     }
 
-    /* parse user_ctx */
+    /* parse ops_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
@@ -450,7 +430,7 @@ int main(int argc, const char **argv)
 
             ret = parse_groups(ctx,
                     groups,
-                    (ret == 'a') ? (&user_ctx->addgroups) : (&user_ctx->rmgroups));
+                    (ret == 'a') ? (&data->addgroups) : (&data->rmgroups));
 
             free(groups);
             if (ret != EOK) {
@@ -472,14 +452,14 @@ int main(int argc, const char **argv)
     }
 
     /* username is an argument without --option */
-    user_ctx->username = poptGetArg(pc);
-    if (user_ctx->username == NULL) {
+    data->name = poptGetArg(pc);
+    if (data->name == NULL) {
         usage(pc, _("Specify user to modify\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    pwd_info = getpwnam(user_ctx->username);
+    pwd_info = getpwnam(data->name);
     if (pwd_info) {
         old_uid = pwd_info->pw_uid;
     }
@@ -487,13 +467,13 @@ int main(int argc, const char **argv)
     ret = find_domain_for_id(ctx, old_uid, &dom);
     switch (ret) {
         case ID_IN_LOCAL:
-            user_ctx->domain = dom;
+            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            user_ctx->domain = dom;
+            data->domain = dom;
         case ID_OUTSIDE:
-            ret = usermod_legacy(ctx, user_ctx, pc_uid, pc_gid, pc_gecos,
+            ret = usermod_legacy(ctx, data, pc_uid, pc_gid, pc_gecos,
                                  pc_home, pc_shell, pc_lock, ret);
             if(ret != EOK) {
                 ERROR("Cannot delete user from domain using the legacy tools\n");
@@ -517,7 +497,7 @@ int main(int argc, const char **argv)
     /* FIXME - might want to do this via attr:pc_var mapping in a loop */
 
     if(pc_shell) {
-        ret = sysdb_attrs_add_string(user_ctx->attrs,
+        ret = sysdb_attrs_add_string(data->attrs,
                                      SYSDB_SHELL,
                                      pc_shell);
         VAR_CHECK(ret, EOK, SYSDB_SHELL,
@@ -525,7 +505,7 @@ int main(int argc, const char **argv)
     }
 
     if(pc_home) {
-        ret = sysdb_attrs_add_string(user_ctx->attrs,
+        ret = sysdb_attrs_add_string(data->attrs,
                                      SYSDB_HOMEDIR,
                                      pc_home);
         VAR_CHECK(ret, EOK, SYSDB_HOMEDIR,
@@ -533,7 +513,7 @@ int main(int argc, const char **argv)
     }
 
     if(pc_gecos) {
-        ret = sysdb_attrs_add_string(user_ctx->attrs,
+        ret = sysdb_attrs_add_string(data->attrs,
                                      SYSDB_GECOS,
                                      pc_gecos);
         VAR_CHECK(ret, EOK, SYSDB_GECOS,
@@ -541,7 +521,7 @@ int main(int argc, const char **argv)
     }
 
     if(pc_uid) {
-        ret = sysdb_attrs_add_long(user_ctx->attrs,
+        ret = sysdb_attrs_add_long(data->attrs,
                                    SYSDB_UIDNUM,
                                    pc_uid);
         VAR_CHECK(ret, EOK, SYSDB_UIDNUM,
@@ -549,7 +529,7 @@ int main(int argc, const char **argv)
     }
 
     if(pc_gid) {
-        ret = sysdb_attrs_add_long(user_ctx->attrs,
+        ret = sysdb_attrs_add_long(data->attrs,
                                    SYSDB_GIDNUM,
                                    pc_gid);
         VAR_CHECK(ret, EOK, SYSDB_GIDNUM,
@@ -557,7 +537,7 @@ int main(int argc, const char **argv)
     }
 
     if(pc_lock == DO_LOCK) {
-        ret = sysdb_attrs_add_string(user_ctx->attrs,
+        ret = sysdb_attrs_add_string(data->attrs,
                                      SYSDB_DISABLED,
                                      "true");
         VAR_CHECK(ret, EOK, SYSDB_DISABLED,
@@ -566,7 +546,7 @@ int main(int argc, const char **argv)
 
     if(pc_lock == DO_UNLOCK) {
         /* PAM code checks for 'false' value in SYSDB_DISABLED attribute */
-        ret = sysdb_attrs_add_string(user_ctx->attrs,
+        ret = sysdb_attrs_add_string(data->attrs,
                                      SYSDB_DISABLED,
                                      "false");
         VAR_CHECK(ret, EOK, SYSDB_DISABLED,
@@ -583,7 +563,7 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    user_ctx->domain = dom;
+    data->domain = dom;
 
     req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
     if (!req) {
@@ -592,14 +572,14 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, mod_user, user_ctx);
+    tevent_req_set_callback(req, mod_user, data);
 
-    while (!user_ctx->done) {
+    while (!data->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (user_ctx->error) {
-        ret = user_ctx->error;
+    if (data->error) {
+        ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");
         ret = EXIT_FAILURE;

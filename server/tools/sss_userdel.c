@@ -40,26 +40,9 @@
 #define USERDEL_USERNAME    "%s "
 #endif
 
-struct user_del_ctx {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    sysdb_callback_t next_fn;
-
-    uid_t uid;
-    const char *username;
-    struct ldb_dn *user_dn;
-
-    struct sss_domain_info *domain;
-    struct tools_ctx *ctx;
-
-    int error;
-    bool done;
-};
-
 static void userdel_req_done(struct tevent_req *req)
 {
-    struct user_del_ctx *data = tevent_req_callback_data(req,
-                                                         struct user_del_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
@@ -68,7 +51,7 @@ static void userdel_req_done(struct tevent_req *req)
 /* sysdb callback */
 static void userdel_done(void *pvt, int error, struct ldb_result *ignore)
 {
-    struct user_del_ctx *data = talloc_get_type(pvt, struct user_del_ctx);
+    struct ops_ctx *data = talloc_get_type(pvt, struct ops_ctx);
     struct tevent_req *req;
 
     if (error != EOK) {
@@ -96,21 +79,26 @@ static void user_del_done(struct tevent_req *subreq);
 
 static void user_del(struct tevent_req *req)
 {
-    struct user_del_ctx *data;
+    struct ops_ctx *data;
     struct tevent_req *subreq;
+    struct ldb_dn *user_dn;
     int ret;
 
-    data = tevent_req_callback_data(req, struct user_del_ctx);
+    data = tevent_req_callback_data(req, struct ops_ctx);
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
         return userdel_done(data, ret, NULL);
     }
 
-    subreq = sysdb_delete_entry_send(data,
-                                     data->ev,
-                                     data->handle,
-                                     data->user_dn);
+    user_dn = sysdb_user_dn(data->ctx->sysdb, data,
+                            data->domain->name, data->name);
+    if (!user_dn) {
+        DEBUG(1, ("Could not construct a user DN\n"));
+        return userdel_done(data, ENOMEM, NULL);
+    }
+
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn);
     if (!subreq)
         return userdel_done(data, ret, NULL);
 
@@ -119,8 +107,7 @@ static void user_del(struct tevent_req *req)
 
 static void user_del_done(struct tevent_req *subreq)
 {
-    struct user_del_ctx *data = tevent_req_callback_data(subreq,
-                                                    struct user_del_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_delete_entry_recv(subreq);
@@ -129,20 +116,21 @@ static void user_del_done(struct tevent_req *subreq)
 }
 
 
-static int userdel_legacy(struct user_del_ctx *ctx)
+static int userdel_legacy(struct ops_ctx *ctx)
 {
     int ret = EOK;
     char *command = NULL;
 
     APPEND_STRING(command, USERDEL);
-    APPEND_PARAM(command, USERDEL_USERNAME, ctx->username);
+    APPEND_PARAM(command, USERDEL_USERNAME, ctx->name);
 
     ret = system(command);
     if (ret) {
         if (ret == -1) {
             DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n",
+                      command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -155,7 +143,7 @@ static int userdel_legacy(struct user_del_ctx *ctx)
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
-    struct user_del_ctx *user_ctx = NULL;
+    struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     struct sss_domain_info *dom;
@@ -165,7 +153,8 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
+                    0, _("The debug level to run with"), NULL },
         POPT_TABLEEND
     };
 
@@ -188,19 +177,19 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    user_ctx = talloc_zero(NULL, struct user_del_ctx);
-    if (user_ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for user_ctx context\n"));
+    data = talloc_zero(NULL, struct ops_ctx);
+    if (data == NULL) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
         ERROR("Out of memory\n");
         return ENOMEM;
     }
-    user_ctx->ctx = ctx;
-    user_ctx->ev = ctx->ev;
+    data->ctx = ctx;
+    data->ev = ctx->ev;
 
-    /* parse user_ctx */
+    /* parse ops_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
-    if((ret = poptGetNextOpt(pc)) < -1) {
+    if ((ret = poptGetNextOpt(pc)) < -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
@@ -208,29 +197,29 @@ int main(int argc, const char **argv)
 
     debug_level = pc_debug;
 
-    user_ctx->username = poptGetArg(pc);
-    if(user_ctx->username == NULL) {
+    data->name = poptGetArg(pc);
+    if (data->name == NULL) {
         usage(pc, _("Specify user to delete\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* arguments processed, go on to actual work */
-    pwd_info = getpwnam(user_ctx->username);
+    pwd_info = getpwnam(data->name);
     if (pwd_info) {
-        user_ctx->uid = pwd_info->pw_uid;
+        data->uid = pwd_info->pw_uid;
     }
 
-    ret = find_domain_for_id(ctx, user_ctx->uid, &dom);
+    ret = find_domain_for_id(ctx, data->uid, &dom);
     switch (ret) {
         case ID_IN_LOCAL:
-            user_ctx->domain = dom;
+            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            user_ctx->domain = dom;
+            data->domain = dom;
         case ID_OUTSIDE:
-            ret = userdel_legacy(user_ctx);
+            ret = userdel_legacy(data);
             if(ret != EOK) {
                 ERROR("Cannot delete user from domain using the legacy tools\n");
                 ret = EXIT_FAILURE;
@@ -251,17 +240,6 @@ int main(int argc, const char **argv)
             goto fini;
     }
 
-    user_ctx->user_dn = sysdb_user_dn(ctx->sysdb, ctx,
-                                      user_ctx->domain->name,
-                                      user_ctx->username);
-    if(user_ctx->user_dn == NULL) {
-        DEBUG(1, ("Could not construct a user DN\n"));
-        ERROR("Internal database error. Could not remove user.\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-
     /* userdel */
     req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
     if (!req) {
@@ -270,16 +248,16 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, user_del, user_ctx);
+    tevent_req_set_callback(req, user_del, data);
 
-    while (!user_ctx->done) {
+    while (!data->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (user_ctx->error) {
-        ret = user_ctx->error;
+    if (data->error) {
+        ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Transaction error. Could not remove user.\n");
+        ERROR("Internal error. Could not remove user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -288,7 +266,7 @@ int main(int argc, const char **argv)
 
 fini:
     talloc_free(ctx);
-    talloc_free(user_ctx);
+    talloc_free(data);
     poptFreeContext(pc);
     exit(ret);
 }

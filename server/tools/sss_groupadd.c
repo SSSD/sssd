@@ -44,30 +44,15 @@
 #define GROUPADD_GROUPNAME "%s "
 #endif
 
-struct group_add_ctx {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-
-    struct sss_domain_info *domain;
-    struct tools_ctx *ctx;
-
-    const char *groupname;
-    gid_t gid;
-
-    int error;
-    bool done;
-};
-
 static void add_group_req_done(struct tevent_req *req)
 {
-    struct group_add_ctx *data = tevent_req_callback_data(req,
-                                                     struct group_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
 }
 
-static void add_group_terminate(struct group_add_ctx *data, int error)
+static void add_group_terminate(struct ops_ctx *data, int error)
 {
     struct tevent_req *req;
 
@@ -96,8 +81,7 @@ static void add_group_done(struct tevent_req *subreq);
 
 static void add_group(struct tevent_req *req)
 {
-    struct group_add_ctx *data = tevent_req_callback_data(req,
-                                                     struct group_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     struct tevent_req *subreq;
     int ret;
 
@@ -107,7 +91,7 @@ static void add_group(struct tevent_req *req)
     }
 
     subreq = sysdb_add_group_send(data, data->ev, data->handle,
-                                  data->domain, data->groupname,
+                                  data->domain, data->name,
                                   data->gid, NULL);
     if (!subreq) {
         add_group_terminate(data, ENOMEM);
@@ -117,8 +101,7 @@ static void add_group(struct tevent_req *req)
 
 static void add_group_done(struct tevent_req *subreq)
 {
-    struct group_add_ctx *data = tevent_req_callback_data(subreq,
-                                                     struct group_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_add_group_recv(subreq);
@@ -127,7 +110,7 @@ static void add_group_done(struct tevent_req *subreq)
     return add_group_terminate(data, ret);
 }
 
-static int groupadd_legacy(struct group_add_ctx *ctx)
+static int groupadd_legacy(struct ops_ctx *ctx)
 {
     int ret = EOK;
     char *command = NULL;
@@ -139,14 +122,15 @@ static int groupadd_legacy(struct group_add_ctx *ctx)
     }
 
     APPEND_PARAM(command, GROUPADD_GID, ctx->gid);
-    APPEND_STRING(command, ctx->groupname);
+    APPEND_STRING(command, ctx->name);
 
     ret = system(command);
     if (ret) {
         if (ret == -1) {
             DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n",
+                      command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -162,15 +146,17 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug",'\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
-        { "gid",   'g', POPT_ARG_INT, &pc_gid, 0, _("The GID of the group"), NULL },
+        { "debug",'\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
+            0, _("The debug level to run with"), NULL },
+        { "gid",   'g', POPT_ARG_INT, &pc_gid,
+            0, _("The GID of the group"), NULL },
         POPT_TABLEEND
     };
     struct sss_domain_info *dom;
     poptContext pc = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
-    struct group_add_ctx *group_ctx = NULL;
+    struct ops_ctx *data = NULL;
     int ret = EXIT_SUCCESS;
 
     debug_prg_name = argv[0];
@@ -192,13 +178,14 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    group_ctx = talloc_zero(NULL, struct group_add_ctx);
-    if (group_ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for group_ctx context\n"));
+    data = talloc_zero(NULL, struct ops_ctx);
+    if (data == NULL) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
         ERROR("Out of memory.\n");
         return ENOMEM;
     }
-    group_ctx->ctx = ctx;
+    data->ctx = ctx;
+    data->ev = ctx->ev;
 
     /* parse params */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
@@ -212,26 +199,26 @@ int main(int argc, const char **argv)
     debug_level = pc_debug;
 
     /* groupname is an argument, not option */
-    group_ctx->groupname = poptGetArg(pc);
-    if(group_ctx->groupname == NULL) {
+    data->name = poptGetArg(pc);
+    if (data->name == NULL) {
         usage(pc, _("Specify group to add\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    group_ctx->gid = pc_gid;
+    data->gid = pc_gid;
 
     /* arguments processed, go on to actual work */
-    ret = find_domain_for_id(ctx, group_ctx->gid, &dom);
+    ret = find_domain_for_id(ctx, data->gid, &dom);
     switch (ret) {
         case ID_IN_LOCAL:
-            group_ctx->domain = dom;
+            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            group_ctx->domain = dom;
+            data->domain = dom;
         case ID_OUTSIDE:
-            ret = groupadd_legacy(group_ctx);
+            ret = groupadd_legacy(data);
             if(ret != EOK) {
                 ERROR("Cannot add group to domain using the legacy tools\n");
             }
@@ -258,17 +245,17 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, add_group, group_ctx);
+    tevent_req_set_callback(req, add_group, data);
 
-    while (!group_ctx->done) {
+    while (!data->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (group_ctx->error) {
-        ret = group_ctx->error;
+    if (data->error) {
+        ret = data->error;
         switch (ret) {
             case EEXIST:
-                ERROR("The group %s already exists\n", group_ctx->groupname);
+                ERROR("The group %s already exists\n", data->name);
                 break;
 
             default:
@@ -282,7 +269,7 @@ int main(int argc, const char **argv)
 
     ret = EXIT_SUCCESS;
 fini:
-    talloc_free(group_ctx);
+    talloc_free(data);
     talloc_free(ctx);
     poptFreeContext(pc);
     exit(ret);

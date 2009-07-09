@@ -84,38 +84,9 @@
 #define DFL_SHELL_VAL      "/bin/bash"
 #define DFL_BASEDIR_VAL    "/home"
 
-struct user_add_ctx {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-
-    struct sss_domain_info *domain;
-    struct tools_ctx *ctx;
-
-    const char *username;
-    uid_t uid;
-    gid_t gid;
-    char *gecos;
-    char *home;
-    char *shell;
-
-    char **groups;
-    int cur;
-
-    int error;
-    bool done;
-};
-
-struct fetch_group {
-    gid_t gid;
-    int error;
-    bool done;
-};
-
 static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
 {
-    struct fetch_group *data = talloc_get_type(ptr, struct fetch_group);
-
-    data->done = true;
+    struct ops_ctx *data = talloc_get_type(ptr, struct ops_ctx);
 
     if (error) {
         data->error = error;
@@ -129,6 +100,9 @@ static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
 
     case 1:
         data->gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+        if (data->gid == 0) {
+            data->error = ERANGE;
+        }
         break;
 
     default:
@@ -141,64 +115,50 @@ static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
  * is given, returns that as integer (rationale: shadow-utils)
  * On error, returns -EINVAL
  */
-static int get_gid(struct user_add_ctx *user_ctx, const char *groupname)
+static int get_gid(struct ops_ctx *data, const char *groupname)
 {
-    struct tools_ctx *ctx = user_ctx->ctx;
-    struct fetch_group *data = NULL;
     char *end_ptr;
-    gid_t gid;
     int ret;
 
     errno = 0;
-    gid = strtoul(groupname, &end_ptr, 10);
-    if (groupname == '\0' || *end_ptr != '\0' || errno != 0) {
+    data->gid = strtoul(groupname, &end_ptr, 10);
+    if (groupname == '\0' || *end_ptr != '\0' ||
+        errno != 0 || data->gid == 0) {
         /* Does not look like a gid - find the group name */
 
-        data = talloc_zero(ctx, struct fetch_group);
-        if (!data) return ENOMEM;
-
-        ret = sysdb_getgrnam(data, ctx->sysdb,
-                             user_ctx->domain, groupname,
+        ret = sysdb_getgrnam(data, data->ctx->sysdb,
+                             data->domain, groupname,
                              get_gid_callback, data);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
             goto done;
         }
 
-        while (!data->done) {
-            tevent_loop_once(ctx->ev);
+        data->error = EOK;
+        data->gid = 0;
+        while ((data->error == EOK) && (data->gid == 0)) {
+            tevent_loop_once(data->ctx->ev);
         }
 
         if (data->error) {
             DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
-            ret = data->error;
             goto done;
         }
-
-        gid = data->gid;
-    }
-
-    if (gid == 0) {
-        ret = ERANGE;
-    } else {
-        user_ctx->gid = gid;
     }
 
 done:
-    talloc_free(data);
     return ret;
 }
 
 static void add_user_req_done(struct tevent_req *req)
 {
-    struct user_add_ctx *data = tevent_req_callback_data(req,
-                                                         struct user_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
 }
 
-static void add_user_terminate(struct user_add_ctx *data, int error)
+static void add_user_terminate(struct ops_ctx *data, int error)
 {
     struct tevent_req *req;
 
@@ -224,13 +184,12 @@ fail:
 }
 
 static void add_user_done(struct tevent_req *subreq);
-static void add_to_groups(struct user_add_ctx *data);
+static void add_to_groups(struct ops_ctx *data);
 static void add_to_groups_done(struct tevent_req *req);
 
 static void add_user(struct tevent_req *req)
 {
-    struct user_add_ctx *data = tevent_req_callback_data(req,
-                                                         struct user_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     struct tevent_req *subreq;
     int ret;
 
@@ -240,7 +199,7 @@ static void add_user(struct tevent_req *req)
     }
 
     subreq = sysdb_add_user_send(data, data->ev, data->handle,
-                                 data->domain, data->username,
+                                 data->domain, data->name,
                                  data->uid, data->gid,
                                  data->gecos, data->home,
                                  data->shell, NULL);
@@ -252,8 +211,7 @@ static void add_user(struct tevent_req *req)
 
 static void add_user_done(struct tevent_req *subreq)
 {
-    struct user_add_ctx *data = tevent_req_callback_data(subreq,
-                                                         struct user_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_add_user_recv(subreq);
@@ -269,14 +227,14 @@ static void add_user_done(struct tevent_req *subreq)
     return add_user_terminate(data, ret);
 }
 
-static void add_to_groups(struct user_add_ctx *data)
+static void add_to_groups(struct ops_ctx *data)
 {
     struct ldb_dn *parent_dn;
     struct ldb_dn *member_dn;
     struct tevent_req *subreq;
 
     member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                              data->domain->name, data->username);
+                              data->domain->name, data->name);
     if (!member_dn) {
         return add_user_terminate(data, ENOMEM);
     }
@@ -299,8 +257,7 @@ static void add_to_groups(struct user_add_ctx *data)
 
 static void add_to_groups_done(struct tevent_req *subreq)
 {
-    struct user_add_ctx *data = tevent_req_callback_data(subreq,
-                                                 struct user_add_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_mod_group_member_recv(subreq);
@@ -320,7 +277,7 @@ static void add_to_groups_done(struct tevent_req *subreq)
     return add_to_groups(data);
 }
 
-static int useradd_legacy(struct user_add_ctx *ctx, char *grouplist)
+static int useradd_legacy(struct ops_ctx *ctx, char *grouplist)
 {
     int ret = EOK;
     char *command = NULL;
@@ -343,14 +300,15 @@ static int useradd_legacy(struct user_add_ctx *ctx, char *grouplist)
 
     APPEND_PARAM(command, USERADD_GROUPS, grouplist);
 
-    APPEND_PARAM(command, USERADD_USERNAME, ctx->username);
+    APPEND_PARAM(command, USERADD_USERNAME, ctx->name);
 
     ret = system(command);
     if (ret) {
         if (ret == -1) {
             DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n",
+                      command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -382,7 +340,7 @@ int main(int argc, const char **argv)
     };
     poptContext pc = NULL;
     struct sss_domain_info *dom = NULL;
-    struct user_add_ctx *user_ctx = NULL;
+    struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     char *groups = NULL;
@@ -407,16 +365,16 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    user_ctx = talloc_zero(ctx, struct user_add_ctx);
-    if (user_ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for user_ctx context\n"));
+    data = talloc_zero(ctx, struct ops_ctx);
+    if (data == NULL) {
+        DEBUG(1, ("Could not allocate memory for ops_ctx context\n"));
         ERROR("Out of memory\n");
         return ENOMEM;
     }
-    user_ctx->ctx = ctx;
-    user_ctx->ev = ctx->ev;
+    data->ctx = ctx;
+    data->ev = ctx->ev;
 
-    /* parse user_ctx */
+    /* parse ops_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
@@ -427,7 +385,7 @@ int main(int argc, const char **argv)
                 break;
             }
 
-            ret = parse_groups(ctx, groups, &user_ctx->groups);
+            ret = parse_groups(ctx, groups, &data->groups);
             if (ret != EOK) {
                 break;
             }
@@ -443,8 +401,8 @@ int main(int argc, const char **argv)
     }
 
     /* username is an argument without --option */
-    user_ctx->username = poptGetArg(pc);
-    if (user_ctx->username == NULL) {
+    data->name = poptGetArg(pc);
+    if (data->name == NULL) {
         usage(pc, (_("Specify user to add\n")));
         ret = EXIT_FAILURE;
         goto fini;
@@ -452,7 +410,7 @@ int main(int argc, const char **argv)
 
     /* Same as shadow-utils useradd, -g can specify gid or group name */
     if (pc_group != NULL) {
-        ret = get_gid(user_ctx, pc_group);
+        ret = get_gid(data, pc_group);
         if (ret != EOK) {
             ERROR("Cannot get group information for the user\n");
             ret = EXIT_FAILURE;
@@ -460,44 +418,44 @@ int main(int argc, const char **argv)
         }
     }
 
-    user_ctx->uid = pc_uid;
+    data->uid = pc_uid;
 
     /*
-     * Fills in defaults for user_ctx user did not specify.
+     * Fills in defaults for ops_ctx user did not specify.
      * FIXME - Should this originate from the confdb or another config?
      */
     if (!pc_gecos) {
-        pc_gecos = user_ctx->username;
+        pc_gecos = data->name;
     }
-    user_ctx->gecos = talloc_strdup(user_ctx, pc_gecos);
-    if (!user_ctx->gecos) {
+    data->gecos = talloc_strdup(data, pc_gecos);
+    if (!data->gecos) {
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     if (pc_home) {
-        user_ctx->home = talloc_strdup(user_ctx, pc_home);
+        data->home = talloc_strdup(data, pc_home);
     } else {
-        ret = confdb_get_string(user_ctx->ctx->confdb, user_ctx,
+        ret = confdb_get_string(data->ctx->confdb, data,
                                 CONFDB_DFL_SECTION, DFL_BASEDIR_ATTR,
                                 DFL_BASEDIR_VAL, &basedir);
         if (ret != EOK) {
             ret = EXIT_FAILURE;
             goto fini;
         }
-        user_ctx->home = talloc_asprintf(user_ctx, "%s/%s", basedir, user_ctx->username);
-        if (!user_ctx->home) {
+        data->home = talloc_asprintf(data, "%s/%s", basedir, data->name);
+        if (!data->home) {
             ret = EXIT_FAILURE;
             goto fini;
         }
     }
-    if (!user_ctx->home) {
+    if (!data->home) {
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     if (!pc_shell) {
-        ret = confdb_get_string(user_ctx->ctx->confdb, user_ctx,
+        ret = confdb_get_string(data->ctx->confdb, data,
                                 CONFDB_DFL_SECTION, DFL_SHELL_ATTR,
                                 DFL_SHELL_VAL, &pc_shell);
         if (ret != EOK) {
@@ -505,23 +463,23 @@ int main(int argc, const char **argv)
             goto fini;
         }
     }
-    user_ctx->shell = talloc_strdup(user_ctx, pc_shell);
-    if (!user_ctx->shell) {
+    data->shell = talloc_strdup(data, pc_shell);
+    if (!data->shell) {
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* arguments processed, go on to actual work */
-    ret = find_domain_for_id(ctx, user_ctx->uid, &dom);
+    ret = find_domain_for_id(ctx, data->uid, &dom);
     switch (ret) {
         case ID_IN_LOCAL:
-            user_ctx->domain = dom;
+            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            user_ctx->domain = dom;
+            data->domain = dom;
         case ID_OUTSIDE:
-            ret = useradd_legacy(user_ctx, groups);
+            ret = useradd_legacy(data, groups);
             if(ret != EOK) {
                 ERROR("Cannot add user to domain using the legacy tools\n");
             }
@@ -548,21 +506,22 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, add_user, user_ctx);
+    tevent_req_set_callback(req, add_user, data);
 
-    while (!user_ctx->done) {
+    while (!data->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (user_ctx->error) {
-        ret = user_ctx->error;
+    if (data->error) {
+        ret = data->error;
         switch (ret) {
             case EEXIST:
-                ERROR("The user %s already exists\n", user_ctx->username);
+                ERROR("The user %s already exists\n", data->name);
                 break;
 
             default:
-                DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
+                DEBUG(1, ("sysdb operation failed (%d)[%s]\n",
+                          ret, strerror(ret)));
                 ERROR("Transaction error. Could not modify user.\n");
                 break;
         }

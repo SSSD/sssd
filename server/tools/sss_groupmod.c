@@ -45,34 +45,15 @@
 #define GROUPMOD_GROUPNAME "%s "
 #endif
 
-struct group_mod_ctx {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-
-    struct tools_ctx *ctx;
-
-    gid_t gid;
-    const char *groupname;
-
-    char **addgroups;
-    char **rmgroups;
-    int cur;
-
-    int error;
-    bool done;
-};
-
 static void mod_group_req_done(struct tevent_req *req)
 {
-    struct group_mod_ctx *data = tevent_req_callback_data(req,
-                                                     struct group_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
 }
 
-static void mod_group_done(struct group_mod_ctx *data, int error)
+static void mod_group_done(struct ops_ctx *data, int error)
 {
     struct tevent_req *req;
 
@@ -98,20 +79,20 @@ fail:
 }
 
 static void mod_group_attr_done(struct tevent_req *req);
-static void mod_group_cont(struct group_mod_ctx *data);
-static void remove_from_groups(struct group_mod_ctx *data);
+static void mod_group_cont(struct ops_ctx *data);
+static void remove_from_groups(struct ops_ctx *data);
 static void remove_from_groups_done(struct tevent_req *req);
-static void add_to_groups(struct group_mod_ctx *data);
+static void add_to_groups(struct ops_ctx *data);
 static void add_to_groups_done(struct tevent_req *req);
 
 static void mod_group(struct tevent_req *req)
 {
-    struct group_mod_ctx *data;
+    struct ops_ctx *data;
     struct tevent_req *subreq;
     struct sysdb_attrs *attrs;
     int ret;
 
-    data = tevent_req_callback_data(req, struct group_mod_ctx);
+    data = tevent_req_callback_data(req, struct ops_ctx);
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
     if (ret != EOK) {
@@ -130,7 +111,7 @@ static void mod_group(struct tevent_req *req)
         }
 
         subreq = sysdb_set_group_attr_send(data, data->ev, data->handle,
-                                           data->domain, data->groupname,
+                                           data->domain, data->name,
                                            attrs, SYSDB_MOD_REP);
         if (!subreq) {
             return mod_group_done(data, ret);
@@ -144,8 +125,7 @@ static void mod_group(struct tevent_req *req)
 
 static void mod_group_attr_done(struct tevent_req *subreq)
 {
-    struct group_mod_ctx *data = tevent_req_callback_data(subreq,
-                                                          struct group_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_set_group_attr_recv(subreq);
@@ -157,7 +137,7 @@ static void mod_group_attr_done(struct tevent_req *subreq)
     mod_group_cont(data);
 }
 
-static void mod_group_cont(struct group_mod_ctx *data)
+static void mod_group_cont(struct ops_ctx *data)
 {
     if (data->rmgroups != NULL) {
         return remove_from_groups(data);
@@ -170,14 +150,14 @@ static void mod_group_cont(struct group_mod_ctx *data)
     return mod_group_done(data, EOK);
 }
 
-static void remove_from_groups(struct group_mod_ctx *data)
+static void remove_from_groups(struct ops_ctx *data)
 {
     struct ldb_dn *parent_dn;
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
     member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                               data->domain->name, data->groupname);
+                               data->domain->name, data->name);
     if (!member_dn) {
         return mod_group_done(data, ENOMEM);
     }
@@ -203,8 +183,7 @@ static void remove_from_groups(struct group_mod_ctx *data)
 
 static void remove_from_groups_done(struct tevent_req *req)
 {
-    struct group_mod_ctx *data = tevent_req_callback_data(req,
-                                                 struct group_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     int ret;
 
     ret = sysdb_mod_group_member_recv(req);
@@ -228,14 +207,14 @@ static void remove_from_groups_done(struct tevent_req *req)
     return remove_from_groups(data);
 }
 
-static void add_to_groups(struct group_mod_ctx *data)
+static void add_to_groups(struct ops_ctx *data)
 {
     struct ldb_dn *parent_dn;
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
     member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                               data->domain->name, data->groupname);
+                               data->domain->name, data->name);
     if (!member_dn) {
         return mod_group_done(data, ENOMEM);
     }
@@ -261,8 +240,7 @@ static void add_to_groups(struct group_mod_ctx *data)
 
 static void add_to_groups_done(struct tevent_req *req)
 {
-    struct group_mod_ctx *data = tevent_req_callback_data(req,
-                                                 struct group_mod_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     int ret;
 
     ret = sysdb_mod_group_member_recv(req);
@@ -282,7 +260,8 @@ static void add_to_groups_done(struct tevent_req *req)
     return add_to_groups(data);
 }
 
-static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ctx, int old_domain)
+static int groupmod_legacy(struct tools_ctx *tools_ctx,
+                           struct ops_ctx *ctx, int old_domain)
 {
     int ret = EOK;
     char *command = NULL;
@@ -307,14 +286,15 @@ static int groupmod_legacy(struct tools_ctx *tools_ctx, struct group_mod_ctx *ct
         }
     }
 
-    APPEND_PARAM(command, GROUPMOD_GROUPNAME, ctx->groupname);
+    APPEND_PARAM(command, GROUPMOD_GROUPNAME, ctx->name);
 
     ret = system(command);
     if (ret) {
         if (ret == -1) {
             DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n",
+                      command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -330,15 +310,19 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
-        { "append-group", 'a', POPT_ARG_STRING, NULL, 'a', _("Groups to add this group to"), NULL },
-        { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', _("Groups to remove this group from"), NULL },
-        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid, 0, _("The GID of the group"), NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
+                            0, _("The debug level to run with"), NULL },
+        { "append-group", 'a', POPT_ARG_STRING, NULL,
+                            'a', _("Groups to add this group to"), NULL },
+        { "remove-group", 'r', POPT_ARG_STRING, NULL,
+                            'r', _("Groups to remove this group from"), NULL },
+        { "gid",   'g', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_gid,
+                            0, _("The GID of the group"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
     struct sss_domain_info *dom;
-    struct group_mod_ctx *group_ctx = NULL;
+    struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     char *groups;
@@ -365,15 +349,16 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    group_ctx = talloc_zero(ctx, struct group_mod_ctx);
-    if (group_ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for group_ctx context\n"));
+    data = talloc_zero(ctx, struct ops_ctx);
+    if (data == NULL) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
         ERROR("Out of memory\n");
         return ENOMEM;
     }
-    group_ctx->ctx = ctx;
+    data->ctx = ctx;
+    data->ev = ctx->ev;
 
-    /* parse group_ctx */
+    /* parse ops_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
@@ -386,7 +371,7 @@ int main(int argc, const char **argv)
 
             ret = parse_groups(ctx,
                     groups,
-                    (ret == 'a') ? (&group_ctx->addgroups) : (&group_ctx->rmgroups));
+                    (ret == 'a') ? (&data->addgroups) : (&data->rmgroups));
 
             free(groups);
             if (ret != EOK) {
@@ -397,24 +382,24 @@ int main(int argc, const char **argv)
 
     debug_level = pc_debug;
 
-    if(ret != -1) {
+    if (ret != -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* groupname is an argument without --option */
-    group_ctx->groupname = poptGetArg(pc);
-    if (group_ctx->groupname == NULL) {
+    data->name = poptGetArg(pc);
+    if (data->name == NULL) {
         usage(pc, _("Specify group to modify\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    group_ctx->gid = pc_gid;
+    data->gid = pc_gid;
 
     /* arguments processed, go on to actual work */
-    grp_info = getgrnam(group_ctx->groupname);
+    grp_info = getgrnam(data->name);
     if (grp_info) {
        old_gid = grp_info->gr_gid;
     }
@@ -422,13 +407,13 @@ int main(int argc, const char **argv)
     ret = find_domain_for_id(ctx, old_gid, &dom);
     switch (ret) {
         case ID_IN_LOCAL:
-            group_ctx->domain = dom;
+            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            group_ctx->domain = dom;
+            data->domain = dom;
         case ID_OUTSIDE:
-            ret = groupmod_legacy(ctx, group_ctx, ret);
+            ret = groupmod_legacy(ctx, data, ret);
             if(ret != EOK) {
                 ERROR("Cannot delete group from domain using the legacy tools\n");
             }
@@ -454,14 +439,14 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, mod_group, group_ctx);
+    tevent_req_set_callback(req, mod_group, data);
 
-    while (!group_ctx->done) {
+    while (!data->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (group_ctx->error) {
-        ret = group_ctx->error;
+    if (data->error) {
+        ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify group.\n");
         ret = EXIT_FAILURE;

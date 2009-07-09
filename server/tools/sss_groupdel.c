@@ -41,26 +41,9 @@
 #endif
 
 
-struct group_del_ctx {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    sysdb_callback_t next_fn;
-
-    gid_t gid;
-    const char *groupname;
-    struct ldb_dn *group_dn;
-
-    struct sss_domain_info *domain;
-    struct tools_ctx *ctx;
-
-    int error;
-    bool done;
-};
-
 static void groupdel_req_done(struct tevent_req *req)
 {
-    struct group_del_ctx *data = tevent_req_callback_data(req,
-                                                     struct group_del_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
 
     data->error = sysdb_transaction_commit_recv(req);
     data->done = true;
@@ -69,7 +52,7 @@ static void groupdel_req_done(struct tevent_req *req)
 /* sysdb callback */
 static void groupdel_done(void *pvt, int error, struct ldb_result *ignore)
 {
-    struct group_del_ctx *data = talloc_get_type(pvt, struct group_del_ctx);
+    struct ops_ctx *data = talloc_get_type(pvt, struct ops_ctx);
     struct tevent_req *req;
 
     if (error != EOK) {
@@ -97,9 +80,9 @@ static void group_del_done(struct tevent_req *subreq);
 
 static void group_del(struct tevent_req *req)
 {
-    struct group_del_ctx *data = tevent_req_callback_data(req,
-                                                     struct group_del_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
     struct tevent_req *subreq;
+    struct ldb_dn *group_dn;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -107,10 +90,14 @@ static void group_del(struct tevent_req *req)
         return groupdel_done(data, ret, NULL);
     }
 
-    subreq = sysdb_delete_entry_send(data,
-                                     data->ev,
-                                     data->handle,
-                                     data->group_dn);
+    group_dn = sysdb_group_dn(data->ctx->sysdb, data,
+                              data->domain->name, data->name);
+    if (group_dn == NULL) {
+        DEBUG(1, ("Could not construct a group DN\n"));
+        return groupdel_done(data, ENOMEM, NULL);
+    }
+
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn);
     if (!subreq)
         return groupdel_done(data, ret, NULL);
 
@@ -119,8 +106,7 @@ static void group_del(struct tevent_req *req)
 
 static void group_del_done(struct tevent_req *subreq)
 {
-    struct group_del_ctx *data = tevent_req_callback_data(subreq,
-                                                     struct group_del_ctx);
+    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
     int ret;
 
     ret = sysdb_delete_entry_recv(subreq);
@@ -128,20 +114,21 @@ static void group_del_done(struct tevent_req *subreq)
     return groupdel_done(data, ret, NULL);
 }
 
-static int groupdel_legacy(struct group_del_ctx *ctx)
+static int groupdel_legacy(struct ops_ctx *ctx)
 {
     int ret = EOK;
     char *command = NULL;
 
     APPEND_STRING(command, GROUPDEL);
-    APPEND_PARAM(command, GROUPDEL_GROUPNAME, ctx->groupname);
+    APPEND_PARAM(command, GROUPDEL_GROUPNAME, ctx->name);
 
     ret = system(command);
     if (ret) {
         if (ret == -1) {
             DEBUG(1, ("system(3) failed\n"));
         } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n", command, WEXITSTATUS(ret)));
+            DEBUG(1, ("Could not exec '%s', return code: %d\n",
+                      command, WEXITSTATUS(ret)));
         }
         talloc_free(command);
         return EFAULT;
@@ -155,7 +142,7 @@ int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     int pc_debug = 0;
-    struct group_del_ctx *group_ctx = NULL;
+    struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     struct sss_domain_info *dom;
@@ -164,7 +151,8 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
-        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
+        { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
+                    0, _("The debug level to run with"), NULL },
         POPT_TABLEEND
     };
 
@@ -187,15 +175,16 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    group_ctx = talloc_zero(NULL, struct group_del_ctx);
-    if (group_ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for group_ctx context\n"));
+    data = talloc_zero(NULL, struct ops_ctx);
+    if (data == NULL) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
         ERROR("Out of memory\n");
         return ENOMEM;
     }
-    group_ctx->ctx = ctx;
+    data->ctx = ctx;
+    data->ev = ctx->ev;
 
-    /* parse group_ctx */
+    /* parse ops_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     if((ret = poptGetNextOpt(pc)) < -1) {
@@ -206,29 +195,29 @@ int main(int argc, const char **argv)
 
     debug_level = pc_debug;
 
-    group_ctx->groupname = poptGetArg(pc);
-    if(group_ctx->groupname == NULL) {
+    data->name = poptGetArg(pc);
+    if(data->name == NULL) {
         usage(pc, _("Specify group to delete\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* arguments processed, go on to actual work */
-    grp_info = getgrnam(group_ctx->groupname);
+    grp_info = getgrnam(data->name);
     if (grp_info) {
-        group_ctx->gid = grp_info->gr_gid;
+        data->gid = grp_info->gr_gid;
     }
 
-    ret = find_domain_for_id(ctx, group_ctx->gid, &dom);
+    ret = find_domain_for_id(ctx, data->gid, &dom);
     switch (ret) {
         case ID_IN_LOCAL:
-            group_ctx->domain = dom;
+            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            group_ctx->domain = dom;
+            data->domain = dom;
         case ID_OUTSIDE:
-            ret = groupdel_legacy(group_ctx);
+            ret = groupdel_legacy(data);
             if(ret != EOK) {
                 ERROR("Cannot delete group from domain using the legacy tools\n");
                 ret = EXIT_FAILURE;
@@ -249,16 +238,6 @@ int main(int argc, const char **argv)
             goto fini;
     }
 
-    group_ctx->group_dn = sysdb_group_dn(ctx->sysdb, ctx,
-                                         group_ctx->domain->name,
-                                         group_ctx->groupname);
-    if(group_ctx->group_dn == NULL) {
-        DEBUG(1, ("Could not construct a group DN\n"));
-        ERROR("Internal database error. Could not remove group.\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     /* groupdel */
     req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
     if (!req) {
@@ -267,14 +246,14 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, group_del, group_ctx);
+    tevent_req_set_callback(req, group_del, data);
 
-    while (!group_ctx->done) {
+    while (!data->done) {
         tevent_loop_once(ctx->ev);
     }
 
-    if (group_ctx->error) {
-        ret = group_ctx->error;
+    if (data->error) {
+        ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove group.\n");
         ret = EXIT_FAILURE;
@@ -285,7 +264,7 @@ int main(int argc, const char **argv)
 
 fini:
     talloc_free(ctx);
-    talloc_free(group_ctx);
+    talloc_free(data);
     poptFreeContext(pc);
     exit(ret);
 }

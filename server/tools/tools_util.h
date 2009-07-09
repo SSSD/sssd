@@ -48,6 +48,29 @@ struct tools_ctx {
     struct sss_domain_info *domains;
 };
 
+struct ops_ctx {
+    struct tools_ctx *ctx;
+    struct tevent_context *ev;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    uid_t uid;
+    gid_t gid;
+    char *gecos;
+    char *home;
+    char *shell;
+    struct sysdb_attrs *attrs;
+
+    char **addgroups;
+    char **rmgroups;
+    char **groups;
+    int cur;
+
+    struct sysdb_handle *handle;
+    int error;
+    bool done;
+};
+
 int init_sss_tools(struct tools_ctx **ctx);
 
 int setup_db(struct tools_ctx **ctx);
