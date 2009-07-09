@@ -112,7 +112,8 @@ static int col_walk_items(struct collection_item *ci,
                           internal_item_fn traverse_handler,
                           void *traverse_data,
                           col_item_fn user_item_handler,
-                          void *custom_data);
+                          void *custom_data,
+                          unsigned *depth);
 
 /* Function to get sub collection */
 static int col_get_subcollection(const char *property,
@@ -283,6 +284,7 @@ static int col_find_property(struct collection_item *collection,
 {
     struct property_search ps;
     int i = 0;
+    unsigned depth = 0;
 
     TRACE_FLOW_STRING("col_find_property", "Entry.");
 
@@ -307,7 +309,8 @@ static int col_find_property(struct collection_item *collection,
     /* We do not care about error here */
     (void)col_walk_items(collection, COL_TRAVERSE_ONELEVEL,
                          col_parent_traverse_handler,
-                         (void *)parent, NULL, (void *)&ps);
+                         (void *)parent, NULL, (void *)&ps,
+                         &depth);
 
     if (*parent) {
         /* Item is found in the collection */
@@ -1221,13 +1224,14 @@ static void col_delete_path_data(struct path_data *path)
 /* For each item walked it will call traverse handler.
    Traverse handler accepts: current item,
    user provided item handler and user provided custom data. */
-/* See below defferent traverse handlers for different cases */
+/* See below different traverse handlers for different cases */
 static int col_walk_items(struct collection_item *ci,
                           int mode_flags,
                           internal_item_fn traverse_handler,
                           void *traverse_data,
                           col_item_fn user_item_handler,
-                          void *custom_data)
+                          void *custom_data,
+                          unsigned *depth)
 {
     struct collection_item *current;
     struct collection_item *parent = NULL;
@@ -1237,6 +1241,9 @@ static int col_walk_items(struct collection_item *ci,
 
     TRACE_FLOW_STRING("col_walk_items", "Entry.");
     TRACE_INFO_NUMBER("Mode flags:", mode_flags);
+
+    /* Increase depth */
+    (*depth)++;
 
     current = ci;
 
@@ -1252,22 +1259,34 @@ static int col_walk_items(struct collection_item *ci,
             if ((mode_flags & COL_TRAVERSE_IGNORE) == 0) {
 
                 TRACE_INFO_STRING("Subcollection is not ignored.", "");
-
                 /* We are not ignoring sub collections */
-                error = traverse_handler(ci, parent, current, traverse_data,
-                                         user_item_handler, custom_data, &stop);
-                if (stop != 0) {
-                    TRACE_INFO_STRING("Traverse handler returned STOP.", "");
-                    error = EINTR_INTERNAL;
-                }
-                /* Check what error we got */
-                if (error == EINTR_INTERNAL) {
-                    TRACE_FLOW_NUMBER("Internal error - means we are stopping.", error);
-                    return error;
-                }
-                else if (error) {
-                    TRACE_ERROR_NUMBER("Traverse handler returned error.", error);
-                    return error;
+
+                if ((mode_flags & COL_TRAVERSE_FLAT) == 0) {
+
+                    TRACE_INFO_STRING("Subcollection is not flattened.", "");
+                    /* We are not flattening sub collections.
+                     * The flattening means that we are not going
+                     * to return reference and headers for sub collections.
+                     * We will also not do special end collection
+                     * invocation for sub collections.
+                     */
+                    error = traverse_handler(ci, parent, current, traverse_data,
+                                             user_item_handler, custom_data, &stop);
+                    if (stop != 0) {
+                        TRACE_INFO_STRING("Traverse handler returned STOP.", "");
+                        error = EINTR_INTERNAL;
+                    }
+                    /* Check what error we got */
+                    if (error == EINTR_INTERNAL) {
+                        TRACE_FLOW_NUMBER("Internal error - means we are stopping.", error);
+                        (*depth)--;
+                        return error;
+                    }
+                    else if (error) {
+                        TRACE_ERROR_NUMBER("Traverse handler returned error.", error);
+                        (*depth)--;
+                        return error;
+                    }
                 }
 
                 if ((mode_flags & COL_TRAVERSE_ONELEVEL) == 0) {
@@ -1278,7 +1297,8 @@ static int col_walk_items(struct collection_item *ci,
                     /* We need to go into sub collections */
                     error = col_walk_items(sub, mode_flags,
                                            traverse_handler, traverse_data,
-                                           user_item_handler, custom_data);
+                                           user_item_handler, custom_data,
+                                           depth);
                     TRACE_INFO_STRING("Returned from sub collection processing", "");
                     TRACE_INFO_STRING("Done processing item:", current->property);
                     TRACE_INFO_NUMBER("Done processing item type:", current->type);
@@ -1286,12 +1306,29 @@ static int col_walk_items(struct collection_item *ci,
                 }
             }
         }
-        else
-            /* Call handler then move on */
-            error = traverse_handler(ci, parent, current,
-                                     traverse_data, user_item_handler,
-                                     custom_data, &stop);
+        else {
+            /* Check if it is a header and we are not on the root level.
+             * If we are flattening collection we need to skip headers
+             * for sub collections.
+             */
 
+            /* Call handler if:
+             * a) It is not collection header
+             * OR
+             * b) It is header we are flattening but we are on top level
+             * OR
+             * c) It is header and we are not flattening.
+             */
+            if ((current->type != COL_TYPE_COLLECTION) ||
+                (((mode_flags & COL_TRAVERSE_FLAT) != 0) && (*depth == 1)) ||
+                ((mode_flags & COL_TRAVERSE_FLAT) == 0)) {
+                /* Call handler then move on */
+                error = traverse_handler(ci, parent, current,
+                                         traverse_data, user_item_handler,
+                                         custom_data, &stop);
+
+            }
+        }
         /* If we are stopped - return EINTR_INTERNAL */
         if (stop != 0) {
             TRACE_INFO_STRING("Traverse handler returned STOP.", "");
@@ -1300,10 +1337,12 @@ static int col_walk_items(struct collection_item *ci,
         /* Check what error we got */
         if (error == EINTR_INTERNAL) {
             TRACE_FLOW_NUMBER("Internal error - means we are stopping.", error);
+            (*depth)--;
             return error;
         }
         else if (error) {
             TRACE_ERROR_NUMBER("Traverse handler returned error.", error);
+            (*depth)--;
             return error;
         }
 
@@ -1314,14 +1353,27 @@ static int col_walk_items(struct collection_item *ci,
 
     TRACE_INFO_STRING("Out of loop", "");
 
+    /* Check if we need to have a special
+     * call at the end of the collection.
+     */
     if ((mode_flags & COL_TRAVERSE_END) != 0) {
-        TRACE_INFO_STRING("About to do the special end collection invocation of handler", "");
-        error = traverse_handler(ci, parent, current,
-                                 traverse_data, user_item_handler,
-                                 custom_data, &stop);
+
+        /* Do this dummy invocation only:
+         * a) If we are flattening and on the root level
+         * b) We are not flattening
+         */
+        if ((((mode_flags & COL_TRAVERSE_FLAT) != 0) && (*depth == 1)) ||
+            ((mode_flags & COL_TRAVERSE_FLAT) == 0)) {
+
+            TRACE_INFO_STRING("About to do the special end collection invocation of handler", "");
+            error = traverse_handler(ci, parent, current,
+                                     traverse_data, user_item_handler,
+                                     custom_data, &stop);
+        }
     }
 
     TRACE_FLOW_NUMBER("col_walk_items. Returns: ", error);
+    (*depth)--;
     return error;
 }
 
@@ -1343,6 +1395,7 @@ static int col_find_item_and_do(struct collection_item *ci,
 
     int error = EOK;
     struct find_name *traverse_data = NULL;
+    unsigned depth = 0;
 
     TRACE_FLOW_STRING("col_find_item_and_do", "Entry.");
 
@@ -1386,7 +1439,8 @@ static int col_find_item_and_do(struct collection_item *ci,
     TRACE_INFO_NUMBER("Traverse flags", mode_flags);
 
     error = col_walk_items(ci, mode_flags, col_act_traverse_handler,
-                           (void *)traverse_data, item_handler, custom_data);
+                           (void *)traverse_data, item_handler, custom_data,
+                           &depth);
 
     if (traverse_data->current_path != NULL) {
         TRACE_INFO_STRING("find_item_and_do",
@@ -1793,6 +1847,79 @@ static int col_copy_traverse_handler(struct collection_item *head,
     return error;
 }
 
+/* Function to copy collection as flat set */
+static int col_copy_collection_flat(struct collection_item *acceptor,
+                                    struct collection_item *donor)
+{
+    int error = EOK;
+    struct collection_iterator *iter = NULL;
+    struct collection_item *item = NULL;
+    struct collection_item *new_item = NULL;
+    struct collection_item *current = NULL;
+
+    TRACE_FLOW_STRING("col_copy_collection_flat", "Entry");
+
+    /* Bind iterator in flat mode */
+    error = col_bind_iterator(&iter, donor, COL_TRAVERSE_FLAT);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to bind iterator:", error);
+        return error;
+    }
+
+    /* Skip header */
+    error = col_iterate_collection(iter, &item);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to iterate on header:", error);
+        col_unbind_iterator(iter);
+        return error;
+    }
+
+    current = item->next;
+
+    while (current) {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iter, &item);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to iterate:", error);
+            col_unbind_iterator(iter);
+            return error;
+        }
+
+        /* Create new item */
+        error = col_allocate_item(&new_item,
+                                  item->property,
+                                  item->data,
+                                  item->length,
+                                  item->type);
+        if(error) {
+            TRACE_ERROR_NUMBER("Error allocating end item.", error);
+            col_unbind_iterator(iter);
+            return error;
+        }
+
+        /* Insert this item into collection */
+        error = col_insert_item(acceptor,
+                                NULL,
+                                new_item,
+                                COL_DSP_END,
+                                NULL,
+                                0,
+                                COL_INSERT_DUPOVER);
+        if(error) {
+            TRACE_ERROR_NUMBER("Error allocating end item.", error);
+            col_unbind_iterator(iter);
+            col_delete_item(new_item);
+            return error;
+        }
+
+        current = item->next;
+    }
+
+    col_unbind_iterator(iter);
+    TRACE_FLOW_NUMBER("col_copy_collection_flat Exit returning", error);
+    return error;
+}
 
 
 /********************* MAIN INTERFACE FUNCTIONS *****************************/
@@ -1889,6 +2016,7 @@ int col_copy_collection(struct collection_item **collection_copy,
     struct collection_item *new_collection = NULL;
     const char *name;
     struct collection_header *header;
+    unsigned depth = 0;
 
     TRACE_FLOW_STRING("col_copy_collection", "Entry.");
 
@@ -1909,7 +2037,7 @@ int col_copy_collection(struct collection_item **collection_copy,
 
     error = col_walk_items(collection_to_copy, COL_TRAVERSE_ONELEVEL,
                            col_copy_traverse_handler, new_collection,
-                           NULL, NULL);
+                           NULL, NULL, &depth);
 
     if (!error) *collection_copy = new_collection;
     else col_destroy_collection(new_collection);
@@ -2156,6 +2284,15 @@ int col_add_collection_to_collection(struct collection_item *ci,
         TRACE_INFO_NUMBER("Adding property returned:", error);
         break;
 
+    case COL_ADD_MODE_FLAT:
+        TRACE_INFO_STRING("We are flattening the collection.", "");
+
+        error = col_copy_collection_flat(acceptor, collection_to_add);
+
+        TRACE_INFO_NUMBER("Copy collection flat returned:", error);
+        break;
+
+
     default:
         error = EINVAL;
     }
@@ -2175,10 +2312,12 @@ int col_traverse_collection(struct collection_item *ci,
 {
 
     int error = EOK;
+    unsigned depth = 0;
+
     TRACE_FLOW_STRING("col_traverse_collection", "Entry.");
 
     error = col_walk_items(ci, mode_flags, col_simple_traverse_handler,
-                           NULL, item_handler, custom_data);
+                           NULL, item_handler, custom_data, &depth);
 
     if ((error != 0) && (error != EINTR_INTERNAL)) {
         TRACE_ERROR_NUMBER("Error walking tree", error);
@@ -2430,7 +2569,10 @@ int col_bind_iterator(struct collection_iterator **iterator,
     iter->stack = NULL;
     iter->stack_size = 0;
     iter->stack_depth = 0;
+    iter->item_level = 0;
     iter->flags = mode_flags;
+
+    TRACE_INFO_NUMBER("Iterator flags", iter->flags);
 
     /* Allocate memory for stack */
     error = col_grow_stack(iter, 1);
@@ -2491,12 +2633,30 @@ int col_get_iterator_depth(struct collection_iterator *iterator, int *depth)
         return EINVAL;
     }
 
-    *depth = iterator->stack_depth -1;
+    *depth = iterator->stack_depth - 1;
 
     TRACE_INFO_NUMBER("Stack depth at the end:", iterator->stack_depth);
     TRACE_FLOW_STRING("col_get_iterator_depth","Exit");
     return EOK;
 }
+
+/* What was the level of the last item we got? */
+int col_get_item_depth(struct collection_iterator *iterator, int *depth)
+{
+    TRACE_FLOW_STRING("col_get_item_depth", "Entry");
+
+    if ((iterator == NULL) || (depth == NULL)) {
+        TRACE_ERROR_NUMBER("Invalid parameter.", EINVAL);
+        return EINVAL;
+    }
+
+    *depth = iterator->item_level;
+
+    TRACE_INFO_NUMBER("Item level at the end:", iterator->item_level);
+    TRACE_FLOW_STRING("col_get_item_depth","Exit");
+    return EOK;
+}
+
 
 
 /* Unbind the iterator from the collection */
@@ -2505,7 +2665,7 @@ void col_unbind_iterator(struct collection_iterator *iterator)
     TRACE_FLOW_STRING("col_unbind_iterator", "Entry.");
     if (iterator != NULL) {
         col_destroy_collection(iterator->top);
-        free(iterator->end_item);
+        col_delete_item(iterator->end_item);
         free(iterator->stack);
         free(iterator);
     }
@@ -2541,6 +2701,7 @@ int col_iterate_collection(struct collection_iterator *iterator,
 
         /* Is current item available */
         current = iterator->stack[iterator->stack_depth - 1];
+        iterator->item_level = iterator->stack_depth - 1;
 
         /* We are not done so check if we have an item  */
         if (current != NULL) {
@@ -2569,6 +2730,7 @@ int col_iterate_collection(struct collection_iterator *iterator,
                             TRACE_INFO_STRING("Instructed to show header not reference", "");
                             other = *((struct collection_item **)current->data);
                             iterator->stack[iterator->stack_depth] = other->next;
+                            iterator->item_level = iterator->stack_depth;
                             *item = other;
                         }
                         /* Do we need to show both? */
@@ -2576,6 +2738,17 @@ int col_iterate_collection(struct collection_iterator *iterator,
                             TRACE_INFO_STRING("Instructed to show header and reference","");
                             iterator->stack[iterator->stack_depth] = *((struct collection_item **)(current->data));
                             *item = current;
+                            /* Do not need to adjust level here */
+                        }
+                        /* Do not show either */
+                        else if ((iterator->flags & COL_TRAVERSE_FLAT) != 0) {
+                            TRACE_INFO_STRING("Instructed not to show header and reference","");
+                            other = *((struct collection_item **)current->data);
+                            iterator->stack[iterator->stack_depth] = other->next;
+                            iterator->stack[iterator->stack_depth - 1] = current->next;
+                            iterator->stack_depth++;
+                            /* Do not need to adjust level here */
+                            continue;
                         }
                         /* We need to show reference only */
                         else {
@@ -2589,6 +2762,8 @@ int col_iterate_collection(struct collection_iterator *iterator,
                                 TRACE_INFO_NUMBER("Will show this item next time type:", other->next->type);
                             }
                             *item = current;
+                            TRACE_INFO_NUMBER("Level of the reference:", iterator->item_level);
+                            /* Do not need to adjust level here */
                         }
 
                         TRACE_INFO_STRING("We return item:", (*item)->property);
@@ -2616,9 +2791,18 @@ int col_iterate_collection(struct collection_iterator *iterator,
             }
             else {
                 /* Got a normal item - return it and move to the next one */
-                TRACE_INFO_STRING("Simple item", "");
-                *item = current;
-                iterator->stack[iterator->stack_depth - 1] = current->next;
+                if ((current->type == COL_TYPE_COLLECTION) &&
+                    ((iterator->flags & COL_TRAVERSE_FLAT) != 0) &&
+                    (iterator->stack_depth > 1)) {
+                    TRACE_INFO_STRING("Header of the sub collection in flat case ", "");
+                    iterator->stack[iterator->stack_depth - 1] = current->next;
+                    continue;
+                }
+                else {
+                    TRACE_INFO_STRING("Simple item", "");
+                    *item = current;
+                    iterator->stack[iterator->stack_depth - 1] = current->next;
+                }
                 break;
             }
         }
@@ -2626,12 +2810,24 @@ int col_iterate_collection(struct collection_iterator *iterator,
             /* Item is NULL */
             TRACE_INFO_STRING("Finished level", "moving to upper level");
             iterator->stack_depth--;
+            /* Remember that item_level is zero based while depth is size
+             * so we decrease and then assign. */
             TRACE_INFO_NUMBER("Stack depth at the end:", iterator->stack_depth);
             if ((iterator->flags & COL_TRAVERSE_END) != 0) {
-                /* Return dummy entry to indicate the end of the collection */
-                TRACE_INFO_STRING("Finished level", "told to return END");
-                *item = iterator->end_item;
-                break;
+
+                /* Show end element
+                 * a) If we are flattening but at the top
+                 * b) We are not flattening
+                 */
+                if ((((iterator->flags & COL_TRAVERSE_FLAT) != 0) &&
+                     (iterator->stack_depth == 0)) ||
+                    ((iterator->flags & COL_TRAVERSE_FLAT) == 0)) {
+
+                    /* Return dummy entry to indicate the end of the collection */
+                    TRACE_INFO_STRING("Finished level", "told to return END");
+                    *item = iterator->end_item;
+                    break;
+                }
             }
             else {
                 /* Move to next level */

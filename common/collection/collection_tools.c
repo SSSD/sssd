@@ -40,17 +40,23 @@ int col_debug_handle(const char *property,
 {
     int i;
     int nest_level;
+    int ignore = 0;
 
     TRACE_FLOW_STRING("col_debug_handle", "Entry.");
 
 
     nest_level = *(int *)(custom_data);
+    if (nest_level == -1) {
+        ignore = 1;
+        nest_level = 1;
+    }
+
     TRACE_INFO_NUMBER("We are getting this pointer:", custom_data);
     TRACE_INFO_NUMBER("Nest level:", nest_level);
 
     switch (type) {
     case COL_TYPE_STRING:
-        printf("%*s %s[%d] str: %s (%d)\n",
+        printf(">%*s%s[%d] str: %s (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -58,7 +64,7 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_BINARY:
-        printf("%*s %s[%d] bin: ",
+        printf(">%*s%s[%d] bin: ",
                (nest_level -1) * 4, "",
                property,
                length);
@@ -67,7 +73,7 @@ int col_debug_handle(const char *property,
         printf(" (%d)\n", nest_level);
         break;
     case COL_TYPE_INTEGER:
-        printf("%*s %s[%d] int: %d (%d)\n",
+        printf(">%*s%s[%d] int: %d (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -75,7 +81,7 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_UNSIGNED:
-        printf("%*s %s[%d] uint: %u (%d)\n",
+        printf(">%*s%s[%d] uint: %u (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -83,7 +89,7 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_LONG:
-        printf("%*s %s[%d] long: %ld (%d)\n",
+        printf(">%*s%s[%d] long: %ld (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -91,7 +97,7 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_ULONG:
-        printf("%*s %s[%d] ulong: %lu (%d)\n",
+        printf(">%*s%s[%d] ulong: %lu (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -99,7 +105,7 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_DOUBLE:
-        printf("%*s %s[%d] double: %.4f (%d)\n",
+        printf(">%*s%s[%d] double: %.4f (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -107,7 +113,7 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_BOOL:
-        printf("%*s %s[%d] bool: %s (%d)\n",
+        printf(">%*s%s[%d] bool: %s (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -115,8 +121,8 @@ int col_debug_handle(const char *property,
                nest_level);
         break;
     case COL_TYPE_COLLECTION:
-        nest_level++;
-        printf("%*s %s[%d] header: count %d, ref_count %d class %d data: ",
+        if (!ignore) nest_level++;
+        printf(">%*s%s[%d] header: count %d, ref_count %d class %d data: ",
                (nest_level -1) * 4, "",
                property,
                length,
@@ -128,7 +134,7 @@ int col_debug_handle(const char *property,
         printf(" (%d)\n", nest_level);
         break;
     case COL_TYPE_COLLECTIONREF:
-        printf("%*s %s[%d] external link: ",
+        printf(">%*s%s[%d] external link: ",
                (nest_level -1) * 4, "",
                property,
                length);
@@ -137,8 +143,10 @@ int col_debug_handle(const char *property,
         printf(" (%d)\n", nest_level);
         break;
     case COL_TYPE_END:
-        nest_level--;
-        /* printf("Reduced nest level\n");*/
+        printf(">%*sEND[N/A] (%d)\n",
+               (nest_level -1) * 4, "",
+               nest_level);
+        if (!ignore) nest_level--;
         break;
     default:
         printf("Not implemented yet.\n");
@@ -154,7 +162,7 @@ int col_debug_handle(const char *property,
 inline int col_debug_item(struct collection_item *item)
 {
     int dummy = 0;
-    int nest_level = 0;
+    int nest_level = -1;
     return col_debug_handle(item->property,
                             item->property_len,
                             item->type,

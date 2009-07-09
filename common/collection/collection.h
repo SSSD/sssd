@@ -59,50 +59,58 @@
 /* The modes that define how one collection can be added to another */
 
 #define COL_ADD_MODE_REFERENCE 0    /* The collection will contain a pointer
-                                       to another */
+                                     * to another */
 #define COL_ADD_MODE_EMBED     1    /* The collection will become part of
-                                       another collection.
-                                       After this operation the handle should
-                                       not be used or freed.
-                                       Can't be done more than once.
-                                       If the collection is referenced by
-                                       another collection, the operation will
-                                       fail. */
+                                     * another collection.
+                                     * After this operation the handle should
+                                     * not be used or freed.
+                                     * Can't be done more than once.
+                                     * If the collection is referenced by
+                                     * another collection, the operation will
+                                     * fail. */
 #define COL_ADD_MODE_CLONE     2    /* Creates a deep copy of a collection with
-                                       its sub collections */
+                                     * its sub collections */
 
+#define COL_ADD_MODE_FLAT      3    /* Creates a deep copy of a collection with
+                                     * its sub collections flattening and resolving
+                                     * duplicates.
+                                     */
 
 /* Modes how the collection is traversed */
 #define COL_TRAVERSE_DEFAULT  0x00000000  /* Traverse all items */
 #define COL_TRAVERSE_ONELEVEL 0x00000001  /* Flag to traverse only top level
-                                             ignored if the IGNORE flag is
-                                             specified */
+                                           * ignored if the IGNORE flag is
+                                           * specified */
 #define COL_TRAVERSE_END      0x00000002  /* Call the handler once more when the
-                                             end of the collection is reached.
-                                             Good for processing nested
-                                             collections.
-                                             Implicit for iterators unless
-                                             the FLAT flag is specified */
+                                           * end of the collection is reached.
+                                           * Good for processing nested
+                                           * collections.
+                                           */
 #define COL_TRAVERSE_IGNORE   0x00000004  /* Ignore sub collections as if none
-                                             is present */
-#define COL_TRAVERSE_FLAT     0x00000008  /* Flatten the collection.
-                                             FIXME: not implemented yet */
+                                           * is present */
+#define COL_TRAVERSE_FLAT     0x00000008  /* Flatten the collection. */
 
 /* Additional iterator flags
  * NOTE: ignored by traverse functions */
 #define COL_TRAVERSE_SHOWSUB  0x00010000  /* Include headers of sub collections
-                                             By default iterators return just
-                                             references and skips headers.
-                                             Ignored if the ONELEVEL flag is
-                                             specified and not ignored.
-                                             Ignored if the FLAT flag is
-                                             specified. */
+                                           * By default iterators return just
+                                           * references and skips headers.
+                                           * Ignored if the ONELEVEL flag is
+                                           * specified and not ignored.
+                                           * Ignored if the FLAT flag is
+                                           * specified. */
 #define COL_TRAVERSE_ONLYSUB  0x00020000  /* Show the header of the sub
-                                             collection instead of reference.
-                                             Ignored if the ONELEVEL flag is
-                                             specified and not ignored.
-                                             Ignored if the FLAT flag is
-                                             specified. */
+                                           * collection instead of reference.
+                                           * Ignored if the ONELEVEL flag is
+                                           * specified and not ignored.
+                                           * Ignored if the FLAT flag is
+                                           * specified. */
+
+/* NOTE COL_TRAVERSE_FLAT, COL_TRAVERSE_SHOWSUB, COL_TRAVERSE_ONLYSUB
+ * are mutually exclusive flags. If combined together
+ * results will be unpredictable.
+ * DO NOT MIX THEM IN ONE ITERATOR.
+ */
 
 /* FIXME: move to event level - this does not belong to collection */
 /* Time stamp property name */
@@ -540,8 +548,32 @@ int col_iterate_collection(struct collection_iterator *iterator,
  */
 int col_iterate_up(struct collection_iterator *iterator, int level);
 
-/* How deep are we relative to the top level.*/
+/* How deep are we relative to the top level.
+ * This function might report depth that might look misleading.
+ * The reason is that traverse flags affect the internal
+ * level we are on at each moment.
+ * For example the default traverse behavior is to show
+ * references to the sub collections.
+ * So when the item reference is returned the
+ * depth automatically adjusted to level inside the sub collection.
+ * So if function is called in this situation the level returned will
+ * denote the level inside collection.
+ * Now imagine that this collection is empty so the attempt to read
+ * element will push you automatically one level up (in absence of the
+ * COL_TRAVERSE_END flag). If in this situation you encounter another
+ * collection the reference will be returned and level automatically
+ * adjusted to level inside the collection.
+ * The point is that the level is reliable only after
+ * a data item was returned.
+ * To avoid this ambiguity another function is introduced.
+ * See below.
+*/
 int col_get_iterator_depth(struct collection_iterator *iterator, int *depth);
+
+/* Returns item depth for the last read item.
+ * Returns 0 if no item has been read yet.
+ */
+int col_get_item_depth(struct collection_iterator *iterator, int *depth);
 
 /* FIXME - Do we need to be able to rewind iterator? */
 

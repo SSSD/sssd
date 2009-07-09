@@ -57,6 +57,7 @@ struct collection_iterator {
     struct collection_item **stack;
     unsigned stack_size;
     unsigned stack_depth;
+    unsigned item_level;
     int flags;
     struct collection_item *end_item;
 };

@@ -553,25 +553,34 @@ int mixed_collection_test(void)
 int iterator_test(void)
 {
     struct collection_item *peer;
+    struct collection_item *initial;
+
     struct collection_item *socket1;
     struct collection_item *socket2;
+    struct collection_item *socket3;
     struct collection_iterator *iterator = (struct collection_iterator *)(NULL);
     int error = EOK;
     struct collection_item *item = (struct collection_item *)(NULL);
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
     int depth = 0;
+    int idepth = 0;
 
     printf("\n\n==== ITERATOR TEST ====\n\n");
 
-    if ((error = col_create_collection(&peer, "peer", 0)) ||
-        (error = col_add_str_property(peer, NULL, "hostname", "peerhost.mytest.com", 0)) ||
+    if ((error = col_create_collection(&initial, "strater", 0)) ||
+        (error = col_create_collection(&peer, "peer", 0)) ||
+        (error = col_add_str_property(initial, NULL, "hostname", "peerhost.mytest.com", 0)) ||
         /* Expect trailing zero to be truncated */
-        (error = col_add_str_property(peer, NULL, "IPv4", "10.10.10.10", 12)) ||
-        (error = col_add_str_property(peer, NULL, "IPv6", "bla:bla:bla:bla:bla:bla", 0))) {
+        (error = col_add_str_property(initial, NULL, "IPv4", "10.10.10.10", 12)) ||
+        (error = col_add_str_property(initial, NULL, "IPv6", "bla:bla:bla:bla:bla:bla", 0)) ||
+        (error = col_add_collection_to_collection(peer, NULL, NULL, initial, COL_ADD_MODE_FLAT))) {
         printf("Failed to add property. Error %d", error);
         col_destroy_collection(peer);
+        col_destroy_collection(initial);
         return error;
     }
+
+    col_destroy_collection(initial);
 
     if ((error = col_create_collection(&socket1, "socket", 0)) ||
         (error = col_add_int_property(socket1, NULL, "id", 1)) ||
@@ -594,11 +603,20 @@ int iterator_test(void)
         return error;
     }
 
-    error = col_add_collection_to_collection(peer, NULL, "first", socket1, COL_ADD_MODE_EMBED);
+    if ((error = col_create_collection(&socket3, "socket", 0))) {
+        col_destroy_collection(peer);
+        col_destroy_collection(socket1);
+        col_destroy_collection(socket2);
+        printf("Failed to add property. Error %d\n", error);
+        return error;
+    }
+
+    error = col_add_collection_to_collection(peer, NULL, "first", socket1, COL_ADD_MODE_REFERENCE);
     if (error) {
         col_destroy_collection(peer);
         col_destroy_collection(socket1);
         col_destroy_collection(socket2);
+        col_destroy_collection(socket3);
         printf("Failed to add collection to collection. Error %d\n", error);
         return error;
     }
@@ -606,7 +624,26 @@ int iterator_test(void)
     error = col_add_collection_to_collection(peer, NULL, "second", socket2, COL_ADD_MODE_EMBED);
     if (error) {
         col_destroy_collection(peer);
+        col_destroy_collection(socket1);
         col_destroy_collection(socket2);
+        col_destroy_collection(socket3);
+        printf("Failed to add collection to collection. Error %d\n", error);
+        return error;
+    }
+
+    error = col_add_collection_to_collection(peer, NULL, "third", socket3, COL_ADD_MODE_EMBED);
+    if (error) {
+        col_destroy_collection(peer);
+        col_destroy_collection(socket1);
+        col_destroy_collection(socket3);
+        printf("Failed to add collection to collection. Error %d\n", error);
+        return error;
+    }
+
+    error = col_add_collection_to_collection(peer, NULL, "forth", socket1, COL_ADD_MODE_EMBED);
+    if (error) {
+        col_destroy_collection(peer);
+        col_destroy_collection(socket1);
         printf("Failed to add collection to collection. Error %d\n", error);
         return error;
     }
@@ -619,34 +656,41 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nCollection:\n\n");
+    printf("\n\nCollection (traverse default):\n\n");
     col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
 
-    /* This should also work becuase iterator holds to collection */
-    col_destroy_collection(peer);
+    printf("\n\nCollection (traverse flat):\n\n");
+    col_debug_collection(peer, COL_TRAVERSE_FLAT | COL_TRAVERSE_END);
 
-    printf("\n\nIteration:\n\n");
+    printf("\n\nIteration (1):\n\n");
 
     do {
-        depth = 0;
-        col_get_iterator_depth(iterator, &depth);
+
 
         /* Loop through a collection */
         error = col_iterate_collection(iterator, &item);
         if (error) {
             printf("Error (iterate): %d\n", error);
             col_unbind_iterator(iterator);
+            col_destroy_collection(peer);
             return error;
         }
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        idepth = 0;
+        col_get_iterator_depth(iterator, &idepth);
 
         /* Are we done ? */
         if (item == (struct collection_item *)(NULL)) break;
 
-        printf("%*s Property (%s), type = %d, data size = %d\n",
+        printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
                 depth * 4,  "",
                 col_get_item_property(item, NULL),
                 col_get_item_type(item),
-                col_get_item_length(item));
+                col_get_item_length(item),
+                depth,
+                idepth);
 
         if ((strcmp(col_get_item_property(item, NULL), "id")==0) &&
            (*((int *)(col_get_item_data(item))) == 1)) {
@@ -655,6 +699,7 @@ int iterator_test(void)
             if (!error) {
                 printf("We expected error but got seucces - bad.\n");
                 col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
                 return -1;
             }
             /* This should work! */
@@ -662,6 +707,7 @@ int iterator_test(void)
             if (error) {
                 printf("We expected success but got error %d\n", error);
                 col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
                 return error;
             }
 
@@ -684,14 +730,230 @@ int iterator_test(void)
                 (error = col_modify_double_item(item, "double", -1.1)) ||
                 (error = col_debug_item(item))) {
                 printf("Failed to change property.\n");
+                col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
                 return error;
             }
         }
     }
     while(1);
 
+    col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_FLAT);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    printf("\n\nIteration (2 - flat):\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        printf("%*s", depth * 4, "");
+        col_debug_item(item);
+
+    }
+    while(1);
+
     /* Do not forget to unbind iterator - otherwise there will be a leak */
     col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_FLAT | COL_TRAVERSE_END);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    printf("\n\nIteration (3 flat with end):\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        printf("%*s", depth * 4, "");
+        col_debug_item(item);
+
+    }
+    while(1);
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    printf("\n\nIteration (4 default with end):\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        printf("%*s", depth * 4, "");
+        col_debug_item(item);
+
+    }
+    while(1);
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_SHOWSUB | COL_TRAVERSE_END);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+
+    printf("\n\nIteration (5 show headers and references with end):\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        printf("%*s", depth * 4, "");
+        col_debug_item(item);
+
+    }
+    while(1);
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_SHOWSUB);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+
+    printf("\n\nIteration (6 show headers and references no END):\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        printf("%*s", depth * 4, "");
+        col_debug_item(item);
+
+    }
+    while(1);
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_ONLYSUB);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    /* This should also work becuase iterator holds to collection */
+    col_destroy_collection(peer);
+
+    printf("\n\nIteration (7 show headers only no END):\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        printf("%*s", depth * 4, "");
+        col_debug_item(item);
+
+    }
+    while(1);
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
     return EOK;
 }
 
