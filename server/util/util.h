@@ -21,6 +21,20 @@ void debug_fn(const char *format, ...);
 		{"debug-level",	'd', POPT_ARG_INT, &debug_level, 0, \
 		 "Debug level", NULL},
 
+/** \def DEBUG(level, body)
+    \brief macro to generate debug messages
+
+    \param level the debug level, please respect the following guidelines:
+      - 1 is for critical errors users may find it difficult to understand but
+        are still quite clear
+      - 2-4 is for stuff developers are interested in in general, but
+        shouldn't fill the screen with useless low level verbose stuff
+      - 5-6 is for errors you may want to track, but only if you explicitly
+        looking for additional clues
+      - 7-10 is for informational stuff
+
+    \param body the debug message you want to send, should end with \n
+*/
 #define DEBUG(level, body) do { \
     if (level <= debug_level) { \
         debug_fn("[%s] [%s] (%d): ", \
