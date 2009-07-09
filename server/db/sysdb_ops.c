@@ -3098,7 +3098,7 @@ struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
     char *salt;
     int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_cache_pw_state);
     if (!req) return NULL;
 
     state->ev = ev;
@@ -3170,7 +3170,8 @@ static void sysdb_cache_password_trans(struct tevent_req *subreq)
                                                   struct sysdb_cache_pw_state);
     int ret;
 
-    ret = sysdb_transaction_recv(req, state, &state->handle);
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
