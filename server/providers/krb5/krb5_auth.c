@@ -392,6 +392,7 @@ static ssize_t tgt_req_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 }
 
 static void krb5_pam_handler_done(struct tevent_req *req);
+static void krb5_pam_handler_cache_done(struct tevent_req *treq);
 
 static void krb5_pam_handler(struct be_req *be_req)
 {
@@ -446,6 +447,8 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     int32_t *msg_status;
     int32_t *msg_type;
     int32_t *msg_len;
+    struct tevent_req *subreq = NULL;
+    char *password = NULL;
 
     pd->pam_status = PAM_SYSTEM_ERR;
     krb5_cleanup(kr);
@@ -488,10 +491,50 @@ static void krb5_pam_handler_done(struct tevent_req *req)
 
     pd->pam_status = *msg_status;
 
+    if (pd->pam_status == PAM_SUCCESS &&
+        be_req->be_ctx->domain->cache_credentials == TRUE) {
+        password = talloc_size(be_req, pd->authtok_size + 1);
+        if (password == NULL) {
+            DEBUG(0, ("talloc_size failed, offline auth may not work.\n"));
+            goto done;
+        }
+        memcpy(password, pd->authtok, pd->authtok_size);
+        password[pd->authtok_size] = '\0';
+        talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
+
+        subreq = sysdb_cache_password_send(be_req, be_req->be_ctx->ev,
+                                           be_req->be_ctx->sysdb, NULL,
+                                           be_req->be_ctx->domain, pd->user,
+                                           password);
+        if (subreq == NULL) {
+            DEBUG(2, ("cache_password_send failed, offline auth may not work.\n"));
+            goto done;
+        }
+        tevent_req_set_callback(subreq, krb5_pam_handler_cache_done, be_req);
+
+        return;
+    }
 done:
     be_req->fn(be_req, pd->pam_status, NULL);
 }
 
+static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
+{
+    struct be_req *be_req = tevent_req_callback_data(subreq, struct be_req);
+    int ret;
+
+    /* password caching failures are not fatal errors */
+    ret = sysdb_cache_password_recv(subreq);
+    talloc_zfree(subreq);
+
+    /* so we just log it any return */
+    if (ret) {
+        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                  ret, strerror(ret)));
+    }
+
+    be_req->fn(be_req, PAM_SUCCESS, NULL);
+}
 
 struct be_auth_ops krb5_auth_ops = {
     .pam_handler = krb5_pam_handler,
