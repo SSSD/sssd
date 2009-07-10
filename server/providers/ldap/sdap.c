@@ -32,7 +32,7 @@ struct sdap_gen_opts default_basic_opts[] = {
     { "defaultAuthtok", NULL, NULL },
     { "network_timeout", "5", NULL },
     { "opt_timeout", "5", NULL },
-    { "tls_reqcert", "always", NULL },
+    { "tls_reqcert", "hard", NULL },
     { "userSearchBase", "dc=example,dc=com", NULL },
     { "userSearchScope", "sub", NULL },
     { "userSearchFilter", NULL, NULL },
