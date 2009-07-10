@@ -355,6 +355,10 @@ int col_insert_item_into_current(struct collection_item *collection,
                               "Adding header item to new collection.");
             collection = item;
         }
+        else {
+            TRACE_ERROR_STRING("Passed in item is invalid", "");
+            return EINVAL;
+        }
     }
     else {
         /* We can add items only to collections */
@@ -1243,6 +1247,9 @@ static int col_walk_items(struct collection_item *ci,
     TRACE_INFO_NUMBER("Mode flags:", mode_flags);
 
     /* Increase depth */
+    /* NOTE: The depth is increased at the entry to the function.
+     * and decreased right before the exit so it is safe to decrease it.
+     */
     (*depth)++;
 
     current = ci;
@@ -2605,18 +2612,23 @@ int col_bind_iterator(struct collection_iterator **iterator,
 
 /* Stop processing this subcollection and move to the next item in the
  * collection 'level' levels up.*/
-int col_iterate_up(struct collection_iterator *iterator, int level)
+int col_iterate_up(struct collection_iterator *iterator, unsigned level)
 {
     TRACE_FLOW_STRING("iterate_up", "Entry");
 
-    if ((iterator == NULL) || (level >= iterator->stack_depth)) {
+    if (iterator == NULL) {
         TRACE_ERROR_NUMBER("Invalid parameter.", EINVAL);
         return EINVAL;
     }
 
     TRACE_INFO_NUMBER("Going up:", level);
+    TRACE_INFO_NUMBER("Current stack depth:", iterator->stack_depth);
 
-    iterator->stack_depth--;
+    /* If level is big just move to the top,
+     * that will end the iteration process.
+     */
+    if (level >= iterator->stack_depth) iterator->stack_depth = 0;
+    else iterator->stack_depth -= level;
 
     TRACE_INFO_NUMBER("Stack depth at the end:", iterator->stack_depth);
     TRACE_FLOW_STRING("col_iterate_up", "Exit");

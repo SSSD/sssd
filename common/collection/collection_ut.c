@@ -676,13 +676,14 @@ int iterator_test(void)
             return error;
         }
 
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
         depth = 0;
         col_get_item_depth(iterator, &depth);
         idepth = 0;
         col_get_iterator_depth(iterator, &idepth);
 
-        /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
 
         printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
                 depth * 4,  "",
@@ -695,13 +696,7 @@ int iterator_test(void)
         if ((strcmp(col_get_item_property(item, NULL), "id")==0) &&
            (*((int *)(col_get_item_data(item))) == 1)) {
             printf("\n\nFound property we need - go up!!!\n\n\n");
-            error = col_iterate_up(iterator, 5);
-            if (!error) {
-                printf("We expected error but got seucces - bad.\n");
-                col_unbind_iterator(iterator);
-                col_destroy_collection(peer);
-                return -1;
-            }
+
             /* This should work! */
             error = col_iterate_up(iterator, 1);
             if (error) {
@@ -925,9 +920,6 @@ int iterator_test(void)
         return error;
     }
 
-    /* This should also work becuase iterator holds to collection */
-    col_destroy_collection(peer);
-
     printf("\n\nIteration (7 show headers only no END):\n\n");
 
     do {
@@ -936,6 +928,7 @@ int iterator_test(void)
         error = col_iterate_collection(iterator, &item);
         if (error) {
             printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
             col_unbind_iterator(iterator);
             return error;
         }
@@ -954,6 +947,65 @@ int iterator_test(void)
     /* Do not forget to unbind iterator - otherwise there will be a leak */
     col_unbind_iterator(iterator);
 
+
+    /* Bind iterator */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_DEFAULT);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    col_destroy_collection(peer);
+
+    printf("\n\nIterate up test:\n\n");
+
+    do {
+
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == (struct collection_item *)(NULL)) break;
+
+        depth = 0;
+        col_get_item_depth(iterator, &depth);
+        idepth = 0;
+        col_get_iterator_depth(iterator, &idepth);
+
+
+        printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
+                depth * 4,  "",
+                col_get_item_property(item, NULL),
+                col_get_item_type(item),
+                col_get_item_length(item),
+                depth,
+                idepth);
+
+        if (strcmp(col_get_item_property(item, NULL), "queue") == 0)  {
+
+            printf("\n\nFound property we need - go up!!!\n");
+            printf("Expect bail out of collection processing.\n\n");
+
+            /* This should work! */
+            error = col_iterate_up(iterator, 10);
+            if (error) {
+                printf("We expected success but got error %d\n", error);
+                col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
+                return error;
+            }
+
+        }
+    }
+    while(1);
+
+    col_unbind_iterator(iterator);
     return EOK;
 }
 

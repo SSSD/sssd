@@ -544,9 +544,11 @@ int col_iterate_collection(struct collection_iterator *iterator,
  * collection 'level' levels up.
  * The 'Level' parameter indicates how many levels up you want to jump.
  * If 0 - call is a no op.
- * If the depth is less than requested level function will return error EINVAL.
+ * If the depth is less then requested level the iterator will
+ * get to the 0 level and next call to col_iterate_collection
+ * will return NULL item.
  */
-int col_iterate_up(struct collection_iterator *iterator, int level);
+int col_iterate_up(struct collection_iterator *iterator, unsigned level);
 
 /* How deep are we relative to the top level.
  * This function might report depth that might look misleading.
