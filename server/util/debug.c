@@ -57,6 +57,8 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         return;
     }
 
-    DEBUG(loglevel, (message));
+    if (loglevel <= debug_level) {
+        debug_fn("[%s] [ldb] (%d): %s\n", debug_prg_name, loglevel, message);
+    }
     free(message);
 }

@@ -214,6 +214,7 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     el = ldb_msg_find_element(req->op.add.message, "memberof");
     if (el) {
         /* FIXME: should we simply filter it instead ? */
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "the memberof attrinbute is readonly");
         return LDB_ERR_CONSTRAINT_VIOLATION;
     }
 
@@ -251,9 +252,12 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     for (i = 0; i < el->num_values; i++) {
         valdn = ldb_dn_from_ldb_val(add_ctx, ldb, &el->values[i]);
         if (!valdn || !ldb_dn_validate(valdn)) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid dn value: [%s]",
+                                            (const char *)el->values[i].data);
             return LDB_ERR_INVALID_DN_SYNTAX;
         }
         if (ldb_dn_compare(valdn, req->op.add.message->dn) == 0) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE, "Adding self as member is not permitted!");
 		    ldb_set_errstring(ldb, "Adding self as member is not permitted!");
             return LDB_ERR_CONSTRAINT_VIOLATION;
         }
@@ -369,12 +373,14 @@ static int mbof_next_add_callback(struct ldb_request *req,
 {
     struct mbof_add_operation *addop;
     struct mbof_add_ctx *add_ctx;
+    struct ldb_context *ldb;
     struct mbof_ctx *ctx;
     int ret;
 
     addop = talloc_get_type(req->context, struct mbof_add_operation);
     add_ctx = addop->add_ctx;
     ctx = add_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -390,6 +396,9 @@ static int mbof_next_add_callback(struct ldb_request *req,
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
         if (addop->entry != NULL) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE,
+                           "Found multiple entries for (%s)",
+                           ldb_dn_get_linearized(addop->entry_dn));
             /* more than one entry per dn ?? db corrupted ? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
@@ -407,6 +416,8 @@ static int mbof_next_add_callback(struct ldb_request *req,
 
     case LDB_REPLY_DONE:
         if (addop->entry == NULL) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE, "Entry not found (%s)",
+                           ldb_dn_get_linearized(addop->entry_dn));
             /* this target does not exists, too bad! */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_CONSTRAINT_VIOLATION);
@@ -477,6 +488,8 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         for (i = 0; i < el->num_values; i++) {
             elval_dn = ldb_dn_from_ldb_val(tmp_ctx, ldb, &el->values[i]);
             if (!elval_dn) {
+                ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid DN in memberof [%s]",
+                                            (const char *)el->values[i].data);
                 talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
@@ -520,9 +533,14 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         for (i = 0; i < el->num_values; i++) {
             valdn = ldb_dn_from_ldb_val(add_ctx, ldb, &el->values[i]);
             if (!valdn) {
+                ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid DN in member [%s]",
+                                            (const char *)el->values[i].data);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
             if (!ldb_dn_validate(valdn)) {
+                ldb_debug(ldb, LDB_DEBUG_TRACE,
+                               "Invalid DN syntax for member [%s]",
+                                            (const char *)el->values[i].data);
                 return LDB_ERR_INVALID_DN_SYNTAX;
             }
             ret = mbof_append_addop(add_ctx, parents, valdn);
@@ -742,6 +760,7 @@ static int mbof_del_search_callback(struct ldb_request *req,
                                     struct ldb_reply *ares)
 {
     struct mbof_del_operation *first;
+    struct ldb_context *ldb;
     struct ldb_message *msg;
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
@@ -750,6 +769,7 @@ static int mbof_del_search_callback(struct ldb_request *req,
     first = talloc_get_type(req->context, struct mbof_del_operation);
     del_ctx = first->del_ctx;
     ctx = del_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -803,6 +823,9 @@ static int mbof_del_search_callback(struct ldb_request *req,
     case LDB_REPLY_DONE:
         if (first->entry == NULL) {
             /* this target does not exists, too bad! */
+            ldb_debug(ldb, LDB_DEBUG_TRACE,
+                           "Target entry (%s) not found",
+                           ldb_dn_get_linearized(first->entry_dn));
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_NO_SUCH_OBJECT);
         }
@@ -1025,6 +1048,9 @@ static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx)
     for (i = 0; i < el->num_values; i++) {
         valdn = ldb_dn_from_ldb_val(first, ldb, &el->values[i]);
         if (!valdn || !ldb_dn_validate(valdn)) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE,
+                           "Invalid dn syntax for member [%s]",
+                                        (const char *)el->values[i].data);
             return LDB_ERR_INVALID_DN_SYNTAX;
         }
         ret = mbof_append_delop(first, valdn);
@@ -1110,6 +1136,7 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
 {
     struct mbof_del_operation *delop;
     struct mbof_del_ctx *del_ctx;
+    struct ldb_context *ldb;
     struct mbof_ctx *ctx;
     struct ldb_message *msg;
     int ret;
@@ -1117,6 +1144,7 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
     delop = talloc_get_type(req->context, struct mbof_del_operation);
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -1136,6 +1164,9 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
         if (ldb_dn_compare(msg->dn, delop->entry_dn) == 0) {
 
             if (delop->entry != NULL) {
+                ldb_debug(ldb, LDB_DEBUG_TRACE,
+                               "Found multiple entries for (%s)",
+                               ldb_dn_get_linearized(delop->entry_dn));
                 /* more than one entry per dn ?? db corrupted ? */
                 return ldb_module_done(ctx->req, NULL, NULL,
                                        LDB_ERR_OPERATIONS_ERROR);
@@ -1312,6 +1343,9 @@ static int mbof_del_anc_callback(struct ldb_request *req,
         msg = ares->message;
 
         if (anc_ctx->entry != NULL) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE,
+                           "Found multiple entries for (%s)",
+                           ldb_dn_get_linearized(anc_ctx->entry->dn));
             /* more than one entry per dn ?? db corrupted ? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
@@ -1340,6 +1374,9 @@ static int mbof_del_anc_callback(struct ldb_request *req,
             for (i = 0; i < el->num_values; i++) {
                 valdn = ldb_dn_from_ldb_val(new_list, ldb, &el->values[i]);
                 if (!valdn) {
+                    ldb_debug(ldb, LDB_DEBUG_TRACE,
+                                   "Invalid dn for memberof: (%s)",
+                                   (const char *)el->values[i].data);
                     return ldb_module_done(ctx->req, NULL, NULL,
                                            LDB_ERR_OPERATIONS_ERROR);
                 }
@@ -1461,12 +1498,14 @@ static int mbof_del_mod_callback(struct ldb_request *req,
 {
     struct mbof_del_operation *delop;
     struct mbof_del_ctx *del_ctx;
+    struct ldb_context *ldb;
     struct mbof_ctx *ctx;
     int ret;
 
     delop = talloc_get_type(req->context, struct mbof_del_operation);
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -1481,6 +1520,7 @@ static int mbof_del_mod_callback(struct ldb_request *req,
 
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op ?!");
         /* shouldn't happen */
         talloc_free(ares);
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -1527,6 +1567,9 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
         for (i = 0; i < el->num_values; i++) {
             valdn = ldb_dn_from_ldb_val(delop, ldb, &el->values[i]);
             if (!valdn || !ldb_dn_validate(valdn)) {
+                ldb_debug(ldb, LDB_DEBUG_TRACE,
+                               "Invalid DN for member: (%s)",
+                               (const char *)el->values[i].data);
                 return LDB_ERR_INVALID_DN_SYNTAX;
             }
             ret = mbof_append_delop(delop, valdn);
@@ -1659,6 +1702,7 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
     /* fail operation if memberof is ever specified */
     el = ldb_msg_find_element(req->op.mod.message, "memberof");
     if (el) {
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "the memberof attrinbute is readonly");
         /* FIXME: should we simply filter it instead ? */
         return LDB_ERR_CONSTRAINT_VIOLATION;
     }
@@ -1704,11 +1748,13 @@ static int mbof_mod_callback(struct ldb_request *req,
                              struct ldb_reply *ares)
 {
     struct mbof_mod_ctx *mod_ctx;
+    struct ldb_context *ldb;
     struct mbof_ctx *ctx;
     int ret;
 
     mod_ctx = talloc_get_type(req->context, struct mbof_mod_ctx);
     ctx = mod_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
 
     if (!ares) {
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -1724,6 +1770,9 @@ static int mbof_mod_callback(struct ldb_request *req,
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
         if (mod_ctx->entry != NULL) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE,
+                           "Found multiple entries for (%s)",
+                           ldb_dn_get_linearized(mod_ctx->entry->dn));
             /* more than one entry per dn ?? db corrupted ? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
@@ -1741,6 +1790,8 @@ static int mbof_mod_callback(struct ldb_request *req,
 
     case LDB_REPLY_DONE:
         if (mod_ctx->entry == NULL) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE, "Entry not found (%s)",
+                           ldb_dn_get_linearized(req->op.mod.message->dn));
             /* this target does not exists, too bad! */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_NO_SUCH_OBJECT);
@@ -1804,6 +1855,7 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
 
 	if (ares->type != LDB_REPLY_DONE) {
 		talloc_free(ares);
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid reply type!");
 		ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
@@ -2073,6 +2125,8 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
     for (i = 0; i < ar->num; i++) {
         valdn = ldb_dn_from_ldb_val(ar, ldb, &el->values[i]);
         if (!valdn || !ldb_dn_validate(valdn)) {
+            ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid dn value: [%s]",
+                                            (const char *)el->values[i].data);
             return LDB_ERR_INVALID_DN_SYNTAX;
         }
         ar->dns[i] = valdn;
