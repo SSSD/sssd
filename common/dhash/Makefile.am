@@ -1,4 +1,10 @@
-AM_CPPFLAGS = -Wall
+AM_CFLAGS =
+if HAVE_GCC
+    AM_CFLAGS += \
+        -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual \
+        -Wcast-align -Wwrite-strings
+endif
+
 ACLOCAL_AMFLAGS = -I m4
 
 pkgconfigdir = $(libdir)/pkgconfig

@@ -11,6 +11,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.17])
 
+AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
+
 m4_pattern_allow([AM_SILENT_RULES])
 AM_SILENT_RULES
 

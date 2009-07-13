@@ -2,7 +2,16 @@
 TRACE_LEVEL=@TRACE_VAR@
 
 topdir=$(srcdir)/..
-AM_CPPFLAGS = -Wall -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
+
+AM_CFLAGS =
+if HAVE_GCC
+    AM_CFLAGS += \
+        -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith -Wcast-qual \
+        -Wcast-align -Wwrite-strings
+endif
+
+AM_CPPFLAGS = -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
+
 ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
