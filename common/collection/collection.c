@@ -384,6 +384,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                     current = parent->next;
                                     item->next = current->next;
                                     parent->next = item;
+                                    if (header->last == current) header->last = item;
                                     col_delete_item(current);
                                     header->count--;
                                     TRACE_FLOW_STRING("col_insert_item_into_current", "Dup overwrite exit");
@@ -397,6 +398,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                     current = parent->next;
                                     item->next = current->next;
                                     parent->next = item;
+                                    if (header->last == current) header->last = item;
                                     col_delete_item(current);
                                     header->count--;
                                     TRACE_FLOW_STRING("col_insert_item_into_current", "Dup overwrite exit");
