@@ -26,15 +26,40 @@
 #include "db/sysdb.h"
 
 struct be_ctx;
-struct be_id_ops;
-struct be_auth_ops;
+struct bet_ops;
 struct be_req;
 
-typedef int (*be_id_init_fn_t)(TALLOC_CTX *, struct be_id_ops **, void **);
-typedef int (*be_auth_init_fn_t)(TALLOC_CTX *, struct be_auth_ops **, void **);
+typedef int (*bet_init_fn_t)(TALLOC_CTX *, struct bet_ops **, void **);
 typedef void (*be_shutdown_fn)(void *);
 typedef void (*be_req_fn_t)(struct be_req *);
 typedef void (*be_async_callback_t)(struct be_req *, int, const char *);
+
+enum bet_type {
+    BET_NULL = 0,
+    BET_ID,
+    BET_AUTH,
+    BET_ACCESS,
+    BET_CHPASS,
+    BET_MAX
+};
+
+struct bet_data {
+    enum bet_type bet_type;
+    const char *option_name;
+    const char *mod_init_fn_name_fmt;
+};
+
+struct loaded_be {
+    char *be_name;
+    void *handle;
+};
+
+struct bet_info {
+    enum bet_type bet_type;
+    struct bet_ops *bet_ops;
+    void *pvt_bet_data;
+};
+
 
 struct be_ctx {
     struct tevent_context *ev;
@@ -47,21 +72,13 @@ struct be_ctx {
     const char *identity;
     const char *conf_path;
 
-    struct be_id_ops *id_ops;
-    void *pvt_id_data;
-
-    struct be_auth_ops *auth_ops;
-    void *pvt_auth_data;
+    struct loaded_be loaded_be[BET_MAX];
+    struct bet_info bet_info[BET_MAX];
 };
 
-struct be_id_ops {
+struct bet_ops {
     be_req_fn_t check_online;
-    be_req_fn_t get_account_info;
-    be_req_fn_t finalize;
-};
-
-struct be_auth_ops {
-    be_req_fn_t pam_handler;
+    be_req_fn_t handler;
     be_req_fn_t finalize;
 };
 

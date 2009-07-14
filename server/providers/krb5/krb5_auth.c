@@ -88,7 +88,7 @@ static int krb5_setup(struct be_req *req, struct krb5_req **krb5_req)
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
-    krb5_ctx = talloc_get_type(req->be_ctx->pvt_auth_data, struct krb5_ctx);
+    krb5_ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct krb5_ctx);
 
     kr = talloc_zero(req, struct krb5_req);
     if (kr == NULL) {
@@ -536,13 +536,14 @@ static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
     be_req->fn(be_req, PAM_SUCCESS, NULL);
 }
 
-struct be_auth_ops krb5_auth_ops = {
-    .pam_handler = krb5_pam_handler,
+struct bet_ops krb5_auth_ops = {
+    .check_online = NULL,
+    .handler = krb5_pam_handler,
     .finalize = NULL,
 };
 
 
-int sssm_krb5_auth_init(struct be_ctx *bectx, struct be_auth_ops **ops,
+int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
                    void **pvt_auth_data)
 {
     struct krb5_ctx *ctx = NULL;

@@ -71,6 +71,17 @@ struct sbus_method be_methods[] = {
     { NULL, NULL }
 };
 
+static struct bet_data bet_data[] = {
+    {BET_NULL, NULL, NULL},
+    {BET_ID, "provider", "sssm_%s_init"},
+    {BET_AUTH, "auth-module", "sssm_%s_auth_init"},
+    {BET_ACCESS, "access-module", "sssm_%s_access_init"},
+    {BET_CHPASS, "chpass-module", "sssm_%s_chpass_init"},
+    {BET_MAX, NULL, NULL}
+};
+
+
+
 static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
@@ -303,7 +314,7 @@ static int be_check_online(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
     be_req->req_data = req;
 
-    ret = be_file_request(ctx, ctx->id_ops->check_online, be_req);
+    ret = be_file_request(ctx, ctx->bet_info[BET_ID].bet_ops->check_online, be_req);
     if (ret != EOK) {
         online = MOD_OFFLINE;
         err_maj = DP_ERR_FATAL;
@@ -480,7 +491,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn
 
     be_req->req_data = req;
 
-    ret = be_file_request(ctx, ctx->id_ops->get_account_info, be_req);
+    ret = be_file_request(ctx, ctx->bet_info[BET_ID].bet_ops->handler, be_req);
     if (ret != EOK) {
         err_maj = DP_ERR_FATAL;
         err_min = ret;
@@ -548,6 +559,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     struct pam_data *pd = NULL;
     struct be_req *be_req = NULL;
     uint32_t pam_status = PAM_SYSTEM_ERR;
+    enum bet_type target = BET_NULL;
 
     user_data = sbus_conn_get_private_data(sconn);
     if (!user_data) return EINVAL;
@@ -560,10 +572,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
         talloc_free(pd);
         return ENOMEM;
     }
-
-    /* return an error if no auth backend is configured */
-    if (!ctx->auth_ops)
-        goto done;
 
     pd = talloc_zero(ctx, struct pam_data);
     if (!pd) return ENOMEM;
@@ -580,6 +588,29 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     DEBUG(4, ("Got request with the following data\n"));
     DEBUG_PAM_DATA(4, pd);
 
+    switch (pd->cmd) {
+        case SSS_PAM_AUTHENTICATE:
+            target = BET_AUTH;
+            break;
+        case SSS_PAM_ACCT_MGMT:
+            target = BET_ACCESS;
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            target = BET_CHPASS;
+            break;
+        default:
+            DEBUG(7, ("Unsupported PAM command [%d].\n", pd->cmd));
+            pam_status = PAM_SUCCESS;
+            ret = EOK;
+            goto done;
+    }
+
+    /* return an error if corresponding backend target is configured */
+    if (!ctx->bet_info[target].bet_ops) {
+        DEBUG(7, ("Undefined backend target.\n"));
+        goto done;
+    }
+
     be_req = talloc_zero(ctx, struct be_req);
     if (!be_req)
         goto done;
@@ -589,7 +620,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     be_req->pvt = reply;
     be_req->req_data = pd;
 
-    ret = be_file_request(ctx, ctx->auth_ops->pam_handler, be_req);
+    ret = be_file_request(ctx, ctx->bet_info[target].bet_ops->handler, be_req);
     if (ret != EOK)
         goto done;
 
@@ -769,9 +800,9 @@ static void be_id_shutdown(struct be_req *req, int status, const char *errstr)
     shutdown_req->be_ctx = ctx;
     shutdown_req->fn = be_id_shutdown;
 
-    shutdown_req->pvt = ctx->pvt_id_data;
+    shutdown_req->pvt = ctx->bet_info[BET_ID].pvt_bet_data;
 
-    ret = be_file_request(ctx, ctx->id_ops->finalize, shutdown_req);
+    ret = be_file_request(ctx, ctx->bet_info[BET_ID].bet_ops->finalize, shutdown_req);
     if (ret == EOK)
         return;
 
@@ -793,9 +824,9 @@ static int be_finalize(struct be_ctx *ctx)
 
     shutdown_req->be_ctx = ctx;
     shutdown_req->fn = be_id_shutdown;
-    shutdown_req->pvt = ctx->pvt_auth_data;
+    shutdown_req->pvt = ctx->bet_info[BET_AUTH].pvt_bet_data;
 
-    ret = be_file_request(ctx, ctx->auth_ops->finalize, shutdown_req);
+    ret = be_file_request(ctx, ctx->bet_info[BET_AUTH].bet_ops->finalize, shutdown_req);
     if (ret == EOK) return EOK;
 
 fail:
@@ -804,80 +835,51 @@ fail:
     return ret;
 }
 
-static int load_id_backend(struct be_ctx *ctx)
+static void be_target_access_permit(struct be_req *be_req)
 {
-    TALLOC_CTX *tmp_ctx;
-    char *path;
-    void *handle;
-    char *mod_init_fn_name;
-    be_id_init_fn_t mod_init_fn;
-    int ret;
+    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
+    DEBUG(9, ("be_target_access_permit called, returning PAM_SUCCESS.\n"));
 
-    tmp_ctx = talloc_new(ctx);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
-                           DATA_PROVIDER_PLUGINS_PATH, ctx->name);
-    if (!path) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    handle = dlopen(path, RTLD_NOW);
-    if (!handle) {
-        DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
-                  ctx->name, path, dlerror()));
-        ret = ELIBACC;
-        goto done;
-    }
-
-    mod_init_fn_name = talloc_asprintf(tmp_ctx, "sssm_%s_init", ctx->name);
-    if (!mod_init_fn_name) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    mod_init_fn = (be_id_init_fn_t)dlsym(handle, mod_init_fn_name);
-    if (!mod_init_fn) {
-        DEBUG(0, ("Unable to load init fn from module %s, error: %s\n",
-                  ctx->name, dlerror()));
-        ret = ELIBBAD;
-        goto done;
-    }
-
-    ret = mod_init_fn(ctx, &ctx->id_ops, &ctx->pvt_id_data);
-    if (ret != EOK) {
-        DEBUG(0, ("Error (%d) in module (%s) initialization!\n",
-                  ret, ctx->name));
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
+    pd->pam_status = PAM_SUCCESS;
+    be_req->fn(be_req, PAM_SUCCESS, NULL);
 }
 
-static int load_auth_backend(struct be_ctx *ctx)
+static struct bet_ops be_target_access_permit_ops = {
+    .check_online = NULL,
+    .handler = be_target_access_permit,
+    .finalize = NULL
+};
+
+static int load_backend_module(struct be_ctx *ctx,
+                               enum bet_type bet_type,
+                               struct bet_ops **be_ops,
+                               void **be_pvt_data)
 {
     TALLOC_CTX *tmp_ctx;
-    char *mod_name;
-    char *path;
+    int ret = EINVAL;
+    bool already_loaded = false;
+    int lb=0;
+    char *mod_name = NULL;
+    char *path = NULL;
     void *handle;
-    char *mod_init_fn_name;
-    be_auth_init_fn_t mod_init_fn;
-    int ret;
+    char *mod_init_fn_name = NULL;
+    bet_init_fn_t mod_init_fn = NULL;
+
+    if (bet_type <= BET_NULL || bet_type >= BET_MAX ||
+        bet_type != bet_data[bet_type].bet_type) {
+        DEBUG(2, ("invalid bet_type or bet_data corrupted.\n"));
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(ctx);
     if (!tmp_ctx) {
+        DEBUG(7, ("talloc_new failed.\n"));
         return ENOMEM;
     }
 
     ret = confdb_get_string(ctx->cdb, tmp_ctx, ctx->conf_path,
-                            "auth-module", NULL, &mod_name);
+                            bet_data[bet_type].option_name, NULL,
+                            &mod_name);
     if (ret != EOK) {
         ret = EFAULT;
         goto done;
@@ -887,39 +889,65 @@ static int load_auth_backend(struct be_ctx *ctx)
         goto done;
     }
 
-    path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
-                           DATA_PROVIDER_PLUGINS_PATH, mod_name);
-    if (!path) {
+    mod_init_fn_name = talloc_asprintf(tmp_ctx,
+                                       bet_data[bet_type].mod_init_fn_name_fmt,
+                                       mod_name);
+    if (mod_init_fn_name == NULL) {
+        DEBUG(7, ("talloc_asprintf failed\n"));
         ret = ENOMEM;
         goto done;
     }
 
-    handle = dlopen(path, RTLD_NOW);
-    if (!handle) {
-        DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
-                  mod_name, path, dlerror()));
-        ret = ELIBACC;
-        goto done;
+
+    lb = 0;
+    while(ctx->loaded_be[lb].be_name != NULL) {
+        if (strncmp(ctx->loaded_be[lb].be_name, mod_name,
+                    strlen(mod_name)) == 0) {
+            DEBUG(7, ("Backend [%s] already loaded.\n", mod_name));
+            already_loaded = true;
+            break;
+        }
+
+        ++lb;
+        if (lb >= BET_MAX) {
+            DEBUG(2, ("Backend context corrupted.\n"));
+            return EINVAL;
+        }
     }
 
-    mod_init_fn_name = talloc_asprintf(tmp_ctx, "sssm_%s_auth_init", mod_name);
-    if (!mod_init_fn_name) {
-        ret = ENOMEM;
-        goto done;
+    if (!already_loaded) {
+        path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
+                               DATA_PROVIDER_PLUGINS_PATH, mod_name);
+        if (!path) {
+            return ENOMEM;
+        }
+
+        DEBUG(7, ("Loading backend [%s] with path [%s].\n", mod_name, path));
+        handle = dlopen(path, RTLD_NOW);
+        if (!handle) {
+            DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
+                      mod_name, path, dlerror()));
+            ret = ELIBACC;
+            goto done;
+        }
+
+        ctx->loaded_be[lb].be_name = talloc_strdup(ctx, mod_name);
+        ctx->loaded_be[lb].handle = handle;
     }
 
-    mod_init_fn = (be_auth_init_fn_t)dlsym(handle, mod_init_fn_name);
-    if (!mod_init_fn) {
-        DEBUG(0, ("Unable to load init fn from module %s, error: %s\n",
-                  mod_name, dlerror()));
+    mod_init_fn = (bet_init_fn_t)dlsym(ctx->loaded_be[lb].handle,
+                                           mod_init_fn_name);
+    if (mod_init_fn == NULL) {
+        DEBUG(0, ("Unable to load init fn %s from module %s, error: %s\n",
+                  mod_init_fn_name, mod_name, dlerror()));
         ret = ELIBBAD;
         goto done;
     }
 
-    ret = mod_init_fn(ctx, &ctx->auth_ops, &ctx->pvt_auth_data);
+    ret = mod_init_fn(ctx, be_ops, be_pvt_data);
     if (ret != EOK) {
-        DEBUG(0, ("Error (%d) in module (%s) initialization!\n",
-                  ret, mod_name));
+        DEBUG(0, ("Error (%d) in module (%s) initialization (%s)!\n",
+                  ret, mod_name, mod_init_fn_name));
         goto done;
     }
 
@@ -978,19 +1006,49 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = load_id_backend(ctx);
+    ret = load_backend_module(ctx, BET_ID,
+                              &ctx->bet_info[BET_ID].bet_ops,
+                              &ctx->bet_info[BET_ID].pvt_bet_data);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing data providers\n"));
         return ret;
     }
 
-    ret = load_auth_backend(ctx);
+    ret = load_backend_module(ctx, BET_AUTH,
+                              &ctx->bet_info[BET_AUTH].bet_ops,
+                              &ctx->bet_info[BET_AUTH].pvt_bet_data);
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(0, ("fatal error initializing data providers\n"));
             return ret;
         }
         DEBUG(1, ("No authentication module provided for [%s] !!\n",
+                  be_domain));
+    }
+
+    ret = load_backend_module(ctx, BET_ACCESS,
+                              &ctx->bet_info[BET_ACCESS].bet_ops,
+                              &ctx->bet_info[BET_ACCESS].pvt_bet_data);
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(0, ("fatal error initializing data providers\n"));
+            return ret;
+        }
+        DEBUG(1, ("No access control module provided for [%s] "
+                  "using be_target_access_permit!!\n", be_domain));
+        ctx->bet_info[BET_ACCESS].bet_ops = &be_target_access_permit_ops;
+        ctx->bet_info[BET_ACCESS].pvt_bet_data = NULL;
+    }
+
+    ret = load_backend_module(ctx, BET_CHPASS,
+                              &ctx->bet_info[BET_CHPASS].bet_ops,
+                              &ctx->bet_info[BET_CHPASS].pvt_bet_data);
+    if (ret != EOK) {
+        if (ret != ENOENT) {
+            DEBUG(0, ("fatal error initializing data providers\n"));
+            return ret;
+        }
+        DEBUG(1, ("No change password module provided for [%s] !!\n",
                   be_domain));
     }
 
@@ -1008,28 +1066,28 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     int ret;
 
-	struct poptOption long_options[] = {
-		POPT_AUTOHELP
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
         SSSD_MAIN_OPTS
         {"provider", 0, POPT_ARG_STRING, &be_name, 0,
          "Information Provider", NULL },
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
          "Domain of the information provider", NULL },
-		{ NULL }
-	};
+        POPT_TABLEEND
+    };
 
-	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-	while((opt = poptGetNextOpt(pc)) != -1) {
-		switch(opt) {
-		default:
-			fprintf(stderr, "\nInvalid option %s: %s\n\n",
-				  poptBadOption(pc, 0), poptStrerror(opt));
-			poptPrintUsage(pc, stderr, 0);
-			return 1;
-		}
-	}
+    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    while((opt = poptGetNextOpt(pc)) != -1) {
+        switch(opt) {
+        default:
+        fprintf(stderr, "\nInvalid option %s: %s\n\n",
+                  poptBadOption(pc, 0), poptStrerror(opt));
+            poptPrintUsage(pc, stderr, 0);
+            return 1;
+        }
+    }
 
-	poptFreeContext(pc);
+    poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
     srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_name);

@@ -61,7 +61,7 @@ static void sdap_check_online(struct be_req *req)
     struct be_online_req *oreq;
     struct sdap_id_ctx *ctx;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_id_data, struct sdap_id_ctx);
+    ctx = talloc_get_type(req->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
     oreq = talloc_get_type(req->req_data, struct be_online_req);
 
     if (is_offline(ctx)) {
@@ -674,7 +674,7 @@ static void sdap_get_account_info(struct be_req *breq)
     const char *err = "Unknown Error";
     int ret = EOK;
 
-    ctx = talloc_get_type(breq->be_ctx->pvt_id_data, struct sdap_id_ctx);
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
 
     if (is_offline(ctx)) {
         return sdap_req_done(breq, EAGAIN, "Offline");
@@ -753,14 +753,14 @@ static void sdap_shutdown(struct be_req *req)
     sdap_req_done(req, EOK, NULL);
 }
 
-struct be_id_ops sdap_id_ops = {
+struct bet_ops sdap_id_ops = {
     .check_online = sdap_check_online,
-    .get_account_info = sdap_get_account_info,
+    .handler = sdap_get_account_info,
     .finalize = sdap_shutdown
 };
 
 int sssm_ldap_init(struct be_ctx *bectx,
-                   struct be_id_ops **ops,
+                   struct bet_ops **ops,
                    void **pvt_data)
 {
     int ldap_opt_x_tls_require_cert;

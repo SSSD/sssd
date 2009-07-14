@@ -322,7 +322,7 @@ static void sdap_pam_auth_send(struct be_req *breq)
     struct tevent_req *subreq;
     struct pam_data *pd;
 
-    ctx = talloc_get_type(breq->be_ctx->pvt_auth_data, struct sdap_auth_ctx);
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct sdap_auth_ctx);
     pd = talloc_get_type(breq->req_data, struct pam_data);
 
     pd->pam_status = PAM_SYSTEM_ERR;
@@ -447,13 +447,14 @@ static void sdap_shutdown(struct be_req *req)
     req->fn(req, EOK, NULL);
 }
 
-struct be_auth_ops sdap_auth_ops = {
-    .pam_handler = sdap_pam_auth_send,
+struct bet_ops sdap_auth_ops = {
+    .check_online = NULL,
+    .handler = sdap_pam_auth_send,
     .finalize = sdap_shutdown
 };
 
 int sssm_ldap_auth_init(struct be_ctx *bectx,
-                        struct be_auth_ops **ops,
+                        struct bet_ops **ops,
                         void **pvt_data)
 {
     int ldap_opt_x_tls_require_cert;

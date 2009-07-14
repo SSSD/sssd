@@ -87,7 +87,7 @@ static void go_offline(struct be_ctx *be_ctx)
     struct timeval timeout;
     int ret;
 
-    ctx = talloc_get_type(be_ctx->pvt_id_data, struct proxy_ctx);
+    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
 
     ret = gettimeofday(&timeout, NULL);
     if (ret == -1) {
@@ -109,7 +109,7 @@ static bool is_offline(struct be_ctx *be_ctx)
 {
     struct proxy_ctx *ctx;
 
-    ctx = talloc_get_type(be_ctx->pvt_id_data, struct proxy_ctx);
+    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
 
     return ctx->offline;
 }
@@ -171,7 +171,7 @@ static void proxy_pam_handler(struct be_req *req) {
     struct proxy_auth_ctx *ctx;;
     bool cache_auth_data = false;
 
-    ctx = talloc_get_type(req->be_ctx->pvt_auth_data, struct proxy_auth_ctx);
+    ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct proxy_auth_ctx);
     pd = talloc_get_type(req->req_data, struct pam_data);
 
     conv.conv=proxy_internal_conv;
@@ -1892,7 +1892,7 @@ static void proxy_get_account_info(struct be_req *breq)
     gid_t gid;
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
-    ctx = talloc_get_type(breq->be_ctx->pvt_id_data, struct proxy_ctx);
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
     ev = breq->be_ctx->ev;
     sysdb = breq->be_ctx->sysdb;
     domain = breq->be_ctx->domain;
@@ -2053,18 +2053,19 @@ static void proxy_shutdown(struct be_req *req)
 
 static void proxy_auth_shutdown(struct be_req *req)
 {
-    talloc_free(req->be_ctx->pvt_auth_data);
+    talloc_free(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data);
     req->fn(req, EOK, NULL);
 }
 
-struct be_id_ops proxy_id_ops = {
+struct bet_ops proxy_id_ops = {
     .check_online = proxy_check_online,
-    .get_account_info = proxy_get_account_info,
+    .handler = proxy_get_account_info,
     .finalize = proxy_shutdown
 };
 
-struct be_auth_ops proxy_auth_ops = {
-    .pam_handler = proxy_pam_handler,
+struct bet_ops proxy_auth_ops = {
+    .check_online = proxy_check_online,
+    .handler = proxy_pam_handler,
     .finalize = proxy_auth_shutdown
 };
 
@@ -2083,7 +2084,7 @@ static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
 }
 
 int sssm_proxy_init(struct be_ctx *bectx,
-                    struct be_id_ops **ops, void **pvt_data)
+                    struct bet_ops **ops, void **pvt_data)
 {
     struct proxy_ctx *ctx;
     char *libname;
@@ -2209,7 +2210,7 @@ done:
 }
 
 int sssm_proxy_auth_init(struct be_ctx *bectx,
-                         struct be_auth_ops **ops, void **pvt_data)
+                         struct bet_ops **ops, void **pvt_data)
 {
     struct proxy_auth_ctx *ctx;
     int ret;
