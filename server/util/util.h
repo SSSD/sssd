@@ -8,6 +8,7 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <time.h>
 #include "config.h"
 #include "talloc.h"
 #include "tevent.h"
@@ -15,11 +16,14 @@
 
 extern const char *debug_prg_name;
 extern int debug_level;
+extern int debug_timestamps;
 void debug_fn(const char *format, ...);
 
 #define SSSD_DEBUG_OPTS \
 		{"debug-level",	'd', POPT_ARG_INT, &debug_level, 0, \
-		 "Debug level", NULL},
+		 "Debug level", NULL}, \
+		{"debug-timestamps", 0, POPT_ARG_NONE, &debug_timestamps, 0, \
+		 "Add debug timestamps", NULL},
 
 /** \def DEBUG(level, body)
     \brief macro to generate debug messages
@@ -37,8 +41,13 @@ void debug_fn(const char *format, ...);
 */
 #define DEBUG(level, body) do { \
     if (level <= debug_level) { \
-        debug_fn("[%s] [%s] (%d): ", \
-                 debug_prg_name, __FUNCTION__, level); \
+        if (debug_timestamps) { \
+            debug_fn("(%010ld) [%s] [%s] (%d): ", \
+                     (long)time(NULL), debug_prg_name, __FUNCTION__, level); \
+        } else { \
+            debug_fn("[%s] [%s] (%d): ", \
+                     debug_prg_name, __FUNCTION__, level); \
+        } \
         debug_fn body; \
     } \
 } while(0);

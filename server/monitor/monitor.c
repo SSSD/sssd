@@ -763,9 +763,11 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     }
 
     if (!svc->command) {
-        svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d",
-                                       SSSD_LIBEXEC_PATH, svc->name,
-                                       debug_level);
+        svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d%s",
+                                       SSSD_LIBEXEC_PATH,
+                                       svc->name, debug_level,
+                                       (debug_timestamps?
+                                              " --debug-timestamps":""));
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
@@ -870,8 +872,9 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     /* if there are no custom commands, build a default one */
     if (!svc->command) {
         svc->command = talloc_asprintf(svc,
-                            "%s/sssd_be -d %d --provider %s --domain %s",
+                            "%s/sssd_be -d %d%s --provider %s --domain %s",
                             SSSD_LIBEXEC_PATH, debug_level,
+                            (debug_timestamps?" --debug-timestamps":""),
                             svc->provider, svc->name);
         if (!svc->command) {
             talloc_free(svc);

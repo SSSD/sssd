@@ -7,6 +7,7 @@
 
 const char *debug_prg_name = "sssd";
 int debug_level = 0;
+int debug_timestamps = 0;
 
 void debug_fn(const char *format, ...)
 {
@@ -58,7 +59,13 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
     }
 
     if (loglevel <= debug_level) {
-        debug_fn("[%s] [ldb] (%d): %s\n", debug_prg_name, loglevel, message);
+        if (debug_timestamps) {
+            debug_fn("(%010ld) [%s] [ldb] (%d): %s\n",
+                     (long)time(NULL), debug_prg_name, loglevel, message);
+        } else {
+            debug_fn("[%s] [ldb] (%d): %s\n",
+                     debug_prg_name, loglevel, message);
+        }
     }
     free(message);
 }

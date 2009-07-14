@@ -253,6 +253,7 @@ int server_setup(const char *name, int flags,
     uint16_t stdin_event_flags;
     char *conf_db;
     int ret = EOK;
+    bool dt;
 
     debug_prg_name = strdup(name);
     if (!debug_prg_name) {
@@ -323,6 +324,17 @@ int server_setup(const char *name, int flags,
                   ret, strerror(ret)));
         return ret;
     }
+
+    /* same for debug timestamps */
+    dt = (debug_timestamps != 0);
+    ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+                          "debug-timestamps", dt, &dt);
+    if (ret != EOK) {
+        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                  ret, strerror(ret)));
+        return ret;
+    }
+    if (dt) debug_timestamps = 1;
 
     if (flags & FLAGS_INTERACTIVE) {
         /* terminate when stdin goes away */
