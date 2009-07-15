@@ -34,7 +34,7 @@ int basic_test(void)
     struct collection_item *ini_config = NULL;
     struct collection_item *error_set = NULL;
 
-    error = config_for_app("test", "./ini/ini.conf", "./ini/ini.d",
+    error = config_for_app("test", "./ini.conf", "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n",error);
@@ -63,14 +63,14 @@ int single_file(void)
     struct collection_item *error_set = NULL;
     struct collection_item *lines = NULL;
 
-    error = config_from_file("test", "./ini/not_exist_ini.conf",
+    error = config_from_file("test", "./not_exist_ini.conf",
                              &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
         printf("Attempt to read configuration returned error: %d. EXPECTED.\n\n", error);
         if(error != ENOENT) return error;
     }
 
-    error = config_from_file("test", "./ini/ini.conf", &ini_config, INI_STOP_ON_NONE, &error_set);
+    error = config_from_file("test", "./ini.conf", &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n",error);
         return error;
@@ -94,7 +94,7 @@ int single_file(void)
 
     printf("TEST WITH LINES\n");
 
-    error = config_from_file_with_lines("test", "./ini/ini.conf",
+    error = config_from_file_with_lines("test", "./ini.conf",
                                         &ini_config, INI_STOP_ON_NONE,
                                         &error_set, &lines);
     if (error) {
@@ -176,7 +176,7 @@ int real_test(const char *file)
 
     printf("\n\n===== REAL TEST START ======\n");
     printf("Reading collection\n");
-    error = config_for_app("real", file, "./ini/ini.d",
+    error = config_for_app("real", file, "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n", error);
@@ -269,7 +269,7 @@ int get_test(void)
 
     printf("\n\n===== GET TEST START ======\n");
     printf("Reading collection\n");
-    error = config_for_app("real", NULL, "./ini/ini.d",
+    error = config_for_app("real", NULL, "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n", error);
@@ -805,7 +805,7 @@ int main(int argc, char *argv[])
         (error = single_file()) ||
         (error = real_test(NULL)) ||
          /* This should result in merged configuration */
-        (error = real_test("./ini/ini.conf")) ||
+        (error = real_test("./ini.conf")) ||
         (error = get_test())) {
         printf("Test failed! Error %d.\n", error);
         return -1;

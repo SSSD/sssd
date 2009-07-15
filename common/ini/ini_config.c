@@ -148,39 +148,6 @@ int read_line(FILE *file,
               int *length,
               int *ext_error);
 
-/* Add to collection or update - CONSIDER moving to the collection.c */
-static int add_or_update(struct collection_item *current_section,
-                         char *key,
-                         void *value,
-                         int length,
-                         int type)
-{
-    int found = COL_NOMATCH;
-    int error;
-
-    TRACE_FLOW_STRING("add_or_update", "Entry");
-
-    error = col_is_item_in_collection(current_section, key,
-                                      COL_TYPE_ANY,
-                                      COL_TRAVERSE_IGNORE,
-                                      &found);
-
-    if (found == COL_MATCH) {
-        TRACE_INFO_STRING("Updating...", "");
-        error = col_update_property(current_section,
-                                    key, type, value, length,
-                                    COL_TRAVERSE_IGNORE);
-    }
-    else {
-        TRACE_INFO_STRING("Adding...", "");
-        error = col_add_any_property(current_section, NULL,
-                                     key, type, value, length);
-    }
-
-    TRACE_FLOW_NUMBER("add_or_update returning", error);
-    return error;
-}
-
 /***************************************************************************/
 /* Function to read single ini file and pupulate
  * the provided collection with subcollcetions from the file */
@@ -280,8 +247,15 @@ static int ini_to_collection(const char *filename,
             }
 
             /* Put value into the collection */
-            error = add_or_update(current_section,
-                                  key, value, length, COL_TYPE_STRING);
+            error = col_insert_str_property(current_section,
+                                            NULL,
+                                            COL_DSP_END,
+                                            NULL,
+                                            0,
+                                            COL_INSERT_DUPOVER,
+                                            key,
+                                            value,
+                                            length);
             if (error != EOK) {
                 TRACE_ERROR_NUMBER("Failed to add pair to collection", error);
                 fclose(file);
