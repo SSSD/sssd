@@ -140,7 +140,7 @@ static int col_validate_property(const char *property)
 
     check = property;
     while (*check != '\0') {
-        if ((!isalnum(*check)) && (!ispunct(*check))) {
+        if (((!isalnum(*check)) && (!ispunct(*check))) || (*check == '.')) {
             invalid = 1;
             break;
         }
@@ -227,7 +227,7 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
     item->property_len = 0;
 
     while (property[item->property_len] != 0) {
-        item->phash = item->phash ^ property[item->property_len];
+        item->phash = item->phash ^ toupper(property[item->property_len]);
         item->phash *= FNV1a_prime;
         item->property_len++;
     }
@@ -301,7 +301,7 @@ static int col_find_property(struct collection_item *collection,
 
     /* Create hash of the string to search */
     while(refprop[i] != 0) {
-        ps.hash = ps.hash ^ refprop[i];
+        ps.hash = ps.hash ^ toupper(refprop[i]);
         ps.hash *= FNV1a_prime;
         i++;
     }
@@ -1125,6 +1125,7 @@ struct path_data {
 struct find_name {
     const char *name_to_find;
     int name_len_to_find;
+    uint64_t hash;
     int type_to_match;
     char *given_name;
     int given_len;
@@ -1197,6 +1198,7 @@ static int col_match_item(struct collection_item *current,
     TRACE_FLOW_STRING("col_match_item", "Entry");
 
     if (traverse_data->type_to_match & current->type) {
+
         /* Check if there is any value to match */
         if ((traverse_data->name_to_find == NULL) ||
             (*(traverse_data->name_to_find) == '\0')) {
@@ -1204,6 +1206,14 @@ static int col_match_item(struct collection_item *current,
                               "Returning MATCH because there is no search criteria!");
             return COL_MATCH;
         }
+
+        /* Check the hashes - if they do not match return */
+        if (traverse_data->hash != current->phash) {
+            TRACE_INFO_STRING("col_match_item","Returning NO match!");
+            return COL_NOMATCH;
+        }
+
+        /* We will do the actual string comparison only if the hashes matched */
 
         /* Start comparing the two strings from the end */
         find_str = traverse_data->name_to_find + traverse_data->name_len_to_find;
@@ -1463,6 +1473,9 @@ static int col_find_item_and_do(struct collection_item *ci,
     int error = EOK;
     struct find_name *traverse_data = NULL;
     unsigned depth = 0;
+    int count = 0;
+    const char *last_part;
+    char *dot;
 
     TRACE_FLOW_STRING("col_find_item_and_do", "Entry.");
 
@@ -1483,7 +1496,7 @@ static int col_find_item_and_do(struct collection_item *ci,
     }
     /* Prepare data for traversal */
     errno = 0;
-    traverse_data= (struct find_name *)malloc(sizeof(struct find_name));
+    traverse_data = (struct find_name *)malloc(sizeof(struct find_name));
     if (traverse_data == NULL) {
         error = errno;
         TRACE_ERROR_NUMBER("Failed to allocate traverse data memory - returning error!", errno);
@@ -1493,7 +1506,45 @@ static int col_find_item_and_do(struct collection_item *ci,
     TRACE_INFO_STRING("col_find_item_and_do", "Filling in traverse data.");
 
     traverse_data->name_to_find = property_to_find;
-    traverse_data->name_len_to_find = strlen(property_to_find);
+
+    if (property_to_find != NULL) {
+
+        traverse_data->name_len_to_find = strlen(property_to_find);
+
+        /* Check if the search string ends with dot - this is ellegal */
+        if (traverse_data->name_to_find[traverse_data->name_len_to_find - 1] == '.') {
+            TRACE_ERROR_NUMBER("Search string is invalid.", EINVAL);
+            free(traverse_data);
+            return EINVAL;
+        }
+
+        /* Find last dot if any */
+        dot = strrchr(traverse_data->name_to_find, '.');
+        if (dot != NULL) {
+            dot++;
+            last_part = dot;
+        }
+        else last_part = traverse_data->name_to_find;
+
+        TRACE_INFO_STRING("Last item", last_part);
+
+        /* Create hash of the last part */
+        traverse_data->hash = FNV1a_base;
+
+        /* Create hash of the string to search */
+        while(last_part[count] != 0) {
+            traverse_data->hash = traverse_data->hash ^ toupper(last_part[count]);
+            traverse_data->hash *= FNV1a_prime;
+            count++;
+        }
+    }
+    else {
+        /* We a looking for a first element of a given type */
+        TRACE_INFO_STRING("No search string", "");
+        traverse_data->name_len_to_find = 0;
+    }
+
+
     traverse_data->type_to_match = type;
     traverse_data->given_name = NULL;
     traverse_data->given_len = 0;

@@ -119,7 +119,7 @@ int single_collection_test(void)
         (error = col_add_str_property(handle, NULL, "property_1", "some data", 0)) ||
         (error = col_add_str_property(handle, NULL, "property_2", "some other data", 2)) ||
         (error = col_add_str_property(handle, NULL, "property_3", "more data", 7))) {
-        printf("Failed to add property. Error %d", error);
+        printf("Failed to add property. Error %d\n", error);
         col_destroy_collection(handle);
         return error;
     }
@@ -133,14 +133,14 @@ int single_collection_test(void)
 
     error = col_add_double_property(handle, NULL, "double", 0.253545);
     if (error) {
-        printf("Failed to add property. Error %d", error);
+        printf("Failed to add double property. Error %d\n", error);
         col_destroy_collection(handle);
         return error;
     }
 
     error = col_update_double_property(handle, "double", COL_TRAVERSE_DEFAULT, 1.999999);
     if (error) {
-        printf("Failed to add property. Error %d", error);
+        printf("Failed to update double property. Error %d\n", error);
         col_destroy_collection(handle);
         return error;
     }
@@ -1246,6 +1246,126 @@ int delete_test(void)
     return error;
 }
 
+/* Search test */
+int search_test(void)
+{
+    struct collection_item *level1 = NULL;
+    struct collection_item *level2 = NULL;
+    struct collection_item *level3 = NULL;
+    struct collection_item *level4 = NULL;
+    char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+    int found = 0;
+    int error = 0;
+
+    printf("\n\n==== SEARCH TEST ====\n\n");
+
+    if ((error = col_create_collection(&level1, "level1", 0)) ||
+        (error = col_create_collection(&level2, "level2", 0)) ||
+        (error = col_add_collection_to_collection(level1, NULL, NULL, level2, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_create_collection(&level3, "level3", 0)) ||
+        (error = col_add_collection_to_collection(level1, "level2", NULL, level3, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_create_collection(&level4, "level4", 0)) ||
+        (error = col_add_collection_to_collection(level1, "level3", NULL, level4, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_add_int_property(level1, "level4", "id", 1)) ||
+        (error = col_add_long_property(level1, "level3", "packets", 100000000L)) ||
+        (error = col_add_binary_property(level1, "level2", "stack", binary_dump, sizeof(binary_dump)))) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Failed to build test. Error %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    error = col_is_item_in_collection(level1, "level1.level2.level3.level4.", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    if (!error) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Expected error here since the search data is illegal but got success\n");
+        return EINVAL;
+    }
+
+    found = 0;
+    error = 0;
+    error = col_is_item_in_collection(level1, "level1.level2.level3.level4.id", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    if ((error) || (!found)) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Failed to find item [level1.level2.level3.level4.id]. Error %d\n", error);
+        return error ? error : ENOENT;
+    }
+    else printf("Expected item is found\n");
+
+
+    found = 0;
+    error = 0;
+    error = col_is_item_in_collection(level1, "level3.level4.id", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    if ((error) || (!found)) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Failed to find item [level3.level4.id]. Error %d\n", error);
+        return error ? error : ENOENT;
+    }
+    else printf("Expected item is found\n");
+
+    found = 0;
+    error = 0;
+    error = col_is_item_in_collection(level1, "level3.packets", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    if ((error) || (!found)) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Failed to find item [level3.packets]. Error %d\n", error);
+        return error ? error : ENOENT;
+    }
+    else printf("Expected item is found\n");
+
+    found = 0;
+    error = 0;
+    error = col_is_item_in_collection(level1, "level1.level2.stack", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    if ((error) || (!found)) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Failed to find item [level1.level2.stack]. Error %d\n", error);
+        return error ? error : ENOENT;
+    }
+    else printf("Expected item is found\n");
+
+    found = 0;
+    error = 0;
+    error = col_is_item_in_collection(level1, "level1.level2.level3", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    if ((error) || (!found)) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2);
+        col_destroy_collection(level3);
+        col_destroy_collection(level4);
+        printf("Failed to find item [level1.level2.level3]. Error %d\n", error);
+        return error ? error : ENOENT;
+    }
+    else printf("Expected item is found\n");
+
+    col_destroy_collection(level1);
+    col_destroy_collection(level2);
+    col_destroy_collection(level3);
+    col_destroy_collection(level4);
+
+    printf("\n\n==== SEARCH TEST END ====\n\n");
+
+    return EOK;
+}
+
+
 /* Main function of the unit test */
 
 int main(int argc, char *argv[])
@@ -1259,7 +1379,8 @@ int main(int argc, char *argv[])
         (error = mixed_collection_test()) ||
         (error = iterator_test()) ||
         (error = insert_extract_test()) ||
-        (error = delete_test())) {
+        (error = delete_test()) ||
+        (error = search_test())) {
         printf("Failed!\n");
     }
     else printf("Success!\n");
