@@ -732,11 +732,12 @@ static int process_arg_list(struct collection_item *col,
             else {
                 /* Remove case */
                 while (error != ENOENT) {
-                    error = col_delete_property(col,
-                                                propcopy,
-                                                COL_TYPE_ANY,
-                                                COL_TRAVERSE_DEFAULT);
-
+                    error = col_remove_item(col,
+                                            NULL,
+                                            COL_DSP_FIRSTDUP,
+                                            propcopy,
+                                            0,
+                                            COL_TYPE_ANY);
                     if ((error) && (error != ENOENT)) {
                         TRACE_ERROR_STRING("Error deleting property", propcopy);
                         free(propcopy);

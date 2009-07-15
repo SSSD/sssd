@@ -683,7 +683,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                                     *ret_ref = current->next;
                                     current->next = (*ret_ref)->next;
                                     /* If we removed the last element adjust header */
-                                    if(current->next == NULL) header->last = parent;
+                                    if(current->next == NULL) header->last = current;
                                 }
                                 else {
                                     TRACE_ERROR_STRING("Property is last in the list", refprop);
@@ -817,12 +817,70 @@ int col_extract_item(struct collection_item *collection,
                                           type,
                                           ret_ref);
     if (error) {
-        TRACE_ERROR_NUMBER("Failed extract item into current collection", error);
+        TRACE_ERROR_NUMBER("Failed to extract item from the current collection", error);
         return error;
     }
 
     TRACE_FLOW_STRING("col_extract_item", "Exit");
     return EOK;
+}
+
+
+/* Remove item (property) from collection.*/
+int col_remove_item(struct collection_item *ci,
+                    const char *subcollection,
+                    int disposition,
+                    const char *refprop,
+                    int idx,
+                    int type)
+{
+    int error = EOK;
+    struct collection_item *ret_ref = NULL;
+
+    TRACE_FLOW_STRING("col_remove_item", "Exit");
+
+    /* Extract from the current collection */
+    error = col_extract_item(ci,
+                             subcollection,
+                             disposition,
+                             refprop,
+                             idx,
+                             type,
+                             &ret_ref);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to extract item from the collection", error);
+        return error;
+    }
+
+    col_delete_item(ret_ref);
+
+    TRACE_FLOW_STRING("col_remove_item", "Exit");
+    return EOK;
+}
+
+/* Remove item (property) from current collection.
+ * Just a simple wropper.
+ */
+int col_remove_item_from_current(struct collection_item *ci,
+                                 int disposition,
+                                 const char *refprop,
+                                 int idx,
+                                 int type)
+{
+    int error = EOK;
+
+    TRACE_FLOW_STRING("col_remove_item_from_current", "Exit");
+
+    /* Remove item from current collection */
+    error = col_remove_item(ci,
+                            NULL,
+                            disposition,
+                            refprop,
+                            idx,
+                            type);
+
+    TRACE_FLOW_NUMBER("col_remove_item_from_current. Exit. Returning", error);
+    return error;
 }
 
 

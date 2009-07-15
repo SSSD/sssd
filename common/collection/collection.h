@@ -502,7 +502,19 @@ int col_modify_double_item(struct collection_item *item,
                            const char *property,
                            double number);
 
-/* Delete property from the collection */
+/* Delete property from the collection. */
+/* It is recomended to use a more efficient function
+ * col_remove_item() for the same purpose if
+ * the property is unique or if the collection
+ * has a known structure.
+ * This function has some advantage only
+ * if it is not known where propery
+ * resides and what is the structure of the collection.
+ * In this case "foo.bar.baz" notation
+ * can be used in the property_to_find argument to find
+ * and delete the property "baz" that is in sub collection "bar"
+ * which is in turn a part of collection "foo".
+ */
 int col_delete_property(struct collection_item *ci,    /* A collection of items */
                         const char *property_to_find,  /* Name to match */
                         int type,                      /* Type filter */
@@ -614,7 +626,7 @@ int col_extract_item(struct collection_item *ci,        /* Top collection */
                      const char *subcollection,         /* Sub collection */
                      int disposition,                   /* Which to extract */
                      const char *refprop,               /* Property to relate to */
-                     int index,                         /* Index of the property to extract. See notes. */
+                     int idx,                           /* Index of the property to extract. See notes. */
                      int type,                          /* Type filter */
                      struct collection_item **ret_ref); /* Returns the reference back */
 
@@ -622,9 +634,29 @@ int col_extract_item(struct collection_item *ci,        /* Top collection */
 int col_extract_item_from_current(struct collection_item *ci,        /* Top collection */
                                   int disposition,                   /* Which to extract */
                                   const char *refprop,               /* Property to relate to */
-                                  int index,                         /* Index of the property to extract. See notes. */
+                                  int idx,                           /* Index of the property to extract. See notes. */
                                   int type,                          /* Type filter */
                                   struct collection_item **ret_ref); /* Returns the reference back */
+
+/* Remove item (property) from collection.
+ * It is similar to delete_property function but allows more specific
+ * information about what item (property) to remove.
+ * The header will not be considered for deletion.
+ */
+int col_remove_item(struct collection_item *ci,        /* Top collection */
+                    const char *subcollection,         /* Sub collection */
+                    int disposition,                   /* Which to remove */
+                    const char *refprop,               /* Property to relate to */
+                    int idx,                           /* Index of the property to remove. See notes. */
+                    int type);                         /* Type filter */
+
+/* Similar function as above just considers only one level. */
+int col_remove_item_from_current(struct collection_item *ci,        /* Top collection */
+                                 int disposition,                   /* Which to remove */
+                                 const char *refprop,               /* Property to relate to */
+                                 int idx,                           /* Index of the property to remove. See notes. */
+                                 int type);                         /* Type filter */
+
 
 /* Insert item to the collection */
 /* WARNING: Only use this function to insert items
@@ -645,7 +677,7 @@ int col_insert_item(struct collection_item *collection, /* Top collection */
                     struct collection_item *item,       /* Item to insert */
                     int disposition,                    /* What should be the position of the item */
                     const char *refprop,                /* Property to relate to */
-                    int index,                          /* Index of the property to extract. See notes. */
+                    int idx,                            /* Index of the property to extract. See notes. */
                     unsigned flags);                    /* Flags that control naming issues */
 
 /* Insert the item into the top level collection (similar to the function above)
@@ -655,7 +687,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                  struct collection_item *item,
                                  int disposition,
                                  const char *refprop,
-                                 int index,
+                                 int idx,
                                  unsigned flags);
 
 
@@ -762,7 +794,7 @@ int col_insert_property_with_ref(struct collection_item *ci,        /* A collect
                                  const char *subcollection,         /* Sub collection */
                                  int disposition,                   /* Where to insert */
                                  const char *refprop,               /* Property to relate to */
-                                 int index,                         /* Index of the property to add */
+                                 int idx,                           /* Index of the property to add */
                                  unsigned flags,                    /* Flags that control naming issues */
                                  const char *property,              /* Name */
                                  int type,                          /* Data type */
@@ -778,7 +810,7 @@ int col_insert_str_property(struct collection_item *ci,        /* A collection o
                             const char *subcollection,         /* Sub collection */
                             int disposition,                   /* Where to insert */
                             const char *refprop,               /* Property to relate to */
-                            int index,                         /* Index of the property to add */
+                            int idx,                           /* Index of the property to add */
                             unsigned flags,                    /* Flags that control naming issues */
                             const char *property,              /* Name */
                             const char *string,                /* String */
@@ -788,7 +820,7 @@ int col_insert_binary_property(struct collection_item *ci,        /* A collectio
                                const char *subcollection,         /* Sub collection */
                                int disposition,                   /* Where to insert */
                                const char *refprop,               /* Property to relate to */
-                               int index,                         /* Index of the property to add */
+                               int idx,                           /* Index of the property to add */
                                unsigned flags,                    /* Flags that control naming issues */
                                const char *property,              /* Name */
                                void *binary_data,                 /* Binary data */
@@ -799,7 +831,7 @@ int col_insert_int_property(struct collection_item *ci,        /* A collection o
                             const char *subcollection,         /* Sub collection */
                             int disposition,                   /* Where to insert */
                             const char *refprop,               /* Property to relate to */
-                            int index,                         /* Index of the property to add */
+                            int idx,                           /* Index of the property to add */
                             unsigned flags,                    /* Flags that control naming issues */
                             const char *property,              /* Name */
                             int number);                       /* Integer */
@@ -809,7 +841,7 @@ int col_insert_unsinged_property(struct collection_item *ci,        /* A collect
                                  const char *subcollection,         /* Sub collection */
                                  int disposition,                   /* Where to insert */
                                  const char *refprop,               /* Property to relate to */
-                                 int index,                         /* Index of the property to add */
+                                 int idx,                           /* Index of the property to add */
                                  unsigned flags,                    /* Flags that control naming issues */
                                  const char *property,              /* Name */
                                  unsigned number);                  /* Unsigned */
@@ -819,7 +851,7 @@ int col_insert_long_property(struct collection_item *ci,        /* A collection 
                              const char *subcollection,         /* Sub collection */
                              int disposition,                   /* Where to insert */
                              const char *refprop,               /* Property to relate to */
-                             int index,                         /* Index of the property to add */
+                             int idx,                           /* Index of the property to add */
                              unsigned flags,                    /* Flags that control naming issues */
                              const char *property,              /* Name */
                              long number);                      /* Long */
@@ -828,7 +860,7 @@ int col_insert_ulong_property(struct collection_item *ci,        /* A collection
                               const char *subcollection,         /* Sub collection */
                               int disposition,                   /* Where to insert */
                               const char *refprop,               /* Property to relate to */
-                              int index,                         /* Index of the property to add */
+                              int idx,                           /* Index of the property to add */
                               unsigned flags,                    /* Flags that control naming issues */
                               const char *property,              /* Name */
                               unsigned long number);             /* Unsigned long */
@@ -837,7 +869,7 @@ int col_insert_double_property(struct collection_item *ci,        /* A collectio
                                const char *subcollection,         /* Sub collection */
                                int disposition,                   /* Where to insert */
                                const char *refprop,               /* Property to relate to */
-                               int index,                         /* Index of the property to add */
+                               int idx,                           /* Index of the property to add */
                                unsigned flags,                    /* Flags that control naming issues */
                                const char *property,              /* Name */
                                double number);                    /* Double */
@@ -846,7 +878,7 @@ int col_insert_bool_property(struct collection_item *ci,        /* A collection 
                              const char *subcollection,         /* Sub collection */
                              int disposition,                   /* Where to insert */
                              const char *refprop,               /* Property to relate to */
-                             int index,                         /* Index of the property to add */
+                             int idx,                           /* Index of the property to add */
                              unsigned flags,                    /* Flags that control naming issues */
                              const char *property,              /* Name */
                              unsigned char logical);            /* Bool */
@@ -857,7 +889,7 @@ int col_insert_str_property_with_ref(struct collection_item *ci,        /* A col
                                      const char *subcollection,         /* Sub collection */
                                      int disposition,                   /* Where to insert */
                                      const char *refprop,               /* Property to relate to */
-                                     int index,                         /* Index of the property to add */
+                                     int idx,                           /* Index of the property to add */
                                      unsigned flags,                    /* Flags that control naming issues */
                                      const char *property,              /* Name */
                                      char *string,                      /* String */
@@ -868,7 +900,7 @@ int col_insert_binary_property_with_ref(struct collection_item *ci,        /* A 
                                         const char *subcollection,         /* Sub collection */
                                         int disposition,                   /* Where to insert */
                                         const char *refprop,               /* Property to relate to */
-                                        int index,                         /* Index of the property to add */
+                                        int idx,                           /* Index of the property to add */
                                         unsigned flags,                    /* Flags that control naming issues */
                                         const char *property,              /* Name */
                                         void *binary_data,                 /* Binary data */
@@ -880,7 +912,7 @@ int col_insert_int_property_with_ref(struct collection_item *ci,        /* A col
                                      const char *subcollection,         /* Sub collection */
                                      int disposition,                   /* Where to insert */
                                      const char *refprop,               /* Property to relate to */
-                                     int index,                         /* Index of the property to add */
+                                     int idx,                           /* Index of the property to add */
                                      unsigned flags,                    /* Flags that control naming issues */
                                      const char *property,              /* Name */
                                      int number,                        /* Integer */
@@ -891,7 +923,7 @@ int col_insert_unsinged_property_with_ref(struct collection_item *ci,        /* 
                                           const char *subcollection,         /* Sub collection */
                                           int disposition,                   /* Where to insert */
                                           const char *refprop,               /* Property to relate to */
-                                          int index,                         /* Index of the property to add */
+                                          int idx,                           /* Index of the property to add */
                                           unsigned flags,                    /* Flags that control naming issues */
                                           const char *property,              /* Name */
                                           unsigned number,                   /* Unsigned */
@@ -901,7 +933,7 @@ int col_insert_long_property_with_ref(struct collection_item *ci,        /* A co
                                       const char *subcollection,         /* Sub collection */
                                       int disposition,                   /* Where to insert */
                                       const char *refprop,               /* Property to relate to */
-                                      int index,                         /* Index of the property to add */
+                                      int idx,                           /* Index of the property to add */
                                       unsigned flags,                    /* Flags that control naming issues */
                                       const char *property,              /* Name */
                                       long number,                       /* Long */
@@ -911,7 +943,7 @@ int col_insert_ulong_property_with_ref(struct collection_item *ci,        /* A c
                                        const char *subcollection,         /* Sub collection */
                                        int disposition,                   /* Where to insert */
                                        const char *refprop,               /* Property to relate to */
-                                       int index,                         /* Index of the property to add */
+                                       int idx,                           /* Index of the property to add */
                                        unsigned flags,                    /* Flags that control naming issues */
                                        const char *property,              /* Name */
                                        unsigned long number,              /* Unsigned long */
@@ -921,7 +953,7 @@ int col_insert_double_property_with_ref(struct collection_item *ci,        /* A 
                                         const char *subcollection,         /* Sub collection */
                                         int disposition,                   /* Where to insert */
                                         const char *refprop,               /* Property to relate to */
-                                        int index,                         /* Index of the property to add */
+                                        int idx,                           /* Index of the property to add */
                                         unsigned flags,                    /* Flags that control naming issues */
                                         const char *property,              /* Name */
                                         double number,                     /* Double */
@@ -931,7 +963,7 @@ int col_insert_bool_property_with_ref(struct collection_item *ci,        /* A co
                                       const char *subcollection,         /* Sub collection */
                                       int disposition,                   /* Where to insert */
                                       const char *refprop,               /* Property to relate to */
-                                      int index,                         /* Index of the property to add */
+                                      int idx,                           /* Index of the property to add */
                                       unsigned flags,                    /* Flags that control naming issues */
                                       const char *property,              /* Name */
                                       unsigned char logical,             /* Bool */

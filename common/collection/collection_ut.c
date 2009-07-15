@@ -1194,7 +1194,7 @@ int delete_test(void)
     struct collection_item *col;
     int error = EOK;
 
-    printf("\n\n==== DELETION TEST ====\n\n");
+    printf("\n\n==== DELETION TEST 1====\n\n");
 
     if ((error = col_create_collection(&col, "test", 0)) ||
         (error = col_add_int_property(col, NULL, "tt", 1)) ||
@@ -1214,11 +1214,35 @@ int delete_test(void)
     }
 
     col_debug_collection(col, COL_TRAVERSE_DEFAULT);
+    col_destroy_collection(col);
 
-    printf("\n\n==== DELETION TEST END ====\n\n");
+    printf("\n\n==== DELETION TEST 1 END ====\n\n");
+    printf("\n\n==== DELETION TEST 2====\n\n");
+
+    if ((error = col_create_collection(&col, "test2", 0)) ||
+        (error = col_add_int_property(col, NULL, "tt", 1)) ||
+        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = col_add_int_property(col, NULL, "test", 1)) ||
+        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = col_remove_item(col, NULL, COL_DSP_END, NULL, 0, COL_TYPE_ANY)) ||
+        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = col_add_int_property(col, NULL, "test", 1)) ||
+        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = col_remove_item_from_current(col, COL_DSP_AFTER, "tt", 0, COL_TYPE_ANY)) ||
+        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        (error = col_add_int_property(col, NULL, "test", 1))) {
+        printf("Error in delete test %d\n", error);
+        col_destroy_collection(col);
+        return error;
+    }
+
+    col_debug_collection(col, COL_TRAVERSE_DEFAULT);
+
+    printf("\n\n==== DELETION TEST 2 END ====\n\n");
 
 
     col_destroy_collection(col);
+
     return error;
 }
 
