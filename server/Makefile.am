@@ -151,6 +151,13 @@ SSSD_TOOLS_OBJ = \
 
 SSSD_RESOLV_OBJ = \
     resolv/async_resolv.c
+if BUILD_ARES_PARSE_SRV
+    SSSD_RESOLV_OBJ += resolv/ares/ares_parse_srv_reply.c
+endif
+if BUILD_ARES_PARSE_TXT
+    SSSD_RESOLV_OBJ += resolv/ares/ares_parse_txt_reply.c
+endif
+
 
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
@@ -200,7 +207,10 @@ dist_noinst_HEADERS = \
     providers/ldap/sdap_async.h \
     tools/tools_util.h \
     krb5_plugin/sssd_krb5_locator_plugin.h \
-    resolv/async_resolv.h
+    resolv/async_resolv.h \
+    resolv/ares/ares_parse_srv_reply.h \
+    resolv/ares/ares_parse_txt_reply.h
+
 
 ####################
 # Program Binaries #

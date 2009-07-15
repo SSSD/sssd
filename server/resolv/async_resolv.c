@@ -42,6 +42,16 @@
 #include "util/dlinklist.h"
 #include "util/util.h"
 
+#ifndef HAVE_ARES_PARSE_SRV
+#define ares_parse_srv_reply(abuf, alen, srv_out, nsrvreply) \
+    _ares_parse_srv_reply(abuf, alen, srv_out, nsrvreply)
+#endif /* HAVE_ARES_PARSE_SRV */
+
+#ifndef HAVE_ARES_PARSE_TXT
+#define ares_parse_txt_reply(abuf, alen, txt_out, ntxtreply) \
+    _ares_parse_txt_reply(abuf, alen, txt_out, ntxtreply)
+#endif /* HAVE_ARES_PARSE_TXT */
+
 /* TODO: remove later
  * These functions are available in the latest tevent/talloc and are the ones
  * that should be used as tevent_req is rightfully opaque there */

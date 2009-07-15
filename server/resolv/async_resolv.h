@@ -29,6 +29,14 @@
 #include <netdb.h>
 #include <ares.h>
 
+#ifndef HAVE_ARES_PARSE_TXT
+#include "resolv/ares/ares_parse_txt_reply.h"
+#endif /* HAVE_ARES_PARSE_TXT */
+
+#ifndef HAVE_ARES_PARSE_SRV
+#include "resolv/ares/ares_parse_srv_reply.h"
+#endif /* HAVE_ARES_PARSE_SRV */
+
 /*
  * An opaque structure which holds context for a module using the async
  * resolver. Is should be used as a "local-global" variable - in sssd,
