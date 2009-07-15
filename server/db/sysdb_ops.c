@@ -1448,7 +1448,7 @@ static void sysdb_get_new_id_verify(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    msg->dn = state->base->dn;
+    msg->dn = state->base_dn;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_REPLACE,
                     SYSDB_NEXTID, state->new_id + 1);
