@@ -43,6 +43,7 @@ BuildRequires: libxslt
 BuildRequires: libxml2
 BuildRequires: docbook-style-xsl
 BuildRequires: krb5-devel
+BuildRequires: c-ares-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and

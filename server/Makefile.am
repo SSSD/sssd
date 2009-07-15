@@ -149,6 +149,9 @@ SSSD_RESPONDER_OBJ = \
 SSSD_TOOLS_OBJ = \
     tools/tools_util.c
 
+SSSD_RESOLV_OBJ = \
+    resolv/async_resolv.c
+
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
     $(TDB_LIBS) \
@@ -196,7 +199,8 @@ dist_noinst_HEADERS = \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
     tools/tools_util.h \
-    krb5_plugin/sssd_krb5_locator_plugin.h
+    krb5_plugin/sssd_krb5_locator_plugin.h \
+    resolv/async_resolv.h
 
 ####################
 # Program Binaries #
