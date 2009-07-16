@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
 #define TRACE_HOME
 #include "ini_config.h"
 #include "collection.h"
@@ -800,6 +801,16 @@ int get_test(void)
 int main(int argc, char *argv[])
 {
     int error;
+
+    char *srcdir;
+
+    srcdir = getenv("srcdir");
+    if(srcdir) {
+        if(chdir(srcdir) == 0) {
+            error = errno;
+            return error;
+        }
+    }
 
     if ((error = basic_test()) ||
         (error = single_file()) ||
