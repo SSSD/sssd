@@ -2069,6 +2069,18 @@ struct bet_ops proxy_auth_ops = {
     .finalize = proxy_auth_shutdown
 };
 
+struct bet_ops proxy_access_ops = {
+    .check_online = proxy_check_online,
+    .handler = proxy_pam_handler,
+    .finalize = proxy_auth_shutdown
+};
+
+struct bet_ops proxy_chpass_ops = {
+    .check_online = proxy_check_online,
+    .handler = proxy_pam_handler,
+    .finalize = proxy_auth_shutdown
+};
+
 static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
 {
     char *funcname;
@@ -2236,5 +2248,23 @@ done:
     if (ret != EOK) {
         talloc_free(ctx);
     }
+    return ret;
+}
+
+int sssm_proxy_access_init(struct be_ctx *bectx,
+                           struct bet_ops **ops, void **pvt_data)
+{
+    int ret;
+    ret = sssm_proxy_auth_init(bectx, ops, pvt_data);
+    *ops = &proxy_access_ops;
+    return ret;
+}
+
+int sssm_proxy_chpass_init(struct be_ctx *bectx,
+                           struct bet_ops **ops, void **pvt_data)
+{
+    int ret;
+    ret = sssm_proxy_auth_init(bectx, ops, pvt_data);
+    *ops = &proxy_chpass_ops;
     return ret;
 }
