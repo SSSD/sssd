@@ -34,10 +34,12 @@ libcollection_la_SOURCES = \
     ../trace/trace.h
 
 # Build unit test
-noinst_PROGRAMS = collection_ut collection_stack_ut collection_queue_ut
+check_PROGRAMS = collection_ut collection_stack_ut collection_queue_ut
 collection_ut_SOURCES = collection_ut.c
 collection_ut_LDADD = libcollection.la
 collection_stack_ut_SOURCES = collection_stack_ut.c
 collection_stack_ut_LDADD = libcollection.la
 collection_queue_ut_SOURCES = collection_queue_ut.c
 collection_queue_ut_LDADD = libcollection.la
+
+TESTS = collection_ut collection_stack_ut collection_queue_ut
