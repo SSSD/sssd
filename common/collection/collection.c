@@ -140,7 +140,8 @@ static int col_validate_property(const char *property)
 
     check = property;
     while (*check != '\0') {
-        if (((!isalnum(*check)) && (!ispunct(*check))) || (*check == '.')) {
+        /* It turned out that limiting collection charcters is bad */
+        if ((*check < ' ') || (*check == '!')) {
             invalid = 1;
             break;
         }
@@ -1165,7 +1166,7 @@ static int col_create_path_data(struct path_data **name_path,
     if(length > 0) {
         memcpy(new_name_path->name, name, length);
         new_name_path->length = length;
-        new_name_path->name[new_name_path->length] = '.';
+        new_name_path->name[new_name_path->length] = '!';
         new_name_path->length++;
         new_name_path->name[new_name_path->length] = '\0';
         TRACE_INFO_STRING("Name so far:", new_name_path->name);
@@ -1233,7 +1234,7 @@ static int col_match_item(struct collection_item *current,
 
             if (data_str == start) {
                 if (find_str > traverse_data->name_to_find) {
-                    if (*(find_str-1) == '.') {
+                    if (*(find_str-1) == '!') {
                         /* We matched the property but the search string is
                          * longer so we need to continue matching */
                         TRACE_INFO_STRING("col_match_item",
@@ -1254,7 +1255,7 @@ static int col_match_item(struct collection_item *current,
                 }
             }
             else if ((find_str == traverse_data->name_to_find) &&
-                     (*(data_str-1) == '.')) return COL_MATCH;
+                     (*(data_str-1) == '!')) return COL_MATCH;
 
             data_str--;
             find_str--;
@@ -1459,8 +1460,8 @@ static int col_walk_items(struct collection_item *ci,
 
 /* Find an item by property name and perform an action on it. */
 /* No pattern matching supported in the first implementation. */
-/* To refer to child properties use dotted notatation like this: */
-/* parent.child.subchild.subsubchild etc.  */
+/* To refer to child properties use notatation like this: */
+/* parent!child!subchild!subsubchild etc.  */
 static int col_find_item_and_do(struct collection_item *ci,
                                 const char *property_to_find,
                                 int type,
@@ -1475,7 +1476,7 @@ static int col_find_item_and_do(struct collection_item *ci,
     unsigned depth = 0;
     int count = 0;
     const char *last_part;
-    char *dot;
+    char *sep;
 
     TRACE_FLOW_STRING("col_find_item_and_do", "Entry.");
 
@@ -1511,18 +1512,18 @@ static int col_find_item_and_do(struct collection_item *ci,
 
         traverse_data->name_len_to_find = strlen(property_to_find);
 
-        /* Check if the search string ends with dot - this is ellegal */
-        if (traverse_data->name_to_find[traverse_data->name_len_to_find - 1] == '.') {
+        /* Check if the search string ends with "!" - this is illegal */
+        if (traverse_data->name_to_find[traverse_data->name_len_to_find - 1] == '!') {
             TRACE_ERROR_NUMBER("Search string is invalid.", EINVAL);
             free(traverse_data);
             return EINVAL;
         }
 
-        /* Find last dot if any */
-        dot = strrchr(traverse_data->name_to_find, '.');
-        if (dot != NULL) {
-            dot++;
-            last_part = dot;
+        /* Find last ! if any */
+        sep = strrchr(traverse_data->name_to_find, '!');
+        if (sep != NULL) {
+            sep++;
+            last_part = sep;
         }
         else last_part = traverse_data->name_to_find;
 
@@ -2600,6 +2601,17 @@ int col_modify_item(struct collection_item *item,
             TRACE_ERROR_STRING("Failed to allocate memory", "");
             return ENOMEM;
         }
+
+        /* Update property length and hash if we rename the property */
+        item->phash = FNV1a_base;
+        item->property_len = 0;
+
+        while (property[item->property_len] != 0) {
+            item->phash = item->phash ^ toupper(property[item->property_len]);
+            item->phash *= FNV1a_prime;
+            item->property_len++;
+        }
+
     }
 
     /* We need to change data ? */

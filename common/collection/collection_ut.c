@@ -124,7 +124,7 @@ int single_collection_test(void)
         return error;
     }
 
-    error = col_add_str_property(handle, NULL, "property 1", "some data", 0);
+    error = col_add_str_property(handle, NULL, "property 1!", "some data", 0);
     if (error) printf("Expected error adding bad property to collection %d\n", error);
     else {
         printf("Expected error but got success\n");
@@ -362,7 +362,7 @@ int mixed_collection_test(void)
     col_debug_collection(socket1, COL_TRAVERSE_DEFAULT);
 
     printf("SOCKET1 MUST NO BE USED AFTER THIS POINT!!!\n");
-    socket1 = (struct collection_item *)(NULL);
+    socket1 = NULL;
 
     printf("Add collection PEER as PEER1 to subcollection SOCKET1 of the EVENT.\n");
 
@@ -414,7 +414,7 @@ int mixed_collection_test(void)
 
     /* Check if the property in the collection */
     found = 0;
-    error = col_is_item_in_collection(event, "peer1.delay", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(event, "peer1!delay", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if (error) {
         col_destroy_collection(peer);
         col_destroy_collection(host);
@@ -428,13 +428,13 @@ int mixed_collection_test(void)
     else printf("Error property is not found!\n");
 
 
-    col_print_item(event, "peer1.IPv6");
-    col_print_item(event, "event.socket1.peer1.IPv6");
-    col_print_item(event, "event.peer1.IPv6");
-    col_print_item(event, "speer1.IPv6");
-    col_print_item(event, "eer1.IPv6");
-    col_print_item(event, ".peer1.IPv6");
-    col_print_item(event, "t.peer1.IPv6");
+    col_print_item(event, "peer1!IPv6");
+    col_print_item(event, "event!socket1!peer1!IPv6");
+    col_print_item(event, "event!peer1!IPv6");
+    col_print_item(event, "speer1!IPv6");
+    col_print_item(event, "eer1!IPv6");
+    col_print_item(event, "!peer1!IPv6");
+    col_print_item(event, "t!peer1!IPv6");
 
     /* Traverse collection */
     error = col_print_collection2(event);
@@ -443,9 +443,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    printf("Delete property PEER1.DELAY from the EVENT collection.\n");
+    printf("Delete property PEER1!DELAY from the EVENT collection.\n");
 
-    error = col_delete_property(event, "peer1.delay", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT);
+    error = col_delete_property(event, "peer1!delay", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT);
     if (error) {
         col_destroy_collection(peer);
         col_destroy_collection(host);
@@ -558,9 +558,9 @@ int iterator_test(void)
     struct collection_item *socket1;
     struct collection_item *socket2;
     struct collection_item *socket3;
-    struct collection_iterator *iterator = (struct collection_iterator *)(NULL);
+    struct collection_iterator *iterator = NULL;
     int error = EOK;
-    struct collection_item *item = (struct collection_item *)(NULL);
+    struct collection_item *item = NULL;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
     int depth = 0;
     int idepth = 0;
@@ -677,7 +677,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -757,7 +757,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -792,7 +792,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -827,7 +827,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -863,7 +863,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -899,7 +899,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -934,7 +934,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -971,7 +971,7 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
@@ -1015,7 +1015,7 @@ int insert_extract_test(void)
     struct collection_item *col;
     struct collection_item *col2;
     int error = EOK;
-    struct collection_item *item = (struct collection_item *)(NULL);
+    struct collection_item *item = NULL;
 
     printf("\n\n==== INSERTION TEST ====\n\n");
 
@@ -1279,7 +1279,7 @@ int search_test(void)
 
     col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
 
-    error = col_is_item_in_collection(level1, "level1.level2.level3.level4.", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(level1, "level1!level2!level3!level4!", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if (!error) {
         col_destroy_collection(level1);
         col_destroy_collection(level2);
@@ -1291,13 +1291,13 @@ int search_test(void)
 
     found = 0;
     error = 0;
-    error = col_is_item_in_collection(level1, "level1.level2.level3.level4.id", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(level1, "level1!level2!level3!level4!id", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if ((error) || (!found)) {
         col_destroy_collection(level1);
         col_destroy_collection(level2);
         col_destroy_collection(level3);
         col_destroy_collection(level4);
-        printf("Failed to find item [level1.level2.level3.level4.id]. Error %d\n", error);
+        printf("Failed to find item [level1!level2!level3!level4!id]. Error %d\n", error);
         return error ? error : ENOENT;
     }
     else printf("Expected item is found\n");
@@ -1305,20 +1305,20 @@ int search_test(void)
 
     found = 0;
     error = 0;
-    error = col_is_item_in_collection(level1, "level3.level4.id", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(level1, "level3!level4!id", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if ((error) || (!found)) {
         col_destroy_collection(level1);
         col_destroy_collection(level2);
         col_destroy_collection(level3);
         col_destroy_collection(level4);
-        printf("Failed to find item [level3.level4.id]. Error %d\n", error);
+        printf("Failed to find item [level3!level4!id]. Error %d\n", error);
         return error ? error : ENOENT;
     }
     else printf("Expected item is found\n");
 
     found = 0;
     error = 0;
-    error = col_is_item_in_collection(level1, "level3.packets", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(level1, "level3!packets", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if ((error) || (!found)) {
         col_destroy_collection(level1);
         col_destroy_collection(level2);
@@ -1331,26 +1331,26 @@ int search_test(void)
 
     found = 0;
     error = 0;
-    error = col_is_item_in_collection(level1, "level1.level2.stack", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(level1, "level1!level2!stack", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if ((error) || (!found)) {
         col_destroy_collection(level1);
         col_destroy_collection(level2);
         col_destroy_collection(level3);
         col_destroy_collection(level4);
-        printf("Failed to find item [level1.level2.stack]. Error %d\n", error);
+        printf("Failed to find item [level1!level2!stack]. Error %d\n", error);
         return error ? error : ENOENT;
     }
     else printf("Expected item is found\n");
 
     found = 0;
     error = 0;
-    error = col_is_item_in_collection(level1, "level1.level2.level3", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
+    error = col_is_item_in_collection(level1, "level1!level2!level3", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if ((error) || (!found)) {
         col_destroy_collection(level1);
         col_destroy_collection(level2);
         col_destroy_collection(level3);
         col_destroy_collection(level4);
-        printf("Failed to find item [level1.level2.level3]. Error %d\n", error);
+        printf("Failed to find item [level1!level2!level3]. Error %d\n", error);
         return error ? error : ENOENT;
     }
     else printf("Expected item is found\n");

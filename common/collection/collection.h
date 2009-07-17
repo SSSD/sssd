@@ -165,20 +165,20 @@ struct collection_iterator;
  * get_item function will return you the item that is your "wallet".
  * You can then change something or just get information about the item you
  * retrieved. But in most cases you do not the wallet itself. You want to get
- * something from the vallet or put something into it. IMO money would be an
+ * something from the wallet or put something into it. IMO money would be an
  * obvious choice. To do this you use update_xxx_property functions.
  * There might be a bag somewhere deep and you might want to add something to
  * it. add_xxx_property_xxx functions allow you to specify sub collection you
  * want the item to be added to. If this sub collection argument is NULL top
  * level collection is assumed.
- * The search in the collections users a dotted notation to refer to an item (or
+ * The search in the collections users a "x!y!z" notation to refer to an item (or
  * property). You can search for "wallet" and it will find any first instance of
  * the "wallet" in your luggage. But you might have two wallets. One is yours and
- * another is your significant other's. So you might say find "my.wallet".
+ * another is your significant other's. So you might say find "my!wallet".
  * It will find wallet in your bad (collection) named "my". This collection can
  * be many levels deep inside other collections. You do not need to know the
  * full path to get to it. But if you have the full path you can use the fill
- * path like this "luggage.newbags.my.wallet".
+ * path like this "luggage!newbags!my!wallet".
  * It is useful to be able to put bags into bags as well as get them out of each
  * other. When the collection is created the header keeps a reference count on
  * how many copies of the collection are known to the world. So one can put a
@@ -188,6 +188,9 @@ struct collection_iterator;
  * By extracting reference from an internal collection the caller gains access
  * to the collection directly and thus has responsibility to destroy it after
  * use.
+ * Characters with codes less than space in ASCII table are illegal for property
+ * names.
+ * Character '!' also illegal in property name and reserved for "x!y!z" notation.
  */
 
 /* Function that creates a named collection */
@@ -324,7 +327,7 @@ int col_set_timestamp(struct collection_item *ci,
 /* Update functions */
 /* All update functions search the property using the search algorithm
  * described at the top of the header file.
- * Use same dotted notation to specify a property.
+ * Use same "x!y" notation to specify a property.
  */
 /* Update a string property in the collection.
  * Length should include the terminating 0  */
@@ -450,7 +453,7 @@ int col_get_item(struct collection_item *ci,       /* Collection to find things 
 /* Group of functions that allows retrieving individual elements of the collection_item
  * hiding the internal implementation.
  */
-const char *col_get_item_property(struct collection_item *ci,int *property_len);
+const char *col_get_item_property(struct collection_item *ci, int *property_len);
 int col_get_item_type(struct collection_item *ci);
 int col_get_item_length(struct collection_item *ci);
 void *col_get_item_data(struct collection_item *ci);

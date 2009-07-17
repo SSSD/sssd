@@ -73,6 +73,9 @@
 #define RET_EOF         5
 #define RET_ERROR       6
 
+#define INI_ERROR       "errors"
+#define INI_ERROR_NAME  "errname"
+
 /* Different error string functions can be passed as callbacks */
 typedef const char * (*error_fn)(int error);
 
@@ -175,7 +178,7 @@ static int ini_to_collection(const char *filename,
     TRACE_FLOW_STRING("ini_to_collection", "Entry");
 
     /* Open file for reading */
-    file = fopen(filename,"r");
+    file = fopen(filename, "r");
     if (file == NULL) {
         error = errno;
         TRACE_ERROR_NUMBER("Failed to open file - but this is OK", error);
@@ -185,10 +188,18 @@ static int ini_to_collection(const char *filename,
     /* Open the collection of errors */
     if (error_list != NULL) {
         *error_list = NULL;
-        error = col_create_collection(error_list, filename, COL_CLASS_INI_PERROR);
+        error = col_create_collection(error_list, INI_ERROR, COL_CLASS_INI_PERROR);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to create error collection", error);
             fclose(file);
+            return error;
+        }
+        /* Add file name as the first item */
+        error = col_add_str_property(*error_list, NULL, INI_ERROR_NAME, filename, 0);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to and name to collection", error);
+            fclose(file);
+            col_destroy_collection(*error_list);
             return error;
         }
         created = 1;
@@ -891,9 +902,9 @@ static void print_error_list(FILE *file,
         /* Process collection header */
         if (col_get_item_type(item) == COL_TYPE_COLLECTION) {
             col_get_collection_count(item, &count);
-            if (count > 1)
-                fprintf(file, error_header, col_get_item_property(item, NULL));
-            else break;
+            if (count <= 2) break;
+        } else if (col_get_item_type(item) == COL_TYPE_STRING) {
+            fprintf(file, error_header, (char *)col_get_item_data(item));
         }
         else {
             /* Put error into provided format */
@@ -1009,6 +1020,7 @@ void print_config_parsing_errors(FILE *file,
             if (error) {
                 TRACE_ERROR_STRING("Error (extract):", FAILED_TO_PROCCESS);
                 fprintf(file, "%s\n", FAILED_TO_PROCCESS);
+                col_unbind_iterator(iterator);
                 return;
             }
             print_file_parsing_errors(file, file_errors);

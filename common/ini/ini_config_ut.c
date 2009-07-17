@@ -217,7 +217,7 @@ int real_test(const char *file)
         }
 
         /* Are we done ? */
-        if (item == (struct collection_item *)(NULL)) break;
+        if (item == NULL) break;
 
         type = col_get_item_type(item);
 
@@ -246,9 +246,9 @@ int get_test(void)
 {
 
     int error;
-    struct collection_item *ini_config = (struct collection_item *)(NULL);
-    struct collection_item *error_set = (struct collection_item *)(NULL);
-    struct collection_item *item = (struct collection_item *)(NULL);
+    struct collection_item *ini_config = NULL;
+    struct collection_item *error_set = NULL;
+    struct collection_item *item = NULL;
     int number;
     long number_long;
     double number_double;
@@ -286,7 +286,7 @@ int get_test(void)
     printf("Negtive test - trying to get non existing key-value pair.\n");
 
     /* Negative test */
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("monitor1", "description1", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -295,14 +295,14 @@ int get_test(void)
     }
 
     /* Item should not be found */
-    if (item != (struct collection_item *)(NULL)) {
+    if (item != NULL) {
         printf("Expected NULL but got something else!\n");
         free_ini_config(ini_config);
         return -1;
     }
 
     /* Another negative test but section exists this time */
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("monitor", "description1", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -311,7 +311,7 @@ int get_test(void)
     }
 
     /* Item should not be found */
-    if(item != (struct collection_item *)(NULL)) {
+    if(item != NULL) {
         printf("Expected NULL but got something else!\n");
         free_ini_config(ini_config);
         return -1;
@@ -320,7 +320,7 @@ int get_test(void)
     printf("Trying to get an item.\n");
 
     /* Positive test */
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("monitor", "description", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -329,7 +329,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected item but got something NULL!\n");
         free_ini_config(ini_config);
         return -1;
@@ -380,7 +380,7 @@ int get_test(void)
     /* Get a badly formated number */
     printf("Convert item to number with strict conversion.\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("monitor", "bad_number", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -389,7 +389,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected item but got something NULL!\n");
         free_ini_config(ini_config);
         return -1;
@@ -434,7 +434,7 @@ int get_test(void)
 
     printf("Fetch another item from section \"domains/LOCAL\" named \"enumerate\".\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("domains/LOCAL","enumerate", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -443,7 +443,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected success but got NULL.\n");
         free_ini_config(ini_config);
         return -1;
@@ -563,7 +563,7 @@ int get_test(void)
     /* Get real bool item and convert it */
     printf("Get real bool item \"legacy\" and convert it.\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("domains/LOCAL","legacy", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n",error);
@@ -572,7 +572,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected success but got NULL.\n");
         free_ini_config(ini_config);
         return -1;
@@ -597,7 +597,7 @@ int get_test(void)
 
     printf("Get binary item\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("domains/EXAMPLE.COM","binary_test", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -606,7 +606,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected success but got NULL.\n");
         free_ini_config(ini_config);
         return -1;
@@ -632,7 +632,7 @@ int get_test(void)
 
     printf("Get string array item\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("domains", "domainsorder", ini_config, &item);
     if(error) {
         printf("Expected success but got error! %d\n",error);
@@ -641,7 +641,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected success but got NULL.\n");
         free_ini_config(ini_config);
         return -1;
@@ -686,7 +686,7 @@ int get_test(void)
 
     printf("Get long array item\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("domains/EXAMPLE.COM", "long_array", ini_config, &item);
     if(error) {
         printf("Expected success but got error! %d\n", error);
@@ -695,7 +695,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected success but got NULL.\n");
         free_ini_config(ini_config);
         return -1;
@@ -719,7 +719,7 @@ int get_test(void)
 
     printf("Get double array item\n");
 
-    item = (struct collection_item *)(NULL);
+    item = NULL;
     error = get_config_item("domains/EXAMPLE.COM", "double_array", ini_config, &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
@@ -728,7 +728,7 @@ int get_test(void)
     }
 
     /* Item should be found */
-    if (item == (struct collection_item *)(NULL)) {
+    if (item == NULL) {
         printf("Expected success but got NULL.\n");
         free_ini_config(ini_config);
         return -1;
@@ -800,14 +800,14 @@ int get_test(void)
 
 int main(int argc, char *argv[])
 {
-    int error;
-
-    char *srcdir;
+    int error = EOK;
+    char *srcdir = NULL;
 
     srcdir = getenv("srcdir");
     if(srcdir) {
-        if(chdir(srcdir) == 0) {
+        if(chdir(srcdir) != 0) {
             error = errno;
+            printf("Failed to change directory, error %d\n", error);
             return error;
         }
     }
