@@ -45,17 +45,8 @@ static int sdap_msg_attach(TALLOC_CTX *memctx, LDAPMessage *msg)
 
 /* ==sdap-hanlde-utility-functions======================================== */
 
-static int sdap_handle_destructor(void *mem)
-{
-    struct sdap_handle *h = talloc_get_type(mem, struct sdap_handle);
-    if (h->connected) {
-        ldap_unbind_ext(h->ldap, NULL, NULL);
-        h->connected = false;
-        h->ldap = NULL;
-        h->fd = -1;
-    }
-    return 0;
-}
+static inline void sdap_handle_release(struct sdap_handle *sh);
+static int sdap_handle_destructor(void *mem);
 
 static struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx)
 {
@@ -64,11 +55,36 @@ static struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx)
     sh = talloc_zero(memctx, struct sdap_handle);
     if (!sh) return NULL;
 
-    sh->fd = -1;
-
     talloc_set_destructor((TALLOC_CTX *)sh, sdap_handle_destructor);
 
     return sh;
+}
+
+static int sdap_handle_destructor(void *mem)
+{
+    struct sdap_handle *sh = talloc_get_type(mem, struct sdap_handle);
+
+    sdap_handle_release(sh);
+
+    return 0;
+}
+
+static inline void sdap_handle_release(struct sdap_handle *sh)
+{
+    if (sh->connected) {
+        struct sdap_op *op;
+
+        while (sh->ops) {
+            op = sh->ops;
+            op->callback(op->data, EIO, NULL);
+            talloc_free(op);
+        }
+
+        talloc_zfree(sh->fde);
+        ldap_unbind_ext(sh->ldap, NULL, NULL);
+        sh->connected = false;
+        sh->ldap = NULL;
+    }
 }
 
 static int get_fd_from_ldap(LDAP *ldap, int *fd)
@@ -85,81 +101,203 @@ static int get_fd_from_ldap(LDAP *ldap, int *fd)
     return EOK;
 }
 
-static bool valid_handle(struct sdap_handle *sh)
-{
-    if (!sh) return false;
-    if (sh->ldap) return true;
-    return false;
-}
-
 /* ==Parse-Results-And-Handle-Disconnections============================== */
 
-static enum sdap_result sdap_check_result(struct sdap_handle *sh,
-                                          int msgid, bool wait_all,
-                                          LDAPMessage **msg, int *restype)
+static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg)
 {
-    struct timeval no_timeout = {0, 0};
+    struct sdap_msg *reply = NULL;
+    struct sdap_op *op;
+    int msgid;
+    int msgtype;
     int ret;
 
-    ret = ldap_result(sh->ldap, msgid, wait_all, &no_timeout, msg);
-    if (ret == 0) {
-        DEBUG(8, ("ldap result not ready yet (%d)\n", msgid));
-        /* retry */
-        return SDAP_RETRY;
+    msgid = ldap_msgid(msg);
+    if (msgid == -1) {
+        DEBUG(2, ("can't fire callback, message id invalid!\n"));
+        ldap_msgfree(msg);
+        return;
     }
-    if (ret == -1) {
-        DEBUG(2, ("ldap result not available (%d)\n", msgid));
 
-        /* Fatal error returned, kill the connection, and reset the handle */
-        ldap_unbind_ext(sh->ldap, NULL, NULL);
-        sh->connected = false;
-        sh->ldap = NULL;
-        sh->fd = -1;
+    for (op = sh->ops; op; op = op->next) {
+        if (op->msgid == msgid && !op->done) {
+            msgtype = ldap_msgtype(msg);
 
-        return SDAP_ERROR;
+            switch (msgtype) {
+            case LDAP_RES_SEARCH_ENTRY:
+            case LDAP_RES_SEARCH_REFERENCE:
+                /* more ops to come with this msgid */
+                ret = EOK;
+                break;
+
+            case LDAP_RES_BIND:
+            case LDAP_RES_SEARCH_RESULT:
+            case LDAP_RES_MODIFY:
+            case LDAP_RES_ADD:
+            case LDAP_RES_DELETE:
+            case LDAP_RES_MODDN:
+            case LDAP_RES_COMPARE:
+            case LDAP_RES_EXTENDED:
+            case LDAP_RES_INTERMEDIATE:
+                /* no more results expected with this msgid */
+                op->done = true;
+                ret = EOK;
+                break;
+
+            default:
+                /* unkwon msg type ?? */
+                DEBUG(1, ("Couldn't figure out the msg type! [%0x]\n",
+                          msgtype));
+                ret = EIO;
+            }
+
+            if (ret == EOK) {
+                reply = talloc(op, struct sdap_msg);
+                if (!reply) {
+                    ldap_msgfree(msg);
+                    ret = ENOMEM;
+                } else {
+                    reply->msg = msg;
+                    ret = sdap_msg_attach(reply, msg);
+                    if (ret != EOK) {
+                        ldap_msgfree(msg);
+                        talloc_zfree(reply);
+                    }
+                }
+            }
+
+            op->callback(op->data, ret, reply);
+
+            break;
+        }
     }
-    DEBUG(8, ("ldap result returned %d\n", ret));
 
-    *restype = ret;
-    return SDAP_SUCCESS;
+    if (op == NULL) {
+        DEBUG(2, ("Unmatched msgid, discarding message (type: %0x)\n",
+                  ldap_msgtype(msg)));
+        return;
+    }
 }
+
+static void sdap_ldap_results(struct tevent_context *ev,
+                              struct tevent_fd *fde,
+                              uint16_t flags, void *pvt)
+{
+    struct sdap_handle *sh = talloc_get_type(pvt, struct sdap_handle);
+    struct timeval no_timeout = {0, 0};
+    LDAPMessage *msg;
+    int ret;
+
+    while (1) {
+        if (!sh->connected) {
+            DEBUG(2, ("FDE fired but LDAP connection is not connected!\n"));
+            sdap_handle_release(sh);
+            return;
+        }
+
+        ret = ldap_result(sh->ldap, LDAP_RES_ANY, 0, &no_timeout, &msg);
+        if (ret == 0) {
+            DEBUG(6, ("FDE fired but ldap_result found nothing!\n"));
+            return;
+        }
+
+        if (ret == -1) {
+            DEBUG(4, ("ldap_result gave -1, something bad happend!\n"));
+
+            sdap_handle_release(sh);
+            return;
+        }
+
+        sdap_process_message(sh, msg);
+    }
+}
+
+static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
+                                       struct tevent_context *ev)
+{
+    int fd;
+    int ret;
+
+    ret = get_fd_from_ldap(sh->ldap, &fd);
+    if (ret) return ret;
+
+    sh->fde = tevent_add_fd(ev, sh, fd, TEVENT_FD_READ, sdap_ldap_results, sh);
+    if (!sh->fde) return ENOMEM;
+
+    return EOK;
+}
+
 
 /* ==LDAP-Operations-Helpers============================================== */
 
-struct ldap_operation_destructor_state {
-    struct sdap_handle *sh;
-    int msgid;
-};
-
-static int ldap_operation_destructor(void *mem)
+static int sdap_op_destructor(void *mem)
 {
-    struct ldap_operation_destructor_state *state =
-            (struct ldap_operation_destructor_state *)mem;
+    struct sdap_op *op = (struct sdap_op *)mem;
 
-    if (valid_handle(state->sh)) {
-        /* we don't check the result here, if a message was really abandoned,
-         * hopefully the server will get an abandon.
-         * If the operation was already fully completed, this is going to be
-         * just a noop */
-        ldap_abandon_ext(state->sh->ldap, state->msgid, NULL, NULL);
-    }
+    DLIST_REMOVE(op->sh->ops, op);
+
+    if (op->done) return 0;
+
+    /* we don't check the result here, if a message was really abandoned,
+     * hopefully the server will get an abandon.
+     * If the operation was already fully completed, this is going to be
+     * just a noop */
+    ldap_abandon_ext(op->sh->ldap, op->msgid, NULL, NULL);
 
     return 0;
 }
 
-static int set_ldap_operation_destructor(TALLOC_CTX *parent,
-                                         struct sdap_handle *sh, int msgid)
+static void sdap_op_timeout(struct tevent_req *req)
 {
-    struct ldap_operation_destructor_state *state;
+    struct sdap_op *op = tevent_req_callback_data(req, struct sdap_op);
 
-    state = talloc(parent, struct ldap_operation_destructor_state);
-    if (!state) return ENOMEM;
+    /* should never happen, but just in case */
+    if (op->done) {
+        DEBUG(2, ("Timeout happened after op was finished !?\n"));
+        return;
+    }
 
-/* TODO: should we talloc_reference sdap_handle here ? */
-    state->sh = sh;
-    state->msgid = msgid;
+    /* signal the caller that we have a timeout */
+    op->callback(op->data, ETIME, NULL);
 
-    talloc_set_destructor((TALLOC_CTX *)state, ldap_operation_destructor);
+    /* send back to the server an abandon (see destructor) and free the op */
+    talloc_free(op);
+}
+
+static int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
+                       struct sdap_handle *sh, int msgid,
+                       sdap_op_callback_t *callback, void *data,
+                       int timeout)
+{
+    struct sdap_op *op;
+
+    op = talloc_zero(memctx, struct sdap_op);
+    if (!op) return ENOMEM;
+
+    op->sh = sh;
+    op->msgid = msgid;
+    op->callback = callback;
+    op->data = data;
+
+    /* check if we need to set a timeout */
+    if (timeout) {
+        struct tevent_req *req;
+        struct timeval tv;
+
+        tv = tevent_timeval_current();
+        tv = tevent_timeval_add(&tv, timeout, 0);
+
+        /* allocate on op, so when it get freed the timeout is removed */
+        req = tevent_wakeup_send(op, ev, tv);
+        if (!req) {
+            talloc_zfree(op);
+            return ENOMEM;
+        }
+        tevent_req_set_callback(req, sdap_op_timeout, op);
+    }
+
+    DLIST_ADD(sh->ops, op);
+
+    talloc_set_destructor((TALLOC_CTX *)op, sdap_op_destructor);
 
     return EOK;
 }
@@ -167,6 +305,7 @@ static int set_ldap_operation_destructor(TALLOC_CTX *parent,
 /* ==Connect-to-LDAP-Server=============================================== */
 
 struct sdap_connect_state {
+    struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
 
@@ -176,9 +315,7 @@ struct sdap_connect_state {
     int result;
 };
 
-static void sdap_connect_done(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *pvt);
+static void sdap_connect_done(void *pvt, int error, struct sdap_msg *reply);
 
 struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
@@ -187,10 +324,10 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct sdap_connect_state *state;
-    struct tevent_fd *fde;
     struct timeval tv;
     int ver;
-    int ret;
+    int lret;
+    int ret = EOK;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -201,6 +338,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    state->ev = ev;
     state->opts = opts;
     state->sh = sdap_handle_create(state);
     if (!state->sh) {
@@ -208,16 +346,16 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         return NULL;
     }
     /* Initialize LDAP handler */
-    ret = ldap_initialize(&state->sh->ldap, opts->basic[SDAP_URI].value);
-    if (ret != LDAP_SUCCESS) {
+    lret = ldap_initialize(&state->sh->ldap, opts->basic[SDAP_URI].value);
+    if (lret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_initialize failed: %s\n", ldap_err2string(ret)));
         goto fail;
     }
 
     /* Force ldap version to 3 */
     ver = LDAP_VERSION3;
-    ret = ldap_set_option(state->sh->ldap, LDAP_OPT_PROTOCOL_VERSION, &ver);
-    if (ret != LDAP_OPT_SUCCESS) {
+    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_PROTOCOL_VERSION, &ver);
+    if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set ldap version to 3\n"));
         goto fail;
     }
@@ -225,8 +363,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     /* Set Network Timeout */
     tv.tv_sec = opts->network_timeout;
     tv.tv_usec = 0;
-    ret = ldap_set_option(state->sh->ldap, LDAP_OPT_NETWORK_TIMEOUT, &tv);
-    if (ret != LDAP_OPT_SUCCESS) {
+    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_NETWORK_TIMEOUT, &tv);
+    if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set network timeout to %d\n",
                   opts->network_timeout));
         goto fail;
@@ -235,8 +373,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     /* Set Default Timeout */
     tv.tv_sec = opts->opt_timeout;
     tv.tv_usec = 0;
-    ret = ldap_set_option(state->sh->ldap, LDAP_OPT_TIMEOUT, &tv);
-    if (ret != LDAP_OPT_SUCCESS) {
+    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_TIMEOUT, &tv);
+    if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set default timeout to %d\n",
                   opts->opt_timeout));
         goto fail;
@@ -251,61 +389,54 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     DEBUG(4, ("Executing START TLS\n"));
 
-    ret = ldap_start_tls(state->sh->ldap, NULL, NULL, &state->msgid);
-    if (ret != LDAP_SUCCESS) {
+    lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &state->msgid);
+    if (lret != LDAP_SUCCESS) {
         DEBUG(3, ("ldap_start_tls failed: [%s]", ldap_err2string(ret)));
         goto fail;
     }
 
     state->sh->connected = true;
-    ret = get_fd_from_ldap(state->sh->ldap, &state->sh->fd);
+    ret = sdap_install_ldap_callbacks(state->sh, state->ev);
     if (ret) goto fail;
 
-    fde = tevent_add_fd(ev, state,
-                        state->sh->fd, TEVENT_FD_READ,
-                        sdap_connect_done, req);
-    if (!fde) {
-        DEBUG(1, ("Failed to set up fd event!\n"));
+    /* FIXME: get timeouts from configuration, for now 5 secs. */
+    ret = sdap_op_add(state, ev, state->sh, state->msgid,
+                      sdap_connect_done, req, 5);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
         goto fail;
     }
 
     return req;
 
 fail:
-    if (ret == LDAP_SERVER_DOWN) {
-        tevent_req_error(req, EAGAIN);
+    if (ret) {
+        tevent_req_error(req, ret);
     } else {
-        tevent_req_error(req, EIO);
+        if (lret == LDAP_SERVER_DOWN) {
+            tevent_req_error(req, EAGAIN);
+        } else {
+            tevent_req_error(req, EIO);
+        }
     }
     tevent_req_post(req, ev);
     return req;
 }
 
-static void sdap_connect_done(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *pvt)
+static void sdap_connect_done(void *pvt, int error, struct sdap_msg *reply)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_connect_state *state = tevent_req_data(req,
                                           struct sdap_connect_state);
-    enum sdap_result res;
     char *errmsg;
-    int restype;
     int ret;
 
-    res = sdap_check_result(state->sh, state->msgid, true,
-                            &state->reply->msg, &restype);
-    if (res != SDAP_SUCCESS) {
-        if (res != SDAP_RETRY) {
-            tevent_req_error(req, EIO);
-        }
+    if (error) {
+        tevent_req_error(req, error);
         return;
     }
 
-    ret = sdap_msg_attach(state->reply, state->reply->msg);
-    if (ret) {
-        DEBUG(1, ("Error appending memory: %s(%d)\n", strerror(ret), ret));
-    }
+    state->reply = talloc_steal(state, reply);
 
     ret = ldap_parse_result(state->sh->ldap, state->reply->msg,
                             &state->result, NULL, &errmsg, NULL, NULL, 0);
@@ -341,7 +472,7 @@ int sdap_connect_recv(struct tevent_req *req,
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* if tstate shows in progress, it is because
-         * we did not asq to perform tls, just pretend all is fine */
+         * we did not ask to perform tls, just pretend all is fine */
         if (tstate != TEVENT_REQ_IN_PROGRESS) {
             return err;
         }
@@ -357,6 +488,7 @@ int sdap_connect_recv(struct tevent_req *req,
 /* ==Simple-Bind========================================================== */
 
 struct simple_bind_state {
+    struct tevent_context *ev;
     struct sdap_handle *sh;
     const char *user_dn;
     struct berval *pw;
@@ -366,9 +498,7 @@ struct simple_bind_state {
     int result;
 };
 
-static void simple_bind_done(struct tevent_context *ev,
-                             struct tevent_fd *fde,
-                             uint16_t flags, void *pvt);
+static void simple_bind_done(void *pvt, int error, struct sdap_msg *reply);
 
 static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                                            struct tevent_context *ev,
@@ -378,8 +508,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct simple_bind_state *state;
-    struct tevent_fd *fde;
-    int ret;
+    int ret = EOK;
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -390,6 +519,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    state->ev = ev;
     state->sh = sh;
     state->user_dn = user_dn;
     state->pw = pw;
@@ -406,16 +536,18 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
 
     if (!sh->connected) {
         sh->connected = true;
-        ret = get_fd_from_ldap(sh->ldap, &sh->fd);
+        ret = sdap_install_ldap_callbacks(sh, ev);
         if (ret) goto fail;
     }
 
-    fde = tevent_add_fd(ev, state,
-                        sh->fd, TEVENT_FD_READ,
-                        simple_bind_done, req);
-    if (!fde) {
-        talloc_zfree(req);
+    /* FIXME: get timeouts from configuration, for now 5 secs. */
+    ret = sdap_op_add(state, ev, sh, state->msgid,
+                      simple_bind_done, req, 5);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        goto fail;
     }
+
     return req;
 
 fail:
@@ -428,31 +560,20 @@ fail:
     return req;
 }
 
-static void simple_bind_done(struct tevent_context *ev,
-                             struct tevent_fd *fde,
-                             uint16_t flags, void *pvt)
+static void simple_bind_done(void *pvt, int error, struct sdap_msg *reply)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
-    enum sdap_result res;
     char *errmsg;
-    int restype;
     int ret;
 
-    res = sdap_check_result(state->sh, state->msgid, true,
-                            &state->reply->msg, &restype);
-    if (res != SDAP_SUCCESS) {
-        if (res != SDAP_RETRY) {
-            tevent_req_error(req, EIO);
-        }
+    if (error) {
+        tevent_req_error(req, error);
         return;
     }
 
-    ret = sdap_msg_attach(state->reply, state->reply->msg);
-    if (ret) {
-        DEBUG(1, ("Error appending memory: %s(%d)\n", strerror(ret), ret));
-    }
+    state->reply = talloc_steal(state, reply);
 
     ret = ldap_parse_result(state->sh->ldap, state->reply->msg,
                             &state->result, NULL, &errmsg, NULL, NULL, 0);
@@ -861,18 +982,17 @@ struct sdap_get_users_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
-
     struct sss_domain_info *dom;
-    struct sysdb_handle *handle;
+    const char **attrs;
+    const char *filter;
 
-    struct tevent_fd *fde;
+    struct sysdb_handle *handle;
     int msgid;
 };
 
 static void sdap_get_users_transaction(struct tevent_req *subreq);
-static void sdap_get_users_done(struct tevent_context *ev,
-                                struct tevent_fd *fde,
-                                uint16_t flags, void *pvt);
+static void sdap_get_users_done(void *pvt, int error,
+                                struct sdap_msg *reply);
 static void sdap_get_users_save_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
@@ -886,7 +1006,6 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct sdap_get_users_state *state;
-    int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_users_state);
     if (!req) return NULL;
@@ -895,34 +1014,13 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
-
-    DEBUG(5, ("calling ldap_search_ext with [%s].\n", filter));
-
-    ret = ldap_search_ext(state->sh->ldap,
-                          opts->basic[SDAP_USER_SEARCH_BASE].value,
-                          LDAP_SCOPE_SUBTREE, filter, discard_const(attrs),
-                          false, NULL, NULL, NULL, 0, &state->msgid);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(ret)));
-        goto fail;
-    }
-    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", state->msgid));
-
-    ret = set_ldap_operation_destructor(state, sh, state->msgid);
-    if (ret) goto fail;
+    state->filter = filter;
+    state->attrs = attrs;
 
     subreq = sysdb_transaction_send(state, state->ev, sysdb);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
+    if (!subreq) return NULL;
     tevent_req_set_callback(subreq, sdap_get_users_transaction, req);
 
-    return req;
-
-fail:
-    tevent_req_error(req, EIO);
-    tevent_req_post(req, ev);
     return req;
 }
 
@@ -932,7 +1030,7 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
-    int ret;
+    int lret, ret;
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     talloc_zfree(subreq);
@@ -941,76 +1039,55 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
         return;
     }
 
-    state->fde = tevent_add_fd(state->ev, state,
-                               state->sh->fd, TEVENT_FD_READ,
-                               sdap_get_users_done, req);
-    if (!state->fde) {
-        DEBUG(1, ("Failed to set up fd event!\n"));
-        tevent_req_error(req, ENOMEM);
+    DEBUG(5, ("calling ldap_search_ext with [%s].\n", state->filter));
+
+    lret = ldap_search_ext(state->sh->ldap,
+                           state->opts->basic[SDAP_USER_SEARCH_BASE].value,
+                           LDAP_SCOPE_SUBTREE, state->filter,
+                           discard_const(state->attrs),
+                           false, NULL, NULL, NULL, 0, &state->msgid);
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
+        tevent_req_error(req, EIO);
+        return;
+    }
+    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", state->msgid));
+
+    /* FIXME: get timeouts from configuration, for now 10 minutes */
+    ret = sdap_op_add(state, state->ev, state->sh, state->msgid,
+                      sdap_get_users_done, req, 600);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        tevent_req_error(req, ret);
     }
 }
 
-static void sdap_get_users_done(struct tevent_context *ev,
-                                struct tevent_fd *fde,
-                                uint16_t flags, void *pvt)
+static void sdap_get_users_done(void *pvt, int error, struct sdap_msg *reply)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
     struct tevent_req *subreq;
-    LDAPMessage *msg = NULL;
-    struct sdap_msg *reply;
-    enum sdap_result res;
     char *errmsg;
-    int restype;
     int result;
     int ret;
 
-    res = sdap_check_result(state->sh, state->msgid, false,
-                            &msg, &restype);
-    if (res != SDAP_SUCCESS) {
-        if (res != SDAP_RETRY) {
-            tevent_req_error(req, EIO);
-            return;
-        }
-
-        /* make sure fd is readable so we can fetch the next result */
-        TEVENT_FD_READABLE(state->fde);
+    if (error) {
+        tevent_req_error(req, error);
         return;
     }
 
-    if (!msg) {
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    reply = talloc_zero(state, struct sdap_msg);
-    if (!reply) {
-        ldap_msgfree(msg);
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    reply->msg = msg;
-    ret = sdap_msg_attach(reply, msg);
-    if (ret) {
-        DEBUG(1, ("Error appending memory: %s(%d)\n", strerror(ret), ret));
-        tevent_req_error(req, EFAULT);
-        return;
-    }
-
-    switch (restype) {
+    switch (ldap_msgtype(reply->msg)) {
     case LDAP_RES_SEARCH_REFERENCE:
         /* ignore references for now */
-        ldap_msgfree(msg);
+        talloc_free(reply);
         break;
 
     case LDAP_RES_SEARCH_ENTRY:
         /* FIXME: should we set a timeout tevent timed function ?  */
 
-        /* stop reading until operation is done */
-        TEVENT_FD_NOT_READABLE(state->fde);
-
+        /* FIXME: use a queue of requests so they are performed one at
+         * a time (tevent_queue_*) */
         subreq = sdap_save_user_send(state, state->ev, state->handle,
                                      state->opts, state->dom,
                                      state->sh, reply);
@@ -1018,11 +1095,11 @@ static void sdap_get_users_done(struct tevent_context *ev,
             tevent_req_error(req, ENOMEM);
             return;
         }
+        tevent_req_set_callback(subreq, sdap_get_users_save_done, req);
         /* attach reply to subreq,
          * will not be needed anymore once subreq is done */
         talloc_steal(subreq, reply);
 
-        tevent_req_set_callback(subreq, sdap_get_users_save_done, req);
         break;
 
     case LDAP_RES_SEARCH_RESULT:
@@ -1056,18 +1133,10 @@ static void sdap_get_users_done(struct tevent_context *ev,
     }
 }
 
-static void sdap_fake_users_done(struct tevent_context *ev,
-                                 struct tevent_timer *te,
-                                 struct timeval tv, void *pvt);
-
 static void sdap_get_users_save_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_get_users_state *state = tevent_req_data(req,
-                                            struct sdap_get_users_state);
-    struct timeval tv = { 0, 0 };
-    struct tevent_timer *te;
     int ret;
 
     ret = sdap_save_user_recv(subreq);
@@ -1076,31 +1145,7 @@ static void sdap_get_users_save_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
-    /* unfortunately LDAP libraries consume everything sitting on the wire but
-     * do not give us a way to know if there is anything waiting to be read or
-     * or not. So schedule a fake fde event and wake up ourselves again. If we
-     * get a SDAP_RETRY it is fine.  */
-
-    te = tevent_add_timer(state->ev, state, tv,
-                          sdap_fake_users_done, req);
-    if (!te) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
 }
-
-static void sdap_fake_users_done(struct tevent_context *ev,
-                                 struct tevent_timer *te,
-                                 struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_get_users_state *state = tevent_req_data(req,
-                                            struct sdap_get_users_state);
-
-    sdap_get_users_done(state->ev, state->fde, 0, pvt);
-}
-
 
 int sdap_get_users_recv(struct tevent_req *req)
 {
@@ -1121,18 +1166,17 @@ struct sdap_get_groups_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
-
     struct sss_domain_info *dom;
-    struct sysdb_handle *handle;
+    const char **attrs;
+    const char *filter;
 
-    struct tevent_fd *fde;
+    struct sysdb_handle *handle;
     int msgid;
 };
 
 static void sdap_get_groups_transaction(struct tevent_req *subreq);
-static void sdap_get_groups_done(struct tevent_context *ev,
-                                struct tevent_fd *fde,
-                                uint16_t flags, void *pvt);
+static void sdap_get_groups_done(void *pvt, int error,
+                                 struct sdap_msg *reply);
 static void sdap_get_groups_save_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
@@ -1146,7 +1190,6 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct sdap_get_groups_state *state;
-    int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
     if (!req) return NULL;
@@ -1155,34 +1198,13 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
-
-    DEBUG(5, ("calling ldap_search_ext with [%s].\n", filter));
-
-    ret = ldap_search_ext(state->sh->ldap,
-                          opts->basic[SDAP_GROUP_SEARCH_BASE].value,
-                          LDAP_SCOPE_SUBTREE, filter, discard_const(attrs),
-                          false, NULL, NULL, NULL, 0, &state->msgid);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(ret)));
-        goto fail;
-    }
-    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", state->msgid));
-
-    ret = set_ldap_operation_destructor(state, sh, state->msgid);
-    if (ret) goto fail;
+    state->filter = filter;
+    state->attrs = attrs;
 
     subreq = sysdb_transaction_send(state, state->ev, sysdb);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
+    if (!subreq) return NULL;
     tevent_req_set_callback(subreq, sdap_get_groups_transaction, req);
 
-    return req;
-
-fail:
-    tevent_req_error(req, EIO);
-    tevent_req_post(req, ev);
     return req;
 }
 
@@ -1192,7 +1214,7 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_get_groups_state *state = tevent_req_data(req,
                                                struct sdap_get_groups_state);
-    int ret;
+    int ret, lret;
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     talloc_zfree(subreq);
@@ -1201,76 +1223,56 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
         return;
     }
 
-    state->fde = tevent_add_fd(state->ev, state,
-                               state->sh->fd, TEVENT_FD_READ,
-                               sdap_get_groups_done, req);
-    if (!state->fde) {
-        DEBUG(1, ("Failed to set up fd event!\n"));
-        tevent_req_error(req, ENOMEM);
+    DEBUG(5, ("calling ldap_search_ext with [%s].\n", state->filter));
+
+    lret = ldap_search_ext(state->sh->ldap,
+                           state->opts->basic[SDAP_GROUP_SEARCH_BASE].value,
+                           LDAP_SCOPE_SUBTREE, state->filter,
+                           discard_const(state->attrs),
+                           false, NULL, NULL, NULL, 0, &state->msgid);
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
+        tevent_req_error(req, EIO);
+        return;
+    }
+    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", state->msgid));
+
+    /* FIXME: get timeouts from configuration, for now 10 minutes */
+    ret = sdap_op_add(state, state->ev, state->sh, state->msgid,
+                      sdap_get_groups_done, req, 600);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        tevent_req_error(req, ret);
     }
 }
 
-static void sdap_get_groups_done(struct tevent_context *ev,
-                                struct tevent_fd *fde,
-                                uint16_t flags, void *pvt)
+static void sdap_get_groups_done(void *pvt, int error,
+                                 struct sdap_msg *reply)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_get_groups_state *state = tevent_req_data(req,
                                             struct sdap_get_groups_state);
     struct tevent_req *subreq;
-    LDAPMessage *msg = NULL;
-    struct sdap_msg *reply;
-    enum sdap_result res;
     char *errmsg;
-    int restype;
     int result;
     int ret;
 
-    res = sdap_check_result(state->sh, state->msgid, false,
-                            &msg, &restype);
-    if (res != SDAP_SUCCESS) {
-        if (res != SDAP_RETRY) {
-            tevent_req_error(req, EIO);
-            return;
-        }
-
-        /* make sure fd is readable so we can fetch the next result */
-        TEVENT_FD_READABLE(state->fde);
+    if (error) {
+        tevent_req_error(req, error);
         return;
     }
 
-    if (!msg) {
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    reply = talloc_zero(state, struct sdap_msg);
-    if (!reply) {
-        ldap_msgfree(msg);
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    reply->msg = msg;
-    ret = sdap_msg_attach(reply, msg);
-    if (ret) {
-        DEBUG(1, ("Error appending memory: %s(%d)\n", strerror(ret), ret));
-        tevent_req_error(req, EFAULT);
-        return;
-    }
-
-    switch (restype) {
+    switch (ldap_msgtype(reply->msg)) {
     case LDAP_RES_SEARCH_REFERENCE:
         /* ignore references for now */
-        ldap_msgfree(msg);
+        talloc_free(reply);
         break;
 
     case LDAP_RES_SEARCH_ENTRY:
         /* FIXME: should we set a timeout tevent timed function ?  */
 
-        /* stop reading until operation is done */
-        TEVENT_FD_NOT_READABLE(state->fde);
-
+        /* FIXME: use a queue of requests so they are performed one at
+         * a time (tevent_queue_*) */
         subreq = sdap_save_group_send(state, state->ev, state->handle,
                                      state->opts, state->dom,
                                      state->sh, reply);
@@ -1278,11 +1280,11 @@ static void sdap_get_groups_done(struct tevent_context *ev,
             tevent_req_error(req, ENOMEM);
             return;
         }
+        tevent_req_set_callback(subreq, sdap_get_groups_save_done, req);
         /* attach reply to subreq,
          * will not be needed anymore once subreq is done */
         talloc_steal(subreq, reply);
 
-        tevent_req_set_callback(subreq, sdap_get_groups_save_done, req);
         break;
 
     case LDAP_RES_SEARCH_RESULT:
@@ -1316,18 +1318,10 @@ static void sdap_get_groups_done(struct tevent_context *ev,
     }
 }
 
-static void sdap_get_groups_fake_done(struct tevent_context *ev,
-                                      struct tevent_timer *te,
-                                      struct timeval tv, void *pvt);
-
 static void sdap_get_groups_save_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
-    struct timeval tv = { 0, 0 };
-    struct tevent_timer *te;
     int ret;
 
     ret = sdap_save_group_recv(subreq);
@@ -1336,31 +1330,7 @@ static void sdap_get_groups_save_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
-    /* unfortunately LDAP libraries consume everything sitting on the wire but
-     * do not give us a way to know if there is anything waiting to be read or
-     * or not. So schedule a fake fde event and wake up ourselves again. If we
-     * get a SDAP_RETRY it is fine.  */
-
-    te = tevent_add_timer(state->ev, state, tv,
-                          sdap_get_groups_fake_done, req);
-    if (!te) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
 }
-
-static void sdap_get_groups_fake_done(struct tevent_context *ev,
-                                      struct tevent_timer *te,
-                                      struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
-
-    sdap_get_groups_done(state->ev, state->fde, 0, pvt);
-}
-
 
 int sdap_get_groups_recv(struct tevent_req *req)
 {
@@ -1386,16 +1356,15 @@ struct sdap_get_initgr_state {
     const char *name;
     const char **grp_attrs;
 
+    const char *filter;
+
     struct sysdb_handle *handle;
-    struct tevent_fd *fde;
     int msgid;
 };
 
 static void sdap_get_initgr_process(struct tevent_req *subreq);
 static void sdap_get_initgr_transaction(struct tevent_req *subreq);
-static void sdap_get_initgr_done(struct tevent_context *ev,
-                                struct tevent_fd *fde,
-                                uint16_t flags, void *pvt);
+static void sdap_get_initgr_done(void *pvt, int error, struct sdap_msg *reply);
 static void sdap_get_initgr_save_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
@@ -1475,7 +1444,6 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
                                                struct sdap_get_initgr_state);
     struct ldb_message *msg;
     const char *user_dn;
-    char *filter;
     int ret;
 
     switch (state->opts->schema_type) {
@@ -1487,15 +1455,10 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
         }
         talloc_zfree(subreq);
 
-        filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                          state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
-                          state->name,
-                          state->opts->group_map[SDAP_OC_GROUP].name);
-        if (!filter) {
-            tevent_req_error(req, ENOENT);
-            return;
-        }
-
+        state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                           state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
+                           state->name,
+                           state->opts->group_map[SDAP_OC_GROUP].name);
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
@@ -1513,17 +1476,12 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
             return;
         }
 
-        filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                          state->opts->user_map[SDAP_AT_GROUP_MEMBER].name,
-                          user_dn,
-                          state->opts->user_map[SDAP_OC_GROUP].name);
-        if (!filter) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
+        state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
+                            state->opts->user_map[SDAP_AT_GROUP_MEMBER].name,
+                            user_dn,
+                            state->opts->user_map[SDAP_OC_GROUP].name);
 
         talloc_free(msg);
-
         break;
 
     default:
@@ -1531,25 +1489,8 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(5, ("calling ldap_search_ext with filter:[%s].\n", filter));
-
-
-    ret = ldap_search_ext(state->sh->ldap,
-                          state->opts->basic[SDAP_GROUP_SEARCH_BASE].value,
-                          LDAP_SCOPE_SUBTREE, filter,
-                          discard_const(state->grp_attrs),
-                          false, NULL, NULL, NULL, 0, &state->msgid);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(ret)));
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", state->msgid));
-
-    ret = set_ldap_operation_destructor(state, state->sh, state->msgid);
-    if (ret) {
-        tevent_req_error(req, ret);
+    if (!state->filter) {
+        tevent_req_error(req, ENOMEM);
         return;
     }
 
@@ -1567,7 +1508,7 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_get_initgr_state *state = tevent_req_data(req,
                                                struct sdap_get_initgr_state);
-    int ret;
+    int ret, lret;
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     talloc_zfree(subreq);
@@ -1576,76 +1517,56 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
         return;
     }
 
-    state->fde = tevent_add_fd(state->ev, state,
-                               state->sh->fd, TEVENT_FD_READ,
-                               sdap_get_initgr_done, req);
-    if (!state->fde) {
-        DEBUG(1, ("Failed to set up fd event!\n"));
-        tevent_req_error(req, ENOMEM);
+    DEBUG(5, ("calling ldap_search_ext with filter:[%s].\n", state->filter));
+
+    lret = ldap_search_ext(state->sh->ldap,
+                           state->opts->basic[SDAP_GROUP_SEARCH_BASE].value,
+                           LDAP_SCOPE_SUBTREE, state->filter,
+                           discard_const(state->grp_attrs),
+                           false, NULL, NULL, NULL, 0, &state->msgid);
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", state->msgid));
+
+    /* FIXME: get timeouts from configuration, for now 10 minutes */
+    ret = sdap_op_add(state, state->ev, state->sh, state->msgid,
+                      sdap_get_initgr_done, req, 600);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        tevent_req_error(req, ret);
     }
 }
 
-static void sdap_get_initgr_done(struct tevent_context *ev,
-                                 struct tevent_fd *fde,
-                                 uint16_t flags, void *pvt)
+static void sdap_get_initgr_done(void *pvt, int error, struct sdap_msg *reply)
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_get_initgr_state *state = tevent_req_data(req,
                                                struct sdap_get_initgr_state);
     struct tevent_req *subreq;
-    LDAPMessage *msg = NULL;
-    struct sdap_msg *reply;
-    enum sdap_result res;
     char *errmsg;
-    int restype;
     int result;
     int ret;
 
-    res = sdap_check_result(state->sh, state->msgid, false,
-                            &msg, &restype);
-    if (res != SDAP_SUCCESS) {
-        if (res != SDAP_RETRY) {
-            tevent_req_error(req, EIO);
-            return;
-        }
-
-        /* make sure fd is readable so we can fetch the next result */
-        TEVENT_FD_READABLE(state->fde);
+    if (error) {
+        tevent_req_error(req, error);
         return;
     }
 
-    if (!msg) {
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    reply = talloc_zero(state, struct sdap_msg);
-    if (!reply) {
-        ldap_msgfree(msg);
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    reply->msg = msg;
-    ret = sdap_msg_attach(reply, msg);
-    if (ret) {
-        DEBUG(1, ("Error appending memory: %s(%d)\n", strerror(ret), ret));
-        tevent_req_error(req, EFAULT);
-        return;
-    }
-
-    switch (restype) {
+    switch (ldap_msgtype(reply->msg)) {
     case LDAP_RES_SEARCH_REFERENCE:
         /* ignore references for now */
-        ldap_msgfree(msg);
+        talloc_free(reply);
         break;
 
     case LDAP_RES_SEARCH_ENTRY:
         /* FIXME: should we set a timeout tevent timed function ?  */
 
-        /* stop reading until operation is done */
-        TEVENT_FD_NOT_READABLE(state->fde);
-
+        /* FIXME: use a queue of requests so they are performed one at
+         * a time (tevent_queue_*) */
         subreq = sdap_save_group_send(state, state->ev, state->handle,
                                      state->opts, state->dom,
                                      state->sh, reply);
@@ -1653,11 +1574,11 @@ static void sdap_get_initgr_done(struct tevent_context *ev,
             tevent_req_error(req, ENOMEM);
             return;
         }
+        tevent_req_set_callback(subreq, sdap_get_initgr_save_done, req);
         /* attach reply to subreq,
          * will not be needed anymore once subreq is done */
         talloc_steal(subreq, reply);
 
-        tevent_req_set_callback(subreq, sdap_get_initgr_save_done, req);
         break;
 
     case LDAP_RES_SEARCH_RESULT:
@@ -1691,18 +1612,10 @@ static void sdap_get_initgr_done(struct tevent_context *ev,
     }
 }
 
-static void sdap_get_initgr_fake_done(struct tevent_context *ev,
-                                      struct tevent_timer *te,
-                                      struct timeval tv, void *pvt);
-
 static void sdap_get_initgr_save_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_get_initgr_state *state = tevent_req_data(req,
-                                               struct sdap_get_initgr_state);
-    struct timeval tv = { 0, 0 };
-    struct tevent_timer *te;
     int ret;
 
     ret = sdap_save_group_recv(subreq);
@@ -1711,31 +1624,7 @@ static void sdap_get_initgr_save_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
-    /* unfortunately LDAP libraries consume everything sitting on the wire but
-     * do not give us a way to know if there is anything waiting to be read or
-     * or not. So schedule a fake fde event and wake up ourselves again. If we
-     * get a SDAP_RETRY it is fine.  */
-
-    te = tevent_add_timer(state->ev, state, tv,
-                          sdap_get_initgr_fake_done, req);
-    if (!te) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
 }
-
-static void sdap_get_initgr_fake_done(struct tevent_context *ev,
-                                      struct tevent_timer *te,
-                                      struct timeval tv, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_get_initgr_state *state = tevent_req_data(req,
-                                               struct sdap_get_initgr_state);
-
-    sdap_get_initgr_done(state->ev, state->fde, 0, pvt);
-}
-
 
 int sdap_get_initgr_recv(struct tevent_req *req)
 {

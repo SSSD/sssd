@@ -113,7 +113,7 @@ static bool connected(struct sdap_id_ctx *ctx)
 
 struct sdap_id_connect_state {
     struct tevent_context *ev;
-    struct sdap_options *opts;
+    struct sdap_id_ctx *ctx;
     bool use_start_tls;
 
     struct sdap_handle *sh;
@@ -124,7 +124,7 @@ static void sdap_id_anon_bind_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
-                                        struct sdap_options *opts,
+                                        struct sdap_id_ctx *ctx,
                                         bool use_start_tls)
 {
     struct tevent_req *req, *subreq;
@@ -134,10 +134,10 @@ struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->ev = ev;
-    state->opts = opts;
+    state->ctx = ctx;
     state->use_start_tls = use_start_tls;
 
-    subreq = sdap_connect_send(state, ev, opts, use_start_tls);
+    subreq = sdap_connect_send(state, ev, ctx->opts, use_start_tls);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -193,8 +193,7 @@ static void sdap_id_anon_bind_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-static int sdap_id_connect_recv(struct tevent_req *req,
-                                TALLOC_CTX *memctx, struct sdap_handle **sh)
+static int sdap_id_connect_recv(struct tevent_req *req)
 {
     struct sdap_id_connect_state *state = tevent_req_data(req,
                                                 struct sdap_id_connect_state);
@@ -206,8 +205,8 @@ static int sdap_id_connect_recv(struct tevent_req *req,
         return EIO;
     }
 
-    *sh = talloc_steal(memctx, state->sh);
-    if (!*sh) {
+    state->ctx->gsh = talloc_steal(state->ctx, state->sh);
+    if (!state->ctx->gsh) {
         return ENOMEM;
     }
     return EOK;
@@ -283,7 +282,7 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx->opts, false);
+        subreq = sdap_id_connect_send(state, ev, ctx, false);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -320,7 +319,7 @@ static void users_get_connect_done(struct tevent_req *subreq)
                                                      struct users_get_state);
     int ret;
 
-    ret = sdap_id_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_id_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -440,7 +439,7 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx->opts, false);
+        subreq = sdap_id_connect_send(state, ev, ctx, false);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -477,7 +476,7 @@ static void groups_get_connect_done(struct tevent_req *subreq)
                                                      struct users_get_state);
     int ret;
 
-    ret = sdap_id_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_id_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -572,7 +571,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx->opts, false);
+        subreq = sdap_id_connect_send(state, ev, ctx, false);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -609,7 +608,7 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                                      struct groups_by_user_state);
     int ret;
 
-    ret = sdap_id_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_id_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);

@@ -23,10 +23,32 @@
 #include "db/sysdb.h"
 #include <ldap.h>
 
+struct sdap_msg {
+    LDAPMessage *msg;
+};
+
+typedef void (sdap_op_callback_t)(void *, int, struct sdap_msg *);
+
+struct sdap_handle;
+
+struct sdap_op {
+    struct sdap_op *prev, *next;
+    struct sdap_handle *sh;
+
+    int msgid;
+    bool done;
+
+    sdap_op_callback_t *callback;
+    void *data;
+};
+
 struct sdap_handle {
     LDAP *ldap;
     bool connected;
-    int fd;
+
+    struct tevent_fd *fde;
+
+    struct sdap_op *ops;
 };
 
 enum sdap_result {
@@ -37,10 +59,6 @@ enum sdap_result {
     SDAP_ERROR,
     SDAP_AUTH_SUCCESS,
     SDAP_AUTH_FAILED
-};
-
-struct sdap_msg {
-    LDAPMessage *msg;
 };
 
 #define SDAP_URI 0
