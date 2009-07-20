@@ -18,3 +18,8 @@ rpms: dist-gzip rpmroot
 	cp $(builddir)/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
 	cd $(RPMBUILD); rpmbuild --define "_topdir $(RPMBUILD)" -ba SPECS/sssd.spec
+
+srpms: dist-gzip rpmroot
+	cp $(builddir)/sssd.spec $(RPMBUILD)/SPECS
+	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
+	cd $(RPMBUILD); rpmbuild --define "_topdir $(RPMBUILD)" -bs SPECS/sssd.spec
