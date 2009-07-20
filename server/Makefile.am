@@ -52,7 +52,8 @@ sssdlibexec_PROGRAMS = \
 if BUILD_TESTS
 noinst_PROGRAMS = \
     sysdb-tests \
-    stress-tests
+    stress-tests \
+    resolv-tests
 endif
 
 sssdlib_LTLIBRARIES = \
@@ -327,6 +328,17 @@ stress_tests_SOURCES = \
     $(SSSD_UTIL_OBJ)
 stress_tests_LDADD = \
     $(SSSD_LIBS)
+
+resolv_tests_SOURCES = \
+    tests/resolv-tests.c \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_RESOLV_OBJ)
+resolv_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+resolv_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(CARES_LIBS)
 
 endif #BUILD_TESTS
 
