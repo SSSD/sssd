@@ -22,7 +22,7 @@ noinst_LTLIBRARIES = libelapi.la
 libelapi_la_SOURCES = \
     elapi_event.c \
     elapi_event.h \
-    elapi_event_priv.h \
+    elapi_priv.h \
     elapi.h
 
 # Build unit test
