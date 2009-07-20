@@ -1639,3 +1639,137 @@ int sdap_get_initgr_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct sdap_exop_modify_passwd_state {
+    struct sdap_handle *sh;
+    int msgid;
+    char *user_dn;
+    char *password;
+    char *new_password;
+    int result;
+    struct sdap_msg *reply;
+};
+
+static void sdap_exop_modify_passwd_done(void *pvt, int error, struct sdap_msg *reply);
+
+struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
+                                           struct tevent_context *ev,
+                                           struct sdap_handle *sh,
+                                           char *user_dn,
+                                           char *password,
+                                           char *new_password)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_exop_modify_passwd_state *state;
+    int ret;
+    BerElement *ber = NULL;
+    struct berval *bv = NULL;
+
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_exop_modify_passwd_state);
+    if (!req) return NULL;
+
+    state->sh = sh;
+    state->reply = NULL;
+
+    ber = ber_alloc_t( LBER_USE_DER );
+    if (ber == NULL) {
+        DEBUG(7, ("ber_alloc_t failed.\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    ret = ber_printf( ber, "{tststs}", LDAP_TAG_EXOP_MODIFY_PASSWD_ID,
+                     user_dn,
+                     LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, password,
+                     LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, new_password);
+    if (ret == -1) {
+        DEBUG(1, ("ber_printf failed.\n"));
+        ber_free(ber, 1);
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    ret = ber_flatten(ber, &bv);
+    ber_free(ber, 1);
+    if (ret == -1) {
+        DEBUG(1, ("ber_flatten failed.\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    DEBUG(4, ("Executing extended operation\n"));
+
+    ret = ldap_extended_operation(state->sh->ldap, LDAP_EXOP_MODIFY_PASSWD,
+                                  bv, NULL, NULL, &state->msgid);
+    ber_bvfree(bv);
+    if (ret == -1 || state->msgid == -1) {
+        DEBUG(1, ("ldap_extended_operation failed\n"));
+        goto fail;
+    }
+    DEBUG(8, ("ldap_extended_operation sent, msgid = %d\n", state->msgid));
+
+    /* FIXME: get timeouts from configuration, for now 5 secs. */
+    ret = sdap_op_add(state, ev, state->sh, state->msgid,
+                      sdap_exop_modify_passwd_done, req, 5);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        goto fail;
+    }
+
+    return req;
+
+fail:
+    tevent_req_error(req, EIO);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sdap_exop_modify_passwd_done(void *pvt, int error, struct sdap_msg *reply)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
+                                         struct sdap_exop_modify_passwd_state);
+    char *errmsg;
+    int ret;
+
+    if (error) {
+        tevent_req_error(req, error);
+        return;
+    }
+
+    state->reply = talloc_steal(state, reply);
+
+    ret = ldap_parse_result(state->sh->ldap, state->reply->msg,
+                            &state->result, NULL, &errmsg, NULL, NULL, 0);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(2, ("ldap_parse_result failed (%d)\n", state->msgid));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
+              ldap_err2string(state->result), state->result, errmsg));
+
+    tevent_req_done(req);
+}
+
+int sdap_exop_modify_passwd_recv(struct tevent_req *req,
+                                 enum sdap_result *result)
+{
+    struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
+                                         struct sdap_exop_modify_passwd_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    *result = SDAP_ERROR;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    if (state->result == LDAP_SUCCESS) {
+        *result = SDAP_SUCCESS;
+    }
+
+    return EOK;
+}

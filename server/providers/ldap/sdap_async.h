@@ -85,3 +85,11 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         const char *name,
                                         const char **grp_attrs);
 int sdap_get_initgr_recv(struct tevent_req *req);
+
+struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
+                                                struct tevent_context *ev,
+                                                struct sdap_handle *sh,
+                                                char *user_dn,
+                                                char *password,
+                                                char *new_password);
+int sdap_exop_modify_passwd_recv(struct tevent_req *req, enum sdap_result *result);

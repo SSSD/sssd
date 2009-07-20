@@ -283,7 +283,8 @@ static void auth_bind_user_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int auth_recv(struct tevent_req *req, enum sdap_result *result)
+int auth_recv(struct tevent_req *req, enum sdap_result *result,
+                     TALLOC_CTX *memctx, struct sdap_handle **sh, char **dn)
 {
     struct auth_state *state = tevent_req_data(req,
                                                     struct auth_state);
@@ -296,11 +297,151 @@ int auth_recv(struct tevent_req *req, enum sdap_result *result)
         return EOK;
     }
 
+    if (sh != NULL) {
+        *sh = talloc_steal(memctx, state->sh);
+        if (*sh == NULL) return ENOMEM;
+    }
+
+    if (dn != NULL) {
+        *dn = talloc_steal(memctx, state->dn);
+        if (*dn == NULL) return ENOMEM;
+    }
+
     *result = state->result;
     return EOK;
 }
 
+/* ==Perform-Password-Change===================== */
 
+struct sdap_pam_chpass_state {
+    struct be_req *breq;
+    struct pam_data *pd;
+    const char *username;
+    char *dn;
+    char *password;
+    char *new_password;
+    struct sdap_handle *sh;
+};
+
+static void sdap_auth4chpass_done(struct tevent_req *req);
+static void sdap_pam_chpass_done(struct tevent_req *req);
+static void sdap_pam_auth_reply(struct be_req *breq, int result);
+
+static void sdap_pam_chpass_send(struct be_req *breq)
+{
+    struct sdap_pam_chpass_state *state;
+    struct sdap_auth_ctx *ctx;
+    struct tevent_req *subreq;
+    struct pam_data *pd;
+
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+                          struct sdap_auth_ctx);
+    pd = talloc_get_type(breq->req_data, struct pam_data);
+
+    DEBUG(2, ("starting password change request for user [%s].\n", pd->user));
+
+    pd->pam_status = PAM_SYSTEM_ERR;
+
+    if (pd->cmd != SSS_PAM_CHAUTHTOK) {
+        DEBUG(2, ("chpass target was called by wrong pam command.\n"));
+        goto done;
+    }
+
+    state = talloc_zero(breq, struct sdap_pam_chpass_state);
+    if (!state) goto done;
+
+    state->breq = breq;
+    state->pd = pd;
+    state->username = pd->user;
+    state->password = talloc_strndup(state,
+                                     (char *)pd->authtok, pd->authtok_size);
+    if (!state->password) goto done;
+    talloc_set_destructor((TALLOC_CTX *)state->password,
+                          password_destructor);
+    state->new_password = talloc_strndup(state,
+                                         (char *)pd->newauthtok,
+                                         pd->newauthtok_size);
+    if (!state->new_password) goto done;
+    talloc_set_destructor((TALLOC_CTX *)state->new_password,
+                          password_destructor);
+
+    subreq = auth_send(breq, breq->be_ctx->ev,
+                       ctx, state->username, state->password);
+    if (!subreq) goto done;
+
+    tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
+    return;
+done:
+    sdap_pam_auth_reply(breq, pd->pam_status);
+}
+
+static void sdap_auth4chpass_done(struct tevent_req *req)
+{
+    struct sdap_pam_chpass_state *state =
+                    tevent_req_callback_data(req, struct sdap_pam_chpass_state);
+    struct tevent_req *subreq;
+    enum sdap_result result;
+    int ret;
+
+    ret = auth_recv(req, &result, state, &state->sh, &state->dn);
+    talloc_zfree(req);
+    if (ret) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+
+    switch (result) {
+    case SDAP_AUTH_SUCCESS:
+        DEBUG(7, ("user [%s] successfully authenticated.\n", state->dn));
+        subreq = sdap_exop_modify_passwd_send(state,
+                                              state->breq->be_ctx->ev,
+                                              state->sh,
+                                              state->dn,
+                                              state->password,
+                                              state->new_password);
+
+        if (!subreq) {
+            DEBUG(2, ("Failed to change password for %s\n", state->username));
+            goto done;
+        }
+
+        tevent_req_set_callback(subreq, sdap_pam_chpass_done, state);
+        return;
+        break;
+    default:
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+
+done:
+    sdap_pam_auth_reply(state->breq, state->pd->pam_status);
+}
+
+static void sdap_pam_chpass_done(struct tevent_req *req)
+{
+    struct sdap_pam_chpass_state *state =
+                    tevent_req_callback_data(req, struct sdap_pam_chpass_state);
+    enum sdap_result result;
+    int ret;
+
+    ret = sdap_exop_modify_passwd_recv(req, &result);
+    talloc_zfree(req);
+    if (ret) {
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    switch (result) {
+    case SDAP_SUCCESS:
+        state->pd->pam_status = PAM_SUCCESS;
+        break;
+    default:
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+
+done:
+    sdap_pam_auth_reply(state->breq, state->pd->pam_status);
+}
 /* ==Perform-User-Authentication-and-Password-Caching===================== */
 
 struct sdap_pam_auth_state {
@@ -369,7 +510,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     enum sdap_result result;
     int ret;
 
-    ret = auth_recv(req, &result);
+    ret = auth_recv(req, &result, NULL, NULL, NULL);
     talloc_zfree(req);
     if (ret) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -453,6 +594,12 @@ struct bet_ops sdap_auth_ops = {
     .finalize = sdap_shutdown
 };
 
+struct bet_ops sdap_chpass_ops = {
+    .check_online = NULL,
+    .handler = sdap_pam_chpass_send,
+    .finalize = sdap_shutdown
+};
+
 int sssm_ldap_auth_init(struct be_ctx *bectx,
                         struct bet_ops **ops,
                         void **pvt_data)
@@ -512,5 +659,15 @@ done:
     if (ret != EOK) {
         talloc_free(ctx);
     }
+    return ret;
+}
+
+int sssm_ldap_chpass_init(struct be_ctx *bectx,
+                          struct bet_ops **ops,
+                          void **pvt_data)
+{
+    int ret;
+    ret = sssm_ldap_auth_init(bectx, ops, pvt_data);
+    *ops = &sdap_chpass_ops;
     return ret;
 }

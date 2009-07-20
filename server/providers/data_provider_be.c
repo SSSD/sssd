@@ -631,8 +631,10 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     be_req = talloc_zero(ctx, struct be_req);
-    if (!be_req)
+    if (!be_req) {
+        DEBUG(7, ("talloc_zero failed.\n"));
         goto done;
+    }
 
     be_req->be_ctx = ctx;
     be_req->fn = be_pam_handler_callback;
@@ -640,8 +642,10 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     be_req->req_data = pd;
 
     ret = be_file_request(ctx, ctx->bet_info[target].bet_ops->handler, be_req);
-    if (ret != EOK)
+    if (ret != EOK) {
+        DEBUG(7, ("be_file_request failed.\n"));
         goto done;
+    }
 
     return EOK;
 
