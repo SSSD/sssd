@@ -57,8 +57,6 @@ services for projects like FreeIPA.
 %build
 %configure \
     --without-tests \
-    --without-policykit \
-    --without-infopipe \
     --with-init-dir=%{_initrddir} \
     --enable-nsslibdir=/%{_lib}
 

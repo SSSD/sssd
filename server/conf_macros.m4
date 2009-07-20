@@ -66,40 +66,6 @@ AC_DEFUN([WITH_PIPE_PATH],
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
-AC_DEFUN([WITH_POLICYKIT],
-  [ AC_ARG_WITH([policykit],
-                [AC_HELP_STRING([--with-policykit],
-                                [Whether to include PolicyKit support [yes]]
-                               )
-                ],
-                [],
-                with_policykit=yes
-               )
-    if test x"$with_policykit" == xyes; then
-        AC_DEFINE(HAVE_POLICYKIT, 1, [Include PolicyKit support])
-        HAVE_POLICYKIT=1
-        AC_SUBST(HAVE_POLICYKIT)
-    fi
-  ])
-AM_CONDITIONAL([BUILD_POLICYKIT], [test x$with_policykit = xyes])
-
-AC_DEFUN([WITH_INFOPIPE],
-  [ AC_ARG_WITH([infopipe],
-                [AC_HELP_STRING([--with-infopipe],
-                                [Whether to include InfoPipe support [yes]]
-                               )
-                ],
-                [],
-                with_infopipe=yes
-               )
-    if test x"$with_infopipe" == xyes; then
-        AC_DEFINE(HAVE_INFOPIPE, 1, [Include InfoPipe support])
-        HAVE_INFOPIPE=1
-        AC_SUBST(HAVE_INFOPIPE)
-    fi
-  ])
-AM_CONDITIONAL([BUILD_INFOPIPE], [test x$with_infopipe = xyes])
-
 AC_DEFUN([WITH_TESTS],
   [ AC_ARG_WITH([tests],
                 [AC_HELP_STRING([--with-tests],

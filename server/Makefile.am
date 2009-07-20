@@ -41,23 +41,6 @@ sbin_PROGRAMS = \
     sss_usermod \
     sss_groupmod
 
-if BUILD_POLICYKIT
-sssd_pk = sssd_pk
-polkit_headers = \
-    polkit/sssd_polkit.h
-endif
-
-if BUILD_INFOPIPE
-infpintrospectdir = $(dbusintrospectdir)/infopipe
-sssd_info = sssd_info
-infopipe_tests = infopipe-tests
-infopipe_privileged_tests = infopipe-privileged-tests
-infopipe_headers = \
-    infopipe/infopipe_private.h \
-    infopipe/sysbus.h \
-    infopipe/infopipe.h
-endif
-
 sssdlibexec_PROGRAMS = \
     sssd_nss \
     sssd_pam \
@@ -69,9 +52,7 @@ sssdlibexec_PROGRAMS = \
 if BUILD_TESTS
 noinst_PROGRAMS = \
     sysdb-tests \
-    stress-tests \
-    $(infopipe_tests) \
-    $(infopipe_privileged_tests)
+    stress-tests
 endif
 
 sssdlib_LTLIBRARIES = \
@@ -215,9 +196,7 @@ dist_noinst_HEADERS = \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
     tools/tools_util.h \
-    krb5_plugin/sssd_krb5_locator_plugin.h \
-    $(infopipe_headers) \
-    $(polkit_headers)
+    krb5_plugin/sssd_krb5_locator_plugin.h
 
 ####################
 # Program Binaries #
@@ -263,27 +242,6 @@ sssd_be_LDADD = $(SSSD_LIBS)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/providers/sssd_be.exports \
     -export-dynamic
-
-if BUILD_POLICYKIT
-sssd_pk_SOURCES = \
-    polkit/sssd_polkit.c \
-    $(SSSD_UTIL_OBJ)
-sssd_pk_LDADD = $(SSSD_LIBS)
-endif
-
-if BUILD_INFOPIPE
-sssd_info_SOURCES = \
-    infopipe/infopipe.c \
-    infopipe/infopipe_groups.c \
-    infopipe/infopipe_users.c \
-    infopipe/sysbus.c \
-    $(SSSD_UTIL_OBJ)
-sssd_info_LDADD = $(SSSD_LIBS)
-dbuspolicy_DATA = \
-    infopipe/org.freedesktop.sssd.infopipe.conf
-infpintrospect_DATA = \
-    infopipe/org.freedesktop.sssd.infopipe.Introspect.xml
-endif
 
 dist_noinst_DATA = \
     examples/sssd.conf \
@@ -355,26 +313,6 @@ stress_tests_SOURCES = \
     $(SSSD_UTIL_OBJ)
 stress_tests_LDADD = \
     $(SSSD_LIBS)
-
-if BUILD_INFOPIPE
-infopipe_tests_SOURCES = \
-    tests/infopipe-tests.c \
-    $(SSSD_UTIL_OBJ)
-infopipe_tests_CFLAGS = \
-    $(CHECK_CFLAGS)
-infopipe_tests_LDADD = \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS)
-
-infopipe_privileged_tests_SOURCES = \
-    tests/infopipe-privileged-tests.c \
-    $(SSSD_UTIL_OBJ)
-infopipe_privileged_tests_CFLAGS = \
-    $(CHECK_CFLAGS)
-infopipe_privileged_tests_LDADD = \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS)
-endif #BUILD_INFOPIPE
 
 endif #BUILD_TESTS
 
