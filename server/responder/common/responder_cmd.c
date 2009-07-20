@@ -57,7 +57,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
         sss_packet_get_body(cctx->creq->in, &req_body, &req_blen);
         if (req_blen == sizeof(uint32_t)) {
             client_version = (uint32_t ) *req_body;
-            DEBUG(4, ("Received client version [%d].\n", client_version));
+            DEBUG(5, ("Received client version [%d].\n", client_version));
 
             i=0;
             while(cli_protocol_version[i].version>0) {
@@ -80,7 +80,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
     sss_packet_get_body(cctx->creq->out, &body, &blen);
     ((uint32_t *)body)[0] = cctx->cli_protocol_version!=NULL ?
                                 cctx->cli_protocol_version->version : 0;
-    DEBUG(4, ("Offered version [%d].\n", ((uint32_t *)body)[0]));
+    DEBUG(5, ("Offered version [%d].\n", ((uint32_t *)body)[0]));
 
     sss_cmd_done(cctx, NULL);
     return EOK;
