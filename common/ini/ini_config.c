@@ -1498,7 +1498,7 @@ char **get_string_config_array(struct collection_item *item,
         memcpy(dest, start, len);
         count++;
         dest += len;
-        dest = '\0';
+        *dest = '\0';
         dest++;
     }
 

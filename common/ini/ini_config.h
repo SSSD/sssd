@@ -24,6 +24,7 @@
 #define INI_CONFIG_H
 
 #include <limits.h>
+#include <stdio.h>
 #include "collection.h"
 
 /* Name of the default (missing section in the INI file */
@@ -214,7 +215,7 @@ char *get_bin_config_value(struct collection_item *item, int *length, int *error
 void free_bin_config_value(char *);
 
 /* Array of stings */
-/* Separator sting includes up to three different separators. If NULL comma is assumed. */
+/* Separator string includes up to three different separators. If NULL comma is assumed. */
 /* The spaces are trimmed automatically around separators in the string. */
 char **get_string_config_array(struct collection_item *item, const char *sep, int *size, int *error);
 /* Array of long values - separators are detected automatically. */
