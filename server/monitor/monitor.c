@@ -1308,6 +1308,10 @@ static void process_config_file(struct tevent_context *ev,
          * so that read ptr is in the right place
          */
         name = talloc_size(tmp_ctx, len);
+        if (!name) {
+            talloc_free(tmp_ctx);
+            return;
+        }
         total_len = 0;
         while (total_len < in_event->len) {
             len = read(file_ctx->mt_ctx->inotify_fd, &name, in_event->len);
@@ -1355,7 +1359,7 @@ static void process_config_file(struct tevent_context *ev,
         rw_ctx->cb = cb;
         rw_ctx->file_ctx = file_ctx;
 
-        tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, rw_ctx);
+        tev = tevent_add_timer(ev, rw_ctx, tv, rewatch_config_file, rw_ctx);
         if (te == NULL) {
             DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
             close(file_ctx->mt_ctx->inotify_fd);
