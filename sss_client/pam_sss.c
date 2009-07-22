@@ -1,4 +1,3 @@
-
 #define PAM_SM_AUTH
 #define PAM_SM_ACCOUNT
 #define PAM_SM_SESSION
@@ -50,6 +49,8 @@ struct pam_items {
 };
 
 #define DEBUG_MGS_LEN 1024
+#define MAX_AUTHTOK_SIZE (1024*1024)
+#define CHECK_AND_RETURN_PI_STRING(s) ((s != NULL && *s != '\0')? s : "(not available)")
 
 static void logger(pam_handle_t *pamh, int level, const char *fmt, ...) {
     va_list ap;
@@ -121,7 +122,8 @@ static size_t add_string_item(enum pam_item_type type, const char *str,
     return rp;
 }
 
-static int pack_message_v2(struct pam_items *pi, size_t *size, uint8_t **buffer) {
+static int pack_message_v2(struct pam_items *pi, size_t *size,
+                           uint8_t **buffer) {
     int len;
     uint8_t *buf;
     int rp;
@@ -199,77 +201,6 @@ static int pack_message_v2(struct pam_items *pi, size_t *size, uint8_t **buffer)
     return 0;
 }
 
-#if 0
-static int pack_message(struct pam_items *pi, size_t *size, uint8_t **buffer) {
-    int len;
-    uint8_t *buf;
-    int rp;
-
-    len = pi->pam_user_size +
-          pi->pam_service_size +
-          pi->pam_tty_size +
-          pi->pam_ruser_size +
-          pi->pam_rhost_size +
-          2*sizeof(uint32_t) + pi->pam_authtok_size +
-          2*sizeof(uint32_t) + pi->pam_newauthtok_size +
-          sizeof(uint32_t);
-
-    buf = malloc(len);
-    if (buf == NULL) {
-        D(("malloc failed."));
-        return PAM_BUF_ERR;
-    }
-
-    memcpy(buf, pi->pam_user, pi->pam_user_size);
-    rp = pi->pam_user_size;
-
-    memcpy(&buf[rp],  pi->pam_service, pi->pam_service_size);
-    rp += pi->pam_service_size;
-
-    memcpy(&buf[rp],  pi->pam_tty, pi->pam_tty_size);
-    rp += pi->pam_tty_size;
-
-    memcpy(&buf[rp],  pi->pam_ruser, pi->pam_ruser_size);
-    rp += pi->pam_ruser_size;
-
-    memcpy(&buf[rp],  pi->pam_rhost, pi->pam_rhost_size);
-    rp += pi->pam_rhost_size;
-
-    ((uint32_t *)(&buf[rp]))[0] = pi->pam_authtok_type;
-    rp += sizeof(uint32_t);
-    ((uint32_t *)(&buf[rp]))[0] = pi->pam_authtok_size;
-    rp += sizeof(uint32_t);
-    memcpy(&buf[rp],  pi->pam_authtok, pi->pam_authtok_size);
-    rp += pi->pam_authtok_size;
-    _pam_overwrite((void *)pi->pam_authtok);
-    free((void *)pi->pam_authtok);
-    pi->pam_authtok = NULL;
-
-    ((uint32_t *)(&buf[rp]))[0] = pi->pam_newauthtok_type;
-    rp += sizeof(uint32_t);
-    ((uint32_t *)(&buf[rp]))[0] = pi->pam_newauthtok_size;
-    rp += sizeof(uint32_t);
-    memcpy(&buf[rp],  pi->pam_newauthtok, pi->pam_newauthtok_size);
-    rp += pi->pam_newauthtok_size;
-    _pam_overwrite((void *)pi->pam_newauthtok);
-    free((void *)pi->pam_newauthtok);
-    pi->pam_newauthtok = NULL;
-
-    ((uint32_t *)(&buf[rp]))[0] = END_OF_PAM_REQUEST;
-    rp += sizeof(uint32_t);
-
-    if (rp != len) {
-        D(("error during packet creation."));
-        return PAM_BUF_ERR;
-    }
-
-    *size = len;
-    *buffer = buf;
-
-    return 0;
-}
-#endif
-
 static int null_strcmp(const char *s1, const char *s2) {
     if (s1 == NULL && s2 == NULL) return 0;
     if (s1 == NULL && s2 != NULL) return -1;
@@ -297,7 +228,8 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
     if ((msg_style == PAM_TEXT_INFO || msg_style == PAM_ERROR_MSG) &&
         msg == NULL) return PAM_SYSTEM_ERR;
 
-    if ((msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON) &&
+    if ((msg_style == PAM_PROMPT_ECHO_OFF ||
+         msg_style == PAM_PROMPT_ECHO_ON) &&
         (msg == NULL || answer == NULL)) return PAM_SYSTEM_ERR;
 
     ret=pam_get_item(pamh, PAM_CONV, (const void **) &conv);
@@ -325,7 +257,8 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
             return ret;
         }
 
-        if (msg_style == PAM_PROMPT_ECHO_OFF || msg_style == PAM_PROMPT_ECHO_ON) {
+        if (msg_style == PAM_PROMPT_ECHO_OFF ||
+            msg_style == PAM_PROMPT_ECHO_ON) {
             if (resp == NULL) {
                 D(("response expected, but resp==NULL"));
                 return PAM_SYSTEM_ERR;
@@ -342,8 +275,8 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                         *answer = NULL;
                     }
                     ret = do_pam_conversation(pamh, PAM_ERROR_MSG,
-                                              _("Passwords do not match"), NULL,
-                                              NULL);
+                                              _("Passwords do not match"),
+                                              NULL, NULL);
                     if (ret != PAM_SUCCESS) {
                         D(("do_pam_conversation failed."));
                         return PAM_SYSTEM_ERR;
@@ -357,11 +290,11 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                     D(("Empty password"));
                     *answer = NULL;
                 } else {
-                    *answer = strdup(resp[0].resp);
+                    *answer = strndup(resp[0].resp, MAX_AUTHTOK_SIZE);
                     _pam_overwrite((void *)resp[0].resp);
                     free(resp[0].resp);
                     if(*answer == NULL) {
-                        D(("strdup failed"));
+                        D(("strndup failed"));
                         return PAM_BUF_ERR;
                     }
                 }
@@ -493,8 +426,16 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 
     ret = pam_get_item(pamh, PAM_USER, (const void **) &(pi->pam_user));
     if (ret != PAM_SUCCESS) return ret;
-    if (pi->pam_user == NULL) pi->pam_user="";
+    if (pi->pam_user == NULL) {
+        D(("No user found, aborting."));
+        return PAM_BAD_ITEM;
+    }
+    if (strcmp(pi->pam_user, "root") == 0) {
+        D(("pam_sss will not handle root."));
+        return PAM_USER_UNKNOWN;
+    }
     pi->pam_user_size=strlen(pi->pam_user)+1;
+
 
     ret = pam_get_item(pamh, PAM_TTY, (const void **) &(pi->pam_tty));
     if (ret != PAM_SUCCESS) return ret;
@@ -511,11 +452,13 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     if (pi->pam_rhost == NULL) pi->pam_rhost="";
     pi->pam_rhost_size=strlen(pi->pam_rhost)+1;
 
-    ret = pam_get_item(pamh, PAM_AUTHTOK, (const void **) &(pi->pamstack_authtok));
+    ret = pam_get_item(pamh, PAM_AUTHTOK,
+                       (const void **) &(pi->pamstack_authtok));
     if (ret != PAM_SUCCESS) return ret;
     if (pi->pamstack_authtok == NULL) pi->pamstack_authtok="";
 
-    ret = pam_get_item(pamh, PAM_OLDAUTHTOK, (const void **) &(pi->pamstack_oldauthtok));
+    ret = pam_get_item(pamh, PAM_OLDAUTHTOK,
+                       (const void **) &(pi->pamstack_oldauthtok));
     if (ret != PAM_SUCCESS) return ret;
     if (pi->pamstack_oldauthtok == NULL) pi->pamstack_oldauthtok="";
 
@@ -531,183 +474,38 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     return PAM_SUCCESS;
 }
 
-static void print_pam_items(struct pam_items pi)
+static void print_pam_items(struct pam_items *pi)
 {
-    D(("Service: %s", *pi.pam_service!='\0' ? pi.pam_service : "(not available)"));
-    D(("User: %s", *pi.pam_user!='\0' ? pi.pam_user : "(not available)"));
-    D(("Tty: %s", *pi.pam_tty!='\0' ? pi.pam_tty : "(not available)"));
-    D(("Ruser: %s", *pi.pam_ruser!='\0' ? pi.pam_ruser : "(not available)"));
-    D(("Rhost: %s", *pi.pam_rhost!='\0' ? pi.pam_rhost : "(not available)"));
-    D(("Pamstack_Authtok: %s", *pi.pamstack_authtok!='\0' ? pi.pamstack_authtok : "(not available)"));
-    D(("Pamstack_Oldauthtok: %s", *pi.pamstack_oldauthtok!='\0' ? pi.pamstack_oldauthtok : "(not available)"));
-    if (pi.pam_authtok != NULL) {
-        D(("Authtok: %s", *pi.pam_authtok!='\0' ? pi.pam_authtok : "(not available)"));
-    }
-    if (pi.pam_newauthtok != NULL) {
-        D(("Newauthtok: %s", *pi.pam_newauthtok!='\0' ? pi.pam_newauthtok : "(not available)"));
-    }
-    D(("Locale: %s", *pi.pam_cli_locale!='\0' ? pi.pam_cli_locale : "(not available)"));
+    if (pi == NULL) return;
+
+    D(("Service: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_service)));
+    D(("User: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_user)));
+    D(("Tty: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_tty)));
+    D(("Ruser: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_ruser)));
+    D(("Rhost: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_rhost)));
+    D(("Pamstack_Authtok: %s",
+            CHECK_AND_RETURN_PI_STRING(pi->pamstack_authtok)));
+    D(("Pamstack_Oldauthtok: %s",
+            CHECK_AND_RETURN_PI_STRING(pi->pamstack_oldauthtok)));
+    D(("Authtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_authtok)));
+    D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
+    D(("Locale: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_cli_locale)));
 }
 
-static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
-                   const char **argv)
+static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
+                            enum sss_cli_command task)
 {
     int ret;
     int errnop;
-    struct pam_items pi;
     struct sss_cli_req_data rd;
-    uint8_t *buf=NULL;
-    uint8_t *repbuf=NULL;
+    uint8_t *buf = NULL;
+    uint8_t *repbuf = NULL;
     size_t replen;
-    int pam_status;
-    uint32_t flags = 0;
-    char *answer;
-
-    bindtextdomain(PACKAGE, LOCALEDIR);
-
-    D(("Hello pam_sssd: %d", task));
-
-    for (; argc-- > 0; ++argv) {
-        if (strcmp(*argv, "forward_pass") == 0) {
-            flags |= FLAGS_FORWARD_PASS;
-        } else if (strcmp(*argv, "use_first_pass") == 0) {
-            flags |= FLAGS_USE_FIRST_PASS;
-        } else if (strcmp(*argv, "use_authtok") == 0) {
-            flags |= FLAGS_USE_AUTHTOK;
-        } else {
-            logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
-        }
-    }
-
-/* TODO: add useful prelim check */
-    if (task == SSS_PAM_CHAUTHTOK && (pam_flags & PAM_PRELIM_CHECK)) {
-        D(("ignoring PAM_PRELIM_CHECK"));
-        return PAM_SUCCESS;
-    }
-
-    ret = get_pam_items(pamh, &pi);
-    if (ret != PAM_SUCCESS) {
-        D(("get items returned error: %s", pam_strerror(pamh,ret)));
-        return ret;
-    }
-
-    if (*pi.pam_user == '\0') {
-        D(("No user found, aborting."));
-        return PAM_BAD_ITEM;
-    }
-
-    if (strcmp(pi.pam_user, "root") == 0) {
-        D(("pam_sss will not handle root."));
-        return PAM_USER_UNKNOWN;
-    }
-
-    if (task == SSS_PAM_AUTHENTICATE ||
-        (task == SSS_PAM_CHAUTHTOK && getuid() != 0)) {
-        if (flags & FLAGS_USE_FIRST_PASS) {
-            pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-            if (task == SSS_PAM_AUTHENTICATE) {
-                pi.pam_authtok = strdup(pi.pamstack_authtok);
-            } else if (task == SSS_PAM_CHAUTHTOK) {
-                pi.pam_authtok = strdup(pi.pamstack_oldauthtok);
-            } else {
-                D(("internal logic error"));
-                return PAM_SYSTEM_ERR;
-            }
-            if (pi.pam_authtok == NULL) {
-                pam_status = PAM_BUF_ERR;
-                goto done;
-            }
-            pi.pam_authtok_size = strlen(pi.pam_authtok);
-        } else {
-            ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, "Password: ",
-                                      NULL, &answer);
-            if (ret != PAM_SUCCESS) {
-                D(("do_pam_conversation failed."));
-                pam_status = ret;
-                goto done;
-            }
-
-            if (answer == NULL) {
-                pi.pam_authtok = NULL;
-                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-                pi.pam_authtok_size=0;
-            } else {
-                pi.pam_authtok = strdup(answer);
-                _pam_overwrite((void *)answer);
-                free(answer);
-                answer=NULL;
-                if (pi.pam_authtok == NULL) {
-                    pam_status = PAM_BUF_ERR;
-                    goto done;
-                }
-                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-                pi.pam_authtok_size=strlen(pi.pam_authtok);
-            }
-
-            if (flags & FLAGS_FORWARD_PASS) {
-                if (task == SSS_PAM_AUTHENTICATE) {
-                    ret = pam_set_item(pamh, PAM_AUTHTOK, pi.pam_authtok);
-                } else if (task == SSS_PAM_CHAUTHTOK) {
-                    ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi.pam_authtok);
-                } else {
-                    D(("internal logic error"));
-                    return PAM_SYSTEM_ERR;
-                }
-                if (ret != PAM_SUCCESS) {
-                    D(("Failed to set PAM_AUTHTOK, authtok may not be available for other modules"));
-                }
-            }
-        }
-     }
-
-     if (task == SSS_PAM_CHAUTHTOK) {
-        if (flags & FLAGS_USE_AUTHTOK) {
-            pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-            pi.pam_newauthtok =  strdup(pi.pamstack_authtok);
-            if (pi.pam_newauthtok == NULL) {
-                pam_status = PAM_BUF_ERR;
-                goto done;
-            }
-            pi.pam_newauthtok_size = strlen(pi.pam_newauthtok);
-        } else {
-            ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF,
-                                      "New Password: ",
-                                      "Reenter new Password: ",
-                                      &answer);
-            if (ret != PAM_SUCCESS) {
-                D(("do_pam_conversation failed."));
-                pam_status = ret;
-                goto done;
-            }
-            if (answer == NULL) {
-                pi.pam_newauthtok = NULL;
-                pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-                pi.pam_newauthtok_size=0;
-            } else {
-                pi.pam_newauthtok = strdup(answer);
-                _pam_overwrite((void *)answer);
-                free(answer);
-                answer=NULL;
-                if (pi.pam_newauthtok == NULL) {
-                    pam_status = PAM_BUF_ERR;
-                    goto done;
-                }
-                pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-                pi.pam_newauthtok_size=strlen(pi.pam_newauthtok);
-            }
-
-            if (flags & FLAGS_FORWARD_PASS) {
-                ret = pam_set_item(pamh, PAM_AUTHTOK, pi.pam_newauthtok);
-                if (ret != PAM_SUCCESS) {
-                    D(("Failed to set PAM_AUTHTOK, authtok may not be available for other modules"));
-                }
-            }
-        }
-    }
+    int pam_status = PAM_SYSTEM_ERR;
 
     print_pam_items(pi);
 
-    ret = pack_message_v2(&pi, &rd.len, &buf);
+    ret = pack_message_v2(pi, &rd.len, &buf);
     if (ret != 0) {
         D(("pack_message failed."));
         pam_status = PAM_SYSTEM_ERR;
@@ -738,7 +536,7 @@ static int pam_sss(int task, pam_handle_t *pamh, int pam_flags, int argc,
         goto done;
     }
     logger(pamh, (pam_status == PAM_SUCCESS ? LOG_INFO : LOG_NOTICE),
-           "received for user %s: %d (%s)", pi.pam_user, pam_status,
+           "received for user %s: %d (%s)", pi->pam_user, pam_status,
            pam_strerror(pamh,pam_status));
 
 done:
@@ -746,9 +544,202 @@ done:
         _pam_overwrite_n((void *)buf, rd.len);
         free(buf);
     }
-    if (repbuf != NULL) free(repbuf);
+    free(repbuf);
 
     return pam_status;
+}
+
+static int prompt_password(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int ret;
+    char *answer = NULL;
+
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, _("Password: "),
+                              NULL, &answer);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return ret;
+    }
+
+    if (answer == NULL) {
+        pi->pam_authtok = NULL;
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+        pi->pam_authtok_size=0;
+    } else {
+        pi->pam_authtok = strdup(answer);
+        _pam_overwrite((void *)answer);
+        free(answer);
+        answer=NULL;
+        if (pi->pam_authtok == NULL) {
+            return PAM_BUF_ERR;
+        }
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_authtok_size=strlen(pi->pam_authtok);
+    }
+
+    return PAM_SUCCESS;
+}
+
+static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int ret;
+    char *answer = NULL;
+
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF,
+                              _("New Password: "),
+                              _("Reenter new Password: "),
+                              &answer);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return ret;
+    }
+    if (answer == NULL) {
+        pi->pam_newauthtok = NULL;
+        pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+        pi->pam_newauthtok_size=0;
+    } else {
+        pi->pam_newauthtok = strdup(answer);
+        _pam_overwrite((void *)answer);
+        free(answer);
+        answer=NULL;
+        if (pi->pam_newauthtok == NULL) {
+            return PAM_BUF_ERR;
+        }
+        pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_newauthtok_size=strlen(pi->pam_newauthtok);
+    }
+
+    return PAM_SUCCESS;
+}
+
+static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
+                      uint32_t *flags)
+{
+    for (; argc-- > 0; ++argv) {
+        if (strcmp(*argv, "forward_pass") == 0) {
+            *flags |= FLAGS_FORWARD_PASS;
+        } else if (strcmp(*argv, "use_first_pass") == 0) {
+            *flags |= FLAGS_USE_FIRST_PASS;
+        } else if (strcmp(*argv, "use_authtok") == 0) {
+            *flags |= FLAGS_USE_AUTHTOK;
+        } else {
+            logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
+        }
+    }
+
+    return;
+}
+
+static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
+                   int pam_flags, int argc, const char **argv)
+{
+    int ret;
+    struct pam_items pi;
+    uint32_t flags = 0;
+
+    bindtextdomain(PACKAGE, LOCALEDIR);
+
+    D(("Hello pam_sssd: %d", task));
+
+    eval_argv(pamh, argc, argv, &flags);
+
+    ret = get_pam_items(pamh, &pi);
+    if (ret != PAM_SUCCESS) {
+        D(("get items returned error: %s", pam_strerror(pamh,ret)));
+        return ret;
+    }
+
+
+    switch(task) {
+        case SSS_PAM_AUTHENTICATE:
+            if (flags & FLAGS_USE_FIRST_PASS) {
+                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+                pi.pam_authtok = strdup(pi.pamstack_authtok);
+                if (pi.pam_authtok == NULL) {
+                    D(("option use_first_pass set, but no password found"));
+                    return PAM_BUF_ERR;
+                }
+                pi.pam_authtok_size = strlen(pi.pam_authtok);
+            } else {
+                prompt_password(pamh, &pi);
+
+                if (flags & FLAGS_FORWARD_PASS) {
+                    ret = pam_set_item(pamh, PAM_AUTHTOK, pi.pam_authtok);
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to set PAM_AUTHTOK [%s], "
+                           "authtok may not be available for other modules",
+                           pam_strerror(pamh,ret)));
+                    }
+                }
+            }
+
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            /* we query for the old password during PAM_PRELIM_CHECK to make
+             * pam_sss work e.g. with pam_cracklib */
+            if (pam_flags & PAM_PRELIM_CHECK) {
+                if (getuid() != 0 && !(flags & FLAGS_USE_FIRST_PASS)) {
+                    prompt_password(pamh, &pi);
+
+                    ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi.pam_authtok);
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to set PAM_OLDAUTHTOK [%s], "
+                           "oldauthtok may not be available",
+                           pam_strerror(pamh,ret)));
+                           return ret;
+                    }
+                }
+
+                return PAM_SUCCESS;
+            }
+
+            if (getuid() != 0) {
+                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+                pi.pam_authtok = strdup(pi.pamstack_oldauthtok);
+                if (pi.pam_authtok == NULL) {
+                    D(("no password found for chauthtok"));
+                    return PAM_BUF_ERR;
+                }
+                pi.pam_authtok_size = strlen(pi.pam_authtok);
+            } else {
+                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+                pi.pam_authtok = NULL;
+                pi.pam_authtok_size = 0;
+            }
+
+            if (flags & FLAGS_USE_AUTHTOK) {
+                pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+                pi.pam_newauthtok =  strdup(pi.pamstack_authtok);
+                if (pi.pam_newauthtok == NULL) {
+                    D(("option use_authtok set, but no new password found"));
+                    return PAM_BUF_ERR;
+                }
+                pi.pam_newauthtok_size = strlen(pi.pam_newauthtok);
+            } else {
+                prompt_new_password(pamh, &pi);
+
+                if (flags & FLAGS_FORWARD_PASS) {
+                    ret = pam_set_item(pamh, PAM_AUTHTOK, pi.pam_newauthtok);
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to set PAM_AUTHTOK [%s], "
+                           "oldauthtok may not be available",
+                           pam_strerror(pamh,ret)));
+                    }
+                }
+            }
+
+            break;
+        case SSS_PAM_ACCT_MGMT:
+        case SSS_PAM_SETCRED:
+        case SSS_PAM_OPEN_SESSION:
+        case SSS_PAM_CLOSE_SESSION:
+            break;
+        default:
+            D(("Illegal task [%d]", task));
+            return PAM_SYSTEM_ERR;
+    }
+
+    return send_and_receive(pamh, &pi, task);
 }
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc,
