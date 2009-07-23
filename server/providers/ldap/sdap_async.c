@@ -71,8 +71,13 @@ static int sdap_handle_destructor(void *mem)
 
 static inline void sdap_handle_release(struct sdap_handle *sh)
 {
+    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
+              sh, (int)sh->connected, sh->ops, sh->fde, sh->ldap));
+
     if (sh->connected) {
         struct sdap_op *op;
+
+        talloc_zfree(sh->fde);
 
         while (sh->ops) {
             op = sh->ops;
@@ -80,10 +85,10 @@ static inline void sdap_handle_release(struct sdap_handle *sh)
             talloc_free(op);
         }
 
-        talloc_zfree(sh->fde);
         ldap_unbind_ext(sh->ldap, NULL, NULL);
         sh->connected = false;
         sh->ldap = NULL;
+        sh->ops = NULL;
     }
 }
 
@@ -103,9 +108,79 @@ static int get_fd_from_ldap(LDAP *ldap, int *fd)
 
 /* ==Parse-Results-And-Handle-Disconnections============================== */
 
+static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg);
+static void sdap_process_result(struct tevent_context *ev, void *pvt);
+
+static void sdap_ldap_result(struct tevent_context *ev,
+                             struct tevent_fd *fde,
+                             uint16_t flags, void *pvt)
+{
+    sdap_process_result(ev, pvt);
+}
+
+static void sdap_ldap_next_result(struct tevent_context *ev,
+                                  struct tevent_timer *te,
+                                  struct timeval tv, void *pvt)
+{
+    sdap_process_result(ev, pvt);
+}
+
+static void sdap_process_result(struct tevent_context *ev, void *pvt)
+{
+    struct sdap_handle *sh = talloc_get_type(pvt, struct sdap_handle);
+    struct timeval no_timeout = {0, 0};
+    struct tevent_timer *te;
+    LDAPMessage *msg;
+    int ret;
+
+    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
+              sh, (int)sh->connected, sh->ops, sh->fde, sh->ldap));
+
+    if (!sh->connected || !sh->ldap) {
+        DEBUG(2, ("ERROR: LDAP connection is not connected!\n"));
+        return;
+    }
+
+    ret = ldap_result(sh->ldap, LDAP_RES_ANY, 0, &no_timeout, &msg);
+    if (ret == 0) {
+        /* this almost always means we have reached the end of
+         * the list of received messages */
+        DEBUG(8, ("Trace: ldap_result found nothing!\n"));
+        return;
+    }
+
+    if (ret == -1) {
+        DEBUG(4, ("ldap_result gave -1, something bad happend!\n"));
+        sdap_handle_release(sh);
+        return;
+    }
+
+    /* We don't know if this will be the last result.
+     *
+     * important: we must do this before actually processing the message
+     * because the message processing might even free the sdap_handler
+     * so it must be the last operation.
+     * FIXME: use tevent_immediate/tevent_queues, when avilable */
+    memset(&no_timeout, 0, sizeof(struct timeval));
+
+    te = tevent_add_timer(ev, sh, no_timeout, sdap_ldap_next_result, sh);
+    if (!te) {
+        DEBUG(1, ("Failed to add critical timer to fetch next result!\n"));
+    }
+
+
+    /* now process this message */
+    sdap_process_message(sh, msg);
+}
+
+/* process a messgae calling the right operation callback.
+ * msg is completely taken care of (including freeeing it)
+ * NOTE: this function may even end up freeing the sdap_handle
+ * so sdap_hanbdle must not be used after this function is called
+ */
 static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg)
 {
-    struct sdap_msg *reply = NULL;
+    struct sdap_msg *reply;
     struct sdap_op *op;
     int msgid;
     int msgtype;
@@ -118,97 +193,75 @@ static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg)
         return;
     }
 
+    msgtype = ldap_msgtype(msg);
+
     for (op = sh->ops; op; op = op->next) {
-        if (op->msgid == msgid && !op->done) {
-            msgtype = ldap_msgtype(msg);
-
-            switch (msgtype) {
-            case LDAP_RES_SEARCH_ENTRY:
-            case LDAP_RES_SEARCH_REFERENCE:
-                /* more ops to come with this msgid */
-                ret = EOK;
-                break;
-
-            case LDAP_RES_BIND:
-            case LDAP_RES_SEARCH_RESULT:
-            case LDAP_RES_MODIFY:
-            case LDAP_RES_ADD:
-            case LDAP_RES_DELETE:
-            case LDAP_RES_MODDN:
-            case LDAP_RES_COMPARE:
-            case LDAP_RES_EXTENDED:
-            case LDAP_RES_INTERMEDIATE:
-                /* no more results expected with this msgid */
-                op->done = true;
-                ret = EOK;
-                break;
-
-            default:
-                /* unkwon msg type ?? */
-                DEBUG(1, ("Couldn't figure out the msg type! [%0x]\n",
-                          msgtype));
-                ret = EIO;
-            }
-
-            if (ret == EOK) {
-                reply = talloc(op, struct sdap_msg);
-                if (!reply) {
-                    ldap_msgfree(msg);
-                    ret = ENOMEM;
-                } else {
-                    reply->msg = msg;
-                    ret = sdap_msg_attach(reply, msg);
-                    if (ret != EOK) {
-                        ldap_msgfree(msg);
-                        talloc_zfree(reply);
-                    }
-                }
-            }
-
-            op->callback(op->data, ret, reply);
-
-            break;
-        }
+        if (op->msgid == msgid) break;
     }
 
     if (op == NULL) {
         DEBUG(2, ("Unmatched msgid, discarding message (type: %0x)\n",
-                  ldap_msgtype(msg)));
+                  msgtype));
+        ldap_msgfree(msg);
         return;
     }
-}
 
-static void sdap_ldap_results(struct tevent_context *ev,
-                              struct tevent_fd *fde,
-                              uint16_t flags, void *pvt)
-{
-    struct sdap_handle *sh = talloc_get_type(pvt, struct sdap_handle);
-    struct timeval no_timeout = {0, 0};
-    LDAPMessage *msg;
-    int ret;
-
-    while (1) {
-        if (!sh->connected) {
-            DEBUG(2, ("FDE fired but LDAP connection is not connected!\n"));
-            sdap_handle_release(sh);
-            return;
-        }
-
-        ret = ldap_result(sh->ldap, LDAP_RES_ANY, 0, &no_timeout, &msg);
-        if (ret == 0) {
-            DEBUG(6, ("FDE fired but ldap_result found nothing!\n"));
-            return;
-        }
-
-        if (ret == -1) {
-            DEBUG(4, ("ldap_result gave -1, something bad happend!\n"));
-
-            sdap_handle_release(sh);
-            return;
-        }
-
-        sdap_process_message(sh, msg);
+    /* shouldn't happen */
+    if (op->done) {
+        DEBUG(2, ("Operation [%p] already handled (type: %0x)\n", op, msgtype));
+        ldap_msgfree(msg);
+        return;
     }
+
+    switch (msgtype) {
+    case LDAP_RES_SEARCH_ENTRY:
+    case LDAP_RES_SEARCH_REFERENCE:
+        /* more ops to come with this msgid */
+        /* just ignore */
+        ldap_msgfree(msg);
+        return;
+
+    case LDAP_RES_BIND:
+    case LDAP_RES_SEARCH_RESULT:
+    case LDAP_RES_MODIFY:
+    case LDAP_RES_ADD:
+    case LDAP_RES_DELETE:
+    case LDAP_RES_MODDN:
+    case LDAP_RES_COMPARE:
+    case LDAP_RES_EXTENDED:
+    case LDAP_RES_INTERMEDIATE:
+        /* no more results expected with this msgid */
+        op->done = true;
+        ret = EOK;
+        break;
+
+    default:
+        /* unkwon msg type ?? */
+        DEBUG(1, ("Couldn't figure out the msg type! [%0x]\n", msgtype));
+        ldap_msgfree(msg);
+        return;
+    }
+
+    if (ret == EOK) {
+        reply = talloc(op, struct sdap_msg);
+        if (!reply) {
+            ldap_msgfree(msg);
+            ret = ENOMEM;
+        } else {
+            reply->msg = msg;
+            ret = sdap_msg_attach(reply, msg);
+            if (ret != EOK) {
+                ldap_msgfree(msg);
+                talloc_zfree(reply);
+            }
+        }
+    } else {
+        reply = NULL;
+    }
+
+    /* must be the last operation as it may end up freeing all memory
+     * including all ops handlers */
+    op->callback(op->data, ret, reply);
 }
 
 static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
@@ -220,8 +273,11 @@ static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
     ret = get_fd_from_ldap(sh->ldap, &fd);
     if (ret) return ret;
 
-    sh->fde = tevent_add_fd(ev, sh, fd, TEVENT_FD_READ, sdap_ldap_results, sh);
+    sh->fde = tevent_add_fd(ev, sh, fd, TEVENT_FD_READ, sdap_ldap_result, sh);
     if (!sh->fde) return ENOMEM;
+
+    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
+              sh, (int)sh->connected, sh->ops, sh->fde, sh->ldap));
 
     return EOK;
 }
