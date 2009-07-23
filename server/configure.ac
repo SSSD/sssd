@@ -31,9 +31,6 @@ AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 AC_CHECK_HEADERS(stdint.h dlfcn.h)
 AC_CONFIG_HEADER(config.h)
 
-TESTS=""
-EXTRA_OBJ=""
-
 m4_include([build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
 
@@ -79,9 +76,6 @@ if test x$HAVE_MANPAGES != x; then
     AC_PATH_PROG([XSLTPROC], [xsltproc])
     AC_PATH_PROG([XMLLINT], [xmllint])
 fi
-
-AC_SUBST(TESTS)
-AC_SUBST(EXTRA_OBJ)
 
 AC_CHECK_HEADERS([sys/inotify.h])
 

@@ -50,10 +50,12 @@ sssdlibexec_PROGRAMS = \
     $(sssd_info)
 
 if BUILD_TESTS
-noinst_PROGRAMS = \
+check_PROGRAMS = \
     sysdb-tests \
     stress-tests \
     resolv-tests
+
+TESTS = sysdb-tests resolv-tests
 endif
 
 sssdlib_LTLIBRARIES = \
@@ -68,6 +70,7 @@ krb5plugin_LTLIBRARIES = \
     sssd_krb5_locator_plugin.la
 
 noinst_LTLIBRARIES = \
+    libsss_util.la \
     libsss_crypt.la
 libsss_crypt_la_SOURCES = \
     util/nss_sha512crypt.c
@@ -122,7 +125,7 @@ EXTRA_DIST = build/config.rpath
 SSSD_DEBUG_OBJ = \
     util/debug.c
 
-SSSD_UTIL_OBJ = \
+libsss_util_la_SOURCES = \
     confdb/confdb.c \
     db/sysdb.c \
     db/sysdb_ops.c \
@@ -172,6 +175,7 @@ SSSD_LIBS = \
     $(COLLECTION_LIBS) \
     $(REPLACE_LIBS) \
     $(NSS_LIBS) \
+    libsss_util.la \
     libsss_crypt.la
 
 dist_noinst_HEADERS = \
@@ -218,8 +222,7 @@ dist_noinst_HEADERS = \
 ####################
 sssd_SOURCES = \
     monitor/monitor.c \
-    confdb/confdb_setup.c \
-    $(SSSD_UTIL_OBJ)
+    confdb/confdb_setup.c
 sssd_LDADD = \
     $(SSSD_LIBS)
 
@@ -228,7 +231,6 @@ sssd_nss_SOURCES = \
     responder/nss/nsssrv_cmd.c \
     responder/nss/nsssrv_dp.c \
     responder/nss/nsssrv_nc.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
     $(SSSD_LIBS)
@@ -239,20 +241,17 @@ sssd_pam_SOURCES = \
     responder/pam/pamsrv_cache.c \
     responder/pam/pamsrv_cmd.c \
     responder/pam/pamsrv_dp.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
     $(SSSD_LIBS)
 
 sssd_dp_SOURCES = \
-    providers/data_provider.c\
-    $(SSSD_UTIL_OBJ)
+    providers/data_provider.c
 
 sssd_dp_LDADD = $(SSSD_LIBS)
 
 sssd_be_SOURCES = \
-    providers/data_provider_be.c \
-    $(SSSD_UTIL_OBJ)
+    providers/data_provider_be.c
 sssd_be_LDADD = $(SSSD_LIBS)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/providers/sssd_be.exports \
@@ -270,42 +269,36 @@ dist_noinst_DATA = \
 ######################
 sss_useradd_SOURCES = \
     tools/sss_useradd.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_useradd_LDADD = \
     $(SSSD_LIBS)
 
 sss_userdel_SOURCES = \
     tools/sss_userdel.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_userdel_LDADD = \
     $(SSSD_LIBS)
 
 sss_groupadd_SOURCES = \
     tools/sss_groupadd.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupadd_LDADD = \
     $(SSSD_LIBS)
 
 sss_groupdel_SOURCES = \
     tools/sss_groupdel.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupdel_LDADD = \
     $(SSSD_LIBS)
 
 sss_usermod_SOURCES = \
     tools/sss_usermod.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_usermod_LDADD = \
     $(SSSD_LIBS)
 
 sss_groupmod_SOURCES = \
     tools/sss_groupmod.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupmod_LDADD = \
     $(SSSD_LIBS)
@@ -315,8 +308,7 @@ sss_groupmod_LDADD = \
 #################
 if BUILD_TESTS
 sysdb_tests_SOURCES = \
-    tests/sysdb-tests.c \
-    $(SSSD_UTIL_OBJ)
+    tests/sysdb-tests.c
 sysdb_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
@@ -324,14 +316,12 @@ sysdb_tests_LDADD = \
     $(CHECK_LIBS)
 
 stress_tests_SOURCES = \
-    tests/stress-tests.c \
-    $(SSSD_UTIL_OBJ)
+    tests/stress-tests.c
 stress_tests_LDADD = \
     $(SSSD_LIBS)
 
 resolv_tests_SOURCES = \
     tests/resolv-tests.c \
-    $(SSSD_UTIL_OBJ) \
     $(SSSD_RESOLV_OBJ)
 resolv_tests_CFLAGS = \
     $(CHECK_CFLAGS)
