@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <time.h>
+#include <pcre.h>
 #include "config.h"
 #include "talloc.h"
 #include "tevent.h"
@@ -143,5 +144,20 @@ int password_destructor(void *memctx);
 
 /* from usertools.c */
 char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid);
+
+struct sss_names_ctx {
+    char *re_pattern;
+    char *fq_fmt;
+
+    pcre *re;
+};
+
+int sss_names_init(TALLOC_CTX *mem_ctx,
+                   struct confdb_ctx *cdb,
+                   struct sss_names_ctx **out);
+
+int sss_parse_name(TALLOC_CTX *memctx,
+                   struct sss_names_ctx *snctx,
+                   const char *orig, char **domain, char **name);
 
 #endif /* __SSSD_UTIL_H__ */

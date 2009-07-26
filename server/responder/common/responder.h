@@ -53,13 +53,6 @@ struct cli_protocol_version {
     const char *description;
 };
 
-struct sss_names_ctx {
-    char *re_pattern;
-    char *fq_fmt;
-
-    pcre *re;
-};
-
 struct resp_ctx {
     struct tevent_context *ev;
     struct tevent_fd *lfde;
