@@ -158,6 +158,7 @@ int main(int argc, const char **argv)
     struct tevent_req *req;
     struct ops_ctx *data = NULL;
     int ret = EXIT_SUCCESS;
+    const char *pc_groupname = NULL;
 
     debug_prg_name = argv[0];
 
@@ -199,24 +200,43 @@ int main(int argc, const char **argv)
     debug_level = pc_debug;
 
     /* groupname is an argument, not option */
-    data->name = poptGetArg(pc);
-    if (data->name == NULL) {
+    pc_groupname = poptGetArg(pc);
+    if (pc_groupname == NULL) {
         usage(pc, _("Specify group to add\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    ret = parse_name_domain(data, pc_groupname);
+    if (ret != EOK) {
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     data->gid = pc_gid;
 
-    /* arguments processed, go on to actual work */
-    ret = find_domain_for_id(ctx, data->gid, &dom);
+    ret = get_domain_by_id(data->ctx, data->gid, &dom);
+    if (ret != EOK) {
+        ERROR("Cannot get domain info\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain && data->gid && data->domain != dom) {
+        ERROR("Selected domain %s conflicts with selected GID %llu\n",
+                data->domain->name, (unsigned long long int) data->gid);
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain == NULL && dom) {
+        data->domain = dom;
+    }
+
+    ret = get_domain_type(data->ctx, data->domain);
     switch (ret) {
         case ID_IN_LOCAL:
-            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            data->domain = dom;
         case ID_OUTSIDE:
             ret = groupadd_legacy(data);
             if(ret != EOK) {
@@ -231,7 +251,7 @@ int main(int argc, const char **argv)
             goto fini;
 
         default:
-            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
             ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;

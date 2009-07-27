@@ -147,6 +147,7 @@ int main(int argc, const char **argv)
     struct tevent_req *req;
     struct sss_domain_info *dom;
     struct passwd *pwd_info;
+    const char *pc_username = NULL;
 
     int pc_debug = 0;
     poptContext pc = NULL;
@@ -196,9 +197,15 @@ int main(int argc, const char **argv)
 
     debug_level = pc_debug;
 
-    data->name = poptGetArg(pc);
-    if (data->name == NULL) {
+    pc_username = poptGetArg(pc);
+    if (pc_username == NULL) {
         usage(pc, _("Specify user to delete\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    ret = parse_name_domain(data, pc_username);
+    if (ret != EOK) {
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -209,14 +216,28 @@ int main(int argc, const char **argv)
         data->uid = pwd_info->pw_uid;
     }
 
-    ret = find_domain_for_id(ctx, data->uid, &dom);
+    ret = get_domain_by_id(data->ctx, data->uid, &dom);
+    if (ret != EOK) {
+        ERROR("Cannot get domain info\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain && data->uid && data->domain != dom) {
+        ERROR("Selected domain %s conflicts with selected UID %llu\n",
+                data->domain->name, (unsigned long long int) data->uid);
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain == NULL && dom) {
+        data->domain = dom;
+    }
+
+    ret = get_domain_type(data->ctx, data->domain);
     switch (ret) {
         case ID_IN_LOCAL:
-            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            data->domain = dom;
         case ID_OUTSIDE:
             ret = userdel_legacy(data);
             if(ret != EOK) {
@@ -233,7 +254,7 @@ int main(int argc, const char **argv)
             goto fini;
 
         default:
-            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
             ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;

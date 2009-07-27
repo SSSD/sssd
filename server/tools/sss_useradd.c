@@ -327,6 +327,7 @@ int main(int argc, const char **argv)
     char *pc_shell = NULL;
     char *basedir = NULL;
     int pc_debug = 0;
+    const char *pc_username = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
@@ -401,9 +402,15 @@ int main(int argc, const char **argv)
     }
 
     /* username is an argument without --option */
-    data->name = poptGetArg(pc);
-    if (data->name == NULL) {
+    pc_username = poptGetArg(pc);
+    if (pc_username == NULL) {
         usage(pc, (_("Specify user to add\n")));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    ret = parse_name_domain(data, pc_username);
+    if (ret != EOK) {
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -470,14 +477,28 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
-    ret = find_domain_for_id(ctx, data->uid, &dom);
+    ret = get_domain_by_id(data->ctx, data->uid, &dom);
+    if (ret != EOK) {
+        ERROR("Cannot get domain info\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain && data->uid && data->domain != dom) {
+        ERROR("Selected domain %s conflicts with selected UID %llu\n",
+                data->domain->name, (unsigned long long int) data->uid);
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain == NULL && dom) {
+        data->domain = dom;
+    }
+
+    ret = get_domain_type(data->ctx, data->domain);
     switch (ret) {
         case ID_IN_LOCAL:
-            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            data->domain = dom;
         case ID_OUTSIDE:
             ret = useradd_legacy(data, groups);
             if(ret != EOK) {
@@ -492,7 +513,7 @@ int main(int argc, const char **argv)
             goto fini;
 
         default:
-            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
             ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;

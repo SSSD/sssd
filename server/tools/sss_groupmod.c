@@ -261,7 +261,8 @@ static void add_to_groups_done(struct tevent_req *req)
 }
 
 static int groupmod_legacy(struct tools_ctx *tools_ctx,
-                           struct ops_ctx *ctx, int old_domain)
+                           struct ops_ctx *ctx,
+                           struct sss_domain_info *old_domain)
 {
     int ret = EOK;
     char *command = NULL;
@@ -276,8 +277,13 @@ static int groupmod_legacy(struct tools_ctx *tools_ctx,
     }
 
     if (ctx->gid) {
-        ret = find_domain_for_id(tools_ctx, ctx->gid, &dom);
-        if (ret == old_domain) {
+        ret = get_domain_by_id(tools_ctx, ctx->gid, &dom);
+        if (ret != EOK) {
+            ERROR("Cannot get domain info\n");
+            talloc_free(command);
+            return EINVAL;
+        }
+        if (dom == old_domain) {
             APPEND_PARAM(command, GROUPMOD_GID, ctx->gid);
         } else {
             ERROR("Changing gid only allowed inside the same domain\n");
@@ -329,6 +335,7 @@ int main(int argc, const char **argv)
     int ret;
     struct group *grp_info;
     gid_t old_gid = 0;
+    const char *pc_groupname = NULL;
 
     debug_prg_name = argv[0];
 
@@ -389,9 +396,15 @@ int main(int argc, const char **argv)
     }
 
     /* groupname is an argument without --option */
-    data->name = poptGetArg(pc);
-    if (data->name == NULL) {
+    pc_groupname = poptGetArg(pc);
+    if (pc_groupname == NULL) {
         usage(pc, _("Specify group to modify\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    ret = parse_name_domain(data, pc_groupname);
+    if (ret != EOK) {
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -404,16 +417,30 @@ int main(int argc, const char **argv)
        old_gid = grp_info->gr_gid;
     }
 
-    ret = find_domain_for_id(ctx, old_gid, &dom);
+    ret = get_domain_by_id(data->ctx, data->gid, &dom);
+    if (ret != EOK) {
+        ERROR("Cannot get domain info\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain && data->gid && data->domain != dom) {
+        ERROR("Selected domain %s conflicts with selected GID %llu\n",
+                data->domain->name, (unsigned long long int) data->gid);
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain == NULL && dom) {
+        data->domain = dom;
+    }
+
+    ret = get_domain_type(data->ctx, data->domain);
     switch (ret) {
         case ID_IN_LOCAL:
-            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            data->domain = dom;
         case ID_OUTSIDE:
-            ret = groupmod_legacy(ctx, data, ret);
+            ret = groupmod_legacy(ctx, data, data->domain);
             if(ret != EOK) {
                 ERROR("Cannot delete group from domain using the legacy tools\n");
             }
@@ -426,7 +453,7 @@ int main(int argc, const char **argv)
             goto fini;
 
         default:
-            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
+            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
             ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;

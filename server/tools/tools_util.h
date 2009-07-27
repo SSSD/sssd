@@ -44,6 +44,7 @@ struct tools_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *confdb;
     struct sysdb_ctx *sysdb;
+    struct sss_names_ctx *snctx;
 
     struct sss_domain_info *domains;
 };
@@ -53,7 +54,7 @@ struct ops_ctx {
     struct tevent_context *ev;
     struct sss_domain_info *domain;
 
-    const char *name;
+    char *name;
     uid_t uid;
     gid_t gid;
     char *gecos;
@@ -71,7 +72,7 @@ struct ops_ctx {
     bool done;
 };
 
-int init_sss_tools(struct tools_ctx **ctx);
+int init_sss_tools(struct tools_ctx **_ctx);
 
 int setup_db(struct tools_ctx **ctx);
 
@@ -79,10 +80,16 @@ void usage(poptContext pc, const char *error);
 
 int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out);
 
-enum id_domain find_domain_for_id(struct tools_ctx *ctx,
-                                  uint32_t id,
-                                  struct sss_domain_info **dom_ret);
+enum id_domain get_domain_type(struct tools_ctx *ctx,
+                               struct sss_domain_info *dom);
+
+int get_domain_by_id(struct tools_ctx *ctx,
+                     uint32_t id,
+                     struct sss_domain_info **_dom);
 
 int set_locale(void);
+
+int parse_name_domain(struct ops_ctx *octx,
+                      const char *fullname);
 
 #endif  /* __TOOLS_UTIL_H__ */

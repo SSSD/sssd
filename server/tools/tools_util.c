@@ -69,52 +69,61 @@ static int is_domain_local_legacy(struct tools_ctx *ctx, struct sss_domain_info 
     return -1;
 }
 
-enum id_domain find_domain_for_id(struct tools_ctx *ctx,
-                                  uint32_t id,
-                                  struct sss_domain_info **dom_ret)
+enum id_domain get_domain_type(struct tools_ctx *ctx,
+                               struct sss_domain_info *dom)
+{
+    if (dom == NULL) {
+        return ID_OUTSIDE;
+    }
+
+    if (strcasecmp(dom->provider, "local") == 0) {
+        return ID_IN_LOCAL;
+    } else if (is_domain_local_legacy(ctx, dom) == 0) {
+        return ID_IN_LEGACY_LOCAL;
+    }
+
+    return ID_IN_OTHER;
+}
+
+static struct sss_domain_info *get_local_domain(struct tools_ctx *ctx)
 {
     struct sss_domain_info *dom = NULL;
 
-    if (id) {
-        /* ID specified, find which domain it's in */
-        for (dom = ctx->domains; dom; dom = dom->next) {
-            if (id < dom->id_min || id > dom->id_max) {
-                continue;
-            } else {
-                if (strcasecmp(dom->provider, "local") == 0) {
-                    *dom_ret = dom;
-                    return ID_IN_LOCAL;
-                } else if (is_domain_local_legacy(ctx, dom) == 0) {
-                    *dom_ret = dom;
-                    return ID_IN_LEGACY_LOCAL;
-                } else {
-                    *dom_ret = dom;
-                    return ID_IN_OTHER;
-                }
-            }
-        }
-        if (dom == NULL) {
-            *dom_ret = NULL;
-            return ID_OUTSIDE;
-        }
-    } else {
-        /* No ID specified, find LOCAL */
-        for (dom = ctx->domains; dom; dom = dom->next) {
-            if (strcasecmp(dom->provider, "local") == 0) {
-                *dom_ret = dom;
-                return ID_IN_LOCAL;
-            }
-        }
-        if (dom == NULL) {
-            DEBUG(1, ("Could not get LOCAL domain info\n"));
-            *dom_ret = dom;
-            return ID_ERROR;
+    /* No ID specified, find LOCAL */
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        if (strcasecmp(dom->provider, "local") == 0) {
+            break;
         }
     }
 
-    /* We should never end up here */
-    *dom_ret = NULL;
-    return ID_ERROR;
+    return dom;
+}
+
+int get_domain_by_id(struct tools_ctx *ctx,
+                     uint32_t id,
+                     struct sss_domain_info **_dom)
+{
+    struct sss_domain_info *dom = NULL;
+    int ret = EOK;
+
+    if (id) {
+        for (dom = ctx->domains; dom; dom = dom->next) {
+            if (id >= dom->id_min && id <= dom->id_max) {
+                break;
+            }
+        }
+    }
+
+    if (dom == NULL && id == 0) {
+        dom = get_local_domain(ctx);
+        if (dom == NULL) {
+            DEBUG(1, ("Cannot find local domain info\n"));
+            ret = ENOENT;
+        }
+    }
+
+    *_dom = dom;
+    return ret;
 }
 
 int setup_db(struct tools_ctx **tools_ctx)
@@ -229,6 +238,40 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     return EOK;
 }
 
+int parse_name_domain(struct ops_ctx *octx,
+                      const char *fullname)
+{
+    int ret;
+    char *domain = NULL;
+    struct sss_domain_info *dom;
+
+    ret = sss_parse_name(octx, octx->ctx->snctx, fullname, &domain, &octx->name);
+    if (ret != EOK) {
+        DEBUG(0, ("Cannot parse full name\n"));
+        return ret;
+    }
+    DEBUG(5, ("Parsed username: %s\n", octx->name));
+
+    if (domain) {
+        DEBUG(5, ("Parsed domain: %s\n", domain));
+
+        /* Got string domain name, find corresponding sss_domain_info */
+        for (dom = octx->ctx->domains; dom; dom = dom->next) {
+            if (strcasecmp(dom->name, domain) == 0) {
+                DEBUG(6, ("Found sss_domain_info for given domain name\n"));
+                octx->domain = dom;
+                break;
+            }
+        }
+        if (octx->domain == NULL) {
+            DEBUG(0, ("Invalid domain %s specified in FQDN\n", domain));
+            return EINVAL;
+        }
+    }
+
+    return EOK;
+}
+
 int set_locale(void)
 {
     char *c;
@@ -253,18 +296,26 @@ int set_locale(void)
     return EOK;
 }
 
-int init_sss_tools(struct tools_ctx **ctx)
+int init_sss_tools(struct tools_ctx **_ctx)
 {
     int ret;
+    struct tools_ctx *ctx;
 
     /* Connect to the database */
-    ret = setup_db(ctx);
+    ret = setup_db(&ctx);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up database\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
+    ret = sss_names_init(ctx, ctx->confdb, &ctx->snctx);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not set up parsing\n"));
+        goto fini;
+    }
+
+    *_ctx = ctx;
     ret = EOK;
 fini:
     return ret;

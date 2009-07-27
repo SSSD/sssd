@@ -289,7 +289,8 @@ static void add_to_groups_done(struct tevent_req *req)
 static int usermod_legacy(struct tools_ctx *tools_ctx, struct ops_ctx *ctx,
                           uid_t uid, gid_t gid,
                           const char *gecos, const char *home,
-                          const char *shell, int lock, int old_domain)
+                          const char *shell, int lock,
+                          struct sss_domain_info *old_domain)
 {
     int ret = EOK;
     char *command = NULL;
@@ -298,8 +299,13 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct ops_ctx *ctx,
     APPEND_STRING(command, USERMOD);
 
     if (uid) {
-        ret = find_domain_for_id(tools_ctx, uid, &dom);
-        if (ret == old_domain) {
+        ret = get_domain_by_id(tools_ctx, ctx->gid, &dom);
+        if (ret != EOK) {
+            ERROR("Cannot get domain info\n");
+            talloc_free(command);
+            return EINVAL;
+        }
+        if (dom == old_domain) {
             APPEND_PARAM(command, USERMOD_UID, uid);
         } else {
             ERROR("Changing uid only allowed inside the same domain\n");
@@ -309,8 +315,13 @@ static int usermod_legacy(struct tools_ctx *tools_ctx, struct ops_ctx *ctx,
     }
 
     if (gid) {
-        ret = find_domain_for_id(tools_ctx, gid, &dom);
-        if (ret == old_domain) {
+        ret = get_domain_by_id(tools_ctx, ctx->gid, &dom);
+        if (ret != EOK) {
+            ERROR("Cannot get domain info\n");
+            talloc_free(command);
+            return EINVAL;
+        }
+        if (dom == old_domain) {
             APPEND_PARAM(command, USERMOD_GID, gid);
         } else {
             ERROR("Changing gid only allowed inside the same domain\n");
@@ -381,6 +392,7 @@ int main(int argc, const char **argv)
     int ret;
     struct passwd *pwd_info;
     uid_t old_uid = 0;
+    const char *pc_username = NULL;
 
     debug_prg_name = argv[0];
 
@@ -452,9 +464,15 @@ int main(int argc, const char **argv)
     }
 
     /* username is an argument without --option */
-    data->name = poptGetArg(pc);
-    if (data->name == NULL) {
+    pc_username = poptGetArg(pc);
+    if (pc_username == NULL) {
         usage(pc, _("Specify user to modify\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    ret = parse_name_domain(data, pc_username);
+    if (ret != EOK) {
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -464,17 +482,31 @@ int main(int argc, const char **argv)
         old_uid = pwd_info->pw_uid;
     }
 
-    ret = find_domain_for_id(ctx, old_uid, &dom);
+    ret = get_domain_by_id(data->ctx, data->uid, &dom);
+    if (ret != EOK) {
+        ERROR("Cannot get domain info\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain && data->uid && data->domain != dom) {
+        ERROR("Selected domain %s conflicts with selected UID %llu\n",
+                data->domain->name, (unsigned long long int) data->uid);
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+    if (data->domain == NULL && dom) {
+        data->domain = dom;
+    }
+
+    ret = get_domain_type(data->ctx, data->domain);
     switch (ret) {
         case ID_IN_LOCAL:
-            data->domain = dom;
             break;
 
         case ID_IN_LEGACY_LOCAL:
-            data->domain = dom;
         case ID_OUTSIDE:
             ret = usermod_legacy(ctx, data, pc_uid, pc_gid, pc_gecos,
-                                 pc_home, pc_shell, pc_lock, ret);
+                                 pc_home, pc_shell, pc_lock, data->domain);
             if(ret != EOK) {
                 ERROR("Cannot delete user from domain using the legacy tools\n");
             }
