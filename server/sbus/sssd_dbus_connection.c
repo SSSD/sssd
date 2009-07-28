@@ -29,19 +29,6 @@ struct sbus_message_handler_ctx {
     struct sbus_method_ctx *method_ctx;
 };
 
-struct sbus_watch_ctx {
-    struct sbus_conn_ctx *conn_ctx;
-    DBusWatch *watch;
-    int fd;
-    struct tevent_fd *fde;
-};
-
-struct sbus_timeout_ctx {
-    struct sbus_conn_ctx *conn_ctx;
-    DBusTimeout *timeout;
-    struct tevent_timer *te;
-};
-
 static int _method_list_contains_path(struct sbus_method_ctx *list,
                                       struct sbus_method_ctx *method);
 static void sbus_unreg_object_paths(struct sbus_conn_ctx *conn_ctx);
@@ -49,8 +36,8 @@ static void sbus_unreg_object_paths(struct sbus_conn_ctx *conn_ctx);
 static int sbus_auto_reconnect(struct sbus_conn_ctx *conn_ctx);
 
 static void sbus_dispatch(struct tevent_context *ev,
-                               struct tevent_timer *te,
-                               struct timeval tv, void *data)
+                          struct tevent_timer *te,
+                          struct timeval tv, void *data)
 {
     struct tevent_timer *new_event;
     struct sbus_conn_ctx *conn_ctx;
@@ -126,160 +113,6 @@ static void sbus_dispatch(struct tevent_context *ev,
     }
 }
 
-/*
- * dbus_connection_read_write_handler
- * Callback for D-BUS to handle messages on a file-descriptor
- */
-static void sbus_conn_read_write_handler(struct tevent_context *ev,
-                                         struct tevent_fd *fde,
-                                         uint16_t flags, void *data)
-{
-    struct sbus_watch_ctx *watch_ctx;
-    watch_ctx = talloc_get_type(data, struct sbus_watch_ctx);
-
-    DEBUG(6,("Connection is open for read/write.\n"));
-    dbus_connection_ref(watch_ctx->conn_ctx->dbus_conn);
-    if (flags & TEVENT_FD_READ) {
-        dbus_watch_handle(watch_ctx->watch, DBUS_WATCH_READABLE);
-    }
-    if (flags & TEVENT_FD_WRITE) {
-        dbus_watch_handle(watch_ctx->watch, DBUS_WATCH_WRITABLE);
-    }
-    dbus_connection_unref(watch_ctx->conn_ctx->dbus_conn);
-}
-
-/*
- * add_connection_watch
- * Set up hooks into the libevents mainloop for
- * D-BUS to add file descriptor-based events
- */
-static dbus_bool_t sbus_add_conn_watch(DBusWatch *watch, void *data)
-{
-    unsigned int flags;
-    unsigned int event_flags;
-    struct sbus_conn_ctx *conn_ctx;
-    struct sbus_watch_ctx *watch_ctx;
-
-    if (!dbus_watch_get_enabled(watch)) {
-        return TRUE;
-    }
-
-    conn_ctx = talloc_get_type(data, struct sbus_conn_ctx);
-
-    watch_ctx = talloc_zero(conn_ctx, struct sbus_watch_ctx);
-    watch_ctx->conn_ctx = conn_ctx;
-    watch_ctx->watch = watch;
-
-    flags = dbus_watch_get_flags(watch);
-#ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
-    watch_ctx->fd = dbus_watch_get_unix_fd(watch);
-#else
-    watch_ctx->fd = dbus_watch_get_fd(watch);
-#endif
-
-    event_flags = 0;
-
-    if (flags & DBUS_WATCH_READABLE)
-        event_flags |= TEVENT_FD_READ;
-
-    if (flags & DBUS_WATCH_WRITABLE)
-        event_flags |= TEVENT_FD_WRITE;
-
-    if (event_flags == 0)
-        return FALSE;
-
-    DEBUG(5,("%lX: %d, %d=%s\n",
-             watch, watch_ctx->fd, event_flags,
-             event_flags==TEVENT_FD_READ?"READ":"WRITE"));
-
-    /* Add the file descriptor to the event loop */
-    watch_ctx->fde = tevent_add_fd(watch_ctx->conn_ctx->ev, watch_ctx,
-                                   watch_ctx->fd, event_flags,
-                                   sbus_conn_read_write_handler,
-                                   watch_ctx);
-
-    /* Save the event to the watch object so it can be removed later */
-    dbus_watch_set_data(watch_ctx->watch, watch_ctx->fde, NULL);
-
-    return TRUE;
-}
-
-/*
- * toggle_connection_watch
- * Hook for D-BUS to toggle the enabled/disabled state of
- * an event in the mainloop
- */
-static void sbus_toggle_conn_watch(DBusWatch *watch, void *data)
-{
-    if (dbus_watch_get_enabled(watch)) {
-        sbus_add_conn_watch(watch, data);
-    } else {
-        sbus_remove_watch(watch, data);
-    }
-}
-
-/*
- * dbus_connection_timeout_handler
- * Callback for D-BUS to handle timed events
- */
-static void sbus_conn_timeout_handler(struct tevent_context *ev,
-                                            struct tevent_timer *te,
-                                            struct timeval t, void *data)
-{
-    struct sbus_timeout_ctx *timeout_ctx;
-    timeout_ctx = talloc_get_type(data, struct sbus_timeout_ctx);
-
-    dbus_timeout_handle(timeout_ctx->timeout);
-}
-
-
-/*
- * add_connection_timeout
- * Hook for D-BUS to add time-based events to the mainloop
- */
-static dbus_bool_t sbus_add_conn_timeout(DBusTimeout *timeout, void *data)
-{
-    struct sbus_conn_ctx *conn_ctx;
-    struct sbus_timeout_ctx *timeout_ctx;
-    struct timeval tv;
-
-    if (!dbus_timeout_get_enabled(timeout))
-        return TRUE;
-
-    conn_ctx = talloc_get_type(data, struct sbus_conn_ctx);
-
-    timeout_ctx = talloc_zero(conn_ctx,struct sbus_timeout_ctx);
-    timeout_ctx->conn_ctx = conn_ctx;
-    timeout_ctx->timeout = timeout;
-
-    tv = _dbus_timeout_get_interval_tv(dbus_timeout_get_interval(timeout));
-
-    struct timeval rightnow;
-    gettimeofday(&rightnow, NULL);
-
-    timeout_ctx->te = tevent_add_timer(conn_ctx->ev, timeout_ctx, tv,
-                                       sbus_conn_timeout_handler, timeout_ctx);
-
-    /* Save the event to the watch object so it can be removed later */
-    dbus_timeout_set_data(timeout_ctx->timeout, timeout_ctx->te, NULL);
-
-    return TRUE;
-}
-
-/*
- * sbus_toggle_conn_timeout
- * Hook for D-BUS to toggle the enabled/disabled state of a mainloop
- * event
- */
-void sbus_toggle_conn_timeout(DBusTimeout *timeout, void *data)
-{
-    if (dbus_timeout_get_enabled(timeout)) {
-        sbus_add_conn_timeout(timeout, data);
-    } else {
-        sbus_remove_timeout(timeout, data);
-    }
-}
-
 /* dbus_connection_wakeup_main
  * D-BUS makes a callback to the wakeup_main function when
  * it has data available for dispatching.
@@ -337,19 +170,20 @@ int sbus_add_connection(TALLOC_CTX *ctx,
     conn_ctx->max_retries = 0;
     conn_ctx->reconnect_callback = NULL;
 
-    ret = sbus_add_connection_int(&conn_ctx);
+    *_conn_ctx = conn_ctx;
+
+    ret = sbus_add_connection_int(_conn_ctx);
     if (ret != EOK) {
         talloc_free(conn_ctx);
-        return ret;
     }
-    *_conn_ctx = conn_ctx;
-    return EOK;
+    return ret;
 }
 
 static int sbus_add_connection_int(struct sbus_conn_ctx **_conn_ctx)
 {
-    dbus_bool_t dbret;
     struct sbus_conn_ctx *conn_ctx = *_conn_ctx;
+    struct sbus_generic_dbus_ctx *gen_ctx;
+    dbus_bool_t dbret;
 
     /*
      * Set the default destructor
@@ -358,12 +192,21 @@ static int sbus_add_connection_int(struct sbus_conn_ctx **_conn_ctx)
      */
     sbus_conn_set_destructor(conn_ctx, NULL);
 
+    gen_ctx = talloc_zero(conn_ctx, struct sbus_generic_dbus_ctx);
+    if (!gen_ctx) {
+        DEBUG(0, ("Out of memory!\n"));
+        return ENOMEM;
+    }
+    gen_ctx->ev = conn_ctx->ev;
+    gen_ctx->type = SBUS_CONNECTION;
+    gen_ctx->dbus.conn = conn_ctx->dbus_conn;
+
     /* Set up DBusWatch functions */
     dbret = dbus_connection_set_watch_functions(conn_ctx->dbus_conn,
-                                                sbus_add_conn_watch,
+                                                sbus_add_watch,
                                                 sbus_remove_watch,
-                                                sbus_toggle_conn_watch,
-                                                conn_ctx, NULL);
+                                                sbus_toggle_watch,
+                                                gen_ctx, NULL);
     if (!dbret) {
         DEBUG(2,("Error setting up D-BUS connection watch functions\n"));
         return EIO;
@@ -371,10 +214,10 @@ static int sbus_add_connection_int(struct sbus_conn_ctx **_conn_ctx)
 
     /* Set up DBusTimeout functions */
     dbret = dbus_connection_set_timeout_functions(conn_ctx->dbus_conn,
-                                                  sbus_add_conn_timeout,
+                                                  sbus_add_timeout,
                                                   sbus_remove_timeout,
-                                                  sbus_toggle_conn_timeout,
-                                                  conn_ctx, NULL);
+                                                  sbus_toggle_timeout,
+                                                  gen_ctx, NULL);
     if (!dbret) {
         DEBUG(2,("Error setting up D-BUS server timeout functions\n"));
         /* FIXME: free resources ? */

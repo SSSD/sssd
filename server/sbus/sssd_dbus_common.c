@@ -3,8 +3,179 @@
 #include "dbus/dbus.h"
 #include "util/util.h"
 #include "util/btreemap.h"
+#include "sbus/sssd_dbus.h"
+#include "sbus/sssd_dbus_private.h"
 
-struct timeval _dbus_timeout_get_interval_tv(int interval) {
+/* =Watches=============================================================== */
+
+/*
+ * watch_handler
+ * Callback for D-BUS to handle messages on a file-descriptor
+ */
+static void sbus_watch_handler(struct tevent_context *ev,
+                               struct tevent_fd *fde,
+                               uint16_t flags, void *data)
+{
+    struct sbus_watch_ctx *watch = talloc_get_type(data,
+                                                   struct sbus_watch_ctx);
+
+    /* Take a reference while handling watch */
+    if (watch->dbus_type == SBUS_SERVER) {
+        dbus_server_ref(watch->dbus.server);
+    } else {
+        dbus_connection_ref(watch->dbus.conn);
+    }
+
+    /* Fire if readable */
+    if (flags & TEVENT_FD_READ) {
+        dbus_watch_handle(watch->dbus_watch, DBUS_WATCH_READABLE);
+    }
+
+    /* Fire if writeable */
+    if (flags & TEVENT_FD_WRITE) {
+        dbus_watch_handle(watch->dbus_watch, DBUS_WATCH_WRITABLE);
+    }
+
+    /* Release reference once done */
+    if (watch->dbus_type == SBUS_SERVER) {
+        dbus_server_unref(watch->dbus.server);
+    } else {
+        dbus_connection_unref(watch->dbus.conn);
+    }
+}
+
+/*
+ * add_watch
+ * Set up hooks into the libevents mainloop for
+ * D-BUS to add file descriptor-based events
+ */
+dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
+{
+    unsigned int flags;
+    uint16_t event_flags;
+    struct sbus_generic_dbus_ctx *gen_ctx;
+    struct sbus_watch_ctx *watch;
+    int fd;
+
+    gen_ctx = talloc_get_type(data, struct sbus_generic_dbus_ctx);
+
+    watch = talloc_zero(gen_ctx, struct sbus_watch_ctx);
+    if (!watch) {
+        DEBUG(0, ("Outr of Memory!\n"));
+        return FALSE;
+    }
+    watch->dbus_watch = dbus_watch;
+    watch->dbus_type = gen_ctx->type;
+    watch->dbus = gen_ctx->dbus;
+
+#ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
+    fd = dbus_watch_get_unix_fd(dbus_watch);
+#else
+    fd = dbus_watch_get_fd(dbus_watch);
+#endif
+
+    flags = dbus_watch_get_flags(dbus_watch);
+    event_flags = 0;
+
+    if (dbus_watch_get_enabled(dbus_watch)) {
+        if (flags & DBUS_WATCH_READABLE) {
+            event_flags |= TEVENT_FD_READ;
+        }
+        if (flags & DBUS_WATCH_WRITABLE) {
+            event_flags |= TEVENT_FD_WRITE;
+        }
+    }
+
+    DEBUG(8, ("%p: %d, %d=%s/%s\n",
+              dbus_watch, fd, flags,
+              ((event_flags & TEVENT_FD_READ)?"R":"-"),
+              ((event_flags & TEVENT_FD_WRITE)?"W":"-")));
+
+    /* Add the file descriptor to the event loop */
+    watch->fde = tevent_add_fd(gen_ctx->ev,
+                               watch, fd, event_flags,
+                               sbus_watch_handler, watch);
+    if (!watch->fde) {
+        DEBUG(0, ("Failed to set up fd event!\n"));
+        return FALSE;
+    }
+
+    /* Save the event to the watch object so it can be removed later */
+    dbus_watch_set_data(dbus_watch, watch, NULL);
+
+    return TRUE;
+}
+
+/*
+ * toggle_watch
+ * Hook for D-BUS to toggle the enabled/disabled state of
+ * an event in the mainloop
+ */
+void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
+{
+    struct sbus_watch_ctx *watch;
+    uint16_t event_flags = 0;
+    unsigned int flags;
+    void *watch_data;
+
+    watch_data = dbus_watch_get_data(dbus_watch);
+    watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
+    if (!watch) {
+        DEBUG(0, ("Watch does not carry watch context?!\n"));
+        /* TODO: abort ? */
+        return;
+    }
+
+    flags = dbus_watch_get_flags(dbus_watch);
+
+    if (dbus_watch_get_enabled(dbus_watch)) {
+        if (flags & DBUS_WATCH_READABLE) {
+            TEVENT_FD_READABLE(watch->fde);
+        }
+        if (flags & DBUS_WATCH_WRITABLE) {
+            TEVENT_FD_WRITEABLE(watch->fde);
+        }
+    } else {
+        if (flags & DBUS_WATCH_READABLE) {
+            TEVENT_FD_NOT_READABLE(watch->fde);
+        }
+        if (flags & DBUS_WATCH_WRITABLE) {
+            TEVENT_FD_NOT_WRITEABLE(watch->fde);
+        }
+    }
+
+    if (debug_level >= 8) {
+        event_flags = tevent_fd_get_flags(watch->fde);
+    }
+    DEBUG(8, ("%p: %p, %d=%s/%s\n",
+              dbus_watch, watch, flags,
+              ((event_flags & TEVENT_FD_READ)?"R":"-"),
+              ((event_flags & TEVENT_FD_WRITE)?"W":"-")));
+}
+
+/*
+ * sbus_remove_watch
+ * Hook for D-BUS to remove file descriptor-based events
+ * from the libevents mainloop
+ */
+void sbus_remove_watch(DBusWatch *dbus_watch, void *data)
+{
+    void *watch;
+
+    DEBUG(8, ("%p\n", dbus_watch));
+
+    watch = dbus_watch_get_data(dbus_watch);
+
+    /* remove dbus watch data */
+    dbus_watch_set_data(dbus_watch, NULL, NULL);
+
+    /* Freeing the event object will remove it from the event loop */
+    talloc_free(watch);
+}
+
+/* =Timeouts============================================================== */
+
+static struct timeval _get_interval_tv(int interval) {
     struct timeval tv;
     struct timeval rightnow;
 
@@ -16,34 +187,95 @@ struct timeval _dbus_timeout_get_interval_tv(int interval) {
 }
 
 /*
- * sbus_remove_watch
- * Hook for D-BUS to remove file descriptor-based events
- * from the libevents mainloop
+ * timeout_handler
+ * Callback for D-BUS to handle timed events
  */
-void sbus_remove_watch(DBusWatch *watch, void *data) {
-    struct tevent_fd *fde;
+static void sbus_timeout_handler(struct tevent_context *ev,
+                                 struct tevent_timer *te,
+                                 struct timeval t, void *data)
+{
+    struct sbus_timeout_ctx *timeout;
+    timeout = talloc_get_type(data, struct sbus_timeout_ctx);
 
-    DEBUG(5, ("%lX\n", watch));
-    fde = talloc_get_type(dbus_watch_get_data(watch), struct tevent_fd);
-
-    /* Freeing the event object will remove it from the event loop */
-    talloc_free(fde);
-    dbus_watch_set_data(watch, NULL, NULL);
+    dbus_timeout_handle(timeout->dbus_timeout);
 }
 
+/*
+ * add_timeout
+ * Hook for D-BUS to add time-based events to the mainloop
+ */
+dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
+{
+    struct sbus_generic_dbus_ctx *gen_ctx;
+    struct sbus_timeout_ctx *timeout;
+    struct timeval tv;
+
+    DEBUG(8, ("%p\n", dbus_timeout));
+
+    if (!dbus_timeout_get_enabled(dbus_timeout)) {
+        return TRUE;
+    }
+
+    gen_ctx = talloc_get_type(data, struct sbus_generic_dbus_ctx);
+
+    timeout = talloc_zero(gen_ctx, struct sbus_timeout_ctx);
+    if (!timeout) {
+        DEBUG(0, ("Outr of Memory!\n"));
+        return FALSE;
+    }
+    timeout->dbus_timeout = dbus_timeout;
+
+    tv = _get_interval_tv(dbus_timeout_get_interval(dbus_timeout));
+    timeout->te = tevent_add_timer(gen_ctx->ev, timeout, tv,
+                                   sbus_timeout_handler, timeout);
+    if (!timeout->te) {
+        DEBUG(0, ("Failed to set up timeout event!\n"));
+        return FALSE;
+    }
+
+    /* Save the event to the watch object so it can be removed later */
+    dbus_timeout_set_data(timeout->dbus_timeout, timeout, NULL);
+
+    return TRUE;
+}
+
+/*
+ * sbus_toggle_timeout
+ * Hook for D-BUS to toggle the enabled/disabled state of a mainloop
+ * event
+ */
+void sbus_toggle_timeout(DBusTimeout *dbus_timeout, void *data)
+{
+    DEBUG(8, ("%p\n", dbus_timeout));
+
+    if (dbus_timeout_get_enabled(dbus_timeout)) {
+        sbus_add_timeout(dbus_timeout, data);
+    } else {
+        sbus_remove_timeout(dbus_timeout, data);
+    }
+}
 
 /*
  * sbus_remove_timeout
  * Hook for D-BUS to remove time-based events from the mainloop
  */
-void sbus_remove_timeout(DBusTimeout *timeout, void *data) {
-    struct tevent_timer *te;
-    te = talloc_get_type(dbus_timeout_get_data(timeout), struct tevent_timer);
+void sbus_remove_timeout(DBusTimeout *dbus_timeout, void *data)
+{
+    void *timeout;
+
+    DEBUG(8, ("%p\n", dbus_timeout));
+
+    timeout = dbus_timeout_get_data(dbus_timeout);
+
+    /* remove dbus timeout data */
+    dbus_timeout_set_data(dbus_timeout, NULL, NULL);
 
     /* Freeing the event object will remove it from the event loop */
-    talloc_free(te);
-    dbus_timeout_set_data(timeout, NULL, NULL);
+    talloc_free(timeout);
+
 }
+
+/* =Helpers=============================================================== */
 
 int sbus_is_dbus_fixed_type(int dbus_type)
 {
