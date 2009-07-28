@@ -516,13 +516,13 @@ int main(int argc, const char **argv)
         ret = data->error;
         switch (ret) {
             case EEXIST:
-                ERROR("The user %s already exists\n", data->name);
+                ERROR("A user with the same name or UID already exists\n");
                 break;
 
             default:
                 DEBUG(1, ("sysdb operation failed (%d)[%s]\n",
                           ret, strerror(ret)));
-                ERROR("Transaction error. Could not modify user.\n");
+                ERROR("Transaction error. Could not add user.\n");
                 break;
         }
         ret = EXIT_FAILURE;

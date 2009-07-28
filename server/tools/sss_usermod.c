@@ -580,8 +580,22 @@ int main(int argc, const char **argv)
 
     if (data->error) {
         ret = data->error;
+
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Transaction error. Could not modify user.\n");
+        switch (ret) {
+            case ENOENT:
+                ERROR("Could not modify user - check if group names are correct\n");
+                break;
+
+            case EFAULT:
+                ERROR("Could not modify user - check if username is correct\n");
+                break;
+
+            default:
+                ERROR("Transaction error. Could not modify user.\n");
+                break;
+        }
+
         ret = EXIT_FAILURE;
         goto fini;
     }

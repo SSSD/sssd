@@ -255,7 +255,7 @@ int main(int argc, const char **argv)
         ret = data->error;
         switch (ret) {
             case EEXIST:
-                ERROR("The group %s already exists\n", data->name);
+                ERROR("A group with the same name or UID already exists\n");
                 break;
 
             default:
