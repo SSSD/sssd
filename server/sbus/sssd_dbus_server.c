@@ -27,7 +27,7 @@
 
 /* Types */
 struct sbus_srv_ctx {
-    DBusServer *server;
+    DBusServer *dbus_server;
     /*
      * sd_ctx here describes the object path that will be
      * presented to all clients of this server. Additional
@@ -47,13 +47,13 @@ struct sbus_srv_watch_ctx {
     DBusWatch *watch;
     int fd;
     struct tevent_fd *fde;
-    struct sbus_srv_ctx *top;
+    struct sbus_srv_ctx *srv_ctx;
 };
 
 struct dbus_srv_timeout_ctx {
     DBusTimeout *timeout;
     struct tevent_timer *te;
-    struct sbus_srv_ctx *top;
+    struct sbus_srv_ctx *srv_ctx;
 };
 
 static int sbus_server_destructor(void *ctx);
@@ -66,17 +66,17 @@ static void sbus_srv_read_write_handler(struct tevent_context *ev,
                                         struct tevent_fd *fde,
                                         uint16_t flags, void *data)
 {
-    struct sbus_srv_watch_ctx *svw_ctx;
-    svw_ctx = talloc_get_type(data, struct sbus_srv_watch_ctx);
+    struct sbus_srv_watch_ctx *watch_ctx;
+    watch_ctx = talloc_get_type(data, struct sbus_srv_watch_ctx);
 
-    dbus_server_ref(svw_ctx->top->server);
+    dbus_server_ref(watch_ctx->srv_ctx->dbus_server);
     if (flags & TEVENT_FD_READ) {
-        dbus_watch_handle(svw_ctx->watch, DBUS_WATCH_READABLE);
+        dbus_watch_handle(watch_ctx->watch, DBUS_WATCH_READABLE);
     }
     if (flags & TEVENT_FD_WRITE) {
-        dbus_watch_handle(svw_ctx->watch, DBUS_WATCH_WRITABLE);
+        dbus_watch_handle(watch_ctx->watch, DBUS_WATCH_WRITABLE);
     }
-    dbus_server_unref(svw_ctx->top->server);
+    dbus_server_unref(watch_ctx->srv_ctx->dbus_server);
 }
 
 /*
@@ -88,24 +88,24 @@ static dbus_bool_t sbus_add_srv_watch(DBusWatch *watch, void *data)
 {
     unsigned int flags;
     unsigned int event_flags;
-    struct sbus_srv_ctx *dt_ctx;
-    struct sbus_srv_watch_ctx *svw_ctx;
+    struct sbus_srv_ctx *srv_ctx;
+    struct sbus_srv_watch_ctx *watch_ctx;
 
     if (!dbus_watch_get_enabled(watch)) {
         return FALSE;
     }
 
-    dt_ctx = talloc_get_type(data, struct sbus_srv_ctx);
+    srv_ctx = talloc_get_type(data, struct sbus_srv_ctx);
 
-    svw_ctx = talloc_zero(dt_ctx, struct sbus_srv_watch_ctx);
-    svw_ctx->top = dt_ctx;
-    svw_ctx->watch = watch;
+    watch_ctx = talloc_zero(srv_ctx, struct sbus_srv_watch_ctx);
+    watch_ctx->srv_ctx = srv_ctx;
+    watch_ctx->watch = watch;
 
     flags = dbus_watch_get_flags(watch);
 #ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
-    svw_ctx->fd = dbus_watch_get_unix_fd(watch);
+    watch_ctx->fd = dbus_watch_get_unix_fd(watch);
 #else
-    svw_ctx->fd = dbus_watch_get_fd(watch);
+    watch_ctx->fd = dbus_watch_get_fd(watch);
 #endif
 
     event_flags = 0;
@@ -117,14 +117,14 @@ static dbus_bool_t sbus_add_srv_watch(DBusWatch *watch, void *data)
     if (flags & DBUS_WATCH_WRITABLE) {
         event_flags |= TEVENT_FD_WRITE;
     }
-    DEBUG(5,("%lX: %d, %d=%s\n", watch, svw_ctx->fd, event_flags, event_flags==TEVENT_FD_READ?"READ":"WRITE"));
+    DEBUG(5,("%lX: %d, %d=%s\n", watch, watch_ctx->fd, event_flags, event_flags==TEVENT_FD_READ?"READ":"WRITE"));
 
-    svw_ctx->fde = tevent_add_fd(dt_ctx->ev, svw_ctx, svw_ctx->fd,
+    watch_ctx->fde = tevent_add_fd(srv_ctx->ev, watch_ctx, watch_ctx->fd,
                                 event_flags, sbus_srv_read_write_handler,
-                                svw_ctx);
+                                watch_ctx);
 
     /* Save the event to the watch object so it can be removed later */
-    dbus_watch_set_data(svw_ctx->watch, svw_ctx->fde, NULL);
+    dbus_watch_set_data(watch_ctx->watch, watch_ctx->fde, NULL);
 
     return TRUE;
 }
@@ -147,9 +147,9 @@ static void sbus_srv_timeout_handler(struct tevent_context *ev,
                                      struct tevent_timer *te,
                                      struct timeval t, void *data)
 {
-    struct dbus_srv_timeout_ctx *svt_ctx;
-    svt_ctx = talloc_get_type(data, struct dbus_srv_timeout_ctx);
-    dbus_timeout_handle(svt_ctx->timeout);
+    struct dbus_srv_timeout_ctx *timeout_ctx;
+    timeout_ctx = talloc_get_type(data, struct dbus_srv_timeout_ctx);
+    dbus_timeout_handle(timeout_ctx->timeout);
 }
 
 /*
@@ -158,26 +158,26 @@ static void sbus_srv_timeout_handler(struct tevent_context *ev,
  */
 static dbus_bool_t sbus_add_srv_timeout(DBusTimeout *timeout, void *data)
 {
-    struct sbus_srv_ctx *dt_ctx;
-    struct dbus_srv_timeout_ctx *svt_ctx;
+    struct sbus_srv_ctx *srv_ctx;
+    struct dbus_srv_timeout_ctx *timeout_ctx;
     struct timeval tv;
 
     if (!dbus_timeout_get_enabled(timeout))
         return TRUE;
 
-    dt_ctx = talloc_get_type(data, struct sbus_srv_ctx);
+    srv_ctx = talloc_get_type(data, struct sbus_srv_ctx);
 
-    svt_ctx = talloc_zero(dt_ctx,struct dbus_srv_timeout_ctx);
-    svt_ctx->top = dt_ctx;
-    svt_ctx->timeout = timeout;
+    timeout_ctx = talloc_zero(srv_ctx,struct dbus_srv_timeout_ctx);
+    timeout_ctx->srv_ctx = srv_ctx;
+    timeout_ctx->timeout = timeout;
 
     tv = _dbus_timeout_get_interval_tv(dbus_timeout_get_interval(timeout));
 
-    svt_ctx->te = tevent_add_timer(dt_ctx->ev, svt_ctx, tv,
-                                  sbus_srv_timeout_handler, svt_ctx);
+    timeout_ctx->te = tevent_add_timer(srv_ctx->ev, timeout_ctx, tv,
+                                  sbus_srv_timeout_handler, timeout_ctx);
 
     /* Save the event to the watch object so it can be removed later */
-    dbus_timeout_set_data(svt_ctx->timeout, svt_ctx->te, NULL);
+    dbus_timeout_set_data(timeout_ctx->timeout, timeout_ctx->te, NULL);
 
     return TRUE;
 }
@@ -203,7 +203,7 @@ static void sbus_toggle_srv_timeout(DBusTimeout *timeout, void *data)
  * new connection or else close the connection with
  * dbus_connection_close()
  */
-static void sbus_server_init_new_connection(DBusServer *server,
+static void sbus_server_init_new_connection(DBusServer *dbus_server,
                                             DBusConnection *conn,
                                             void *data)
 {
@@ -259,7 +259,7 @@ static void sbus_server_init_new_connection(DBusServer *server,
  */
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev, struct sbus_method_ctx *ctx,
-                    struct sbus_srv_ctx **server_ctx, const char *address,
+                    struct sbus_srv_ctx **_srv_ctx, const char *address,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data)
 {
     struct sbus_srv_ctx *srv_ctx;
@@ -268,7 +268,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     dbus_bool_t dbret;
     char *tmp;
 
-    *server_ctx = NULL;
+    *_srv_ctx = NULL;
 
     /* Set up D-BUS server */
     dbus_error_init(&dbus_error);
@@ -290,7 +290,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     }
 
     srv_ctx->ev = ev;
-    srv_ctx->server = dbus_server;
+    srv_ctx->dbus_server = dbus_server;
     srv_ctx->sd_ctx = ctx;
     srv_ctx->init_fn = init_fn;
     srv_ctx->init_pvt_data = init_pvt_data;
@@ -298,12 +298,12 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     talloc_set_destructor((TALLOC_CTX *)srv_ctx, sbus_server_destructor);
 
     /* Set up D-BUS new connection handler */
-    dbus_server_set_new_connection_function(srv_ctx->server,
+    dbus_server_set_new_connection_function(srv_ctx->dbus_server,
                                             sbus_server_init_new_connection,
                                             srv_ctx, NULL);
 
     /* Set up DBusWatch functions */
-    dbret = dbus_server_set_watch_functions(srv_ctx->server,
+    dbret = dbus_server_set_watch_functions(srv_ctx->dbus_server,
                                             sbus_add_srv_watch,
                                             sbus_remove_watch,
                                             sbus_toggle_srv_watch,
@@ -315,26 +315,26 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     }
 
     /* Set up DBusTimeout functions */
-    dbret = dbus_server_set_timeout_functions(srv_ctx->server,
+    dbret = dbus_server_set_timeout_functions(srv_ctx->dbus_server,
                                               sbus_add_srv_timeout,
                                               sbus_remove_timeout,
                                               sbus_toggle_srv_timeout,
                                               srv_ctx, NULL);
     if (!dbret) {
         DEBUG(4,("Error setting up D-BUS server timeout functions"));
-        dbus_server_set_watch_functions(srv_ctx->server,
+        dbus_server_set_watch_functions(srv_ctx->dbus_server,
                                         NULL, NULL, NULL, NULL, NULL);
         talloc_free(srv_ctx);
         return EIO;
     }
 
-    *server_ctx = srv_ctx;
+    *_srv_ctx = srv_ctx;
     return EOK;
 }
 
 static int sbus_server_destructor(void *ctx)
 {
     struct sbus_srv_ctx *srv_ctx = talloc_get_type(ctx, struct sbus_srv_ctx);
-    dbus_server_disconnect(srv_ctx->server);
+    dbus_server_disconnect(srv_ctx->dbus_server);
     return 0;
 }
