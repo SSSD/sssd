@@ -379,7 +379,7 @@ static void local_handler_callback(void *pvt, int ldb_status,
 
             password = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);
             NULL_CHECK_OR_JUMP(password, ("No password stored.\n"),
-                               lreq->error, ret, done);
+                               lreq->error, LDB_ERR_NO_SUCH_ATTRIBUTE, done);
             DEBUG(4, ("user: [%s], password hash: [%s]\n", username, password));
 
             ret = s3crypt_sha512(lreq, authtok, password, &new_hash);
