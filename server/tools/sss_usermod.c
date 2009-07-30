@@ -553,18 +553,6 @@ int main(int argc, const char **argv)
                   "Could not add attribute to changeset\n");
     }
 
-
-    /* arguments processed, go on to actual work */
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->name, "LOCAL") == 0) break;
-    }
-    if (dom == NULL) {
-        ERROR("Could not get LOCAL domain info\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    data->domain = dom;
-
     req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));

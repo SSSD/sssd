@@ -81,7 +81,7 @@ enum id_domain find_domain_for_id(struct tools_ctx *ctx,
             if (id < dom->id_min || id > dom->id_max) {
                 continue;
             } else {
-                if (strcasecmp(dom->name, "LOCAL") == 0) {
+                if (strcasecmp(dom->provider, "local") == 0) {
                     *dom_ret = dom;
                     return ID_IN_LOCAL;
                 } else if (is_domain_local_legacy(ctx, dom) == 0) {
@@ -100,7 +100,7 @@ enum id_domain find_domain_for_id(struct tools_ctx *ctx,
     } else {
         /* No ID specified, find LOCAL */
         for (dom = ctx->domains; dom; dom = dom->next) {
-            if (strcasecmp(dom->name, "LOCAL") == 0) {
+            if (strcasecmp(dom->provider, "local") == 0) {
                 *dom_ret = dom;
                 return ID_IN_LOCAL;
             }
