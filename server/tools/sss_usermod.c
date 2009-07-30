@@ -140,7 +140,7 @@ static void mod_user(struct tevent_req *req)
                                           data->domain, data->name,
                                           data->attrs, SYSDB_MOD_REP);
         if (!subreq) {
-            return mod_user_done(data, ret);
+            return mod_user_done(data, ENOMEM);
         }
         tevent_req_set_callback(subreq, mod_user_attr_done, data);
         return;

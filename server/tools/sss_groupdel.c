@@ -99,7 +99,7 @@ static void group_del(struct tevent_req *req)
 
     subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn);
     if (!subreq)
-        return groupdel_done(data, ret, NULL);
+        return groupdel_done(data, ENOMEM, NULL);
 
     tevent_req_set_callback(subreq, group_del_done, data);
 }

@@ -114,7 +114,7 @@ static void mod_group(struct tevent_req *req)
                                            data->domain, data->name,
                                            attrs, SYSDB_MOD_REP);
         if (!subreq) {
-            return mod_group_done(data, ret);
+            return mod_group_done(data, ENOMEM);
         }
         tevent_req_set_callback(subreq, mod_group_attr_done, data);
         return;

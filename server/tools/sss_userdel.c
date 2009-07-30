@@ -100,7 +100,7 @@ static void user_del(struct tevent_req *req)
 
     subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn);
     if (!subreq)
-        return userdel_done(data, ret, NULL);
+        return userdel_done(data, ENOMEM, NULL);
 
     tevent_req_set_callback(subreq, user_del_done, data);
 }
