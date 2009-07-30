@@ -313,7 +313,7 @@ static void test_remove_user(struct tevent_req *req)
     user_dn = sysdb_user_dn(data->ctx->sysdb, data, "LOCAL", data->username);
     if (!user_dn) return test_return(data, ENOMEM);
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn);
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn, true);
     if (!subreq) return test_return(data, ENOMEM);
 
     tevent_req_set_callback(subreq, test_remove_user_done, data);
@@ -346,13 +346,82 @@ static void test_remove_user_by_uid(struct tevent_req *req)
 
     subreq = sysdb_delete_user_by_uid_send(data,
                                            data->ev, data->handle,
-                                           data->domain, data->uid);
+                                           data->domain, data->uid,
+                                           true);
     if (!subreq) return test_return(data, ENOMEM);
 
     tevent_req_set_callback(subreq, test_remove_user_by_uid_done, data);
 }
 
 static void test_remove_user_by_uid_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_delete_user_by_uid_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_remove_nonexistent_group_done(struct tevent_req *subreq);
+
+static void test_remove_nonexistent_group(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_delete_group_by_gid_send(data,
+                                           data->ev, data->handle,
+                                           data->domain, data->uid,
+                                           false);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_remove_nonexistent_group_done, data);
+}
+
+static void test_remove_nonexistent_group_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_delete_group_by_gid_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_remove_nonexistent_user_done(struct tevent_req *subreq);
+
+static void test_remove_nonexistent_user(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_delete_user_by_uid_send(data,
+                                           data->ev, data->handle,
+                                           data->domain, data->uid,
+                                           false);
+    if (!subreq) return test_return(data, ENOMEM);
+
+    tevent_req_set_callback(subreq, test_remove_nonexistent_user_done, data);
+}
+
+static void test_remove_nonexistent_user_done(struct tevent_req *subreq)
 {
     struct test_data *data = tevent_req_callback_data(subreq,
                                                       struct test_data);
@@ -448,7 +517,7 @@ static void test_remove_group(struct tevent_req *req)
     group_dn = sysdb_group_dn(data->ctx->sysdb, data, "LOCAL", data->groupname);
     if (!group_dn) return test_return(data, ENOMEM);
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn);
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn, true);
     if (!subreq) return test_return(data, ENOMEM);
 
     tevent_req_set_callback(subreq, test_remove_group_done, data);
@@ -479,7 +548,8 @@ static void test_remove_group_by_gid(struct tevent_req *req)
     }
 
     subreq = sysdb_delete_group_by_gid_send(data, data->ev, data->handle,
-                                            data->domain, data->gid);
+                                            data->domain, data->gid,
+                                            true);
     if (!subreq) return test_return(data, ENOMEM);
 
     tevent_req_set_callback(subreq, test_remove_group_by_gid_done, data);
@@ -1478,6 +1548,78 @@ START_TEST (test_sysdb_remove_group_member)
 }
 END_TEST
 
+START_TEST (test_sysdb_remove_nonexistent_user)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = 12345;
+    data->domain = get_local_domain(test_ctx->domains);
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_nonexistent_user, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != ENOENT, "Unexpected return code %d, expected ENOENT", ret);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_remove_nonexistent_group)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = 12345;
+    data->domain = get_local_domain(test_ctx->domains);
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_remove_nonexistent_group, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != ENOENT, "Unexpected return code %d, expected ENOENT", ret);
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -1543,6 +1685,12 @@ Suite *create_sysdb_suite(void)
 
     /* Remove the groups by name */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group, 28010, 28020);
+
+    /* test the ignore_not_found parameter for users */
+    tcase_add_test(tc_sysdb, test_sysdb_remove_nonexistent_user);
+
+    /* test the ignore_not_found parameter for groups */
+    tcase_add_test(tc_sysdb, test_sysdb_remove_nonexistent_group);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);

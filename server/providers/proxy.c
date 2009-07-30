@@ -477,7 +477,7 @@ static void get_pw_name_process(struct tevent_req *subreq)
             return;
         }
 
-        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn);
+        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn, true);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -650,7 +650,8 @@ static void get_pw_uid_process(struct tevent_req *subreq)
         subreq = sysdb_delete_user_by_uid_send(state, state->ev,
                                                state->handle,
                                                state->domain,
-                                               state->uid);
+                                               state->uid,
+                                               true);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -979,7 +980,7 @@ again:
             return;
         }
 
-        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn);
+        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn, true);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1166,7 +1167,8 @@ again:
         subreq = sysdb_delete_group_by_gid_send(state, state->ev,
                                                 state->handle,
                                                 state->domain,
-                                                state->gid);
+                                                state->gid,
+                                                true);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1496,7 +1498,7 @@ static void get_initgr_process(struct tevent_req *subreq)
             return;
         }
 
-        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn);
+        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn, true);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1797,7 +1799,8 @@ again:
         subreq = sysdb_delete_group_by_gid_send(state, state->ev,
                                                 state->handle,
                                                 state->domain,
-                                                state->gid);
+                                                state->gid,
+                                                true);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;

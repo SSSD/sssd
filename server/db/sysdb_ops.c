@@ -245,7 +245,8 @@ static int sysdb_op_default_recv(struct tevent_req *req)
 struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct sysdb_handle *handle,
-                                           struct ldb_dn *dn)
+                                           struct ldb_dn *dn,
+                                           bool ignore_not_found)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
@@ -257,7 +258,7 @@ struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->ignore_not_found = true;
+    state->ignore_not_found = ignore_not_found;
     state->ldbreply = NULL;
 
     ret = ldb_build_del_req(&ldbreq, handle->ctx->ldb, state, dn,
@@ -613,7 +614,8 @@ struct tevent_req *sysdb_delete_user_by_uid_send(TALLOC_CTX *mem_ctx,
                                                  struct tevent_context *ev,
                                                  struct sysdb_handle *handle,
                                                  struct sss_domain_info *domain,
-                                                 uid_t uid)
+                                                 uid_t uid,
+                                                 bool ignore_not_found)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
@@ -623,7 +625,7 @@ struct tevent_req *sysdb_delete_user_by_uid_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->ignore_not_found = true;
+    state->ignore_not_found = ignore_not_found;
     state->ldbreply = NULL;
 
     subreq = sysdb_search_user_by_uid_send(state, ev, NULL, handle,
@@ -656,7 +658,9 @@ static void sysdb_delete_user_by_uid_found(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sysdb_delete_entry_send(state, state->ev, state->handle, msg->dn);
+    subreq = sysdb_delete_entry_send(state, state->ev,
+                                     state->handle, msg->dn,
+                                     state->ignore_not_found);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -896,7 +900,8 @@ struct tevent_req *sysdb_delete_group_by_gid_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
                                                   struct sysdb_handle *handle,
                                                   struct sss_domain_info *domain,
-                                                  gid_t gid)
+                                                  gid_t gid,
+                                                  bool ignore_not_found)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
@@ -906,7 +911,7 @@ struct tevent_req *sysdb_delete_group_by_gid_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->ignore_not_found = true;
+    state->ignore_not_found = ignore_not_found;
     state->ldbreply = NULL;
 
     subreq = sysdb_search_group_by_gid_send(state, ev, NULL, handle,
@@ -939,7 +944,9 @@ static void sysdb_delete_group_by_gid_found(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sysdb_delete_entry_send(state, state->ev, state->handle, msg->dn);
+    subreq = sysdb_delete_entry_send(state, state->ev,
+                                     state->handle, msg->dn,
+                                     state->ignore_not_found);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

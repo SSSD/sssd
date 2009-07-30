@@ -274,7 +274,8 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
 struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct sysdb_handle *handle,
-                                           struct ldb_dn *dn);
+                                           struct ldb_dn *dn,
+                                           bool ignore_not_found);
 int sysdb_delete_entry_recv(struct tevent_req *req);
 
 /* Search Entry */
@@ -313,7 +314,8 @@ struct tevent_req *sysdb_delete_user_by_uid_send(TALLOC_CTX *mem_ctx,
                                                  struct tevent_context *ev,
                                                  struct sysdb_handle *handle,
                                                  struct sss_domain_info *domain,
-                                                 uid_t uid);
+                                                 uid_t uid,
+                                                 bool ignore_not_found);
 int sysdb_delete_user_by_uid_recv(struct tevent_req *req);
 
 /* Search Group (gy gid or name) */
@@ -340,7 +342,8 @@ struct tevent_req *sysdb_delete_group_by_gid_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
                                                   struct sysdb_handle *handle,
                                                   struct sss_domain_info *domain,
-                                                  gid_t gid);
+                                                  gid_t gid,
+                                                  bool ignore_not_found);
 int sysdb_delete_group_by_gid_recv(struct tevent_req *req);
 
 /* Replace entry attrs */
