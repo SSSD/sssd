@@ -97,7 +97,7 @@ static void group_del(struct tevent_req *req)
         return groupdel_done(data, ENOMEM, NULL);
     }
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn);
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn, false);
     if (!subreq)
         return groupdel_done(data, ENOMEM, NULL);
 
@@ -255,7 +255,15 @@ int main(int argc, const char **argv)
     if (data->error) {
         ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Transaction error. Could not remove group.\n");
+        switch (ret) {
+            case ENOENT:
+                ERROR("No such group\n");
+                break;
+
+            default:
+                ERROR("Internal error. Could not remove group.\n");
+                break;
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }

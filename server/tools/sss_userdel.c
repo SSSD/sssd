@@ -98,7 +98,7 @@ static void user_del(struct tevent_req *req)
         return userdel_done(data, ENOMEM, NULL);
     }
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn);
+    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn, false);
     if (!subreq)
         return userdel_done(data, ENOMEM, NULL);
 
@@ -114,7 +114,6 @@ static void user_del_done(struct tevent_req *subreq)
 
     return userdel_done(data, ret, NULL);
 }
-
 
 static int userdel_legacy(struct ops_ctx *ctx)
 {
@@ -257,7 +256,15 @@ int main(int argc, const char **argv)
     if (data->error) {
         ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Internal error. Could not remove user.\n");
+        switch (ret) {
+            case ENOENT:
+                ERROR("No such user\n");
+                break;
+
+            default:
+                ERROR("Internal error. Could not remove user.\n");
+                break;
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }
