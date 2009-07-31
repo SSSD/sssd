@@ -65,12 +65,16 @@ struct be_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
     struct sysdb_ctx *sysdb;
-    struct service_sbus_ctx *ss_ctx;
-    struct service_sbus_ctx *dp_ctx;
     struct sss_domain_info *domain;
     const char *name;
     const char *identity;
     const char *conf_path;
+
+    struct sbus_method_ctx *mon_sm_ctx;
+    struct sbus_conn_ctx *mon_conn_ctx;
+
+    struct sbus_method_ctx *dp_sm_ctx;
+    struct sbus_conn_ctx *dp_conn_ctx;
 
     struct loaded_be loaded_be[BET_MAX];
     struct bet_info bet_info[BET_MAX];

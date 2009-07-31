@@ -148,8 +148,8 @@ static void pam_dp_reconnect_init(struct sbus_conn_ctx *sconn, int status, void 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
         /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(rctx->dp_ctx->scon_ctx,
-                                       rctx->dp_ctx->sm_ctx);
+        ret = sbus_conn_add_method_ctx(rctx->conn_ctx,
+                                       rctx->sm_ctx);
         if (ret != EOK) {
             DEBUG(0, ("Could not re-add methods on reconnection.\n"));
             pam_shutdown(rctx);
@@ -190,7 +190,7 @@ static int pam_process_init(struct main_context *main_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(rctx->dp_ctx->scon_ctx, max_retries,
+    sbus_reconnect_init(rctx->conn_ctx, max_retries,
                         pam_dp_reconnect_init, rctx);
 
     return EOK;

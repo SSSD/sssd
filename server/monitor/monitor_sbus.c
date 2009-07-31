@@ -54,44 +54,38 @@ done:
     return ret;
 }
 
-int monitor_init_sbus_methods(TALLOC_CTX *mem_ctx, struct sbus_method *methods,
+int monitor_init_sbus_methods(TALLOC_CTX *mem_ctx,
+                              struct sbus_method *methods,
                               struct sbus_method_ctx **sm_ctx)
 {
-    int ret;
-    TALLOC_CTX *tmp_ctx;
     struct sbus_method_ctx *method_ctx;
+    int ret;
 
-    tmp_ctx = talloc_new(mem_ctx);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
-    method_ctx = talloc_zero(tmp_ctx, struct sbus_method_ctx);
-    if (method_ctx == NULL) {
+    method_ctx = talloc_zero(mem_ctx, struct sbus_method_ctx);
+    if (!method_ctx) {
         ret = ENOMEM;
-        goto done;
+        goto fail;
     }
 
     method_ctx->interface = talloc_strdup(method_ctx, SERVICE_INTERFACE);
     if (method_ctx->interface == NULL) {
         ret = ENOMEM;
-        goto done;
+        goto fail;
     }
 
     method_ctx->path = talloc_strdup(method_ctx, SERVICE_PATH);
     if (method_ctx->path == NULL) {
         ret = ENOMEM;
-        goto done;
+        goto fail;
     }
 
     method_ctx->methods = methods;
     method_ctx->message_handler = sbus_message_handler;
 
     *sm_ctx = method_ctx;
-    talloc_steal(mem_ctx, method_ctx);
-    ret = EOK;
+    return EOK;
 
-done:
-    talloc_free(tmp_ctx);
+fail:
+    talloc_free(method_ctx);
     return ret;
 }

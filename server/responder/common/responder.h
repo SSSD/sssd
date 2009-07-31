@@ -63,8 +63,9 @@ struct resp_ctx {
     struct confdb_ctx *cdb;
     const char *sock_name;
     const char *priv_sock_name;
-    struct service_sbus_ctx *ss_ctx;
-    struct service_sbus_ctx *dp_ctx;
+
+    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_method_ctx *sm_ctx;
 
     struct sss_domain_info *domains;
 

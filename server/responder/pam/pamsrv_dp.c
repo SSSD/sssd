@@ -92,12 +92,12 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!preq->cctx->rctx->dp_ctx) {
+    if (!preq->cctx->rctx->conn_ctx) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    conn = sbus_get_connection(preq->cctx->rctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(preq->cctx->rctx->conn_ctx);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_CLI_PATH,

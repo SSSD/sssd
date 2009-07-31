@@ -25,18 +25,12 @@
 #include "tevent.h"
 #include "sbus/sssd_dbus.h"
 
-struct service_sbus_ctx {
-    struct tevent_context *ev;
-    struct sbus_conn_ctx *scon_ctx;
-    struct sbus_method_ctx *sm_ctx;
-};
-
 int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
-                     const char *server_address,
                      struct sbus_method_ctx *sm_ctx,
-                     void *conn_pvt_data,
+                     const char *server_address,
+                     struct sbus_conn_ctx **_conn_ctx,
                      sbus_conn_destructor_fn destructor,
-                     struct service_sbus_ctx **srvs_ctx);
+                     void *conn_pvt_data);
 
 #endif /* SBUS_CLIENT_H_ */

@@ -287,10 +287,8 @@ static void accept_fd_handler(struct tevent_context *ev,
 
 static int sss_sbus_init(struct resp_ctx *rctx)
 {
-    int ret;
     char *sbus_address;
-    struct service_sbus_ctx *ss_ctx;
-    struct sbus_method_ctx *sm_ctx;
+    int ret;
 
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(rctx, rctx->cdb, &sbus_address);
@@ -299,17 +297,22 @@ static int sss_sbus_init(struct resp_ctx *rctx)
         return ret;
     }
 
-    ret = monitor_init_sbus_methods(rctx, rctx->sss_sbus_methods, &sm_ctx);
+    ret = monitor_init_sbus_methods(rctx, rctx->sss_sbus_methods,
+                                    &rctx->sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return ret;
     }
 
-    ret = sbus_client_init(rctx, rctx->ev,
-                           sbus_address, sm_ctx,
-                           NULL /* Private Data */,
-                           NULL /* Destructor */,
-                           &ss_ctx);
+    /* FIXME: remove this */
+    if (talloc_reference(rctx, rctx->sm_ctx) == NULL) {
+        DEBUG(0, ("Failed to take memory reference\n"));
+        return ENOMEM;
+    }
+
+    ret = sbus_client_init(rctx, rctx->ev, rctx->sm_ctx,
+                           sbus_address, &rctx->conn_ctx,
+                           NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
@@ -317,8 +320,6 @@ static int sss_sbus_init(struct resp_ctx *rctx)
 
     /* Set up NSS-specific listeners */
     /* None currently used */
-
-    rctx->ss_ctx = ss_ctx;
 
     return EOK;
 }
@@ -496,7 +497,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
-    else if (!rctx->dp_ctx) {
+    else if (!rctx->conn_ctx) {
         DEBUG(0, ("Data Provider is not yet available. Retrying.\n"));
         return EIO;
     }

@@ -258,8 +258,8 @@ static void nss_dp_reconnect_init(struct sbus_conn_ctx *sconn, int status, void 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
         /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(rctx->dp_ctx->scon_ctx,
-                                       rctx->dp_ctx->sm_ctx);
+        ret = sbus_conn_add_method_ctx(rctx->conn_ctx,
+                                       rctx->sm_ctx);
         if (ret != EOK) {
             DEBUG(0, ("Could not re-add methods on reconnection.\n"));
             nss_shutdown(rctx);
@@ -327,7 +327,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(nctx->rctx->dp_ctx->scon_ctx,
+    sbus_reconnect_init(nctx->rctx->conn_ctx,
                         max_retries,
                         nss_dp_reconnect_init, nctx->rctx);
 

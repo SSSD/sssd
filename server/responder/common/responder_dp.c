@@ -25,7 +25,6 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
     struct resp_ctx *rctx;
     struct tevent_timer *te;
     struct timeval tv;
-    struct sbus_method_ctx *sm_ctx;
     char *sbus_address;
     time_t now;
     int ret;
@@ -50,16 +49,21 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
         return;
     }
 
-    ret = dp_init_sbus_methods(rctx, pvt->methods, &sm_ctx);
+    ret = dp_init_sbus_methods(rctx, pvt->methods, &rctx->sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return;
     }
 
-    ret = sbus_client_init(rctx, rctx->ev,
-                           sbus_address, sm_ctx,
-                           pvt, sss_dp_conn_destructor,
-                           &rctx->dp_ctx);
+    /* FIXME: remove this */
+    if (talloc_reference(rctx, rctx->sm_ctx) == NULL) {
+        DEBUG(0, ("Failed to take memory reference\n"));
+        return;
+    }
+
+    ret = sbus_client_init(rctx, rctx->ev, rctx->sm_ctx,
+                           sbus_address, &rctx->conn_ctx,
+                           sss_dp_conn_destructor, pvt);
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
 
@@ -239,12 +243,12 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!rctx->dp_ctx) {
+    if (!rctx->conn_ctx) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    conn = sbus_get_connection(rctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(rctx->conn_ctx);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,

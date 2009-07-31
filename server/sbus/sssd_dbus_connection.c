@@ -244,13 +244,9 @@ static int sbus_add_connection_int(struct sbus_conn_ctx **_conn_ctx)
     return EOK;
 }
 
-/*int sbus_new_connection(struct sbus_method_ctx *ctx, const char *address,
-                             DBusConnection **connection,
-                             sbus_conn_destructor_fn destructor)*/
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
                         const char *address,
-                        struct sbus_conn_ctx **conn_ctx,
-                        sbus_conn_destructor_fn destructor)
+                        struct sbus_conn_ctx **conn_ctx)
 {
     DBusConnection *dbus_conn;
     DBusError dbus_error;
@@ -277,9 +273,6 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
     (*conn_ctx)->address = talloc_strdup((*conn_ctx), address);
 
     dbus_connection_set_exit_on_disconnect((*conn_ctx)->dbus_conn, FALSE);
-
-    /* Set connection destructor */
-    sbus_conn_set_destructor(*conn_ctx, destructor);
 
     return ret;
 }

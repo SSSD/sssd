@@ -55,7 +55,6 @@ struct dp_frontend;
 struct dp_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
-    struct service_sbus_ctx *ss_ctx;
     struct sbus_srv_ctx *sbus_srv;
     struct dp_backend *be_list;
     struct dp_frontend *fe_list;
@@ -195,10 +194,10 @@ static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
 {
-    int ret;
-    char *sbus_address;
-    struct service_sbus_ctx *ss_ctx;
+    struct sbus_conn_ctx *conn_ctx;
     struct sbus_method_ctx *sm_ctx;
+    char *sbus_address;
+    int ret;
 
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(dpctx, dpctx->cdb, &sbus_address);
@@ -213,11 +212,15 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
         return ret;
     }
 
-    ret = sbus_client_init(dpctx, dpctx->ev,
-                           sbus_address, sm_ctx,
-                           NULL /* Private Data */,
-                           NULL /* Destructor */,
-                           &ss_ctx);
+    /* FIXME: remove this */
+    if (talloc_reference(dpctx, sm_ctx) == NULL) {
+        DEBUG(0, ("Failed to take memory reference\n"));
+        return ENOMEM;
+    }
+
+    ret = sbus_client_init(dpctx, dpctx->ev, sm_ctx,
+                           sbus_address, &conn_ctx,
+                           NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
@@ -225,8 +228,6 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
 
     /* Set up DP-specific listeners */
     /* None currently used */
-
-    dpctx->ss_ctx = ss_ctx;
 
     return EOK;
 }

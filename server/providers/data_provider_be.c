@@ -274,7 +274,7 @@ static void online_chk_callback(struct be_req *req, int status,
         return;
     }
 
-    conn = sbus_get_connection(req->be_ctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(req->be_ctx->dp_conn_ctx);
     dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -393,7 +393,7 @@ static void acctinfo_callback(struct be_req *req, int status,
         return;
     }
 
-    conn = sbus_get_connection(req->be_ctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(req->be_ctx->dp_conn_ctx);
     dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -559,7 +559,7 @@ static void be_pam_handler_callback(struct be_req *req, int status,
         return;
     }
 
-    conn = sbus_get_connection(req->be_ctx->dp_ctx->scon_ctx);
+    conn = sbus_get_connection(req->be_ctx->dp_conn_ctx);
     dbus_connection_send(conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -671,9 +671,8 @@ done:
  * sbus channel to the monitor daemon */
 static int mon_cli_init(struct be_ctx *ctx)
 {
-    int ret;
     char *sbus_address;
-    struct sbus_method_ctx *sm_ctx;
+    int ret;
 
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(ctx, ctx->cdb, &sbus_address);
@@ -682,17 +681,21 @@ static int mon_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = monitor_init_sbus_methods(ctx, mon_sbus_methods, &sm_ctx);
+    ret = monitor_init_sbus_methods(ctx, mon_sbus_methods, &ctx->mon_sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return ret;
     }
 
-    ret = sbus_client_init(ctx, ctx->ev,
-                           sbus_address, sm_ctx,
-                           ctx /* Private Data */,
-                           NULL /* Destructor */,
-                           &ctx->ss_ctx);
+    /* FIXME: remove this */
+    if (talloc_reference(ctx, ctx->mon_sm_ctx) == NULL) {
+        DEBUG(0, ("Failed to take memory reference\n"));
+        return ENOMEM;
+    }
+
+    ret = sbus_client_init(ctx, ctx->ev, ctx->mon_sm_ctx,
+                           sbus_address, &ctx->mon_conn_ctx,
+                           NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
@@ -709,7 +712,6 @@ static int be_cli_init(struct be_ctx *ctx)
 {
     int ret, max_retries;
     char *sbus_address;
-    struct sbus_method_ctx *sm_ctx;
 
     /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(ctx, ctx->cdb, &sbus_address);
@@ -718,17 +720,21 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = dp_init_sbus_methods(ctx, be_methods, &sm_ctx);
+    ret = dp_init_sbus_methods(ctx, be_methods, &ctx->dp_sm_ctx);
     if (ret != EOK) {
         DEBUG(0, ("Could not initialize SBUS methods.\n"));
         return ret;
     }
 
-    ret = sbus_client_init(ctx, ctx->ev,
-                           sbus_address, sm_ctx,
-                           ctx /* Private Data */,
-                           NULL /* Destructor */,
-                           &ctx->dp_ctx);
+    /* FIXME: remove this */
+    if (talloc_reference(ctx, ctx->dp_sm_ctx) == NULL) {
+        DEBUG(0, ("Failed to take memory reference\n"));
+        return ENOMEM;
+    }
+
+    ret = sbus_client_init(ctx, ctx->ev, ctx->dp_sm_ctx,
+                           sbus_address, &ctx->dp_conn_ctx,
+                           NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
@@ -742,7 +748,7 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    sbus_reconnect_init(ctx->dp_ctx->scon_ctx, max_retries,
+    sbus_reconnect_init(ctx->dp_conn_ctx, max_retries,
                         be_cli_reconnect_init, ctx);
 
     return EOK;
@@ -759,8 +765,8 @@ static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
         /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(be_ctx->dp_ctx->scon_ctx,
-                                       be_ctx->dp_ctx->sm_ctx);
+        ret = sbus_conn_add_method_ctx(be_ctx->dp_conn_ctx,
+                                       be_ctx->dp_sm_ctx);
         if (ret != EOK) {
             DEBUG(0, ("Could not re-add methods on reconnection.\n"));
             ret = be_finalize(be_ctx);

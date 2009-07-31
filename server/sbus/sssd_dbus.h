@@ -91,8 +91,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
  */
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
                         const char *address,
-                        struct sbus_conn_ctx **conn_ctx,
-                        sbus_conn_destructor_fn destructor);
+                        struct sbus_conn_ctx **conn_ctx);
 
 /* sbus_add_connection
  * Integrates a D-BUS connection with the TEvent main

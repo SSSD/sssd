@@ -25,55 +25,38 @@
 
 int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
-                     const char *server_address,
                      struct sbus_method_ctx *sm_ctx,
-                     void *conn_pvt_data,
+                     const char *server_address,
+                     struct sbus_conn_ctx **_conn_ctx,
                      sbus_conn_destructor_fn destructor,
-                     struct service_sbus_ctx **srvs_ctx)
+                     void *conn_pvt_data)
 {
+    struct sbus_conn_ctx *conn_ctx = NULL;
     int ret;
-    TALLOC_CTX *tmp_ctx;
-    struct service_sbus_ctx *ss_ctx;
 
     /* Validate input */
     if (server_address == NULL) {
         return EINVAL;
     }
 
-    tmp_ctx = talloc_new(mem_ctx);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
+    ret = sbus_new_connection(mem_ctx, ev, server_address, &conn_ctx);
+    if (ret != EOK) {
+        goto fail;
     }
 
-    ss_ctx = talloc_zero(tmp_ctx, struct service_sbus_ctx);
-    if (ss_ctx == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ss_ctx->ev = ev;
-
-    ret = sbus_new_connection(ss_ctx, ss_ctx->ev,
-                              server_address, &ss_ctx->scon_ctx,
-                              destructor);
-    if (ret != EOK) goto done;
-
-    ret = sbus_conn_add_method_ctx(ss_ctx->scon_ctx, sm_ctx);
-    if (ret != EOK) goto done;
-    ss_ctx->sm_ctx = sm_ctx;
-    if (talloc_reference(ss_ctx, sm_ctx) == NULL) {
-        ret = ENOMEM;
-        goto done;
+    ret = sbus_conn_add_method_ctx(conn_ctx, sm_ctx);
+    if (ret != EOK) {
+        goto fail;
     }
 
-    if(conn_pvt_data) {
-        sbus_conn_set_private_data(ss_ctx->scon_ctx, conn_pvt_data);
-    }
+    /* Set connection destructor and private data */
+    sbus_conn_set_destructor(conn_ctx, destructor);
+    sbus_conn_set_private_data(conn_ctx, conn_pvt_data);
 
-    talloc_steal(mem_ctx, ss_ctx);
-    *srvs_ctx = ss_ctx;
-    ret = EOK;
+    *_conn_ctx = conn_ctx;
+    return EOK;
 
-done:
-    talloc_free(tmp_ctx);
+fail:
+    talloc_free(conn_ctx);
     return ret;
 }
