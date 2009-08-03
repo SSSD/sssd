@@ -233,7 +233,7 @@ static void add_to_groups(struct ops_ctx *data)
     struct ldb_dn *member_dn;
     struct tevent_req *subreq;
 
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
+    member_dn = sysdb_user_dn(data->ctx->sysdb, data,
                               data->domain->name, data->name);
     if (!member_dn) {
         return add_user_terminate(data, ENOMEM);
