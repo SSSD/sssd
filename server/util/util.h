@@ -107,6 +107,7 @@ struct main_context {
     struct confdb_ctx *confdb_ctx;
 };
 
+int die_if_parent_died(void);
 int server_setup(const char *name, int flags,
                  const char *conf_entry,
                  struct main_context **main_ctx);

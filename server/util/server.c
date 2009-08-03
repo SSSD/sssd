@@ -33,6 +33,10 @@
 #include "ldb.h"
 #include "confdb/confdb.h"
 
+#ifdef HAVE_PRCTL
+#include <sys/prctl.h>
+#endif
+
 /*******************************************************************
  Close the low 3 fd's and open dev/null in their place.
 ********************************************************************/
@@ -191,6 +195,21 @@ static void sig_term(int sig)
 	exit(0);
 }
 
+#ifndef HAVE_PRCTL
+static void sig_segv_abrt(int sig)
+{
+#if HAVE_GETPGRP
+	static int done;
+	if (done == 0 && getpgrp() == getpid()) {
+		DEBUG(0,("%s: killing children\n", strsignal(sig)));
+		done = 1;
+		kill(-getpgrp(), SIGTERM);
+	}
+#endif  /* HAVE_GETPGRP */
+    exit(1);
+}
+#endif /* HAVE_PRCTL */
+
 /*
   setup signal masks
 */
@@ -219,6 +238,14 @@ static void setup_signals(void)
 
 	CatchSignal(SIGHUP, sig_hup);
 	CatchSignal(SIGTERM, sig_term);
+
+#ifndef HAVE_PRCTL
+        /* If prctl is not defined on the system, try to handle
+         * some common termination signals gracefully */
+	CatchSignal(SIGSEGV, sig_segv_abrt);
+	CatchSignal(SIGABRT, sig_segv_abrt);
+#endif
+
 }
 
 /*
@@ -244,6 +271,23 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
 /*
  main server helpers.
 */
+
+int die_if_parent_died(void)
+{
+#ifdef HAVE_PRCTL
+    int ret;
+
+    errno = 0;
+    ret = prctl(PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(2, ("prctl failed [%d]: %s", ret, strerror(ret)));
+        return ret;
+    }
+#endif
+    return EOK;
+}
+
 int server_setup(const char *name, int flags,
                  const char *conf_entry,
                  struct main_context **main_ctx)

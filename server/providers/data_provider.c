@@ -1088,6 +1088,12 @@ int main(int argc, const char *argv[])
     ret = server_setup("sssd[dp]", 0, DP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
+    ret = die_if_parent_died();
+    if (ret != EOK) {
+        /* This is not fatal, don't return */
+        DEBUG(2, ("Could not set up to exit when parent process does\n"));
+    }
+
     ret = dp_process_init(main_ctx,
                            main_ctx->event_ctx,
                            main_ctx->confdb_ctx);

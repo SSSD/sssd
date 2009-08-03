@@ -227,6 +227,12 @@ int main(int argc, const char *argv[])
     ret = server_setup("sssd[pam]", 0, PAM_SRV_CONFIG, &main_ctx);
     if (ret != EOK) return 2;
 
+    ret = die_if_parent_died();
+    if (ret != EOK) {
+        /* This is not fatal, don't return */
+        DEBUG(2, ("Could not set up to exit when parent process does\n"));
+    }
+
     pam_dp_interface = get_pam_dp_interface();
     sss_cmds = register_sss_cmds();
     ret = sss_process_init(main_ctx,

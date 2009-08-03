@@ -1109,6 +1109,12 @@ int main(int argc, const char *argv[])
         return 2;
     }
 
+    ret = die_if_parent_died();
+    if (ret != EOK) {
+        /* This is not fatal, don't return */
+        DEBUG(2, ("Could not set up to exit when parent process does\n"));
+    }
+
     ret = be_process_init(main_ctx,
                           be_name, be_domain,
                           main_ctx->event_ctx,
