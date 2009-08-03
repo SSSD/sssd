@@ -52,22 +52,6 @@
     _ares_parse_txt_reply(abuf, alen, txt_out, ntxtreply)
 #endif /* HAVE_ARES_PARSE_TXT */
 
-/* TODO: remove later
- * These functions are available in the latest tevent/talloc and are the ones
- * that should be used as tevent_req is rightfully opaque there */
-#ifndef tevent_req_data
-#define tevent_req_data(req, type) ((type *)req->private_state)
-#endif
-
-#ifndef tevent_req_set_callback
-#define tevent_req_set_callback(req, func, data) \
-    do { req->async.fn = func; req->async.private_data = data; } while(0)
-#endif
-
-#ifndef tevent_req_callback_data
-#define tevent_req_callback_data(req, type) ((type *)req->async.private_data)
-#endif
-
 struct fd_watch {
     struct fd_watch *prev;
     struct fd_watch *next;

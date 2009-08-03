@@ -35,15 +35,6 @@
 /* Interface under test */
 #include "resolv/async_resolv.h"
 
-#ifndef tevent_req_set_callback
-#define tevent_req_set_callback(req, func, data) \
-    do { req->async.fn = func; req->async.private_data = data; } while(0)
-#endif
-
-#ifndef tevent_req_callback_data
-#define tevent_req_callback_data(req, type) ((type *)req->async.private_data)
-#endif
-
 int use_net_test;
 
 struct resolv_test_ctx {

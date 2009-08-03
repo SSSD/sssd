@@ -24,23 +24,6 @@
 #include "providers/dp_backend.h"
 #include "providers/ldap/sdap.h"
 
-/* TODO: remove later
- * These functions are available in the latest tevent and are the ones that
- * should be used as tevent_req is rightfully opaque there */
-#ifndef tevent_req_data
-#define tevent_req_data(req, type) ((type *)req->private_state)
-#endif
-
-#ifndef tevent_req_set_callback
-#define tevent_req_set_callback(req, func, data) \
-    do { req->async.fn = func; req->async.private_data = data; } while(0)
-#endif
-
-#ifndef tevent_req_callback_data
-#define tevent_req_callback_data(req, type) ((type *)req->async.private_data)
-#endif
-
-
 struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
