@@ -215,6 +215,9 @@ static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg)
 
     switch (msgtype) {
     case LDAP_RES_SEARCH_ENTRY:
+        /* go and process entry */
+        break;
+
     case LDAP_RES_SEARCH_REFERENCE:
         /* more ops to come with this msgid */
         /* just ignore */
@@ -232,7 +235,6 @@ static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg)
     case LDAP_RES_INTERMEDIATE:
         /* no more results expected with this msgid */
         op->done = true;
-        ret = EOK;
         break;
 
     default:
@@ -242,21 +244,17 @@ static void sdap_process_message(struct sdap_handle *sh, LDAPMessage *msg)
         return;
     }
 
-    if (ret == EOK) {
-        reply = talloc(op, struct sdap_msg);
-        if (!reply) {
-            ldap_msgfree(msg);
-            ret = ENOMEM;
-        } else {
-            reply->msg = msg;
-            ret = sdap_msg_attach(reply, msg);
-            if (ret != EOK) {
-                ldap_msgfree(msg);
-                talloc_zfree(reply);
-            }
-        }
+    reply = talloc(op, struct sdap_msg);
+    if (!reply) {
+        ldap_msgfree(msg);
+        ret = ENOMEM;
     } else {
-        reply = NULL;
+        reply->msg = msg;
+        ret = sdap_msg_attach(reply, msg);
+        if (ret != EOK) {
+            ldap_msgfree(msg);
+            talloc_zfree(reply);
+        }
     }
 
     /* must be the last operation as it may end up freeing all memory
