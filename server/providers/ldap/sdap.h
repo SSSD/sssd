@@ -24,10 +24,14 @@
 #include <ldap.h>
 
 struct sdap_msg {
+    struct sdap_msg *next;
     LDAPMessage *msg;
 };
 
-typedef void (sdap_op_callback_t)(void *, int, struct sdap_msg *);
+struct sdap_op;
+
+typedef void (sdap_op_callback_t)(struct sdap_op *op,
+                                  struct sdap_msg *, int, void *);
 
 struct sdap_handle;
 
@@ -40,6 +44,10 @@ struct sdap_op {
 
     sdap_op_callback_t *callback;
     void *data;
+
+    struct tevent_context *ev;
+    struct sdap_msg *list;
+    struct sdap_msg *last;
 };
 
 struct sdap_handle {
