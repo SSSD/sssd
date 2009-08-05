@@ -53,11 +53,11 @@ static int sbus_server_destructor(void *ctx);
  * dbus_connection_close()
  */
 static void sbus_server_init_new_connection(DBusServer *dbus_server,
-                                            DBusConnection *conn,
+                                            DBusConnection *dbus_conn,
                                             void *data)
 {
     struct sbus_srv_ctx *srv_ctx;
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     struct sbus_method_ctx *iter;
     int ret;
 
@@ -68,22 +68,22 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
     }
 
     DEBUG(5,("Adding connection %lX.\n", conn));
-    ret = sbus_add_connection(srv_ctx, srv_ctx->ev, conn,
-                              &conn_ctx, SBUS_CONN_TYPE_PRIVATE);
+    ret = sbus_add_connection(srv_ctx, srv_ctx->ev, dbus_conn,
+                              &conn, SBUS_CONN_TYPE_PRIVATE);
     if (ret != 0) {
-        dbus_connection_close(conn);
+        dbus_connection_close(dbus_conn);
         DEBUG(5,("Closing connection (failed setup)"));
         return;
     }
 
-    dbus_connection_ref(conn);
+    dbus_connection_ref(dbus_conn);
 
     DEBUG(5,("Got a connection\n"));
 
     /* Set up global methods */
     iter = srv_ctx->sd_ctx;
     while (iter != NULL) {
-        sbus_conn_add_method_ctx(conn_ctx, iter);
+        sbus_conn_add_method_ctx(conn, iter);
         iter = iter->next;
     }
 
@@ -95,7 +95,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
      * This function (or its callbacks) should also
      * set up connection-specific methods.
      */
-    ret = srv_ctx->init_fn(conn_ctx, srv_ctx->init_pvt_data);
+    ret = srv_ctx->init_fn(conn, srv_ctx->init_pvt_data);
     if (ret != EOK) {
         DEBUG(1,("Initialization failed!\n"));
     }

@@ -71,10 +71,10 @@ struct be_ctx {
     const char *conf_path;
 
     struct sbus_method_ctx *mon_sm_ctx;
-    struct sbus_conn_ctx *mon_conn_ctx;
+    struct sbus_connection *mon_conn;
 
     struct sbus_method_ctx *dp_sm_ctx;
-    struct sbus_conn_ctx *dp_conn_ctx;
+    struct sbus_connection *dp_conn;
 
     struct loaded_be loaded_be[BET_MAX];
     struct bet_info bet_info[BET_MAX];

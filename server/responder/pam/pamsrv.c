@@ -55,10 +55,10 @@
 #define PAM_SBUS_SERVICE_NAME "pam"
 #define PAM_SRV_CONFIG "config/services/pam"
 
-static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int service_identity(DBusMessage *message, struct sbus_connection *conn);
+static int service_pong(DBusMessage *message, struct sbus_connection *conn);
+static int service_reload(DBusMessage *message, struct sbus_connection *conn);
+static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method sss_sbus_methods[] = {
     {SERVICE_METHOD_IDENTITY, service_identity},
@@ -68,7 +68,7 @@ struct sbus_method sss_sbus_methods[] = {
     {NULL, NULL}
 };
 
-static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_identity(DBusMessage *message, struct sbus_connection *conn)
 {
     dbus_uint16_t version = PAM_SBUS_SERVICE_VERSION;
     const char *name = PAM_SBUS_SERVICE_NAME;
@@ -90,13 +90,13 @@ static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_pong(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusMessage *reply;
     dbus_bool_t ret;
@@ -110,13 +110,13 @@ static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
 }
 
-static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
 {
     int ret;
 
@@ -125,22 +125,22 @@ static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
         return EIO;
     }
 
-    return service_pong(message, sconn);
+    return service_pong(message, conn);
 }
 
 static void pam_shutdown(struct resp_ctx *ctx);
 
-static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn) {
+static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
      * are needed to update the configuration objects.
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, sconn);
+    return service_pong(message, conn);
 }
 
-static void pam_dp_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt)
+static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
     int ret;
     struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
@@ -148,7 +148,7 @@ static void pam_dp_reconnect_init(struct sbus_conn_ctx *sconn, int status, void 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
         /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(rctx->conn_ctx,
+        ret = sbus_conn_add_method_ctx(rctx->conn,
                                        rctx->sm_ctx);
         if (ret != EOK) {
             DEBUG(0, ("Could not re-add methods on reconnection.\n"));
@@ -190,7 +190,7 @@ static int pam_process_init(struct main_context *main_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(rctx->conn_ctx, max_retries,
+    sbus_reconnect_init(rctx->conn, max_retries,
                         pam_dp_reconnect_init, rctx);
 
     return EOK;

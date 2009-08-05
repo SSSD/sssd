@@ -27,11 +27,11 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct sbus_method_ctx *sm_ctx,
                      const char *server_address,
-                     struct sbus_conn_ctx **_conn_ctx,
+                     struct sbus_connection **_conn,
                      sbus_conn_destructor_fn destructor,
                      void *conn_pvt_data)
 {
-    struct sbus_conn_ctx *conn_ctx = NULL;
+    struct sbus_connection *conn = NULL;
     int ret;
 
     /* Validate input */
@@ -39,24 +39,24 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    ret = sbus_new_connection(mem_ctx, ev, server_address, &conn_ctx);
+    ret = sbus_new_connection(mem_ctx, ev, server_address, &conn);
     if (ret != EOK) {
         goto fail;
     }
 
-    ret = sbus_conn_add_method_ctx(conn_ctx, sm_ctx);
+    ret = sbus_conn_add_method_ctx(conn, sm_ctx);
     if (ret != EOK) {
         goto fail;
     }
 
     /* Set connection destructor and private data */
-    sbus_conn_set_destructor(conn_ctx, destructor);
-    sbus_conn_set_private_data(conn_ctx, conn_pvt_data);
+    sbus_conn_set_destructor(conn, destructor);
+    sbus_conn_set_private_data(conn, conn_pvt_data);
 
-    *_conn_ctx = conn_ctx;
+    *_conn = conn;
     return EOK;
 
 fail:
-    talloc_free(conn_ctx);
+    talloc_free(conn);
     return ret;
 }

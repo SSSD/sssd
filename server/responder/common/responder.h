@@ -64,7 +64,7 @@ struct resp_ctx {
     const char *sock_name;
     const char *priv_sock_name;
 
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     struct sbus_method_ctx *sm_ctx;
 
     struct sss_domain_info *domains;

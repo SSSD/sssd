@@ -59,7 +59,7 @@
 #define MONITOR_CONF_ENTRY "config/services/monitor"
 
 struct mt_conn {
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     struct mt_svc *svc_ptr;
 };
 
@@ -121,7 +121,7 @@ struct mt_ctx {
 
 static int start_service(struct mt_svc *mt_svc);
 
-static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data);
+static int dbus_service_init(struct sbus_connection *conn, void *data);
 static void identity_check(DBusPendingCall *pending, void *data);
 
 static int service_send_ping(struct mt_svc *svc);
@@ -148,7 +148,7 @@ static int monitor_cleanup(void);
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
 static int dbus_get_monitor_version(DBusMessage *message,
-                                    struct sbus_conn_ctx *sconn)
+                                    struct sbus_connection *conn)
 {
     const char *version = MONITOR_VERSION;
     DBusMessage *reply;
@@ -164,7 +164,7 @@ static int dbus_get_monitor_version(DBusMessage *message,
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
@@ -407,10 +407,10 @@ static void shutdown_reply(DBusPendingCall *pending, void *data)
 {
     DBusMessage *reply;
     int type;
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
 
-    conn_ctx = svc->mt_conn->conn_ctx;
+    conn = svc->mt_conn->conn;
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {
         /* reply should never be null. This function shouldn't be called
@@ -454,14 +454,14 @@ done:
  */
 static int monitor_shutdown_service(struct mt_svc *svc)
 {
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     dbus_bool_t dbret;
 
     /* Stop the service checker */
 
-    conn = sbus_get_connection(svc->mt_conn->conn_ctx);
+    dbus_conn = sbus_get_connection(svc->mt_conn->conn);
 
     /* Construct a shutdown message */
     msg = dbus_message_new_method_call(NULL,
@@ -475,7 +475,7 @@ static int monitor_shutdown_service(struct mt_svc *svc)
         return ENOMEM;
     }
 
-    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
     if (!dbret || pending_reply == NULL) {
         DEBUG(0, ("D-BUS send failed.\n"));
@@ -495,10 +495,10 @@ static int monitor_shutdown_service(struct mt_svc *svc)
 static void reload_reply(DBusPendingCall *pending, void *data)
 {
     DBusMessage *reply;
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
 
-    conn_ctx = svc->mt_conn->conn_ctx;
+    conn = svc->mt_conn->conn;
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {
         /* reply should never be null. This function shouldn't be called
@@ -509,7 +509,7 @@ static void reload_reply(DBusPendingCall *pending, void *data)
                   " and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(conn_ctx);
+        sbus_disconnect(conn);
         goto done;
     }
 
@@ -563,7 +563,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
 {
     DBusMessage *msg;
     dbus_bool_t dbret;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     DBusPendingCall *pending_reply;
 
     if (svc->provider && strcasecmp(svc->provider, "local") == 0) {
@@ -580,7 +580,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         return EIO;
     }
 
-    conn = sbus_get_connection(svc->mt_conn->conn_ctx);
+    dbus_conn = sbus_get_connection(svc->mt_conn->conn);
     msg = dbus_message_new_method_call(NULL,
                                        SERVICE_PATH,
                                        SERVICE_INTERFACE,
@@ -592,7 +592,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         return ENOMEM;
     }
 
-    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
     if (!dbret || pending_reply == NULL) {
         DEBUG(0, ("D-BUS send failed.\n"));
@@ -1777,31 +1777,31 @@ static int mt_conn_destructor(void *ptr)
  * method on the new client). The reply callback for this request
  * should set the connection destructor appropriately.
  */
-static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
+static int dbus_service_init(struct sbus_connection *conn, void *data)
 {
     struct mt_ctx *ctx;
     struct mt_svc *svc;
     struct mt_conn *mt_conn;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
 
     DEBUG(3, ("Initializing D-BUS Service\n"));
 
     ctx = talloc_get_type(data, struct mt_ctx);
-    conn = sbus_get_connection(conn_ctx);
+    dbus_conn = sbus_get_connection(conn);
 
     /* hang off this memory to the connection so that when the connection
      * is freed we can call a destructor to clear up the structure and
      * have a way to know we need to restart the service */
-    mt_conn = talloc(conn_ctx, struct mt_conn);
+    mt_conn = talloc(conn, struct mt_conn);
     if (!mt_conn) {
         DEBUG(0,("Out of memory?!\n"));
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         return ENOMEM;
     }
-    mt_conn->conn_ctx = conn_ctx;
+    mt_conn->conn = conn;
 
     /* at this stage we still do not know what service is this
      * we will know only after we get its identity, so we make
@@ -1809,7 +1809,7 @@ static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
      * when we receive the reply */
     svc = talloc_zero(mt_conn, struct mt_svc);
     if (!svc) {
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         return ENOMEM;
     }
     svc->mt_ctx = ctx;
@@ -1829,10 +1829,10 @@ static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
                                        SERVICE_METHOD_IDENTITY);
     if (msg == NULL) {
         DEBUG(0,("Out of memory?!\n"));
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         return ENOMEM;
     }
-    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             ctx->service_id_timeout);
     if (!dbret || pending_reply == NULL) {
         /*
@@ -1842,7 +1842,7 @@ static int dbus_service_init(struct sbus_conn_ctx *conn_ctx, void *data)
          */
         DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         return EIO;
     }
 
@@ -1857,7 +1857,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
 {
     struct mt_svc *fake_svc;
     struct mt_svc *svc;
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     DBusMessage *reply;
     DBusError dbus_error;
     dbus_uint16_t svc_ver;
@@ -1866,7 +1866,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
     int type;
 
     fake_svc = talloc_get_type(data, struct mt_svc);
-    conn_ctx = fake_svc->mt_conn->conn_ctx;
+    conn = fake_svc->mt_conn->conn;
     dbus_error_init(&dbus_error);
 
     reply = dbus_pending_call_steal_reply(pending);
@@ -1878,7 +1878,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         DEBUG(0, ("Serious error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(conn_ctx);
+        sbus_disconnect(conn);
         goto done;
     }
 
@@ -1892,7 +1892,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         if (!ret) {
             DEBUG(1,("Failed, to parse message, killing connection\n"));
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-            sbus_disconnect(conn_ctx);
+            sbus_disconnect(conn);
             goto done;
         }
 
@@ -1909,7 +1909,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
         }
         if (!svc) {
             DEBUG(0,("Unable to find peer [%s] in list of services, killing connection!\n", svc_name));
-            sbus_disconnect(conn_ctx);
+            sbus_disconnect(conn);
             goto done;
         }
 
@@ -1935,7 +1935,7 @@ static void identity_check(DBusPendingCall *pending, void *data)
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sbus_disconnect(conn_ctx);
+        sbus_disconnect(conn);
         return;
     }
 
@@ -1954,7 +1954,7 @@ static int service_send_ping(struct mt_svc *svc)
 {
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
 
     if (!svc->mt_conn) {
@@ -1963,7 +1963,7 @@ static int service_send_ping(struct mt_svc *svc)
 
     DEBUG(4,("Pinging %s\n", svc->name));
 
-    conn = sbus_get_connection(svc->mt_conn->conn_ctx);
+    dbus_conn = sbus_get_connection(svc->mt_conn->conn);
 
     /*
      * Set up identity request
@@ -1976,11 +1976,11 @@ static int service_send_ping(struct mt_svc *svc)
                                        SERVICE_METHOD_PING);
     if (!msg) {
         DEBUG(0,("Out of memory?!\n"));
-        talloc_free(svc->mt_conn->conn_ctx);
+        talloc_free(svc->mt_conn->conn);
         return ENOMEM;
     }
 
-    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
     if (!dbret || pending_reply == NULL) {
         /*
@@ -1989,7 +1989,7 @@ static int service_send_ping(struct mt_svc *svc)
          * We'll drop it using the default destructor.
          */
         DEBUG(0, ("D-BUS send failed.\n"));
-        talloc_free(svc->mt_conn->conn_ctx);
+        talloc_free(svc->mt_conn->conn);
         return EIO;
     }
 
@@ -2003,13 +2003,13 @@ static int service_send_ping(struct mt_svc *svc)
 static void ping_check(DBusPendingCall *pending, void *data)
 {
     struct mt_svc *svc;
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     DBusMessage *reply;
     const char *dbus_error_name;
     int type;
 
     svc = talloc_get_type(data, struct mt_svc);
-    conn_ctx = svc->mt_conn->conn_ctx;
+    conn = svc->mt_conn->conn;
 
     reply = dbus_pending_call_steal_reply(pending);
     if (!reply) {
@@ -2021,7 +2021,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
                   " and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(conn_ctx);
+        sbus_disconnect(conn);
         goto done;
     }
 
@@ -2055,7 +2055,7 @@ static void ping_check(DBusPendingCall *pending, void *data)
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sbus_disconnect(conn_ctx);
+        sbus_disconnect(conn);
     }
 
 done:

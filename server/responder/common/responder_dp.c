@@ -62,7 +62,7 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
     }
 
     ret = sbus_client_init(rctx, rctx->ev, rctx->sm_ctx,
-                           sbus_address, &rctx->conn_ctx,
+                           sbus_address, &rctx->conn,
                            sss_dp_conn_destructor, pvt);
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
@@ -92,15 +92,15 @@ static void sss_dp_reconnect(struct tevent_context *ev,
 int sss_dp_conn_destructor(void *data)
 {
     struct sss_dp_pvt_ctx *pvt;
-    struct sbus_conn_ctx *scon;
+    struct sbus_connection *conn;
 
-    scon = talloc_get_type(data, struct sbus_conn_ctx);
-    if (!scon) return 0;
+    conn = talloc_get_type(data, struct sbus_connection);
+    if (!conn) return 0;
 
     /* if this is a regular disconnect just quit */
-    if (sbus_conn_disconnecting(scon)) return 0;
+    if (sbus_conn_disconnecting(conn)) return 0;
 
-    pvt = talloc_get_type(sbus_conn_get_private_data(scon),
+    pvt = talloc_get_type(sbus_conn_get_private_data(conn),
                           struct sss_dp_pvt_ctx);
     if (pvt) return 0;
 
@@ -198,7 +198,7 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
     struct nss_dp_req *ndp_req;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t ret;
     uint32_t be_type;
     const char *attrs = "core";
@@ -243,12 +243,12 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!rctx->conn_ctx) {
+    if (!rctx->conn) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    conn = sbus_get_connection(rctx->conn_ctx);
+    dbus_conn = sbus_get_connection(rctx->conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -274,7 +274,7 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
     if (!ret || pending_reply == NULL) {
         /*

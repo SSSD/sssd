@@ -28,7 +28,7 @@
 #include "sbus/sbus_client.h"
 #include "providers/dp_sbus.h"
 
-static int nss_dp_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int nss_dp_identity(DBusMessage *message, struct sbus_connection *conn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_FRONTEND;
@@ -55,7 +55,7 @@ static int nss_dp_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;

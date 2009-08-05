@@ -311,7 +311,7 @@ static int sss_sbus_init(struct resp_ctx *rctx)
     }
 
     ret = sbus_client_init(rctx, rctx->ev, rctx->sm_ctx,
-                           sbus_address, &rctx->conn_ctx,
+                           sbus_address, &rctx->conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -497,7 +497,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
-    else if (!rctx->conn_ctx) {
+    else if (!rctx->conn) {
         DEBUG(0, ("Data Provider is not yet available. Retrying.\n"));
         return EIO;
     }

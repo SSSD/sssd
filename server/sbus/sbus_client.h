@@ -29,7 +29,7 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct sbus_method_ctx *sm_ctx,
                      const char *server_address,
-                     struct sbus_conn_ctx **_conn_ctx,
+                     struct sbus_connection **_conn,
                      sbus_conn_destructor_fn destructor,
                      void *conn_pvt_data);
 

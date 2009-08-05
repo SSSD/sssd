@@ -22,12 +22,12 @@
 #ifndef _SSSD_DBUS_H_
 #define _SSSD_DBUS_H_
 
-struct sbus_conn_ctx;
+struct sbus_connection;
 struct sbus_srv_ctx;
 
 #include "dbus/dbus.h"
 
-typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_conn_ctx *);
+typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_connection *);
 
 /*
  * sbus_conn_destructor_fn
@@ -35,7 +35,7 @@ typedef int (*sbus_msg_handler_fn)(DBusMessage *, struct sbus_conn_ctx *);
  */
 typedef int (*sbus_conn_destructor_fn)(void *);
 
-typedef void (*sbus_conn_reconn_callback_fn)(struct sbus_conn_ctx *, int, void *);
+typedef void (*sbus_conn_reconn_callback_fn)(struct sbus_connection *, int, void *);
 
 /*
  * sbus_server_conn_init_fn
@@ -43,7 +43,7 @@ typedef void (*sbus_conn_reconn_callback_fn)(struct sbus_conn_ctx *, int, void *
  * This function should define the sbus_conn_destructor_fn
  * for this connection at a minimum
  */
-typedef int (*sbus_server_conn_init_fn)(struct sbus_conn_ctx *, void *);
+typedef int (*sbus_server_conn_init_fn)(struct sbus_connection *, void *);
 
 enum {
     SBUS_CONN_TYPE_PRIVATE = 1,
@@ -91,7 +91,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
  */
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
                         const char *address,
-                        struct sbus_conn_ctx **conn_ctx);
+                        struct sbus_connection **conn);
 
 /* sbus_add_connection
  * Integrates a D-BUS connection with the TEvent main
@@ -108,27 +108,27 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
 int sbus_add_connection(TALLOC_CTX *ctx,
                              struct tevent_context *ev,
                              DBusConnection *dbus_conn,
-                             struct sbus_conn_ctx **dct_ctx,
+                             struct sbus_connection **conn,
                              int connection_type);
 
-void sbus_conn_set_destructor(struct sbus_conn_ctx *conn_ctx,
+void sbus_conn_set_destructor(struct sbus_connection *conn,
                               sbus_conn_destructor_fn destructor);
 
 int sbus_default_connection_destructor(void *ctx);
 
-DBusConnection *sbus_get_connection(struct sbus_conn_ctx *conn_ctx);
-void sbus_disconnect(struct sbus_conn_ctx *conn_ctx);
-void sbus_conn_set_private_data(struct sbus_conn_ctx *conn_ctx, void *pvt_data);
-void *sbus_conn_get_private_data(struct sbus_conn_ctx *conn_ctx);
-int sbus_conn_add_method_ctx(struct sbus_conn_ctx *conn_ctx,
+DBusConnection *sbus_get_connection(struct sbus_connection *conn);
+void sbus_disconnect(struct sbus_connection *conn);
+void sbus_conn_set_private_data(struct sbus_connection *conn, void *pvt_data);
+void *sbus_conn_get_private_data(struct sbus_connection *conn);
+int sbus_conn_add_method_ctx(struct sbus_connection *conn,
                              struct sbus_method_ctx *method_ctx);
-bool sbus_conn_disconnecting(struct sbus_conn_ctx *conn_ctx);
+bool sbus_conn_disconnecting(struct sbus_connection *conn);
 
 /* max_retries < 0: retry forever
  * max_retries = 0: never retry (why are you calling this function?)
  * max_retries > 0: obvious
  */
-void sbus_reconnect_init(struct sbus_conn_ctx *conn_ctx,
+void sbus_reconnect_init(struct sbus_connection *conn,
                          int max_retries,
                          sbus_conn_reconn_callback_fn callback,
                          void *pvt);
@@ -139,7 +139,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *conn,
                                   DBusMessage *message,
                                   void *user_data);
 
-void sbus_conn_send_reply(struct sbus_conn_ctx *conn_ctx,
+void sbus_conn_send_reply(struct sbus_connection *conn,
                           DBusMessage *reply);
 
 int sbus_is_dbus_fixed_type(int dbus_type);

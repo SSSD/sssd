@@ -54,9 +54,9 @@
 
 #define BE_CONF_ENTRY "config/domains/%s"
 
-static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int service_identity(DBusMessage *message, struct sbus_connection *conn);
+static int service_pong(DBusMessage *message, struct sbus_connection *conn);
+static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method mon_sbus_methods[] = {
     { SERVICE_METHOD_IDENTITY, service_identity },
@@ -65,10 +65,10 @@ struct sbus_method mon_sbus_methods[] = {
     { NULL, NULL }
 };
 
-static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int be_check_online(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int be_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int be_identity(DBusMessage *message, struct sbus_connection *conn);
+static int be_check_online(DBusMessage *message, struct sbus_connection *conn);
+static int be_get_account_info(DBusMessage *message, struct sbus_connection *conn);
+static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method be_methods[] = {
     { DP_CLI_METHOD_IDENTITY, be_identity },
@@ -89,7 +89,7 @@ static struct bet_data bet_data[] = {
 
 
 
-static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_identity(DBusMessage *message, struct sbus_connection *conn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct be_ctx *ctx;
@@ -97,7 +97,7 @@ static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     dbus_bool_t ret;
     void *user_data;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
@@ -117,13 +117,13 @@ static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_pong(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusMessage *reply;
     dbus_bool_t ret;
@@ -138,13 +138,13 @@ static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
 }
 
-static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
 {
     int ret;
 
@@ -153,10 +153,10 @@ static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
         return EIO;
     }
 
-    return service_pong(message, sconn);
+    return service_pong(message, conn);
 }
 
-static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int be_identity(DBusMessage *message, struct sbus_connection *conn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_BACKEND;
@@ -165,7 +165,7 @@ static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     dbus_bool_t ret;
     void *user_data;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
@@ -188,7 +188,7 @@ static int be_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
@@ -244,7 +244,7 @@ static void online_chk_callback(struct be_req *req, int status,
 {
     struct be_online_req *oreq;
     DBusMessage *reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
     dbus_uint16_t online;
     dbus_uint16_t err_maj = 0;
@@ -274,8 +274,8 @@ static void online_chk_callback(struct be_req *req, int status,
         return;
     }
 
-    conn = sbus_get_connection(req->be_ctx->dp_conn_ctx);
-    dbus_connection_send(conn, reply, NULL);
+    dbus_conn = sbus_get_connection(req->be_ctx->dp_conn);
+    dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
     DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
@@ -286,7 +286,7 @@ static void online_chk_callback(struct be_req *req, int status,
 }
 
 
-static int be_check_online(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
 {
     struct be_online_req *req;
     struct be_req *be_req;
@@ -300,7 +300,7 @@ static int be_check_online(DBusMessage *message, struct sbus_conn_ctx *sconn)
     dbus_uint32_t err_min;
     const char *err_msg;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
@@ -358,7 +358,7 @@ done:
     if (!dbret) return EIO;
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
@@ -369,7 +369,7 @@ static void acctinfo_callback(struct be_req *req, int status,
                               const char *errstr)
 {
     DBusMessage *reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
     dbus_uint16_t err_maj = 0;
     dbus_uint32_t err_min = 0;
@@ -393,8 +393,8 @@ static void acctinfo_callback(struct be_req *req, int status,
         return;
     }
 
-    conn = sbus_get_connection(req->be_ctx->dp_conn_ctx);
-    dbus_connection_send(conn, reply, NULL);
+    dbus_conn = sbus_get_connection(req->be_ctx->dp_conn);
+    dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
     DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
@@ -404,7 +404,7 @@ static void acctinfo_callback(struct be_req *req, int status,
     talloc_free(req);
 }
 
-static int be_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int be_get_account_info(DBusMessage *message, struct sbus_connection *conn)
 {
     struct be_acct_req *req;
     struct be_req *be_req;
@@ -424,7 +424,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn
 
     be_req = NULL;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
@@ -536,7 +536,7 @@ done:
               err_maj, err_min, err_msg));
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
@@ -546,7 +546,7 @@ static void be_pam_handler_callback(struct be_req *req, int status,
                                 const char *errstr) {
     struct pam_data *pd;
     DBusMessage *reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
 
     pd = talloc_get_type(req->req_data, struct pam_data);
@@ -559,8 +559,8 @@ static void be_pam_handler_callback(struct be_req *req, int status,
         return;
     }
 
-    conn = sbus_get_connection(req->be_ctx->dp_conn_ctx);
-    dbus_connection_send(conn, reply, NULL);
+    dbus_conn = sbus_get_connection(req->be_ctx->dp_conn);
+    dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
     DEBUG(4, ("Sent result [%d][%s]\n", pd->pam_status, pd->domain));
@@ -568,7 +568,7 @@ static void be_pam_handler_callback(struct be_req *req, int status,
     talloc_free(req);
 }
 
-static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusError dbus_error;
     DBusMessage *reply;
@@ -580,7 +580,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     uint32_t pam_status = PAM_SYSTEM_ERR;
     enum bet_type target = BET_NULL;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     ctx = talloc_get_type(user_data, struct be_ctx);
     if (!ctx) return EINVAL;
@@ -660,7 +660,7 @@ done:
     if (!ret) return EIO;
 
     /* send reply back immediately */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     talloc_free(pd);
@@ -694,7 +694,7 @@ static int mon_cli_init(struct be_ctx *ctx)
     }
 
     ret = sbus_client_init(ctx, ctx->ev, ctx->mon_sm_ctx,
-                           sbus_address, &ctx->mon_conn_ctx,
+                           sbus_address, &ctx->mon_conn,
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -704,7 +704,7 @@ static int mon_cli_init(struct be_ctx *ctx)
     return EOK;
 }
 
-static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt);
+static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void *pvt);
 
 /* be_cli_init
  * sbus channel to the data provider daemon */
@@ -733,7 +733,7 @@ static int be_cli_init(struct be_ctx *ctx)
     }
 
     ret = sbus_client_init(ctx, ctx->ev, ctx->dp_sm_ctx,
-                           sbus_address, &ctx->dp_conn_ctx,
+                           sbus_address, &ctx->dp_conn,
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -748,7 +748,7 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    sbus_reconnect_init(ctx->dp_conn_ctx, max_retries,
+    sbus_reconnect_init(ctx->dp_conn, max_retries,
                         be_cli_reconnect_init, ctx);
 
     return EOK;
@@ -757,7 +757,7 @@ static int be_cli_init(struct be_ctx *ctx)
 static int be_finalize(struct be_ctx *ctx);
 static void be_shutdown(struct be_req *req, int status, const char *errstr);
 
-static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void *pvt)
+static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
     int ret;
     struct be_ctx *be_ctx = talloc_get_type(pvt, struct be_ctx);
@@ -765,7 +765,7 @@ static void be_cli_reconnect_init(struct sbus_conn_ctx *sconn, int status, void 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
         /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(be_ctx->dp_conn_ctx,
+        ret = sbus_conn_add_method_ctx(be_ctx->dp_conn,
                                        be_ctx->dp_sm_ctx);
         if (ret != EOK) {
             DEBUG(0, ("Could not re-add methods on reconnection.\n"));

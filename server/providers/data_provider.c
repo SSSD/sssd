@@ -62,7 +62,7 @@ struct dp_ctx {
 
 struct dp_client {
     struct dp_ctx *dpctx;
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
 };
 
 struct dp_backend {
@@ -84,10 +84,10 @@ struct dp_frontend {
 static int dp_backend_destructor(void *ctx);
 static int dp_frontend_destructor(void *ctx);
 
-static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int service_identity(DBusMessage *message, struct sbus_connection *conn);
+static int service_pong(DBusMessage *message, struct sbus_connection *conn);
+static int service_reload(DBusMessage *message, struct sbus_connection *conn);
+static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method mon_sbus_methods[] = {
     { SERVICE_METHOD_IDENTITY, service_identity },
@@ -97,8 +97,8 @@ struct sbus_method mon_sbus_methods[] = {
     { NULL, NULL }
 };
 
-static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn);
-static int dp_pamhandler(DBusMessage *message, struct sbus_conn_ctx *sconn);
+static int dp_get_account_info(DBusMessage *message, struct sbus_connection *conn);
+static int dp_pamhandler(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method dp_sbus_methods[] = {
     { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
@@ -120,7 +120,7 @@ struct dp_be_request {
     struct dp_backend *be;
 };
 
-static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_identity(DBusMessage *message, struct sbus_connection *conn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     const char *name = DATA_PROVIDER_SERVICE_NAME;
@@ -142,13 +142,13 @@ static int service_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
 }
 
-static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_pong(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusMessage *reply;
     dbus_bool_t ret;
@@ -163,13 +163,13 @@ static int service_pong(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
 }
 
-static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_reload(DBusMessage *message, struct sbus_connection *conn)
 {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
@@ -177,10 +177,10 @@ static int service_reload(DBusMessage *message, struct sbus_conn_ctx *sconn)
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, sconn);
+    return service_pong(message, conn);
 }
 
-static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
 {
     int ret;
 
@@ -189,12 +189,12 @@ static int service_res_init(DBusMessage *message, struct sbus_conn_ctx *sconn)
         return EIO;
     }
 
-    return service_pong(message, sconn);
+    return service_pong(message, conn);
 }
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
 {
-    struct sbus_conn_ctx *conn_ctx;
+    struct sbus_connection *conn;
     struct sbus_method_ctx *sm_ctx;
     char *sbus_address;
     int ret;
@@ -219,7 +219,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
     }
 
     ret = sbus_client_init(dpctx, dpctx->ev, sm_ctx,
-                           sbus_address, &conn_ctx,
+                           sbus_address, &conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -235,33 +235,33 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
 static void be_identity_check(DBusPendingCall *pending, void *data);
 static void be_got_account_info(DBusPendingCall *pending, void *data);
 
-static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
+static int dbus_dp_init(struct sbus_connection *conn, void *data)
 {
     struct dp_ctx *dpctx;
     struct dp_client *dpcli;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
 
     dpctx = talloc_get_type(data, struct dp_ctx);
-    conn = sbus_get_connection(conn_ctx);
+    dbus_conn = sbus_get_connection(conn);
 
     /* hang off this memory to the connection so that when the connection
      * is freed we can potentially call a destructor */
 
-    dpcli = talloc(conn_ctx, struct dp_client);
+    dpcli = talloc(conn, struct dp_client);
     if (!dpcli) {
         DEBUG(0,("Out of memory?!\n"));
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         return ENOMEM;
     }
     dpcli->dpctx = dpctx;
-    dpcli->conn_ctx = conn_ctx;
+    dpcli->conn = conn;
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
-    sbus_conn_set_private_data(conn_ctx, dpcli);
+    sbus_conn_set_private_data(conn, dpcli);
 
     /* identify the connecting client */
     msg = dbus_message_new_method_call(NULL,
@@ -270,10 +270,10 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
                                        DP_CLI_METHOD_IDENTITY);
     if (msg == NULL) {
         DEBUG(0,("Out of memory?!\n"));
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         return ENOMEM;
     }
-    dbret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
     if (!dbret || pending_reply == NULL) {
         /*
@@ -282,7 +282,7 @@ static int dbus_dp_init(struct sbus_conn_ctx *conn_ctx, void *data)
          * We'll drop it using the default destructor.
          */
         DEBUG(0, ("D-BUS send failed.\n"));
-        talloc_free(conn_ctx);
+        talloc_free(conn);
         dbus_message_unref(msg);
         return EIO;
     }
@@ -300,7 +300,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
     struct dp_frontend *dpfe;
     struct dp_client *dpcli;
     DBusMessage *reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     DBusError dbus_error;
     dbus_uint16_t cli_ver;
     dbus_uint16_t cli_type;
@@ -310,7 +310,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
     int type;
 
     dpcli = talloc_get_type(data, struct dp_client);
-    conn = sbus_get_connection(dpcli->conn_ctx);
+    dbus_conn = sbus_get_connection(dpcli->conn);
     dbus_error_init(&dbus_error);
 
     reply = dbus_pending_call_steal_reply(pending);
@@ -322,7 +322,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
         DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(dpcli->conn_ctx);
+        sbus_disconnect(dpcli->conn);
         goto done;
     }
 
@@ -338,7 +338,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
         if (!ret) {
             DEBUG(1,("be_identity_check failed, to parse message, killing connection\n"));
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-            sbus_disconnect(dpcli->conn_ctx);
+            sbus_disconnect(dpcli->conn);
             goto done;
         }
 
@@ -347,7 +347,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
             dpbe = talloc_zero(dpcli->dpctx, struct dp_backend);
             if (!dpbe) {
                 DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn_ctx);
+                sbus_disconnect(dpcli->conn);
                 goto done;
             }
 
@@ -355,7 +355,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
             dpbe->domain = talloc_strdup(dpbe, cli_domain);
             if (!dpbe->name || !dpbe->domain) {
                 DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn_ctx);
+                sbus_disconnect(dpcli->conn);
                 goto done;
             }
 
@@ -373,14 +373,14 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
             dpfe = talloc_zero(dpcli->dpctx, struct dp_frontend);
             if (!dpfe) {
                 DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn_ctx);
+                sbus_disconnect(dpcli->conn);
                 goto done;
             }
 
             dpfe->name = talloc_strdup(dpfe, cli_name);
             if (!dpfe->name) {
                 DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn_ctx);
+                sbus_disconnect(dpcli->conn);
                 goto done;
             }
 
@@ -395,7 +395,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
 
         default:
             DEBUG(1, ("Unknown client type, killing connection\n"));
-            sbus_disconnect(dpcli->conn_ctx);
+            sbus_disconnect(dpcli->conn);
             goto done;
         }
 
@@ -414,7 +414,7 @@ static void be_identity_check(DBusPendingCall *pending, void *data)
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sbus_disconnect(dpcli->conn_ctx);
+        sbus_disconnect(dpcli->conn);
     }
 
 done:
@@ -426,7 +426,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
 {
     struct dp_be_request *bereq;
     DBusMessage *reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     DBusError dbus_error;
     dbus_uint16_t err_maj = 0;
     dbus_uint32_t err_min = 0;
@@ -446,7 +446,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(bereq->be->dpcli->conn_ctx);
+        sbus_disconnect(bereq->be->dpcli->conn);
         goto done;
     }
 
@@ -461,7 +461,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         if (!ret) {
             DEBUG(1,("Failed to parse message, killing connection\n"));
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-            sbus_disconnect(bereq->be->dpcli->conn_ctx);
+            sbus_disconnect(bereq->be->dpcli->conn);
             goto done;
         }
 
@@ -483,7 +483,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
          * know that this connection isn't trustworthy.
          * We'll destroy it now.
          */
-        sbus_disconnect(bereq->be->dpcli->conn_ctx);
+        sbus_disconnect(bereq->be->dpcli->conn);
     }
 
     if (err_maj) {
@@ -496,7 +496,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         bereq->req->pending_replies--;
         talloc_free(bereq);
     } else {
-        conn = sbus_get_connection(bereq->req->src_cli->conn_ctx);
+        dbus_conn = sbus_get_connection(bereq->req->src_cli->conn);
         err_maj = 0;
         err_min = 0;
         err_msg = "Success";
@@ -512,7 +512,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         }
 
         /* finally send it */
-        dbus_connection_send(conn, bereq->req->reply, NULL);
+        dbus_connection_send(dbus_conn, bereq->req->reply, NULL);
         dbus_message_unref(bereq->req->reply);
         talloc_free(bereq->req);
     }
@@ -527,10 +527,10 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
 {
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t ret;
 
-    conn = sbus_get_connection(bereq->be->dpcli->conn_ctx);
+    dbus_conn = sbus_get_connection(bereq->be->dpcli->conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -554,7 +554,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
+    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             600000 /* TODO: set timeout */);
     if (!ret || pending_reply == NULL) {
         /*
@@ -575,7 +575,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
     return EOK;
 }
 
-static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int dp_get_account_info(DBusMessage *message, struct sbus_connection *conn)
 {
     struct dp_client *dpcli;
     struct dp_be_request *bereq;
@@ -590,7 +590,7 @@ static int dp_get_account_info(DBusMessage *message, struct sbus_conn_ctx *sconn
     const char *errmsg = NULL;
     int dpret = 0, ret = 0;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     dpcli = talloc_get_type(user_data, struct dp_client);
     if (!dpcli) return EINVAL;
@@ -733,7 +733,7 @@ respond:
     if (!dbret) return EIO;
 
     /* send reply back immediately */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
@@ -743,7 +743,7 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
 {
     struct dp_be_request *bereq;
     DBusMessage *reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     DBusError dbus_error;
     dbus_bool_t ret;
     struct pam_data *pd = NULL;
@@ -761,7 +761,7 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
         DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
-        sbus_disconnect(bereq->be->dpcli->conn_ctx);
+        sbus_disconnect(bereq->be->dpcli->conn);
         goto done;
     }
 
@@ -773,7 +773,7 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
         if (!ret) {
             DEBUG(1,("Failed to parse message, killing connection\n"));
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-            sbus_disconnect(bereq->be->dpcli->conn_ctx);
+            sbus_disconnect(bereq->be->dpcli->conn);
             pd->pam_status = PAM_SYSTEM_ERR;
             pd->domain = talloc_strdup(pd, "");
             goto done;
@@ -797,11 +797,11 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
          * We'll destroy it now.
          */
         DEBUG(1,("Maybe timeout?\n"));
-        sbus_disconnect(bereq->be->dpcli->conn_ctx);
+        sbus_disconnect(bereq->be->dpcli->conn);
         goto done;
     }
 
-    conn = sbus_get_connection(bereq->req->src_cli->conn_ctx);
+    dbus_conn = sbus_get_connection(bereq->req->src_cli->conn);
 
     ret = dp_pack_pam_response(bereq->req->reply, pd);
     if (!ret) {
@@ -811,7 +811,7 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
     }
 
     /* finally send it */
-    dbus_connection_send(conn, bereq->req->reply, NULL);
+    dbus_connection_send(dbus_conn, bereq->req->reply, NULL);
     dbus_message_unref(bereq->req->reply);
     talloc_free(bereq->req);
 
@@ -824,10 +824,10 @@ static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
 {
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t ret;
 
-    conn = sbus_get_connection(bereq->be->dpcli->conn_ctx);
+    dbus_conn = sbus_get_connection(bereq->be->dpcli->conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -848,8 +848,8 @@ static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(conn, msg, &pending_reply,
-                                            600000 /* TODO: set timeout */);
+    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
+                                          600000 /* TODO: set timeout */);
     if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
@@ -869,7 +869,7 @@ static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
     return EOK;
 }
 
-static int dp_pamhandler(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int dp_pamhandler(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusMessage *reply;
     DBusError dbus_error;
@@ -884,7 +884,7 @@ static int dp_pamhandler(DBusMessage *message, struct sbus_conn_ctx *sconn)
     int pam_status=PAM_SUCCESS;
     int domain_found=0;
 
-    user_data = sbus_conn_get_private_data(sconn);
+    user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
     dpcli = talloc_get_type(user_data, struct dp_client);
     if (!dpcli) return EINVAL;
@@ -964,7 +964,7 @@ respond:
     if (!dbret) return EIO;
 
     /* send reply back immediately */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     talloc_free(pd);

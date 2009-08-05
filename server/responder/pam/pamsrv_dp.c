@@ -85,19 +85,19 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     struct pam_data *pd = preq->pd;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
-    DBusConnection *conn;
+    DBusConnection *dbus_conn;
     dbus_bool_t ret;
 
     /* double check dp_ctx has actually been initialized.
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!preq->cctx->rctx->conn_ctx) {
+    if (!preq->cctx->rctx->conn) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    conn = sbus_get_connection(preq->cctx->rctx->conn_ctx);
+    dbus_conn = sbus_get_connection(preq->cctx->rctx->conn);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_CLI_PATH,
@@ -118,7 +118,7 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(conn, msg, &pending_reply, timeout);
+    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply, timeout);
     if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
@@ -137,7 +137,7 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     return EOK;
 }
 
-static int pam_dp_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
+static int pam_dp_identity(DBusMessage *message, struct sbus_connection *conn)
 {
     dbus_uint16_t version = DATA_PROVIDER_VERSION;
     dbus_uint16_t clitype = DP_CLI_FRONTEND;
@@ -163,7 +163,7 @@ static int pam_dp_identity(DBusMessage *message, struct sbus_conn_ctx *sconn)
     }
 
     /* send reply back */
-    sbus_conn_send_reply(sconn, reply);
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
     return EOK;
