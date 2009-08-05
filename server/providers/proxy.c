@@ -31,7 +31,6 @@
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
-#include "../sss_client/sss_cli.h"
 
 struct proxy_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,

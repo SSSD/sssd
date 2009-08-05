@@ -37,7 +37,6 @@
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
-#include "../sss_client/sss_cli.h"
 #include "krb5_plugin/sssd_krb5_locator_plugin.h"
 #include "providers/krb5/krb5_auth.h"
 

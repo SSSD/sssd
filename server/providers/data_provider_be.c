@@ -50,7 +50,6 @@
 #include "providers/dp_sbus.h"
 #include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
-#include "../sss_client/sss_cli.h"
 
 #define BE_CONF_ENTRY "config/domains/%s"
 

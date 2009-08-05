@@ -15,12 +15,6 @@
 #include <pwd.h>
 #include <grp.h>
 
-/* SELinux will have a better way to regulate access if they are seprate
- * Also a change in one of the pipes will not affect the others */
-#define SSS_NSS_SOCKET_NAME "/var/lib/sss/pipes/nss"
-#define SSS_PAM_SOCKET_NAME "/var/lib/sss/pipes/pam"
-#define SSS_PAM_PRIV_SOCKET_NAME "/var/lib/sss/pipes/private/pam"
-
 #define SSS_NSS_PROTOCOL_VERSION 1
 #define SSS_PAM_PROTOCOL_VERSION 2
 

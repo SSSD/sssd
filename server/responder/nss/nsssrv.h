@@ -28,7 +28,6 @@
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"
-#include "../sss_client/sss_cli.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"

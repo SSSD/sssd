@@ -115,6 +115,9 @@ AM_CPPFLAGS = -Wall \
     -DSHADOW_UTILS_PATH=\"$(shadow_utils_path)\" \
     -DSSSD_INTROSPECT_PATH=\"$(dbusinstropectdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
+    -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
+    -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
+    -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DUSE_MMAP=1 \
     -DLOCALEDIR=\"\$(localedir)\"
 

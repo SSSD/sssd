@@ -20,6 +20,9 @@ Requires(preun):  initscripts chkconfig
 Requires(postun): /sbin/service
 
 %define servicename sssd
+%define sssdstatedir %{_localstatedir}/lib/sss
+%define dbpath %{sssdstatedir}/db
+%define pipepath %{sssdstatedir}/pipes
 
 ### Build Dependencies ###
 
@@ -58,6 +61,8 @@ services for projects like FreeIPA.
 %build
 %configure \
     --without-tests \
+    --with-db-path=%{dbpath} \
+    --with-pipe-path=%{pipepath} \
     --with-init-dir=%{_initrddir} \
     --enable-nsslibdir=/%{_lib}
 
@@ -100,10 +105,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so
 %{_libdir}/krb5/plugins/libkrb5/*
-%dir %{_sharedstatedir}/sss/
-%attr(700,root,root) %dir %{_sharedstatedir}/sss/db
-%dir %{_sharedstatedir}/sss/pipes
-%attr(700,root,root) %dir %{_sharedstatedir}/sss/pipes/private
+%dir %{sssdstatedir}
+%attr(700,root,root) %dir %{dbpath}
+%attr(755,root,root) %dir %{pipepath}
+%attr(700,root,root) %dir %{pipepath}/private
 %dir %{_sysconfdir}/sssd
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 /%{_lib}/libnss_sss.so.2

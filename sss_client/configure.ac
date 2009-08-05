@@ -37,6 +37,25 @@ AC_DEFUN([BUILD_WITH_AUX_INFO],
                                 [Build with -aux-info output])])
   ])
 AM_CONDITIONAL([WANT_AUX_INFO], [test x$with_aux_info = xyes])
+BUILD_WITH_AUX_INFO
+
+AC_DEFUN([WITH_PIPE_PATH],
+  [ AC_ARG_WITH([pipe-path],
+                [AC_HELP_STRING([--with-pipe-path=PATH],
+                                [Where to store pipe files for the SSSD interconnects [/var/lib/sss/pipes]]
+                               )
+                ]
+               )
+    config_pipepath="\"VARDIR\"/lib/sss/pipes"
+    pipepath="${localstatedir}/lib/sss/pipes"
+    if test x"$with_pipe_path" != x; then
+        config_pipepath=$with_pipe_path
+        pipepath=$with_pipe_path
+    fi
+    AC_SUBST(pipepath)
+    AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
+  ])
+WITH_PIPE_PATH
 
 AC_CONFIG_FILES([Makefile po/Makefile.in])
 AC_OUTPUT

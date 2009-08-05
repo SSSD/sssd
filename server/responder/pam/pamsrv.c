@@ -49,7 +49,6 @@
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
-#include "../sss_client/sss_cli.h"
 
 #define PAM_SBUS_SERVICE_VERSION 0x0001
 #define PAM_SBUS_SERVICE_NAME "pam"
