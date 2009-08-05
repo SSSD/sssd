@@ -61,8 +61,8 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
         return;
     }
 
-    ret = sbus_client_init(rctx, rctx->ev, rctx->sm_ctx,
-                           sbus_address, &rctx->conn,
+    ret = sbus_client_init(rctx, rctx->ev, sbus_address,
+                           rctx->sm_ctx, &rctx->conn,
                            sss_dp_conn_destructor, pvt);
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));

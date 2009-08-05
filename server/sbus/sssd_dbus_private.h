@@ -1,27 +1,49 @@
 #ifndef _SSSD_DBUS_PRIVATE_H_
 #define _SSSD_DBUS_PRIVATE_H_
 
-union dbus_pointer {
+union dbus_conn_pointer {
     DBusServer *server;
     DBusConnection *conn;
 };
-enum dbus_pointer_type {
+enum dbus_conn_type {
     SBUS_SERVER,
     SBUS_CONNECTION
 };
 
-struct sbus_generic_dbus_ctx {
+struct sbus_connection {
     struct tevent_context *ev;
-    enum dbus_pointer_type type;
-    union dbus_pointer dbus;
+
+    enum dbus_conn_type type;
+    union dbus_conn_pointer dbus;
+
+    char *address;
+    int connection_type;
+    int disconnect;
+
+    sbus_conn_destructor_fn destructor;
+    void *pvt_data; /* Private data for this connection */
+
+    /* dbus tables and handlers */
+    struct method_holder *method_list;
+
+    /* reconnect settings */
+    int retries;
+    int max_retries;
+    sbus_conn_reconn_callback_fn reconnect_callback;
+    /* Private data needed to reinit after reconnection */
+    void *reconnect_pvt;
+
+    /* server related stuff */
+    struct sbus_method_ctx *server_method;
+    sbus_server_conn_init_fn srv_init_fn;
+    void *srv_init_data;
 };
 
 /* =Watches=============================================================== */
 
 struct sbus_watch_ctx {
     DBusWatch *dbus_watch;
-    enum dbus_pointer_type dbus_type;
-    union dbus_pointer dbus;
+    struct sbus_connection *conn;
     struct tevent_fd *fde;
 };
 

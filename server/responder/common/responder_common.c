@@ -310,8 +310,8 @@ static int sss_sbus_init(struct resp_ctx *rctx)
         return ENOMEM;
     }
 
-    ret = sbus_client_init(rctx, rctx->ev, rctx->sm_ctx,
-                           sbus_address, &rctx->conn,
+    ret = sbus_client_init(rctx, rctx->ev, sbus_address,
+                           rctx->sm_ctx, &rctx->conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));

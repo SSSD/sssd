@@ -55,7 +55,7 @@ struct dp_frontend;
 struct dp_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
-    struct sbus_srv_ctx *sbus_srv;
+    struct sbus_connection *sbus_srv;
     struct dp_backend *be_list;
     struct dp_frontend *fe_list;
 };
@@ -212,14 +212,8 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
         return ret;
     }
 
-    /* FIXME: remove this */
-    if (talloc_reference(dpctx, sm_ctx) == NULL) {
-        DEBUG(0, ("Failed to take memory reference\n"));
-        return ENOMEM;
-    }
-
-    ret = sbus_client_init(dpctx, dpctx->ev, sm_ctx,
-                           sbus_address, &conn,
+    ret = sbus_client_init(dpctx, dpctx->ev, sbus_address,
+                           sm_ctx, &conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -997,7 +991,6 @@ static int dp_frontend_destructor(void *ctx)
 static int dp_srv_init(struct dp_ctx *dpctx)
 {
     TALLOC_CTX *tmp_ctx;
-    struct sbus_srv_ctx *sbus_srv;
     struct sbus_method_ctx *sd_ctx;
     char *dpbus_address;
     char *default_dp_address;
@@ -1041,14 +1034,11 @@ static int dp_srv_init(struct dp_ctx *dpctx)
     sd_ctx->methods = dp_sbus_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(dpctx,
-                          dpctx->ev, sd_ctx,
-                          &sbus_srv, dpbus_address,
-                          dbus_dp_init, dpctx);
+    ret = sbus_new_server(dpctx, dpctx->ev, dpbus_address, sd_ctx,
+                          &dpctx->sbus_srv, dbus_dp_init, dpctx);
     if (ret != EOK) {
         goto done;
     }
-    dpctx->sbus_srv = sbus_srv;
     talloc_steal(dpctx, sd_ctx);
 
 done:

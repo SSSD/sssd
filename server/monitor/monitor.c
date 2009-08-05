@@ -113,7 +113,7 @@ struct mt_ctx {
     TALLOC_CTX *service_ctx; /* Memory context for services */
     char **services;
     struct mt_svc *svc_list;
-    struct sbus_srv_ctx *sbus_srv;
+    struct sbus_connection *sbus_srv;
     struct config_file_ctx *file_ctx;
     int inotify_fd;
     int service_id_timeout;
@@ -180,7 +180,6 @@ struct sbus_method monitor_methods[] = {
 static int monitor_dbus_init(struct mt_ctx *ctx)
 {
     struct sbus_method_ctx *sd_ctx;
-    struct sbus_srv_ctx *sbus_srv;
     char *monitor_address;
     int ret;
 
@@ -210,8 +209,8 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     sd_ctx->methods = monitor_methods;
     sd_ctx->message_handler = sbus_message_handler;
 
-    ret = sbus_new_server(ctx, ctx->ev, sd_ctx, &sbus_srv, monitor_address, dbus_service_init, ctx);
-    ctx->sbus_srv = sbus_srv;
+    ret = sbus_new_server(ctx, ctx->ev, monitor_address, sd_ctx,
+                          &ctx->sbus_srv, dbus_service_init, ctx);
 
     talloc_free(monitor_address);
 

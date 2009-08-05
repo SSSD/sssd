@@ -20,10 +20,10 @@ static void sbus_watch_handler(struct tevent_context *ev,
                                                    struct sbus_watch_ctx);
 
     /* Take a reference while handling watch */
-    if (watch->dbus_type == SBUS_SERVER) {
-        dbus_server_ref(watch->dbus.server);
+    if (watch->conn->type == SBUS_SERVER) {
+        dbus_server_ref(watch->conn->dbus.server);
     } else {
-        dbus_connection_ref(watch->dbus.conn);
+        dbus_connection_ref(watch->conn->dbus.conn);
     }
 
     /* Fire if readable */
@@ -37,10 +37,10 @@ static void sbus_watch_handler(struct tevent_context *ev,
     }
 
     /* Release reference once done */
-    if (watch->dbus_type == SBUS_SERVER) {
-        dbus_server_unref(watch->dbus.server);
+    if (watch->conn->type == SBUS_SERVER) {
+        dbus_server_unref(watch->conn->dbus.server);
     } else {
-        dbus_connection_unref(watch->dbus.conn);
+        dbus_connection_unref(watch->conn->dbus.conn);
     }
 }
 
@@ -53,20 +53,19 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
 {
     unsigned int flags;
     uint16_t event_flags;
-    struct sbus_generic_dbus_ctx *gen_ctx;
+    struct sbus_connection *conn;
     struct sbus_watch_ctx *watch;
     int fd;
 
-    gen_ctx = talloc_get_type(data, struct sbus_generic_dbus_ctx);
+    conn = talloc_get_type(data, struct sbus_connection);
 
-    watch = talloc_zero(gen_ctx, struct sbus_watch_ctx);
+    watch = talloc_zero(conn, struct sbus_watch_ctx);
     if (!watch) {
         DEBUG(0, ("Outr of Memory!\n"));
         return FALSE;
     }
     watch->dbus_watch = dbus_watch;
-    watch->dbus_type = gen_ctx->type;
-    watch->dbus = gen_ctx->dbus;
+    watch->conn = conn;
 
 #ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
     fd = dbus_watch_get_unix_fd(dbus_watch);
@@ -92,7 +91,7 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
               ((event_flags & TEVENT_FD_WRITE)?"W":"-")));
 
     /* Add the file descriptor to the event loop */
-    watch->fde = tevent_add_fd(gen_ctx->ev,
+    watch->fde = tevent_add_fd(conn->ev,
                                watch, fd, event_flags,
                                sbus_watch_handler, watch);
     if (!watch->fde) {
@@ -206,7 +205,7 @@ static void sbus_timeout_handler(struct tevent_context *ev,
  */
 dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
 {
-    struct sbus_generic_dbus_ctx *gen_ctx;
+    struct sbus_connection *conn;
     struct sbus_timeout_ctx *timeout;
     struct timeval tv;
 
@@ -216,9 +215,9 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
         return TRUE;
     }
 
-    gen_ctx = talloc_get_type(data, struct sbus_generic_dbus_ctx);
+    conn = talloc_get_type(data, struct sbus_connection);
 
-    timeout = talloc_zero(gen_ctx, struct sbus_timeout_ctx);
+    timeout = talloc_zero(conn, struct sbus_timeout_ctx);
     if (!timeout) {
         DEBUG(0, ("Outr of Memory!\n"));
         return FALSE;
@@ -226,7 +225,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
     timeout->dbus_timeout = dbus_timeout;
 
     tv = _get_interval_tv(dbus_timeout_get_interval(dbus_timeout));
-    timeout->te = tevent_add_timer(gen_ctx->ev, timeout, tv,
+    timeout->te = tevent_add_timer(conn->ev, timeout, tv,
                                    sbus_timeout_handler, timeout);
     if (!timeout->te) {
         DEBUG(0, ("Failed to set up timeout event!\n"));

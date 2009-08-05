@@ -23,7 +23,6 @@
 #define _SSSD_DBUS_H_
 
 struct sbus_connection;
-struct sbus_srv_ctx;
 
 #include "dbus/dbus.h"
 
@@ -66,7 +65,6 @@ struct sbus_method {
 };
 
 struct sbus_method_ctx {
-    struct sbus_method_ctx *prev, *next;
     char *interface;
     char *path;
     DBusObjectPathMessageFunction message_handler;
@@ -76,8 +74,10 @@ struct sbus_method_ctx {
 
 /* Server Functions */
 int sbus_new_server(TALLOC_CTX *mem_ctx,
-                    struct tevent_context *ev, struct sbus_method_ctx *ctx,
-                    struct sbus_srv_ctx **server_ctx, const char *address,
+                    struct tevent_context *ev,
+                    const char *address,
+                    struct sbus_method_ctx *ctx,
+                    struct sbus_connection **server,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 
 /* Connection Functions */
@@ -89,7 +89,8 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
  * call sbus_add_connection to integrate with the main
  * loop.
  */
-int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
+int sbus_new_connection(TALLOC_CTX *ctx,
+                        struct tevent_context *ev,
                         const char *address,
                         struct sbus_connection **conn);
 

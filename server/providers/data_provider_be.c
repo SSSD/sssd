@@ -693,8 +693,8 @@ static int mon_cli_init(struct be_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = sbus_client_init(ctx, ctx->ev, ctx->mon_sm_ctx,
-                           sbus_address, &ctx->mon_conn,
+    ret = sbus_client_init(ctx, ctx->ev, sbus_address,
+                           ctx->mon_sm_ctx, &ctx->mon_conn,
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -726,14 +726,8 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    /* FIXME: remove this */
-    if (talloc_reference(ctx, ctx->dp_sm_ctx) == NULL) {
-        DEBUG(0, ("Failed to take memory reference\n"));
-        return ENOMEM;
-    }
-
-    ret = sbus_client_init(ctx, ctx->ev, ctx->dp_sm_ctx,
-                           sbus_address, &ctx->dp_conn,
+    ret = sbus_client_init(ctx, ctx->ev, sbus_address,
+                           ctx->dp_sm_ctx, &ctx->dp_conn,
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
