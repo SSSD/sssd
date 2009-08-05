@@ -60,12 +60,20 @@ static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method sss_sbus_methods[] = {
-    {SERVICE_METHOD_IDENTITY, service_identity},
-    {SERVICE_METHOD_PING, service_pong},
-    {SERVICE_METHOD_RELOAD, service_reload},
-    {SERVICE_METHOD_RES_INIT, service_res_init},
-    {NULL, NULL}
+struct sbus_method monitor_pam_methods[] = {
+    { MON_CLI_METHOD_IDENTITY, service_identity },
+    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_RELOAD, service_reload },
+    { MON_CLI_METHOD_RES_INIT, service_res_init },
+    { NULL, NULL }
+};
+
+struct sbus_interface monitor_pam_interface = {
+    MONITOR_INTERFACE,
+    MONITOR_PATH,
+    SBUS_DEFAULT_VTABLE,
+    monitor_pam_methods,
+    NULL
 };
 
 static int service_identity(DBusMessage *message, struct sbus_connection *conn)
@@ -142,19 +150,10 @@ static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
 
 static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
-    int ret;
     struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(rctx->conn,
-                                       rctx->sm_ctx);
-        if (ret != EOK) {
-            DEBUG(0, ("Could not re-add methods on reconnection.\n"));
-            pam_shutdown(rctx);
-        }
-
         DEBUG(1, ("Reconnected to the Data Provider.\n"));
         return;
     }
@@ -190,7 +189,7 @@ static int pam_process_init(struct main_context *main_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(rctx->conn, max_retries,
+    sbus_reconnect_init(rctx->dp_conn, max_retries,
                         pam_dp_reconnect_init, rctx);
 
     return EOK;
@@ -202,7 +201,7 @@ int main(int argc, const char *argv[])
     poptContext pc;
     struct main_context *main_ctx;
     int ret;
-    struct sbus_method *pam_dp_methods;
+    struct sbus_interface *pam_dp_interface;
     struct sss_cmd_table *sss_cmds;
     struct resp_ctx *rctx;
 
@@ -229,17 +228,17 @@ int main(int argc, const char *argv[])
     ret = server_setup("sssd[pam]", 0, PAM_SRV_CONFIG, &main_ctx);
     if (ret != EOK) return 2;
 
-    pam_dp_methods = register_pam_dp_methods();
+    pam_dp_interface = get_pam_dp_interface();
     sss_cmds = register_sss_cmds();
     ret = sss_process_init(main_ctx,
                            main_ctx->event_ctx,
                            main_ctx->confdb_ctx,
-                           sss_sbus_methods,
                            sss_cmds,
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
                            PAM_SRV_CONFIG,
-                           pam_dp_methods,
+                           pam_dp_interface,
+                           &monitor_pam_interface,
                            &rctx);
     if (ret != EOK) return 3;
 

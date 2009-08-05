@@ -49,8 +49,9 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
     }
 
     DEBUG(5,("Adding connection %lX.\n", conn));
-    ret = sbus_add_connection(server, server->ev, dbus_conn,
-                              &conn, SBUS_CONN_TYPE_PRIVATE);
+    ret = sbus_init_connection(server, server->ev,
+                               dbus_conn, server->server_intf,
+                               SBUS_CONN_TYPE_PRIVATE, &conn);
     if (ret != 0) {
         dbus_connection_close(dbus_conn);
         DEBUG(5,("Closing connection (failed setup)"));
@@ -60,8 +61,6 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
     dbus_connection_ref(dbus_conn);
 
     DEBUG(5,("Got a connection\n"));
-
-    sbus_conn_add_method_ctx(conn, server->server_method);
 
     /*
      * Initialize connection-specific features
@@ -87,7 +86,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     const char *address,
-                    struct sbus_method_ctx *method,
+                    struct sbus_interface *intf,
                     struct sbus_connection **_server,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data)
 {
@@ -121,7 +120,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     server->ev = ev;
     server->type = SBUS_SERVER;
     server->dbus.server = dbus_server;
-    server->server_method = method;
+    server->server_intf = intf;
     server->srv_init_fn = init_fn;
     server->srv_init_data = init_pvt_data;
 

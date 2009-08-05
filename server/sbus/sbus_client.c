@@ -26,7 +26,7 @@
 int sbus_client_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      const char *server_address,
-                     struct sbus_method_ctx *sm_ctx,
+                     struct sbus_interface *intf,
                      struct sbus_connection **_conn,
                      sbus_conn_destructor_fn destructor,
                      void *conn_pvt_data)
@@ -39,12 +39,7 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
         return EINVAL;
     }
 
-    ret = sbus_new_connection(mem_ctx, ev, server_address, &conn);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    ret = sbus_conn_add_method_ctx(conn, sm_ctx);
+    ret = sbus_new_connection(mem_ctx, ev, server_address, intf, &conn);
     if (ret != EOK) {
         goto fail;
     }

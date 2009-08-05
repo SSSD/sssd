@@ -92,12 +92,12 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!preq->cctx->rctx->conn) {
+    if (!preq->cctx->rctx->dp_conn) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    dbus_conn = sbus_get_connection(preq->cctx->rctx->conn);
+    dbus_conn = sbus_get_connection(preq->cctx->rctx->dp_conn);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_CLI_PATH,
@@ -169,12 +169,20 @@ static int pam_dp_identity(DBusMessage *message, struct sbus_connection *conn)
     return EOK;
 }
 
-struct sbus_method *register_pam_dp_methods(void)
-{
-    static struct sbus_method pam_dp_methods[] = {
-            { DP_CLI_METHOD_IDENTITY, pam_dp_identity },
-            { NULL, NULL }
-    };
+static struct sbus_method pam_dp_methods[] = {
+        { DP_CLI_METHOD_IDENTITY, pam_dp_identity },
+        { NULL, NULL }
+};
 
-    return pam_dp_methods;
+struct sbus_interface pam_dp_interface = {
+    DATA_PROVIDER_INTERFACE,
+    DATA_PROVIDER_PATH,
+    SBUS_DEFAULT_VTABLE,
+    pam_dp_methods,
+    NULL
+};
+
+struct sbus_interface *get_pam_dp_interface(void)
+{
+    return &pam_dp_interface;
 }

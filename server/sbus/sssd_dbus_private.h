@@ -10,6 +10,8 @@ enum dbus_conn_type {
     SBUS_CONNECTION
 };
 
+struct sbus_interface_p;
+
 struct sbus_connection {
     struct tevent_context *ev;
 
@@ -24,7 +26,7 @@ struct sbus_connection {
     void *pvt_data; /* Private data for this connection */
 
     /* dbus tables and handlers */
-    struct method_holder *method_list;
+    struct sbus_interface_p *intf_list;
 
     /* reconnect settings */
     int retries;
@@ -34,7 +36,7 @@ struct sbus_connection {
     void *reconnect_pvt;
 
     /* server related stuff */
-    struct sbus_method_ctx *server_method;
+    struct sbus_interface *server_intf;
     sbus_server_conn_init_fn srv_init_fn;
     void *srv_init_data;
 };

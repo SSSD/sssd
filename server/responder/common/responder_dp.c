@@ -10,7 +10,7 @@
 
 struct sss_dp_pvt_ctx {
     struct resp_ctx *rctx;
-    struct sbus_method *methods;
+    struct sbus_interface *intf;
     time_t last_retry;
     int retries;
 };
@@ -49,20 +49,8 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
         return;
     }
 
-    ret = dp_init_sbus_methods(rctx, pvt->methods, &rctx->sm_ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not initialize SBUS methods.\n"));
-        return;
-    }
-
-    /* FIXME: remove this */
-    if (talloc_reference(rctx, rctx->sm_ctx) == NULL) {
-        DEBUG(0, ("Failed to take memory reference\n"));
-        return;
-    }
-
     ret = sbus_client_init(rctx, rctx->ev, sbus_address,
-                           rctx->sm_ctx, &rctx->conn,
+                           pvt->intf, &rctx->dp_conn,
                            sss_dp_conn_destructor, pvt);
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
@@ -109,7 +97,7 @@ int sss_dp_conn_destructor(void *data)
     return 0;
 }
 
-int sss_dp_init(struct resp_ctx *rctx, struct sbus_method *dp_methods)
+int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *dp_intf)
 {
     struct sss_dp_pvt_ctx *pvt;
 
@@ -117,7 +105,7 @@ int sss_dp_init(struct resp_ctx *rctx, struct sbus_method *dp_methods)
     if (!pvt) return ENOMEM;
 
     pvt->rctx = rctx;
-    pvt->methods = dp_methods;
+    pvt->intf = dp_intf;
 
     sss_dp_conn_reconnect(pvt);
 
@@ -243,12 +231,12 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!rctx->conn) {
+    if (!rctx->dp_conn) {
         DEBUG(1, ("The Data Provider connection is not available yet!"
                   " This maybe a bug, it shouldn't happen!\n"));
         return EIO;
     }
-    dbus_conn = sbus_get_connection(rctx->conn);
+    dbus_conn = sbus_get_connection(rctx->dp_conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,

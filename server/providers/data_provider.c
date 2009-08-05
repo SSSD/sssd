@@ -89,21 +89,37 @@ static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method mon_sbus_methods[] = {
-    { SERVICE_METHOD_IDENTITY, service_identity },
-    { SERVICE_METHOD_PING, service_pong },
-    { SERVICE_METHOD_RELOAD, service_reload },
-    { SERVICE_METHOD_RES_INIT, service_res_init },
+struct sbus_method monitor_dp_methods[] = {
+    { MON_CLI_METHOD_IDENTITY, service_identity },
+    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_RELOAD, service_reload },
+    { MON_CLI_METHOD_RES_INIT, service_res_init },
     { NULL, NULL }
+};
+
+struct sbus_interface monitor_dp_interface = {
+    MONITOR_INTERFACE,
+    MONITOR_PATH,
+    SBUS_DEFAULT_VTABLE,
+    monitor_dp_methods,
+    NULL
 };
 
 static int dp_get_account_info(DBusMessage *message, struct sbus_connection *conn);
 static int dp_pamhandler(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method dp_sbus_methods[] = {
+struct sbus_method dp_methods[] = {
     { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
     { DP_SRV_METHOD_PAMHANDLER, dp_pamhandler },
     { NULL, NULL }
+};
+
+struct sbus_interface dp_interface = {
+    DATA_PROVIDER_INTERFACE,
+    DATA_PROVIDER_PATH,
+    SBUS_DEFAULT_VTABLE,
+    dp_methods,
+    NULL
 };
 
 struct dp_request {
@@ -195,7 +211,6 @@ static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
 static int dp_monitor_init(struct dp_ctx *dpctx)
 {
     struct sbus_connection *conn;
-    struct sbus_method_ctx *sm_ctx;
     char *sbus_address;
     int ret;
 
@@ -206,14 +221,8 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
         return ret;
     }
 
-    ret = monitor_init_sbus_methods(dpctx, mon_sbus_methods, &sm_ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not initialize SBUS methods.\n"));
-        return ret;
-    }
-
     ret = sbus_client_init(dpctx, dpctx->ev, sbus_address,
-                           sm_ctx, &conn,
+                           &monitor_dp_interface, &conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -990,59 +999,32 @@ static int dp_frontend_destructor(void *ctx)
  * Set up the monitor service as a D-BUS Server */
 static int dp_srv_init(struct dp_ctx *dpctx)
 {
-    TALLOC_CTX *tmp_ctx;
-    struct sbus_method_ctx *sd_ctx;
     char *dpbus_address;
     char *default_dp_address;
     int ret;
 
-    tmp_ctx = talloc_new(dpctx);
-    if (tmp_ctx == NULL) {
-        return ENOMEM;
-    }
-
     DEBUG(3, ("Initializing Data Provider D-BUS Server\n"));
-    default_dp_address = talloc_asprintf(tmp_ctx, "unix:path=%s/%s",
+    default_dp_address = talloc_asprintf(dpctx, "unix:path=%s/%s",
                                          PIPE_PATH, DATA_PROVIDER_PIPE);
     if (default_dp_address == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = confdb_get_string(dpctx->cdb, tmp_ctx,
+    ret = confdb_get_string(dpctx->cdb, dpctx,
                             DP_CONF_ENTRY, "dpbusAddress",
                             default_dp_address, &dpbus_address);
     if (ret != EOK) goto done;
 
-    sd_ctx = talloc_zero(tmp_ctx, struct sbus_method_ctx);
-    if (!sd_ctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* Set up globally-available D-BUS methods */
-    sd_ctx->interface = talloc_strdup(sd_ctx, DATA_PROVIDER_INTERFACE);
-    if (!sd_ctx->interface) {
-        ret = ENOMEM;
-        goto done;
-    }
-    sd_ctx->path = talloc_strdup(sd_ctx, DATA_PROVIDER_PATH);
-    if (!sd_ctx->path) {
-        ret = ENOMEM;
-        goto done;
-    }
-    sd_ctx->methods = dp_sbus_methods;
-    sd_ctx->message_handler = sbus_message_handler;
-
-    ret = sbus_new_server(dpctx, dpctx->ev, dpbus_address, sd_ctx,
-                          &dpctx->sbus_srv, dbus_dp_init, dpctx);
+    ret = sbus_new_server(dpctx, dpctx->ev, dpbus_address,
+                          &dp_interface, &dpctx->sbus_srv,
+                          dbus_dp_init, dpctx);
     if (ret != EOK) {
         goto done;
     }
-    talloc_steal(dpctx, sd_ctx);
 
 done:
-    talloc_free(tmp_ctx);
+    talloc_free(default_dp_address);
     return ret;
 }
 

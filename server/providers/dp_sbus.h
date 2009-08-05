@@ -24,7 +24,5 @@
 
 int dp_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
                         char **address);
-int dp_init_sbus_methods(TALLOC_CTX *mem_ctx, struct sbus_method *methods,
-                         struct sbus_method_ctx **sm_ctx);
 
 #endif /* DP_SBUS_H_ */

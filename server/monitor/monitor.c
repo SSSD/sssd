@@ -171,45 +171,33 @@ static int dbus_get_monitor_version(DBusMessage *message,
 }
 
 struct sbus_method monitor_methods[] = {
-    { MONITOR_METHOD_VERSION, dbus_get_monitor_version},
-    {NULL, NULL}
+    { MON_SRV_METHOD_VERSION, dbus_get_monitor_version },
+    { NULL, NULL }
+};
+
+struct sbus_interface monitor_server_interface = {
+    MONITOR_DBUS_INTERFACE,
+    MONITOR_DBUS_PATH,
+    SBUS_DEFAULT_VTABLE,
+    monitor_methods,
+    NULL
 };
 
 /* monitor_dbus_init
  * Set up the monitor service as a D-BUS Server */
 static int monitor_dbus_init(struct mt_ctx *ctx)
 {
-    struct sbus_method_ctx *sd_ctx;
     char *monitor_address;
     int ret;
 
-    sd_ctx = talloc_zero(ctx, struct sbus_method_ctx);
-    if (!sd_ctx) {
-        return ENOMEM;
-    }
-
-    monitor_address = talloc_asprintf(sd_ctx, "unix:path=%s/%s",
+    monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s",
                                       PIPE_PATH, SSSD_SERVICE_PIPE);
     if (!monitor_address) {
-        talloc_free(sd_ctx);
         return ENOMEM;
     }
 
-    /* Set up globally-available D-BUS methods */
-    sd_ctx->interface = talloc_strdup(sd_ctx, MONITOR_DBUS_INTERFACE);
-    if (!sd_ctx->interface) {
-        talloc_free(sd_ctx);
-        return ENOMEM;
-    }
-    sd_ctx->path = talloc_strdup(sd_ctx, MONITOR_DBUS_PATH);
-    if (!sd_ctx->path) {
-        talloc_free(sd_ctx);
-        return ENOMEM;
-    }
-    sd_ctx->methods = monitor_methods;
-    sd_ctx->message_handler = sbus_message_handler;
-
-    ret = sbus_new_server(ctx, ctx->ev, monitor_address, sd_ctx,
+    ret = sbus_new_server(ctx, ctx->ev,
+                          monitor_address, &monitor_server_interface,
                           &ctx->sbus_srv, dbus_service_init, ctx);
 
     talloc_free(monitor_address);
@@ -464,9 +452,9 @@ static int monitor_shutdown_service(struct mt_svc *svc)
 
     /* Construct a shutdown message */
     msg = dbus_message_new_method_call(NULL,
-                                       SERVICE_PATH,
-                                       SERVICE_INTERFACE,
-                                       SERVICE_METHOD_SHUTDOWN);
+                                       MONITOR_PATH,
+                                       MONITOR_INTERFACE,
+                                       MON_CLI_METHOD_SHUTDOWN);
     if (!msg) {
         DEBUG(0,("Out of memory?!\n"));
         monitor_kill_service(svc);
@@ -581,8 +569,8 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
 
     dbus_conn = sbus_get_connection(svc->mt_conn->conn);
     msg = dbus_message_new_method_call(NULL,
-                                       SERVICE_PATH,
-                                       SERVICE_INTERFACE,
+                                       MONITOR_PATH,
+                                       MONITOR_INTERFACE,
                                        svc_signal);
     if (!msg) {
         DEBUG(0,("Out of memory?!\n"));
@@ -610,11 +598,11 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
 
 static int service_signal_reload(struct mt_svc *svc)
 {
-    return service_signal(svc, SERVICE_METHOD_RELOAD);
+    return service_signal(svc, MON_CLI_METHOD_RELOAD);
 }
 static int service_signal_dns_reload(struct mt_svc *svc)
 {
-    return service_signal(svc, SERVICE_METHOD_RES_INIT);
+    return service_signal(svc, MON_CLI_METHOD_RES_INIT);
 }
 
 static int check_domain_ranges(struct sss_domain_info *domains)
@@ -1823,9 +1811,9 @@ static int dbus_service_init(struct sbus_connection *conn, void *data)
      * for all services
      */
     msg = dbus_message_new_method_call(NULL,
-                                       SERVICE_PATH,
-                                       SERVICE_INTERFACE,
-                                       SERVICE_METHOD_IDENTITY);
+                                       MONITOR_PATH,
+                                       MONITOR_INTERFACE,
+                                       MON_CLI_METHOD_IDENTITY);
     if (msg == NULL) {
         DEBUG(0,("Out of memory?!\n"));
         talloc_free(conn);
@@ -1970,9 +1958,9 @@ static int service_send_ping(struct mt_svc *svc)
      * for all services
      */
     msg = dbus_message_new_method_call(NULL,
-                                       SERVICE_PATH,
-                                       SERVICE_INTERFACE,
-                                       SERVICE_METHOD_PING);
+                                       MONITOR_PATH,
+                                       MONITOR_INTERFACE,
+                                       MON_CLI_METHOD_PING);
     if (!msg) {
         DEBUG(0,("Out of memory?!\n"));
         talloc_free(svc->mt_conn->conn);

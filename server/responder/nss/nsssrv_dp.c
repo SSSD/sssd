@@ -66,7 +66,15 @@ static struct sbus_method nss_dp_methods[] = {
     { NULL, NULL }
 };
 
-struct sbus_method *get_nss_dp_methods(void)
+struct sbus_interface nss_dp_interface = {
+    DATA_PROVIDER_INTERFACE,
+    DATA_PROVIDER_PATH,
+    SBUS_DEFAULT_VTABLE,
+    nss_dp_methods,
+    NULL
+};
+
+struct sbus_interface *get_nss_dp_interface(void)
 {
-    return nss_dp_methods;
+    return &nss_dp_interface;
 }

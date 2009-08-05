@@ -285,7 +285,8 @@ static void accept_fd_handler(struct tevent_context *ev,
     return;
 }
 
-static int sss_sbus_init(struct resp_ctx *rctx)
+static int sss_monitor_init(struct resp_ctx *rctx,
+                            struct sbus_interface *intf)
 {
     char *sbus_address;
     int ret;
@@ -297,21 +298,8 @@ static int sss_sbus_init(struct resp_ctx *rctx)
         return ret;
     }
 
-    ret = monitor_init_sbus_methods(rctx, rctx->sss_sbus_methods,
-                                    &rctx->sm_ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not initialize SBUS methods.\n"));
-        return ret;
-    }
-
-    /* FIXME: remove this */
-    if (talloc_reference(rctx, rctx->sm_ctx) == NULL) {
-        DEBUG(0, ("Failed to take memory reference\n"));
-        return ENOMEM;
-    }
-
     ret = sbus_client_init(rctx, rctx->ev, sbus_address,
-                           rctx->sm_ctx, &rctx->conn,
+                           intf, &rctx->mon_conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -455,12 +443,12 @@ failed:
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
-                     struct sbus_method sss_sbus_methods[],
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
                      const char *confdb_service_path,
-                     struct sbus_method dp_methods[],
+                     struct sbus_interface *dp_intf,
+                     struct sbus_interface *monitor_intf,
                      struct resp_ctx **responder_ctx)
 {
     struct resp_ctx *rctx;
@@ -473,12 +461,10 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     }
     rctx->ev = ev;
     rctx->cdb = cdb;
-    rctx->sss_sbus_methods = sss_sbus_methods;
     rctx->sss_cmds = sss_cmds;
     rctx->sock_name = sss_pipe_name;
     rctx->priv_sock_name = sss_priv_pipe_name;
     rctx->confdb_service_path = confdb_service_path;
-    rctx->dp_methods = dp_methods;
 
     ret = confdb_get_domains(rctx->cdb, rctx, &rctx->domains);
     if (ret != EOK) {
@@ -486,18 +472,18 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sss_sbus_init(rctx);
+    ret = sss_monitor_init(rctx, monitor_intf);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up message bus\n"));
         return ret;
     }
 
-    ret = sss_dp_init(rctx, rctx->dp_methods);
+    ret = sss_dp_init(rctx, dp_intf);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
-    else if (!rctx->conn) {
+    else if (!rctx->dp_conn) {
         DEBUG(0, ("Data Provider is not yet available. Retrying.\n"));
         return EIO;
     }

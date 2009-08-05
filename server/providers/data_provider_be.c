@@ -58,11 +58,19 @@ static int service_identity(DBusMessage *message, struct sbus_connection *conn);
 static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method mon_sbus_methods[] = {
-    { SERVICE_METHOD_IDENTITY, service_identity },
-    { SERVICE_METHOD_PING, service_pong },
-    { SERVICE_METHOD_RES_INIT, service_res_init },
+struct sbus_method monitor_be_methods[] = {
+    { MON_CLI_METHOD_IDENTITY, service_identity },
+    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_RES_INIT, service_res_init },
     { NULL, NULL }
+};
+
+struct sbus_interface monitor_be_interface = {
+    MONITOR_INTERFACE,
+    MONITOR_PATH,
+    SBUS_DEFAULT_VTABLE,
+    monitor_be_methods,
+    NULL
 };
 
 static int be_identity(DBusMessage *message, struct sbus_connection *conn);
@@ -76,6 +84,14 @@ struct sbus_method be_methods[] = {
     { DP_CLI_METHOD_GETACCTINFO, be_get_account_info },
     { DP_CLI_METHOD_PAMHANDLER, be_pam_handler },
     { NULL, NULL }
+};
+
+struct sbus_interface be_interface = {
+    DATA_PROVIDER_INTERFACE,
+    DATA_PROVIDER_PATH,
+    SBUS_DEFAULT_VTABLE,
+    be_methods,
+    NULL
 };
 
 static struct bet_data bet_data[] = {
@@ -681,20 +697,8 @@ static int mon_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = monitor_init_sbus_methods(ctx, mon_sbus_methods, &ctx->mon_sm_ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not initialize SBUS methods.\n"));
-        return ret;
-    }
-
-    /* FIXME: remove this */
-    if (talloc_reference(ctx, ctx->mon_sm_ctx) == NULL) {
-        DEBUG(0, ("Failed to take memory reference\n"));
-        return ENOMEM;
-    }
-
     ret = sbus_client_init(ctx, ctx->ev, sbus_address,
-                           ctx->mon_sm_ctx, &ctx->mon_conn,
+                           &monitor_be_interface, &ctx->mon_conn,
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -720,14 +724,8 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
-    ret = dp_init_sbus_methods(ctx, be_methods, &ctx->dp_sm_ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not initialize SBUS methods.\n"));
-        return ret;
-    }
-
     ret = sbus_client_init(ctx, ctx->ev, sbus_address,
-                           ctx->dp_sm_ctx, &ctx->dp_conn,
+                           &be_interface, &ctx->dp_conn,
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
@@ -758,19 +756,6 @@ static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(be_ctx->dp_conn,
-                                       be_ctx->dp_sm_ctx);
-        if (ret != EOK) {
-            DEBUG(0, ("Could not re-add methods on reconnection.\n"));
-            ret = be_finalize(be_ctx);
-            if (ret != EOK) {
-                DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]", ret, strerror(ret)));
-                be_shutdown(NULL, ret, NULL);
-            }
-            return;
-        }
-
         DEBUG(1, ("Reconnected to the Data Provider.\n"));
         return;
     }

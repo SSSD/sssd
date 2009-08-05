@@ -25,20 +25,19 @@
 #define MONITOR_DBUS_INTERFACE "org.freedesktop.sssd.monitor"
 #define MONITOR_DBUS_PATH "/org/freedesktop/sssd/monitor"
 
-/* Monitor Methods */
-#define MONITOR_METHOD_VERSION "getVersion"
+/* Monitor SRV Methods */
+#define MON_SRV_METHOD_VERSION "getVersion"
 
+/*** Monitor Interface ***/
 
-/*** Services ***/
+#define MONITOR_PATH "/org/freedesktop/sssd/service"
+#define MONITOR_INTERFACE "org.freedesktop.sssd.service"
 
-#define SERVICE_PATH "/org/freedesktop/sssd/service"
-#define SERVICE_INTERFACE "org.freedesktop.sssd.service"
-
-/* Service Methods */
-#define SERVICE_METHOD_IDENTITY "getIdentity"
-#define SERVICE_METHOD_PING "ping"
-#define SERVICE_METHOD_RELOAD "reloadConfig"
-#define SERVICE_METHOD_SHUTDOWN "shutDown"
-#define SERVICE_METHOD_RES_INIT "resInit"
+/* Monitor CLI Methods */
+#define MON_CLI_METHOD_IDENTITY "getIdentity"
+#define MON_CLI_METHOD_PING "ping"
+#define MON_CLI_METHOD_RELOAD "reloadConfig"
+#define MON_CLI_METHOD_SHUTDOWN "shutDown"
+#define MON_CLI_METHOD_RES_INIT "resInit"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"

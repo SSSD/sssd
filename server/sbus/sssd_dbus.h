@@ -59,15 +59,17 @@ enum {
 #define DBUS_INTROSPECT_INTERFACE "org.freedesktop.DBus.Introspectable"
 #define DBUS_INTROSPECT_METHOD "Introspect"
 
+#define SBUS_DEFAULT_VTABLE { NULL, sbus_message_handler, NULL, NULL, NULL, NULL }
+
 struct sbus_method {
     const char *method;
     sbus_msg_handler_fn fn;
 };
 
-struct sbus_method_ctx {
-    char *interface;
-    char *path;
-    DBusObjectPathMessageFunction message_handler;
+struct sbus_interface {
+    const char *interface;
+    const char *path;
+    DBusObjectPathVTable vtable;
     struct sbus_method *methods;
     sbus_msg_handler_fn introspect_fn;
 };
@@ -76,7 +78,7 @@ struct sbus_method_ctx {
 int sbus_new_server(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
                     const char *address,
-                    struct sbus_method_ctx *ctx,
+                    struct sbus_interface *intf,
                     struct sbus_connection **server,
                     sbus_server_conn_init_fn init_fn, void *init_pvt_data);
 
@@ -92,6 +94,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
 int sbus_new_connection(TALLOC_CTX *ctx,
                         struct tevent_context *ev,
                         const char *address,
+                        struct sbus_interface *intf,
                         struct sbus_connection **conn);
 
 /* sbus_add_connection
@@ -106,11 +109,12 @@ int sbus_new_connection(TALLOC_CTX *ctx,
  *     connections, including those retrieved from
  *     dbus_bus_get
  */
-int sbus_add_connection(TALLOC_CTX *ctx,
-                             struct tevent_context *ev,
-                             DBusConnection *dbus_conn,
-                             struct sbus_connection **conn,
-                             int connection_type);
+int sbus_init_connection(TALLOC_CTX *ctx,
+                         struct tevent_context *ev,
+                         DBusConnection *dbus_conn,
+                         struct sbus_interface *intf,
+                         int connection_type,
+                         struct sbus_connection **_conn);
 
 void sbus_conn_set_destructor(struct sbus_connection *conn,
                               sbus_conn_destructor_fn destructor);
@@ -121,8 +125,8 @@ DBusConnection *sbus_get_connection(struct sbus_connection *conn);
 void sbus_disconnect(struct sbus_connection *conn);
 void sbus_conn_set_private_data(struct sbus_connection *conn, void *pvt_data);
 void *sbus_conn_get_private_data(struct sbus_connection *conn);
-int sbus_conn_add_method_ctx(struct sbus_connection *conn,
-                             struct sbus_method_ctx *method_ctx);
+int sbus_conn_add_interface(struct sbus_connection *conn,
+                            struct sbus_interface *intf);
 bool sbus_conn_disconnecting(struct sbus_connection *conn);
 
 /* max_retries < 0: retry forever

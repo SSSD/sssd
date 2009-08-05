@@ -57,12 +57,20 @@ static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
-struct sbus_method nss_sbus_methods[] = {
-    {SERVICE_METHOD_IDENTITY, service_identity},
-    {SERVICE_METHOD_PING, service_pong},
-    {SERVICE_METHOD_RELOAD, service_reload},
-    {SERVICE_METHOD_RES_INIT, service_res_init},
-    {NULL, NULL}
+struct sbus_method monitor_nss_methods[] = {
+    { MON_CLI_METHOD_IDENTITY, service_identity },
+    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_RELOAD, service_reload },
+    { MON_CLI_METHOD_RES_INIT, service_res_init },
+    { NULL, NULL }
+};
+
+struct sbus_interface monitor_nss_interface = {
+    MONITOR_INTERFACE,
+    MONITOR_PATH,
+    SBUS_DEFAULT_VTABLE,
+    monitor_nss_methods,
+    NULL
 };
 
 static int service_identity(DBusMessage *message, struct sbus_connection *conn)
@@ -252,19 +260,10 @@ static void nss_shutdown(struct resp_ctx *rctx)
 
 static void nss_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
-    int ret;
     struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
 
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
-        /* Add the methods back to the new connection */
-        ret = sbus_conn_add_method_ctx(rctx->conn,
-                                       rctx->sm_ctx);
-        if (ret != EOK) {
-            DEBUG(0, ("Could not re-add methods on reconnection.\n"));
-            nss_shutdown(rctx);
-        }
-
         DEBUG(1, ("Reconnected to the Data Provider.\n"));
         return;
     }
@@ -280,7 +279,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
 {
-    struct sbus_method *nss_dp_methods;
+    struct sbus_interface *nss_dp_interface;
     struct sss_cmd_table *nss_cmds;
     struct nss_ctx *nctx;
     int ret, max_retries;
@@ -297,15 +296,15 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    nss_dp_methods = get_nss_dp_methods();
+    nss_dp_interface = get_nss_dp_interface();
     nss_cmds = get_nss_cmds();
 
     ret = sss_process_init(nctx, ev, cdb,
-                           nss_sbus_methods,
                            nss_cmds,
                            SSS_NSS_SOCKET_NAME, NULL,
                            NSS_SRV_CONFIG,
-                           nss_dp_methods,
+                           nss_dp_interface,
+                           &monitor_nss_interface,
                            &nctx->rctx);
     if (ret != EOK) {
         return ret;
@@ -327,7 +326,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(nctx->rctx->conn,
+    sbus_reconnect_init(nctx->rctx->dp_conn,
                         max_retries,
                         nss_dp_reconnect_init, nctx->rctx);
 

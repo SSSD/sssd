@@ -64,16 +64,14 @@ struct resp_ctx {
     const char *sock_name;
     const char *priv_sock_name;
 
-    struct sbus_connection *conn;
-    struct sbus_method_ctx *sm_ctx;
+    struct sbus_connection *mon_conn;
+    struct sbus_connection *dp_conn;
 
     struct sss_domain_info *domains;
 
-    struct sbus_method *sss_sbus_methods;
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;
     const char *confdb_service_path;
-    struct sbus_method *dp_methods;
 
     struct sss_names_ctx *names;
 
@@ -100,12 +98,12 @@ struct sss_cmd_table {
 int sss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb,
-                     struct sbus_method sss_sbus_methods[],
                      struct sss_cmd_table sss_cmds[],
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
                      const char *confdb_service_path,
-                     struct sbus_method dp_methods[],
+                     struct sbus_interface *dp_intf,
+                     struct sbus_interface *monitor_intf,
                      struct resp_ctx **responder_ctx);
 
 int sss_parse_name(TALLOC_CTX *memctx,
@@ -119,7 +117,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx);
 struct cli_protocol_version *register_cli_protocol_version(void);
 
 /* responder_dp.c */
-int sss_dp_init(struct resp_ctx *rctx, struct sbus_method dp_methods[]);
+int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *intf);
 
 #define NSS_DP_USER 1
 #define NSS_DP_GROUP 2

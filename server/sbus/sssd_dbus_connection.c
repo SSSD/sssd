@@ -7,14 +7,14 @@
 /* Types */
 struct dbus_ctx_list;
 
-struct method_holder {
-    struct method_holder *prev, *next;
+struct sbus_interface_p {
+    struct sbus_interface_p *prev, *next;
     struct sbus_connection *conn;
-    struct sbus_method_ctx *method_ctx;
-    DBusObjectPathVTable *dbus_vtable;
+    struct sbus_interface *intf;
 };
 
-static bool path_in_method_list(struct method_holder *list, const char *path);
+static bool path_in_interface_list(struct sbus_interface_p *list,
+                                   const char *path);
 static void sbus_unreg_object_paths(struct sbus_connection *conn);
 
 static int sbus_auto_reconnect(struct sbus_connection *conn);
@@ -56,8 +56,8 @@ static void sbus_dispatch(struct tevent_context *ev,
 
         DEBUG(0, ("Cannot start auto-reconnection.\n"));
         conn->reconnect_callback(conn,
-                                     SBUS_RECONNECT_ERROR,
-                                     conn->reconnect_pvt);
+                                 SBUS_RECONNECT_ERROR,
+                                 conn->reconnect_pvt);
         return;
     }
 
@@ -129,11 +129,12 @@ static int sbus_conn_set_fns(struct sbus_connection *conn);
  * Set up a D-BUS connection to use the libevents mainloop
  * for handling file descriptor and timed events
  */
-int sbus_add_connection(TALLOC_CTX *ctx,
-                        struct tevent_context *ev,
-                        DBusConnection *dbus_conn,
-                        struct sbus_connection **_conn,
-                        int connection_type)
+int sbus_init_connection(TALLOC_CTX *ctx,
+                         struct tevent_context *ev,
+                         DBusConnection *dbus_conn,
+                         struct sbus_interface *intf,
+                         int connection_type,
+                         struct sbus_connection **_conn)
 {
     struct sbus_connection *conn;
     int ret;
@@ -149,10 +150,16 @@ int sbus_add_connection(TALLOC_CTX *ctx,
     ret = sbus_conn_set_fns(conn);
     if (ret != EOK) {
         talloc_free(conn);
+        return ret;
+    }
+
+    ret = sbus_conn_add_interface(conn, intf);
+    if (ret != EOK) {
+        talloc_free(conn);
+        return ret;
     }
 
     *_conn = conn;
-
     return ret;
 }
 
@@ -208,9 +215,10 @@ static int sbus_conn_set_fns(struct sbus_connection *conn)
 }
 
 int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
-                        const char *address,
-                        struct sbus_connection **conn)
+                        const char *address, struct sbus_interface *intf,
+                        struct sbus_connection **_conn)
 {
+    struct sbus_connection *conn;
     DBusConnection *dbus_conn;
     DBusError dbus_error;
     int ret;
@@ -226,17 +234,18 @@ int sbus_new_connection(TALLOC_CTX *ctx, struct tevent_context *ev,
         return EIO;
     }
 
-    ret = sbus_add_connection(ctx, ev, dbus_conn,
-                              conn, SBUS_CONN_TYPE_SHARED);
+    ret = sbus_init_connection(ctx, ev, dbus_conn, intf,
+                               SBUS_CONN_TYPE_SHARED, &conn);
     if (ret != EOK) {
         /* FIXME: release resources */
     }
 
     /* Store the address for later reconnection */
-    (*conn)->address = talloc_strdup((*conn), address);
+    conn->address = talloc_strdup(conn, address);
 
-    dbus_connection_set_exit_on_disconnect((*conn)->dbus.conn, FALSE);
+    dbus_connection_set_exit_on_disconnect(conn->dbus.conn, FALSE);
 
+    *_conn = conn;
     return ret;
 }
 
@@ -364,7 +373,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
                                          DBusMessage *message,
                                          void *user_data)
 {
-    struct method_holder *ctx;
+    struct sbus_interface_p *intf_p;
     const char *method;
     const char *path;
     const char *msg_interface;
@@ -375,7 +384,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
     if (!user_data) {
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
-    ctx = talloc_get_type(user_data, struct method_holder);
+    intf_p = talloc_get_type(user_data, struct sbus_interface_p);
 
     method = dbus_message_get_member(message);
     DEBUG(9, ("Received SBUS method [%s]\n", method));
@@ -386,18 +395,18 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     /* Validate the D-BUS path */
-    if (strcmp(path, ctx->method_ctx->path) != 0)
+    if (strcmp(path, intf_p->intf->path) != 0)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     /* Validate the method interface */
-    if (strcmp(msg_interface, ctx->method_ctx->interface) == 0) {
+    if (strcmp(msg_interface, intf_p->intf->interface) == 0) {
         found = 0;
-        for (i = 0; ctx->method_ctx->methods[i].method != NULL; i++) {
-            if (strcmp(method, ctx->method_ctx->methods[i].method) == 0) {
+        for (i = 0; intf_p->intf->methods[i].method != NULL; i++) {
+            if (strcmp(method, intf_p->intf->methods[i].method) == 0) {
                 found = 1;
-                ret = ctx->method_ctx->methods[i].fn(message, ctx->conn);
+                ret = intf_p->intf->methods[i].fn(message, intf_p->conn);
                 if (ret != EOK) {
-                    return sbus_reply_internal_error(message, ctx->conn);
+                    return sbus_reply_internal_error(message, intf_p->conn);
                 }
                 break;
             }
@@ -407,7 +416,7 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
             /* Reply DBUS_ERROR_UNKNOWN_METHOD */
             DEBUG(1, ("No matching method found for %s.\n", method));
             reply = dbus_message_new_error(message, DBUS_ERROR_UNKNOWN_METHOD, NULL);
-            sbus_conn_send_reply(ctx->conn, reply);
+            sbus_conn_send_reply(intf_p->conn, reply);
             dbus_message_unref(reply);
         }
     }
@@ -418,13 +427,13 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
         if (strcmp(msg_interface, DBUS_INTROSPECT_INTERFACE) == 0 &&
             strcmp(method, DBUS_INTROSPECT_METHOD) == 0)
         {
-            if (ctx->method_ctx->introspect_fn) {
+            if (intf_p->intf->introspect_fn) {
                 /* If we have been asked for introspection data and we have
                  * an introspection function registered, user that.
                  */
-                ret = ctx->method_ctx->introspect_fn(message, ctx->conn);
+                ret = intf_p->intf->introspect_fn(message, intf_p->conn);
                 if (ret != EOK) {
-                    return sbus_reply_internal_error(message, ctx->conn);
+                    return sbus_reply_internal_error(message, intf_p->conn);
                 }
             }
         }
@@ -438,49 +447,35 @@ DBusHandlerResult sbus_message_handler(DBusConnection *dbus_conn,
 /* Adds a new D-BUS path message handler to the connection
  * Note: this must be a unique path.
  */
-int sbus_conn_add_method_ctx(struct sbus_connection *conn,
-                             struct sbus_method_ctx *method_ctx)
+int sbus_conn_add_interface(struct sbus_connection *conn,
+                             struct sbus_interface *intf)
 {
-    struct method_holder *mh;
+    struct sbus_interface_p *intf_p;
     dbus_bool_t dbret;
     const char *path;
 
-    if (!conn || !method_ctx || !method_ctx->message_handler) {
+    if (!conn || !intf || !intf->vtable.message_function) {
         return EINVAL;
     }
 
-    path = method_ctx->path;
+    path = intf->path;
 
-    if (path_in_method_list(conn->method_list, path)) {
+    if (path_in_interface_list(conn->intf_list, path)) {
         DEBUG(0, ("Cannot add method context with identical path.\n"));
         return EINVAL;
     }
 
-    mh = talloc_zero(conn, struct method_holder);
-    if (!mh) {
+    intf_p = talloc_zero(conn, struct sbus_interface_p);
+    if (!intf_p) {
         return ENOMEM;
     }
-    mh->conn = conn;
+    intf_p->conn = conn;
+    intf_p->intf = intf;
 
-    /* Set up the vtable for the object path */
-    mh->dbus_vtable = talloc_zero(conn, DBusObjectPathVTable);
-    if (!mh->dbus_vtable) {
-        talloc_free(mh);
-        return ENOMEM;
-    }
-    mh->dbus_vtable->message_function = method_ctx->message_handler;
-
-    mh->method_ctx = talloc_reference(mh, method_ctx);
-    if (!mh->method_ctx) {
-        /* talloc_reference only fails on insufficient memory */
-        talloc_free(mh);
-        return ENOMEM;
-    }
-
-    DLIST_ADD(conn->method_list, mh);
+    DLIST_ADD(conn->intf_list, intf_p);
 
     dbret = dbus_connection_register_object_path(conn->dbus.conn,
-                                                 path, mh->dbus_vtable, mh);
+                                                 path, &intf->vtable, intf_p);
     if (!dbret) {
         DEBUG(0, ("Could not register object path to the connection.\n"));
         return ENOMEM;
@@ -489,9 +484,10 @@ int sbus_conn_add_method_ctx(struct sbus_connection *conn,
     return EOK;
 }
 
-static bool path_in_method_list(struct method_holder *list, const char *path)
+static bool path_in_interface_list(struct sbus_interface_p *list,
+                                   const char *path)
 {
-    struct method_holder *iter;
+    struct sbus_interface_p *iter;
 
     if (!list || !path) {
         return false;
@@ -499,7 +495,7 @@ static bool path_in_method_list(struct method_holder *list, const char *path)
 
     iter = list;
     while (iter != NULL) {
-        if (strcmp(iter->method_ctx->path, path) == 0) {
+        if (strcmp(iter->intf->path, path) == 0) {
             return true;
         }
         iter = iter->next;
@@ -510,16 +506,12 @@ static bool path_in_method_list(struct method_holder *list, const char *path)
 
 static void sbus_unreg_object_paths(struct sbus_connection *conn)
 {
-    struct method_holder *iter = conn->method_list;
-    struct method_holder *purge;
+    struct sbus_interface_p *iter = conn->intf_list;
 
     while (iter != NULL) {
         dbus_connection_unregister_object_path(conn->dbus.conn,
-                                               iter->method_ctx->path);
-        DLIST_REMOVE(conn->method_list, iter);
-        purge = iter;
+                                               iter->intf->path);
         iter = iter->next;
-        talloc_free(purge);
     }
 }
 
@@ -538,7 +530,7 @@ static void sbus_reconnect(struct tevent_context *ev,
                            struct timeval tv, void *data)
 {
     struct sbus_connection *conn;
-    struct method_holder *mh;
+    struct sbus_interface_p *iter;
     DBusError dbus_error;
     dbus_bool_t dbret;
     int ret;
@@ -559,17 +551,18 @@ static void sbus_reconnect(struct tevent_context *ev,
         }
 
         /* Re-register object paths */
-        mh = conn->method_list;
-        while (mh) {
+        iter = conn->intf_list;
+        while (iter) {
             dbret = dbus_connection_register_object_path(conn->dbus.conn,
-                                                         mh->method_ctx->path,
-                                                         mh->dbus_vtable, mh);
+                                                         iter->intf->path,
+                                                         &iter->intf->vtable,
+                                                         iter);
             if (!dbret) {
                 DEBUG(0, ("Could not register object path.\n"));
                 dbus_connection_unref(conn->dbus.conn);
                 goto failed;
             }
-            mh = mh->next;
+            iter = iter->next;
         }
 
         /* Reset retries to 0 to resume dispatch processing */
