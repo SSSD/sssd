@@ -101,7 +101,7 @@ static void
 fd_input_available(struct tevent_context *ev, struct tevent_fd *fde,
                    uint16_t flags, void *data)
 {
-    struct fd_watch *watch = data;
+    struct fd_watch *watch = talloc_get_type(data, struct fd_watch);
 
     if (watch->ctx->channel == NULL) {
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
@@ -124,7 +124,7 @@ static void fd_event_close(struct resolv_ctx *ctx, int s);
 static void
 fd_event(void *data, int s, int fd_read, int fd_write)
 {
-    struct resolv_ctx *ctx = data;
+    struct resolv_ctx *ctx = talloc_get_type(data, struct resolv_ctx);
     struct fd_watch *watch;
 
     /* The socket is about to get closed. */
@@ -315,7 +315,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 static void
 resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *hostent)
 {
-    struct tevent_req *req = arg;
+    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
 
     state->hostent = hostent;
@@ -432,7 +432,7 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 static void
 resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
-    struct tevent_req *req = arg;
+    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct getsrv_state *state = tevent_req_data(req, struct getsrv_state);
     int ret;
     int num_replies;
@@ -562,7 +562,7 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 static void
 resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int alen)
 {
-    struct tevent_req *req = arg;
+    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct gettxt_state *state = tevent_req_data(req, struct gettxt_state);
     int ret;
     int num_replies;
