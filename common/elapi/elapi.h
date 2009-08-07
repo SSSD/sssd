@@ -21,5 +21,6 @@
 #define ELAPI_H
 
 #include "elapi_event.h"
+#include "elapi_log.h"
 
 #endif

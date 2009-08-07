@@ -23,16 +23,17 @@
 #include "collection.h"
 
 /* Possible predefined elements of the event */
-#define E_TIMESTAMP "stamp"     /* string - the value is the format for strftime()
-                                 * default is standard format for current locale.  */
-#define E_UTCTIME   "time"      /* int - UTC time as unix time in seconds since 1970 */
-#define E_PID       "pid"       /* int - Process ID of the current process */
-#define E_APPNAME   "appnm"     /* string - Name of the current application */
-#define E_HOSTNAME  "host"      /* string - Name of the current host */
-#define E_HOSTIP    "ip"        /* string - IP address */
-#define E_SEVERITY  "sev"       /* int - Same as "priority" in syslog() */
-#define E_HOSTALIAS "halias"    /* string - List of alternative host names */
-#define E_HOSTIPS   "iplist"    /* string - List of alternative IP addresses */
+#define E_TIMESTAMP "__stamp__"     /* string - the value is the format for strftime()
+                                     * default is standard format for current locale.  */
+#define E_UTCTIME   "__time__"      /* int - UTC time as unix time in seconds since 1970 */
+#define E_OFFSET    "__loco__"      /* int - local time displacement */
+#define E_PID       "__pid__"       /* int - Process ID of the current process */
+#define E_APPNAME   "__appnm__"     /* string - Name of the current application */
+#define E_HOSTNAME  "__host__"      /* string - Name of the current host */
+#define E_HOSTIP    "__ip__"        /* string - IP address */
+#define E_SEVERITY  "__sev__"       /* int - Same as "priority" in syslog() */
+#define E_HOSTALIAS "__halias__"    /* string - List of alternative host names */
+#define E_HOSTIPS   "__iplist__"    /* string - List of alternative IP addresses */
 
 /* There is a special optional attribute of the event named "message".
  * It is a string that contains text specific to each event.
@@ -43,7 +44,7 @@
  * The token %(server) will be replaced by value
  * in the attribute "server" in the event.
  */
-#define E_MESSAGE   "message"
+#define E_MESSAGE   "__message__"
 
 /* Base argument in the template creation function is a bit mask.
  * Each supported predefined element corresponds to its bit in
@@ -51,23 +52,24 @@
  */
 #define E_HAVE_TIMESTAMP    0x00000001
 #define E_HAVE_UTCTIME      0x00000002
-#define E_HAVE_PID          0x00000004
+#define E_HAVE_OFFSET       0x00000004
 #define E_HAVE_APPNAME      0x00000010
 #define E_HAVE_HOSTNAME     0x00000020
 #define E_HAVE_HOSTIP       0x00000040
 #define E_HAVE_SEVERITY     0x00000100
 #define E_HAVE_HOSTALIAS    0x00000200
 #define E_HAVE_HOSTIPS      0x00000400
+#define E_HAVE_PID          0x00001000
 
 /* Convenient bitmasks */
-#define E_BASE_TIME         ( E_HAVE_TIMESTAMP | E_HAVE_UTCTIME )
+#define E_BASE_TIME         ( E_HAVE_TIMESTAMP | E_HAVE_UTCTIME | E_HAVE_OFFSET)
 #define E_BASE_HOST         ( E_HAVE_HOSTIP | E_HAVE_HOSTNAME )
 #define E_BASE_APP          ( E_HAVE_APPNAME | E_HAVE_PID )
 #define E_BASE_HOSTEXT      ( E_HAVE_HOSTALIAS | E_HAVE_HOSTIPS )
 #define E_BASE_DEFV1        ( E_BASE_TIME | E_BASE_HOST | E_BASE_APP | E_HAVE_SEVERITY )
 
 /* The default time stamp format */
-#define E_TIMESTAMP_FORMAT "%c"
+#define E_TIMESTAMP_FORMAT "%F"
 
 #define TIME_ARRAY_SIZE 100
 
@@ -145,12 +147,6 @@ int elapi_copy_event(struct collection_item **new_event,
                      struct collection_item *source_event);
 
 /* Function to destroy event. */
-/* Keep in mind that as soon as event is logged
- * it is automatically destroyed so the
- * function should be used only in cases
- * when you have an event
- * that you use as a template for other events.
- */
 void elapi_destroy_event(struct collection_item *event);
 
 /***************************************************************************/
@@ -158,6 +154,10 @@ void elapi_destroy_event(struct collection_item *event);
 /***************************************************************************/
 /* Initializes default internal template */
 int elapi_set_default_template(unsigned base, ...);
+
+/* Retrieve default template */
+int elapi_get_default_template(struct collection_item **template);
+
 
 /* This function will use internal default template.
  * Hides all complexity from the caller.

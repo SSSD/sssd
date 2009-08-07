@@ -21,6 +21,12 @@ AC_ARG_ENABLE([trace],
               [trace_level="0"])
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
+m4_include(conf_macros.m4)
+
+WITH_CONFIG_DIR
+WITH_CONFIG_APP_DIR
+WITH_APP_NAME
+WITH_APP_NAME_SIZE
 
 AC_CONFIG_FILES([Makefile elapi.pc])
 AC_OUTPUT

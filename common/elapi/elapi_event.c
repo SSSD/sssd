@@ -58,12 +58,9 @@ const char *str_no = "no";
 const char *str_true = "true";
 const char *str_false = "false";
 
-/* Default event template */
-struct collection_item *default_template = NULL;
-
 
 /* Function to add host identity information to the template */
-int add_host_identity(struct collection_item *tpl, unsigned base)
+static int add_host_identity(struct collection_item *tpl, unsigned base)
 {
     char hostname[NI_MAXHOST + 1];
     int error = EOK;
@@ -79,8 +76,6 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
 
     TRACE_FLOW_STRING("add_host_identity", "Entry");
 
-    memset(hostname, 0, sizeof(hostname));
-
     /* The goal here to collect information about the host.
      * there is no need to actually use it for establishing
      * any connections.
@@ -92,7 +87,7 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
     /* If we are not asked for ip then say we already have it */
     if (!(base & E_HAVE_HOSTIP)) set_ip = 1;
 
-    if (getifaddrs(&ifaddr) == 0) {
+    if (getifaddrs(&ifaddr) == EOK) {
 
         TRACE_FLOW_STRING("getifaddrs", "Ok");
 
@@ -117,9 +112,11 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
             if (family == AF_INET || family == AF_INET6) {
 
                 TRACE_FLOW_NUMBER("Got right family", family);
-                /* Make sure the address is cleared - will help in comparisons */
-                memset(host, 0, sizeof(host));
-                memset(address, 0, sizeof(address));
+
+                /* getnameinfo function claims that it returns NULL
+                 * terminated strings. Well...
+                 * We will trust it here and not clear memory using memset.
+                 */
 
                 gai_ret_host = getnameinfo(ifa->ifa_addr,
                                            (family == AF_INET) ? sizeof(struct sockaddr_in) :
@@ -146,10 +143,14 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
 
                     hnm = NULL;
                     /* Use host name returned by gethostname() as main host name */
-                    if (!gethostname(hostname, NI_MAXHOST)) hnm = hostname;
+                    if (gethostname(hostname, NI_MAXHOST) == EOK) {
+                        /* Make sure hostname is NULL terminated */
+                        hostname[NI_MAXHOST] = '\0';
+                        hnm = hostname;
+                    }
                     else {
                         /* We we able to get a host name ? */
-                        if (gai_ret_host == 0) {
+                        if (gai_ret_host == EOK) {
                             TRACE_INFO_STRING("getnameinfo returned:", host);
                             hnm = host;
                         }
@@ -157,9 +158,9 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
 
                     /* Do we have a host meaningful host name? */
                     if ((hnm) &&
-                        ((strncasecmp(hnm, LOCALHOST, sizeof(LOCALHOST)) == 0 ) ||
-                         (strncasecmp(hnm, LOCALHOSTDOMAIN, sizeof(LOCALHOSTDOMAIN)) == 0 ) ||
-                         (strncasecmp(hnm, address, sizeof(address) == 0)))) hnm = NULL;
+                        ((strcasecmp(hnm, LOCALHOST) == 0 ) ||
+                         (strcasecmp(hnm, LOCALHOSTDOMAIN) == 0 ) ||
+                         (strcasecmp(hnm, address) == 0))) hnm = NULL;
 
                     /* If host name is not NULL it would work for us */
                     if (hnm) {
@@ -181,10 +182,10 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
                     TRACE_FLOW_STRING("Address is not set", "");
 
                     haddr = NULL;
-                    if (gai_ret_addr == 0) {
+                    if (gai_ret_addr == EOK) {
                         TRACE_INFO_STRING("getnameinfo returned:", address);
-                        if ((strncasecmp(address, LOCALADDRESS, sizeof(LOCALADDRESS)) != 0 ) &&
-                            (strncasecmp(address, LOCALADDRESSV6, sizeof(LOCALADDRESSV6)) != 0 )) {
+                        if ((strcasecmp(address, LOCALADDRESS) != 0 ) &&
+                            (strcasecmp(address, LOCALADDRESSV6) != 0 )) {
                             TRACE_INFO_STRING("Not an unhelpful address", "");
                             haddr = address;
                         }
@@ -211,11 +212,11 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
                     TRACE_INFO_STRING("they are:", strncasecmp(host, address, sizeof(address)) == 0 ? "same" : "different");
 
                     /* Do we have a host meaningful host name? */
-                    if ((gai_ret_host != 0) ||
-                        ((gai_ret_host == 0) &&
-                         ((strncasecmp(host, LOCALHOST, sizeof(LOCALHOST)) == 0 ) ||
-                          (strncasecmp(host, LOCALHOSTDOMAIN, sizeof(LOCALHOSTDOMAIN)) == 0 ) ||
-                          (strncasecmp(host, address, sizeof(address)) == 0)))) hnm = NULL;
+                    if ((gai_ret_host != EOK) ||
+                        ((gai_ret_host == EOK) &&
+                         ((strcasecmp(host, LOCALHOST) == 0 ) ||
+                          (strcasecmp(host, LOCALHOSTDOMAIN) == 0 ) ||
+                          (strcasecmp(host, address) == 0)))) hnm = NULL;
                     else hnm = host;
 
                     if (hnm) {
@@ -233,10 +234,10 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
                 if ((set_ip) && (base & E_HAVE_HOSTIPS)) {
 
                     /* Do we have a host meaningful host name? */
-                    if ((gai_ret_addr != 0) ||
-                        ((gai_ret_addr == 0) &&
-                         ((strncasecmp(address, LOCALADDRESS, sizeof(LOCALADDRESS)) == 0 ) ||
-                          (strncasecmp(address, LOCALADDRESSV6, sizeof(LOCALADDRESSV6)) == 0 )))) haddr = address;
+                    if ((gai_ret_addr != EOK) ||
+                        ((gai_ret_addr == EOK) &&
+                         ((strcasecmp(address, LOCALADDRESS) == 0 ) ||
+                          (strcasecmp(address, LOCALADDRESSV6) == 0 )))) haddr = address;
                     else haddr = address;
 
                     if (haddr) {
@@ -286,7 +287,7 @@ int add_host_identity(struct collection_item *tpl, unsigned base)
 static int add_base_elements(struct collection_item *tpl, unsigned base)
 {
     int error = EOK;
-    int pass_base;
+    unsigned pass_base;
 
     TRACE_FLOW_STRING("add_base_elements", "Entry");
 
@@ -303,6 +304,15 @@ static int add_base_elements(struct collection_item *tpl, unsigned base)
     if (base & E_HAVE_UTCTIME) {
         /* Value does not matter */
         error = col_add_int_property(tpl, NULL, E_UTCTIME, 0);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to add UTC time. Error", error);
+            return error;
+        }
+    }
+
+    if (base & E_HAVE_OFFSET) {
+        /* Value does not matter */
+        error = col_add_int_property(tpl, NULL, E_OFFSET, 0);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to add UTC time. Error", error);
             return error;
@@ -361,12 +371,12 @@ static int add_base_elements(struct collection_item *tpl, unsigned base)
 
 
 /* Internal untility function to tokenize a string */
-static int interprete_key(char *key,
-                          int *type,
-                          char **property,
-                          int *prop_len,
-                          int *has_len,
-                          int *bool_type)
+static int interpret_key(char *key,
+                         int *type,
+                         char **property,
+                         int *prop_len,
+                         int *has_len,
+                         int *bool_type)
 {
     int adjust_by = 0;
     char *start = NULL;
@@ -374,7 +384,7 @@ static int interprete_key(char *key,
     char *end = NULL;
     int ret = E_LIST_EMPTY;
 
-    TRACE_FLOW_STRING("interprete_key", "Entry");
+    TRACE_FLOW_STRING("interpret_key", "Entry");
 
     TRACE_INFO_STRING("Key", key);
 
@@ -533,7 +543,7 @@ static int interprete_key(char *key,
     TRACE_INFO_NUMBER("Returning Has length:", *has_len);
 
 
-    TRACE_FLOW_STRING("interprete_key", "Exit");
+    TRACE_FLOW_STRING("interpret_key", "Exit");
 
     return ret;
 }
@@ -544,14 +554,14 @@ static int convert_bool(char *data_str, unsigned char *data_bool)
     TRACE_FLOW_STRING("convert_bool", "Called");
     TRACE_INFO_STRING("Data", data_str);
 
-    if ((strncasecmp(data_str, str_true, sizeof(str_true)) == 0) ||
-        (strncasecmp(data_str, str_yes, sizeof(str_yes)) == 0)) {
+    if ((strcasecmp(data_str, str_true) == 0) ||
+        (strcasecmp(data_str, str_yes) == 0)) {
         TRACE_INFO_STRING("Matched TRUE", "");
         *data_bool = '\1';
         return 1;
     }
-    if ((strncasecmp(data_str, str_false, sizeof(str_false)) == 0) ||
-        (strncasecmp(data_str, str_no, sizeof(str_no)) == 0)) {
+    if ((strcasecmp(data_str, str_false) == 0) ||
+        (strcasecmp(data_str, str_no) == 0)) {
         TRACE_INFO_STRING("Matched FALSE", "");
         *data_bool = '\0';
         return 1;
@@ -599,7 +609,7 @@ static int process_arg_list(struct collection_item *col,
             return EINVAL;
         }
 
-        /* Interprete the key.
+        /* Interpret the key.
          * It can be just " key ",
          * it can be " - key ",
          * or it can be a formatted string
@@ -607,12 +617,12 @@ static int process_arg_list(struct collection_item *col,
          * Function will deal with all cases.
          * Passed in variables initialized and updated inside
          */
-        ret = interprete_key(arg,
-                             &type,
-                             &property,
-                             &prop_len,
-                             &has_len,
-                             &bool_type);
+        ret = interpret_key(arg,
+                            &type,
+                            &property,
+                            &prop_len,
+                            &has_len,
+                            &bool_type);
 
         if (ret == E_LIST_LAST) {
             TRACE_INFO_STRING("Process found last key", arg);
@@ -621,11 +631,15 @@ static int process_arg_list(struct collection_item *col,
 
         if ((ret == E_LIST_ADD) || (ret == E_LIST_REMOVE)) {
             /* We need to create a dup of the string */
-            propcopy = strndup(property, prop_len);
+            propcopy = malloc(prop_len + 1);
             if (propcopy == NULL) {
                 TRACE_ERROR_STRING("Failed to allocate property", arg);
                 return ENOMEM;
             }
+
+            /* Copy property */
+            memcpy(propcopy, property, prop_len);
+            propcopy[prop_len] = '\0';
 
             TRACE_INFO_STRING("Processing property", propcopy);
 
@@ -759,45 +773,18 @@ static int process_arg_list(struct collection_item *col,
     return error;
 }
 
-static int get_default_template(struct collection_item **template)
-{
-    int error = EOK;
 
-    TRACE_FLOW_STRING("get_default_template", "Entry");
-
-    if (!default_template) {
-        TRACE_INFO_STRING("Default template does not exit", "");
-        error = elapi_set_default_template(E_BASE_DEFV1);
-        if (error) {
-            TRACE_ERROR_NUMBER("Set default template returned error", error);
-            return error;
-        }
-    }
-
-    *template = default_template;
-    TRACE_FLOW_NUMBER("get_default_template. Exit returning", error);
-    return error;
-}
-
-/* Cleanup callback installed when global template is used */
-void clean_template(void)
-{
-    TRACE_FLOW_STRING("clean_template", "Entry");
-    elapi_destroy_event_template(default_template);
-    TRACE_FLOW_STRING("clean_template", "Exit");
-}
 
 /*****************************************************************************/
-
 /* Create event template */
-int elapi_create_event_template(struct collection_item **template,
-                                unsigned base, ...)
+int elapi_create_event_template_with_vargs(struct collection_item **template,
+                                           unsigned base,
+                                           va_list args)
 {
     int error = EOK;
     struct collection_item *tpl = NULL;
-    va_list args;
 
-    TRACE_FLOW_STRING("elapi_create_event_template", "Entry");
+    TRACE_FLOW_STRING("elapi_create_event_template_with_vargs", "Entry");
 
     if (template == NULL ) {
         TRACE_ERROR_STRING("Template storage must be provided", "");
@@ -821,13 +808,8 @@ int elapi_create_event_template(struct collection_item **template,
         return error;
     }
 
-    /* Process varible arguments */
-    va_start(args, base);
-
     /* Process variable argument list */
     error = process_arg_list(tpl, args);
-
-    va_end(args);
 
     if (error) {
         TRACE_ERROR_NUMBER("Failed to process argument list. Error", error);
@@ -836,6 +818,30 @@ int elapi_create_event_template(struct collection_item **template,
     }
 
     *template = tpl;
+
+    TRACE_FLOW_STRING("elapi_create_event_template_with_vargs", "Exit");
+    return error;
+}
+
+
+/* Create event template */
+int elapi_create_event_template(struct collection_item **template,
+                                unsigned base, ...)
+{
+    int error = EOK;
+    va_list args;
+
+    TRACE_FLOW_STRING("elapi_create_event_template", "Entry");
+
+    /* Process varible arguments */
+    va_start(args, base);
+
+    /* Create template using arguments  */
+    error = elapi_create_event_template_with_vargs(template,
+                                                   base,
+                                                   args);
+
+    va_end(args);
 
     TRACE_FLOW_STRING("elapi_create_event_template", "Exit");
     return error;
@@ -851,27 +857,21 @@ void elapi_destroy_event_template(struct collection_item *template)
     TRACE_FLOW_STRING("elapi_destroy_event_template", "Exit");
 }
 
-/* Create event */
-int elapi_create_event(struct collection_item **event,
-                       struct collection_item *template,
-                       struct collection_item *collection,
-                       int mode, ...)
+
+/* Create event from template, colection and arguments */
+int elapi_create_event_with_vargs(struct collection_item **event,
+                                  struct collection_item *template,
+                                  struct collection_item *collection,
+                                  int mode, va_list args)
 {
     int error = EOK;
     struct collection_item *evt = NULL;
-    va_list args;
 
-    TRACE_FLOW_STRING("elapi_create_event", "Entry");
+    TRACE_FLOW_STRING("elapi_create_event_with_vargs", "Entry");
 
     /* Check storage */
-    if (event == NULL ) {
+    if (event == NULL) {
         TRACE_ERROR_STRING("Event storage must be provided", "");
-        return EINVAL;
-    }
-
-    /* Check for template */
-    if (template == NULL ) {
-        TRACE_ERROR_STRING("Template argument is missing", "");
         return EINVAL;
     }
 
@@ -885,13 +885,16 @@ int elapi_create_event(struct collection_item **event,
     }
 
     /* Add elements from the template */
-    error = col_add_collection_to_collection(evt, NULL, NULL,
-                                             (struct collection_item *)template,
-                                             COL_ADD_MODE_FLAT);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to add elements from the template. Error", error);
-        col_destroy_collection(evt);
-        return error;
+    /* Check for template */
+    if (template != NULL) {
+        error = col_add_collection_to_collection(evt, NULL, NULL,
+                                                 (struct collection_item *)template,
+                                                 COL_ADD_MODE_FLAT);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to add elements from the template. Error", error);
+            col_destroy_collection(evt);
+            return error;
+        }
     }
 
     /* Add elements from the template */
@@ -904,13 +907,8 @@ int elapi_create_event(struct collection_item **event,
         }
     }
 
-    /* Process varible arguments */
-    va_start(args, mode);
-
     /* Process variable argument list */
     error = process_arg_list(evt, args);
-
-    va_end(args);
 
     if (error) {
         TRACE_ERROR_NUMBER("Failed to process argument list. Error", error);
@@ -919,6 +917,32 @@ int elapi_create_event(struct collection_item **event,
     }
 
     *event = evt;
+
+    TRACE_FLOW_STRING("elapi_create_event_with_vargs", "Exit");
+    return error;
+}
+
+
+/* Create event a wrapper around a function with arg list */
+int elapi_create_event(struct collection_item **event,
+                       struct collection_item *template,
+                       struct collection_item *collection,
+                       int mode, ...)
+{
+    int error = EOK;
+    va_list args;
+
+    TRACE_FLOW_STRING("elapi_create_event", "Entry");
+
+    va_start(args, mode);
+
+    error = elapi_create_event_with_vargs(event,
+                                          template,
+                                          collection,
+                                          mode,
+                                          args);
+    va_end(args);
+
 
     TRACE_FLOW_STRING("elapi_create_event", "Exit");
     return error;
@@ -991,123 +1015,4 @@ void elapi_destroy_event(struct collection_item *event)
     col_destroy_collection(event);
 
     TRACE_FLOW_STRING("elapi_destroy_event", "Exit");
-}
-
-/* Initializes default internal template */
-int elapi_set_default_template(unsigned base, ...)
-{
-    int error = EOK;
-    struct collection_item *tpl;
-    va_list args;
-
-    TRACE_FLOW_STRING("elapi_set_default_template", "Entry");
-
-    /* Clean previous instance of the default template */
-    elapi_destroy_event_template(default_template);
-    default_template = NULL;
-
-    /* Create collection */
-    error = col_create_collection(&tpl, E_TEMPLATE_NAME, COL_CLASS_ELAPI_TEMPLATE);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to create collection. Error", error);
-        return error;
-    }
-
-    /* Add elements using base mask */
-    error = add_base_elements(tpl, base);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to add base elements. Error", error);
-        col_destroy_collection(tpl);
-        return error;
-    }
-
-    /* Process varible arguments */
-    va_start(args, base);
-
-    /* Process variable argument list */
-    error = process_arg_list(tpl, args);
-
-    va_end(args);
-
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to process argument list. Error", error);
-        col_destroy_collection(tpl);
-        return error;
-    }
-
-    /* Install a cleanup callback */
-    if (atexit(clean_template)) {
-        TRACE_ERROR_NUMBER("Failed to install cleanup callback. Error", ENOSYS);
-        col_destroy_collection(tpl);
-        /* NOTE: Could not find a better error for this case */
-        return ENOSYS;
-    }
-
-    default_template = tpl;
-
-    TRACE_FLOW_STRING("elapi_set_default_template", "Exit");
-    return error;
-}
-
-
-/* This function will use internal default template */
-int elapi_create_simple_event(struct collection_item **event, ...)
-{
-    int error = EOK;
-    struct collection_item *evt = NULL;
-    va_list args;
-    struct collection_item *template;
-
-    TRACE_FLOW_STRING("elapi_create_simple_event", "Entry");
-
-    /* Check storage */
-    if (event == NULL ) {
-        TRACE_ERROR_STRING("Event storage must be provided", "");
-        return EINVAL;
-    }
-
-    *event = NULL;
-
-    error = get_default_template(&template);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to get default template. Error", error);
-        return error;
-    }
-
-    /* Create collection */
-    error = col_create_collection(&evt, E_EVENT_NAME, COL_CLASS_ELAPI_EVENT);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to create collection. Error", error);
-        return error;
-    }
-
-    /* Add elements from the template */
-    error = col_add_collection_to_collection(evt, NULL, NULL,
-                                             template,
-                                             COL_ADD_MODE_FLAT);
-
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to add elements from the template. Error", error);
-        col_destroy_collection(evt);
-        return error;
-    }
-
-    /* Process varible arguments */
-    va_start(args, event);
-
-    /* Process variable argument list */
-    error = process_arg_list(evt, args);
-
-    va_end(args);
-
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to process argument list. Error", error);
-        col_destroy_collection(evt);
-        return error;
-    }
-
-    *event = evt;
-
-    TRACE_FLOW_STRING("elapi_create_simple_event", "Exit");
-    return error;
 }

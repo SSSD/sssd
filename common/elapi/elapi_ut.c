@@ -68,10 +68,20 @@ int simple_event_test(void)
         return error;
     }
 
-    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(event, COL_TRAVERSE_FLAT);
+    error = elapi_log(event);
 
     elapi_destroy_event(event);
+
+    if (error) {
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    error = elapi_msg(NULL, "a", "b", "c", "d", E_EOARG);
+    if (error) {
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
 
     printf("Simple test success!\n");
 
@@ -81,10 +91,11 @@ int simple_event_test(void)
 int complex_event_test(void)
 {
     int error = 0;
-    struct collection_item *template;
-    struct collection_item *event, *event_copy;
+    struct collection_item *template = NULL;
+    struct collection_item *event = NULL, *event_copy = NULL;
     char bin[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
-    struct collection_item *col;
+    struct collection_item *col = NULL;
+    struct elapi_dispatcher *dispatcher = NULL;
 
     printf("Complex test START:\n");
 
@@ -126,9 +137,17 @@ int complex_event_test(void)
     col_debug_collection(template, COL_TRAVERSE_FLAT);
     col_debug_collection(event, COL_TRAVERSE_FLAT);
 
+    error = elapi_log(event);
+
+    elapi_destroy_event(event);
+
+    if (error) {
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
 
     elapi_destroy_event_template(template);
-    elapi_destroy_event(event);
 
     error = elapi_create_event_template(
         &template,
@@ -150,7 +169,7 @@ int complex_event_test(void)
     }
 
     if ((error = col_create_collection(&col, "test", 0)) ||
-        /* We are forsing overwrite with different type */
+        /* We are forcing overwrite with different type */
         (error = col_add_int_property(col, NULL, "unsigned_number", 1)) ||
         (error = col_add_long_property(col, NULL, "bin", 100000000L))) {
         elapi_destroy_event_template(template);
@@ -181,8 +200,6 @@ int complex_event_test(void)
     col_debug_collection(event, COL_TRAVERSE_FLAT);
 
 
-    elapi_destroy_event_template(template);
-
     if ((error = col_create_collection(&col, "test", 0)) ||
         /* We are forsing overwrite with different type */
         (error = col_add_int_property(col, NULL, "zzz", 1)) ||
@@ -204,6 +221,7 @@ int complex_event_test(void)
     if (error) {
         printf("Failed to set create template %d\n", error);
         elapi_destroy_event(event);
+        elapi_destroy_event_template(template);
         col_destroy_collection(col);
         return error;
     }
@@ -211,16 +229,59 @@ int complex_event_test(void)
     col_destroy_collection(col);
 
     error = elapi_copy_event(&event_copy, event);
-
     if (error) {
         printf("Failed to set create template %d\n", error);
         elapi_destroy_event(event);
+        elapi_destroy_event_template(template);
         return error;
     }
 
+    error = elapi_create_dispatcher(&dispatcher, "elapi_ut", "./sdfdsdf");
+    if (error) {
+        elapi_destroy_event(event);
+        elapi_destroy_event(event_copy);
+        elapi_destroy_event_template(template);
+        printf("Failed to create dispatcher %d\n", error);
+        return error;
+    }
+
+    error = elapi_dsp_log(dispatcher, event);
+
     elapi_destroy_event(event);
-    col_debug_collection(event_copy, COL_TRAVERSE_FLAT);
+
+    if (error) {
+        elapi_destroy_event(event_copy);
+        elapi_destroy_event_template(template);
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    error = elapi_dsp_log(dispatcher, event_copy);
+
     elapi_destroy_event(event_copy);
+
+    if (error) {
+        elapi_destroy_event_template(template);
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    error = elapi_dsp_msg(dispatcher, template, "a", "b", "c", "d", E_EOARG);
+    if (error) {
+        elapi_destroy_event_template(template);
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    error = elapi_dsp_msg(dispatcher, NULL, "a", "b", "c", "d", E_EOARG);
+    if (error) {
+        elapi_destroy_event_template(template);
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    elapi_destroy_event_template(template);
+    elapi_destroy_dispatcher(dispatcher);
 
     return error;
 }
