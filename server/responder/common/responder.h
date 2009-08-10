@@ -102,6 +102,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
                      const char *confdb_service_path,
+                     const char *svc_name,
+                     uint16_t svc_version,
                      struct sbus_interface *dp_intf,
                      struct sbus_interface *monitor_intf,
                      struct resp_ctx **responder_ctx);

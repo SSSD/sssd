@@ -31,11 +31,6 @@
 #include <sys/time.h>
 #include <errno.h>
 
-/* Needed for res_init() */
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-
 #include "popt.h"
 #include "util/util.h"
 #include "db/sysdb.h"
@@ -54,16 +49,12 @@
 #define PAM_SBUS_SERVICE_NAME "pam"
 #define PAM_SRV_CONFIG "config/services/pam"
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn);
-static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method monitor_pam_methods[] = {
-    { MON_CLI_METHOD_IDENTITY, service_identity },
-    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RELOAD, service_reload },
-    { MON_CLI_METHOD_RES_INIT, service_res_init },
+    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { NULL, NULL }
 };
 
@@ -75,66 +66,6 @@ struct sbus_interface monitor_pam_interface = {
     NULL
 };
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn)
-{
-    dbus_uint16_t version = PAM_SBUS_SERVICE_VERSION;
-    const char *name = PAM_SBUS_SERVICE_NAME;
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    DEBUG(4,("Sending ID reply: (%s,%d)\n", name, version));
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_STRING, &name,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
-static int service_pong(DBusMessage *message, struct sbus_connection *conn)
-{
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
-    if (!ret) {
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
-{
-    int ret;
-
-    ret = res_init();
-    if(ret != 0) {
-        return EIO;
-    }
-
-    return service_pong(message, conn);
-}
-
 static void pam_shutdown(struct resp_ctx *ctx);
 
 static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
@@ -144,7 +75,7 @@ static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, conn);
+    return monitor_common_pong(message, conn);
 }
 
 static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
@@ -242,6 +173,8 @@ int main(int argc, const char *argv[])
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
                            PAM_SRV_CONFIG,
+                           PAM_SBUS_SERVICE_NAME,
+                           PAM_SBUS_SERVICE_VERSION,
                            pam_dp_interface,
                            &monitor_pam_interface,
                            &rctx);

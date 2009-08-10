@@ -286,7 +286,9 @@ static void accept_fd_handler(struct tevent_context *ev,
 }
 
 static int sss_monitor_init(struct resp_ctx *rctx,
-                            struct sbus_interface *intf)
+                            struct sbus_interface *intf,
+                            const char *svc_name,
+                            uint16_t svc_version)
 {
     char *sbus_address;
     int ret;
@@ -306,8 +308,12 @@ static int sss_monitor_init(struct resp_ctx *rctx,
         return ret;
     }
 
-    /* Set up NSS-specific listeners */
-    /* None currently used */
+    /* Identify ourselves to the monitor */
+    ret = monitor_common_send_id(rctx->mon_conn, svc_name, svc_version);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to identify to the monitor!\n"));
+        return ret;
+    }
 
     return EOK;
 }
@@ -447,6 +453,8 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *sss_pipe_name,
                      const char *sss_priv_pipe_name,
                      const char *confdb_service_path,
+                     const char *svc_name,
+                     uint16_t svc_version,
                      struct sbus_interface *dp_intf,
                      struct sbus_interface *monitor_intf,
                      struct resp_ctx **responder_ctx)
@@ -472,7 +480,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sss_monitor_init(rctx, monitor_intf);
+    ret = sss_monitor_init(rctx, monitor_intf, svc_name, svc_version);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up message bus\n"));
         return ret;

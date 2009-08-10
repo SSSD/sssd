@@ -34,11 +34,6 @@
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
 
-/* Needed for res_init() */
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-
 #include "popt.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -53,14 +48,9 @@
 
 #define BE_CONF_ENTRY "config/domains/%s"
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn);
-static int service_pong(DBusMessage *message, struct sbus_connection *conn);
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
-
 struct sbus_method monitor_be_methods[] = {
-    { MON_CLI_METHOD_IDENTITY, service_identity },
-    { MON_CLI_METHOD_PING, service_pong },
-    { MON_CLI_METHOD_RES_INIT, service_res_init },
+    { MON_CLI_METHOD_PING, monitor_common_pong },
+    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { NULL, NULL }
 };
 
@@ -101,75 +91,6 @@ static struct bet_data bet_data[] = {
     {BET_CHPASS, "chpass-module", "sssm_%s_chpass_init"},
     {BET_MAX, NULL, NULL}
 };
-
-
-
-static int service_identity(DBusMessage *message, struct sbus_connection *conn)
-{
-    dbus_uint16_t version = DATA_PROVIDER_VERSION;
-    struct be_ctx *ctx;
-    DBusMessage *reply;
-    dbus_bool_t ret;
-    void *user_data;
-
-    user_data = sbus_conn_get_private_data(conn);
-    if (!user_data) return EINVAL;
-    ctx = talloc_get_type(user_data, struct be_ctx);
-    if (!ctx) return EINVAL;
-
-    DEBUG(4,("Sending ID reply: (%s,%d)\n", ctx->identity, version));
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_STRING, &ctx->identity,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
-static int service_pong(DBusMessage *message, struct sbus_connection *conn)
-{
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
-{
-    int ret;
-
-    ret = res_init();
-    if(ret != 0) {
-        return EIO;
-    }
-
-    return service_pong(message, conn);
-}
 
 static int be_identity(DBusMessage *message, struct sbus_connection *conn)
 {
@@ -701,6 +622,15 @@ static int mon_cli_init(struct be_ctx *ctx)
                            NULL, ctx);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
+        return ret;
+    }
+
+    /* Identify ourselves to the monitor */
+    ret = monitor_common_send_id(ctx->mon_conn,
+                                 ctx->identity,
+                                 DATA_PROVIDER_VERSION);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to identify to the monitor!\n"));
         return ret;
     }
 

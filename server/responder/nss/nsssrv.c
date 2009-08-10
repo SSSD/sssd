@@ -30,11 +30,6 @@
 #include <sys/time.h>
 #include <errno.h>
 
-/* Needed for res_init() */
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-
 #include "popt.h"
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
@@ -52,16 +47,12 @@
 
 #define SSS_NSS_PIPE_NAME "nss"
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn);
-static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method monitor_nss_methods[] = {
-    { MON_CLI_METHOD_IDENTITY, service_identity },
-    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RELOAD, service_reload },
-    { MON_CLI_METHOD_RES_INIT, service_res_init },
+    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { NULL, NULL }
 };
 
@@ -73,56 +64,6 @@ struct sbus_interface monitor_nss_interface = {
     NULL
 };
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn)
-{
-    dbus_uint16_t version = NSS_SBUS_SERVICE_VERSION;
-    const char *name = NSS_SBUS_SERVICE_NAME;
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    DEBUG(4,("Sending ID reply: (%s,%d)\n",
-             name, version));
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_STRING, &name,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
-static int service_pong(DBusMessage *message, struct sbus_connection *conn)
-{
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
 static int service_reload(DBusMessage *message, struct sbus_connection *conn)
 {
     /* Monitor calls this function when we need to reload
@@ -131,19 +72,7 @@ static int service_reload(DBusMessage *message, struct sbus_connection *conn)
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, conn);
-}
-
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
-{
-    int ret;
-
-    ret = res_init();
-    if(ret != 0) {
-        return EIO;
-    }
-
-    return service_pong(message, conn);
+    return monitor_common_pong(message, conn);
 }
 
 static int nss_get_config(struct nss_ctx *nctx,
@@ -303,6 +232,8 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            nss_cmds,
                            SSS_NSS_SOCKET_NAME, NULL,
                            NSS_SRV_CONFIG,
+                           NSS_SBUS_SERVICE_NAME,
+                           NSS_SBUS_SERVICE_VERSION,
                            nss_dp_interface,
                            &monitor_nss_interface,
                            &nctx->rctx);

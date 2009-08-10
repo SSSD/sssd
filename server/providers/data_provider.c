@@ -31,11 +31,6 @@
 #include <errno.h>
 #include <security/pam_modules.h>
 
-/* Needed for res_init() */
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-
 #include "popt.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -84,16 +79,12 @@ struct dp_frontend {
 static int dp_backend_destructor(void *ctx);
 static int dp_frontend_destructor(void *ctx);
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn);
-static int service_pong(DBusMessage *message, struct sbus_connection *conn);
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method monitor_dp_methods[] = {
-    { MON_CLI_METHOD_IDENTITY, service_identity },
-    { MON_CLI_METHOD_PING, service_pong },
+    { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RELOAD, service_reload },
-    { MON_CLI_METHOD_RES_INIT, service_res_init },
+    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { NULL, NULL }
 };
 
@@ -136,55 +127,6 @@ struct dp_be_request {
     struct dp_backend *be;
 };
 
-static int service_identity(DBusMessage *message, struct sbus_connection *conn)
-{
-    dbus_uint16_t version = DATA_PROVIDER_VERSION;
-    const char *name = DATA_PROVIDER_SERVICE_NAME;
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    DEBUG(4, ("Sending identity data [%s,%d]\n", name, version));
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_STRING, &name,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
-static int service_pong(DBusMessage *message, struct sbus_connection *conn)
-{
-    DBusMessage *reply;
-    dbus_bool_t ret;
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply, DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
-
 static int service_reload(DBusMessage *message, struct sbus_connection *conn)
 {
     /* Monitor calls this function when we need to reload
@@ -193,19 +135,7 @@ static int service_reload(DBusMessage *message, struct sbus_connection *conn)
      */
 
     /* Send an empty reply to acknowledge receipt */
-    return service_pong(message, conn);
-}
-
-static int service_res_init(DBusMessage *message, struct sbus_connection *conn)
-{
-    int ret;
-
-    ret = res_init();
-    if(ret != 0) {
-        return EIO;
-    }
-
-    return service_pong(message, conn);
+    return monitor_common_pong(message, conn);
 }
 
 static int dp_monitor_init(struct dp_ctx *dpctx)
@@ -229,8 +159,14 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
         return ret;
     }
 
-    /* Set up DP-specific listeners */
-    /* None currently used */
+    /* Identify ourselves to the monitor */
+    ret = monitor_common_send_id(conn,
+                                 DATA_PROVIDER_SERVICE_NAME,
+                                 DATA_PROVIDER_VERSION);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to identify to the monitor!\n"));
+        return ret;
+    }
 
     return EOK;
 }

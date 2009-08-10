@@ -21,15 +21,17 @@
 
 /*** Monitor ***/
 
-#define MONITOR_VERSION "0.1"
-#define MONITOR_DBUS_INTERFACE "org.freedesktop.sssd.monitor"
-#define MONITOR_DBUS_PATH "/org/freedesktop/sssd/monitor"
+#define MONITOR_VERSION 0x0001
+
+/*** Monitor SRV Interface ***/
+#define MON_SRV_PATH "/org/freedesktop/sssd/monitor"
+#define MON_SRV_INTERFACE "org.freedesktop.sssd.monitor"
 
 /* Monitor SRV Methods */
 #define MON_SRV_METHOD_VERSION "getVersion"
+#define MON_SRV_METHOD_REGISTER "RegisterService"
 
-/*** Monitor Interface ***/
-
+/*** Monitor CLI Interface ***/
 #define MONITOR_PATH "/org/freedesktop/sssd/service"
 #define MONITOR_INTERFACE "org.freedesktop.sssd.service"
 

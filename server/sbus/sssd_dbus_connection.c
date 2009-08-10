@@ -111,7 +111,8 @@ static void sbus_conn_wakeup_main(void *data)
     struct tevent_timer *te;
 
     conn = talloc_get_type(data, struct sbus_connection);
-    gettimeofday(&tv, NULL);
+
+    tv = tevent_timeval_current();
 
     /* D-BUS calls this function when it is time to do a dispatch */
     te = tevent_add_timer(conn->ev, conn, tv, sbus_dispatch, conn);
@@ -147,13 +148,13 @@ int sbus_init_connection(TALLOC_CTX *ctx,
     conn->dbus.conn = dbus_conn;
     conn->connection_type = connection_type;
 
-    ret = sbus_conn_set_fns(conn);
+    ret = sbus_conn_add_interface(conn, intf);
     if (ret != EOK) {
         talloc_free(conn);
         return ret;
     }
 
-    ret = sbus_conn_add_interface(conn, intf);
+    ret = sbus_conn_set_fns(conn);
     if (ret != EOK) {
         talloc_free(conn);
         return ret;
