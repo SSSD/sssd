@@ -1692,14 +1692,14 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
         (uid < domain->id_min || uid > domain->id_max)) {
         DEBUG(2, ("Supplied uid [%d] is not in the allowed range [%d-%d].\n",
                   uid, domain->id_min, domain->id_max));
-        ERROR_OUT(ret, EINVAL, fail);
+        ERROR_OUT(ret, ERANGE, fail);
     }
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
         DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
                   gid, domain->id_min, domain->id_max));
-        ERROR_OUT(ret, EINVAL, fail);
+        ERROR_OUT(ret, ERANGE, fail);
     }
 
     if (domain->mpg) {
@@ -2104,7 +2104,7 @@ struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
         (gid < domain->id_min || gid > domain->id_max)) {
         DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
                   gid, domain->id_min, domain->id_max));
-        ERROR_OUT(ret, EINVAL, fail);
+        ERROR_OUT(ret, ERANGE, fail);
     }
 
     if (domain->mpg) {

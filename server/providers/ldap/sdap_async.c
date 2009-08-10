@@ -1255,7 +1255,11 @@ static void sdap_get_users_save_done(struct tevent_req *subreq)
 
     ret = sdap_save_user_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+
+    /* If the configuration has id ranges and the remote user is out
+     * of these ranges we will get back an ERANGE error. In this case
+     * we just ignore the error and go on with the next op */
+    if (ret && (ret != ERANGE)) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1448,7 +1452,11 @@ static void sdap_get_groups_save_done(struct tevent_req *subreq)
 
     ret = sdap_save_group_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+
+    /* If the configuration has id ranges and the remote user is out
+     * of these ranges we will get back an ERANGE error. In this case
+     * we just ignore the error and go on with the next op */
+    if (ret && (ret != ERANGE)) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1752,7 +1760,11 @@ static void sdap_get_initgr_save_done(struct tevent_req *subreq)
 
     ret = sdap_save_group_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+
+    /* If the configuration has id ranges and the remote user is out
+     * of these ranges we will get back an ERANGE error. In this case
+     * we just ignore the error and go on with the next op */
+    if (ret && (ret != ERANGE)) {
         tevent_req_error(req, ret);
         return;
     }
