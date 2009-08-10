@@ -57,6 +57,7 @@ m4_include([external/ldap.m4])
 m4_include([external/libpcre.m4])
 m4_include([external/krb5.m4])
 m4_include([external/libcares.m4])
+m4_include([external/docbook.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
@@ -72,9 +73,10 @@ fi
 PKG_CHECK_MODULES([NSS],[nss])
 
 if test x$HAVE_MANPAGES != x; then
-    AC_CHECK_FILE($SGML_CATALOG_FILES, [], [AC_MSG_ERROR([could not find XML catalog])])
-    AC_PATH_PROG([XSLTPROC], [xsltproc])
-    AC_PATH_PROG([XMLLINT], [xmllint])
+    CHECK_XML_TOOLS
+    CHECK_STYLESHEET([$SGML_CATALOG_FILES],
+                     [http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
+                     [Docbook XSL templates])
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])
