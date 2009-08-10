@@ -48,7 +48,7 @@ static void sbus_server_init_new_connection(DBusServer *dbus_server,
         return;
     }
 
-    DEBUG(5,("Adding connection %lX.\n", conn));
+    DEBUG(5,("Adding connection %p.\n", dbus_conn));
     ret = sbus_init_connection(server, server->ev,
                                dbus_conn, server->server_intf,
                                SBUS_CONN_TYPE_PRIVATE, &conn);

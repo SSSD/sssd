@@ -18,12 +18,18 @@ static void sbus_watch_handler(struct tevent_context *ev,
 {
     struct sbus_watch_ctx *watch = talloc_get_type(data,
                                                    struct sbus_watch_ctx);
+    enum dbus_conn_type type;
+    union dbus_conn_pointer dbus_p;
+
+    /* conn may get freed inside a handle, save the data we need for later */
+    type = watch->conn->type;
+    dbus_p = watch->conn->dbus;
 
     /* Take a reference while handling watch */
-    if (watch->conn->type == SBUS_SERVER) {
-        dbus_server_ref(watch->conn->dbus.server);
+    if (type == SBUS_SERVER) {
+        dbus_server_ref(dbus_p.server);
     } else {
-        dbus_connection_ref(watch->conn->dbus.conn);
+        dbus_connection_ref(dbus_p.conn);
     }
 
     /* Fire if readable */
@@ -37,10 +43,10 @@ static void sbus_watch_handler(struct tevent_context *ev,
     }
 
     /* Release reference once done */
-    if (watch->conn->type == SBUS_SERVER) {
-        dbus_server_unref(watch->conn->dbus.server);
+    if (type == SBUS_SERVER) {
+        dbus_server_unref(dbus_p.server);
     } else {
-        dbus_connection_unref(watch->conn->dbus.conn);
+        dbus_connection_unref(dbus_p.conn);
     }
 }
 
