@@ -118,7 +118,7 @@ struct mt_ctx {
     int service_id_timeout;
 };
 
-static int start_service(struct mt_svc *mt_svc);
+static int start_service(struct mt_svc *mt_svc, bool startup);
 
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
@@ -135,8 +135,8 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
 static int get_provider_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
-static int add_new_service(struct mt_ctx *ctx, const char *name);
-static int add_new_provider(struct mt_ctx *ctx, const char *name);
+static int add_new_service(struct mt_ctx *ctx, const char *name, bool startup);
+static int add_new_provider(struct mt_ctx *ctx, const char *name, bool startup);
 
 static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
                                  const char *filename);
@@ -378,7 +378,7 @@ static void svc_try_restart(struct mt_svc *svc, time_t now)
      */
     talloc_free(svc->ping_ev);
 
-    ret = start_service(svc);
+    ret = start_service(svc, false);
     if (ret != EOK) {
         DEBUG(0,("Failed to restart service '%s'\n", svc->name));
         talloc_free(svc);
@@ -923,14 +923,14 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     return EOK;
 }
 
-static int add_new_service(struct mt_ctx *ctx, const char *name)
+static int add_new_service(struct mt_ctx *ctx, const char *name, bool startup)
 {
     int ret;
     struct mt_svc *svc;
 
     ret = get_service_config(ctx, name, &svc);
 
-    ret = start_service(svc);
+    ret = start_service(svc, startup);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
@@ -1023,7 +1023,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     return EOK;
 }
 
-static int add_new_provider(struct mt_ctx *ctx, const char *name)
+static int add_new_provider(struct mt_ctx *ctx, const char *name, bool startup)
 {
     int ret;
     struct mt_svc *svc;
@@ -1035,7 +1035,7 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name)
         return ret;
     }
 
-    ret = start_service(svc);
+    ret = start_service(svc, startup);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
@@ -1115,7 +1115,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
 
         if (ctx->services[j] == NULL) {
             /* New service added */
-            add_new_service(ctx, new_config->services[i]);
+            add_new_service(ctx, new_config->services[i], false);
         }
         else {
             /* Service already enabled, check for changes */
@@ -1200,7 +1200,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
 
         if (dom == NULL) {
             /* New provider added */
-            add_new_provider(ctx, new_dom->name);
+            add_new_provider(ctx, new_dom->name, false);
         }
         else {
             /* Provider is already in the list.
@@ -1852,14 +1852,14 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    /* start all services */
+    /* then start all services */
     for (i = 0; ctx->services[i]; i++) {
-        add_new_service(ctx, ctx->services[i]);
+        add_new_service(ctx, ctx->services[i], true);
     }
 
     /* now start the data providers */
     for (dom = ctx->domains; dom; dom = dom->next) {
-        add_new_provider(ctx, dom->name);
+        add_new_provider(ctx, dom->name, true);
     }
 
     /* now start checking for global events */
@@ -2201,12 +2201,23 @@ static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr);
 
-static int start_service(struct mt_svc *svc)
+static int start_service(struct mt_svc *svc, bool startup)
 {
     struct tevent_timer *te;
     struct timeval tv;
 
     DEBUG(4,("Queueing service %s for startup\n", svc->name));
+
+    /* at startup we need to start the data provider service before all others
+     * to avoid races where a service that need dp starts before it is ready
+     * to accept connections on its dbus. So if startup is true delay by 1
+     * second any process that is not the data provider */
+
+    if (startup && strcasecmp(svc->name, "dp")) {
+        tv = tevent_timeval_current_ofs(1, 0);
+    } else {
+        tv = tevent_timeval_current();
+    }
 
     /* Add a timed event to start up the service.
      * We have to do this in order to avoid a race
@@ -2214,9 +2225,8 @@ static int start_service(struct mt_svc *svc)
      * and attempts to connect to the SBUS before
      * the monitor is serving it.
      */
-    gettimeofday(&tv, NULL);
     te = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
-                         service_startup_handler, svc);
+                          service_startup_handler, svc);
     if (te == NULL) {
         DEBUG(0, ("Unable to queue service %s for startup\n", svc->name));
         return ENOMEM;
