@@ -664,13 +664,16 @@ static int append_data_provider(struct mt_ctx *ctx)
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
+    int timeout_seconds;
 
     ret = confdb_get_int(ctx->cdb, ctx,
                          MONITOR_CONF_ENTRY, "sbusTimeout",
-                         -1, &ctx->service_id_timeout);
+                         10, &timeout_seconds);
     if (ret != EOK) {
         return ret;
     }
+
+    ctx->service_id_timeout = timeout_seconds * 1000; /* service_id_timeout is in ms */
 
     ctx->service_ctx = talloc_new(ctx);
     if(!ctx->service_ctx) {
