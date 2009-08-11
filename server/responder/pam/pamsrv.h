@@ -22,7 +22,6 @@ struct pam_auth_req {
     void *data;
 };
 
-struct sbus_interface *get_pam_dp_interface(void);
 struct sss_cmd_table *register_sss_cmds(void);
 
 int pam_dp_send_req(struct pam_auth_req *preq, int timeout);

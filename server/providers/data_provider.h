@@ -58,11 +58,11 @@
 #define DP_CLI_PROVIDE_PAM (1<<9)
 #define DP_CLI_PROVIDE_POLICY (1<<10)
 
-#define DP_CLI_METHOD_IDENTITY "getIdentity"
 #define DP_CLI_METHOD_ONLINE "getOnline"
 #define DP_CLI_METHOD_GETACCTINFO "getAccountInfo"
 #define DP_CLI_METHOD_PAMHANDLER "pamHandler"
 
+#define DP_SRV_METHOD_REGISTER "RegisterService"
 #define DP_SRV_METHOD_GETACCTINFO "getAccountInfo"
 #define DP_SRV_METHOD_PAMHANDLER "pamHandler"
 
@@ -130,5 +130,10 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
 bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
+
+int dp_common_send_id(struct sbus_connection *conn,
+                      uint16_t cli_type, uint16_t version,
+                      const char *name, const char *domain);
+
 
 #endif /* __DATA_PROVIDER_ */

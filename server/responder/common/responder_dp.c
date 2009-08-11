@@ -11,6 +11,12 @@
 struct sss_dp_pvt_ctx {
     struct resp_ctx *rctx;
     struct sbus_interface *intf;
+
+    uint16_t cli_type;
+    uint16_t cli_version;
+    const char *cli_name;
+    const char *cli_domain;
+
     time_t last_retry;
     int retries;
 };
@@ -52,6 +58,17 @@ static void sss_dp_conn_reconnect(struct sss_dp_pvt_ctx *pvt)
     ret = sbus_client_init(rctx, rctx->ev, sbus_address,
                            pvt->intf, &rctx->dp_conn,
                            sss_dp_conn_destructor, pvt);
+
+    if (ret == EOK) {
+        /* Identify ourselves to the data provider */
+        ret = dp_common_send_id(rctx->dp_conn,
+                                pvt->cli_type, pvt->cli_version,
+                                pvt->cli_name, pvt->cli_domain);
+        if (ret != EOK) {
+            DEBUG(0, ("Failed to identify to the data provider!\n"));
+        }
+    }
+
     if (ret != EOK) {
         DEBUG(4, ("Failed to reconnect [%d(%s)]!\n", ret, strerror(ret)));
 
@@ -97,7 +114,9 @@ int sss_dp_conn_destructor(void *data)
     return 0;
 }
 
-int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *dp_intf)
+int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *dp_intf,
+                uint16_t cli_type, uint16_t cli_version,
+                const char *cli_name, const char *cli_domain)
 {
     struct sss_dp_pvt_ctx *pvt;
 
@@ -106,6 +125,12 @@ int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *dp_intf)
 
     pvt->rctx = rctx;
     pvt->intf = dp_intf;
+    pvt->cli_type = cli_type;
+    pvt->cli_version = cli_version;
+    pvt->cli_name = talloc_strdup(pvt, cli_name);
+    if (!pvt->cli_name) return ENOMEM;
+    pvt->cli_domain = talloc_strdup(pvt, cli_domain);
+    if (!pvt->cli_domain) return ENOMEM;
 
     sss_dp_conn_reconnect(pvt);
 

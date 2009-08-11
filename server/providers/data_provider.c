@@ -58,6 +58,8 @@ struct dp_ctx {
 struct dp_client {
     struct dp_ctx *dpctx;
     struct sbus_connection *conn;
+    struct tevent_timer *timeout;
+    bool initialized;
 };
 
 struct dp_backend {
@@ -96,18 +98,22 @@ struct sbus_interface monitor_dp_interface = {
     NULL
 };
 
-static int dp_get_account_info(DBusMessage *message, struct sbus_connection *conn);
+static int client_registration(DBusMessage *message,
+                               struct sbus_connection *conn);
+static int dp_get_account_info(DBusMessage *message,
+                               struct sbus_connection *conn);
 static int dp_pamhandler(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method dp_methods[] = {
+    { DP_SRV_METHOD_REGISTER, client_registration },
     { DP_SRV_METHOD_GETACCTINFO, dp_get_account_info },
     { DP_SRV_METHOD_PAMHANDLER, dp_pamhandler },
     { NULL, NULL }
 };
 
 struct sbus_interface dp_interface = {
-    DATA_PROVIDER_INTERFACE,
-    DATA_PROVIDER_PATH,
+    DP_SRV_INTERFACE,
+    DP_SRV_PATH,
     SBUS_DEFAULT_VTABLE,
     dp_methods,
     NULL
@@ -171,20 +177,27 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
     return EOK;
 }
 
-static void be_identity_check(DBusPendingCall *pending, void *data);
-static void be_got_account_info(DBusPendingCall *pending, void *data);
+static void init_timeout(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval t, void *ptr)
+{
+    struct dp_client *dpcli;
 
-static int dbus_dp_init(struct sbus_connection *conn, void *data)
+    DEBUG(2, ("Client timed out before Identification!\n"));
+
+    dpcli = talloc_get_type(ptr, struct dp_client);
+
+    sbus_disconnect(dpcli->conn);
+    talloc_zfree(dpcli);
+}
+
+static int dp_client_init(struct sbus_connection *conn, void *data)
 {
     struct dp_ctx *dpctx;
     struct dp_client *dpcli;
-    DBusMessage *msg;
-    DBusPendingCall *pending_reply;
-    DBusConnection *dbus_conn;
-    dbus_bool_t dbret;
+    struct timeval tv;
 
     dpctx = talloc_get_type(data, struct dp_ctx);
-    dbus_conn = sbus_get_connection(conn);
 
     /* hang off this memory to the connection so that when the connection
      * is freed we can potentially call a destructor */
@@ -192,173 +205,153 @@ static int dbus_dp_init(struct sbus_connection *conn, void *data)
     dpcli = talloc(conn, struct dp_client);
     if (!dpcli) {
         DEBUG(0,("Out of memory?!\n"));
-        talloc_free(conn);
+        talloc_zfree(conn);
         return ENOMEM;
     }
     dpcli->dpctx = dpctx;
     dpcli->conn = conn;
+    dpcli->initialized = false;
+
+    /* 5 seconds should be plenty */
+    tv = tevent_timeval_current_ofs(5, 0);
+
+    dpcli->timeout = tevent_add_timer(dpctx->ev, dpcli,
+                                      tv, init_timeout, dpcli);
+    if (!dpcli->timeout) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_zfree(conn);
+        return ENOMEM;
+    }
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
     sbus_conn_set_private_data(conn, dpcli);
 
-    /* identify the connecting client */
-    msg = dbus_message_new_method_call(NULL,
-                                       DP_CLI_PATH,
-                                       DP_CLI_INTERFACE,
-                                       DP_CLI_METHOD_IDENTITY);
-    if (msg == NULL) {
-        DEBUG(0,("Out of memory?!\n"));
-        talloc_free(conn);
-        return ENOMEM;
-    }
-    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
-                                            600000 /* TODO: set timeout */);
-    if (!dbret || pending_reply == NULL) {
-        /*
-         * Critical Failure
-         * We can't communicate on this connection
-         * We'll drop it using the default destructor.
-         */
-        DEBUG(0, ("D-BUS send failed.\n"));
-        talloc_free(conn);
-        dbus_message_unref(msg);
-        return EIO;
-    }
-
-    /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, be_identity_check, dpcli, NULL);
-    dbus_message_unref(msg);
-
     return EOK;
 }
 
-static void be_identity_check(DBusPendingCall *pending, void *data)
+static int client_registration(DBusMessage *message,
+                               struct sbus_connection *conn)
 {
+    dbus_uint16_t version = DATA_PROVIDER_VERSION;
     struct dp_backend *dpbe;
     struct dp_frontend *dpfe;
     struct dp_client *dpcli;
     DBusMessage *reply;
-    DBusConnection *dbus_conn;
     DBusError dbus_error;
     dbus_uint16_t cli_ver;
     dbus_uint16_t cli_type;
     char *cli_name;
     char *cli_domain;
-    dbus_bool_t ret;
-    int type;
+    dbus_bool_t dbret;
+    void *data;
 
+    data = sbus_conn_get_private_data(conn);
     dpcli = talloc_get_type(data, struct dp_client);
-    dbus_conn = sbus_get_connection(dpcli->conn);
+    if (!dpcli) {
+        DEBUG(0, ("Connection holds no valid init data\n"));
+        return EINVAL;
+    }
+
+    /* First thing, cancel the timeout */
+    talloc_zfree(dpcli->timeout);
+
     dbus_error_init(&dbus_error);
 
-    reply = dbus_pending_call_steal_reply(pending);
-    if (!reply) {
-        /* reply should never be null. This function shouldn't be called
-         * until reply is valid or timeout has occurred. If reply is NULL
-         * here, something is seriously wrong and we should bail out.
-         */
-        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
-
-        /* Destroy this connection */
-        sbus_disconnect(dpcli->conn);
-        goto done;
+    dbret = dbus_message_get_args(message, &dbus_error,
+                                  DBUS_TYPE_UINT16, &cli_type,
+                                  DBUS_TYPE_UINT16, &cli_ver,
+                                  DBUS_TYPE_STRING, &cli_name,
+                                  DBUS_TYPE_STRING, &cli_domain,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(1, ("Failed to parse message, killing connection\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        sbus_disconnect(conn);
+        /* FIXME: should we just talloc_zfree(conn) ? */
+        return EIO;
     }
 
-    type = dbus_message_get_type(reply);
-    switch (type) {
-    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-        ret = dbus_message_get_args(reply, &dbus_error,
-                                    DBUS_TYPE_UINT16, &cli_type,
-                                    DBUS_TYPE_UINT16, &cli_ver,
-                                    DBUS_TYPE_STRING, &cli_name,
-                                    DBUS_TYPE_STRING, &cli_domain,
-                                    DBUS_TYPE_INVALID);
-        if (!ret) {
-            DEBUG(1,("be_identity_check failed, to parse message, killing connection\n"));
-            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
-            sbus_disconnect(dpcli->conn);
-            goto done;
+    switch (cli_type & DP_CLI_TYPE_MASK) {
+    case DP_CLI_BACKEND:
+        dpbe = talloc_zero(dpcli->dpctx, struct dp_backend);
+        if (!dpbe) {
+            DEBUG(0, ("Out of memory!\n"));
+            sbus_disconnect(conn);
+            return ENOMEM;
         }
 
-        switch (cli_type & DP_CLI_TYPE_MASK) {
-        case DP_CLI_BACKEND:
-            dpbe = talloc_zero(dpcli->dpctx, struct dp_backend);
-            if (!dpbe) {
-                DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn);
-                goto done;
-            }
-
-            dpbe->name = talloc_strdup(dpbe, cli_name);
-            dpbe->domain = talloc_strdup(dpbe, cli_domain);
-            if (!dpbe->name || !dpbe->domain) {
-                DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn);
-                goto done;
-            }
-
-            dpbe->dpcli = dpcli;
-
-            DLIST_ADD(dpcli->dpctx->be_list, dpbe);
-
-            DEBUG(4, ("Added Backend client [%s], for domain [%s]\n",
-                      dpbe->name, dpbe->domain));
-
-            talloc_set_destructor((TALLOC_CTX *)dpbe, dp_backend_destructor);
-            break;
-
-        case DP_CLI_FRONTEND:
-            dpfe = talloc_zero(dpcli->dpctx, struct dp_frontend);
-            if (!dpfe) {
-                DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn);
-                goto done;
-            }
-
-            dpfe->name = talloc_strdup(dpfe, cli_name);
-            if (!dpfe->name) {
-                DEBUG(0, ("Out of memory!\n"));
-                sbus_disconnect(dpcli->conn);
-                goto done;
-            }
-
-            dpfe->dpcli = dpcli;
-
-            DLIST_ADD(dpcli->dpctx->fe_list, dpfe);
-
-            DEBUG(4, ("Added Frontend client [%s]\n", dpfe->name));
-
-            talloc_set_destructor((TALLOC_CTX *)dpfe, dp_frontend_destructor);
-            break;
-
-        default:
-            DEBUG(1, ("Unknown client type, killing connection\n"));
-            sbus_disconnect(dpcli->conn);
-            goto done;
+        dpbe->name = talloc_strdup(dpbe, cli_name);
+        dpbe->domain = talloc_strdup(dpbe, cli_domain);
+        if (!dpbe->name || !dpbe->domain) {
+            DEBUG(0, ("Out of memory!\n"));
+            sbus_disconnect(conn);
+            return ENOMEM;
         }
 
-        /* Set up the destructor for this service */
+        dpbe->dpcli = dpcli;
+
+        DLIST_ADD(dpcli->dpctx->be_list, dpbe);
+
+        DEBUG(4, ("Added Backend client [%s], for domain [%s]\n",
+                  dpbe->name, dpbe->domain));
+
+        talloc_set_destructor((TALLOC_CTX *)dpbe, dp_backend_destructor);
         break;
 
-    case DBUS_MESSAGE_TYPE_ERROR:
-        DEBUG(0,("getIdentity returned an error [%s], closing connection.\n",
-                 dbus_message_get_error_name(reply)));
-        /* Falling through to default intentionally*/
+    case DP_CLI_FRONTEND:
+        dpfe = talloc_zero(dpcli->dpctx, struct dp_frontend);
+        if (!dpfe) {
+            DEBUG(0, ("Out of memory!\n"));
+            sbus_disconnect(conn);
+            return ENOMEM;
+        }
+
+        dpfe->name = talloc_strdup(dpfe, cli_name);
+        if (!dpfe->name) {
+            DEBUG(0, ("Out of memory!\n"));
+            sbus_disconnect(conn);
+            return ENOMEM;
+        }
+
+        dpfe->dpcli = dpcli;
+
+        DLIST_ADD(dpcli->dpctx->fe_list, dpfe);
+
+        DEBUG(4, ("Added Frontend client [%s]\n", dpfe->name));
+
+        talloc_set_destructor((TALLOC_CTX *)dpfe, dp_frontend_destructor);
+        break;
+
     default:
-        /*
-         * Timeout or other error occurred or something
-         * unexpected happened.
-         * It doesn't matter which, because either way we
-         * know that this connection isn't trustworthy.
-         * We'll destroy it now.
-         */
-        sbus_disconnect(dpcli->conn);
+        DEBUG(1, ("Unknown client type, killing connection\n"));
+        sbus_disconnect(conn);
+        return EIO;
     }
 
-done:
-    dbus_pending_call_unref(pending);
+    /* reply that all is ok */
+    reply = dbus_message_new_method_return(message);
+    if (!reply) {
+        DEBUG(0, ("Dbus Out of memory!\n"));
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT16, &version,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(0, ("Failed to build dbus reply\n"));
+        dbus_message_unref(reply);
+        sbus_disconnect(conn);
+        return EIO;
+    }
+
+    /* send reply back */
+    sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
+
+    dpcli->initialized = true;
+    return EOK;
 }
 
 static void be_got_account_info(DBusPendingCall *pending, void *data)
@@ -954,7 +947,7 @@ static int dp_srv_init(struct dp_ctx *dpctx)
 
     ret = sbus_new_server(dpctx, dpctx->ev, dpbus_address,
                           &dp_interface, &dpctx->sbus_srv,
-                          dbus_dp_init, dpctx);
+                          dp_client_init, dpctx);
     if (ret != EOK) {
         goto done;
     }

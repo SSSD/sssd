@@ -24,8 +24,8 @@
 
 /* Data Provider */
 
-#define DATA_PROVIDER_INTERFACE "org.freedesktop.sssd.dataprovider"
-#define DATA_PROVIDER_PATH "/org/freedesktop/sssd/dataprovider"
+#define DP_SRV_INTERFACE "org.freedesktop.sssd.dataprovider"
+#define DP_SRV_PATH "/org/freedesktop/sssd/dataprovider"
 
 #define DP_METHOD_CHECK_ONLINE "isOnline"
 

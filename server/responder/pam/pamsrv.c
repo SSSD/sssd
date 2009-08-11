@@ -125,13 +125,24 @@ static int pam_process_init(struct main_context *main_ctx,
     return EOK;
 }
 
+static struct sbus_method pam_dp_methods[] = {
+        { NULL, NULL }
+};
+
+struct sbus_interface pam_dp_interface = {
+    DP_CLI_INTERFACE,
+    DP_CLI_PATH,
+    SBUS_DEFAULT_VTABLE,
+    pam_dp_methods,
+    NULL
+};
+
 int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
     struct main_context *main_ctx;
     int ret;
-    struct sbus_interface *pam_dp_interface;
     struct sss_cmd_table *sss_cmds;
     struct resp_ctx *rctx;
 
@@ -164,7 +175,6 @@ int main(int argc, const char *argv[])
         DEBUG(2, ("Could not set up to exit when parent process does\n"));
     }
 
-    pam_dp_interface = get_pam_dp_interface();
     sss_cmds = register_sss_cmds();
     ret = sss_process_init(main_ctx,
                            main_ctx->event_ctx,
@@ -175,8 +185,11 @@ int main(int argc, const char *argv[])
                            PAM_SRV_CONFIG,
                            PAM_SBUS_SERVICE_NAME,
                            PAM_SBUS_SERVICE_VERSION,
-                           pam_dp_interface,
                            &monitor_pam_interface,
+                           DP_CLI_FRONTEND,
+                           DATA_PROVIDER_VERSION,
+                           "PAM", "",
+                           &pam_dp_interface,
                            &rctx);
     if (ret != EOK) return 3;
 

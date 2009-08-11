@@ -455,8 +455,10 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *confdb_service_path,
                      const char *svc_name,
                      uint16_t svc_version,
-                     struct sbus_interface *dp_intf,
                      struct sbus_interface *monitor_intf,
+                     uint16_t cli_type, uint16_t cli_version,
+                     const char *cli_name, const char *cli_domain,
+                     struct sbus_interface *dp_intf,
                      struct resp_ctx **responder_ctx)
 {
     struct resp_ctx *rctx;
@@ -486,7 +488,9 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sss_dp_init(rctx, dp_intf);
+    ret = sss_dp_init(rctx, dp_intf,
+                      cli_type, cli_version,
+                      cli_name, cli_domain);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;

@@ -62,13 +62,11 @@ struct sbus_interface monitor_be_interface = {
     NULL
 };
 
-static int be_identity(DBusMessage *message, struct sbus_connection *conn);
 static int be_check_online(DBusMessage *message, struct sbus_connection *conn);
 static int be_get_account_info(DBusMessage *message, struct sbus_connection *conn);
 static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method be_methods[] = {
-    { DP_CLI_METHOD_IDENTITY, be_identity },
     { DP_CLI_METHOD_ONLINE, be_check_online },
     { DP_CLI_METHOD_GETACCTINFO, be_get_account_info },
     { DP_CLI_METHOD_PAMHANDLER, be_pam_handler },
@@ -76,8 +74,8 @@ struct sbus_method be_methods[] = {
 };
 
 struct sbus_interface be_interface = {
-    DATA_PROVIDER_INTERFACE,
-    DATA_PROVIDER_PATH,
+    DP_CLI_INTERFACE,
+    DP_CLI_PATH,
     SBUS_DEFAULT_VTABLE,
     be_methods,
     NULL
@@ -91,44 +89,6 @@ static struct bet_data bet_data[] = {
     {BET_CHPASS, "chpass-module", "sssm_%s_chpass_init"},
     {BET_MAX, NULL, NULL}
 };
-
-static int be_identity(DBusMessage *message, struct sbus_connection *conn)
-{
-    dbus_uint16_t version = DATA_PROVIDER_VERSION;
-    dbus_uint16_t clitype = DP_CLI_BACKEND;
-    struct be_ctx *ctx;
-    DBusMessage *reply;
-    dbus_bool_t ret;
-    void *user_data;
-
-    user_data = sbus_conn_get_private_data(conn);
-    if (!user_data) return EINVAL;
-    ctx = talloc_get_type(user_data, struct be_ctx);
-    if (!ctx) return EINVAL;
-
-    DEBUG(4,("Sending ID reply: (%d,%d,%s,%s)\n",
-             clitype, version, ctx->name, ctx->domain->name));
-
-    reply = dbus_message_new_method_return(message);
-    if (!reply) return ENOMEM;
-
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_UINT16, &clitype,
-                                   DBUS_TYPE_UINT16, &version,
-                                   DBUS_TYPE_STRING, &ctx->name,
-                                   DBUS_TYPE_STRING, &ctx->domain->name,
-                                   DBUS_TYPE_INVALID);
-    if (!ret) {
-        dbus_message_unref(reply);
-        return EIO;
-    }
-
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
-
-    return EOK;
-}
 
 struct be_async_req {
     be_req_fn_t fn;
@@ -661,6 +621,15 @@ static int be_cli_init(struct be_ctx *ctx)
         return ret;
     }
 
+    /* Identify ourselves to the data provider */
+    ret = dp_common_send_id(ctx->dp_conn,
+                            DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
+                            ctx->name, ctx->domain->name);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to identify to the data provider!\n"));
+        return ret;
+    }
+
     /* Enable automatic reconnection to the Data Provider */
     ret = confdb_get_int(ctx->cdb, ctx, SERVICE_CONF_ENTRY,
                          "reconnection_retries", 3, &max_retries);
@@ -686,11 +655,21 @@ static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void
     /* Did we reconnect successfully? */
     if (status == SBUS_RECONNECT_SUCCESS) {
         DEBUG(1, ("Reconnected to the Data Provider.\n"));
-        return;
+
+        /* Identify ourselves to the data provider */
+        ret = dp_common_send_id(be_ctx->dp_conn,
+                                DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
+                                be_ctx->name, be_ctx->domain->name);
+        if (ret != EOK) {
+            DEBUG(0, ("Failed to send id to the data provider!\n"));
+        } else {
+            return;
+        }
     }
 
     /* Handle failure */
     DEBUG(0, ("Could not reconnect to data provider.\n"));
+
     /* Kill the backend and let the monitor restart it */
     ret = be_finalize(be_ctx);
     if (ret != EOK) {

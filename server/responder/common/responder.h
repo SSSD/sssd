@@ -104,8 +104,10 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *confdb_service_path,
                      const char *svc_name,
                      uint16_t svc_version,
-                     struct sbus_interface *dp_intf,
                      struct sbus_interface *monitor_intf,
+                     uint16_t cli_type, uint16_t cli_version,
+                     const char *cli_name, const char *cli_domain,
+                     struct sbus_interface *dp_intf,
                      struct resp_ctx **responder_ctx);
 
 int sss_parse_name(TALLOC_CTX *memctx,
@@ -119,7 +121,9 @@ int sss_cmd_get_version(struct cli_ctx *cctx);
 struct cli_protocol_version *register_cli_protocol_version(void);
 
 /* responder_dp.c */
-int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *intf);
+int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *intf,
+                uint16_t cli_type, uint16_t cli_version,
+                const char *cli_name, const char *cli_domain);
 
 #define NSS_DP_USER 1
 #define NSS_DP_GROUP 2

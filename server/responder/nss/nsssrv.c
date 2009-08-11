@@ -203,12 +203,22 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn, int status, void
     nss_shutdown(rctx);
 }
 
+static struct sbus_method nss_dp_methods[] = {
+    { NULL, NULL }
+};
+
+struct sbus_interface nss_dp_interface = {
+    DP_CLI_INTERFACE,
+    DP_CLI_PATH,
+    SBUS_DEFAULT_VTABLE,
+    nss_dp_methods,
+    NULL
+};
 
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,
                      struct confdb_ctx *cdb)
 {
-    struct sbus_interface *nss_dp_interface;
     struct sss_cmd_table *nss_cmds;
     struct nss_ctx *nctx;
     int ret, max_retries;
@@ -225,7 +235,6 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    nss_dp_interface = get_nss_dp_interface();
     nss_cmds = get_nss_cmds();
 
     ret = sss_process_init(nctx, ev, cdb,
@@ -234,8 +243,11 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            NSS_SRV_CONFIG,
                            NSS_SBUS_SERVICE_NAME,
                            NSS_SBUS_SERVICE_VERSION,
-                           nss_dp_interface,
                            &monitor_nss_interface,
+                           DP_CLI_FRONTEND,
+                           DATA_PROVIDER_VERSION,
+                           "NSS", "",
+                           &nss_dp_interface,
                            &nctx->rctx);
     if (ret != EOK) {
         return ret;

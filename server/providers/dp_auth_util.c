@@ -222,3 +222,120 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
     return true;
 }
 
+static void id_callback(DBusPendingCall *pending, void *ptr)
+{
+    DBusMessage *reply;
+    DBusError dbus_error;
+    dbus_bool_t ret;
+    dbus_uint16_t dp_ver;
+    int type;
+
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    if (!reply) {
+        /* reply should never be null. This function shouldn't be called
+         * until reply is valid or timeout has occurred. If reply is NULL
+         * here, something is seriously wrong and we should bail out.
+         */
+        DEBUG(0, ("Severe error. A reply callback was called but no"
+                  " reply was received and no timeout occurred\n"));
+
+        /* FIXME: Destroy this connection ? */
+        goto done;
+    }
+
+    type = dbus_message_get_type(reply);
+    switch (type) {
+    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        ret = dbus_message_get_args(reply, &dbus_error,
+                                    DBUS_TYPE_UINT16, &dp_ver,
+                                    DBUS_TYPE_INVALID);
+        if (!ret) {
+            DEBUG(1, ("Failed to parse message\n"));
+            if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+            /* FIXME: Destroy this connection ? */
+            goto done;
+        }
+
+        DEBUG(4, ("Got id ack and version (%d) from DP\n", dp_ver));
+
+        break;
+
+    case DBUS_MESSAGE_TYPE_ERROR:
+        DEBUG(0,("The Monitor returned an error [%s]\n",
+                 dbus_message_get_error_name(reply)));
+        /* Falling through to default intentionally*/
+    default:
+        /*
+         * Timeout or other error occurred or something
+         * unexpected happened.
+         * It doesn't matter which, because either way we
+         * know that this connection isn't trustworthy.
+         * We'll destroy it now.
+         */
+
+        /* FIXME: Destroy this connection ? */
+        break;
+    }
+
+done:
+    dbus_pending_call_unref(pending);
+    dbus_message_unref(reply);
+}
+
+int dp_common_send_id(struct sbus_connection *conn,
+                      uint16_t cli_type, uint16_t version,
+                      const char *name, const char *domain)
+{
+    DBusPendingCall *pending_reply;
+    DBusConnection *dbus_conn;
+    DBusMessage *msg;
+    dbus_bool_t ret;
+
+    dbus_conn = sbus_get_connection(conn);
+
+    /* create the message */
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_SRV_PATH,
+                                       DP_SRV_INTERFACE,
+                                       DP_SRV_METHOD_REGISTER);
+    if (msg == NULL) {
+        DEBUG(0, ("Out of memory?!\n"));
+        return ENOMEM;
+    }
+
+    DEBUG(4, ("Sending ID to DP: (%d,%d,%s,%s)\n",
+              cli_type, version, name, domain));
+
+    ret = dbus_message_append_args(msg,
+                                   DBUS_TYPE_UINT16, &cli_type,
+                                   DBUS_TYPE_UINT16, &version,
+                                   DBUS_TYPE_STRING, &name,
+                                   DBUS_TYPE_STRING, &domain,
+                                   DBUS_TYPE_INVALID);
+    if (!ret) {
+        DEBUG(1, ("Failed to build message\n"));
+        return EIO;
+    }
+
+    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
+                                          30000 /* TODO: set timeout */);
+    if (!ret || !pending_reply) {
+        /*
+         * Critical Failure
+         * We can't communicate on this connection
+         * We'll drop it using the default destructor.
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        dbus_message_unref(msg);
+        return EIO;
+    }
+
+    /* Set up the reply handler */
+    dbus_pending_call_set_notify(pending_reply, id_callback, NULL, NULL);
+    dbus_message_unref(msg);
+
+    return EOK;
+}
+

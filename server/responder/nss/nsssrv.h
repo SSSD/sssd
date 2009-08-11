@@ -66,8 +66,6 @@ struct nss_packet;
 
 int nss_cmd_execute(struct cli_ctx *cctx);
 
-/* from nsssrv_dp.c */
-struct sbus_interface *get_nss_dp_interface(void);
 struct sss_cmd_table *get_nss_cmds(void);
 
 #endif /* __NSSSRV_H__ */

@@ -230,7 +230,6 @@ sssd_LDADD = \
 sssd_nss_SOURCES = \
     responder/nss/nsssrv.c \
     responder/nss/nsssrv_cmd.c \
-    responder/nss/nsssrv_dp.c \
     responder/nss/nsssrv_nc.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
