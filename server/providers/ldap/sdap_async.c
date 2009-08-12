@@ -89,7 +89,7 @@ static int sdap_handle_destructor(void *mem)
     return 0;
 }
 
-static inline void sdap_handle_release(struct sdap_handle *sh)
+static void sdap_handle_release(struct sdap_handle *sh)
 {
     DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
               sh, (int)sh->connected, sh->ops, sh->fde, sh->ldap));
@@ -832,6 +832,7 @@ struct sdap_save_user_state {
 
     struct sss_domain_info *dom;
 
+    const char *name;
     struct sysdb_attrs *attrs;
 };
 
@@ -852,7 +853,6 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     struct sdap_save_user_state *state;
     struct ldb_message_element *el;
     int ret;
-    const char *name;
     const char *pwd;
     const char *gecos;
     const char *homedir;
@@ -883,7 +883,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         ret = EINVAL;
         goto fail;
     }
-    name = (const char *)el->values[0].data;
+    state->name = (const char *)el->values[0].data;
 
     ret = sysdb_attrs_get_el(state->attrs,
                              opts->user_map[SDAP_AT_USER_PWD].sys_name, &el);
@@ -913,8 +913,8 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
                              opts->user_map[SDAP_AT_USER_UID].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) {
-        DEBUG(1, ("no uid provided for user [%s] in domain [%s].\n", name,
-                  dom->name));
+        DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
+                  state->name, dom->name));
         ret = EINVAL;
         goto fail;
     }
@@ -930,8 +930,8 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
                              opts->user_map[SDAP_AT_USER_GID].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) {
-        DEBUG(1, ("no gid provided for user [%s] in domain [%s].\n", name,
-                  dom->name));
+        DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
+                  state->name, dom->name));
         ret = EINVAL;
         goto fail;
     }
@@ -954,10 +954,10 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available for user [%s].\n", name));
+        DEBUG(7, ("Original DN is not available for [%s].\n", state->name));
     } else {
-        DEBUG(7, ("Adding original DN [%s] to attributes of user [%s].\n",
-                  el->values[0].data, name));
+        DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
+                  el->values[0].data, state->name));
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN,
                                      (const char *) el->values[0].data);
         if (ret) {
@@ -971,25 +971,29 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("User principle is not available for user [%s].\n", name));
+        DEBUG(7, ("User principle is not available for [%s].\n", state->name));
     } else {
         upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
+        if (!upn) {
+            ret = ENOMEM;
+            goto fail;
+        }
         if (opts->force_upper_case_realm) {
             make_realm_upper_case(upn);
         }
-        DEBUG(7, ("Adding user principle [%s] to attributes of user [%s].\n",
-                  upn, name));
+        DEBUG(7, ("Adding user principle [%s] to attributes of [%s].\n",
+                  upn, state->name));
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {
             goto fail;
         }
     }
 
-    DEBUG(6, ("Storing info for user %s\n", name));
+    DEBUG(6, ("Storing info for user %s\n", state->name));
 
     subreq = sysdb_store_user_with_attrs_send(state, state->ev, state->handle,
-                                              state->dom, name, pwd, uid, gid,
-                                              gecos, homedir, shell,
+                                              state->dom, state->name, pwd,
+                                              uid, gid, gecos, homedir, shell,
                                               user_attrs);
     if (!subreq) {
         ret = ENOMEM;
@@ -1009,11 +1013,14 @@ static void sdap_save_user_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct sdap_save_user_state *state = tevent_req_data(req,
+                                            struct sdap_save_user_state);
     int ret;
 
     ret = sysdb_store_user_with_attrs_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
+        DEBUG(2, ("Failed to save user %s\n", state->name));
         tevent_req_error(req, ret);
         return;
     }
@@ -1045,6 +1052,7 @@ struct sdap_save_group_state {
 
     struct sss_domain_info *dom;
 
+    const char *name;
     struct sysdb_attrs *attrs;
 };
 
@@ -1065,7 +1073,6 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     struct sdap_save_group_state *state;
     struct ldb_message_element *el;
     int i, ret;
-    char *name;
     const char **members;
     long int l;
     gid_t gid;
@@ -1090,7 +1097,7 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         ret = EINVAL;
         goto fail;
     }
-    name = (char *)el->values[0].data;
+    state->name = (const char *)el->values[0].data;
 
     ret = sysdb_attrs_get_el(state->attrs,
                           opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
@@ -1119,10 +1126,10 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     }
     gid = l;
 
-    DEBUG(6, ("Storing info for group %s\n", name));
+    DEBUG(6, ("Storing info for group %s\n", state->name));
 
     subreq = sysdb_store_group_send(state, state->ev, state->handle,
-                                    state->dom, name, gid, members);
+                                    state->dom, state->name, gid, members);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -1141,11 +1148,14 @@ static void sdap_save_group_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct sdap_save_group_state *state = tevent_req_data(req,
+                                            struct sdap_save_group_state);
     int ret;
 
     ret = sysdb_store_group_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
+        DEBUG(2, ("Failed to save group %s\n", state->name));
         tevent_req_error(req, ret);
         return;
     }
@@ -1339,12 +1349,10 @@ static void sdap_get_users_save_done(struct tevent_req *subreq)
     ret = sdap_save_user_recv(subreq);
     talloc_zfree(subreq);
 
-    /* If the configuration has id ranges and the remote user is out
-     * of these ranges we will get back an ERANGE error. In this case
-     * we just ignore the error and go on with the next op */
-    if (ret && (ret != ERANGE)) {
-        tevent_req_error(req, ret);
-        return;
+    /* Do not fail completely on errors.
+     * Just report the failure to save and go on */
+    if (ret) {
+        DEBUG(2, ("Failed to store user. Ignoring.\n"));
     }
 
     /* unlock the operation so that we can proceed with the next result */
@@ -1481,8 +1489,8 @@ static void sdap_get_groups_done(struct sdap_op *op,
     case LDAP_RES_SEARCH_ENTRY:
 
         subreq = sdap_save_group_send(state, state->ev, state->handle,
-                                     state->opts, state->dom,
-                                     state->sh, reply);
+                                      state->opts, state->dom,
+                                      state->sh, reply);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1536,12 +1544,11 @@ static void sdap_get_groups_save_done(struct tevent_req *subreq)
     ret = sdap_save_group_recv(subreq);
     talloc_zfree(subreq);
 
-    /* If the configuration has id ranges and the remote user is out
-     * of these ranges we will get back an ERANGE error. In this case
-     * we just ignore the error and go on with the next op */
-    if (ret && (ret != ERANGE)) {
-        tevent_req_error(req, ret);
-        return;
+    /* Do not fail completely on errors.
+     * Just report the failure to save and go on */
+
+    if (ret) {
+        DEBUG(2, ("Failed to store group. Ignoring.\n"));
     }
 
     /* unlock the operation so that we can proceed with the next result */
@@ -1844,12 +1851,10 @@ static void sdap_get_initgr_save_done(struct tevent_req *subreq)
     ret = sdap_save_group_recv(subreq);
     talloc_zfree(subreq);
 
-    /* If the configuration has id ranges and the remote user is out
-     * of these ranges we will get back an ERANGE error. In this case
-     * we just ignore the error and go on with the next op */
-    if (ret && (ret != ERANGE)) {
-        tevent_req_error(req, ret);
-        return;
+    /* Do not fail completely on errors.
+     * Just report the failure to save and go on */
+    if (ret) {
+        DEBUG(2, ("Failed to store group. Ignoring.\n"));
     }
 
     /* unlock the operation so that we can proceed with the next result */
