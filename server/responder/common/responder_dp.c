@@ -141,7 +141,6 @@ int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *dp_intf,
 struct nss_dp_req {
     nss_dp_callback_t callback;
     void *callback_ctx;
-    struct tevent_timer *te;
     DBusPendingCall *pending_reply;
 };
 
@@ -154,22 +153,6 @@ static int nss_dp_req_destructor(void *ptr)
     }
 
     return 0;
-}
-
-static void nss_dp_send_acct_timeout(struct tevent_context *ev,
-                                     struct tevent_timer *te,
-                                     struct timeval t, void *data)
-{
-    struct nss_dp_req *ndp_req;
-    dbus_uint16_t err_maj = DP_ERR_TIMEOUT;
-    dbus_uint32_t err_min = EIO;
-    const char *err_msg = "Request timed out";
-
-    ndp_req = talloc_get_type(data, struct nss_dp_req);
-
-    ndp_req->callback(err_maj, err_min, err_msg, ndp_req->callback_ctx);
-
-    talloc_free(ndp_req);
 }
 
 static int nss_dp_get_reply(DBusPendingCall *pending,
@@ -187,15 +170,21 @@ static void nss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
 
     ndp_req = talloc_get_type(ptr, struct nss_dp_req);
 
-    /* free timeout event and remove request destructor */
-    talloc_free(ndp_req->te);
+    /* Remove request destructor */
     talloc_set_destructor(ndp_req, NULL);
 
     ret = nss_dp_get_reply(pending, &err_maj, &err_min, &err_msg);
     if (ret != EOK) {
-        err_maj = DP_ERR_FATAL;
-        err_min = ret;
-        err_msg = "Failed to get reply from Data Provider";
+        if (ret == ETIME) {
+            err_maj = DP_ERR_TIMEOUT;
+            err_min = ret;
+            err_msg = "Request timed out";
+        }
+        else {
+            err_maj = DP_ERR_FATAL;
+            err_min = ret;
+            err_msg = "Failed to get reply from Data Provider";
+        }
     }
 
     ndp_req->callback(err_maj, err_min, err_msg, ndp_req->callback_ctx);
@@ -216,7 +205,6 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
     uint32_t be_type;
     const char *attrs = "core";
     char *filter;
-    struct timeval tv;
 
     /* either, or, not both */
     if (opt_name && opt_id) {
@@ -287,8 +275,8 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
-                                            600000 /* TODO: set timeout */);
+    ret = dbus_connection_send_with_reply(dbus_conn, msg,
+                                          &pending_reply, timeout);
     if (!ret || pending_reply == NULL) {
         /*
          * Critical Failure
@@ -311,13 +299,6 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
     /* set up destructor */
     ndp_req->pending_reply = pending_reply;
     talloc_set_destructor((TALLOC_CTX *)ndp_req, nss_dp_req_destructor);
-
-    /* setup the timeout handler */
-    gettimeofday(&tv, NULL);
-    tv.tv_sec += timeout/1000;
-    tv.tv_usec += (timeout%1000) * 1000;
-    ndp_req->te = tevent_add_timer(rctx->ev, memctx, tv,
-                                   nss_dp_send_acct_timeout, ndp_req);
 
     /* Set up the reply handler */
     dbus_pending_call_set_notify(pending_reply,
@@ -363,7 +344,7 @@ static int nss_dp_get_reply(DBusPendingCall *pending,
                                     DBUS_TYPE_STRING, err_msg,
                                     DBUS_TYPE_INVALID);
         if (!ret) {
-            DEBUG(1,("Filed to parse message\n"));
+            DEBUG(1,("Failed to parse message\n"));
             /* FIXME: Destroy this connection ? */
             if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
             err = EIO;
@@ -376,6 +357,11 @@ static int nss_dp_get_reply(DBusPendingCall *pending,
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
+        if (strcmp(dbus_message_get_error_name(reply),
+                   DBUS_ERROR_NO_REPLY) == 0) {
+            err = ETIME;
+            goto done;
+        }
         DEBUG(0,("The Data Provider returned an error [%s]\n",
                  dbus_message_get_error_name(reply)));
         /* Falling through to default intentionally*/
