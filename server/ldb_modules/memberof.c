@@ -20,6 +20,10 @@
 #include <string.h>
 #include "ldb_module.h"
 
+#ifndef talloc_zfree
+#define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
+#endif
+
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
@@ -57,6 +61,12 @@ struct mbof_add_ctx {
 
     struct mbof_add_operation *add_list;
     struct mbof_add_operation *current_op;
+
+    struct ldb_message *msg;
+    struct ldb_dn *msg_dn;
+    bool terminate;
+
+    struct mbof_dn *missing;
 };
 
 struct mbof_del_ancestors_ctx {
@@ -101,6 +111,9 @@ struct mbof_mod_ctx {
     struct ldb_message *entry;
 
     struct mbof_dn_array *to_add;
+
+    struct ldb_message *msg;
+    bool terminate;
 };
 
 static struct mbof_ctx *mbof_init(struct ldb_module *module,
@@ -193,6 +206,8 @@ static int mbof_next_add(struct mbof_add_operation *addop);
 static int mbof_next_add_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static int mbof_add_operation(struct mbof_add_operation *addop);
+static int mbof_add_missing(struct mbof_add_ctx *add_ctx, struct ldb_dn *dn);
+static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx);
 
 static int memberof_add(struct ldb_module *module, struct ldb_request *req)
 {
@@ -200,7 +215,7 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     struct mbof_add_ctx *add_ctx;
     struct mbof_ctx *ctx;
     struct ldb_request *add_req;
-    const struct ldb_message_element *el;
+    struct ldb_message_element *el;
     struct mbof_dn_array *parents;
     struct ldb_dn *valdn;
     int i, ret;
@@ -209,20 +224,6 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
 		/* do not manipulate our control entries */
 		return ldb_next_request(module, req);
 	}
-
-    /* fail operation if memberof is ever specified */
-    el = ldb_msg_find_element(req->op.add.message, "memberof");
-    if (el) {
-        /* FIXME: should we simply filter it instead ? */
-        ldb_debug(ldb, LDB_DEBUG_TRACE, "the memberof attrinbute is readonly");
-        return LDB_ERR_CONSTRAINT_VIOLATION;
-    }
-
-    /* continue with normal ops if there are no members */
-    el = ldb_msg_find_element(req->op.add.message, "member");
-    if (!el) {
-        return ldb_next_request(module, req);
-    }
 
     ctx = mbof_init(module, req);
     if (!ctx) {
@@ -233,8 +234,28 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     if (!add_ctx) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
-
     add_ctx->ctx = ctx;
+
+    add_ctx->msg = ldb_msg_copy(add_ctx, req->op.add.message);
+    if (!add_ctx->msg) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    add_ctx->msg_dn = add_ctx->msg->dn;
+
+    /* ignore memberof if specified */
+    el = ldb_msg_find_element(add_ctx->msg, "memberof");
+    if (el) {
+        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                  "the memberof attribute is readonly. Ignoring.");
+        ldb_msg_remove_element(add_ctx->msg, el);
+    }
+
+    /* continue with normal ops if there are no members */
+    el = ldb_msg_find_element(add_ctx->msg, "member");
+    if (!el) {
+        add_ctx->terminate = true;
+        goto done;
+    }
 
     parents = talloc_zero(add_ctx, struct mbof_dn_array);
     if (!parents) {
@@ -244,7 +265,7 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     if (!parents->dns) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
-    parents->dns[0] = req->op.add.message->dn;
+    parents->dns[0] = add_ctx->msg_dn;
     parents->num = 1;
 
     /* process new members */
@@ -252,14 +273,14 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     for (i = 0; i < el->num_values; i++) {
         valdn = ldb_dn_from_ldb_val(add_ctx, ldb, &el->values[i]);
         if (!valdn || !ldb_dn_validate(valdn)) {
-            ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid dn value: [%s]",
+            ldb_debug(ldb, LDB_DEBUG_ERROR, "Invalid dn value: [%s]",
                                             (const char *)el->values[i].data);
             return LDB_ERR_INVALID_DN_SYNTAX;
         }
         if (ldb_dn_compare(valdn, req->op.add.message->dn) == 0) {
-            ldb_debug(ldb, LDB_DEBUG_TRACE, "Adding self as member is not permitted!");
-		    ldb_set_errstring(ldb, "Adding self as member is not permitted!");
-            return LDB_ERR_CONSTRAINT_VIOLATION;
+            ldb_debug(ldb, LDB_DEBUG_ERROR,
+                      "Adding self as member is not permitted! Skipping");
+            continue;
         }
         ret = mbof_append_addop(add_ctx, parents, valdn);
         if (ret != LDB_SUCCESS) {
@@ -267,9 +288,10 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
         }
     }
 
+done:
     /* add original object */
     ret = ldb_build_add_req(&add_req, ldb, add_ctx,
-                            req->op.add.message, req->controls,
+                            add_ctx->msg, req->controls,
                             add_ctx, mbof_add_callback,
                             req);
     if (ret != LDB_SUCCESS) {
@@ -303,7 +325,7 @@ static int mbof_add_callback(struct ldb_request *req,
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
         /* shouldn't happen */
-        talloc_free(ares);
+        talloc_zfree(ares);
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
     case LDB_REPLY_REFERRAL:
@@ -311,6 +333,13 @@ static int mbof_add_callback(struct ldb_request *req,
         break;
 
     case LDB_REPLY_DONE:
+        if (add_ctx->terminate) {
+            return ldb_module_done(ctx->req,
+                                   ctx->ret_ctrls,
+                                   ctx->ret_resp,
+                                   LDB_SUCCESS);
+        }
+
         if (add_ctx->current_op == NULL) {
             /* first operation */
             ctx->ret_ctrls = talloc_steal(ctx, ares->controls);
@@ -323,20 +352,24 @@ static int mbof_add_callback(struct ldb_request *req,
         }
         else {
             /* no more operations */
-            talloc_free(ares);
-            return ldb_module_done(ctx->req,
-                                   ctx->ret_ctrls,
-                                   ctx->ret_resp,
-                                   LDB_SUCCESS);
+            if (add_ctx->missing) {
+                ret = mbof_add_cleanup(add_ctx);
+            }
+            else {
+                return ldb_module_done(ctx->req,
+                                       ctx->ret_ctrls,
+                                       ctx->ret_resp,
+                                       LDB_SUCCESS);
+            }
         }
 
         if (ret != LDB_SUCCESS) {
-            talloc_free(ares);
+            talloc_zfree(ares);
             return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -415,22 +448,46 @@ static int mbof_next_add_callback(struct ldb_request *req,
         break;
 
     case LDB_REPLY_DONE:
+        talloc_zfree(ares);
         if (addop->entry == NULL) {
             ldb_debug(ldb, LDB_DEBUG_TRACE, "Entry not found (%s)",
                            ldb_dn_get_linearized(addop->entry_dn));
-            /* this target does not exists, too bad! */
-            return ldb_module_done(ctx->req, NULL, NULL,
-                                   LDB_ERR_CONSTRAINT_VIOLATION);
-        }
 
-        ret = mbof_add_operation(addop);
-        if (ret != LDB_SUCCESS) {
-            talloc_free(ares);
-            return ldb_module_done(ctx->req, NULL, NULL, ret);
+            /* this target does not exists, save as missing */
+            ret = mbof_add_missing(add_ctx, addop->entry_dn);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
+            /* now try the next operation */
+            if (add_ctx->current_op->next) {
+                ret = mbof_next_add(add_ctx->current_op->next);
+            }
+            else {
+                /* no more operations */
+                if (add_ctx->missing) {
+                    ret = mbof_add_cleanup(add_ctx);
+                }
+                else {
+                    return ldb_module_done(ctx->req,
+                                           ctx->ret_ctrls,
+                                           ctx->ret_resp,
+                                           LDB_SUCCESS);
+                }
+            }
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
+        else {
+            ret = mbof_add_operation(addop);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
+        }
+        return LDB_SUCCESS;
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -592,6 +649,80 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     return ldb_next_request(ctx->module, mod_req);
 }
 
+static int mbof_add_missing(struct mbof_add_ctx *add_ctx, struct ldb_dn *dn)
+{
+    struct mbof_dn *mdn;
+
+    mdn = talloc(add_ctx, struct mbof_dn);
+    if (!mdn) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    mdn->dn = talloc_steal(mdn, dn);
+
+    /* add to the list */
+    mdn->next = add_ctx->missing;
+    add_ctx->missing = mdn;
+
+    return LDB_SUCCESS;
+}
+
+/* remove unexisting members */
+static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
+{
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_request *mod_req;
+	struct ldb_message_element *el;
+    struct mbof_ctx *ctx;
+    struct mbof_dn *iter;
+    const char *val;
+    int ret, i, num;
+
+    ctx = add_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    num = 0;
+    for (iter = add_ctx->missing; iter; iter = iter->next) {
+        num++;
+    }
+    if (num == 0) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    msg = ldb_msg_new(add_ctx);
+    if (!msg) return LDB_ERR_OPERATIONS_ERROR;
+
+    msg->dn = add_ctx->msg_dn;
+
+    ret = ldb_msg_add_empty(msg, "member", LDB_FLAG_MOD_DELETE, &el);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+    el->values = talloc_array(msg, struct ldb_val, num);
+    if (!el->values) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    el->num_values = num;
+    for (i = 0, iter = add_ctx->missing; iter; iter = iter->next, i++) {
+        val = ldb_dn_get_linearized(iter->dn);
+        el->values[i].length = strlen(val);
+        el->values[i].data = (uint8_t *)talloc_strdup(el->values, val);
+        if (!el->values[i].data) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    add_ctx->terminate = true;
+    ret = ldb_build_mod_req(&mod_req, ldb, add_ctx,
+                            msg, NULL,
+                            add_ctx, mbof_add_callback,
+                            ctx->req);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_next_request(ctx->module, mod_req);
+}
 
 
 
@@ -833,12 +964,12 @@ static int mbof_del_search_callback(struct ldb_request *req,
         /* now perform the requested delete, before proceeding further */
         ret =  mbof_orig_del(del_ctx);
         if (ret != LDB_SUCCESS) {
-            talloc_free(ares);
+            talloc_zfree(ares);
             return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -885,7 +1016,7 @@ static int mbof_orig_del_callback(struct ldb_request *req,
     }
 
 	if (ares->type != LDB_REPLY_DONE) {
-		talloc_free(ares);
+		talloc_zfree(ares);
 		ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
@@ -912,11 +1043,11 @@ static int mbof_orig_del_callback(struct ldb_request *req,
                                LDB_SUCCESS);
     }
     if (ret != LDB_SUCCESS) {
-        talloc_free(ares);
+        talloc_zfree(ares);
         return ldb_module_done(ctx->req, NULL, NULL, ret);
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -995,7 +1126,7 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
     }
 
 	if (ares->type != LDB_REPLY_DONE) {
-		talloc_free(ares);
+		talloc_zfree(ares);
 		ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
@@ -1021,11 +1152,11 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
     }
 
     if (ret != LDB_SUCCESS) {
-        talloc_free(ares);
+        talloc_zfree(ares);
         return ldb_module_done(ctx->req, NULL, NULL, ret);
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -1214,7 +1345,7 @@ static int mbof_del_exop_search_callback(struct ldb_request *req,
         }
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -1421,7 +1552,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
         }
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -1522,12 +1653,12 @@ static int mbof_del_mod_callback(struct ldb_request *req,
     case LDB_REPLY_ENTRY:
         ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op ?!");
         /* shouldn't happen */
-        talloc_free(ares);
+        talloc_zfree(ares);
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
     case LDB_REPLY_REFERRAL:
         /* ignore */
-        talloc_free(ares);
+        talloc_zfree(ares);
         break;
 
     case LDB_REPLY_DONE:
@@ -1535,7 +1666,7 @@ static int mbof_del_mod_callback(struct ldb_request *req,
         ret = mbof_del_progeny(delop);
 
         if (ret != LDB_SUCCESS) {
-            talloc_free(ares);
+            talloc_zfree(ares);
             return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
     }
@@ -1686,7 +1817,7 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
 
 static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
 {
-    const struct ldb_message_element *el;
+    struct ldb_message_element *el;
     struct mbof_mod_ctx *mod_ctx;
     struct mbof_ctx *ctx;
     static const char *attrs[] = {"member", "memberof", NULL};
@@ -1699,20 +1830,6 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
         return ldb_next_request(module, req);
     }
 
-    /* fail operation if memberof is ever specified */
-    el = ldb_msg_find_element(req->op.mod.message, "memberof");
-    if (el) {
-        ldb_debug(ldb, LDB_DEBUG_TRACE, "the memberof attrinbute is readonly");
-        /* FIXME: should we simply filter it instead ? */
-        return LDB_ERR_CONSTRAINT_VIOLATION;
-    }
-
-    /* continue with normal ops if there are no members */
-    el = ldb_msg_find_element(req->op.mod.message, "member");
-    if (!el) {
-        return ldb_next_request(module, req);
-    }
-
     /* TODO: fail if this is not a group ? */
 
     ctx = mbof_init(module, req);
@@ -1720,18 +1837,39 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* can't do anything,
-     * must check first what's on the entry */
     mod_ctx = talloc_zero(ctx, struct mbof_mod_ctx);
     if (!mod_ctx) {
         talloc_free(ctx);
         return LDB_ERR_OPERATIONS_ERROR;
     }
     mod_ctx->ctx = ctx;
+
+    mod_ctx->msg = ldb_msg_copy(mod_ctx, req->op.mod.message);
+    if (!mod_ctx->msg) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    /* fail operation if memberof is ever specified */
+    el = ldb_msg_find_element(mod_ctx->msg, "memberof");
+    if (el) {
+        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                  "the memberof attribute is readonly. Ignoring.");
+        ldb_msg_remove_element(mod_ctx->msg, el);
+    }
+
+    /* continue with normal ops if there are no members */
+    el = ldb_msg_find_element(mod_ctx->msg, "member");
+    if (!el) {
+        mod_ctx->terminate = true;
+        return mbof_orig_mod(mod_ctx);
+    }
+
     mod_ctx->membel = el;
 
+    /* can't do anything,
+     * must check first what's on the entry */
     ret = ldb_build_search_req(&search, ldb, mod_ctx,
-                               req->op.mod.message->dn, LDB_SCOPE_BASE,
+                               mod_ctx->msg->dn, LDB_SCOPE_BASE,
                                NULL, attrs, NULL,
                                mod_ctx, mbof_mod_callback,
                                req);
@@ -1772,7 +1910,7 @@ static int mbof_mod_callback(struct ldb_request *req,
         if (mod_ctx->entry != NULL) {
             ldb_debug(ldb, LDB_DEBUG_TRACE,
                            "Found multiple entries for (%s)",
-                           ldb_dn_get_linearized(mod_ctx->entry->dn));
+                           ldb_dn_get_linearized(mod_ctx->msg->dn));
             /* more than one entry per dn ?? db corrupted ? */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
@@ -1791,7 +1929,7 @@ static int mbof_mod_callback(struct ldb_request *req,
     case LDB_REPLY_DONE:
         if (mod_ctx->entry == NULL) {
             ldb_debug(ldb, LDB_DEBUG_TRACE, "Entry not found (%s)",
-                           ldb_dn_get_linearized(req->op.mod.message->dn));
+                           ldb_dn_get_linearized(mod_ctx->msg->dn));
             /* this target does not exists, too bad! */
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_NO_SUCH_OBJECT);
@@ -1799,12 +1937,12 @@ static int mbof_mod_callback(struct ldb_request *req,
 
         ret = mbof_orig_mod(mod_ctx);
         if (ret != LDB_SUCCESS) {
-            talloc_free(ares);
+            talloc_zfree(ares);
             return ldb_module_done(ctx->req, NULL, NULL, ret);
         }
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -1819,7 +1957,7 @@ static int mbof_orig_mod(struct mbof_mod_ctx *mod_ctx)
     ldb = ldb_module_get_ctx(ctx->module);
 
     ret = ldb_build_mod_req(&mod_req, ldb, ctx->req,
-                            ctx->req->op.mod.message, ctx->req->controls,
+                            mod_ctx->msg, ctx->req->controls,
                             mod_ctx, mbof_orig_mod_callback,
                             ctx->req);
     if (ret != LDB_SUCCESS) {
@@ -1835,7 +1973,6 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
     struct ldb_context *ldb;
     struct mbof_mod_ctx *mod_ctx;
     struct mbof_ctx *ctx;
-    bool done = false;
 	int ret;
 
     mod_ctx = talloc_get_type(req->context, struct mbof_mod_ctx);
@@ -1854,7 +1991,7 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
     }
 
 	if (ares->type != LDB_REPLY_DONE) {
-		talloc_free(ares);
+		talloc_zfree(ares);
         ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid reply type!");
 		ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
@@ -1865,21 +2002,24 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
     ctx->ret_ctrls = talloc_steal(ctx, ares->controls);
     ctx->ret_resp = talloc_steal(ctx, ares->response);
 
-    /* next step */
-    ret = mbof_mod_process(mod_ctx, &done);
-    if (ret != LDB_SUCCESS) {
-        talloc_free(ares);
-        return ldb_module_done(ctx->req, NULL, NULL, ret);
+    if (!mod_ctx->terminate) {
+        /* next step */
+        ret = mbof_mod_process(mod_ctx, &mod_ctx->terminate);
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
     }
-    if (done) {
-        talloc_free(ares);
+
+    if (mod_ctx->terminate) {
+        talloc_zfree(ares);
         return ldb_module_done(ctx->req,
                                ctx->ret_ctrls,
                                ctx->ret_resp,
                                LDB_SUCCESS);
     }
 
-    talloc_free(ares);
+    talloc_zfree(ares);
     return LDB_SUCCESS;
 }
 
@@ -2037,6 +2177,7 @@ static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
         return LDB_ERR_OPERATIONS_ERROR;
     }
     add_ctx->ctx = ctx;
+    add_ctx->msg_dn = mod_ctx->msg->dn;
 
     for (i = 0; i < ael->num; i++) {
         ret = mbof_append_addop(add_ctx, parents, ael->dns[i]);
