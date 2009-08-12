@@ -44,7 +44,7 @@ struct sdap_gen_opts default_basic_opts[] = {
     { "force_upper_case_realm", "0", NULL }
 };
 
-struct sdap_id_map default_user_map[] = {
+struct sdap_id_map rfc2307_user_map[] = {
     { "userObjectClass", "posixAccount", SYSDB_USER_CLASS, NULL },
     { "userName", "uid", SYSDB_NAME, NULL },
     { "userPwd", "userPassword", SYSDB_PWD, NULL },
@@ -53,18 +53,44 @@ struct sdap_id_map default_user_map[] = {
     { "userGecos", "gecos", SYSDB_GECOS, NULL },
     { "userHomeDirectory", "homeDirectory", SYSDB_HOMEDIR, NULL },
     { "userShell", "loginShell", SYSDB_SHELL, NULL },
-    { "userUUID", "nsUniqueId", SYSDB_UUID, NULL },
     { "userPrincipal", "krbPrincipalName", SYSDB_UPN, NULL },
     { "userFullname", "cn", SYSDB_FULLNAME, NULL },
-    { "userMemberOf", "memberOf", SYSDB_MEMBEROF, NULL }
+    { "userMemberOf", NULL, SYSDB_MEMBEROF, NULL },
+    { "userUUID", NULL, SYSDB_UUID, NULL }
 };
 
-struct sdap_id_map default_group_map[] = {
+struct sdap_id_map rfc2307_group_map[] = {
     { "groupObjectClass", "posixGroup", SYSDB_GROUP_CLASS, NULL },
     { "groupName", "cn", SYSDB_NAME, NULL },
     { "groupPwd", "userPassword", SYSDB_PWD, NULL },
     { "groupGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "groupMember", "memberuid", SYSDB_LEGACY_MEMBER, NULL },
+    { "groupMember", "memberuid", SYSDB_MEMBER, NULL },
+    { "groupUUID", NULL, SYSDB_UUID, NULL }
+};
+
+struct sdap_id_map rfc2307bis_user_map[] = {
+    { "userObjectClass", "posixAccount", SYSDB_USER_CLASS, NULL },
+    { "userName", "uid", SYSDB_NAME, NULL },
+    { "userPwd", "userPassword", SYSDB_PWD, NULL },
+    { "userUidNumber", "uidNumber", SYSDB_UIDNUM, NULL },
+    { "userGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "userGecos", "gecos", SYSDB_GECOS, NULL },
+    { "userHomeDirectory", "homeDirectory", SYSDB_HOMEDIR, NULL },
+    { "userShell", "loginShell", SYSDB_SHELL, NULL },
+    { "userPrincipal", "krbPrincipalName", SYSDB_UPN, NULL },
+    { "userFullname", "cn", SYSDB_FULLNAME, NULL },
+    { "userMemberOf", "memberOf", SYSDB_MEMBEROF, NULL },
+    /* FIXME: this is 389ds specific */
+    { "userUUID", "nsUniqueId", SYSDB_UUID, NULL }
+};
+
+struct sdap_id_map rfc2307bis_group_map[] = {
+    { "groupObjectClass", "posixGroup", SYSDB_GROUP_CLASS, NULL },
+    { "groupName", "cn", SYSDB_NAME, NULL },
+    { "groupPwd", "userPassword", SYSDB_PWD, NULL },
+    { "groupGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "groupMember", "member", SYSDB_MEMBER, NULL },
+    /* FIXME: this is 389ds specific */
     { "groupUUID", "nsUniqueId", SYSDB_UUID, NULL }
 };
 
@@ -75,6 +101,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
                      const char *conf_path,
                      struct sdap_options **_opts)
 {
+    struct sdap_id_map *default_user_map;
+    struct sdap_id_map *default_group_map;
     struct sdap_options *opts;
     int i, ret;
 
@@ -146,9 +174,13 @@ int sdap_get_options(TALLOC_CTX *memctx,
     /* schema type */
     if (strcasecmp(opts->basic[SDAP_SCHEMA].value, "rfc2307") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307;
+        default_user_map = rfc2307_user_map;
+        default_group_map = rfc2307_group_map;
     } else
     if (strcasecmp(opts->basic[SDAP_SCHEMA].value, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
+        default_user_map = rfc2307bis_user_map;
+        default_group_map = rfc2307bis_group_map;
     } else {
         DEBUG(0, ("Unrecognized schema type: %s\n",
                   opts->basic[SDAP_SCHEMA].value));
@@ -156,8 +188,6 @@ int sdap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
-
-/* FIXME: make defaults per schema type memberUid vs member, etc... */
     for (i = 0; i < SDAP_OPTS_USER; i++) {
 
         opts->user_map[i].opt_name = default_user_map[i].opt_name;
@@ -285,6 +315,8 @@ static int sdap_parse_entry(TALLOC_CTX *memctx,
     }
     while (str) {
         for (a = 1; a < attrs_num; a++) {
+            /* check if this attr is valid with the chosen schema */
+            if (!map[a].name) continue;
             /* check if it is an attr we are interested in */
             if (strcasecmp(str, map[a].name) == 0) break;
         }
