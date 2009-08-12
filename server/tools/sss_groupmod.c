@@ -156,16 +156,16 @@ static void remove_from_groups(struct ops_ctx *data)
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
                                data->domain->name, data->name);
-    if (!member_dn) {
+    if (!parent_dn) {
         return mod_group_done(data, ENOMEM);
     }
 
-    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
+    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
                                data->domain->name,
                                data->rmgroups[data->cur]);
-    if (!parent_dn) {
+    if (!member_dn) {
         return mod_group_done(data, ENOMEM);
     }
 
@@ -213,16 +213,16 @@ static void add_to_groups(struct ops_ctx *data)
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
                                data->domain->name, data->name);
-    if (!member_dn) {
+    if (!parent_dn) {
         return mod_group_done(data, ENOMEM);
     }
 
-    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
+    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
                                data->domain->name,
                                data->addgroups[data->cur]);
-    if (!parent_dn) {
+    if (!member_dn) {
         return mod_group_done(data, ENOMEM);
     }
 
