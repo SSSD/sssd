@@ -108,7 +108,8 @@ int get_domain_by_id(struct tools_ctx *ctx,
 
     if (id) {
         for (dom = ctx->domains; dom; dom = dom->next) {
-            if (id >= dom->id_min && id <= dom->id_max) {
+            if (id >= dom->id_min &&
+                (dom->id_max == 0 || id <= dom->id_max)) {
                 break;
             }
         }

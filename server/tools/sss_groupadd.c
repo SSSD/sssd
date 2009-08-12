@@ -237,11 +237,15 @@ int main(int argc, const char **argv)
             break;
 
         case ID_IN_LEGACY_LOCAL:
-        case ID_OUTSIDE:
             ret = groupadd_legacy(data);
             if(ret != EOK) {
                 ERROR("Cannot add group to domain using the legacy tools\n");
             }
+            goto fini;
+
+        case ID_OUTSIDE:
+            ERROR("The selected GID is outside all domain ranges\n");
+            ret = EXIT_FAILURE;
             goto fini;
 
         case ID_IN_OTHER:

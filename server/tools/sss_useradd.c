@@ -296,7 +296,10 @@ static int useradd_legacy(struct ops_ctx *ctx, char *grouplist)
 
     APPEND_PARAM(command, USERADD_UID_MIN, ctx->domain->id_min);
 
-    APPEND_PARAM(command, USERADD_UID_MAX, ctx->domain->id_max);
+    /* id_max == 0 means no limit */
+    if (ctx->domain->id_max) {
+        APPEND_PARAM(command, USERADD_UID_MAX, ctx->domain->id_max);
+    }
 
     APPEND_PARAM(command, USERADD_GROUPS, grouplist);
 
@@ -499,11 +502,15 @@ int main(int argc, const char **argv)
             break;
 
         case ID_IN_LEGACY_LOCAL:
-        case ID_OUTSIDE:
             ret = useradd_legacy(data, groups);
             if(ret != EOK) {
                 ERROR("Cannot add user to domain using the legacy tools\n");
             }
+            goto fini;
+
+        case ID_OUTSIDE:
+            ERROR("The selected UID is outside all domain ranges\n");
+            ret = EXIT_FAILURE;
             goto fini;
 
         case ID_IN_OTHER:
