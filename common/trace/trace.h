@@ -45,7 +45,8 @@ extern unsigned trace_level;
     do { \
         if (level & trace_level) { \
             printf("[DEBUG] %23s (%4d) %s %s\n", \
-                   __FILE__, __LINE__, msg, str); \
+                   __FILE__, __LINE__, (msg != NULL) ? msg : "MISSING MESSAGE", \
+                                       (str != NULL) ? str : "(null)"); \
         } \
     } while(0)
 
@@ -54,7 +55,8 @@ extern unsigned trace_level;
     do { \
         if (level & trace_level) { \
             printf("[DEBUG] %23s (%4d) %s %lu\n", \
-                   __FILE__, __LINE__, msg, (unsigned long int)(num)); \
+                   __FILE__, __LINE__, (msg != NULL) ? msg : "MISSING MESSAGE", \
+                                       (unsigned long int)(num)); \
         } \
     } while(0)
 
@@ -63,7 +65,8 @@ extern unsigned trace_level;
     do { \
         if (level & trace_level) { \
             printf("[DEBUG] %23s (%4d) %s %e\n", \
-                   __FILE__, __LINE__, msg, (double)(num)); \
+                   __FILE__, __LINE__, (msg != NULL) ? msg : "MISSING MESSAGE", \
+                                       (double)(num)); \
         } \
     } while(0)
 
