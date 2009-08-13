@@ -91,6 +91,12 @@ INI_CFG_LIBS = \
     -L$(builddir)/../common/ini/.libs/ \
     -lini_config
 
+DHASH_CFLAGS = \
+    -I$(srcdir)/../common/dhash
+DHASH_LIBS = \
+    -L$(builddir)/../common/dhash/.libs/ \
+    -ldhash
+
 AM_CPPFLAGS = -Wall \
     -Iinclude \
     -I.. \
@@ -107,7 +113,8 @@ AM_CPPFLAGS = -Wall \
     $(PCRE_CFLAGS) \
     $(REPLACE_CFLAGS) \
     $(COLLECTION_CFLAGS) \
-    $(INI_CFG_CFLAGS)\
+    $(INI_CFG_CFLAGS) \
+    $(DHASH_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
@@ -174,6 +181,7 @@ SSSD_LIBS = \
     $(PCRE_LIBS) \
     $(INI_CFG_LIBS) \
     $(COLLECTION_LIBS) \
+    $(DHASH_LIBS) \
     $(REPLACE_LIBS) \
     $(NSS_LIBS) \
     libsss_crypt.la
