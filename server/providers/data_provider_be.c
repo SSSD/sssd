@@ -874,6 +874,43 @@ done:
     return ret;
 }
 
+/* Some providers are just aliases for more complicated settings,
+ * rewrite the alias into the actual settings */
+static int be_rewrite(struct be_ctx *ctx)
+{
+    int ret;
+    const char *val[2];
+    val[1] = NULL;
+
+    /* "files" is a special case that means:
+     *  provider = proxy
+     *  libName  = files
+     */
+    if (strcasecmp(ctx->name, "files") == 0) {
+        DEBUG(5, ("Rewriting provider %s\n", ctx->name));
+
+        val[0] = "proxy";
+        ret = confdb_add_param(ctx->cdb, true,
+                               ctx->conf_path,
+                               "provider",
+                               val);
+        if (ret) {
+            return ret;
+        }
+
+        val[0] = "files";
+        ret = confdb_add_param(ctx->cdb, true,
+                               ctx->conf_path,
+                               "libName",
+                               val);
+        if (ret) {
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 int be_process_init(TALLOC_CTX *mem_ctx,
                     const char *be_name,
                     const char *be_domain,
@@ -919,6 +956,12 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ret = be_cli_init(ctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up server bus\n"));
+        return ret;
+    }
+
+    ret = be_rewrite(ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("error rewriting provider types\n"));
         return ret;
     }
 

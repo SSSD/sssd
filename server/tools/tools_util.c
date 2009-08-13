@@ -78,7 +78,8 @@ enum id_domain get_domain_type(struct tools_ctx *ctx,
 
     if (strcasecmp(dom->provider, "local") == 0) {
         return ID_IN_LOCAL;
-    } else if (is_domain_local_legacy(ctx, dom) == 0) {
+    } else if (strcasecmp(dom->provider, "files") == 0 ||
+               is_domain_local_legacy(ctx, dom) == 0) {
         return ID_IN_LEGACY_LOCAL;
     }
 
