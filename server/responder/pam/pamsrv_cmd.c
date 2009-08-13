@@ -478,9 +478,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         preq->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
 
-        ret = nss_dp_send_acct_req(preq->cctx->rctx, preq,
+        ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
                                    pam_check_user_dp_callback, preq,
-                                   timeout, preq->domain->name, NSS_DP_USER,
+                                   timeout, preq->domain->name, SSS_DP_USER,
                                    preq->pd->user, 0);
     }
     else {
@@ -595,9 +595,9 @@ static void pam_check_user_callback(void *ptr, int status,
             preq->data = talloc_steal(preq, res);
         }
 
-        ret = nss_dp_send_acct_req(preq->cctx->rctx, preq,
+        ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
                                    pam_check_user_dp_callback, preq,
-                                   timeout, preq->domain->name, NSS_DP_USER,
+                                   timeout, preq->domain->name, SSS_DP_USER,
                                    preq->pd->user, 0);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -663,11 +663,11 @@ static void pam_check_user_callback(void *ptr, int status,
                     /* no need to re-check later on */
                     preq->check_provider = false;
 
-                    ret = nss_dp_send_acct_req(preq->cctx->rctx, preq,
+                    ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
                                                pam_check_user_dp_callback,
                                                preq, timeout,
                                                preq->domain->name,
-                                               NSS_DP_USER,
+                                               SSS_DP_USER,
                                                preq->pd->user, 0);
                 }
                 else {

@@ -128,15 +128,15 @@ int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *intf,
                 uint16_t cli_type, uint16_t cli_version,
                 const char *cli_name, const char *cli_domain);
 
-#define NSS_DP_USER 1
-#define NSS_DP_GROUP 2
-#define NSS_DP_INITGROUPS 3
+#define SSS_DP_USER 1
+#define SSS_DP_GROUP 2
+#define SSS_DP_INITGROUPS 3
 
-typedef void (*nss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
+typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);
 
-int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
-                         nss_dp_callback_t callback, void *callback_ctx,
+int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
+                         sss_dp_callback_t callback, void *callback_ctx,
                          int timeout, const char *domain, int type,
                          const char *opt_name, uint32_t opt_id);
 

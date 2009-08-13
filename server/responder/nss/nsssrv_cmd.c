@@ -331,9 +331,9 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getpwnam_dp_callback, dctx,
-                                   timeout, dctx->domain->name, NSS_DP_USER,
+                                   timeout, dctx->domain->name, SSS_DP_USER,
                                    cmdctx->name, 0);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -703,9 +703,9 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getpwuid_dp_callback, dctx,
-                                   timeout, dctx->domain->name, NSS_DP_USER,
+                                   timeout, dctx->domain->name, SSS_DP_USER,
                                    NULL, cmdctx->id);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -1035,9 +1035,9 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
 
         if (dctx->check_provider) {
             timeout = SSS_CLI_SOCKET_TIMEOUT;
-            ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+            ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setpw_dp_callback, dctx,
-                                       timeout, dom->name, NSS_DP_USER,
+                                       timeout, dom->name, SSS_DP_USER,
                                        NULL, 0);
         } else {
             ret = sysdb_enumpwent(dctx, cctx->rctx->sysdb,
@@ -1168,9 +1168,9 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 
     if (dctx->check_provider) {
         timeout = SSS_CLI_SOCKET_TIMEOUT;
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_setpw_dp_callback, dctx,
-                                   timeout, dom->name, NSS_DP_USER,
+                                   timeout, dom->name, SSS_DP_USER,
                                    NULL, 0);
     } else {
         ret = sysdb_enumpwent(dctx, cctx->rctx->sysdb,
@@ -1728,9 +1728,9 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getgrnam_dp_callback, dctx,
-                                   timeout, dctx->domain->name, NSS_DP_GROUP,
+                                   timeout, dctx->domain->name, SSS_DP_GROUP,
                                    cmdctx->name, 0);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -2085,9 +2085,9 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getgrgid_dp_callback, dctx,
-                                   timeout, dctx->domain->name, NSS_DP_GROUP,
+                                   timeout, dctx->domain->name, SSS_DP_GROUP,
                                    NULL, cmdctx->id);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -2408,9 +2408,9 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
 
         if (dctx->check_provider) {
             timeout = SSS_CLI_SOCKET_TIMEOUT;
-            ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+            ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setgr_dp_callback, dctx,
-                                       timeout, dom->name, NSS_DP_GROUP,
+                                       timeout, dom->name, SSS_DP_GROUP,
                                        NULL, 0);
         } else {
             ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
@@ -2541,9 +2541,9 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     if (dctx->check_provider) {
         timeout = SSS_CLI_SOCKET_TIMEOUT;
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_setgr_dp_callback, dctx,
-                                   timeout, dom->name, NSS_DP_GROUP,
+                                   timeout, dom->name, SSS_DP_GROUP,
                                    NULL, 0);
     } else {
         ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
@@ -2908,9 +2908,9 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
             dctx->res = talloc_steal(dctx, res);
         }
 
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getinitnam_dp_callback, dctx,
-                                   timeout, dctx->domain->name, NSS_DP_USER,
+                                   timeout, dctx->domain->name, SSS_DP_USER,
                                    cmdctx->name, 0);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -3002,10 +3002,10 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     case 1:
 
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-        ret = nss_dp_send_acct_req(cctx->rctx, cmdctx,
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_getinitgr_callback, dctx,
                                    timeout, dctx->domain->name,
-                                   NSS_DP_INITGROUPS,
+                                   SSS_DP_INITGROUPS,
                                    cmdctx->name, 0);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",

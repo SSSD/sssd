@@ -148,19 +148,19 @@ int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *dp_intf,
     return EOK;
 }
 
-struct nss_dp_req;
+struct sss_dp_req;
 
-struct nss_dp_callback {
-    struct nss_dp_callback *prev;
-    struct nss_dp_callback *next;
-    nss_dp_callback_t callback;
-    struct nss_dp_req *ndp_req;
+struct sss_dp_callback {
+    struct sss_dp_callback *prev;
+    struct sss_dp_callback *next;
+    sss_dp_callback_t callback;
+    struct sss_dp_req *sdp_req;
     void *callback_ctx;
 };
 
-struct nss_dp_req {
+struct sss_dp_req {
     struct tevent_context *ev;
-    struct nss_dp_callback *cb_list;
+    struct sss_dp_callback *cb_list;
     DBusPendingCall *pending_reply;
 
     char *key;
@@ -171,21 +171,21 @@ struct nss_dp_req {
 
 static int sss_dp_callback_destructor(void *ptr)
 {
-    struct nss_dp_callback *cb = talloc_get_type(ptr, struct nss_dp_callback);
+    struct sss_dp_callback *cb = talloc_get_type(ptr, struct sss_dp_callback);
 
-    DLIST_REMOVE(cb->ndp_req->cb_list, cb);
+    DLIST_REMOVE(cb->sdp_req->cb_list, cb);
 
     return EOK;
 }
 
-static int nss_dp_req_destructor(void *ptr)
+static int sss_dp_req_destructor(void *ptr)
 {
-    struct nss_dp_req *ndp_req = talloc_get_type(ptr, struct nss_dp_req);
+    struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
     hash_key_t key;
 
     /* No callbacks to invoke. Destroy the hash entry */
     key.type = HASH_KEY_STRING;
-    key.str = ndp_req->key;
+    key.str = sdp_req->key;
     int hret = hash_delete(dp_requests, &key);
     if (hret != HASH_SUCCESS) {
         DEBUG(0, ("Could not clear entry from request queue\n"));
@@ -195,7 +195,7 @@ static int nss_dp_req_destructor(void *ptr)
     return EOK;
 }
 
-static int nss_dp_get_reply(DBusPendingCall *pending,
+static int sss_dp_get_reply(DBusPendingCall *pending,
                             dbus_uint16_t *err_maj,
                             dbus_uint32_t *err_min,
                             char **err_msg);
@@ -204,31 +204,31 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
                                    struct tevent_timer *te,
                                    struct timeval t, void *ptr)
 {
-    struct nss_dp_req *ndp_req;
-    struct nss_dp_callback *cb;
+    struct sss_dp_req *sdp_req;
+    struct sss_dp_callback *cb;
     struct timeval tv;
     struct tevent_timer *tev;
 
-    ndp_req = talloc_get_type(ptr, struct nss_dp_req);
-    if (!ndp_req) {
-        /* We didn't receive an nss_dp_req? */
+    sdp_req = talloc_get_type(ptr, struct sss_dp_req);
+    if (!sdp_req) {
+        /* We didn't receive an sss_dp_req? */
         return;
     }
 
-    cb = ndp_req->cb_list;
-    cb->callback(ndp_req->err_maj,
-                 ndp_req->err_min,
-                 ndp_req->err_msg,
+    cb = sdp_req->cb_list;
+    cb->callback(sdp_req->err_maj,
+                 sdp_req->err_min,
+                 sdp_req->err_msg,
                  cb->callback_ctx);
 
     /* Free the callback memory and remove it from the list */
     talloc_zfree(cb);
 
     /* Call the next callback if needed */
-    if (ndp_req->cb_list != NULL) {
+    if (sdp_req->cb_list != NULL) {
         tv = tevent_timeval_current();
-        tev = tevent_add_timer(ndp_req->ev, ndp_req, tv,
-                              sss_dp_invoke_callback, ndp_req);
+        tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
+                              sss_dp_invoke_callback, sdp_req);
         if (!te) {
             /* Out of memory or other serious error */
             goto done;
@@ -239,52 +239,52 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
 
     /* No more callbacks to invoke. Destroy the hash entry */
 done:
-    talloc_zfree(ndp_req);
+    talloc_zfree(sdp_req);
 }
 
-static void nss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
+static void sss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
 {
     int ret;
-    struct nss_dp_req *ndp_req;
-    struct nss_dp_callback *cb;
+    struct sss_dp_req *sdp_req;
+    struct sss_dp_callback *cb;
     struct timeval tv;
     struct tevent_timer *te;
 
-    ndp_req = talloc_get_type(ptr, struct nss_dp_req);
+    sdp_req = talloc_get_type(ptr, struct sss_dp_req);
 
-    ret = nss_dp_get_reply(pending,
-                           &ndp_req->err_maj,
-                           &ndp_req->err_min,
-                           &ndp_req->err_msg);
+    ret = sss_dp_get_reply(pending,
+                           &sdp_req->err_maj,
+                           &sdp_req->err_min,
+                           &sdp_req->err_msg);
     if (ret != EOK) {
         if (ret == ETIME) {
-            ndp_req->err_maj = DP_ERR_TIMEOUT;
-            ndp_req->err_min = ret;
-            ndp_req->err_msg = talloc_strdup(ndp_req, "Request timed out");
+            sdp_req->err_maj = DP_ERR_TIMEOUT;
+            sdp_req->err_min = ret;
+            sdp_req->err_msg = talloc_strdup(sdp_req, "Request timed out");
         }
         else {
-            ndp_req->err_maj = DP_ERR_FATAL;
-            ndp_req->err_min = ret;
-            ndp_req->err_msg =
-                talloc_strdup(ndp_req,
+            sdp_req->err_maj = DP_ERR_FATAL;
+            sdp_req->err_min = ret;
+            sdp_req->err_msg =
+                talloc_strdup(sdp_req,
                               "Failed to get reply from Data Provider");
         }
     }
 
     /* Check whether we need to issue any callbacks */
-    cb = ndp_req->cb_list;
-    if (ndp_req->cb_list == NULL) {
+    cb = sdp_req->cb_list;
+    if (sdp_req->cb_list == NULL) {
         if (cb == NULL) {
             /* No callbacks to invoke. Destroy the hash entry */
-            talloc_zfree(ndp_req);
+            talloc_zfree(sdp_req);
             return;
         }
     }
 
     /* Queue up all callbacks */
     tv = tevent_timeval_current();
-    te = tevent_add_timer(ndp_req->ev, ndp_req, tv,
-                          sss_dp_invoke_callback, ndp_req);
+    te = tevent_add_timer(sdp_req->ev, sdp_req, tv,
+                          sss_dp_invoke_callback, sdp_req);
     if (!te) {
         /* Out of memory or other serious error */
         goto error;
@@ -293,21 +293,21 @@ static void nss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
     return;
 
 error:
-    talloc_zfree(ndp_req);
+    talloc_zfree(sdp_req);
 }
 
-static int nss_dp_send_acct_req_create(struct resp_ctx *rctx,
+static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                        TALLOC_CTX *memctx,
                                        const char *domain,
                                        uint32_t be_type,
                                        char *filter,
                                        int timeout,
-                                       nss_dp_callback_t callback,
+                                       sss_dp_callback_t callback,
                                        void *callback_ctx,
-                                       struct nss_dp_req **ndp);
+                                       struct sss_dp_req **ndp);
 
-int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
-                         nss_dp_callback_t callback, void *callback_ctx,
+int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
+                         sss_dp_callback_t callback, void *callback_ctx,
                          int timeout, const char *domain, int type,
                          const char *opt_name, uint32_t opt_id)
 {
@@ -317,8 +317,8 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
     hash_key_t key;
     hash_value_t value;
     TALLOC_CTX *tmp_ctx;
-    struct nss_dp_req *ndp_req;
-    struct nss_dp_callback *cb;
+    struct sss_dp_req *sdp_req;
+    struct sss_dp_callback *cb;
 
     /* either, or, not both */
     if (opt_name && opt_id) {
@@ -335,13 +335,13 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
     }
 
     switch (type) {
-    case NSS_DP_USER:
+    case SSS_DP_USER:
         be_type = BE_REQ_USER;
         break;
-    case NSS_DP_GROUP:
+    case SSS_DP_GROUP:
         be_type = BE_REQ_GROUP;
         break;
-    case NSS_DP_INITGROUPS:
+    case SSS_DP_INITGROUPS:
         be_type = BE_REQ_INITGROUPS;
         break;
     default:
@@ -376,14 +376,14 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         DEBUG(2, ("Identical request in progress\n"));
         if (callback) {
             /* We have a new request asking for a callback */
-            ndp_req = talloc_get_type(value.ptr, struct nss_dp_req);
-            if (!ndp_req) {
+            sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
+            if (!sdp_req) {
                 DEBUG(0, ("Could not retrieve DP request context\n"));
                 ret = EIO;
                 goto done;
             }
 
-            cb = talloc_zero(memctx, struct nss_dp_callback);
+            cb = talloc_zero(memctx, struct sss_dp_callback);
             if (!cb) {
                 ret = ENOMEM;
                 goto done;
@@ -391,9 +391,9 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
 
             cb->callback = callback;
             cb->callback_ctx = callback_ctx;
-            cb->ndp_req = ndp_req;
+            cb->sdp_req = sdp_req;
 
-            DLIST_ADD_END(ndp_req->cb_list, cb, struct nss_dp_callback *);
+            DLIST_ADD_END(sdp_req->cb_list, cb, struct sss_dp_callback *);
             talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
         }
         ret = EOK;
@@ -403,13 +403,13 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         /* No such request in progress
          * Create a new request
          */
-        ret = nss_dp_send_acct_req_create(rctx, memctx, domain,
+        ret = sss_dp_send_acct_req_create(rctx, memctx, domain,
                                           be_type, filter, timeout,
                                           callback, callback_ctx,
-                                          &ndp_req);
+                                          &sdp_req);
         if (ret == EOK) {
             value.type = HASH_VALUE_PTR;
-            value.ptr = ndp_req;
+            value.ptr = sdp_req;
             hret = hash_enter(dp_requests, &key, &value);
             if (hret != HASH_SUCCESS) {
                 DEBUG(0, ("Could not store request query (%s)",
@@ -418,8 +418,8 @@ int nss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
                 goto done;
             }
 
-            ndp_req->key = talloc_strdup(ndp_req, key.str);
-            talloc_set_destructor((TALLOC_CTX *)ndp_req, nss_dp_req_destructor);
+            sdp_req->key = talloc_strdup(sdp_req, key.str);
+            talloc_set_destructor((TALLOC_CTX *)sdp_req, sss_dp_req_destructor);
         }
         break;
 
@@ -437,22 +437,22 @@ done:
     return ret;
 }
 
-static int nss_dp_send_acct_req_create(struct resp_ctx *rctx,
+static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                        TALLOC_CTX *memctx,
                                        const char *domain,
                                        uint32_t be_type,
                                        char *filter,
                                        int timeout,
-                                       nss_dp_callback_t callback,
+                                       sss_dp_callback_t callback,
                                        void *callback_ctx,
-                                       struct nss_dp_req **ndp)
+                                       struct sss_dp_req **ndp)
 {
     DBusConnection *dbus_conn;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     dbus_bool_t dbret;
-    struct nss_dp_callback *cb;
-    struct nss_dp_req *ndp_req;
+    struct sss_dp_callback *cb;
+    struct sss_dp_req *sdp_req;
 
     const char *attrs = "core";
 
@@ -504,36 +504,36 @@ static int nss_dp_send_acct_req_create(struct resp_ctx *rctx,
         return EIO;
     }
 
-    ndp_req = talloc_zero(NULL, struct nss_dp_req);
-    if (!ndp_req) {
+    sdp_req = talloc_zero(NULL, struct sss_dp_req);
+    if (!sdp_req) {
         dbus_message_unref(msg);
         return ENOMEM;
     }
 
-    ndp_req->ev = rctx->ev;
+    sdp_req->ev = rctx->ev;
 
     if (callback) {
-        cb = talloc_zero(memctx, struct nss_dp_callback);
+        cb = talloc_zero(memctx, struct sss_dp_callback);
         if (!cb) {
             dbus_message_unref(msg);
-            talloc_zfree(ndp_req);
+            talloc_zfree(sdp_req);
             return ENOMEM;
         }
         cb->callback = callback;
         cb->callback_ctx = callback_ctx;
-        cb->ndp_req = ndp_req;
+        cb->sdp_req = sdp_req;
 
-        DLIST_ADD(ndp_req->cb_list, cb);
+        DLIST_ADD(sdp_req->cb_list, cb);
         talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
     }
 
     /* Set up the reply handler */
     dbret = dbus_pending_call_set_notify(pending_reply,
-                                         nss_dp_send_acct_callback,
-                                         ndp_req, NULL);
+                                         sss_dp_send_acct_callback,
+                                         sdp_req, NULL);
     if (!dbret) {
         DEBUG(0, ("Could not queue up pending request!"));
-        talloc_zfree(ndp_req);
+        talloc_zfree(sdp_req);
         dbus_pending_call_cancel(pending_reply);
         dbus_message_unref(msg);
         return EIO;
@@ -541,12 +541,12 @@ static int nss_dp_send_acct_req_create(struct resp_ctx *rctx,
 
     dbus_message_unref(msg);
 
-    *ndp = ndp_req;
+    *ndp = sdp_req;
 
     return EOK;
 }
 
-static int nss_dp_get_reply(DBusPendingCall *pending,
+static int sss_dp_get_reply(DBusPendingCall *pending,
                             dbus_uint16_t *err_maj,
                             dbus_uint32_t *err_min,
                             char **err_msg)
