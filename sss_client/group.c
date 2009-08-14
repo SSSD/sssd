@@ -66,6 +66,8 @@ static void sss_nss_getgrent_data_clean(void) {
  *  0-3: 32bit number gid
  *  4-7: 32bit unsigned number of members
  *  8-X: sequence of 0 terminated strings (name, passwd, mem..)
+ *
+ *  FIXME: do we need to pad so that each result is 32 bit aligned ?
  */
 struct sss_nss_gr_rep {
     struct group *result;
@@ -239,6 +241,9 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     enum nss_status nret;
     int ret;
 
+    /* Caught once glibc passing in buffer == 0x0 */
+    if (!buffer || !buflen) return ERANGE;
+
     rd.len = strlen(name) + 1;
     rd.data = name;
 
@@ -285,6 +290,9 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     enum nss_status nret;
     uint32_t group_gid;
     int ret;
+
+    /* Caught once glibc passing in buffer == 0x0 */
+    if (!buffer || !buflen) return ERANGE;
 
     group_gid = gid;
     rd.len = sizeof(uint32_t);
@@ -351,6 +359,9 @@ enum nss_status _nss_sss_getgrent_r(struct group *result,
     enum nss_status nret;
     uint32_t num_entries;
     int ret;
+
+    /* Caught once glibc passing in buffer == 0x0 */
+    if (!buffer || !buflen) return ERANGE;
 
     /* if there are leftovers return the next one */
     if (sss_nss_getgrent_data.data != NULL &&
