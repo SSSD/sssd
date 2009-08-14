@@ -119,15 +119,48 @@ int sss_packet_grow(struct sss_packet *packet, size_t size)
         }
 
         packet->memsize = totlen;
-        packet->buffer = newmem;
-        packet->len = &((uint32_t *)packet->buffer)[0];
-        packet->cmd = &((uint32_t *)packet->buffer)[1];
-        packet->status = &((uint32_t *)packet->buffer)[2];
-        packet->reserved = &((uint32_t *)packet->buffer)[3];
-        packet->body = (uint8_t *)&((uint32_t *)packet->buffer)[4];
+
+        /* re-set pointers if realloc had to move memory */
+        if (newmem != packet->buffer) {
+            packet->buffer = newmem;
+            packet->len = &((uint32_t *)packet->buffer)[0];
+            packet->cmd = &((uint32_t *)packet->buffer)[1];
+            packet->status = &((uint32_t *)packet->buffer)[2];
+            packet->reserved = &((uint32_t *)packet->buffer)[3];
+            packet->body = (uint8_t *)&((uint32_t *)packet->buffer)[4];
+        }
     }
 
     *(packet->len) += size;
+
+    return 0;
+}
+
+/* reclaim backet previously resrved space in the packet
+ * usually done in functione recovering from not fatal erros */
+int sss_packet_shrink(struct sss_packet *packet, size_t size)
+{
+    size_t newlen;
+
+    if (size > *(packet->len)) return EINVAL;
+
+    newlen = *(packet->len) - size;
+    if (newlen < SSS_NSS_HEADER_SIZE) return EINVAL;
+
+    *(packet->len) = newlen;
+    return 0;
+}
+
+int sss_packet_set_size(struct sss_packet *packet, size_t size)
+{
+    size_t newlen;
+
+    newlen = SSS_NSS_HEADER_SIZE + size;
+
+    /* make sure we do not overflow */
+    if (packet->memsize < newlen) return EINVAL;
+
+    *(packet->len) = newlen;
 
     return 0;
 }

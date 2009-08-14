@@ -1349,73 +1349,87 @@ done:
  * GROUP db related functions
  ***************************************************************************/
 
+#define GID_ROFFSET 0
+#define MNUM_ROFFSET sizeof(uint32_t)
+#define STRS_ROFFSET 2*sizeof(uint32_t)
+
 static int fill_grent(struct sss_packet *packet,
                       struct sss_domain_info *dom,
                       struct nss_ctx *nctx,
                       bool filter_groups,
                       struct ldb_message **msgs,
-                      int count)
+                      int max, int *count)
 {
-    struct ldb_message_element *el;
     struct ldb_message *msg;
     uint8_t *body;
-    const char *name;
+    size_t blen;
     uint32_t gid, uid;
-    size_t rsize, rp, blen, mnump;
-    int i, j, n, t, ret, num, memnum;
-    bool get_members;
-    bool skip_members;
-    size_t dom_len = 0;
-    size_t name_len;
-    int delim = 1;
+    const char *name;
+    size_t nsize;
+    size_t delim;
+    size_t dom_len;
+    int i, ret, num, memnum;
+    size_t rzero, rsize;
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
     const char *namefmt = nctx->rctx->names->fq_fmt;
-    bool packet_initialized = false;
-    int ncret;
-    bool legacy = false;
 
-    if (add_domain) dom_len = strlen(domain);
-
-    rp = 2*sizeof(uint32_t);
+    if (add_domain) {
+        delim = 1;
+        dom_len = strlen(domain);
+    } else {
+        delim = 0;
+        dom_len = 0;
+    }
 
     num = 0;
-    mnump = 0;
     memnum = 0;
-    get_members = false;
-    skip_members = false;
-    for (i = 0; i < count; i++) {
+
+    /* first 2 fields (len and reserved), filled up later */
+    ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
+    if (ret != EOK) {
+        goto done;
+    }
+    sss_packet_get_body(packet, &body, &blen);
+    rzero = 2*sizeof(uint32_t);
+    rsize = 0;
+
+    for (i = 0; i < *count; i++) {
         msg = msgs[i];
 
         /* new group */
         if (ldb_msg_check_string_attribute(msg, "objectClass",
                                                 SYSDB_GROUP_CLASS)) {
-            if (get_members) {
-                /* this marks the end of a previous group */
-                sss_packet_get_body(packet, &body, &blen);
-                ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
-                get_members = false;
+            if (memnum) {
+                /* set num of members */
+                ((uint32_t *)(&body[rzero+MNUM_ROFFSET]))[0] = memnum;
+                memnum = 0;
             }
+
+            /* if we reached the max allowed entries, simply return */
+            if (num >= max) {
+                goto done;
+            }
+
+            /* new result starts at end of previous result */
+            rzero += rsize;
+            rsize = 0;
 
             /* find group name/gid */
             name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
             gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
             if (!name || !gid) {
-                DEBUG(1, ("Incomplete group object for %s[%llu]! Aborting\n",
+                DEBUG(1, ("Incomplete group object for %s[%llu]! Skipping\n",
                           name?name:"<NULL>", (unsigned long long int)gid));
-                num = 0;
-                goto done;
+                continue;
             }
 
-            skip_members = false;
-
             if (filter_groups) {
-                ncret = nss_ncache_check_group(nctx->ncache,
+                ret = nss_ncache_check_group(nctx->ncache,
                                              nctx->neg_timeout, domain, name);
-                if (ncret == EEXIST) {
+                if (ret == EEXIST) {
                     DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
                               name, domain));
-                    skip_members = true;
                     continue;
                 }
             }
@@ -1423,23 +1437,16 @@ static int fill_grent(struct sss_packet *packet,
             /* check that the gid is valid for this domain */
             if ((dom->id_min && (gid < dom->id_min)) ||
                 (dom->id_max && (gid > dom->id_max))) {
-                    DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
+                    DEBUG(4, ("Group [%s@%s] filtered out! (id out of range)\n",
                               name, domain));
-                skip_members = true;
                 continue;
             }
 
-            if (!packet_initialized) {
-                /* first 2 fields (len and reserved), filled up later */
-                ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
-                if (ret != EOK) return ret;
-                packet_initialized = true;
-            }
+            nsize = strlen(name) + 1; /* includes terminating \0 */
+            if (add_domain) nsize += delim + dom_len;
 
             /* fill in gid and name and set pointer for number of members */
-            name_len = strlen(name) + 1;
-            if (add_domain) name_len += delim + dom_len;
-            rsize = 2 * sizeof(uint32_t) + name_len + 2;
+            rsize = STRS_ROFFSET + nsize + 2; /* name\0x\0 */
 
             ret = sss_packet_grow(packet, rsize);
             if (ret != EOK) {
@@ -1448,153 +1455,82 @@ static int fill_grent(struct sss_packet *packet,
             }
             sss_packet_get_body(packet, &body, &blen);
 
-            /*  0-3: 64bit number gid */
-            rp = blen - rsize;
-            ((uint32_t *)(&body[rp]))[0] = gid;
-            rp += sizeof(uint32_t);
+            /*  0-3: 32bit number gid */
+            ((uint32_t *)(&body[rzero+GID_ROFFSET]))[0] = gid;
 
             /*  4-7: 32bit unsigned number of members */
-            ((uint32_t *)(&body[rp]))[0] = 0; /* init members num to 0 */
-            mnump = rp; /* keep around members num pointer to set later */
-            rp += sizeof(uint32_t);
+            ((uint32_t *)(&body[rzero+MNUM_ROFFSET]))[0] = 0;
 
             /*  8-X: sequence of strings (name, passwd, mem..) */
             if (add_domain) {
-                ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
-                if (ret >= name_len) {
+                ret = snprintf((char *)&body[rzero+STRS_ROFFSET],
+                                nsize, namefmt, name, domain);
+                if (ret >= nsize) {
                     /* need more space, got creative with the print format ? */
-                    t = ret - name_len + 1;
+                    int t = ret - nsize + 1;
                     ret = sss_packet_grow(packet, t);
                     if (ret != EOK) {
                         num = 0;
                         goto done;
                     }
-                    delim += t;
-                    name_len += t;
                     sss_packet_get_body(packet, &body, &blen);
+                    rsize += t;
+                    delim += t;
+                    nsize += t;
 
                     /* retry */
-                    ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
+                    ret = snprintf((char *)&body[rzero+STRS_ROFFSET],
+                                    nsize, namefmt, name, domain);
                 }
 
-                if (ret != name_len-1) {
-                    DEBUG(1, ("Failed to generate a fully qualified name for user "
-                              "[%s] in [%s]! Skipping user.\n", name, domain));
-                    continue;
-                }
-            } else {
-                memcpy(&body[rp], name, name_len);
-            }
-            rp += name_len;
-
-            body[rp] = 'x'; /* group passwd field */
-            body[rp+1] = '\0';
-
-            memnum = 0;
-            num++;
-
-            /* legacy style group, members are in SYSDB_LEGACY_MEMBER */
-            el = ldb_msg_find_element(msg, SYSDB_LEGACY_MEMBER);
-            if (el) {
-                /* legacy */
-                legacy = true;
-                memnum = el->num_values;
-                n = 0;
-                for (j = 0; j < memnum; j++) {
-
-                    name = (char *)el->values[j].data;
-
-                    if (nctx->filter_users_in_groups) {
-                        ncret = nss_ncache_check_user(nctx->ncache,
-                                                      nctx->neg_timeout,
-                                                      domain, name);
-                        if (ncret == EEXIST) {
-                            DEBUG(4,("User [%s@%s] filtered out! (negative cache)\n",
-                                      name, domain));
-                            continue;
-                        }
-                    }
-
-                    name_len = el->values[j].length + 1;
-                    if (add_domain) name_len += delim + dom_len;
-
-                    rsize = name_len;
-                    ret = sss_packet_grow(packet, rsize);
+                if (ret != nsize-1) {
+                    DEBUG(1, ("Failed to generate a fully qualified name for"
+                              " group [%s] in [%s]! Skipping\n", name, domain));
+                    /* reclaim space */
+                    ret = sss_packet_shrink(packet, rsize);
                     if (ret != EOK) {
                         num = 0;
                         goto done;
                     }
-
-                    sss_packet_get_body(packet, &body, &blen);
-                    rp = blen - rsize;
-
-                    if (add_domain) {
-                        ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
-                        if (ret >= name_len) {
-                            /* need more space, got creative with the print format ? */
-                            t = ret - name_len + 1;
-                            ret = sss_packet_grow(packet, t);
-                            if (ret != EOK) {
-                                num = 0;
-                                goto done;
-                            }
-                            delim += t;
-                            name_len += t;
-                            sss_packet_get_body(packet, &body, &blen);
-
-                            /* retry */
-                            ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
-                        }
-
-                        if (ret != name_len-1) {
-                            DEBUG(1, ("Failed to generate a fully qualified name for user "
-                                      "[%s] in [%s]! Skipping user.\n", name, domain));
-                            continue;
-                        }
-                    } else {
-                        memcpy(&body[rp], name, name_len);
-                    }
-                    rp += name_len;
-                    body[blen-1] = '\0';
-
-                    n++;
+                    rsize = 0;
+                    continue;
                 }
-
-                sss_packet_get_body(packet, &body, &blen);
-                ((uint32_t *)(&body[mnump]))[0] = n; /* num members */
-
-            }  else {
-                get_members = true;
+            } else {
+                memcpy(&body[rzero+STRS_ROFFSET], name, nsize);
             }
 
+            body[rzero + rsize -2] = 'x'; /* group passwd field */
+            body[rzero + rsize -1] = '\0';
+
+            num++;
             continue;
         }
 
-        if (skip_members) continue;
-
-        if (!get_members) {
-            DEBUG(1, ("Wrong object found on stack! Aborting\n"));
-            num = 0;
-            goto done;
+        if (rsize == 0) {
+            /* some error occurred and there is no result structure ready to
+             * store members */
+            continue;
         }
 
         /* member */
         if (ldb_msg_check_string_attribute(msg, "objectClass",
                                                 SYSDB_USER_CLASS)) {
 
+            nsize = 0;
+
             name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
             uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
             if (!name || !uid) {
-                DEBUG(1, ("Incomplete user object! Aborting\n"));
-                num = 0;
-                goto done;
+                DEBUG(1, ("Incomplete user object! Skipping\n"));
+                continue;
             }
 
             if (nctx->filter_users_in_groups) {
-                ncret = nss_ncache_check_user(nctx->ncache,
+                ret = nss_ncache_check_user(nctx->ncache,
                                             nctx->neg_timeout, domain, name);
-                if (ncret == EEXIST) {
-                    DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
+                if (ret == EEXIST) {
+                    DEBUG(4, ("Group [%s] member [%s@%s] filtered out! (negative"
+                              " cache)\n", (char *)&body[rzero+STRS_ROFFSET],
                               name, domain));
                     continue;
                 }
@@ -1603,72 +1539,84 @@ static int fill_grent(struct sss_packet *packet,
             /* check that the uid is valid for this domain */
             if ((dom->id_min && (uid < dom->id_min)) ||
                 (dom->id_max && (uid > dom->id_max))) {
-                    DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
+                    DEBUG(4, ("Group [%s] member [%s@%s] filtered out! (id out"
+                              " of range)\n", (char *)&body[rzero+STRS_ROFFSET],
                               name, domain));
                 continue;
             }
 
-            name_len = strlen(name) + 1;
-            if (add_domain) name_len += delim + dom_len;
+            nsize = strlen(name) + 1;
+            if (add_domain) nsize += delim + dom_len;
 
-            rsize = name_len;
-            ret = sss_packet_grow(packet, rsize);
+            ret = sss_packet_grow(packet, nsize);
             if (ret != EOK) {
                 num = 0;
                 goto done;
             }
             sss_packet_get_body(packet, &body, &blen);
-            rp = blen - rsize;
 
             if (add_domain) {
-                ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
-                if (ret >= name_len) {
+                ret = snprintf((char *)&body[rzero + rsize],
+                                nsize, namefmt, name, domain);
+                if (ret >= nsize) {
                     /* need more space, got creative with the print format ? */
-                    t = ret - name_len + 1;
+                    int t = ret - nsize + 1;
                     ret = sss_packet_grow(packet, t);
                     if (ret != EOK) {
                         num = 0;
                         goto done;
                     }
-                    delim += t;
-                    name_len += t;
                     sss_packet_get_body(packet, &body, &blen);
+                    delim += t;
+                    nsize += t;
 
                     /* retry */
-                    ret = snprintf((char *)&body[rp], name_len, namefmt, name, domain);
+                    ret = snprintf((char *)&body[rzero + rsize],
+                                    nsize, namefmt, name, domain);
                 }
 
-                if (ret != name_len-1) {
-                    DEBUG(1, ("Failed to generate a fully qualified name for user "
-                              "[%s] in [%s]! Skipping user.\n", name, domain));
+                if (ret != nsize-1) {
+                    DEBUG(1, ("Failed to generate a fully qualified name for"
+                              " member [%s@%s] of group [%s]! Skipping\n", name,
+                              domain, (char *)&body[rzero+STRS_ROFFSET]));
+                    /* reclaim space */
+                    ret = sss_packet_shrink(packet, nsize);
+                    if (ret != EOK) {
+                        num = 0;
+                        goto done;
+                    }
                     continue;
                 }
             } else {
-                memcpy(&body[rp], name, name_len);
+                memcpy(&body[rzero + rsize], name, nsize);
             }
-            rp += name_len;
-            memnum++;
 
+            rsize += nsize;
+            memnum++;
             continue;
         }
 
-        DEBUG(1, ("Wrong object found on stack! Aborting\n"));
-        num = 0;
-        goto done;
+        DEBUG(1, ("Wrong object (%s) found on stack!\n",
+                  ldb_dn_get_linearized(msg->dn)));
+        continue;
     }
 
-    if (mnump && !legacy) {
-        /* fill in the last group member count */
-        sss_packet_get_body(packet, &body, &blen);
-        ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
+    if (memnum) {
+        /* set num of members for the last result */
+        ((uint32_t *)(&body[rzero+MNUM_ROFFSET]))[0] = memnum;
     }
 
 done:
-    /* if there are no results just return ENOENT,
-     * let the caller decide if this is the last packet or not */
-    if (!packet_initialized) return ENOENT;
+    *count = i;
 
-    sss_packet_get_body(packet, &body, &blen);
+    if (num == 0) {
+        /* if num is 0 most probably something went wrong,
+         * reset packet and return ENOENT */
+        ret = sss_packet_set_size(packet, 0);
+        if (ret != EOK) return ret;
+        return ENOENT;
+    }
+
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
 
@@ -1679,7 +1627,7 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr);
 
 static void nss_cmd_getgrnam_callback(void *ptr, int status,
-                                   struct ldb_result *res)
+                                      struct ldb_result *res)
 {
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -1693,7 +1641,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     bool call_provider = false;
     bool neghit = false;
     int ncret;
-    int ret;
+    int i, ret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -1837,10 +1785,11 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
+        i = res->count;
         ret = fill_grent(cctx->creq->out,
                          dctx->domain,
                          nctx, false,
-                         res->msgs, res->count);
+                         res->msgs, 1, &i);
         if (ret == ENOENT) {
             ret = fill_empty(cctx->creq->out);
         }
@@ -2049,7 +1998,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
     size_t blen;
     bool call_provider = false;
     bool neghit = false;
-    int ret;
+    int i, ret;
     int ncret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
@@ -2181,11 +2130,11 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
-
+        i = res->count;
         ret = fill_grent(cctx->creq->out,
                          dctx->domain,
                          nctx, true,
-                         res->msgs, res->count);
+                         res->msgs, 1, &i);
         if (ret == ENOENT) {
             ret = fill_empty(cctx->creq->out);
         }
@@ -2626,13 +2575,12 @@ retry:
 
     if (!n) goto none;
 
-    if (n > num) n = num;
-
     msgs = &(gdom->res->msgs[gdom->cur]);
-    gdom->cur += n;
 
-    ret = fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, n);
+    ret = fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, num, &n);
     if (ret == ENOENT) goto retry;
+
+    gdom->cur += n;
     return ret;
 
 none:

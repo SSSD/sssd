@@ -32,6 +32,8 @@ int sss_packet_new(TALLOC_CTX *mem_ctx, size_t size,
                    enum sss_cli_command cmd,
                    struct sss_packet **rpacket);
 int sss_packet_grow(struct sss_packet *packet, size_t size);
+int sss_packet_shrink(struct sss_packet *packet, size_t size);
+int sss_packet_set_size(struct sss_packet *packet, size_t size);
 int sss_packet_recv(struct sss_packet *packet, int fd);
 int sss_packet_send(struct sss_packet *packet, int fd);
 enum sss_cli_command sss_packet_get_cmd(struct sss_packet *packet);
