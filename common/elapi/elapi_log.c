@@ -71,7 +71,8 @@ static int elapi_close_registered = 0;
 
 
 /* Internal function to log message using args */
-static int elapi_dsp_msg_with_vargs(struct elapi_dispatcher *dispatcher,
+static int elapi_dsp_msg_with_vargs(uint32_t target,
+                                    struct elapi_dispatcher *dispatcher,
                                     struct collection_item *template,
                                     va_list args)
 {
@@ -98,7 +99,7 @@ static int elapi_dsp_msg_with_vargs(struct elapi_dispatcher *dispatcher,
     }
 
     /* Now log event */
-    error = elapi_dsp_log(dispatcher, event);
+    error = elapi_dsp_log(target, dispatcher, event);
 
     /* Destroy event */
     elapi_destroy_event(event);
@@ -150,10 +151,10 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     }
 
     /* Check that all the async data is present */
-    if (!add_fd_add_fn) prm_cnt++;
-    if (!add_fd_rem_fn) prm_cnt++;
-    if (!add_timer_fn) prm_cnt++;
-    if (!callers_data) prm_cnt++;
+    if (add_fd_add_fn) prm_cnt++;
+    if (add_fd_rem_fn) prm_cnt++;
+    if (add_timer_fn) prm_cnt++;
+    if (callers_data) prm_cnt++;
 
     if ((prm_cnt > 0) && (prm_cnt < 4)) {
         /* We got a mixture of NULLs and not NULLs.
@@ -213,10 +214,10 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
      */
     memset(handle, 0, sizeof(struct elapi_dispatcher *));
     handle->ini_config = NULL;
+    handle->target_list = NULL;
     handle->sink_list = NULL;
-    handle->sinks = NULL;
+    handle->targets = NULL;
     handle->default_template = NULL;
-    handle->need_to_free = 0;
 
     /* Save application name in the handle */
     if (appname != NULL) handle->appname = strdup(appname);
@@ -248,12 +249,13 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         }
         return error;
     }
+
     /* Have to clean error set anyways */
     free_ini_config_errors(error_set);
 
-    /* Get sink list from configuration */
+    /* Get target list from configuration */
     error = get_config_item(ELAPI_DISPATCHER,
-                            ELAPI_SINKS,
+                            ELAPI_TARGETS,
                             handle->ini_config,
                             &item);
     if (error) {
@@ -262,14 +264,23 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         return error;
     }
 
-    if (!item) {
-        /* There is no list of sinks - use default list */
-        handle->sinks = default_sinks;
+    /* Do we have targets? */
+    if (item == NULL) {
+        /* There is no list of targets this is bad configuration - return error */
+        TRACE_ERROR_STRING("No targets in the config file.", "Fatal error!");
+        elapi_destroy_dispatcher(handle);
+        return ENOKEY;
     }
-    else {
-        /* Get one from config but make sure we free it later */
-        handle->sinks = get_string_config_array(item, NULL, NULL, NULL);
-        handle->need_to_free = 1;
+
+    /* Get one from config but make sure we free it later */
+    handle->targets = get_string_config_array(item, NULL, NULL, NULL);
+
+    /* Create the list of targets */
+    error = elapi_internal_construct_target_list(handle);
+    if (error != EOK) {
+        TRACE_ERROR_NUMBER("Failed to create target list. Error", error);
+        elapi_destroy_dispatcher(handle);
+        return error;
     }
 
     /* Populate async processing data if any */
@@ -280,14 +291,6 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         handle->add_timer_fn = add_timer_fn;
         handle->callers_data = callers_data;
         handle->async_mode = 1;
-    }
-
-    /* Create the list of sinks */
-    error = elapi_internal_construct_sink_list(handle);
-    if (error != EOK) {
-        TRACE_ERROR_NUMBER("Failed to create sink list. Error", error);
-        elapi_destroy_dispatcher(handle);
-        return error;
     }
 
     *dispatcher = handle;
@@ -328,19 +331,34 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
     if (dispatcher) {
         TRACE_INFO_STRING("Deleting template if any...", "");
         col_destroy_collection(dispatcher->default_template);
-        TRACE_INFO_STRING("Closing sink handler.", "");
-        (void)col_traverse_collection(dispatcher->sink_list,
-                                      COL_TRAVERSE_ONELEVEL,
-                                      elapi_internal_sink_cleanup_handler,
-                                      NULL);
-        TRACE_INFO_STRING("Deleting sink list.", "");
-        col_destroy_collection(dispatcher->sink_list);
+
+        if (dispatcher->target_list) {
+            TRACE_INFO_STRING("Closing target list.", "");
+            (void)col_traverse_collection(dispatcher->target_list,
+                                          COL_TRAVERSE_ONELEVEL,
+                                          elapi_internal_target_cleanup_handler,
+                                          NULL);
+
+            TRACE_INFO_STRING("Deleting target list.", "");
+            col_destroy_collection(dispatcher->target_list);
+        }
+
+        if (dispatcher->sink_list) {
+            TRACE_INFO_STRING("Closing sink list.", "");
+            (void)col_traverse_collection(dispatcher->sink_list,
+                                          COL_TRAVERSE_ONELEVEL,
+                                          elapi_internal_sink_cleanup_handler,
+                                          NULL);
+            TRACE_INFO_STRING("Deleting target list.", "");
+            col_destroy_collection(dispatcher->sink_list);
+        }
+
 		TRACE_INFO_STRING("Freeing application name.", "");
         free(dispatcher->appname);
         TRACE_INFO_STRING("Freeing config.", "");
         free_ini_config(dispatcher->ini_config);
-        TRACE_INFO_STRING("Deleting sink name array.", "");
-        if (dispatcher->need_to_free) free_string_config_array(dispatcher->sinks);
+        TRACE_INFO_STRING("Deleting targets name array.", "");
+        free_string_config_array(dispatcher->targets);
 		TRACE_INFO_STRING("Freeing dispatcher.", "");
         free(dispatcher);
     }
@@ -349,10 +367,12 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
 }
 
 /* Function to log an event */
-int elapi_dsp_log(struct elapi_dispatcher *dispatcher, struct collection_item *event)
+int elapi_dsp_log(uint32_t target,
+                  struct elapi_dispatcher *dispatcher,
+                  struct collection_item *event)
 {
     int error = EOK;
-    struct elapi_sink_context sink_env;
+    struct elapi_target_pass_in_data target_data;
 
     TRACE_FLOW_STRING("elapi_dsp_log", "Entry");
 
@@ -362,14 +382,18 @@ int elapi_dsp_log(struct elapi_dispatcher *dispatcher, struct collection_item *e
         return EINVAL;
     }
 
-    sink_env.handle = dispatcher;
-    sink_env.event = event;
+    /* Wrap parameters into one argument and pass on */
+    target_data.handle = dispatcher;
+    target_data.event = event;
+    target_data.target_mask = target;
 
-    /* Logging an event is just iterating through the sinks and calling the sink_handler */
-    error = col_traverse_collection(dispatcher->sink_list,
+    TRACE_INFO_NUMBER("Target mask is:", target_data.target_mask);
+
+    /* Logging an event is just iterating through the targets and calling the sink_handler */
+    error = col_traverse_collection(dispatcher->target_list,
                                     COL_TRAVERSE_ONELEVEL,
-                                    elapi_internal_sink_handler,
-                                    (void *)(&sink_env));
+                                    elapi_internal_target_handler,
+                                    (void *)(&target_data));
 
     TRACE_FLOW_NUMBER("elapi_dsp_log Exit. Returning", error);
     return error;
@@ -384,7 +408,13 @@ int elapi_set_default_template(unsigned base, ...)
 
     TRACE_FLOW_STRING("elapi_set_default_template", "Entry");
 
-    if (global_dispatcher == NULL) elapi_init(NULL, NULL);
+    if (global_dispatcher == NULL) {
+        error = elapi_init(NULL, NULL);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to init ELAPI", error);
+            return error;
+        }
+    }
 
     /* Clean previous instance of the default template */
     elapi_destroy_event_template(global_dispatcher->default_template);
@@ -436,7 +466,8 @@ int elapi_get_default_template(struct collection_item **template)
 
 
 /* Function to log raw key value pairs without creating an event */
-int elapi_dsp_msg(struct elapi_dispatcher *dispatcher,
+int elapi_dsp_msg(uint32_t target,
+                  struct elapi_dispatcher *dispatcher,
                   struct collection_item *template,
                   ...)
 {
@@ -447,7 +478,7 @@ int elapi_dsp_msg(struct elapi_dispatcher *dispatcher,
 
     va_start(args, template);
 
-    error = elapi_dsp_msg_with_vargs(dispatcher, template, args);
+    error = elapi_dsp_msg_with_vargs(target, dispatcher, template, args);
 
     va_end(args);
 
@@ -459,6 +490,7 @@ int elapi_dsp_msg(struct elapi_dispatcher *dispatcher,
 
 /* Managing the sink collection */
 int elapi_alter_dispatcher(struct elapi_dispatcher *dispatcher,
+                           const char *target,
                            const char *sink,
                            int action)
 {
@@ -468,7 +500,7 @@ int elapi_alter_dispatcher(struct elapi_dispatcher *dispatcher,
 }
 
 /* Get sink list */
-char **elapi_get_sink_list(struct elapi_dispatcher *dispatcher)
+char **elapi_get_sink_list(struct elapi_dispatcher *dispatcher, char *target)
 {
 
     /* FIXME: FUNCTION IS NOT IMPLEMENTED YET */
@@ -477,6 +509,22 @@ char **elapi_get_sink_list(struct elapi_dispatcher *dispatcher)
 
 /* Free sink list */
 void elapi_free_sink_list(char **sink_list)
+{
+
+    /* FIXME: FUNCTION IS NOT IMPLEMENTED YET */
+
+}
+
+/* Get target list */
+char **elapi_get_target_list(struct elapi_dispatcher *dispatcher)
+{
+
+    /* FIXME: FUNCTION IS NOT IMPLEMENTED YET */
+    return NULL;
+}
+
+/* Free target list */
+void elapi_free_target_list(char **target_list)
 {
 
     /* FIXME: FUNCTION IS NOT IMPLEMENTED YET */
@@ -536,7 +584,7 @@ int elapi_create_simple_event(struct collection_item **event, ...)
 }
 
 /* Log key value pairs  */
-int elapi_msg(struct collection_item *template, ...)
+int elapi_msg(uint32_t target, struct collection_item *template, ...)
 {
     int error = EOK;
     va_list args;
@@ -556,7 +604,10 @@ int elapi_msg(struct collection_item *template, ...)
 
     va_start(args, template);
 
-    error = elapi_dsp_msg_with_vargs(global_dispatcher, use_template, args);
+    error = elapi_dsp_msg_with_vargs(target,
+                                     global_dispatcher,
+                                     use_template,
+                                     args);
 
     va_end(args);
 
@@ -565,15 +616,21 @@ int elapi_msg(struct collection_item *template, ...)
 }
 
 /* Log event  */
-int elapi_log(struct collection_item *event)
+int elapi_log(uint32_t target, struct collection_item *event)
 {
     int error;
 
     TRACE_FLOW_STRING("elapi_log", "Entry");
 
     /* If dispatcher was not initialized do it automatically */
-    if (global_dispatcher == NULL) elapi_init(NULL, NULL);
-    error = elapi_dsp_log(global_dispatcher, event);
+    if (global_dispatcher == NULL) {
+        error = elapi_init(NULL, NULL);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to init ELAPI", error);
+            return error;
+        }
+    }
+    error = elapi_dsp_log(target, global_dispatcher, event);
 
     TRACE_FLOW_NUMBER("elapi_log Exit:", error);
     return error;

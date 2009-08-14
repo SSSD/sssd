@@ -209,7 +209,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                     TRACE_INFO_NUMBER("gai_ret_host:", gai_ret_host);
                     TRACE_INFO_STRING("host:", host);
                     TRACE_INFO_STRING("address:", address);
-                    TRACE_INFO_STRING("they are:", strncasecmp(host, address, sizeof(address)) == 0 ? "same" : "different");
+                    TRACE_INFO_STRING("they are:", ((strcasecmp(host, address) != 0) ? "different" : "same"));
 
                     /* Do we have a host meaningful host name? */
                     if ((gai_ret_host != EOK) ||

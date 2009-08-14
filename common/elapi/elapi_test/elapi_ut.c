@@ -18,10 +18,14 @@
 */
 
 #include <stdio.h>
+#include <stdarg.h>
 #define TRACE_HOME
 #include "trace.h"
 #include "elapi.h"
 #include "collection_tools.h"
+
+/* THIS IS A PRIVATE HEADER - included for debugging purposes only! */
+#include "elapi_priv.h"
 
 int simple_event_test(void)
 {
@@ -64,24 +68,54 @@ int simple_event_test(void)
         E_EOARG);
 
     if (error) {
-        printf("Failed to set create event! %d\n", error);
+        printf("Failed to create simple event! %d\n", error);
         return error;
     }
 
-    error = elapi_log(event);
+    error = ELAPI_EVT_DEBUG(event);
+    if (error)  {
+        printf("Failed to log event to debug ! %d\n", error);
+        elapi_destroy_event(event);
+        return error;
+    }
+
+    error = ELAPI_EVT_LOG(event);
+    if (error)  {
+        printf("Failed to log event to log ! %d\n", error);
+        elapi_destroy_event(event);
+        return error;
+    }
+
+    error = ELAPI_EVT_AUDIT(event);
+
+    if (error)  {
+        printf("Failed to log event to audit ! %d\n", error);
+        elapi_destroy_event(event);
+        return error;
+    }
 
     elapi_destroy_event(event);
 
+    error = elapi_msg(E_TARGET_DEBUG, NULL, "a", "b", "c", "d", E_EOARG);
     if (error) {
-        printf("Failed to log event! %d\n", error);
+        printf("Failed to log \"debug\" event! %d\n", error);
         return error;
     }
 
-    error = elapi_msg(NULL, "a", "b", "c", "d", E_EOARG);
+    error = elapi_msg(E_TARGET_LOG, NULL, "a", "b", "c", "d", E_EOARG);
     if (error) {
-        printf("Failed to log event! %d\n", error);
+        printf("Failed to log \"log\" event! %d\n", error);
         return error;
     }
+
+    error = elapi_msg(E_TARGET_AUDIT, NULL, "a", "b", "c", "d", E_EOARG);
+    if (error) {
+        printf("Failed to log \"audit\" event! %d\n", error);
+        return error;
+    }
+
+    /* Internal function to print dispatcher guts */
+    elapi_internal_print_dispatcher(elapi_get_dispatcher());
 
     printf("Simple test success!\n");
 
@@ -137,7 +171,7 @@ int complex_event_test(void)
     col_debug_collection(template, COL_TRAVERSE_FLAT);
     col_debug_collection(event, COL_TRAVERSE_FLAT);
 
-    error = elapi_log(event);
+    error = elapi_log(E_TARGET_DEBUG, event);
 
     elapi_destroy_event(event);
 
@@ -245,7 +279,7 @@ int complex_event_test(void)
         return error;
     }
 
-    error = elapi_dsp_log(dispatcher, event);
+    error = elapi_dsp_log(E_TARGET_DEBUG, dispatcher, event);
 
     elapi_destroy_event(event);
 
@@ -256,7 +290,7 @@ int complex_event_test(void)
         return error;
     }
 
-    error = elapi_dsp_log(dispatcher, event_copy);
+    error = elapi_dsp_log(E_TARGET_DEBUG, dispatcher, event_copy);
 
     elapi_destroy_event(event_copy);
 
@@ -266,14 +300,14 @@ int complex_event_test(void)
         return error;
     }
 
-    error = elapi_dsp_msg(dispatcher, template, "a", "b", "c", "d", E_EOARG);
+    error = elapi_dsp_msg(E_TARGET_DEBUG, dispatcher, template, "a", "b", "c", "d", E_EOARG);
     if (error) {
         elapi_destroy_event_template(template);
         printf("Failed to log event! %d\n", error);
         return error;
     }
 
-    error = elapi_dsp_msg(dispatcher, NULL, "a", "b", "c", "d", E_EOARG);
+    error = elapi_dsp_msg(E_TARGET_DEBUG, dispatcher, NULL, "a", "b", "c", "d", E_EOARG);
     if (error) {
         elapi_destroy_event_template(template);
         printf("Failed to log event! %d\n", error);
@@ -281,6 +315,9 @@ int complex_event_test(void)
     }
 
     elapi_destroy_event_template(template);
+
+    elapi_internal_print_dispatcher(dispatcher);
+
     elapi_destroy_dispatcher(dispatcher);
 
     return error;

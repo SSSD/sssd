@@ -68,6 +68,7 @@
 #define E_BASE_HOSTEXT      ( E_HAVE_HOSTALIAS | E_HAVE_HOSTIPS )
 #define E_BASE_DEFV1        ( E_BASE_TIME | E_BASE_HOST | E_BASE_APP | E_HAVE_SEVERITY )
 
+
 /* The default time stamp format */
 #define E_TIMESTAMP_FORMAT "%F"
 

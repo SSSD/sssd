@@ -443,6 +443,9 @@ int col_get_item_and_do(struct collection_item *ci,  /* A collection of items */
  * while the pointer to its data is in use.
  * Working with the internals of the collection item structure directly
  * may cause problems in future if the internal implementation changes.
+ * The caller needs to be aware that function does not return
+ * error if item is not found. The caller needs to check if
+ * item is not NULL to determine whether something was found.
  */
 int col_get_item(struct collection_item *ci,       /* Collection to find things in */
                  const char *property_to_find,     /* Name to match */

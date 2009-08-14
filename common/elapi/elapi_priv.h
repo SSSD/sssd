@@ -20,6 +20,8 @@
 #ifndef ELAPI_PRIV_H
 #define ELAPI_PRIV_H
 
+#include <stdint.h>
+
 #include "collection.h"
 #include "elapi_async.h"
 /* Classes of the collections used by ELAPI internally */
@@ -27,22 +29,37 @@
 #define COL_CLASS_ELAPI_EVENT       COL_CLASS_ELAPI_BASE + 0
 #define COL_CLASS_ELAPI_TEMPLATE    COL_CLASS_ELAPI_BASE + 1
 #define COL_CLASS_ELAPI_SINK        COL_CLASS_ELAPI_BASE + 2
+#define COL_CLASS_ELAPI_TARGET      COL_CLASS_ELAPI_BASE + 3
+#define COL_CLASS_ELAPI_SINK_REF    COL_CLASS_ELAPI_BASE + 4
 
 /* Names for the collections */
 #define E_TEMPLATE_NAME "template"
 #define E_EVENT_NAME "event"
 
-
+/* Constants used in INI file and in
+ * the internal collection objects.
+ */
 #define ELAPI_DISPATCHER    "dispatcher"
 #define ELAPI_SINKS         "sinks"
+#define ELAPI_TARGETS       "targets"
+#define ELAPI_SINK_REFS     "srefs"
+#define ELAPI_TARGET_VALUE  "value"
+#define ELAPI_SINK_PROVIDER "provider"
+
+#define ELAPI_TARGET_ALL    0xFFFF  /* 65k targets should be enough */
 
 struct elapi_dispatcher {
-    char **sinks;
-    int need_to_free;
+    /* Application name */
     char *appname;
-    /*event_router_fn router; - FIXME - not defined yet */
+    /* List of target names and chars */
+    char **targets;
+    /* Collection of targets */
+    struct collection_item *target_list;
+    /* Counter of the targets */
+    int target_counter;
+    /* Collection of sinks */
     struct collection_item *sink_list;
-    int sink_counter;
+    /* Configuration */
     struct collection_item *ini_config;
     /* Default event template */
     struct collection_item *default_template;
@@ -51,16 +68,47 @@ struct elapi_dispatcher {
     elapi_rem_fd add_fd_rem_fn;
     elapi_add_timer add_timer_fn;
     void *callers_data;
-    int async_mode;
+    uint32_t async_mode;
 };
 
-/* Structure to pass data from logging function to sinks */
-struct elapi_sink_context {
+/* Structure to pass data from logging function to targets */
+struct elapi_target_pass_in_data {
     struct collection_item *event;
     struct elapi_dispatcher *handle;
-    char *format;
-    char *previous;
-    int previous_status;
+    uint32_t target_mask;
+};
+
+/* This is a structure that holds the information
+ *  about the target.
+ */
+struct elapi_target_context {
+    /* Value associted with the
+     * target in the config file.
+     */
+    uint32_t target_value;
+    /* Collection of pointers to sink objects */
+    struct collection_item *sink_ref_list;
+    /* FIXME - other things that belong here are:
+     * state of the chain
+     * reference to the current sink
+     * reference to the preferred sink
+     * etc.
+     */
+};
+
+/* The structure that describes the sink in the dispatcher */
+struct elapi_sink_context {
+    /* Inpit queue of a sink */
+    struct collection_item *in_queue;
+    /* Pending list */
+    struct collection_item *pending;
+    /* FIXME: add:
+     * sink's error status
+     * sink's common config data (common between all sinks)
+     * sink personal specific config data (config data specific to this sink)
+     */
+    /* Is this a sink or async sink */
+    uint32_t async_mode;
 };
 
 /* The structure to hold a command and a result of the command execution */
@@ -102,13 +150,45 @@ int elapi_internal_sink_cleanup_handler(const char *sink,
 /* Create list of the sinks */
 int elapi_internal_construct_sink_list(struct elapi_dispatcher *handle);
 
-/* Function to add a sink to the collection */
-int elapi_internal_add_sink_to_collection(struct collection_item *sink_list,
-                                          char *sink,
-                                          char *appname);
+/* Function to add a sink based on configuration  */
+int elapi_internal_add_sink(struct collection_item **sink_ref,
+                            char *sink,
+                            struct elapi_dispatcher *handle);
+
+/* Create target object */
+int elapi_internal_create_target(struct elapi_target_context **context,
+                                 char *target,
+                                 struct elapi_dispatcher *handle);
+
+/* Destroy target object */
+void elapi_internal_destroy_target(struct elapi_target_context *context);
+
+/* Internal target cleanup function */
+int elapi_internal_target_cleanup_handler(const char *sink,
+                                          int sink_len,
+                                          int type,
+                                          void *data,
+                                          int length,
+                                          void *passed_data,
+                                          int *stop);
+
+/* Handler for logging through the targets */
+int elapi_internal_target_handler(const char *target,
+                                  int target_len,
+                                  int type,
+                                  void *data,
+                                  int length,
+                                  void *passed_data,
+                                  int *stop);
+
+/* Create list of targets for a dispatcher */
+int elapi_internal_construct_target_list(struct elapi_dispatcher *handle);
 
 /* Send ELAPI config errors into a file */
 void elapi_internal_dump_errors_to_file(struct collection_item *error_list);
+
+/* Print dispatcher internals for testing and debugin purposes */
+void elapi_internal_print_dispatcher(struct elapi_dispatcher *handle);
 
 
 #endif

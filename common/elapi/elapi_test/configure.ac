@@ -1,5 +1,5 @@
 AC_INIT([elapi],[0.0.1],[freeipa-devel@redhat.com])
-AC_CONFIG_SRCDIR([elapi.h])
+AC_CONFIG_SRCDIR([elapi_ut.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_PROG_CC
@@ -21,14 +21,6 @@ AC_ARG_ENABLE([trace],
               [trace_level="0"])
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
-m4_include(conf_macros.m4)
 
-WITH_CONFIG_DIR
-WITH_CONFIG_APP_DIR
-WITH_APP_NAME
-WITH_APP_NAME_SIZE
-
-AC_CONFIG_SUBDIRS([elapi_test])
-
-AC_CONFIG_FILES([Makefile elapi.pc])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

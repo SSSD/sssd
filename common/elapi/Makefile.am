@@ -4,6 +4,8 @@ DEFAULT_CONF_APP_DIR=@elapiconfappdir@
 APP_NAME=@appname@
 APP_NAME_SIZE=@appnamesize@
 
+SUBDIRS = elapi_test
+
 topdir=$(srcdir)/..
 
 AM_CFLAGS = -DELAPI_DEFAULT_CONFIG_DIR=\"$(DEFAULT_CONF_DIR)\"   \
@@ -37,8 +39,3 @@ libelapi_la_SOURCES = \
     elapi_log.h \
     elapi_async.h \
     elapi.h
-
-# Build unit test
-noinst_PROGRAMS = elapi_ut
-elapi_ut_SOURCES = elapi_ut.c
-elapi_ut_LDADD = libelapi.la ../ini/libini_config.la ../collection/libcollection.la

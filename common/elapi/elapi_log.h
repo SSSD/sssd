@@ -20,7 +20,17 @@
 #ifndef ELAPI_LOG_H
 #define ELAPI_LOG_H
 
+#include <stdint.h>
+
 #include "elapi_async.h"
+
+/* Default values for targets -
+ * these constants match values in the default configuration.
+ */
+#define E_TARGET_DEBUG      0x00000001
+#define E_TARGET_AUDIT      0x00000002
+#define E_TARGET_LOG        0x00000004
+
 
 /* Opaque dispatcher structure */
 struct elapi_dispatcher;
@@ -51,10 +61,13 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,  /* Handle
 void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher);
 
 /* Function to log an event */
-int elapi_dsp_log(struct elapi_dispatcher *dispatcher, struct collection_item *event);
+int elapi_dsp_log(uint32_t target,
+                  struct elapi_dispatcher *dispatcher,
+                  struct collection_item *event);
 
 /* Function to log raw key value pairs without creating an event */
-int elapi_dsp_msg(struct elapi_dispatcher *dispatcher,
+int elapi_dsp_msg(uint32_t target,
+                  struct elapi_dispatcher *dispatcher,
                   struct collection_item *template,
                   ...);
 
@@ -62,11 +75,18 @@ int elapi_dsp_msg(struct elapi_dispatcher *dispatcher,
 
 /* Managing the sink collection */
 int elapi_alter_dispatcher(struct elapi_dispatcher *dispatcher,  /* Dispatcher */
+                           const char *target,                   /* Target to look for */
                            const char *sink,                     /* Sink to change */
                            int action);                          /* Action to perform for sink */
 
+/* Get target list */
+char **elapi_get_target_list(struct elapi_dispatcher *dispatcher);
+
+/* Free target list */
+void elapi_free_target_list(char **target_list);
+
 /* Get sink list */
-char **elapi_get_sink_list(struct elapi_dispatcher *dispatcher);
+char **elapi_get_sink_list(struct elapi_dispatcher *dispatcher, char *target);
 
 /* Free sink list */
 void elapi_free_sink_list(char **sink_list);
@@ -102,13 +122,19 @@ void elapi_free_sink_list(char **sink_list);
 int elapi_init(const char *appname, const char *config_path);
 
 /* Log key value pairs  */
-int elapi_msg(struct collection_item *template, ...);
-
+int elapi_msg(uint32_t target,
+              struct collection_item *template, ...);
 
 /* Log event  */
-int elapi_log(struct collection_item *event);
+int elapi_log(uint32_t target,
+              struct collection_item *event);
 
-/* Get dispatcher if you want to add sink to a default dispatcher or do some advanced operations */
+/* Corresponding wrapping macroses */
+#define ELAPI_EVT_DEBUG(event) elapi_log(E_TARGET_DEBUG, event)
+#define ELAPI_EVT_LOG(event)   elapi_log(E_TARGET_LOG, event)
+#define ELAPI_EVT_AUDIT(event) elapi_log(E_TARGET_AUDIT, event)
+
+/* Get dispatcher if you want to do some advanced operations */
 struct elapi_dispatcher *elapi_get_dispatcher(void);
 
 /* Close audit */
