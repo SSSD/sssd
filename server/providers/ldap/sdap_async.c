@@ -1488,6 +1488,11 @@ static void sdap_get_groups_done(struct sdap_op *op,
 
     case LDAP_RES_SEARCH_ENTRY:
 
+        /* FIXME: we should do this in 2 steps:
+         * first save groups, then add all memberships
+         * otherwise nested memberships may go missing
+         * if the member group is added only after the
+         * parent group is added */
         subreq = sdap_save_group_send(state, state->ev, state->handle,
                                       state->opts, state->dom,
                                       state->sh, reply);

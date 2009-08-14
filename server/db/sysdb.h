@@ -51,7 +51,7 @@
 #define SYSDB_DISABLED "disabled"
 
 #define SYSDB_MEMBER "member"
-#define SYSDB_LEGACY_MEMBER "memberUid"
+#define SYSDB_MEMBERUID "memberUid"
 
 #define SYSDB_DEFAULTGROUP "defaultGroup"
 #define SYSDB_GECOS "gecos"
@@ -65,9 +65,11 @@
 
 #define SYSDB_CACHEDPWD "cachedPassword"
 
-#define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_UUID "uniqueID"
-#define SYSDB_UPN "UserPrincipalName"
+#define SYSDB_UPN "userPrincipalName"
+
+#define SYSDB_ORIG_DN "originalDN"
+#define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
 
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
@@ -88,8 +90,6 @@
 #define SYSDB_GRENT_MPG_FILTER "("SYSDB_MPGC")"
 
 #define SYSDB_INITGR_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=*))"
-
-#define SYSDB_INITGR_LEGACY_FILTER "(&("SYSDB_GC")("SYSDB_LEGACY_MEMBER"=%s))"
 
 #define SYSDB_GETCACHED_FILTER "(&"SYSDB_UC")("SYSDB_LAST_LOGIN">=%lu))"
 
@@ -112,7 +112,7 @@
                           SYSDB_LAST_UPDATE, \
                           NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
-                           SYSDB_LAST_UPDATE, SYSDB_LEGACY_MEMBER, \
+                           SYSDB_LAST_UPDATE, \
                            "objectClass", \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
@@ -157,6 +157,8 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
                            const char *name, time_t value);
 int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
                        struct ldb_message_element **el);
+int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
+                             const char *name, char *str);
 
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);

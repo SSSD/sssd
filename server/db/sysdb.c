@@ -121,6 +121,30 @@ int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
     return sysdb_attrs_add_val(attrs, name, &v);
 }
 
+int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
+                             const char *name, char *str)
+{
+    struct ldb_message_element *el = NULL;
+    struct ldb_val *vals;
+    int ret;
+
+    ret = sysdb_attrs_get_el(attrs, name, &el);
+
+    vals = talloc_realloc(attrs->a, el->values,
+                          struct ldb_val, el->num_values+1);
+    if (!vals) return ENOMEM;
+    el->values = vals;
+
+    /* now steal and assign the string */
+    talloc_steal(el->values, str);
+
+    el->values[el->num_values].data = (uint8_t *)str;
+    el->values[el->num_values].length = strlen(str);
+    el->num_values++;
+
+    return EOK;
+}
+
 int sysdb_attrs_add_long(struct sysdb_attrs *attrs,
                          const char *name, long value)
 {

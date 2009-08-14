@@ -482,11 +482,6 @@ static int get_grp_callback(struct ldb_request *req,
             return LDB_SUCCESS;
         }
 
-        if (sctx->domain->legacy) {
-            request_done(sctx);
-            return LDB_SUCCESS;
-        }
-
         if (res->count > 0) {
 
             sctx->gmctx = talloc_zero(req, struct get_mem_ctx);
@@ -670,58 +665,6 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void initgr_mem_legacy(struct sysdb_search_ctx *sctx)
-{
-    struct sysdb_ctx *ctx = sctx->ctx;
-    struct ldb_result *res = sctx->res;
-    struct ldb_request *req;
-    struct ldb_dn *base_dn;
-    static const char *attrs[] = SYSDB_INITGR_ATTRS;
-    const char *userid;
-    int ret;
-
-    if (res->count == 0) {
-        return request_done(sctx);
-    }
-    if (res->count > 1) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
-    }
-
-    /* make sure we don't loop with get_gen_callback() */
-    sctx->gen_aux_fn = NULL;
-
-    userid = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
-    if (!userid) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
-    }
-
-    sctx->expression = talloc_asprintf(sctx,
-                                       SYSDB_INITGR_LEGACY_FILTER, userid);
-    if (!sctx->expression) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
-    }
-
-    base_dn = ldb_dn_new_fmt(sctx, ctx->ldb,
-                             SYSDB_TMPL_GROUP_BASE, sctx->domain->name);
-    if (!base_dn) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
-    }
-
-    ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               base_dn, LDB_SCOPE_SUBTREE,
-                               sctx->expression, attrs, NULL,
-                               sctx, get_gen_callback,
-                               NULL);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-
-    ret = ldb_request(ctx->ldb, req);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-}
-
 static void initgr_mem_search(struct sysdb_search_ctx *sctx)
 {
     struct sysdb_ctx *ctx = sctx->ctx;
@@ -801,11 +744,7 @@ static void initgr_search(struct tevent_req *treq)
         return request_error(sctx, ret);
     }
 
-    if (sctx->domain->legacy) {
-        sctx->gen_aux_fn = initgr_mem_legacy;
-    } else {
-        sctx->gen_aux_fn = initgr_mem_search;
-    }
+    sctx->gen_aux_fn = initgr_mem_search;
 
     base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
                              SYSDB_TMPL_USER_BASE, sctx->domain->name);

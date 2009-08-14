@@ -154,9 +154,9 @@ static int sldb_request_callback(struct ldb_request *ldbreq,
     state->ldbreply = talloc_steal(state, ldbreply);
 
     if (ldbreply->error != LDB_SUCCESS) {
-        err = sysdb_error_to_errno(ldbreply->error);
-        DEBUG(6, ("Error: %d (%s)\n", err, strerror(err)));
-        ERROR_OUT(err, err, fail);
+        DEBUG(6, ("LDB Error: %d (%s)\n",
+                  ldbreply->error, ldb_errstring(state->ldbctx)));
+        ERROR_OUT(err, sysdb_error_to_errno(ldbreply->error), fail);
     }
 
     if (ldbreply->type == LDB_REPLY_DONE) {
@@ -2811,7 +2811,9 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req, *subreq;
     struct sysdb_store_group_state *state;
-    int ret, i;
+    static const char *src_attrs[] = { SYSDB_NAME, SYSDB_GIDNUM,
+                                       SYSDB_ORIG_MODSTAMP, NULL };
+    int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_store_group_state);
     if (!req) return NULL;
@@ -2824,38 +2826,8 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
     state->members = members;
     state->attrs = NULL;
 
-    if (state->members) {
-        state->attrs = sysdb_new_attrs(state);
-        if (!state->attrs) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        for (i = 0; state->members[i]; i++) {
-            if (domain->legacy) {
-/*
-                const char *member;
-
-                member = talloc_asprintf(state, SYSDB_TMPL_USER,
-                                         domain->name, state->members[i]);
-                if (!member) {
-                    ERROR_OUT(ret, ENOMEM, fail);
-                }
-*/
-                ret = sysdb_attrs_add_string(state->attrs, SYSDB_LEGACY_MEMBER,
-                                             state->members[i]);
-                if (ret) goto fail;
-            } else {
-                ret = sysdb_attrs_add_string(state->attrs, SYSDB_MEMBER,
-                                             state->members[i]);
-                if (ret) goto fail;
-            }
-        }
-
-        state->members = NULL;
-    }
-
     subreq = sysdb_search_group_by_name_send(state, ev, NULL, handle,
-                                             domain, name, NULL);
+                                             domain, name, src_attrs);
     if (!subreq) {
         ERROR_OUT(ret, ENOMEM, fail);
     }
@@ -2877,7 +2849,8 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
     struct sysdb_store_group_state *state = tevent_req_data(req,
                                                struct sysdb_store_group_state);
     struct ldb_message *msg;
-    int ret;
+    bool new_group = false;
+    int ret, i;
 
     ret = sysdb_search_group_recv(subreq, state, &msg);
     talloc_zfree(subreq);
@@ -2885,22 +2858,92 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
     if (ret == ENOENT) {
+        new_group = true;
+    }
+
+    /* FIXME: use the remote modification timestamp to know if the
+     * group needs any update */
+
+    if (state->members) {
+        state->attrs = sysdb_new_attrs(state);
+        if (!state->attrs) {
+            DEBUG(6, ("Error: Out of memory\n"));
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        for (i = 0; state->members[i]; i++) {
+            struct ldb_dn *tmp = NULL;
+            const struct ldb_val *val;
+            const char *mname;
+            char *member;
+
+            if (state->domain->legacy) {
+                mname = state->members[i];
+            } else {
+
+                tmp = ldb_dn_new(state, state->handle->ctx->ldb,
+                                 state->members[i]);
+                if (!tmp) {
+                    DEBUG(2, ("Out of memory, converting DN [%s]!\n",
+                              state->members[i]));
+                    continue;
+                }
+                val = ldb_dn_get_rdn_val(tmp);
+                if (!val) {
+                    DEBUG(2, ("Out of memory, converting DN [%s]!\n",
+                              state->members[i]));
+                    continue;
+                }
+                mname = talloc_strndup(tmp,
+                                       (const char *)val->data, val->length);
+                if (!mname) {
+                    DEBUG(2, ("Out of memory, converting DN [%s]!\n",
+                              state->members[i]));
+                    continue;
+                }
+            }
+
+            member = talloc_asprintf(state, SYSDB_TMPL_USER,
+                                     mname, state->domain->name);
+            if (!member) {
+                DEBUG(6, ("Error: Out of memory\n"));
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            DEBUG(9, ("adding member: %s [orig: %s] to group %s\n",
+                      member, state->members[i], state->name));
+
+            talloc_zfree(tmp);
+
+            ret = sysdb_attrs_steal_string(state->attrs,
+                                           SYSDB_MEMBER, member);
+            if (ret) {
+                DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+                tevent_req_error(req, ret);
+                return;
+            }
+        }
+    }
+
+    if (new_group) {
         /* groups doesn't exist, turn into adding a group */
         subreq = sysdb_add_group_send(state, state->ev, state->handle,
-                                     state->domain, state->name,
-                                     state->gid, state->attrs);
+                                      state->domain, state->name,
+                                      state->gid, state->attrs);
         if (!subreq) {
             DEBUG(6, ("Error: Out of memory\n"));
             tevent_req_error(req, ENOMEM);
             return;
         }
         tevent_req_set_callback(subreq, sysdb_store_group_add_done, req);
+
         return;
     }
 
     /* the group exists, let's just replace attributes when set */
+
     if (!state->attrs) {
         state->attrs = sysdb_new_attrs(state);
         if (!state->attrs) {
@@ -2919,8 +2962,6 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
         }
     }
 
-    /* FIXME: handle non legacy groups */
-
     ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, time(NULL));
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
@@ -2929,9 +2970,9 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
     }
 
     subreq = sysdb_set_group_attr_send(state, state->ev,
-                                      state->handle, state->domain,
-                                      state->name, state->attrs,
-                                      SYSDB_MOD_REP);
+                                       state->handle, state->domain,
+                                       state->name, state->attrs,
+                                       SYSDB_MOD_REP);
     if (!subreq) {
         DEBUG(6, ("Error: Out of memory\n"));
         tevent_req_error(req, ENOMEM);
@@ -2983,7 +3024,6 @@ int sysdb_store_group_recv(struct tevent_req *req)
 /* =Add-User-to-Group(Native/Legacy)====================================== */
 
 static void sysdb_add_group_member_done(struct tevent_req *subreq);
-static void sysdb_add_group_member_l_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,
@@ -2995,7 +3035,6 @@ struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
     struct ldb_dn *group_dn, *user_dn;
-    struct sysdb_attrs *attrs;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
@@ -3006,42 +3045,23 @@ struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
     state->ignore_not_found = false;
     state->ldbreply = NULL;
 
-    if (domain->legacy) {
-        attrs = sysdb_new_attrs(state);
-        if (!attrs) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        ret = sysdb_attrs_add_string(attrs, SYSDB_LEGACY_MEMBER, user);
-        if (ret) goto fail;
-
-        subreq = sysdb_set_group_attr_send(state, ev, handle,
-                                           domain, group, attrs,
-                                           SYSDB_MOD_ADD);
-        if (!subreq) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-        tevent_req_set_callback(subreq, sysdb_add_group_member_l_done, req);
-
-    } else {
-        group_dn = sysdb_group_dn(handle->ctx, state, domain->name, group);
-        if (!group_dn) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        user_dn = sysdb_user_dn(handle->ctx, state, domain->name, user);
-        if (!user_dn) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        subreq = sysdb_mod_group_member_send(state, ev, handle,
-                                             user_dn, group_dn,
-                                             SYSDB_MOD_ADD);
-        if (!subreq) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-        tevent_req_set_callback(subreq, sysdb_add_group_member_done, req);
+    group_dn = sysdb_group_dn(handle->ctx, state, domain->name, group);
+    if (!group_dn) {
+        ERROR_OUT(ret, ENOMEM, fail);
     }
+
+    user_dn = sysdb_user_dn(handle->ctx, state, domain->name, user);
+    if (!user_dn) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+
+    subreq = sysdb_mod_group_member_send(state, ev, handle,
+                                         user_dn, group_dn,
+                                         SYSDB_MOD_ADD);
+    if (!subreq) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+    tevent_req_set_callback(subreq, sysdb_add_group_member_done, req);
 
     return req;
 
@@ -3069,23 +3089,6 @@ static void sysdb_add_group_member_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-static void sysdb_add_group_member_l_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_group_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
 int sysdb_add_group_member_recv(struct tevent_req *req)
 {
     return sysdb_op_default_recv(req);
@@ -3095,7 +3098,6 @@ int sysdb_add_group_member_recv(struct tevent_req *req)
 /* =Remove-member-from-Group(Native/Legacy)=============================== */
 
 static void sysdb_remove_group_member_done(struct tevent_req *subreq);
-static void sysdb_remove_group_member_l_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
                                                   struct tevent_context *ev,
@@ -3107,7 +3109,6 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req, *subreq;
     struct sysdb_op_state *state;
     struct ldb_dn *group_dn, *user_dn;
-    struct sysdb_attrs *attrs;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
@@ -3118,42 +3119,23 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
     state->ignore_not_found = false;
     state->ldbreply = NULL;
 
-    if (domain->legacy) {
-        attrs = sysdb_new_attrs(state);
-        if (!attrs) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        ret = sysdb_attrs_add_string(attrs, SYSDB_LEGACY_MEMBER, user);
-        if (ret) goto fail;
-
-        subreq = sysdb_set_group_attr_send(state, ev, handle,
-                                           domain, group, attrs,
-                                           SYSDB_MOD_DEL);
-        if (!subreq) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-        tevent_req_set_callback(subreq, sysdb_remove_group_member_l_done, req);
-
-    } else {
-        group_dn = sysdb_group_dn(handle->ctx, state, domain->name, group);
-        if (!group_dn) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        user_dn = sysdb_user_dn(handle->ctx, state, domain->name, user);
-        if (!user_dn) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-
-        subreq = sysdb_mod_group_member_send(state, ev, handle,
-                                             user_dn, group_dn,
-                                             SYSDB_MOD_DEL);
-        if (!subreq) {
-            ERROR_OUT(ret, ENOMEM, fail);
-        }
-        tevent_req_set_callback(subreq, sysdb_remove_group_member_done, req);
+    group_dn = sysdb_group_dn(handle->ctx, state, domain->name, group);
+    if (!group_dn) {
+        ERROR_OUT(ret, ENOMEM, fail);
     }
+
+    user_dn = sysdb_user_dn(handle->ctx, state, domain->name, user);
+    if (!user_dn) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+
+    subreq = sysdb_mod_group_member_send(state, ev, handle,
+                                         user_dn, group_dn,
+                                         SYSDB_MOD_DEL);
+    if (!subreq) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+    tevent_req_set_callback(subreq, sysdb_remove_group_member_done, req);
 
     return req;
 
@@ -3171,23 +3153,6 @@ static void sysdb_remove_group_member_done(struct tevent_req *subreq)
     int ret;
 
     ret = sysdb_mod_group_member_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static void sysdb_remove_group_member_l_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_group_attr_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
