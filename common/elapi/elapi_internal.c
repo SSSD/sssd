@@ -197,7 +197,7 @@ int elapi_internal_add_sink(struct collection_item **sink_ref,
         if (provider_cfg_item == NULL) {
             /* There is no provider - return error */
             TRACE_ERROR_STRING("Required key is missing in the configuration.", "Fatal Error!");
-            return ENOKEY;
+            return ENOENT;
         }
 
 
@@ -275,7 +275,7 @@ int elapi_internal_create_target(struct elapi_target_context **context,
     if (sink_cfg_item == NULL) {
         /* There is no list of targets this is bad configuration - return error */
         TRACE_ERROR_STRING("Required key is missing in the configuration.", "Fatal Error!");
-        return ENOKEY;
+        return ENOENT;
     }
 
     /* Allocate context */
@@ -457,7 +457,7 @@ int elapi_internal_construct_target_list(struct elapi_dispatcher *handle)
     /* Check if we have any targets available */
     if (handle->target_counter == 0) {
         TRACE_ERROR_STRING("No targets", "");
-        return ENOKEY;
+        return ENOENT;
     }
 
     TRACE_FLOW_STRING("elapi_internal_construct_target_list", "Returning success");

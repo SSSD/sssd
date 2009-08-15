@@ -19,8 +19,8 @@
     along with Collection Library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "stdlib.h"
-#include "errno.h"
+#include <stdlib.h>
+#include <errno.h>
 #include "collection_queue.h"
 #include "trace.h"
 

@@ -310,11 +310,10 @@ int col_grow_buffer(struct col_serial_data *buf_data, int len)
 
     /* Grow buffer if needed */
     while (buf_data->length+len >= buf_data->size) {
-        errno = 0;
         tmp = realloc(buf_data->buffer, buf_data->size + BLOCK_SIZE);
         if (tmp == NULL) {
-            TRACE_ERROR_NUMBER("Error. Failed to allocate memory. Errno: ", errno);
-            return errno;
+            TRACE_ERROR_NUMBER("Error. Failed to allocate memory.", ENOMEM);
+            return ENOMEM;
         }
         buf_data->buffer = tmp;
         buf_data->size += BLOCK_SIZE;
@@ -378,11 +377,10 @@ int col_serialize(const char *property_in,
     }
     if (buf_data->buffer == NULL) {
         TRACE_INFO_STRING("First time use.", "Allocating buffer.");
-        errno = 0;
         buf_data->buffer = malloc(BLOCK_SIZE);
         if (buf_data->buffer == NULL) {
-            TRACE_ERROR_NUMBER("Error. Failed to allocate memory. Errno: ", errno);
-            return errno;
+            TRACE_ERROR_NUMBER("Error. Failed to allocate memory.", ENOMEM);
+            return ENOMEM;
         }
         buf_data->buffer[0] = '\0';
         buf_data->length = 0;
@@ -691,11 +689,9 @@ char **col_collection_to_list(struct collection_item *handle, int *size, int *er
     }
 
     /* Allocate memory for the sections */
-    errno = 0;
-    list = (char **)calloc(count, sizeof(char *));
+    list = (char **)malloc(count * sizeof(char *));
     if (list == NULL) {
-        err = errno;
-        TRACE_ERROR_NUMBER("Failed to get allocate memory.", err);
+        TRACE_ERROR_NUMBER("Failed to get allocate memory.", ENOMEM);
         if (error) *error = ENOMEM;
         return NULL;
     }
@@ -731,11 +727,9 @@ char **col_collection_to_list(struct collection_item *handle, int *size, int *er
 
 
         /* Allocate memory for the new string */
-        errno = 0;
         list[current] = strdup(col_get_item_property(item, NULL));
         if (list[current] == NULL) {
-            err = errno;
-            TRACE_ERROR_NUMBER("Failed to dup string.", err);
+            TRACE_ERROR_NUMBER("Failed to dup string.", ENOMEM);
             if (error) *error = ENOMEM;
             col_free_property_list(list);
             return NULL;
@@ -743,12 +737,14 @@ char **col_collection_to_list(struct collection_item *handle, int *size, int *er
         current++;
     }
 
+    list[current] = NULL;
+
     /* Do not forget to unbind iterator - otherwise there will be a leak */
     col_unbind_iterator(iterator);
 
     if (size) *size = (int)(count - 1);
     if (error) *error = EOK;
 
-    TRACE_FLOW_STRING("col_collection_to_list returning", list == NULL ? "NULL" : list[0]);
+    TRACE_FLOW_STRING("col_collection_to_list returning", ((list == NULL) ? "NULL" : list[0]));
     return list;
 }

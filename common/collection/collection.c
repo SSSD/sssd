@@ -187,8 +187,6 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
                              const void *item_data, int length, int type)
 {
     struct collection_item *item = NULL;
-    int error = 0;
-    errno = 0;
 
     TRACE_FLOW_STRING("col_allocate_item", "Entry point.");
     TRACE_INFO_NUMBER("Will be using type:", type);
@@ -207,9 +205,8 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
     /* Allocate memory for the structure */
     item = (struct collection_item *)malloc(sizeof(struct collection_item));
     if (item == NULL)  {
-        error = errno;
         TRACE_ERROR_STRING("col_allocate_item", "Malloc failed.");
-        return error;
+        return ENOMEM;
     }
 
     /* After we initialize "next" we can use delete_item() in case of error */
@@ -218,10 +215,9 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
     /* Copy property */
     item->property = strdup(property);
     if (item->property == NULL) {
-        error = errno;
         TRACE_ERROR_STRING("col_allocate_item", "Failed to dup property.");
         col_delete_item(item);
-        return error;
+        return ENOMEM;
     }
 
     item->phash = FNV1a_base;
@@ -242,7 +238,7 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
     if (item->data == NULL) {
         TRACE_ERROR_STRING("col_allocate_item", "Failed to dup data.");
         col_delete_item(item);
-        return errno;
+        return ENOMEM;
     }
     memcpy(item->data, item_data, length);
 
@@ -260,7 +256,7 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
     TRACE_INFO_NUMBER("Item property type", item->type);
     TRACE_INFO_NUMBER("Item data length", item->length);
     TRACE_FLOW_STRING("col_allocate_item", "Success exit.");
-    return 0;
+    return EOK;
 }
 
 /* Structure used to find things in collection */
@@ -321,7 +317,7 @@ static int col_find_property(struct collection_item *collection,
 
     /* Item is not found */
     TRACE_FLOW_STRING("col_find_property", "Exit - item NOT found");
-    return 0;
+    return EOK;
 }
 
 
@@ -387,7 +383,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                     parent->next = item;
                                     if (header->last == current) header->last = item;
                                     col_delete_item(current);
-                                    header->count--;
+                                    /* Deleted one added another - count stays the same! */
                                     TRACE_FLOW_STRING("col_insert_item_into_current", "Dup overwrite exit");
                                     return EOK;
                                 }
@@ -401,7 +397,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                     parent->next = item;
                                     if (header->last == current) header->last = item;
                                     col_delete_item(current);
-                                    header->count--;
+                                    /* Deleted one added another - count stays the same! */
                                     TRACE_FLOW_STRING("col_insert_item_into_current", "Dup overwrite exit");
                                     return EOK;
                                 }
@@ -777,7 +773,7 @@ int col_extract_item(struct collection_item *collection,
                      struct collection_item **ret_ref)
 {
     struct collection_item *col = NULL;
-    int error = 0;
+    int error = EOK;
 
     TRACE_FLOW_STRING("col_extract_item", "Entry point");
 
@@ -1148,16 +1144,16 @@ static int col_create_path_data(struct path_data **name_path,
     TRACE_INFO_STRING("Constructing path from property:", property);
 
     /* Allocate structure */
-    errno = 0;
     new_name_path = (struct path_data *)malloc(sizeof(struct path_data));
-    if (new_name_path == NULL) return errno;
-
+    if (new_name_path == NULL) {
+        TRACE_ERROR_NUMBER("Failed to allocate memory for new path struct.", ENOMEM);
+        return ENOMEM;
+    }
     new_name_path->name = malloc(length + property_len + 2);
     if (new_name_path->name == NULL) {
-        error = errno;
-        TRACE_ERROR_NUMBER("Failed to allocate memory for new path name. Errno", error);
+        TRACE_ERROR_NUMBER("Failed to allocate memory for new path name.", ENOMEM);
         free(new_name_path);
-        return error;
+        return ENOMEM;
     }
 
     /* Construct the new name */
@@ -1487,21 +1483,24 @@ static int col_find_item_and_do(struct collection_item *ci,
         return EINVAL;
     }
 
+    /* Collection is requered */
+    if (ci == NULL) {
+        TRACE_ERROR_NUMBER("No collection to search!", EINVAL);
+        return EINVAL;
+    }
+
     /* Make sure that there is anything to search */
     type &= COL_TYPE_ANY;
-    if ((ci == NULL) ||
-        ((property_to_find == NULL) && (type == 0)) ||
+    if (((property_to_find == NULL) && (type == 0)) ||
         ((*property_to_find == '\0') && (type == 0))) {
-        TRACE_ERROR_NUMBER("No item search criteria specified - returning error!", ENOKEY);
-        return ENOKEY;
+        TRACE_ERROR_NUMBER("No item search criteria specified - returning error!", ENOENT);
+        return ENOENT;
     }
     /* Prepare data for traversal */
-    errno = 0;
     traverse_data = (struct find_name *)malloc(sizeof(struct find_name));
     if (traverse_data == NULL) {
-        error = errno;
-        TRACE_ERROR_NUMBER("Failed to allocate traverse data memory - returning error!", errno);
-        return error;
+        TRACE_ERROR_NUMBER("Failed to allocate traverse data memory - returning error!", ENOMEM);
+        return ENOMEM;
     }
 
     TRACE_INFO_STRING("col_find_item_and_do", "Filling in traverse data.");
@@ -2081,7 +2080,7 @@ int col_create_collection(struct collection_item **ci, const char *name,
     *ci = handle;
 
     TRACE_FLOW_STRING("col_create_collection", "Success Exit.");
-    return 0;
+    return EOK;
 }
 
 
@@ -2138,6 +2137,18 @@ int col_copy_collection(struct collection_item **collection_copy,
     unsigned depth = 0;
 
     TRACE_FLOW_STRING("col_copy_collection", "Entry.");
+
+    /* Collection is requered */
+    if (collection_to_copy == NULL) {
+        TRACE_ERROR_NUMBER("No collection to search!", EINVAL);
+        return EINVAL;
+    }
+
+    /* Storage is required too */
+    if (collection_copy == NULL) {
+        TRACE_ERROR_NUMBER("No memory provided to receive collection copy!", EINVAL);
+        return EINVAL;
+    }
 
     /* Determine what name to use */
     if (name_to_use != NULL)
@@ -2435,6 +2446,11 @@ int col_traverse_collection(struct collection_item *ci,
 
     TRACE_FLOW_STRING("col_traverse_collection", "Entry.");
 
+    if (ci == NULL) {
+        TRACE_ERROR_NUMBER("No collection to traverse!", EINVAL);
+        return EINVAL;
+    }
+
     error = col_walk_items(ci, mode_flags, col_simple_traverse_handler,
                            NULL, item_handler, custom_data, &depth);
 
@@ -2657,7 +2673,6 @@ static int col_grow_stack(struct collection_iterator *iterator, unsigned desired
 
     if (desired > iterator->stack_size) {
         grow_by = (((desired - iterator->stack_size) / STACK_DEPTH_BLOCK) + 1) * STACK_DEPTH_BLOCK;
-        errno = 0;
         temp = (struct collection_item **)realloc(iterator->stack, grow_by * sizeof(struct collection_item *));
         if (temp == NULL) {
             TRACE_ERROR_NUMBER("Failed to allocate memory", ENOMEM);

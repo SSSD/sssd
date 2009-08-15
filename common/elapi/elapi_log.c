@@ -202,9 +202,8 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     /* Allocate memory */
     handle = (struct elapi_dispatcher *) malloc(sizeof(struct elapi_dispatcher));
     if (handle == NULL) {
-        error = errno;
-        TRACE_ERROR_NUMBER("Memory allocation failed. Error", error);
-        return error;
+        TRACE_ERROR_NUMBER("Memory allocation failed. Error", ENOMEM);
+        return ENOMEM;
     }
 
     /* Clean memory - we need it to be able to destroy the dispatcher at any moment */
@@ -227,10 +226,9 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
 
     /* Check error */
     if (handle->appname == NULL) {
-        error = errno;
-        TRACE_ERROR_NUMBER("Memory allocation failed. Error", error);
+        TRACE_ERROR_NUMBER("Memory allocation failed. Error", ENOMEM);
         elapi_destroy_dispatcher(handle);
-        return error;
+        return ENOMEM;
     }
 
     /* Read the ELAPI configuration and store it in the dispatcher handle */
@@ -269,7 +267,7 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         /* There is no list of targets this is bad configuration - return error */
         TRACE_ERROR_STRING("No targets in the config file.", "Fatal error!");
         elapi_destroy_dispatcher(handle);
-        return ENOKEY;
+        return ENOENT;
     }
 
     /* Get one from config but make sure we free it later */

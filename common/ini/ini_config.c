@@ -632,7 +632,7 @@ int config_for_app(const char *application,
         /* Get specific application file */
         file_name = malloc(strlen(config_dir) + strlen(application) + NAME_OVERHEAD);
         if (file_name == NULL) {
-            error = errno;
+            error = ENOMEM;
             TRACE_ERROR_NUMBER("Failed to allocate memory for file name", error);
             /* In case of error when we created collection - delete it */
             if(error && created) {
@@ -665,7 +665,6 @@ int config_for_app(const char *application,
 
         /* Add error results if any to the overarching error collection */
         if ((pass_specific != NULL) && (*pass_specific != NULL)) {
-            TRACE_INFO_STRING("Process erros resulting from file:", file_name);
             error = col_add_collection_to_collection(*error_set, NULL, NULL,
                                                      *pass_specific,
                                                      COL_ADD_MODE_EMBED);
@@ -1260,7 +1259,6 @@ char *get_string_config_value(struct collection_item *item,
         return NULL;
     }
 
-    errno = 0;
     str = strdup((const char *)col_get_item_data(item));
     if (str == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate memory.", ENOMEM);
@@ -1643,8 +1641,8 @@ double *get_double_config_array(struct collection_item *item, int *size, int *er
     /* Now parse the string */
     str = (const char *)col_get_item_data(item);
     while (*str) {
-        errno = 0;
         TRACE_INFO_STRING("String to convert",str);
+        errno = 0;
         val = strtod(str, &endptr);
         if ((errno == ERANGE) ||
             ((errno != 0) && (val == 0)) ||
@@ -1729,7 +1727,7 @@ char **get_section_list(struct collection_item *ini_config, int *size, int *erro
     /* Pass it to the function from collection API */
     list = col_collection_to_list(ini_config, size, error);
 
-    TRACE_FLOW_STRING("get_section_list returning", list == NULL ? "NULL" : list[0]);
+    TRACE_FLOW_STRING("get_section_list returning", ((list == NULL) ? "NULL" : list[0]));
     return list;
 }
 
@@ -1766,6 +1764,6 @@ char **get_attribute_list(struct collection_item *ini_config, const char *sectio
 
     col_destroy_collection(subcollection);
 
-    TRACE_FLOW_STRING("get_attribute_list returning", list == NULL ? "NULL" : list[0]);
+    TRACE_FLOW_STRING("get_attribute_list returning", ((list == NULL) ? "NULL" : list[0]));
     return list;
 }
