@@ -806,6 +806,31 @@ static int append_data_provider(struct mt_ctx *ctx)
     return EOK;
 }
 
+static int check_local_domain_unique(struct sss_domain_info *domains)
+{
+    uint8_t count = 0;
+
+    struct sss_domain_info *dom = domains;
+
+    while (dom) {
+        if (strcasecmp(dom->provider, "local") == 0) {
+            count++;
+        }
+
+        if (count > 1) {
+            break;
+        }
+
+        dom = dom->next;
+    }
+
+    if (count > 1) {
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
@@ -843,7 +868,13 @@ int get_monitor_config(struct mt_ctx *ctx)
     }
     ret = confdb_get_domains(ctx->cdb, ctx->domain_ctx, &ctx->domains);
     if (ret != EOK) {
-        DEBUG(2, ("No domains configured. LOCAL should always exist!\n"));
+        DEBUG(0, ("No domains configured.\n"));
+        return ret;
+    }
+
+    ret = check_local_domain_unique(ctx->domains);
+    if (ret != EOK) {
+        DEBUG(0, ("More than one local domain configured.\n"));
         return ret;
     }
 
