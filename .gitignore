@@ -40,3 +40,17 @@ build
 *.patch
 *.swp
 *.X
+tags
+sss_groupadd
+sss_groupdel
+sss_groupmod
+sss_useradd
+sss_userdel
+sss_usermod
+sssd
+sssd_be
+sssd_dp
+sssd_nss
+sssd_pam
+*~
+
