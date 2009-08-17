@@ -29,7 +29,6 @@
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
 #include "sbus/sbus_client.h"
-#include "providers/dp_sbus.h"
 #include "responder/pam/pamsrv.h"
 
 static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)

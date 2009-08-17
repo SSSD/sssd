@@ -42,8 +42,6 @@
 #include "sbus/sssd_dbus.h"
 #include "util/btreemap.h"
 #include "providers/dp_backend.h"
-#include "providers/dp_sbus.h"
-#include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 
 #define BE_CONF_ENTRY "config/domains/%s"

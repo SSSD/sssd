@@ -27,7 +27,6 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
-#include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 
 int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb, char **address)

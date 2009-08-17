@@ -123,11 +123,6 @@ void sss_cmd_done(struct cli_ctx *cctx, void *freectx);
 int sss_cmd_get_version(struct cli_ctx *cctx);
 struct cli_protocol_version *register_cli_protocol_version(void);
 
-/* responder_dp.c */
-int sss_dp_init(struct resp_ctx *rctx, struct sbus_interface *intf,
-                uint16_t cli_type, uint16_t cli_version,
-                const char *cli_name, const char *cli_domain);
-
 #define SSS_DP_USER 1
 #define SSS_DP_GROUP 2
 #define SSS_DP_INITGROUPS 3

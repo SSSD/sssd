@@ -40,7 +40,6 @@
 #include "util/btreemap.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
@@ -78,22 +77,6 @@ static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
     return monitor_common_pong(message, conn);
 }
 
-static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
-{
-    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(1, ("Reconnected to the Data Provider.\n"));
-        return;
-    }
-
-    /* Handle failure */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
-    /* Kill the backend and let the monitor restart it */
-    pam_shutdown(rctx);
-}
-
 static void pam_shutdown(struct resp_ctx *rctx)
 {
     /* TODO: Do clean-up here */
@@ -102,11 +85,68 @@ static void pam_shutdown(struct resp_ctx *rctx)
     exit(0);
 }
 
+static struct sbus_method pam_dp_methods[] = {
+        { NULL, NULL }
+};
 
-static int pam_process_init(struct main_context *main_ctx,
-                            struct resp_ctx *rctx)
+struct sbus_interface pam_dp_interface = {
+    DP_CLI_INTERFACE,
+    DP_CLI_PATH,
+    SBUS_DEFAULT_VTABLE,
+    pam_dp_methods,
+    NULL
+};
+
+
+static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
+    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
+    int ret;
+
+    /* Did we reconnect successfully? */
+    if (status == SBUS_RECONNECT_SUCCESS) {
+        DEBUG(1, ("Reconnected to the Data Provider.\n"));
+
+        /* Identify ourselves to the data provider */
+        ret = dp_common_send_id(conn,
+                                DP_CLI_FRONTEND,
+                                DATA_PROVIDER_VERSION,
+                                "PAM", "");
+        /* all fine */
+        if (ret == EOK) return;
+    }
+
+    /* Handle failure */
+    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    /* Kill the backend and let the monitor restart it */
+    pam_shutdown(rctx);
+}
+
+static int pam_process_init(TALLOC_CTX *mem_ctx,
+                            struct tevent_context *ev,
+                            struct confdb_ctx *cdb)
+{
+    struct sss_cmd_table *pam_cmds;
+    struct resp_ctx *rctx;
     int ret, max_retries;
+
+    pam_cmds = get_pam_cmds();
+    ret = sss_process_init(mem_ctx, ev, cdb,
+                           pam_cmds,
+                           SSS_PAM_SOCKET_NAME,
+                           SSS_PAM_PRIV_SOCKET_NAME,
+                           PAM_SRV_CONFIG,
+                           PAM_SBUS_SERVICE_NAME,
+                           PAM_SBUS_SERVICE_VERSION,
+                           &monitor_pam_interface,
+                           DP_CLI_FRONTEND,
+                           DATA_PROVIDER_VERSION,
+                           "PAM", "",
+                           &pam_dp_interface,
+                           &rctx);
+    if (ret != EOK) {
+        return ret;
+    }
 
     /* Enable automatic reconnection to the Data Provider */
 
@@ -125,26 +165,12 @@ static int pam_process_init(struct main_context *main_ctx,
     return EOK;
 }
 
-static struct sbus_method pam_dp_methods[] = {
-        { NULL, NULL }
-};
-
-struct sbus_interface pam_dp_interface = {
-    DP_CLI_INTERFACE,
-    DP_CLI_PATH,
-    SBUS_DEFAULT_VTABLE,
-    pam_dp_methods,
-    NULL
-};
-
 int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
     struct main_context *main_ctx;
     int ret;
-    struct sss_cmd_table *sss_cmds;
-    struct resp_ctx *rctx;
 
 	struct poptOption long_options[] = {
 		POPT_AUTOHELP
@@ -175,26 +201,10 @@ int main(int argc, const char *argv[])
         DEBUG(2, ("Could not set up to exit when parent process does\n"));
     }
 
-    sss_cmds = register_sss_cmds();
-    ret = sss_process_init(main_ctx,
+    ret = pam_process_init(main_ctx,
                            main_ctx->event_ctx,
-                           main_ctx->confdb_ctx,
-                           sss_cmds,
-                           SSS_PAM_SOCKET_NAME,
-                           SSS_PAM_PRIV_SOCKET_NAME,
-                           PAM_SRV_CONFIG,
-                           PAM_SBUS_SERVICE_NAME,
-                           PAM_SBUS_SERVICE_VERSION,
-                           &monitor_pam_interface,
-                           DP_CLI_FRONTEND,
-                           DATA_PROVIDER_VERSION,
-                           "PAM", "",
-                           &pam_dp_interface,
-                           &rctx);
+                           main_ctx->confdb_ctx);
     if (ret != EOK) return 3;
-
-    ret = pam_process_init(main_ctx, rctx);
-    if (ret != EOK) return 4;
 
     /* loop on main */
     server_loop(main_ctx);

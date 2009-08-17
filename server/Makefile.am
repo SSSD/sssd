@@ -211,7 +211,6 @@ dist_noinst_HEADERS = \
     confdb/confdb_private.h \
     confdb/confdb_setup.h \
     providers/data_provider.h \
-    providers/dp_sbus.h \
     providers/dp_interfaces.h \
     providers/dp_backend.h \
     providers/providers.h \

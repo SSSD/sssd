@@ -39,7 +39,6 @@
 #include "util/btreemap.h"
 #include "data_provider.h"
 #include "dp_interfaces.h"
-#include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 
 #define DP_CONF_ENTRY "config/services/dp"
@@ -183,7 +182,7 @@ static void init_timeout(struct tevent_context *ev,
 {
     struct dp_client *dpcli;
 
-    DEBUG(2, ("Client timed out before Identification!\n"));
+    DEBUG(2, ("Client timed out before Identification [%p]!\n", te));
 
     dpcli = talloc_get_type(ptr, struct dp_client);
 
@@ -222,6 +221,7 @@ static int dp_client_init(struct sbus_connection *conn, void *data)
         talloc_zfree(conn);
         return ENOMEM;
     }
+    DEBUG(4, ("Set-up DP ID timeout [%p]\n", dpcli->timeout));
 
     /* Attach the client context to the connection context, so that it is
      * always available when we need to manage the connection. */
@@ -254,6 +254,7 @@ static int client_registration(DBusMessage *message,
     }
 
     /* First thing, cancel the timeout */
+    DEBUG(4, ("Cancel DP ID timeout [%p]\n", dpcli->timeout));
     talloc_zfree(dpcli->timeout);
 
     dbus_error_init(&dbus_error);

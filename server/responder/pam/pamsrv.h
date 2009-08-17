@@ -22,7 +22,7 @@ struct pam_auth_req {
     void *data;
 };
 
-struct sss_cmd_table *register_sss_cmds(void);
+struct sss_cmd_table *get_pam_cmds(void);
 
 int pam_dp_send_req(struct pam_auth_req *preq, int timeout);
 

@@ -39,7 +39,6 @@
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 
@@ -312,6 +311,41 @@ static int sss_monitor_init(struct resp_ctx *rctx,
     ret = monitor_common_send_id(rctx->mon_conn, svc_name, svc_version);
     if (ret != EOK) {
         DEBUG(0, ("Failed to identify to the monitor!\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static int sss_dp_init(struct resp_ctx *rctx,
+                       struct sbus_interface *intf,
+                       uint16_t cli_type, uint16_t cli_version,
+                       const char *cli_name, const char *cli_domain)
+{
+    char *sbus_address;
+    int ret;
+
+    /* Set up SBUS connection to the monitor */
+    ret = dp_get_sbus_address(rctx, rctx->cdb, &sbus_address);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not locate DP address.\n"));
+        return ret;
+    }
+
+    ret = sbus_client_init(rctx, rctx->ev, sbus_address,
+                           intf, &rctx->dp_conn,
+                           NULL, NULL);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        return ret;
+    }
+
+    /* Identify ourselves to the DP */
+    ret = dp_common_send_id(rctx->dp_conn,
+                            cli_type, cli_version,
+                            cli_name, cli_domain);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to identify to the DP!\n"));
         return ret;
     }
 

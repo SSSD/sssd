@@ -41,7 +41,6 @@
 #include "util/btreemap.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
-#include "monitor/monitor_sbus.h"
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 
@@ -186,23 +185,6 @@ static void nss_shutdown(struct resp_ctx *rctx)
     exit(0);
 }
 
-
-static void nss_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
-{
-    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(1, ("Reconnected to the Data Provider.\n"));
-        return;
-    }
-
-    /* Handle failure */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
-    /* Kill the backend and let the monitor restart it */
-    nss_shutdown(rctx);
-}
-
 static struct sbus_method nss_dp_methods[] = {
     { NULL, NULL }
 };
@@ -214,6 +196,32 @@ struct sbus_interface nss_dp_interface = {
     nss_dp_methods,
     NULL
 };
+
+
+static void nss_dp_reconnect_init(struct sbus_connection *conn,
+                                  int status, void *pvt)
+{
+    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
+    int ret;
+
+    /* Did we reconnect successfully? */
+    if (status == SBUS_RECONNECT_SUCCESS) {
+        DEBUG(1, ("Reconnected to the Data Provider.\n"));
+
+        /* Identify ourselves to the data provider */
+        ret = dp_common_send_id(conn,
+                                DP_CLI_FRONTEND,
+                                DATA_PROVIDER_VERSION,
+                                "NSS", "");
+        /* all fine */
+        if (ret == EOK) return;
+    }
+
+    /* Failed to reconnect */
+    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    /* Kill the backend and let the monitor restart it */
+    nss_shutdown(rctx);
+}
 
 int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct tevent_context *ev,

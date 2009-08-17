@@ -809,7 +809,7 @@ struct cli_protocol_version *register_cli_protocol_version(void)
     return pam_cli_protocol_version;
 }
 
-struct sss_cmd_table *register_sss_cmds(void)
+struct sss_cmd_table *get_pam_cmds(void)
 {
     static struct sss_cmd_table sss_cmds[] = {
         {SSS_GET_VERSION, sss_cmd_get_version},

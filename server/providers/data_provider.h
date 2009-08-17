@@ -121,19 +121,27 @@ struct pam_data {
     gid_t gr_gid;
 };
 
+/* from dp_auth_util.c */
 void pam_print_data(int l, struct pam_data *pd);
-
-int pam_add_response(struct pam_data *pd, enum response_type type,
+int pam_add_response(struct pam_data *pd,
+                     enum response_type type,
                      int len, const uint8_t *data);
 
 bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
-bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
+bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd,
+                           DBusError *dbus_error);
+
 bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
-bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error);
+bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
+                            DBusError *dbus_error);
 
 int dp_common_send_id(struct sbus_connection *conn,
                       uint16_t cli_type, uint16_t version,
                       const char *name, const char *domain);
+
+/* from dp_sbus.c */
+int dp_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
+                        char **address);
 
 
 #endif /* __DATA_PROVIDER_ */

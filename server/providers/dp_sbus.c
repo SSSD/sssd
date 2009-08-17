@@ -25,7 +25,6 @@
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/data_provider.h"
-#include "providers/dp_sbus.h"
 #include "providers/dp_interfaces.h"
 
 int dp_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb, char **address)
