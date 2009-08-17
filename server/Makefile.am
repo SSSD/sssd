@@ -195,7 +195,6 @@ dist_noinst_HEADERS = \
     util/util.h \
     config.h \
     monitor/monitor.h \
-    monitor/monitor_sbus.h \
     monitor/monitor_interfaces.h \
     responder/common/responder.h \
     responder/common/responder_packet.h \
