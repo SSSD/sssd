@@ -256,7 +256,7 @@ static void auth_get_user_dn_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_auth_send(state, state->ev, state->sh,
-                            state->dn, state->password);
+                            state->dn, "password", state->password);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

@@ -72,6 +72,27 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>defaultAuthtokType (string)</term>
+                    <listitem>
+                        <para>
+                            The type of the authentication token of the
+                            default bind DN. So far "password" is the only
+                            supported value.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>defaultAuthtok (string)</term>
+                    <listitem>
+                        <para>
+                            The authentication token of the default bind DN.
+                            So far only a clear text password is supported.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>userSearchBase (string)</term>
                     <listitem>
                         <para>

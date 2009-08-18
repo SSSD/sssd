@@ -115,17 +115,23 @@ struct sdap_id_connect_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
     bool use_start_tls;
+    char *defaultBindDn;
+    char *defaultAuthtokType;
+    char *defaultAuthtok;
 
     struct sdap_handle *sh;
 };
 
 static void sdap_id_connect_done(struct tevent_req *subreq);
-static void sdap_id_anon_bind_done(struct tevent_req *subreq);
+static void sdap_id_bind_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
                                         struct sdap_id_ctx *ctx,
-                                        bool use_start_tls)
+                                        bool use_start_tls,
+                                        char *defaultBindDn,
+                                        char *defaultAuthtokType,
+                                        char *defaultAuthtok)
 {
     struct tevent_req *req, *subreq;
     struct sdap_id_connect_state *state;
@@ -136,6 +142,9 @@ struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
     state->use_start_tls = use_start_tls;
+    state->defaultBindDn = defaultBindDn;
+    state->defaultAuthtokType = defaultAuthtokType;
+    state->defaultAuthtok = defaultAuthtok;
 
     subreq = sdap_connect_send(state, ev, ctx->opts, use_start_tls);
     if (!subreq) {
@@ -163,16 +172,17 @@ static void sdap_id_connect_done(struct tevent_req *subreq)
     }
 
     /* TODO: use authentication (SASL/GSSAPI) when necessary */
-    subreq = sdap_auth_send(state, state->ev, state->sh, NULL, NULL);
+    subreq = sdap_auth_send(state, state->ev, state->sh, state->defaultBindDn,
+                            state->defaultAuthtokType, state->defaultAuthtok);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
 
-    tevent_req_set_callback(subreq, sdap_id_anon_bind_done, req);
+    tevent_req_set_callback(subreq, sdap_id_bind_done, req);
 }
 
-static void sdap_id_anon_bind_done(struct tevent_req *subreq)
+static void sdap_id_bind_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -282,7 +292,10 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false);
+        subreq = sdap_id_connect_send(state, ev, ctx, false,
+                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -439,7 +452,10 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false);
+        subreq = sdap_id_connect_send(state, ev, ctx, false,
+                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -571,7 +587,10 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false);
+        subreq = sdap_id_connect_send(state, ev, ctx, false,
+                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;

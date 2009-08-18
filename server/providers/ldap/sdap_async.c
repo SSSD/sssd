@@ -728,10 +728,16 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_handle *sh,
                                   const char *user_dn,
+                                  const char *authtok_type,
                                   const char *password)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
+
+    if (authtok_type != NULL && strcasecmp(authtok_type,"password") != 0) {
+        DEBUG(1,("Authentication token type [%s] is not supported"));
+        return NULL;
+    }
 
     req = tevent_req_create(memctx, &state, struct sdap_auth_state);
     if (!req) return NULL;
@@ -884,6 +890,12 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     ret = sysdb_attrs_get_el(state->attrs,
                              opts->user_map[SDAP_AT_USER_UID].sys_name, &el);
     if (ret) goto fail;
+    if (el->num_values == 0) {
+        DEBUG(1, ("no uid provided for user [%s] in domain [%s].\n", name,
+                  dom->name));
+        ret = EINVAL;
+        goto fail;
+    }
     errno = 0;
     l = strtol((const char *)el->values[0].data, NULL, 0);
     if (errno) {
@@ -895,6 +907,12 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     ret = sysdb_attrs_get_el(state->attrs,
                              opts->user_map[SDAP_AT_USER_GID].sys_name, &el);
     if (ret) goto fail;
+    if (el->num_values == 0) {
+        DEBUG(1, ("no gid provided for user [%s] in domain [%s].\n", name,
+                  dom->name));
+        ret = EINVAL;
+        goto fail;
+    }
     errno = 0;
     l = strtol((const char *)el->values[0].data, NULL, 0);
     if (errno) {

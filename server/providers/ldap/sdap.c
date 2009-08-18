@@ -233,6 +233,7 @@ static int sdap_parse_entry(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    DEBUG(9, ("OriginalDN: [%s].\n", str));
     ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
     if (ret) goto fail;
     if (_dn) {
