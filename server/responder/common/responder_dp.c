@@ -190,11 +190,6 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         return EINVAL;
     }
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
     switch (type) {
     case SSS_DP_USER:
         be_type = BE_REQ_USER;
@@ -207,6 +202,20 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         break;
     default:
         return EINVAL;
+    }
+
+    if (dp_requests == NULL) {
+        /* Create a hash table to handle queued update requests */
+        ret = hash_create(10, &dp_requests, NULL);
+        if (ret != HASH_SUCCESS) {
+            fprintf(stderr, "cannot create hash table (%s)\n", hash_error_string(ret));
+            return EIO;
+        }
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
     }
 
     key.type = HASH_KEY_STRING;
