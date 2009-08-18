@@ -1334,15 +1334,27 @@ static void sysdb_get_new_id_base(struct tevent_req *subreq)
 
     /* verify the id is actually really free.
      * search all entries with id >= new_id and < max_id */
-    filter = talloc_asprintf(state,
-                             "(|(&(%s>=%u)(%s<=%u))(&(%s>=%u)(%s<=%u)))",
-                             SYSDB_UIDNUM, state->new_id,
-                             SYSDB_UIDNUM, state->domain->id_max,
-                             SYSDB_GIDNUM, state->new_id,
-                             SYSDB_GIDNUM, state->domain->id_max);
-    if (!filter) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    if (state->domain->id_max) {
+        filter = talloc_asprintf(state,
+                                 "(|(&(%s>=%u)(%s<=%u))(&(%s>=%u)(%s<=%u)))",
+                                 SYSDB_UIDNUM, state->new_id,
+                                 SYSDB_UIDNUM, state->domain->id_max,
+                                 SYSDB_GIDNUM, state->new_id,
+                                 SYSDB_GIDNUM, state->domain->id_max);
+        if (!filter) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    }
+    else {
+        filter = talloc_asprintf(state,
+                                 "(|(%s>=%u)(%s>=%u))",
+                                 SYSDB_UIDNUM, state->new_id,
+                                 SYSDB_GIDNUM, state->new_id);
+        if (!filter) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
     }
 
     ret = ldb_build_search_req(&ldbreq, state->handle->ctx->ldb, state,
