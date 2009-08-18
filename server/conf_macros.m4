@@ -66,24 +66,6 @@ AC_DEFUN([WITH_PIPE_PATH],
     AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
   ])
 
-AC_DEFUN([WITH_TESTS],
-  [ AC_ARG_WITH([tests],
-                [AC_HELP_STRING([--with-tests],
-                                [Whether to build tests [no]]
-                               )
-                ],
-                [],
-                with_tests=no
-               )
-
-    if test x"$with_tests" == xyes; then
-        AC_DEFINE(HAVE_TESTS, 1, [Build tests])
-        HAVE_TESTS=1
-        AC_SUBST(HAVE_TESTS)
-    fi
-  ])
-AM_CONDITIONAL([BUILD_TESTS], [test x$with_tests = xyes])
-
 AC_DEFUN([WITH_INIT_DIR],
   [ AC_ARG_WITH([init-dir],
                 [AC_HELP_STRING([--with-init-dir=DIR],

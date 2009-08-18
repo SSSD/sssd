@@ -49,13 +49,18 @@ sssdlibexec_PROGRAMS = \
     $(sssd_pk) \
     $(sssd_info)
 
-if BUILD_TESTS
-check_PROGRAMS = \
-    sysdb-tests \
-    stress-tests \
-    resolv-tests
-TESTS = sysdb-tests resolv-tests
+if HAVE_CHECK
+    non_interactive_check_based_tests = \
+        sysdb-tests \
+        resolv-tests
 endif
+
+check_PROGRAMS = \
+    stress-tests \
+    $(non_interactive_check_based_tests)
+
+TESTS = \
+    $(non_interactive_check_based_tests)
 
 sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
@@ -322,7 +327,7 @@ sss_groupmod_LDADD = \
 #################
 # Feature Tests #
 #################
-if BUILD_TESTS
+if HAVE_CHECK
 sysdb_tests_SOURCES = \
     tests/sysdb-tests.c \
     $(SSSD_UTIL_OBJ)
@@ -331,6 +336,7 @@ sysdb_tests_CFLAGS = \
 sysdb_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
+endif
 
 stress_tests_SOURCES = \
     tests/stress-tests.c \
@@ -338,6 +344,7 @@ stress_tests_SOURCES = \
 stress_tests_LDADD = \
     $(SSSD_LIBS)
 
+if HAVE_CHECK
 resolv_tests_SOURCES = \
     tests/resolv-tests.c \
     $(SSSD_UTIL_OBJ) \
@@ -348,8 +355,7 @@ resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS)
-
-endif #BUILD_TESTS
+endif
 
 ####################
 # Plugin Libraries #

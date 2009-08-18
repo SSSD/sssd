@@ -15,7 +15,7 @@ AC_INIT([sss_daemon], [0.4.0], [freeipa-devel@redhat.com])
 AC_CONFIG_SRCDIR([conf_macros.m4])
 AC_CONFIG_AUX_DIR([build])
 
-AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects color-tests])
 AM_PROG_CC_C_O
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
@@ -39,7 +39,6 @@ WITH_DB_PATH
 WITH_PLUGIN_PATH
 WITH_PID_PATH
 WITH_PIPE_PATH
-WITH_TESTS
 WITH_INIT_DIR
 WITH_SHADOW_UTILS_PATH
 WITH_MANPAGES
@@ -67,9 +66,7 @@ if test x$has_dbus != xno; then
                   AC_DEFINE([HAVE_DBUS_WATCH_GET_UNIX_FD], [1],
                             [Define if dbus_watch_get_unix_fd exists]))
 fi
-if test x$HAVE_TESTS != x; then
-    PKG_CHECK_MODULES([CHECK],[check])
-fi
+
 PKG_CHECK_MODULES([NSS],[nss])
 
 if test x$HAVE_MANPAGES != x; then
@@ -81,6 +78,11 @@ fi
 
 AC_CHECK_HEADERS([sys/inotify.h])
 
-AC_CONFIG_FILES([Makefile po/Makefile.in])
+PKG_CHECK_MODULES([CHECK], [check], [have_check=1], [have_check=])
+if test x$have_check = x; then
+    AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
+fi
+AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 
+AC_CONFIG_FILES([Makefile po/Makefile.in])
 AC_OUTPUT
