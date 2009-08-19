@@ -2,6 +2,9 @@ SUBDIRS = replace common server sss_client
 
 RPMBUILD ?= $(PWD)/rpmbuild
 
+#Some old versions of automake don't define builddir
+builddir ?= .
+
 dist_noinst_DATA = \
     sssd.spec.in \
     BUILD.txt \

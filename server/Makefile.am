@@ -1,5 +1,9 @@
 SUBDIRS = po
 topdir=.
+
+# Some old versions of automake don't define builddir
+builddir ?= .
+
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 ldblibdir = $(libdir)/ldb
