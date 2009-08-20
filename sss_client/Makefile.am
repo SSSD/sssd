@@ -1,11 +1,12 @@
 SUBDIRS = po
 
 pipepath=@pipepath@
+localedir = @localedir@
 
 topdir=.
 AM_CPPFLAGS = \
     -I$(topdir) \
-    -DLOCALEDIR=\"\$(localedir)\" \
+    -DLOCALEDIR=\"$(localedir)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\"

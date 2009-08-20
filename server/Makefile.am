@@ -11,6 +11,7 @@ krb5plugindir = @krb5pluginpath@
 sssdconfdir = $(sysconfdir)/sssd
 dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
+localedir = @localedir@
 
 dbpath = @dbpath@
 pluginpath = @pluginpath@
@@ -135,7 +136,7 @@ AM_CPPFLAGS = -Wall \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DUSE_MMAP=1 \
-    -DLOCALEDIR=\"\$(localedir)\"
+    -DLOCALEDIR=\"$(localedir)\"
 
 EXTRA_DIST = build/config.rpath
 
