@@ -2496,6 +2496,23 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                          const char *homedir,
                                          const char *shell)
 {
+    return sysdb_store_user_with_attrs_send(mem_ctx, ev, handle, domain,
+                                            name, pwd, uid, gid, gecos,
+                                            homedir, shell, NULL);
+}
+
+struct tevent_req *sysdb_store_user_with_attrs_send(TALLOC_CTX *mem_ctx,
+                                                struct tevent_context *ev,
+                                                struct sysdb_handle *handle,
+                                                struct sss_domain_info *domain,
+                                                const char *name,
+                                                const char *pwd,
+                                                uid_t uid, gid_t gid,
+                                                const char *gecos,
+                                                const char *homedir,
+                                                const char *shell,
+                                                struct sysdb_attrs *attrs)
+{
     struct tevent_req *req, *subreq;
     struct sysdb_store_user_state *state;
     int ret;
@@ -2512,7 +2529,7 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
     state->gecos = gecos;
     state->homedir = homedir;
     state->shell = shell;
-    state->attrs = NULL;
+    state->attrs = attrs;
 
     if (pwd && (domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(state->attrs, SYSDB_PWD, pwd);
@@ -2677,6 +2694,10 @@ int sysdb_store_user_recv(struct tevent_req *req)
     return sysdb_op_default_recv(req);
 }
 
+int sysdb_store_user_with_attrs_recv(struct tevent_req *req)
+{
+    return sysdb_op_default_recv(req);
+}
 
 /* =Store-Group-(Native/Legacy)-(replaces-existing-data)================== */
 

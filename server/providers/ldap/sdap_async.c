@@ -840,6 +840,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     long int l;
     uid_t uid;
     gid_t gid;
+    struct sysdb_attrs *user_attrs;
 
     req = tevent_req_create(memctx, &state, struct sdap_save_user_state);
     if (!req) return NULL;
@@ -921,11 +922,51 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     }
     gid = l;
 
+    user_attrs = sysdb_new_attrs(state);
+    if (user_attrs == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_attrs_get_el(state->attrs, SYSDB_ORIG_DN, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original DN is not available for user [%s].\n", name));
+    } else {
+        DEBUG(7, ("Adding original DN [%s] to attributes of user [%s].\n",
+                  el->values[0].data, name));
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN,
+                                     (const char *) el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+    }
+
+    ret = sysdb_attrs_get_el(state->attrs,
+                             opts->user_map[SDAP_AT_USER_PRINC].sys_name, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("User principle is not available for user [%s].\n", name));
+    } else {
+        DEBUG(7, ("Adding user principle [%s] to attributes of user [%s].\n",
+                  el->values[0].data, name));
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN,
+                                     (const char *) el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+    }
+
     DEBUG(6, ("Storing info for user %s\n", name));
 
-    subreq = sysdb_store_user_send(state, state->ev, state->handle,
-                                   state->dom, name, pwd, uid, gid,
-                                   gecos, homedir, shell);
+    subreq = sysdb_store_user_with_attrs_send(state, state->ev, state->handle,
+                                              state->dom, name, pwd, uid, gid,
+                                              gecos, homedir, shell,
+                                              user_attrs);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -946,7 +987,7 @@ static void sdap_save_user_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     int ret;
 
-    ret = sysdb_store_user_recv(subreq);
+    ret = sysdb_store_user_with_attrs_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
