@@ -242,7 +242,7 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         TRACE_ERROR_NUMBER("Attempt to read configuration returned error", error);
         elapi_destroy_dispatcher(handle);
         if (error_set) {
-            elapi_internal_dump_errors_to_file(error_set);
+            elapi_dump_ini_err(error_set);
             free_ini_config_errors(error_set);
         }
         return error;
@@ -274,7 +274,7 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     handle->targets = get_string_config_array(item, NULL, NULL, NULL);
 
     /* Create the list of targets */
-    error = elapi_internal_construct_target_list(handle);
+    error = elapi_tgt_mklist(handle);
     if (error != EOK) {
         TRACE_ERROR_NUMBER("Failed to create target list. Error", error);
         elapi_destroy_dispatcher(handle);
@@ -334,7 +334,7 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
             TRACE_INFO_STRING("Closing target list.", "");
             (void)col_traverse_collection(dispatcher->target_list,
                                           COL_TRAVERSE_ONELEVEL,
-                                          elapi_internal_target_cleanup_handler,
+                                          elapi_tgt_free_cb,
                                           NULL);
 
             TRACE_INFO_STRING("Deleting target list.", "");
@@ -345,7 +345,7 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
             TRACE_INFO_STRING("Closing sink list.", "");
             (void)col_traverse_collection(dispatcher->sink_list,
                                           COL_TRAVERSE_ONELEVEL,
-                                          elapi_internal_sink_cleanup_handler,
+                                          elapi_sink_free_cb,
                                           NULL);
             TRACE_INFO_STRING("Deleting target list.", "");
             col_destroy_collection(dispatcher->sink_list);
@@ -370,7 +370,7 @@ int elapi_dsp_log(uint32_t target,
                   struct collection_item *event)
 {
     int error = EOK;
-    struct elapi_target_pass_in_data target_data;
+    struct elapi_tgt_data target_data;
 
     TRACE_FLOW_STRING("elapi_dsp_log", "Entry");
 
@@ -387,10 +387,10 @@ int elapi_dsp_log(uint32_t target,
 
     TRACE_INFO_NUMBER("Target mask is:", target_data.target_mask);
 
-    /* Logging an event is just iterating through the targets and calling the sink_handler */
+    /* Logging an event is just iterating through the targets and calling a callback */
     error = col_traverse_collection(dispatcher->target_list,
                                     COL_TRAVERSE_ONELEVEL,
-                                    elapi_internal_target_handler,
+                                    elapi_tgt_cb,
                                     (void *)(&target_data));
 
     TRACE_FLOW_NUMBER("elapi_dsp_log Exit. Returning", error);

@@ -40,27 +40,27 @@
 #define ELAPI_DEFAULT_ERROR_FILE "elapiconf.err"
 
 /* Handler for logging through the targets */
-int elapi_internal_target_handler(const char *target,
-                                  int target_len,
-                                  int type,
-                                  void *data,
-                                  int length,
-                                  void *passed_data,
-                                  int *stop)
+int elapi_tgt_cb(const char *target,
+                 int target_len,
+                 int type,
+                 void *data,
+                 int length,
+                 void *passed_data,
+                 int *stop)
 {
-    struct elapi_target_pass_in_data *target_data;
-    struct elapi_target_context *context;
+    struct elapi_tgt_data *target_data;
+    struct elapi_tgt_ctx *context;
 
-    TRACE_FLOW_STRING("elapi_internal_target_handler", "Entry.");
+    TRACE_FLOW_STRING("elapi_tgt_cb", "Entry.");
 
     /* Skip header */
     if (type == COL_TYPE_COLLECTION) {
-        TRACE_FLOW_STRING("elapi_internal_target_handler - skip header", "Exit.");
+        TRACE_FLOW_STRING("elapi_tgt_cb - skip header", "Exit.");
         return EOK;
     }
 
-    target_data = (struct elapi_target_pass_in_data *)(passed_data);
-    context = *((struct elapi_target_context **)(data));
+    target_data = (struct elapi_tgt_data *)(passed_data);
+    context = *((struct elapi_tgt_ctx **)(data));
 
     /* Check if we need to log this event into this target */
     TRACE_INFO_NUMBER("EVENT IS LOGGED INTO:", target_data->target_mask);
@@ -78,89 +78,89 @@ int elapi_internal_target_handler(const char *target,
     printf("\n\n\nPROCESSING EVENT:\n");
     col_debug_collection(target_data->event, COL_TRAVERSE_DEFAULT);
 
-    TRACE_FLOW_STRING("elapi_internal_target_handler", "Exit.");
+    TRACE_FLOW_STRING("elapi_tgt_cb", "Exit.");
     return EOK;
 }
 
 /* Internal target cleanup function */
-int elapi_internal_target_cleanup_handler(const char *target,
-                                          int target_len,
-                                          int type,
-                                          void *data,
-                                          int length,
-                                          void *passed_data,
-                                          int *stop)
+int elapi_tgt_free_cb(const char *target,
+                      int target_len,
+                      int type,
+                      void *data,
+                      int length,
+                      void *passed_data,
+                      int *stop)
 {
-    TRACE_FLOW_STRING("elapi_internal_target_cleanup_handler", "Entry.");
+    TRACE_FLOW_STRING("elapi_tgt_free_cb", "Entry.");
 
     /* Skip header */
     if (type == COL_TYPE_COLLECTION) {
-        TRACE_FLOW_STRING("elapi_internal_target_cleanup_handler - skip header", "Exit.");
+        TRACE_FLOW_STRING("elapi_tgt_free_cb - skip header", "Exit.");
         return EOK;
     }
 
-    elapi_internal_destroy_target(*((struct elapi_target_context **)(data)));
+    elapi_tgt_destroy(*((struct elapi_tgt_ctx **)(data)));
 
-    TRACE_FLOW_STRING("elapi_internal_target_cleanup_handler", "Exit.");
+    TRACE_FLOW_STRING("elapi_tgt_free_cb", "Exit.");
     return EOK;
 }
 
 
 
-int elapi_internal_sink_handler(const char *sink,
-                                int sink_len,
-                                int type,
-                                void *data,
-                                int length,
-                                void *passed_data,
-                                int *stop)
+int elapi_sink_cb(const char *sink,
+                  int sink_len,
+                  int type,
+                  void *data,
+                  int length,
+                  void *passed_data,
+                  int *stop)
 {
-    TRACE_FLOW_STRING("elapi_internal_sink_handler", "Entry.");
+    TRACE_FLOW_STRING("elapi_sink_cb", "Entry.");
 
     /* FIXME THIS IS A PLACEHOLDER FUNCTION FOR NOW */
 
     /* Skip header */
     if (type == COL_TYPE_COLLECTION) {
-        TRACE_FLOW_STRING("elapi_internal_sink_handler - skip header", "Exit.");
+        TRACE_FLOW_STRING("elapi_sink_cb - skip header", "Exit.");
         return EOK;
     }
 
     printf("Sink: %s\n", sink);
 
-    TRACE_FLOW_STRING("elapi_internal_sink_handler", "Exit.");
+    TRACE_FLOW_STRING("elapi_sink_cb", "Exit.");
     return EOK;
 }
 
 /* Internal sink cleanup function */
-int elapi_internal_sink_cleanup_handler(const char *sink,
-                                        int sink_len,
-                                        int type,
-                                        void *data,
-                                        int length,
-                                        void *passed_data,
-                                        int *stop)
+int elapi_sink_free_cb(const char *sink,
+                       int sink_len,
+                       int type,
+                       void *data,
+                       int length,
+                       void *passed_data,
+                       int *stop)
 {
-    TRACE_FLOW_STRING("elapi_internal_sink_cleanup_handler", "Entry.");
+    TRACE_FLOW_STRING("elapi_sink_free_cb", "Entry.");
 
     /* FIXME THIS IS A PLACEHOLDER FUNCTION FOR NOW */
 
     printf("Cleaning Sink: %s\n", sink);
 
-    TRACE_FLOW_STRING("elapi_internal_sink_cleanup_handler", "Exit.");
+    TRACE_FLOW_STRING("elapi_sink_free_cb", "Exit.");
     return EOK;
 }
 
 /* Function to add a sink to the collection */
 /* FIXME - other arguments might be added later */
-int elapi_internal_add_sink(struct collection_item **sink_ref,
-                            char *sink,
-                            struct elapi_dispatcher *handle)
+int elapi_sink_add(struct collection_item **sink_ref,
+                   char *sink,
+                   struct elapi_dispatcher *handle)
 {
     int error = EOK;
-    struct elapi_sink_context sink_context;
+    struct elapi_sink_ctx sink_context;
     struct collection_item *provider_cfg_item = NULL;
 
-    TRACE_FLOW_STRING("elapi_internal_add_sink", "Entry");
+    TRACE_FLOW_STRING("elapi_sink_add", "Entry");
 
     TRACE_INFO_STRING("Evaluating sink:", sink);
     TRACE_INFO_NUMBER("Sink reference before call:", *sink_ref);
@@ -214,7 +214,7 @@ int elapi_internal_add_sink(struct collection_item **sink_ref,
                                                  NULL,
                                                  sink,
                                                  (void *)(&sink_context),
-                                                 sizeof(struct elapi_sink_context),
+                                                 sizeof(struct elapi_sink_ctx),
                                                  sink_ref);
         if (error != 0) {
             TRACE_ERROR_NUMBER("Failed to add sink data as property", error);
@@ -222,14 +222,14 @@ int elapi_internal_add_sink(struct collection_item **sink_ref,
         }
     }
 
-    TRACE_FLOW_NUMBER("elapi_internal_add_sink returning", error);
+    TRACE_FLOW_NUMBER("elapi_sink_add returning", error);
     return error;
 }
 
 /* Destroy target object */
-void elapi_internal_destroy_target(struct elapi_target_context *context)
+void elapi_tgt_destroy(struct elapi_tgt_ctx *context)
 {
-    TRACE_FLOW_STRING("elapi_internal_destroy_target", "Entry.");
+    TRACE_FLOW_STRING("elapi_tgt_destroy", "Entry.");
 
     TRACE_INFO_NUMBER("Target address in cleanup:", context);
 
@@ -242,24 +242,24 @@ void elapi_internal_destroy_target(struct elapi_target_context *context)
         free(context);
     }
 
-    TRACE_FLOW_STRING("elapi_internal_destroy_target", "Exit.");
+    TRACE_FLOW_STRING("elapi_tgt_destroy", "Exit.");
 
 }
 
 /* Allocate target context and load sinks to it */
-int elapi_internal_create_target(struct elapi_target_context **context,
-                                 char *target,
-                                 struct elapi_dispatcher *handle)
+int elapi_tgt_create(struct elapi_tgt_ctx **context,
+                     char *target,
+                     struct elapi_dispatcher *handle)
 {
     int error = EOK;
     struct collection_item *sink_cfg_item = NULL;
     struct collection_item *value_cfg_item = NULL;
-    struct elapi_target_context *target_context;
+    struct elapi_tgt_ctx *target_context;
     char **sinks;
     char **current_sink;
     struct collection_item *sink_ref;
 
-    TRACE_FLOW_STRING("elapi_internal_create_target", "Entry.");
+    TRACE_FLOW_STRING("elapi_tgt_create", "Entry.");
 
     /* Get list of sinks for this target from config */
     error = get_config_item(target,
@@ -279,7 +279,7 @@ int elapi_internal_create_target(struct elapi_target_context **context,
     }
 
     /* Allocate context */
-    target_context = (struct elapi_target_context *)malloc(sizeof(struct elapi_target_context));
+    target_context = (struct elapi_tgt_ctx *)malloc(sizeof(struct elapi_tgt_ctx));
     if (target_context == NULL) {
         TRACE_ERROR_NUMBER("Memory allocation failed. Error", target_context);
         return ENOMEM;
@@ -299,7 +299,7 @@ int elapi_internal_create_target(struct elapi_target_context **context,
                             &value_cfg_item);
     if (error) {
         TRACE_ERROR_NUMBER("Attempt to read configuration returned error", error);
-        elapi_internal_destroy_target(target_context);
+        elapi_tgt_destroy(target_context);
         return error;
     }
 
@@ -319,7 +319,7 @@ int elapi_internal_create_target(struct elapi_target_context **context,
          */
         if (error) {
             TRACE_ERROR_NUMBER("Failed to convert value form INI file", error);
-            elapi_internal_destroy_target(target_context);
+            elapi_tgt_destroy(target_context);
             return error;
         }
     }
@@ -333,7 +333,7 @@ int elapi_internal_create_target(struct elapi_target_context **context,
                                   COL_CLASS_ELAPI_SINK_REF);
     if (error != 0) {
         TRACE_ERROR_NUMBER("Failed to create sink collection. Error", error);
-        elapi_internal_destroy_target(target_context);
+        elapi_tgt_destroy(target_context);
         return error;
     }
 
@@ -348,16 +348,16 @@ int elapi_internal_create_target(struct elapi_target_context **context,
 
         /* Load sink if it is not loaded yet */
         sink_ref = NULL;
-        error = elapi_internal_add_sink(&sink_ref,
-                                        *current_sink,
-                                        handle);
+        error = elapi_sink_add(&sink_ref,
+                               *current_sink,
+                               handle);
         if (error) {
             /* NOTE - we might decide to lax some of the checks
              * like this later and be satisfied with at least one
              * sink in the list. Subject for discussion...
              */
             TRACE_ERROR_NUMBER("Failed to add sink", error);
-            elapi_internal_destroy_target(target_context);
+            elapi_tgt_destroy(target_context);
             free_string_config_array(sinks);
             return error;
         }
@@ -368,7 +368,7 @@ int elapi_internal_create_target(struct elapi_target_context **context,
                                         sizeof(struct collection_item *));
         if (error != 0) {
             TRACE_ERROR_NUMBER("Failed to add sink reference", error);
-            elapi_internal_destroy_target(target_context);
+            elapi_tgt_destroy(target_context);
             free_string_config_array(sinks);
             return error;
         }
@@ -380,20 +380,20 @@ int elapi_internal_create_target(struct elapi_target_context **context,
 
     *context = target_context;
 
-    TRACE_FLOW_STRING("elapi_internal_create_target", "Exit.");
+    TRACE_FLOW_STRING("elapi_tgt_create", "Exit.");
     return EOK;
 }
 
 
 /* Function to create a list of targets */
-int elapi_internal_construct_target_list(struct elapi_dispatcher *handle)
+int elapi_tgt_mklist(struct elapi_dispatcher *handle)
 {
     int error = EOK;
     char **current_target;
-    struct elapi_target_context *context;
+    struct elapi_tgt_ctx *context;
 
 
-    TRACE_FLOW_STRING("elapi_internal_construct_target_list", "Entry");
+    TRACE_FLOW_STRING("elapi_tgt_mklist", "Entry");
 
     /* Allocate collection to store target */
     error = col_create_collection(&(handle->target_list),
@@ -429,9 +429,9 @@ int elapi_internal_construct_target_list(struct elapi_dispatcher *handle)
 
         /* Allocate target context and load sinks to it */
         context = NULL;
-        error = elapi_internal_create_target(&context,
-                                             *current_target,
-                                             handle);
+        error = elapi_tgt_create(&context,
+                                 *current_target,
+                                 handle);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to create target", error);
             return error;
@@ -442,11 +442,11 @@ int elapi_internal_construct_target_list(struct elapi_dispatcher *handle)
         /* Add created target to the list of targets */
         error = col_add_binary_property(handle->target_list, NULL,
                                         *current_target, (void *)(&context),
-                                        sizeof(struct elapi_target_context *));
+                                        sizeof(struct elapi_tgt_ctx *));
         if (error != 0) {
             TRACE_ERROR_NUMBER("Failed to add sink data as property", error);
             /* Need to clean allocated context here if we failed to add it */
-            elapi_internal_destroy_target(context);
+            elapi_tgt_destroy(context);
             return error;
         }
 
@@ -460,14 +460,14 @@ int elapi_internal_construct_target_list(struct elapi_dispatcher *handle)
         return ENOENT;
     }
 
-    TRACE_FLOW_STRING("elapi_internal_construct_target_list", "Returning success");
+    TRACE_FLOW_STRING("elapi_tgt_mklist", "Returning success");
     return EOK;
 }
 
 
 
 /* If we failed to read configuration record this in the local file */
-void elapi_internal_dump_errors_to_file(struct collection_item *error_list)
+void elapi_dump_ini_err(struct collection_item *error_list)
 {
     FILE *efile;
     char timestr[MAX_TIMESTR];
@@ -475,7 +475,7 @@ void elapi_internal_dump_errors_to_file(struct collection_item *error_list)
     struct tm *time_as_struct;
     struct tm time_data;
 
-    TRACE_FLOW_STRING("elapi_internal_dump_errors_to_file", "Entry point");
+    TRACE_FLOW_STRING("elapi_dump_ini_err", "Entry point");
 
     efile = fopen(ELAPI_DEFAULT_ERROR_FILE, "a");
     if (efile == NULL) {
@@ -500,21 +500,21 @@ void elapi_internal_dump_errors_to_file(struct collection_item *error_list)
     print_file_parsing_errors(efile, error_list);
 
     fclose(efile);
-    TRACE_FLOW_STRING("elapi_internal_dump_errors_to_file", "Exit");
+    TRACE_FLOW_STRING("elapi_dump_ini_err", "Exit");
 }
 
 
 /* Handler for printing target internals */
-static int elapi_internal_sink_ref_debug_handler(const char *sink,
-                                                 int sink_len,
-                                                 int type,
-                                                 void *data,
-                                                 int length,
-                                                 void *passed_data,
-                                                 int *stop)
+static int elapi_sink_ref_dbg_cb(const char *sink,
+                                 int sink_len,
+                                 int type,
+                                 void *data,
+                                 int length,
+                                 void *passed_data,
+                                 int *stop)
 {
     struct collection_item *sink_item;
-    struct elapi_sink_context *sink_context;
+    struct elapi_sink_ctx *sink_context;
 
     /* Skip header */
     if (type == COL_TYPE_COLLECTION) {
@@ -525,7 +525,7 @@ static int elapi_internal_sink_ref_debug_handler(const char *sink,
 
     printf("\nReferenced sink name is: %s\n", col_get_item_property(sink_item, NULL));
 
-    sink_context = (struct elapi_sink_context *)(col_get_item_data(sink_item));
+    sink_context = (struct elapi_sink_ctx *)(col_get_item_data(sink_item));
 
     printf("Mode: %s\n", sink_context->async_mode ? "true" : "false");
     if (sink_context->in_queue) col_print_collection(sink_context->in_queue);
@@ -540,29 +540,29 @@ static int elapi_internal_sink_ref_debug_handler(const char *sink,
 
 
 /* Handler for printing target internals */
-static int elapi_internal_target_debug_handler(const char *target,
-                                               int target_len,
-                                               int type,
-                                               void *data,
-                                               int length,
-                                               void *passed_data,
-                                               int *stop)
+static int elapi_tgt_dbg_cb(const char *target,
+                            int target_len,
+                            int type,
+                            void *data,
+                            int length,
+                            void *passed_data,
+                            int *stop)
 {
-    struct elapi_target_context *context;
+    struct elapi_tgt_ctx *context;
 
     /* Skip header */
     if (type == COL_TYPE_COLLECTION) {
         return EOK;
     }
 
-    context = *((struct elapi_target_context **)(data));
+    context = *((struct elapi_tgt_ctx **)(data));
 
     printf("\nTarget value for target \"%s\" is %d\n", target, context->target_value);
     printf("\nReferenced sinks:\n\n");
 
     (void)col_traverse_collection(context->sink_ref_list,
                                   COL_TRAVERSE_ONELEVEL,
-                                  elapi_internal_sink_ref_debug_handler,
+                                  elapi_sink_ref_dbg_cb,
                                   NULL);
 
     return EOK;
@@ -570,7 +570,7 @@ static int elapi_internal_target_debug_handler(const char *target,
 
 
 /* Internal function to print dispatcher internals - useful for testing */
-void elapi_internal_print_dispatcher(struct elapi_dispatcher *handle)
+void elapi_print_dispatcher(struct elapi_dispatcher *handle)
 {
     char **current_target;
 
@@ -601,7 +601,7 @@ void elapi_internal_print_dispatcher(struct elapi_dispatcher *handle)
     if (handle->target_list) {
         (void)col_traverse_collection(handle->target_list,
                                       COL_TRAVERSE_ONELEVEL,
-                                      elapi_internal_target_debug_handler,
+                                      elapi_tgt_dbg_cb,
                                       NULL);
     }
     /* FIXME: Async data... */

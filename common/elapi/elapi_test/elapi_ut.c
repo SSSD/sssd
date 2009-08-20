@@ -115,7 +115,7 @@ int simple_event_test(void)
     }
 
     /* Internal function to print dispatcher guts */
-    elapi_internal_print_dispatcher(elapi_get_dispatcher());
+    elapi_print_dispatcher(elapi_get_dispatcher());
 
     printf("Simple test success!\n");
 
@@ -316,7 +316,7 @@ int complex_event_test(void)
 
     elapi_destroy_event_template(template);
 
-    elapi_internal_print_dispatcher(dispatcher);
+    elapi_print_dispatcher(dispatcher);
 
     elapi_destroy_dispatcher(dispatcher);
 

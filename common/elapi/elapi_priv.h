@@ -72,7 +72,7 @@ struct elapi_dispatcher {
 };
 
 /* Structure to pass data from logging function to targets */
-struct elapi_target_pass_in_data {
+struct elapi_tgt_data {
     struct collection_item *event;
     struct elapi_dispatcher *handle;
     uint32_t target_mask;
@@ -81,7 +81,7 @@ struct elapi_target_pass_in_data {
 /* This is a structure that holds the information
  *  about the target.
  */
-struct elapi_target_context {
+struct elapi_tgt_ctx {
     /* Value associted with the
      * target in the config file.
      */
@@ -97,7 +97,7 @@ struct elapi_target_context {
 };
 
 /* The structure that describes the sink in the dispatcher */
-struct elapi_sink_context {
+struct elapi_sink_ctx {
     /* Inpit queue of a sink */
     struct collection_item *in_queue;
     /* Pending list */
@@ -129,66 +129,64 @@ int elapi_create_event_template_with_vargs(struct collection_item **template,
                                            va_list args);
 
 /* Sink handler function */
-int elapi_internal_sink_handler(const char *sink,
-                                int sink_len,
-                                int type,
-                                void *data,
-                                int length,
-                                void *passed_data,
-                                int *stop);
+int elapi_sink_cb(const char *sink,
+                  int sink_len,
+                  int type,
+                  void *data,
+                  int length,
+                  void *passed_data,
+                  int *stop);
 
 /* Internal sink cleanup function */
-int elapi_internal_sink_cleanup_handler(const char *sink,
-                                        int sink_len,
-                                        int type,
-                                        void *data,
-                                        int length,
-                                        void *passed_data,
-                                        int *stop);
+int elapi_sink_free_cb(const char *sink,
+                       int sink_len,
+                       int type,
+                       void *data,
+                       int length,
+                       void *passed_data,
+                       int *stop);
 
 
-/* Create list of the sinks */
-int elapi_internal_construct_sink_list(struct elapi_dispatcher *handle);
 
 /* Function to add a sink based on configuration  */
-int elapi_internal_add_sink(struct collection_item **sink_ref,
-                            char *sink,
-                            struct elapi_dispatcher *handle);
+int elapi_sink_add(struct collection_item **sink_ref,
+                   char *sink,
+                   struct elapi_dispatcher *handle);
 
 /* Create target object */
-int elapi_internal_create_target(struct elapi_target_context **context,
-                                 char *target,
-                                 struct elapi_dispatcher *handle);
+int elapi_tgt_create(struct elapi_tgt_ctx **context,
+                     char *target,
+                     struct elapi_dispatcher *handle);
 
 /* Destroy target object */
-void elapi_internal_destroy_target(struct elapi_target_context *context);
+void elapi_tgt_destroy(struct elapi_tgt_ctx *context);
 
 /* Internal target cleanup function */
-int elapi_internal_target_cleanup_handler(const char *sink,
-                                          int sink_len,
-                                          int type,
-                                          void *data,
-                                          int length,
-                                          void *passed_data,
-                                          int *stop);
+int elapi_tgt_free_cb(const char *sink,
+                      int sink_len,
+                      int type,
+                      void *data,
+                      int length,
+                      void *passed_data,
+                      int *stop);
 
 /* Handler for logging through the targets */
-int elapi_internal_target_handler(const char *target,
-                                  int target_len,
-                                  int type,
-                                  void *data,
-                                  int length,
-                                  void *passed_data,
-                                  int *stop);
+int elapi_tgt_cb(const char *target,
+                 int target_len,
+                 int type,
+                 void *data,
+                 int length,
+                 void *passed_data,
+                 int *stop);
 
 /* Create list of targets for a dispatcher */
-int elapi_internal_construct_target_list(struct elapi_dispatcher *handle);
+int elapi_tgt_mklist(struct elapi_dispatcher *handle);
 
 /* Send ELAPI config errors into a file */
-void elapi_internal_dump_errors_to_file(struct collection_item *error_list);
+void elapi_dump_ini_err(struct collection_item *error_list);
 
 /* Print dispatcher internals for testing and debugin purposes */
-void elapi_internal_print_dispatcher(struct elapi_dispatcher *handle);
+void elapi_print_dispatcher(struct elapi_dispatcher *handle);
 
 
 #endif
