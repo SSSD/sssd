@@ -15,7 +15,7 @@ AC_INIT([sss_daemon], [0.4.0], [freeipa-devel@redhat.com])
 AC_CONFIG_SRCDIR([conf_macros.m4])
 AC_CONFIG_AUX_DIR([build])
 
-AM_INIT_AUTOMAKE([-Wall foreign subdir-objects color-tests])
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])
 AM_PROG_CC_C_O
 AC_DISABLE_STATIC
 AC_PROG_LIBTOOL
