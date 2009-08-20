@@ -103,7 +103,19 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userNameAttribute (string)</term>
+                    <term>userObjectClass (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a user entry in LDAP.
+                        </para>
+                        <para>
+                            Default: posixAccount
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userName (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -116,13 +128,182 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userObjectClass (string)</term>
+                    <term>userUidNumber (string)</term>
                     <listitem>
                         <para>
-                            The object class of a user entry in LDAP.
+                            The LDAP attribute that corresponds to
+                            user's id.
                         </para>
                         <para>
-                            Default: posixAccount
+                            Default: uidNumber
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userGidNumber (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            user's primary group id.
+                        </para>
+                        <para>
+                            Default: gidNumber
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userGecos (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            user's gecos field.
+                        </para>
+                        <para>
+                            Default: gecos
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userHomeDirectory (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the name of the
+                            home directory of a user.
+                        </para>
+                        <para>
+                            Default: homeDirectory
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userShell (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the path of the
+                            user's default shell.
+                        </para>
+                        <para>
+                            Default: loginShell
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userUUID (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the UUID/GUID of
+                            a LDAP user object.
+                        </para>
+                        <para>
+                            Default: nsUniqueId
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userPrincipal (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the Kerberos
+                            User Principle Name (UPN) of the user.
+                        </para>
+                        <para>
+                            Default: krbPrincipalName
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userFullname (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            full name of the user.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>userMemberOf (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that list the user's
+                            group memberships.
+                        </para>
+                        <para>
+                            Default: memberOf
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>groupObjectClass (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a group entry in LDAP.
+                        </para>
+                        <para>
+                            Default: posixGroup
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>groupName (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            the group name.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>groupGidNumber (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            group's id.
+                        </para>
+                        <para>
+                            Default: gidNumber
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>groupMember (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the names of
+                            the members of the group.
+                        </para>
+                        <para>
+                            Default: memberuid
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>groupUUID (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the UUID/GUID of
+                            a LDAP group object.
+                        </para>
+                        <para>
+                            Default: nsUniqueId
                         </para>
                     </listitem>
                 </varlistentry>
