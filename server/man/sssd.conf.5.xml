@@ -414,7 +414,13 @@
                             same effect as User Private Groups
                         </para>
                         <para>
-                            Default: FALSE
+                            Default: FALSE*
+                        </para>
+                        <para>
+                            *Magic Private Groups are always enabled when
+                            provider=local and this setting does not
+                            affect that in any way. For other providers,
+                            Magic Private Groups default to FALSE
                         </para>
                     </listitem>
                 </varlistentry>
