@@ -504,12 +504,16 @@ int main(int argc, const char **argv)
             break;
 
         case ID_IN_LEGACY_LOCAL:
-        case ID_OUTSIDE:
             ret = usermod_legacy(ctx, data, pc_uid, pc_gid, pc_gecos,
                                  pc_home, pc_shell, pc_lock, data->domain);
             if(ret != EOK) {
                 ERROR("Cannot delete user from domain using the legacy tools\n");
             }
+            goto fini;
+
+        case ID_OUTSIDE:
+            ERROR("The selected UID is outside all domain ranges\n");
+            ret = EXIT_FAILURE;
             goto fini;
 
         case ID_IN_OTHER:

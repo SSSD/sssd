@@ -148,6 +148,7 @@ int main(int argc, const char **argv)
     struct sss_domain_info *dom;
     struct passwd *pwd_info;
     const char *pc_username = NULL;
+    enum id_domain domain_type;
 
     int pc_debug = 0;
     poptContext pc = NULL;
@@ -232,13 +233,12 @@ int main(int argc, const char **argv)
         data->domain = dom;
     }
 
-    ret = get_domain_type(data->ctx, data->domain);
-    switch (ret) {
+    domain_type = get_domain_type(data->ctx, data->domain);
+    switch (domain_type) {
         case ID_IN_LOCAL:
             break;
 
         case ID_IN_LEGACY_LOCAL:
-        case ID_OUTSIDE:
             ret = userdel_legacy(data);
             if(ret != EOK) {
                 ERROR("Cannot delete user from domain using the legacy tools\n");
@@ -247,6 +247,11 @@ int main(int argc, const char **argv)
             }
             break; /* Also delete possible cached entries in sysdb */
 
+        case ID_OUTSIDE:
+            ERROR("The selected UID is outside all domain ranges\n");
+            ret = EXIT_FAILURE;
+            goto fini;
+
         case ID_IN_OTHER:
             DEBUG(1, ("Cannot remove user from domain %s\n", dom->name));
             ERROR("Unsupported domain type\n");
@@ -254,7 +259,7 @@ int main(int argc, const char **argv)
             goto fini;
 
         default:
-            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
+            DEBUG(1, ("Unknown return code %d from get_domain_type\n", domain_type));
             ERROR("Error looking up domain\n");
             ret = EXIT_FAILURE;
             goto fini;
@@ -279,6 +284,12 @@ int main(int argc, const char **argv)
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
+                /* if we got ENOENT after deleting user from legacy domain
+                 * that just means there was no cached entry to delete */
+                if (domain_type == ID_IN_LEGACY_LOCAL) {
+                    ret = EXIT_SUCCESS;
+                    goto fini;
+                }
                 ERROR("No such user\n");
                 break;
 
