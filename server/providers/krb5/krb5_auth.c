@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <pwd.h>
+#include <ctype.h>
 
 #include <security/pam_modules.h>
 
@@ -39,6 +40,25 @@
 #include "db/sysdb.h"
 #include "krb5_plugin/sssd_krb5_locator_plugin.h"
 #include "providers/krb5/krb5_auth.h"
+
+#define REALM_SEPARATOR '@'
+
+static void make_realm_upper_case(const char *upn)
+{
+    char *c;
+
+    c = strchr(upn, REALM_SEPARATOR);
+    if (c == NULL) {
+        DEBUG(9, ("No realm delimiter found in upn [%s].\n", upn));
+        return;
+    }
+
+    while(*(++c) != '\0') {
+        c[0] = toupper(*c);
+    }
+
+    return;
+}
 
 static void fd_nonblocking(int fd) {
     int flags;
@@ -77,13 +97,13 @@ static void krb5_cleanup(struct krb5_req *kr)
     talloc_free(kr);
 }
 
-static int krb5_setup(struct be_req *req, struct krb5_req **krb5_req)
+static int krb5_setup(struct be_req *req, const char *user_princ_str,
+                      struct krb5_req **krb5_req)
 {
     struct krb5_req *kr = NULL;
     struct krb5_ctx *krb5_ctx;
     struct pam_data *pd;
     krb5_error_code kerr = 0;
-    char *user_princ_str = NULL;
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
@@ -102,18 +122,6 @@ static int krb5_setup(struct be_req *req, struct krb5_req **krb5_req)
     kerr = krb5_init_context(&kr->ctx);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
-        goto failed;
-    }
-
-/* TODO: try to read user principal from id backend, use user + realm as a
-   fallback */
-    if (kr->pd->user != NULL && krb5_ctx->realm != NULL) {
-        user_princ_str = talloc_asprintf(kr, "%s@%s", kr->pd->user,
-                                                      krb5_ctx->realm);
-    }
-    if (user_princ_str == NULL) {
-        DEBUG(1, ("talloc_asprintf failed.\n"));
-        kerr = ENOMEM;
         goto failed;
     }
 
@@ -374,16 +382,16 @@ static ssize_t tgt_req_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return state->len;
 }
 
+static void get_user_upn_done(void *pvt, int err, struct ldb_result *res);
 static void krb5_pam_handler_done(struct tevent_req *req);
 static void krb5_pam_handler_cache_done(struct tevent_req *treq);
 
 static void krb5_pam_handler(struct be_req *be_req)
 {
-    struct krb5_req *kr = NULL;
-    struct tevent_req *req;
     int ret;
     struct pam_data *pd;
     int pam_status=PAM_SYSTEM_ERR;
+    const char **attrs;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
@@ -393,22 +401,95 @@ static void krb5_pam_handler(struct be_req *be_req)
         goto done;
     }
 
-    ret = krb5_setup(be_req, &kr);
+    attrs = talloc_array(be_req, const char *, 2);
+    if (attrs == NULL) {
+        goto done;
+    }
+
+    attrs[0] = SYSDB_UPN;
+    attrs[1] = NULL;
+
+    ret = sysdb_get_user_attr(be_req, be_req->be_ctx->sysdb,
+                              be_req->be_ctx->domain, pd->user, attrs,
+                              get_user_upn_done, be_req);
+
+    if (ret) {
+        goto done;
+    }
+
+    return;
+
+done:
+    pd->pam_status = pam_status;
+
+    be_req->fn(be_req, pam_status, NULL);
+}
+
+static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
+{
+    struct be_req *be_req = talloc_get_type(pvt, struct be_req);
+    struct krb5_ctx *krb5_ctx;
+    struct krb5_req *kr = NULL;
+    struct tevent_req *req;
+    int ret;
+    struct pam_data *pd;
+    int pam_status=PAM_SYSTEM_ERR;
+    const char *upn = NULL;
+
+    pd = talloc_get_type(be_req->req_data, struct pam_data);
+    krb5_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+                               struct krb5_ctx);
+
+    if (err != LDB_SUCCESS) {
+        DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
+        goto failed;
+    }
+
+    switch (res->count) {
+    case 0:
+        DEBUG(5, ("No upn for user [%s] found.\n", pd->user));
+        break;
+
+    case 1:
+        upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
+        if (upn == NULL) {
+            /* NOTE: this is a hack, works only in some environments */
+            if (krb5_ctx->realm != NULL) {
+                upn = talloc_asprintf(be_req, "%s@%s", pd->user,
+                                      krb5_ctx->realm);
+            }
+        }
+        break;
+
+    default:
+        DEBUG(1, ("A user search by name (%s) returned > 1 results!\n",
+                  pd->user));
+        break;
+    }
+
+    if (upn == NULL) {
+        DEBUG(1, ("Cannot set UPN.\n"));
+        goto failed;
+    }
+
+    make_realm_upper_case(upn);
+
+    ret = krb5_setup(be_req, upn, &kr);
     if (ret != EOK) {
         DEBUG(1, ("krb5_setup failed.\n"));
-        goto done;
+        goto failed;
     }
 
     req = tgt_req_send(be_req, be_req->be_ctx->ev, kr);
     if (req == NULL) {
         DEBUG(1, ("tgt_req_send failed.\n"));
-        goto done;
+        goto failed;
     }
 
     tevent_req_set_callback(req, krb5_pam_handler_done, kr);
     return;
 
-done:
+failed:
     krb5_cleanup(kr);
 
     pd->pam_status = pam_status;
