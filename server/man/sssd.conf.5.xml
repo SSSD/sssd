@@ -346,6 +346,18 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>filterUsersInGroups (bool)</term>
+                    <listitem>
+                        <para>
+                            If you want filtered user still be group members
+                            set this option to false.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
     </refsect1>

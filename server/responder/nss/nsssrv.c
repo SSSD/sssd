@@ -102,6 +102,11 @@ static int nss_get_config(struct nss_ctx *nctx,
                          &nctx->neg_timeout);
     if (ret != EOK) goto done;
 
+    ret = confdb_get_bool(cdb, nctx, NSS_SRV_CONFIG,
+                         "filterUsersInGroups", true,
+                         &nctx->filter_users_in_groups);
+    if (ret != EOK) goto done;
+
     ret = confdb_get_string_as_list(cdb, tmpctx, NSS_SRV_CONFIG,
                                     "filterUsers", &filter_list);
     if (ret == ENOENT) filter_list = NULL;
@@ -293,24 +298,24 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     int ret;
 
-	struct poptOption long_options[] = {
-		POPT_AUTOHELP
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
         SSSD_MAIN_OPTS
-		{ NULL }
-	};
+        { NULL }
+    };
 
-	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-	while((opt = poptGetNextOpt(pc)) != -1) {
-		switch(opt) {
-		default:
-			fprintf(stderr, "\nInvalid option %s: %s\n\n",
-				  poptBadOption(pc, 0), poptStrerror(opt));
-			poptPrintUsage(pc, stderr, 0);
-			return 1;
-		}
-	}
+    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    while((opt = poptGetNextOpt(pc)) != -1) {
+        switch(opt) {
+        default:
+            fprintf(stderr, "\nInvalid option %s: %s\n\n",
+                  poptBadOption(pc, 0), poptStrerror(opt));
+            poptPrintUsage(pc, stderr, 0);
+            return 1;
+        }
+    }
 
-	poptFreeContext(pc);
+    poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
     ret = server_setup("sssd[nss]", 0, NSS_SRV_CONFIG, &main_ctx);

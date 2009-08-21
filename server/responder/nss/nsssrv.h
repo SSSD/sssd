@@ -60,6 +60,8 @@ struct nss_ctx {
 
     struct getent_ctx *pctx;
     struct getent_ctx *gctx;
+
+    bool filter_users_in_groups;
 };
 
 struct nss_packet;

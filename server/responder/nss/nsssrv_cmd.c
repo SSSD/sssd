@@ -1373,6 +1373,7 @@ static int fill_grent(struct sss_packet *packet,
     const char *namefmt = nctx->rctx->names->fq_fmt;
     bool packet_initialized = false;
     int ncret;
+    bool legacy = false;
 
     if (add_domain) dom_len = strlen(domain);
 
@@ -1496,19 +1497,22 @@ static int fill_grent(struct sss_packet *packet,
             el = ldb_msg_find_element(msg, SYSDB_LEGACY_MEMBER);
             if (el) {
                 /* legacy */
+                legacy = true;
                 memnum = el->num_values;
                 n = 0;
                 for (j = 0; j < memnum; j++) {
 
                     name = (char *)el->values[j].data;
 
-                    ncret = nss_ncache_check_user(nctx->ncache,
-                                                  nctx->neg_timeout,
-                                                  domain, name);
-                    if (ncret == EEXIST) {
-                        DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
-                                  name, domain));
-                        continue;
+                    if (nctx->filter_users_in_groups) {
+                        ncret = nss_ncache_check_user(nctx->ncache,
+                                                      nctx->neg_timeout,
+                                                      domain, name);
+                        if (ncret == EEXIST) {
+                            DEBUG(4,("User [%s@%s] filtered out! (negative cache)\n",
+                                      name, domain));
+                            continue;
+                        }
                     }
 
                     name_len = el->values[j].length + 1;
@@ -1586,12 +1590,14 @@ static int fill_grent(struct sss_packet *packet,
                 goto done;
             }
 
-            ncret = nss_ncache_check_user(nctx->ncache,
-                                        nctx->neg_timeout, domain, name);
-            if (ncret == EEXIST) {
-                DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
-                          name, domain));
-                continue;
+            if (nctx->filter_users_in_groups) {
+                ncret = nss_ncache_check_user(nctx->ncache,
+                                            nctx->neg_timeout, domain, name);
+                if (ncret == EEXIST) {
+                    DEBUG(4, ("User [%s@%s] filtered out! (negative cache)\n",
+                              name, domain));
+                    continue;
+                }
             }
 
             /* check that the uid is valid for this domain */
@@ -1651,7 +1657,7 @@ static int fill_grent(struct sss_packet *packet,
         goto done;
     }
 
-    if (mnump) {
+    if (mnump && !legacy) {
         /* fill in the last group member count */
         sss_packet_get_body(packet, &body, &blen);
         ((uint32_t *)(&body[mnump]))[0] = memnum; /* num members */
