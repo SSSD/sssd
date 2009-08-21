@@ -147,6 +147,7 @@ struct test_data {
     const char *groupname;
     uid_t uid;
     gid_t gid;
+    const char *shell;
 
     bool finished;
     int error;
@@ -236,7 +237,7 @@ static void test_add_user(struct tevent_req *subreq)
 
     subreq = sysdb_add_user_send(data, data->ev, data->handle,
                                  data->domain, data->username,
-                                 data->uid, data->gid,
+                                 data->uid, 0,
                                  gecos, homedir, "/bin/bash",
                                  NULL);
     if (!subreq) {
@@ -276,8 +277,9 @@ static void test_store_user(struct tevent_req *req)
 
     subreq = sysdb_store_user_send(data, data->ev, data->handle,
                                   data->domain, data->username, "x",
-                                  data->uid, data->gid,
-                                  gecos, homedir, "/bin/bash");
+                                  data->uid, 0,
+                                  gecos, homedir,
+                                  data->shell ? data->shell : "/bin/bash");
     if (!subreq) {
         test_return(data, ENOMEM);
         return;
@@ -670,8 +672,7 @@ static void test_getpwuid(void *pvt, int error, struct ldb_result *res)
 static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
-/*    const int expected = 30; / * 15 groups + 15 users (we're MPG) */
-    const int expected = 15;
+    const int expected = 20; /* 10 groups + 10 users (we're MPG) */
 
     data->finished = true;
 
@@ -691,7 +692,7 @@ static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
 static void test_enumpwent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
-    const int expected = 15; /* 15 groups + 15 users (we're MPG) */
+    const int expected = 10;
 
     data->finished = true;
 
@@ -874,7 +875,46 @@ START_TEST (test_sysdb_store_user)
         ret = test_loop(data);
     }
 
-    fail_if(ret != EOK, "Could not store legacy user %s", data->username);
+    fail_if(ret != EOK, "Could not store user %s", data->username);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_store_user_existing)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i;
+    data->gid = _i;
+    data->username = talloc_asprintf(data, "testuser%d", _i);
+    data->domain = get_local_domain(test_ctx->domains);
+    data->shell = talloc_asprintf(data, "/bin/ksh");
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_store_user, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not store user %s", data->username);
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1626,26 +1666,32 @@ Suite *create_sysdb_suite(void)
 
     TCase *tc_sysdb = tcase_create("SYSDB Tests");
 
-    /* Create a new user (legacy) */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_store_user,27000,27010);
+    /* Create a new user */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_user,27000,27010);
 
     /* Verify the users were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwnam, 27000, 27010);
 
-    /* Create a new group (legacy) */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_store_group,27000,27010);
+    /* Create a new group */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_group, 28000, 28010);
 
     /* Verify the groups were added */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_getgrnam, 27000, 27010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_getgrnam, 28000, 28010);
+
+    /* sysdb_store_user allows setting attributes for existing users */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_user_existing, 27000, 27010);
+
+    /* test the change */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_get_user_attr, 27000, 27010);
 
     /* Remove the other half by gid */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 27000, 27005);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 28000, 28010);
 
     /* Remove the other half by uid */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user_by_uid, 27000, 27005);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_user_by_uid, 27000, 27010);
 
     /* Create a new user */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_user, 27010, 27020);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_user, 27010, 27020);
 
     /* Verify the users were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getpwnam, 27010, 27020);
@@ -1663,10 +1709,9 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_sysdb, test_sysdb_get_user_attr, 27010, 27020);
 
     /* Create a new group */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_add_group, 28010, 28020);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_group, 28010, 28020);
 
     /* Verify the groups were added */
-    tcase_add_loop_test(tc_sysdb, test_sysdb_getgrnam, 28010, 28020);
 
     /* Verify the groups can be queried by GID */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getgrgid, 28010, 28020);
