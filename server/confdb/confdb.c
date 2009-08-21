@@ -756,7 +756,7 @@ int confdb_get_domain(struct confdb_ctx *cdb,
     }
 
     /* Determine if this is domain uses MPG */
-    if (strcasecmp(domain->provider, "local") ||
+    if (strcasecmp(domain->provider, "local") == 0 ||
         ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_MPG, 0)) {
         domain->mpg = true;
     }
