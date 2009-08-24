@@ -40,7 +40,8 @@ struct sdap_gen_opts default_basic_opts[] = {
     { "groupSearchScope", "sub", NULL },
     { "groupSearchFilter", NULL, NULL },
     { "ldapSchema", "rfc2307", NULL },
-    { "offline_timeout", "5", NULL }
+    { "offline_timeout", "5", NULL },
+    { "force_upper_case_realm", "0", NULL }
 };
 
 struct sdap_id_map default_user_map[] = {
@@ -135,6 +136,11 @@ int sdap_get_options(TALLOC_CTX *memctx,
     ret = confdb_get_int(cdb, opts, conf_path,
                          "offline_timeout", 60,
                          &opts->offline_timeout);
+    if (ret != EOK) goto done;
+
+    ret = confdb_get_bool(cdb, opts, conf_path,
+                         "force_upper_case_realm", false,
+                         &opts->force_upper_case_realm);
     if (ret != EOK) goto done;
 
     /* schema type */

@@ -62,6 +62,20 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>krb5try_simple_upn (boolean)</term>
+                    <listitem>
+                        <para>
+                            Set this option to 'true'
+                            if an User Principle Name (UPN) cannot be found in sysdb
+                            and you want to use an UPN like 'username@realm'.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
     </refsect1>

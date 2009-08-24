@@ -219,6 +219,22 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>force_upper_case_realm (boolean)</term>
+                    <listitem>
+                        <para>
+                            Some directory servers, for example Active Directory,
+                            might deliver the realm part of the UPN lower case
+                            which may cause the authentication to fail. Set this
+                            option to a non-zero value, if you want to use an
+                            upper case realm.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>userFullname (string)</term>
                     <listitem>
                         <para>

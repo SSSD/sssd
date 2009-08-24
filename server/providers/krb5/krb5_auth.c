@@ -31,7 +31,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <pwd.h>
-#include <ctype.h>
 
 #include <security/pam_modules.h>
 
@@ -40,25 +39,6 @@
 #include "db/sysdb.h"
 #include "krb5_plugin/sssd_krb5_locator_plugin.h"
 #include "providers/krb5/krb5_auth.h"
-
-#define REALM_SEPARATOR '@'
-
-static void make_realm_upper_case(const char *upn)
-{
-    char *c;
-
-    c = strchr(upn, REALM_SEPARATOR);
-    if (c == NULL) {
-        DEBUG(9, ("No realm delimiter found in upn [%s].\n", upn));
-        return;
-    }
-
-    while(*(++c) != '\0') {
-        c[0] = toupper(*c);
-    }
-
-    return;
-}
 
 static void fd_nonblocking(int fd) {
     int flags;
@@ -452,11 +432,15 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
 
     case 1:
         upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
-        if (upn == NULL) {
+        if (upn == NULL && krb5_ctx->try_simple_upn) {
             /* NOTE: this is a hack, works only in some environments */
             if (krb5_ctx->realm != NULL) {
                 upn = talloc_asprintf(be_req, "%s@%s", pd->user,
                                       krb5_ctx->realm);
+                if (upn == NULL) {
+                    DEBUG(1, ("failed to build simple upn.\n"));
+                }
+                DEBUG(9, ("Using simple UPN [%s].\n", upn));
             }
         }
         break;
@@ -471,8 +455,6 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
         DEBUG(1, ("Cannot set UPN.\n"));
         goto failed;
     }
-
-    make_realm_upper_case(upn);
 
     ret = krb5_setup(be_req, upn, &kr);
     if (ret != EOK) {
@@ -612,6 +594,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
 {
     struct krb5_ctx *ctx = NULL;
     char *value = NULL;
+    bool bool_value;
     int ret;
     struct tevent_signal *sige;
 
@@ -650,6 +633,11 @@ int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
         }
     }
     ctx->realm = value;
+
+    ret = confdb_get_bool(bectx->cdb, ctx, bectx->conf_path,
+                          "krb5try_simple_upn", false, &bool_value);
+    if (ret != EOK) goto fail;
+    ctx->try_simple_upn = bool_value;
 
 /* TODO: set options */
 

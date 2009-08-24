@@ -18,10 +18,30 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include <ctype.h>
 
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async.h"
 #include "util/util.h"
+
+#define REALM_SEPARATOR '@'
+
+static void make_realm_upper_case(const char *upn)
+{
+    char *c;
+
+    c = strchr(upn, REALM_SEPARATOR);
+    if (c == NULL) {
+        DEBUG(9, ("No realm delimiter found in upn [%s].\n", upn));
+        return;
+    }
+
+    while(*(++c) != '\0') {
+        c[0] = toupper(*c);
+    }
+
+    return;
+}
 
 /* ==LDAP-Memory-Handling================================================= */
 
@@ -841,6 +861,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     uid_t uid;
     gid_t gid;
     struct sysdb_attrs *user_attrs;
+    char *upn = NULL;
 
     req = tevent_req_create(memctx, &state, struct sdap_save_user_state);
     if (!req) return NULL;
@@ -952,10 +973,13 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     if (el->num_values == 0) {
         DEBUG(7, ("User principle is not available for user [%s].\n", name));
     } else {
+        upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
+        if (opts->force_upper_case_realm) {
+            make_realm_upper_case(upn);
+        }
         DEBUG(7, ("Adding user principle [%s] to attributes of user [%s].\n",
-                  el->values[0].data, name));
-        ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN,
-                                     (const char *) el->values[0].data);
+                  upn, name));
+        ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {
             goto fail;
         }

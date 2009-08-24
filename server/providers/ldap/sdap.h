@@ -84,8 +84,9 @@ enum sdap_result {
 #define SDAP_GROUP_SEARCH_FILTER 12
 #define SDAP_SCHEMA 13
 #define SDAP_OFFLINE_TIMEOUT 14
+#define SDAP_FORCE_UPPER_CASE_REALM 15
 
-#define SDAP_OPTS_BASIC 15 /* opts counter */
+#define SDAP_OPTS_BASIC 16 /* opts counter */
 
 /* the objectclass must be the first attribute.
  * Functions depend on this */
@@ -139,6 +140,7 @@ struct sdap_options {
     int network_timeout;
     int opt_timeout;
     int offline_timeout;
+    bool force_upper_case_realm;
 
     /* supported schema types */
     enum schema_type {

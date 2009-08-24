@@ -61,6 +61,7 @@ struct krb5_ctx {
 
     char *kdcip;
     char *realm;
+    bool try_simple_upn;
 };
 
 struct krb5_req {
