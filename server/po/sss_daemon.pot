@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: sss_daemon 0.4.0\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: freeipa-devel@redhat.com\n"
-"POT-Creation-Date: 2009-06-15 10:21-0400\n"
+"POT-Creation-Date: 2009-08-24 14:04-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,7 +16,241 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: tools/sss_useradd.c:484
+#: tools/sss_groupdel.c:157 tools/sss_groupmod.c:320 tools/sss_userdel.c:158
+#: tools/sss_useradd.c:336 tools/sss_groupadd.c:150 tools/sss_usermod.c:374
+msgid "The debug level to run with"
+msgstr ""
+
+#: tools/sss_groupdel.c:166 tools/sss_groupmod.c:345 tools/sss_userdel.c:167
+#: tools/sss_useradd.c:358 tools/sss_groupadd.c:168 tools/sss_usermod.c:402
+msgid "Error setting the locale\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:175 tools/sss_groupmod.c:354 tools/sss_userdel.c:176
+#: tools/sss_useradd.c:367 tools/sss_groupadd.c:177 tools/sss_usermod.c:411
+msgid "Error initializing the tools\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:183 tools/sss_groupmod.c:362 tools/sss_userdel.c:184
+#: tools/sss_useradd.c:375 tools/sss_usermod.c:419 tools/sss_usermod.c:428
+msgid "Out of memory\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:202
+msgid "Specify group to delete\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:222 tools/sss_groupmod.c:282 tools/sss_groupmod.c:422
+#: tools/sss_userdel.c:222 tools/sss_useradd.c:485 tools/sss_groupadd.c:220
+#: tools/sss_usermod.c:304 tools/sss_usermod.c:320 tools/sss_usermod.c:487
+msgid "Cannot get domain info\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:227 tools/sss_groupmod.c:427 tools/sss_groupadd.c:225
 #, c-format
-msgid "The user %s already exists\n"
+msgid "Selected domain %s conflicts with selected GID %llu\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:244 tools/sss_groupmod.c:444
+msgid "Cannot delete group from domain using the legacy tools\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:251 tools/sss_groupmod.c:449 tools/sss_groupadd.c:247
+msgid "The selected GID is outside all domain ranges\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:257 tools/sss_groupmod.c:455 tools/sss_userdel.c:257
+#: tools/sss_useradd.c:518 tools/sss_usermod.c:521
+msgid "Unsupported domain type\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:263 tools/sss_groupmod.c:461 tools/sss_userdel.c:263
+#: tools/sss_useradd.c:524 tools/sss_groupadd.c:259 tools/sss_usermod.c:527
+msgid "Error looking up domain\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:272
+msgid "Transaction error. Could not remove group.\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:293 tools/sss_userdel.c:293
+msgid "No such user\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:297
+msgid "Internal error. Could not remove group.\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:274
+msgid "Group nesting is not supported in this domain\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:289 tools/sss_usermod.c:327
+msgid "Changing gid only allowed inside the same domain\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:322
+msgid "Groups to add this group to"
+msgstr ""
+
+#: tools/sss_groupmod.c:324
+msgid "Groups to remove this group from"
+msgstr ""
+
+#: tools/sss_groupmod.c:326 tools/sss_groupadd.c:152
+msgid "The GID of the group"
+msgstr ""
+
+#: tools/sss_groupmod.c:401
+msgid "Specify group to modify\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:469 tools/sss_groupmod.c:492
+msgid "Transaction error. Could not modify group.\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:484
+msgid "Could not modify group - check if member group names are correct\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:488
+msgid "Could not modify group - check if groupname is correct\n"
+msgstr ""
+
+#: tools/sss_userdel.c:203
+msgid "Specify user to delete\n"
+msgstr ""
+
+#: tools/sss_userdel.c:227 tools/sss_useradd.c:490 tools/sss_usermod.c:492
+#, c-format
+msgid "Selected domain %s conflicts with selected UID %llu\n"
+msgstr ""
+
+#: tools/sss_userdel.c:244 tools/sss_usermod.c:510
+msgid "Cannot delete user from domain using the legacy tools\n"
+msgstr ""
+
+#: tools/sss_userdel.c:251 tools/sss_useradd.c:512 tools/sss_usermod.c:515
+msgid "The selected UID is outside all domain ranges\n"
+msgstr ""
+
+#: tools/sss_userdel.c:272
+msgid "Transaction error. Could not remove user.\n"
+msgstr ""
+
+#: tools/sss_userdel.c:297
+msgid "Internal error. Could not remove user.\n"
+msgstr ""
+
+#: tools/tools_util.h:29
+#, c-format
+msgid "%s must be run as root\n"
+msgstr ""
+
+#: tools/sss_useradd.c:337 tools/sss_usermod.c:375
+msgid "The UID of the user"
+msgstr ""
+
+#: tools/sss_useradd.c:338
+msgid "The GID or group name of the user"
+msgstr ""
+
+#: tools/sss_useradd.c:339 tools/sss_usermod.c:377
+msgid "The comment string"
+msgstr ""
+
+#: tools/sss_useradd.c:340 tools/sss_usermod.c:378
+msgid "Home directory"
+msgstr ""
+
+#: tools/sss_useradd.c:341 tools/sss_usermod.c:379
+msgid "Login shell"
+msgstr ""
+
+#: tools/sss_useradd.c:342
+msgid "Groups"
+msgstr ""
+
+#: tools/sss_useradd.c:410
+msgid "Specify user to add\n"
+msgstr ""
+
+#: tools/sss_useradd.c:425
+msgid "Cannot get group information for the user\n"
+msgstr ""
+
+#: tools/sss_useradd.c:507
+msgid "Cannot add user to domain using the legacy tools\n"
+msgstr ""
+
+#: tools/sss_useradd.c:533 tools/sss_usermod.c:595 tools/sss_usermod.c:619
+msgid "Transaction error. Could not modify user.\n"
+msgstr ""
+
+#: tools/sss_useradd.c:547
+msgid "A user with the same name or UID already exists\n"
+msgstr ""
+
+#: tools/sss_useradd.c:553
+msgid "Transaction error. Could not add user.\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:185
+msgid "Out of memory.\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:205
+msgid "Specify group to add\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:242
+msgid "Cannot add group to domain using the legacy tools\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:253
+msgid "Unsupported domain type"
+msgstr ""
+
+#: tools/sss_groupadd.c:268 tools/sss_groupadd.c:287
+msgid "Transaction error. Could not add group.\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:282
+msgid "A group with the same name or UID already exists\n"
+msgstr ""
+
+#: tools/sss_usermod.c:311
+msgid "Changing uid only allowed inside the same domain\n"
+msgstr ""
+
+#: tools/sss_usermod.c:376
+msgid "The GID of the user"
+msgstr ""
+
+#: tools/sss_usermod.c:380
+msgid "Groups to add this user to"
+msgstr ""
+
+#: tools/sss_usermod.c:381
+msgid "Groups to remove this user from"
+msgstr ""
+
+#: tools/sss_usermod.c:382
+msgid "Lock the account"
+msgstr ""
+
+#: tools/sss_usermod.c:383
+msgid "Unlock the account"
+msgstr ""
+
+#: tools/sss_usermod.c:469
+msgid "Specify user to modify\n"
+msgstr ""
+
+#: tools/sss_usermod.c:611
+msgid "Could not modify user - check if group names are correct\n"
+msgstr ""
+
+#: tools/sss_usermod.c:615
+msgid "Could not modify user - check if username is correct\n"
 msgstr ""

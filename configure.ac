@@ -1,4 +1,4 @@
-AC_INIT([sssd], [0.4.1], [freeipa-devel@redhat.com])
+AC_INIT([sssd], [0.5.0], [freeipa-devel@redhat.com])
 AC_CONFIG_SRCDIR([BUILD.txt])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
