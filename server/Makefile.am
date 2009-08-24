@@ -404,7 +404,7 @@ libsss_proxy_la_LDFLAGS = \
 
 libsss_krb5_la_SOURCES = \
     providers/krb5/krb5_auth.c \
-    providers/krb5/tgt_req_child.c
+    providers/krb5/krb5_child.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)

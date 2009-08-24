@@ -62,6 +62,7 @@ struct krb5_ctx {
     char *kdcip;
     char *realm;
     bool try_simple_upn;
+    char *changepw_principle;
 };
 
 struct krb5_req {
@@ -77,6 +78,7 @@ struct krb5_req {
     struct be_req *req;
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
+    void (*client)(int fd, struct krb5_req *kr);
 };
 
 static krb5_context krb5_error_ctx;
@@ -88,5 +90,6 @@ static const char *__krb5_error_msg;
 } while(0);
 
 void tgt_req_child(int fd, struct krb5_req *kr);
+void changepw_child(int fd, struct krb5_req *kr);
 
 #endif /* __KRB5_AUTH_H__ */

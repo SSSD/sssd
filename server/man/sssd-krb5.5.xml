@@ -37,7 +37,7 @@
     <refsect1 id='file-format'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
-	    If the auth-module krb5 is used in a SSSD domain, the following
+            If the auth-module krb5 is used in a SSSD domain, the following
             options must be used. See the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
@@ -73,6 +73,21 @@
                         </para>
                         <para>
                             Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5changepw_principle (string)</term>
+                    <listitem>
+                        <para>
+                            The priciple of the change password service.
+                            If only the 'identifier/instance' part of the
+                            principle are given the realm part is added
+                            automatically.
+                        </para>
+                        <para>
+                            Default: kadmin/changepw
                         </para>
                     </listitem>
                 </varlistentry>

@@ -102,6 +102,19 @@ static int krb5_setup(struct be_req *req, const char *user_princ_str,
     kr->req = req;
     kr->krb5_ctx = krb5_ctx;
 
+    switch(pd->cmd) {
+        case SSS_PAM_AUTHENTICATE:
+            kr->client = tgt_req_child;
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            kr->client = changepw_child;
+            break;
+        default:
+            DEBUG(1, ("PAM command [%d] not supported.\n", pd->cmd));
+            kerr = EINVAL;
+            goto failed;
+    }
+
     kerr = krb5_init_context(&kr->ctx);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
@@ -185,7 +198,7 @@ static void wait_for_child_handler(struct tevent_context *ev,
     return;
 }
 
-static int fork_tgt_req_child(struct krb5_req *kr)
+static int fork_child(struct krb5_req *kr)
 {
     int pipefd[2];
     pid_t pid;
@@ -200,7 +213,7 @@ static int fork_tgt_req_child(struct krb5_req *kr)
 
     if (pid == 0) { /* child */
         close(pipefd[0]);
-        tgt_req_child(pipefd[1], kr);
+        kr->client(pipefd[1], kr);
     } else if (pid > 0) { /* parent */
         kr->child_pid = pid;
         kr->fd = pipefd[0];
@@ -296,29 +309,29 @@ static ssize_t read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
     return state->len;
 }
 
-struct tgt_req_state {
+struct handle_child_state {
     struct krb5_req *kr;
     ssize_t len;
     uint8_t *buf;
 };
 
-static void tgt_req_done(struct tevent_req *subreq);
+static void handle_child_done(struct tevent_req *subreq);
 
-static struct tevent_req *tgt_req_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+static struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
                         struct krb5_req *kr)
 {
     int ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
-    struct tgt_req_state *state;
+    struct handle_child_state *state;
 
-    ret = fork_tgt_req_child(kr);
+    ret = fork_child(kr);
     if (ret != EOK) {
-        DEBUG(1, ("fork_tgt_req_child failed.\n"));
+        DEBUG(1, ("fork_child failed.\n"));
         return NULL;
     }
 
-    req = tevent_req_create(mem_ctx, &state, struct tgt_req_state);
+    req = tevent_req_create(mem_ctx, &state, struct handle_child_state);
     if (req == NULL) {
         return NULL;
     }
@@ -329,15 +342,16 @@ static struct tevent_req *tgt_req_send(TALLOC_CTX *mem_ctx, struct tevent_contex
     if (tevent_req_nomem(subreq, req)) {
         return tevent_req_post(req, ev);
     }
-    tevent_req_set_callback(subreq, tgt_req_done, req);
+    tevent_req_set_callback(subreq, handle_child_done, req);
     return req;
 }
 
-static void tgt_req_done(struct tevent_req *subreq)
+static void handle_child_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct tgt_req_state *state = tevent_req_data(req, struct tgt_req_state);
+    struct handle_child_state *state = tevent_req_data(req,
+                                                    struct handle_child_state);
     uint64_t error;
 
     state->len = read_pipe_recv(subreq, state, &state->buf, &error);
@@ -352,9 +366,10 @@ static void tgt_req_done(struct tevent_req *subreq)
     return;
 }
 
-static ssize_t tgt_req_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+static ssize_t handle_child_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                      uint8_t **buf, uint64_t *error) {
-    struct tgt_req_state *state = tevent_req_data(req, struct tgt_req_state);
+    struct handle_child_state *state = tevent_req_data(req,
+                                                    struct handle_child_state);
     enum tevent_req_state tstate;
 
     if (tevent_req_is_error(req, &tstate, error)) {
@@ -378,7 +393,7 @@ static void krb5_pam_handler(struct be_req *be_req)
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    if (pd->cmd != SSS_PAM_AUTHENTICATE) {
+    if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_PAM_CHAUTHTOK) {
         DEBUG(4, ("krb5 does not handles pam task %d.\n", pd->cmd));
         pam_status = PAM_SUCCESS;
         goto done;
@@ -465,9 +480,9 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
         goto failed;
     }
 
-    req = tgt_req_send(be_req, be_req->be_ctx->ev, kr);
+    req = handle_child_send(be_req, be_req->be_ctx->ev, kr);
     if (req == NULL) {
-        DEBUG(1, ("tgt_req_send failed.\n"));
+        DEBUG(1, ("handle_child_send failed.\n"));
         goto failed;
     }
 
@@ -488,7 +503,6 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
     struct krb5_ctx *krb5_ctx = kr->krb5_ctx;
-    struct tgt_req_state *state = tevent_req_data(req, struct tgt_req_state);
     int ret;
     uint8_t *buf;
     ssize_t len;
@@ -504,10 +518,10 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     pd->pam_status = PAM_SYSTEM_ERR;
     krb5_cleanup(kr);
 
-    len = tgt_req_recv(req, state, &buf, &error);
+    len = handle_child_recv(req, pd, &buf, &error);
     talloc_zfree(req);
     if (len == -1) {
-        DEBUG(1, ("tgt_req request failed\n"));
+        DEBUG(1, ("child failed\n"));
         goto done;
     }
 
@@ -568,13 +582,31 @@ static void krb5_pam_handler_done(struct tevent_req *req)
 
     if (pd->pam_status == PAM_SUCCESS &&
         be_req->be_ctx->domain->cache_credentials == TRUE) {
-        password = talloc_size(be_req, pd->authtok_size + 1);
+
+        switch(pd->cmd) {
+            case SSS_PAM_AUTHENTICATE:
+                password = talloc_size(be_req, pd->authtok_size + 1);
+                if (password != NULL) {
+                    memcpy(password, pd->authtok, pd->authtok_size);
+                    password[pd->authtok_size] = '\0';
+                }
+                break;
+            case SSS_PAM_CHAUTHTOK:
+                password = talloc_size(be_req, pd->newauthtok_size + 1);
+                if (password != NULL) {
+                    memcpy(password, pd->newauthtok, pd->newauthtok_size);
+                    password[pd->newauthtok_size] = '\0';
+                }
+                break;
+            default:
+                DEBUG(0, ("unsupported PAM command [%d].\n", pd->cmd));
+        }
+
         if (password == NULL) {
-            DEBUG(0, ("talloc_size failed, offline auth may not work.\n"));
+            DEBUG(0, ("password not available, offline auth may not work.\n"));
             goto done;
         }
-        memcpy(password, pd->authtok, pd->authtok_size);
-        password[pd->authtok_size] = '\0';
+
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
         subreq = sysdb_cache_password_send(be_req, be_req->be_ctx->ev,
@@ -612,6 +644,12 @@ static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
 }
 
 struct bet_ops krb5_auth_ops = {
+    .check_online = NULL,
+    .handler = krb5_pam_handler,
+    .finalize = NULL,
+};
+
+struct bet_ops krb5_chpass_ops = {
     .check_online = NULL,
     .handler = krb5_pam_handler,
     .finalize = NULL,
@@ -668,6 +706,19 @@ int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
     if (ret != EOK) goto fail;
     ctx->try_simple_upn = bool_value;
 
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                            "krb5changepw_principle", "kadmin/changepw",
+                            &value);
+    if (ret != EOK) goto fail;
+    if (strchr(value, '@') == NULL) {
+        value = talloc_asprintf_append(value, "@%s", ctx->realm);
+        if (value == NULL) {
+            DEBUG(7, ("talloc_asprintf_append failed.\n"));
+            goto fail;
+        }
+    }
+    ctx->changepw_principle = value;
+
 /* TODO: set options */
 
     sige = tevent_add_signal(bectx->ev, ctx, SIGCHLD, SA_SIGINFO,
@@ -686,4 +737,10 @@ int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
 fail:
     talloc_free(ctx);
     return ret;
+}
+
+int sssm_krb5_chpass_init(struct be_ctx *bectx, struct bet_ops **ops,
+                   void **pvt_auth_data)
+{
+    return sssm_krb5_auth_init(bectx, ops, pvt_auth_data);
 }
