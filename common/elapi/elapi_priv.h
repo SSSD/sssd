@@ -24,6 +24,8 @@
 
 #include "collection.h"
 #include "elapi_async.h"
+#include "elapi_sink.h"
+
 /* Classes of the collections used by ELAPI internally */
 #define COL_CLASS_ELAPI_BASE        21000
 #define COL_CLASS_ELAPI_EVENT       COL_CLASS_ELAPI_BASE + 0
@@ -45,6 +47,28 @@
 #define ELAPI_SINK_REFS     "srefs"
 #define ELAPI_TARGET_VALUE  "value"
 #define ELAPI_SINK_PROVIDER "provider"
+#define ELAPI_SINK_REQUIRED "required"
+#define ELAPI_SINK_ONERROR  "onerror"
+#define ELAPI_SINK_TIMEOUT  "timeout"
+#define ELAPI_SINK_SYNCH    "synch"
+
+/* Default timout before dispatcher tries to revive sink.
+ * The actual value is configurable on per sink basis
+ * so I do not see a value in making this a compile time
+ * option (at least at the moment).
+ */
+#define ELAPI_SINK_DEFAULT_TIMEOUT  60
+
+/* Names of embedded providers */
+#define ELAPI_EMB_PRVDR_FILE    "file"
+#define ELAPI_EMB_PRVDR_STDERR  "stderr"
+#define ELAPI_EMB_PRVDR_SYSLOG  "syslog"
+
+/* Numbers for embedded providers */
+#define ELAPI_EMB_PRVDR_FILENUM     0
+#define ELAPI_EMB_PRVDR_STDERRNUM   1
+#define ELAPI_EMB_PRVDR_SYSLOGNUM   2
+
 
 #define ELAPI_TARGET_ALL    0xFFFF  /* 65k targets should be enough */
 
@@ -96,20 +120,46 @@ struct elapi_tgt_ctx {
      */
 };
 
+/* FIXME: Compbine with context */
+struct sink_status {
+    int suspended;
+    time_t lasttry;
+};
+
+/* Common configuration items for all sinks */
+struct elapi_sink_cfg {
+    char *provider;
+    uint32_t required;
+    uint32_t onerror;
+    uint32_t timeout;
+    uint32_t synch;
+    void *priv_ctx;
+    void *libhandle;
+    sink_cpb_fn ability;
+    struct sink_cpb cpb_cb;
+};
+
 /* The structure that describes the sink in the dispatcher */
 struct elapi_sink_ctx {
-    /* Inpit queue of a sink */
+    /* Input queue of a sink */
     struct collection_item *in_queue;
     /* Pending list */
     struct collection_item *pending;
     /* FIXME: add:
      * sink's error status
-     * sink's common config data (common between all sinks)
-     * sink personal specific config data (config data specific to this sink)
      */
-    /* Is this a sink or async sink */
     uint32_t async_mode;
+    /* Sink configuration data */
+    struct elapi_sink_cfg sink_cfg;
 };
+
+/* Generic data structure for the data output */
+struct elapi_data_out {
+    char *buffer;
+    size_t size;
+    size_t written;
+};
+
 
 /* The structure to hold a command and a result of the command execution */
 struct elapi_get_sink {
@@ -153,6 +203,14 @@ int elapi_sink_add(struct collection_item **sink_ref,
                    char *sink,
                    struct elapi_dispatcher *handle);
 
+/* Function to create a sink */
+int elapi_sink_create(struct elapi_sink_ctx **sink_ctx,
+                      char *name,
+                      struct collection_item *ini_config);
+
+/* Destroy sink */
+void elapi_sink_destroy(struct elapi_sink_ctx *context);
+
 /* Create target object */
 int elapi_tgt_create(struct elapi_tgt_ctx **context,
                      char *target,
@@ -185,8 +243,12 @@ int elapi_tgt_mklist(struct elapi_dispatcher *handle);
 /* Send ELAPI config errors into a file */
 void elapi_dump_ini_err(struct collection_item *error_list);
 
-/* Print dispatcher internals for testing and debugin purposes */
+#ifdef ELAPI_UTEST
+/* Print dispatcher internals for testing and debugging purposes */
 void elapi_print_dispatcher(struct elapi_dispatcher *handle);
 
+/* Print sink context details */
+void elapi_print_sink_ctx(struct elapi_sink_ctx *sink_context);
+#endif
 
 #endif

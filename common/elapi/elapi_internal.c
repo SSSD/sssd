@@ -105,60 +105,19 @@ int elapi_tgt_free_cb(const char *target,
     return EOK;
 }
 
-
-
-int elapi_sink_cb(const char *sink,
-                  int sink_len,
-                  int type,
-                  void *data,
-                  int length,
-                  void *passed_data,
-                  int *stop)
-{
-    TRACE_FLOW_STRING("elapi_sink_cb", "Entry.");
-
-    /* FIXME THIS IS A PLACEHOLDER FUNCTION FOR NOW */
-
-    /* Skip header */
-    if (type == COL_TYPE_COLLECTION) {
-        TRACE_FLOW_STRING("elapi_sink_cb - skip header", "Exit.");
-        return EOK;
-    }
-
-    printf("Sink: %s\n", sink);
-
-    TRACE_FLOW_STRING("elapi_sink_cb", "Exit.");
-    return EOK;
-}
-
-/* Internal sink cleanup function */
-int elapi_sink_free_cb(const char *sink,
-                       int sink_len,
-                       int type,
-                       void *data,
-                       int length,
-                       void *passed_data,
-                       int *stop)
-{
-    TRACE_FLOW_STRING("elapi_sink_free_cb", "Entry.");
-
-    /* FIXME THIS IS A PLACEHOLDER FUNCTION FOR NOW */
-
-    printf("Cleaning Sink: %s\n", sink);
-
-    TRACE_FLOW_STRING("elapi_sink_free_cb", "Exit.");
-    return EOK;
-}
-
 /* Function to add a sink to the collection */
+/* This function belongs to this module.
+ * It adds sink into the collection
+ * of sinks inside dispatcher and puts
+ * reference into the target's reference list.
+ */
 /* FIXME - other arguments might be added later */
 int elapi_sink_add(struct collection_item **sink_ref,
                    char *sink,
                    struct elapi_dispatcher *handle)
 {
     int error = EOK;
-    struct elapi_sink_ctx sink_context;
-    struct collection_item *provider_cfg_item = NULL;
+    struct elapi_sink_ctx *sink_context = NULL;
 
     TRACE_FLOW_STRING("elapi_sink_add", "Entry");
 
@@ -183,42 +142,36 @@ int elapi_sink_add(struct collection_item **sink_ref,
     if (!(*sink_ref)) {
         TRACE_FLOW_STRING("No such sink yet, adding new sink:", sink);
 
-        /* First check if this sink is properly configured and get its provider */
-        error = get_config_item(sink,
-                                ELAPI_SINK_PROVIDER,
-                                handle->ini_config,
-                                &provider_cfg_item);
-        if (error) {
-            TRACE_ERROR_NUMBER("Attempt to read provider attribute returned error", error);
-            return error;
-        }
-
-        /* Do we have provider? */
-        if (provider_cfg_item == NULL) {
-            /* There is no provider - return error */
-            TRACE_ERROR_STRING("Required key is missing in the configuration.", "Fatal Error!");
-            return ENOENT;
-        }
-
-
-        /* FIXME: PLACEHOLDER
-            * This is the area where the actual sink is loaded.
-            * CODE WILL BE ADDED HERE...
-            */
-        sink_context.async_mode = 0;
-        sink_context.in_queue = NULL;
-        sink_context.pending = NULL;
-
-        /* We got a valid sink so add it to the collection */
-        error = col_add_binary_property_with_ref(handle->sink_list,
-                                                 NULL,
-                                                 sink,
-                                                 (void *)(&sink_context),
-                                                 sizeof(struct elapi_sink_ctx),
-                                                 sink_ref);
+        /* Create a sink object */
+        error = elapi_sink_create(&sink_context, sink, handle->ini_config);
         if (error != 0) {
             TRACE_ERROR_NUMBER("Failed to add sink data as property", error);
+            /* If create failed there is nothing to destroy */
             return error;
+        }
+
+        /* If there was an internal error but sink is optional
+         * no error is returned but context is NULL.
+         * We need to check for this situation.
+         */
+        if (sink_context) {
+            TRACE_FLOW_STRING("Loaded sink:", sink);
+            /* We got a valid sink so add it to the collection */
+            error = col_add_binary_property_with_ref(handle->sink_list,
+                                                     NULL,
+                                                     sink,
+                                                     (void *)(&sink_context),
+                                                     sizeof(struct elapi_sink_ctx *),
+                                                     sink_ref);
+            if (error != 0) {
+                TRACE_ERROR_NUMBER("Failed to add sink data as property", error);
+                elapi_sink_destroy(sink_context);
+                return error;
+            }
+        }
+        else {
+            *sink_ref = NULL;
+            TRACE_FLOW_STRING("Setting sink reference to NULL", "");
         }
     }
 
@@ -258,6 +211,7 @@ int elapi_tgt_create(struct elapi_tgt_ctx **context,
     char **sinks;
     char **current_sink;
     struct collection_item *sink_ref;
+    unsigned count;
 
     TRACE_FLOW_STRING("elapi_tgt_create", "Entry.");
 
@@ -281,7 +235,7 @@ int elapi_tgt_create(struct elapi_tgt_ctx **context,
     /* Allocate context */
     target_context = (struct elapi_tgt_ctx *)malloc(sizeof(struct elapi_tgt_ctx));
     if (target_context == NULL) {
-        TRACE_ERROR_NUMBER("Memory allocation failed. Error", target_context);
+        TRACE_ERROR_NUMBER("Memory allocation failed. Error", ENOMEM);
         return ENOMEM;
     }
 
@@ -362,21 +316,44 @@ int elapi_tgt_create(struct elapi_tgt_ctx **context,
             return error;
         }
 
-        /* Add reference to it into the target object */
-        error = col_add_binary_property(target_context->sink_ref_list, NULL,
-                                        *current_sink, (void *)(&sink_ref),
-                                        sizeof(struct collection_item *));
-        if (error != 0) {
-            TRACE_ERROR_NUMBER("Failed to add sink reference", error);
-            elapi_tgt_destroy(target_context);
-            free_string_config_array(sinks);
-            return error;
+        /* It might be that is was an error wit the optional sink so
+         * we need to check if the reference is not NULL;
+         */
+        if (sink_ref) {
+            /* Add reference to it into the target object */
+            error = col_add_binary_property(target_context->sink_ref_list, NULL,
+                                            *current_sink, (void *)(&sink_ref),
+                                            sizeof(struct collection_item *));
+            if (error != 0) {
+                TRACE_ERROR_NUMBER("Failed to add sink reference", error);
+                elapi_tgt_destroy(target_context);
+                free_string_config_array(sinks);
+                return error;
+            }
         }
-
+        else {
+            TRACE_INFO_STRING("Sink reference is NULL.", "Skipping the sink");
+        }
         current_sink++;
     }
 
     free_string_config_array(sinks);
+
+    /* Get count of the references in the list */
+    error = col_get_collection_count(target_context->sink_ref_list, &count);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to get count", error);
+        elapi_tgt_destroy(target_context);
+        return error;
+    }
+
+    /* Check count */
+    if (count <= 1) {
+        /* Nothing but header? - Bad! */
+        TRACE_ERROR_NUMBER("No sinks loaded for target!", "This is a fatal error!");
+        elapi_tgt_destroy(target_context);
+        return ENOENT;
+    }
 
     *context = target_context;
 
@@ -503,6 +480,54 @@ void elapi_dump_ini_err(struct collection_item *error_list)
     TRACE_FLOW_STRING("elapi_dump_ini_err", "Exit");
 }
 
+/****************************************************************************/
+/* Functions below are added for debugging purposes                         */
+/****************************************************************************/
+#ifdef ELAPI_UTEST
+
+void elapi_print_sink_ctx(struct elapi_sink_ctx *sink_context)
+{
+    /* This will not print well on 64 bit but it is just debugging
+     * so it is OK to have it.
+     */
+    printf("Printing sink context using address %X\n", (uint32_t)(sink_context));
+
+    printf("Mode: %s\n", sink_context->async_mode ? "true" : "false");
+    if (sink_context->in_queue) col_print_collection(sink_context->in_queue);
+    else printf("Queue is not initialized.\n");
+
+    if (sink_context->pending) col_print_collection(sink_context->pending);
+    else printf("Pending list is not initialized.\n");
+
+    if (sink_context->sink_cfg.provider) printf("Provider: %s\n",
+                                                sink_context->sink_cfg.provider);
+    else printf("Provider is not defined.\n");
+
+    printf("Is provider required? %s\n", ((sink_context->sink_cfg.required > 0) ? "Yes" : "No"));
+    printf("On error: %s\n", ((sink_context->sink_cfg.onerror == 0) ? "retry" : "fail"));
+    printf("Timout: %d\n", sink_context->sink_cfg.timeout);
+    printf("Sync configuration: %s\n", sink_context->sink_cfg.synch ? "true" : "false");
+
+    if (sink_context->sink_cfg.priv_ctx) printf("Private context allocated.\n");
+    else printf("Private context is NULL.\n");
+
+    if (sink_context->sink_cfg.libhandle) printf("Lib handle is allocated.\n");
+    else printf("Lib handle is NULL.\n");
+
+    if (sink_context->sink_cfg.ability) printf("Capability function is present\n");
+    else printf("NO capability function.\n");
+
+    if (sink_context->sink_cfg.cpb_cb.init_cb)  printf("Init callback is OK.\n");
+    else printf("Init callback is missing.\n");
+
+    if (sink_context->sink_cfg.cpb_cb.submit_cb)  printf("Submit callback is OK.\n");
+    else printf("Submit callback is missing.\n");
+
+    if (sink_context->sink_cfg.cpb_cb.close_cb)  printf("Close callback is OK.\n");
+    else printf("Close callback is missing.\n");
+
+
+}
 
 /* Handler for printing target internals */
 static int elapi_sink_ref_dbg_cb(const char *sink,
@@ -525,19 +550,38 @@ static int elapi_sink_ref_dbg_cb(const char *sink,
 
     printf("\nReferenced sink name is: %s\n", col_get_item_property(sink_item, NULL));
 
-    sink_context = (struct elapi_sink_ctx *)(col_get_item_data(sink_item));
+    sink_context = *((struct elapi_sink_ctx **)(col_get_item_data(sink_item)));
 
-    printf("Mode: %s\n", sink_context->async_mode ? "true" : "false");
-    if (sink_context->in_queue) col_print_collection(sink_context->in_queue);
-    else printf("Queue is not initialized.\n");
+    elapi_print_sink_ctx(sink_context);
 
-    if (sink_context->pending) col_print_collection(sink_context->pending);
-    else printf("Pending list is not initialized.\n");
 
     return EOK;
 }
 
+/* Handler for printing sink internals */
+static int elapi_sink_dbg_cb(const char *sink,
+                             int sink_len,
+                             int type,
+                             void *data,
+                             int length,
+                             void *passed_data,
+                             int *stop)
+{
+    struct elapi_sink_ctx *sink_context;
 
+    /* Skip header */
+    if (type == COL_TYPE_COLLECTION) {
+        return EOK;
+    }
+
+    sink_context = *((struct elapi_sink_ctx **)(data));
+
+    printf("\nSink name is: %s\n", sink);
+
+    elapi_print_sink_ctx(sink_context);
+
+    return EOK;
+}
 
 /* Handler for printing target internals */
 static int elapi_tgt_dbg_cb(const char *target,
@@ -567,6 +611,7 @@ static int elapi_tgt_dbg_cb(const char *target,
 
     return EOK;
 }
+
 
 
 /* Internal function to print dispatcher internals - useful for testing */
@@ -604,7 +649,17 @@ void elapi_print_dispatcher(struct elapi_dispatcher *handle)
                                       elapi_tgt_dbg_cb,
                                       NULL);
     }
+    printf("\n\nDeep sink inspection:\n\n");
+    if (handle->sink_list) {
+        (void)col_traverse_collection(handle->sink_list,
+                                      COL_TRAVERSE_ONELEVEL,
+                                      elapi_sink_dbg_cb,
+                                      NULL);
+    }
     /* FIXME: Async data... */
 
     printf("DISPATCHER END\n\n");
+    fflush(stdout);
 }
+
+#endif

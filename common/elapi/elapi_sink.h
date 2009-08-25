@@ -31,48 +31,29 @@
 #define SINK_LIB_NAME_SIZE  100
 #define SINK_ENTRY_POINT    "get_sink_info"
 #define SINK_NAME_TEMPLATE  "libelapi_sink_%s.so"
-#define SINK_NEVER_RETRY    -1
 
 /* Flags related to loading sinks */
 #define SINK_FLAG_NO_LIMIT          0x00000000 /* NO limits to loading and manipulating this sink - default */
-#define SINK_FLAG_LOAD_SINGLE       0x00000001 /* Only allow one instance of the sink per process */
+#define SINK_FLAG_LOAD_SINGLE       0x00000001 /* Only allow one instance of the provider per process */
 
-struct data_descriptor {
-    char *appname;
-    void *config;
-    void *internal_data;
-};
 
 /* Log facility callbacks */
-typedef int (*init_fn)(struct data_descriptor *dblock);
-typedef void (*cleanup_fn)(struct data_descriptor *dblock);
-typedef int (*format_fn)(struct data_descriptor *dblock, const char *format_str, struct collection_item *event);
-typedef int (*submit_fn)(struct data_descriptor *dblock);
-typedef void (*close_fn)(struct data_descriptor *dblock);
+/* FIXME - the signatures need to take into the account async processing */
+typedef int (*init_fn)(void **priv_ctx, char *name, struct collection_item *ini_config);
+typedef int (*submit_fn)(void *priv_ctx, struct collection_item *event);
+typedef void (*close_fn)(void **priv_ctx);
 
-struct sink_capability {
-    int retry_interval;
-    int flags;
-    int instance;
+struct sink_cpb {
     init_fn init_cb;
-    cleanup_fn cleanup_cb;
-    format_fn format_cb;
     submit_fn submit_cb;
     close_fn close_cb;
 };
 
-/* The only open function the link can expose */
-typedef void (*capability_fn)(struct sink_capability *sink_cpb_block);
+/* The only open function the sink can expose */
+typedef void (*sink_cpb_fn)(struct sink_cpb *sink_cpb_block);
 
-struct sink_descriptor {
-    struct sink_capability sink_cpb_block;
-    struct data_descriptor dblock;
-    int suspended;
-    time_t lasttry;
-    void *lib_handle;
-};
 
-/*Standard capability function */
-void get_sink_info(struct sink_capability *sink_cpb_block);
+/* Standard capability function */
+void get_sink_info(struct sink_cpb *cpb_block);
 
 #endif
