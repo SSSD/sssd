@@ -618,6 +618,8 @@ done:
     return ret;
 }
 
+static int sysdb_upgrade_01(struct sysdb_ctx *ctx, const char **ver);
+
 static int sysdb_check_init(struct sysdb_ctx *ctx)
 {
     TALLOC_CTX *tmp_ctx;
@@ -626,7 +628,7 @@ static int sysdb_check_init(struct sysdb_ctx *ctx)
     struct ldb_message_element *el;
     struct ldb_result *res;
     struct ldb_dn *verdn;
-    char *version = NULL;
+    const char *version = NULL;
     int ret;
 
     tmp_ctx = talloc_new(ctx);
@@ -666,6 +668,12 @@ static int sysdb_check_init(struct sysdb_ctx *ctx)
                 goto done;
             }
 
+            if (strcmp(version, SYSDB_VERSION_0_1) == 0) {
+                /* convert database */
+                ret = sysdb_upgrade_01(ctx, &version);
+                if (ret != EOK) goto done;
+            }
+
             if (strcmp(version, SYSDB_VERSION) == 0) {
                 /* all fine, return */
                 ret = EOK;
@@ -693,9 +701,168 @@ static int sysdb_check_init(struct sysdb_ctx *ctx)
     }
 
     ret = EOK;
-
 done:
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+/* serach all groups that have a memberUid attribute.
+ * change it into a member attribute for a user of same domain.
+ * remove the memberUid attribute
+ * add the new member attribute
+ * finally stop indexing memberUid
+ * upgrade version to 0.2
+ */
+static int sysdb_upgrade_01(struct sysdb_ctx *ctx, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message_element *el;
+    struct ldb_result *res;
+    struct ldb_dn *basedn;
+    struct ldb_dn *mem_dn;
+    struct ldb_message *msg;
+    const struct ldb_val *val;
+    const char *filter = "(&(memberUid=*)(objectclass=group))";
+    const char *attrs[] = { "memberUid", NULL };
+    const char *mdn;
+    char *domain;
+    int ret, i, j;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx)
+        return ENOMEM;
+
+    basedn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    if (!basedn) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_search(ctx->ldb, tmp_ctx, &res,
+                     basedn, LDB_SCOPE_SUBTREE,
+                     attrs, filter);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    for (i = 0; i < res->count; i++) {
+        el = ldb_msg_find_element(res->msgs[i], "memberUid");
+        if (!el) {
+            DEBUG(1, ("memberUid is missing from message [%s], skipping\n",
+                      ldb_dn_get_linearized(res->msgs[i]->dn)));
+            continue;
+        }
+
+        /* create modification message */
+        msg = ldb_msg_new(tmp_ctx);
+        if (!msg) {
+            ret = ENOMEM;
+            goto done;
+        }
+        msg->dn = res->msgs[i]->dn;
+
+        ret = ldb_msg_add_empty(msg, "memberUid", LDB_FLAG_MOD_DELETE, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = ldb_msg_add_empty(msg, SYSDB_MEMBER, LDB_FLAG_MOD_ADD, NULL);
+        if (ret != LDB_SUCCESS) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* get domain name component value */
+        val = ldb_dn_get_component_val(res->msgs[i]->dn, 2);
+        domain = talloc_strndup(tmp_ctx, (const char *)val->data, val->length);
+        if (!domain) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        for (j = 0; j < el->num_values; j++) {
+            mem_dn = sysdb_user_dn(ctx, tmp_ctx, domain,
+                                   (const char *)el->values[j].data);
+            if (!mem_dn) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            mdn = talloc_strdup(msg, ldb_dn_get_linearized(mem_dn));
+            if (!mdn) {
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = ldb_msg_add_string(msg, SYSDB_MEMBER, mdn);
+            if (ret != LDB_SUCCESS) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            talloc_zfree(mem_dn);
+        }
+
+        /* ok now we are ready to modify the entry */
+        ret = ldb_modify(ctx->ldb, msg);
+        if (ret != LDB_SUCCESS) {
+            ret = sysdb_error_to_errno(ret);
+            goto done;
+        }
+
+        talloc_zfree(msg);
+    }
+
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "version", "0.2");
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    talloc_zfree(tmp_ctx);
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        ret = ldb_transaction_cancel(ctx->ldb);
+    } else {
+        ret = ldb_transaction_commit(ctx->ldb);
+    }
+    if (ret != LDB_SUCCESS) {
+        return EIO;
+    }
+
+    *ver = "0.2";
     return ret;
 }
 

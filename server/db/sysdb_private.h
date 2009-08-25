@@ -23,7 +23,8 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
-#define SYSDB_VERSION "0.1"
+#define SYSDB_VERSION "0.2"
+#define SYSDB_VERSION_0_1 "0.1"
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -39,7 +40,6 @@
      "@IDXATTR: objectclass\n" \
      "@IDXATTR: member\n" \
      "@IDXATTR: memberof\n" \
-     "@IDXATTR: memberuid\n" \
      "@IDXATTR: name\n" \
      "@IDXATTR: uidNumber\n" \
      "@IDXATTR: gidNumber\n" \
@@ -50,7 +50,7 @@
      "\n" \
      "dn: cn=sysdb\n" \
      "cn: sysdb\n" \
-     "version: 0.1\n" \
+     "version: 0.2\n" \
      "description: base object\n" \
      "\n" \
      "dn: cn=LOCAL,cn=sysdb\n" \
