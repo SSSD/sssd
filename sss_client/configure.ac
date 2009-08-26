@@ -13,6 +13,8 @@ AM_GNU_GETTEXT_VERSION([0.14])
 
 AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 
+AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
+
 m4_pattern_allow([AM_SILENT_RULES])
 AM_SILENT_RULES
 

@@ -31,6 +31,8 @@ AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 AC_CHECK_HEADERS(stdint.h dlfcn.h)
 AC_CONFIG_HEADER(config.h)
 
+AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
+
 m4_include([build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
 

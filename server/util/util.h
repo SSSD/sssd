@@ -15,6 +15,11 @@
 #include "tevent.h"
 #include "ldb.h"
 
+#ifndef HAVE_ERRNO_T
+#define HAVE_ERRNO_T
+typedef int errno_t;
+#endif
+
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
