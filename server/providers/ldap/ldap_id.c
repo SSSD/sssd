@@ -32,6 +32,8 @@
 #include "providers/ldap/sdap_async.h"
 
 struct sdap_id_ctx {
+    struct be_ctx *be;
+
     struct sdap_options *opts;
 
     /* global sdap handler */
@@ -39,6 +41,12 @@ struct sdap_id_ctx {
 
     time_t went_offline;
     bool offline;
+
+    /* enumeration loop timer */
+    struct timeval last_run;
+
+    char *max_user_timestamp;
+    char *max_group_timestamp;
 };
 
 static void sdap_req_done(struct be_req *req, int ret, const char *err)
@@ -79,20 +87,23 @@ static int build_attrs_from_map(TALLOC_CTX *memctx,
                                 const char ***_attrs)
 {
     char **attrs;
-    int i;
+    int i, j;
 
     attrs = talloc_array(memctx, char *, size + 1);
     if (!attrs) return ENOMEM;
 
-    /* first attribute is the objectclass value not the attribute name */
+    /* first attribute is "objectclass" not the specifc one */
     attrs[0] = talloc_strdup(memctx, "objectClass");
     if (!attrs[0]) return ENOMEM;
 
     /* add the others */
-    for (i = 1; i < size; i++) {
-        attrs[i] = map[i].name;
+    for (i = j = 1; i < size; i++) {
+        if (map[i].name) {
+            attrs[j] = map[i].name;
+            j++;
+        }
     }
-    attrs[i] = NULL;
+    attrs[j] = NULL;
 
     *_attrs = (const char **)attrs;
 
@@ -229,9 +240,6 @@ struct users_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
 
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
-
     char *filter;
     const char **attrs;
 };
@@ -242,8 +250,7 @@ static void users_get_op_done(struct tevent_req *subreq);
 static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_id_ctx *ctx,
-                                         struct be_ctx *bectx,
-                                         const char *wildcard,
+                                         const char *name,
                                          int filter_type,
                                          int attrs_type)
 {
@@ -257,8 +264,6 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->dom = bectx->domain;
-    state->sysdb = bectx->sysdb;
 
     switch(filter_type) {
     case BE_FILTER_NAME:
@@ -273,7 +278,7 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     }
 
     state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                                    attr_name, wildcard,
+                                    attr_name, name,
                                     ctx->opts->user_map[SDAP_OC_USER].name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
@@ -307,7 +312,8 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_users_send(state, state->ev,
-                                 state->dom, bectx->sysdb,
+                                 state->ctx->be->domain,
+                                 state->ctx->be->sysdb,
                                  state->ctx->opts, state->ctx->gsh,
                                  state->attrs, state->filter);
     if (!subreq) {
@@ -340,7 +346,8 @@ static void users_get_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_get_users_send(state, state->ev,
-                                 state->dom, state->sysdb,
+                                 state->ctx->be->domain,
+                                 state->ctx->be->sysdb,
                                  state->ctx->opts, state->ctx->gsh,
                                  state->attrs, state->filter);
     if (!subreq) {
@@ -356,7 +363,7 @@ static void users_get_op_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     int ret;
 
-    ret = sdap_get_users_recv(subreq);
+    ret = sdap_get_users_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -389,9 +396,6 @@ struct groups_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
 
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
-
     char *filter;
     const char **attrs;
 };
@@ -402,8 +406,7 @@ static void groups_get_op_done(struct tevent_req *subreq);
 static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx,
-                                          struct be_ctx *bectx,
-                                          const char *wildcard,
+                                          const char *name,
                                           int filter_type,
                                           int attrs_type)
 {
@@ -417,8 +420,6 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->dom = bectx->domain;
-    state->sysdb = bectx->sysdb;
 
     switch(filter_type) {
     case BE_FILTER_NAME:
@@ -433,7 +434,7 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     }
 
     state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                                    attr_name, wildcard,
+                                    attr_name, name,
                                     ctx->opts->group_map[SDAP_OC_GROUP].name);
     if (!state->filter) {
         DEBUG(2, ("Failed to build filter\n"));
@@ -467,7 +468,8 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_groups_send(state, state->ev,
-                                 state->dom, bectx->sysdb,
+                                 state->ctx->be->domain,
+                                 state->ctx->be->sysdb,
                                  state->ctx->opts, state->ctx->gsh,
                                  state->attrs, state->filter);
     if (!subreq) {
@@ -500,9 +502,10 @@ static void groups_get_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_get_groups_send(state, state->ev,
-                                 state->dom, state->sysdb,
-                                 state->ctx->opts, state->ctx->gsh,
-                                 state->attrs, state->filter);
+                                  state->ctx->be->domain,
+                                  state->ctx->be->sysdb,
+                                  state->ctx->opts, state->ctx->gsh,
+                                  state->attrs, state->filter);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -516,7 +519,7 @@ static void groups_get_op_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     int ret;
 
-    ret = sdap_get_groups_recv(subreq);
+    ret = sdap_get_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -548,8 +551,6 @@ static void groups_get_done(struct tevent_req *req)
 struct groups_by_user_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
     const char *name;
     const char **attrs;
 };
@@ -560,8 +561,6 @@ static void groups_by_user_op_done(struct tevent_req *subreq);
 static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
                                               struct sdap_id_ctx *ctx,
-                                              struct sss_domain_info *dom,
-                                              struct sysdb_ctx *sysdb,
                                               const char *name)
 {
     struct tevent_req *req, *subreq;
@@ -573,8 +572,6 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->dom = dom;
-    state->sysdb = sysdb;
     state->name = name;
 
     ret = build_attrs_from_map(state, ctx->opts->group_map,
@@ -602,7 +599,8 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_initgr_send(state, state->ev,
-                                  state->dom, state->sysdb,
+                                  state->ctx->be->domain,
+                                  state->ctx->be->sysdb,
                                   state->ctx->opts, state->ctx->gsh,
                                   state->name, state->attrs);
     if (!subreq) {
@@ -635,7 +633,8 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_get_initgr_send(state, state->ev,
-                                  state->dom, state->sysdb,
+                                  state->ctx->be->domain,
+                                  state->ctx->be->sysdb,
                                   state->ctx->opts, state->ctx->gsh,
                                   state->name, state->attrs);
     if (!subreq) {
@@ -703,8 +702,12 @@ static void sdap_get_account_info(struct be_req *breq)
     switch (ar->entry_type) {
     case BE_REQ_USER: /* user */
 
-        req = users_get_send(breq, breq->be_ctx->ev,
-                             ctx, breq->be_ctx,
+        /* skip enumerations on demand */
+        if (strcmp(ar->filter_value, "*") == 0) {
+            return sdap_req_done(breq, EOK, "Success");
+        }
+
+        req = users_get_send(breq, breq->be_ctx->ev, ctx,
                              ar->filter_value,
                              ar->filter_type,
                              ar->attr_type);
@@ -718,8 +721,12 @@ static void sdap_get_account_info(struct be_req *breq)
 
     case BE_REQ_GROUP: /* group */
 
-        req = groups_get_send(breq, breq->be_ctx->ev,
-                              ctx, breq->be_ctx,
+        if (strcmp(ar->filter_value, "*") == 0) {
+            return sdap_req_done(breq, EOK, "Success");
+        }
+
+        /* skip enumerations on demand */
+        req = groups_get_send(breq, breq->be_ctx->ev, ctx,
                               ar->filter_value,
                               ar->filter_type,
                               ar->attr_type);
@@ -748,7 +755,6 @@ static void sdap_get_account_info(struct be_req *breq)
             break;
         }
         req = groups_by_user_send(breq, breq->be_ctx->ev, ctx,
-                                  breq->be_ctx->domain, breq->be_ctx->sysdb,
                                   ar->filter_value);
         if (!req) ret = ENOMEM;
         /* tevent_req_set_callback(req, groups_by_user_done, breq); */
@@ -764,6 +770,478 @@ static void sdap_get_account_info(struct be_req *breq)
 
     if (ret != EOK) return sdap_req_done(breq, ret, err);
 }
+
+
+/* ==Enumeration-Task===================================================== */
+
+static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
+                                                 struct sdap_id_ctx *ctx);
+static void ldap_id_enumerate_reschedule(struct tevent_req *req);
+static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
+                                        struct timeval tv);
+
+static void ldap_id_enumerate_timeout(struct tevent_context *ev,
+                                      struct tevent_timer *te,
+                                      struct timeval tv, void *pvt);
+
+static void ldap_id_enumerate(struct tevent_context *ev,
+                              struct tevent_timer *tt,
+                              struct timeval tv, void *pvt)
+{
+    struct sdap_id_ctx *ctx = talloc_get_type(pvt, struct sdap_id_ctx);
+    struct tevent_timer *timeout;
+    struct tevent_req *req;
+
+    ctx->last_run = tv;
+
+    req = ldap_id_enumerate_send(ev, ctx);
+    if (!req) {
+        DEBUG(1, ("Failed to schedule enumeration, retrying later!\n"));
+        /* schedule starting from now, not the last run */
+        ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
+        return;
+    }
+
+    tevent_req_set_callback(req, ldap_id_enumerate_reschedule, ctx);
+
+    /* if enumeration takes so long, either we try to enumerate too
+     * frequently, or something went seriously wrong */
+    tv = tevent_timeval_current();
+    tv = tevent_timeval_add(&tv, ctx->opts->enum_refresh_timeout, 0);
+    timeout = tevent_add_timer(ctx->be->ev, req, tv,
+                               ldap_id_enumerate_timeout, req);
+    return;
+}
+
+static void ldap_id_enumerate_timeout(struct tevent_context *ev,
+                                      struct tevent_timer *te,
+                                      struct timeval tv, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
+                                                       struct sdap_id_ctx);
+
+    DEBUG(1, ("Enumeration timed out! Timeout too small? (%ds)!\n",
+              ctx->opts->enum_refresh_timeout));
+    ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
+
+    talloc_zfree(req);
+}
+
+static void ldap_id_enumerate_reschedule(struct tevent_req *req)
+{
+    struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
+                                                       struct sdap_id_ctx);
+    ldap_id_enumerate_set_timer(ctx, ctx->last_run);
+}
+
+static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
+                                        struct timeval tv)
+{
+    struct tevent_timer *enum_task;
+
+    tv = tevent_timeval_add(&tv, ctx->opts->enum_refresh_timeout, 0);
+    enum_task = tevent_add_timer(ctx->be->ev, ctx, tv, ldap_id_enumerate, ctx);
+    if (!enum_task) {
+        DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
+        /* shutdown! */
+        exit(1);
+    }
+}
+
+
+
+struct global_enum_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *ctx;
+};
+
+static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx);
+static void ldap_id_enum_users_done(struct tevent_req *subreq);
+static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx);
+static void ldap_id_enum_groups_done(struct tevent_req *subreq);
+
+static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
+                                                 struct sdap_id_ctx *ctx)
+{
+    struct global_enum_state *state;
+    struct tevent_req *req, *subreq;
+
+    req = tevent_req_create(ctx, &state, struct global_enum_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+
+    subreq = enum_users_send(state, ev, ctx);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, ldap_id_enum_users_done, req);
+
+    return req;
+}
+
+static void ldap_id_enum_users_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(subreq, &tstate, &err)) {
+        goto fail;
+    }
+    talloc_zfree(subreq);
+
+    subreq = enum_groups_send(state, state->ev, state->ctx);
+    if (!subreq) {
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ldap_id_enum_groups_done, req);
+
+    return;
+
+fail:
+    DEBUG(1, ("Failed to enumerate users, retrying later!\n"));
+    /* schedule starting from now, not the last run */
+    ldap_id_enumerate_set_timer(state->ctx, tevent_timeval_current());
+
+    talloc_zfree(req);
+}
+
+static void ldap_id_enum_groups_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(subreq, &tstate, &err)) {
+        goto fail;
+    }
+    talloc_zfree(req);
+
+    ldap_id_enumerate_set_timer(state->ctx, state->ctx->last_run);
+
+    return;
+
+fail:
+    DEBUG(1, ("Failed to enumerate groups, retrying later!\n"));
+    /* schedule starting from now, not the last run */
+    ldap_id_enumerate_set_timer(state->ctx, tevent_timeval_current());
+
+    talloc_zfree(req);
+}
+
+/* ==User-Enumeration===================================================== */
+
+struct enum_users_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *ctx;
+
+    char *filter;
+    const char **attrs;
+};
+
+static void enum_users_connect_done(struct tevent_req *subreq);
+static void enum_users_op_done(struct tevent_req *subreq);
+
+static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx)
+{
+    struct tevent_req *req, *subreq;
+    struct users_get_state *state;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct users_get_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+
+    if (ctx->max_user_timestamp) {
+        state->filter = talloc_asprintf(state,
+                               "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
+                               ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+                               ctx->opts->user_map[SDAP_OC_USER].name,
+                               ctx->opts->user_map[SDAP_AT_USER_MODSTAMP].name,
+                               ctx->max_user_timestamp,
+                               ctx->opts->user_map[SDAP_AT_USER_MODSTAMP].name,
+                               ctx->max_user_timestamp);
+    } else {
+        state->filter = talloc_asprintf(state,
+                               "(&(%s=*)(objectclass=%s))",
+                               ctx->opts->user_map[SDAP_AT_USER_NAME].name,
+                               ctx->opts->user_map[SDAP_OC_USER].name);
+    }
+    if (!state->filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    /* TODO: handle attrs_type */
+    ret = build_attrs_from_map(state, ctx->opts->user_map,
+                               SDAP_OPTS_USER, &state->attrs);
+    if (ret != EOK) goto fail;
+
+    if (!connected(ctx)) {
+
+        if (ctx->gsh) talloc_zfree(ctx->gsh);
+
+        /* FIXME: add option to decide if tls should be used
+         * or SASL/GSSAPI, etc ... */
+        subreq = sdap_id_connect_send(state, ev, ctx, false,
+                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        tevent_req_set_callback(subreq, enum_users_connect_done, req);
+
+        return req;
+    }
+
+    subreq = sdap_get_users_send(state, state->ev,
+                                 state->ctx->be->domain,
+                                 state->ctx->be->sysdb,
+                                 state->ctx->opts,
+                                 state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, enum_users_op_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void enum_users_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct enum_users_state *state = tevent_req_data(req,
+                                                     struct enum_users_state);
+    int ret;
+
+    ret = sdap_id_connect_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_get_users_send(state, state->ev,
+                                 state->ctx->be->domain,
+                                 state->ctx->be->sysdb,
+                                 state->ctx->opts, state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, enum_users_op_done, req);
+}
+
+static void enum_users_op_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct enum_users_state *state = tevent_req_data(req,
+                                                     struct enum_users_state);
+    char *timestamp;
+    int ret;
+
+    ret = sdap_get_users_recv(subreq, state, &timestamp);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (timestamp) {
+        talloc_zfree(state->ctx->max_user_timestamp);
+        state->ctx->max_user_timestamp = talloc_steal(state->ctx, timestamp);
+    }
+
+    DEBUG(4, ("Users higher timestamp: [%s]\n",
+              state->ctx->max_user_timestamp));
+
+    tevent_req_done(req);
+}
+
+/* =Group-Enumeration===================================================== */
+
+struct enum_groups_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *ctx;
+
+    char *filter;
+    const char **attrs;
+};
+
+static void enum_groups_connect_done(struct tevent_req *subreq);
+static void enum_groups_op_done(struct tevent_req *subreq);
+
+static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct sdap_id_ctx *ctx)
+{
+    struct tevent_req *req, *subreq;
+    struct enum_groups_state *state;
+    const char *attr_name;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct enum_groups_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->ctx = ctx;
+
+        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
+
+    if (ctx->max_group_timestamp) {
+        state->filter = talloc_asprintf(state,
+                              "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
+                              ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                              ctx->opts->group_map[SDAP_OC_GROUP].name,
+                              ctx->opts->group_map[SDAP_AT_GROUP_MODSTAMP].name,
+                              ctx->max_group_timestamp,
+                              ctx->opts->group_map[SDAP_AT_GROUP_MODSTAMP].name,
+                              ctx->max_group_timestamp);
+    } else {
+        state->filter = talloc_asprintf(state,
+                              "(&(%s=*)(objectclass=%s))",
+                              ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                              ctx->opts->group_map[SDAP_OC_GROUP].name);
+    }
+    if (!state->filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    /* TODO: handle attrs_type */
+    ret = build_attrs_from_map(state, ctx->opts->group_map,
+                               SDAP_OPTS_GROUP, &state->attrs);
+    if (ret != EOK) goto fail;
+
+    if (!connected(ctx)) {
+
+        if (ctx->gsh) talloc_zfree(ctx->gsh);
+
+        /* FIXME: add option to decide if tls should be used
+         * or SASL/GSSAPI, etc ... */
+        subreq = sdap_id_connect_send(state, ev, ctx, false,
+                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
+                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        tevent_req_set_callback(subreq, enum_groups_connect_done, req);
+
+        return req;
+    }
+
+    subreq = sdap_get_groups_send(state, state->ev,
+                                 state->ctx->be->domain,
+                                 state->ctx->be->sysdb,
+                                 state->ctx->opts, state->ctx->gsh,
+                                 state->attrs, state->filter);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, enum_groups_op_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void enum_groups_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct enum_groups_state *state = tevent_req_data(req,
+                                                 struct enum_groups_state);
+    int ret;
+
+    ret = sdap_id_connect_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_get_groups_send(state, state->ev,
+                                  state->ctx->be->domain,
+                                  state->ctx->be->sysdb,
+                                  state->ctx->opts, state->ctx->gsh,
+                                  state->attrs, state->filter);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, enum_groups_op_done, req);
+}
+
+static void enum_groups_op_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct enum_groups_state *state = tevent_req_data(req,
+                                                 struct enum_groups_state);
+    char *timestamp;
+    int ret;
+
+    ret = sdap_get_groups_recv(subreq, state, &timestamp);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (timestamp) {
+        talloc_zfree(state->ctx->max_group_timestamp);
+        state->ctx->max_group_timestamp = talloc_steal(state->ctx, timestamp);
+    }
+
+    DEBUG(4, ("Groups higher timestamp: [%s]\n",
+              state->ctx->max_group_timestamp));
+
+    tevent_req_done(req);
+}
+
+
+
+/* ==Initialization-Functions============================================= */
 
 static void sdap_shutdown(struct be_req *req)
 {
@@ -782,12 +1260,15 @@ int sssm_ldap_init(struct be_ctx *bectx,
                    void **pvt_data)
 {
     int ldap_opt_x_tls_require_cert;
+    struct tevent_timer *enum_task;
     struct sdap_id_ctx *ctx;
     char *tls_reqcert;
     int ret;
 
     ctx = talloc_zero(bectx, struct sdap_id_ctx);
     if (!ctx) return ENOMEM;
+
+    ctx->be = bectx;
 
     ret = sdap_get_options(ctx, bectx->cdb, bectx->conf_path,
                            &ctx->opts);
@@ -823,6 +1304,16 @@ int sssm_ldap_init(struct be_ctx *bectx,
             ret = EIO;
             goto done;
         }
+    }
+
+    /* set up enumeration task */
+    ctx->last_run = tevent_timeval_current(); /* run the first immediately */
+    enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
+                                 ldap_id_enumerate, ctx);
+    if (!enum_task) {
+        DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
+        ret = EFAULT;
+        goto done;
     }
 
     *ops = &sdap_id_ops;

@@ -40,7 +40,8 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *wildcard);
-int sdap_get_users_recv(struct tevent_req *req);
+int sdap_get_users_recv(struct tevent_req *req,
+                        TALLOC_CTX *mem_ctx, char **timestamp);
 
 struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
@@ -50,7 +51,8 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *wildcard);
-int sdap_get_groups_recv(struct tevent_req *req);
+int sdap_get_groups_recv(struct tevent_req *req,
+                         TALLOC_CTX *mem_ctx, char **timestamp);
 
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,

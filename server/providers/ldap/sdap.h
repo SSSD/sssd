@@ -85,8 +85,9 @@ enum sdap_result {
 #define SDAP_SCHEMA 13
 #define SDAP_OFFLINE_TIMEOUT 14
 #define SDAP_FORCE_UPPER_CASE_REALM 15
+#define SDAP_ENUM_REFRESH_TIMEOUT 16
 
-#define SDAP_OPTS_BASIC 16 /* opts counter */
+#define SDAP_OPTS_BASIC 17 /* opts counter */
 
 /* the objectclass must be the first attribute.
  * Functions depend on this */
@@ -102,8 +103,9 @@ enum sdap_result {
 #define SDAP_AT_USER_PRINC 9
 #define SDAP_AT_USER_FULLNAME 10
 #define SDAP_AT_USER_MEMBEROF 11
+#define SDAP_AT_USER_MODSTAMP 12
 
-#define SDAP_OPTS_USER 12 /* attrs counter */
+#define SDAP_OPTS_USER 13 /* attrs counter */
 
 /* the objectclass must be the first attribute.
  * Functions depend on this */
@@ -113,8 +115,9 @@ enum sdap_result {
 #define SDAP_AT_GROUP_GID 3
 #define SDAP_AT_GROUP_MEMBER 4
 #define SDAP_AT_GROUP_UUID 5
+#define SDAP_AT_GROUP_MODSTAMP 6
 
-#define SDAP_OPTS_GROUP 6 /* attrs counter */
+#define SDAP_OPTS_GROUP 7 /* attrs counter */
 
 struct sdap_gen_opts {
     const char *opt_name;
@@ -140,6 +143,7 @@ struct sdap_options {
     int network_timeout;
     int opt_timeout;
     int offline_timeout;
+    int enum_refresh_timeout;
     bool force_upper_case_realm;
 
     /* supported schema types */

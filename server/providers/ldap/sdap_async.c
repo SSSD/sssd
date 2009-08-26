@@ -834,6 +834,7 @@ struct sdap_save_user_state {
 
     const char *name;
     struct sysdb_attrs *attrs;
+    char *timestamp;
 };
 
 static void sdap_save_user_done(struct tevent_req *subreq);
@@ -871,6 +872,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->dom = dom;
     state->opts = opts;
+    state->timestamp = NULL;
 
     ret = sdap_parse_user(state, state->opts, state->sh,
                           entry, &state->attrs, NULL);
@@ -966,6 +968,29 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     }
 
     ret = sysdb_attrs_get_el(state->attrs,
+                      opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original mod-Timestamp is not available for [%s].\n",
+                  state->name));
+    } else {
+        ret = sysdb_attrs_add_string(user_attrs,
+                          opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name,
+                          (const char*)el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+        state->timestamp = talloc_strdup(state,
+                                         (const char*)el->values[0].data);
+        if (!state->timestamp) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    ret = sysdb_attrs_get_el(state->attrs,
                              opts->user_map[SDAP_AT_USER_PRINC].sys_name, &el);
     if (ret) {
         goto fail;
@@ -991,10 +1016,10 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
 
     DEBUG(6, ("Storing info for user %s\n", state->name));
 
-    subreq = sysdb_store_user_with_attrs_send(state, state->ev, state->handle,
-                                              state->dom, state->name, pwd,
-                                              uid, gid, gecos, homedir, shell,
-                                              user_attrs);
+    subreq = sysdb_store_user_send(state, state->ev, state->handle,
+                                   state->dom, state->name, pwd,
+                                   uid, gid, gecos, homedir, shell,
+                                   user_attrs);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -1017,7 +1042,7 @@ static void sdap_save_user_done(struct tevent_req *subreq)
                                             struct sdap_save_user_state);
     int ret;
 
-    ret = sysdb_store_user_with_attrs_recv(subreq);
+    ret = sysdb_store_user_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(2, ("Failed to save user %s\n", state->name));
@@ -1028,8 +1053,11 @@ static void sdap_save_user_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int sdap_save_user_recv(struct tevent_req *req)
+static int sdap_save_user_recv(struct tevent_req *req,
+                               TALLOC_CTX *mem_ctx, char **timestamp)
 {
+    struct sdap_save_user_state *state = tevent_req_data(req,
+                                            struct sdap_save_user_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
@@ -1037,6 +1065,8 @@ int sdap_save_user_recv(struct tevent_req *req)
         if (!err) return EIO;
         return err;
     }
+
+    *timestamp = talloc_steal(mem_ctx, state->timestamp);
 
     return EOK;
 }
@@ -1054,6 +1084,7 @@ struct sdap_save_group_state {
 
     const char *name;
     struct sysdb_attrs *attrs;
+    char *timestamp;
 };
 
 static void sdap_save_group_done(struct tevent_req *subreq);
@@ -1076,6 +1107,7 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     const char **members;
     long int l;
     gid_t gid;
+    struct sysdb_attrs *group_attrs;
 
     req = tevent_req_create(memctx, &state, struct sdap_save_group_state);
     if (!req) return NULL;
@@ -1085,6 +1117,7 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->dom = dom;
     state->opts = opts;
+    state->timestamp = NULL;
 
     ret = sdap_parse_group(state, state->opts, state->sh,
                            entry, &state->attrs, NULL);
@@ -1126,10 +1159,41 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     }
     gid = l;
 
+    group_attrs = sysdb_new_attrs(state);
+    if (!group_attrs) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_attrs_get_el(state->attrs,
+                      opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original mod-Timestamp is not available for [%s].\n",
+                  state->name));
+    } else {
+        ret = sysdb_attrs_add_string(group_attrs,
+                          opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name,
+                          (const char*)el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+        state->timestamp = talloc_strdup(state,
+                                         (const char*)el->values[0].data);
+        if (!state->timestamp) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
     DEBUG(6, ("Storing info for group %s\n", state->name));
 
-    subreq = sysdb_store_group_send(state, state->ev, state->handle,
-                                    state->dom, state->name, gid, members);
+    subreq = sysdb_store_group_send(state, state->ev,
+                                    state->handle, state->dom,
+                                    state->name, gid, members,
+                                    group_attrs);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -1155,7 +1219,7 @@ static void sdap_save_group_done(struct tevent_req *subreq)
     ret = sysdb_store_group_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(2, ("Failed to save group %s\n", state->name));
+        DEBUG(2, ("Failed to save group %s [%d]\n", state->name, ret));
         tevent_req_error(req, ret);
         return;
     }
@@ -1163,8 +1227,11 @@ static void sdap_save_group_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int sdap_save_group_recv(struct tevent_req *req)
+static int sdap_save_group_recv(struct tevent_req *req,
+                                TALLOC_CTX *mem_ctx, char **timestamp)
 {
+    struct sdap_save_group_state *state = tevent_req_data(req,
+                                            struct sdap_save_group_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
@@ -1172,6 +1239,8 @@ int sdap_save_group_recv(struct tevent_req *req)
         if (!err) return EIO;
         return err;
     }
+
+    *timestamp = talloc_steal(mem_ctx, state->timestamp);
 
     return EOK;
 }
@@ -1189,6 +1258,8 @@ struct sdap_get_users_state {
 
     struct sysdb_handle *handle;
     struct sdap_op *op;
+
+    char *higher_timestamp;
 };
 
 static void sdap_get_users_transaction(struct tevent_req *subreq);
@@ -1218,6 +1289,7 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->filter = filter;
     state->attrs = attrs;
+    state->higher_timestamp = NULL;
 
     subreq = sysdb_transaction_send(state, state->ev, sysdb);
     if (!subreq) return NULL;
@@ -1344,29 +1416,51 @@ static void sdap_get_users_save_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
+    char *timestamp;
     int ret;
 
-    ret = sdap_save_user_recv(subreq);
+    ret = sdap_save_user_recv(subreq, state, &timestamp);
     talloc_zfree(subreq);
 
     /* Do not fail completely on errors.
      * Just report the failure to save and go on */
     if (ret) {
         DEBUG(2, ("Failed to store user. Ignoring.\n"));
+        timestamp = NULL;
+    }
+
+    if (timestamp) {
+        if (state->higher_timestamp) {
+            if (strcmp(timestamp, state->higher_timestamp) > 0) {
+                talloc_zfree(state->higher_timestamp);
+                state->higher_timestamp = timestamp;
+            } else {
+                talloc_zfree(timestamp);
+            }
+        } else {
+            state->higher_timestamp = timestamp;
+        }
     }
 
     /* unlock the operation so that we can proceed with the next result */
     sdap_unlock_next_reply(state->op);
 }
 
-int sdap_get_users_recv(struct tevent_req *req)
+int sdap_get_users_recv(struct tevent_req *req,
+                        TALLOC_CTX *mem_ctx, char **timestamp)
 {
+    struct sdap_get_users_state *state = tevent_req_data(req,
+                                            struct sdap_get_users_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         if (err) return err;
         return EIO;
+    }
+
+    if (timestamp) {
+        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
     }
 
     return EOK;
@@ -1384,6 +1478,7 @@ struct sdap_get_groups_state {
 
     struct sysdb_handle *handle;
     struct sdap_op *op;
+    char *higher_timestamp;
 };
 
 static void sdap_get_groups_transaction(struct tevent_req *subreq);
@@ -1413,6 +1508,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->filter = filter;
     state->attrs = attrs;
+    state->higher_timestamp = NULL;
 
     subreq = sysdb_transaction_send(state, state->ev, sysdb);
     if (!subreq) return NULL;
@@ -1544,9 +1640,10 @@ static void sdap_get_groups_save_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_get_groups_state *state = tevent_req_data(req,
                                             struct sdap_get_groups_state);
+    char *timestamp;
     int ret;
 
-    ret = sdap_save_group_recv(subreq);
+    ret = sdap_save_group_recv(subreq, state, &timestamp);
     talloc_zfree(subreq);
 
     /* Do not fail completely on errors.
@@ -1554,20 +1651,41 @@ static void sdap_get_groups_save_done(struct tevent_req *subreq)
 
     if (ret) {
         DEBUG(2, ("Failed to store group. Ignoring.\n"));
+        timestamp = NULL;
+    }
+
+    if (timestamp) {
+        if (state->higher_timestamp) {
+            if (strcmp(timestamp, state->higher_timestamp) > 0) {
+                talloc_zfree(state->higher_timestamp);
+                state->higher_timestamp = timestamp;
+            } else {
+                talloc_zfree(timestamp);
+            }
+        } else {
+            state->higher_timestamp = timestamp;
+        }
     }
 
     /* unlock the operation so that we can proceed with the next result */
     sdap_unlock_next_reply(state->op);
 }
 
-int sdap_get_groups_recv(struct tevent_req *req)
+int sdap_get_groups_recv(struct tevent_req *req,
+                         TALLOC_CTX *mem_ctx, char **timestamp)
 {
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         if (err) return err;
         return EIO;
+    }
+
+    if (timestamp) {
+        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
     }
 
     return EOK;
@@ -1853,7 +1971,7 @@ static void sdap_get_initgr_save_done(struct tevent_req *subreq)
                                                struct sdap_get_initgr_state);
     int ret;
 
-    ret = sdap_save_group_recv(subreq);
+    ret = sdap_save_group_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
 
     /* Do not fail completely on errors.
