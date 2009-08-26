@@ -74,7 +74,9 @@ static void krb5_cleanup(struct krb5_req *kr)
     if (kr->ctx != NULL)
         krb5_free_context(kr->ctx);
 
-    talloc_free(kr);
+    memset(kr, 0, sizeof(struct krb5_req));
+
+    talloc_zfree(kr);
 }
 
 static int krb5_setup(struct be_req *req, const char *user_princ_str,
@@ -98,6 +100,7 @@ static int krb5_setup(struct be_req *req, const char *user_princ_str,
 
     kr->pd = pd;
     kr->req = req;
+    kr->krb5_ctx = krb5_ctx;
 
     kerr = krb5_init_context(&kr->ctx);
     if (kerr != 0) {
@@ -484,6 +487,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     struct krb5_req *kr = tevent_req_callback_data(req, struct krb5_req);
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
+    struct krb5_ctx *krb5_ctx = kr->krb5_ctx;
     struct tgt_req_state *state = tevent_req_data(req, struct tgt_req_state);
     int ret;
     uint8_t *buf;
@@ -495,6 +499,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     int32_t *msg_len;
     struct tevent_req *subreq = NULL;
     char *password = NULL;
+    char *env = NULL;
 
     pd->pam_status = PAM_SYSTEM_ERR;
     krb5_cleanup(kr);
@@ -529,13 +534,37 @@ static void krb5_pam_handler_done(struct tevent_req *req)
         goto done;
     }
 
-    ret=pam_add_response(kr->pd, *msg_type, *msg_len, &buf[p]);
+    ret=pam_add_response(pd, *msg_type, *msg_len, &buf[p]);
     if (ret != EOK) {
         DEBUG(1, ("pam_add_response failed.\n"));
         goto done;
     }
 
     pd->pam_status = *msg_status;
+
+    if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_AUTHENTICATE) {
+        env = talloc_asprintf(pd, "%s=%s", SSSD_REALM, krb5_ctx->realm);
+        if (env == NULL) {
+            DEBUG(1, ("talloc_asprintf failed.\n"));
+            goto done;
+        }
+        ret=pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+            goto done;
+        }
+
+        env = talloc_asprintf(pd, "%s=%s", SSSD_KDC, krb5_ctx->kdcip);
+        if (env == NULL) {
+            DEBUG(1, ("talloc_asprintf failed.\n"));
+            goto done;
+        }
+        ret=pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+            goto done;
+        }
+    }
 
     if (pd->pam_status == PAM_SUCCESS &&
         be_req->be_ctx->domain->cache_credentials == TRUE) {
