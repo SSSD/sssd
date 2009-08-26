@@ -2563,24 +2563,8 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                          uid_t uid, gid_t gid,
                                          const char *gecos,
                                          const char *homedir,
-                                         const char *shell)
-{
-    return sysdb_store_user_with_attrs_send(mem_ctx, ev, handle, domain,
-                                            name, pwd, uid, gid, gecos,
-                                            homedir, shell, NULL);
-}
-
-struct tevent_req *sysdb_store_user_with_attrs_send(TALLOC_CTX *mem_ctx,
-                                                struct tevent_context *ev,
-                                                struct sysdb_handle *handle,
-                                                struct sss_domain_info *domain,
-                                                const char *name,
-                                                const char *pwd,
-                                                uid_t uid, gid_t gid,
-                                                const char *gecos,
-                                                const char *homedir,
-                                                const char *shell,
-                                                struct sysdb_attrs *attrs)
+                                         const char *shell,
+                                         struct sysdb_attrs *attrs)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_store_user_state *state;
@@ -2776,11 +2760,6 @@ int sysdb_store_user_recv(struct tevent_req *req)
     return sysdb_op_default_recv(req);
 }
 
-int sysdb_store_user_with_attrs_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
-}
-
 /* =Store-Group-(Native/Legacy)-(replaces-existing-data)================== */
 
 /* this function does not check that all user members are actually present */
@@ -2807,7 +2786,8 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain,
                                           const char *name,
                                           gid_t gid,
-                                          const char **members)
+                                          const char **members,
+                                          struct sysdb_attrs *attrs)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_store_group_state *state;
@@ -2824,7 +2804,7 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
     state->name = name;
     state->gid = gid;
     state->members = members;
-    state->attrs = NULL;
+    state->attrs = attrs;
 
     subreq = sysdb_search_group_by_name_send(state, ev, NULL, handle,
                                              domain, name, src_attrs);
@@ -2866,11 +2846,13 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
      * group needs any update */
 
     if (state->members) {
-        state->attrs = sysdb_new_attrs(state);
         if (!state->attrs) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+            state->attrs = sysdb_new_attrs(state);
+            if (!state->attrs) {
+                DEBUG(6, ("Error: Out of memory\n"));
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
         }
 
         for (i = 0; state->members[i]; i++) {

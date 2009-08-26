@@ -446,7 +446,7 @@ static void get_pw_name_process(struct tevent_req *subreq)
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell);
+                                       state->pwd->pw_shell, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -625,7 +625,7 @@ static void get_pw_uid_process(struct tevent_req *subreq)
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell);
+                                       state->pwd->pw_shell, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -808,7 +808,7 @@ again:
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell);
+                                       state->pwd->pw_shell, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -949,7 +949,8 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        (const char **)state->grp->gr_mem);
+                                        (const char **)state->grp->gr_mem,
+                                        NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1142,7 +1143,8 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        (const char **)state->grp->gr_mem);
+                                        (const char **)state->grp->gr_mem,
+                                        NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1321,7 +1323,8 @@ again:
                                        state->domain,
                                        state->grp->gr_name,
                                        state->grp->gr_gid,
-                                       (const char **)state->grp->gr_mem);
+                                       (const char **)state->grp->gr_mem,
+                                       NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1467,7 +1470,7 @@ static void get_initgr_process(struct tevent_req *subreq)
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell);
+                                       state->pwd->pw_shell, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1774,7 +1777,8 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        (const char **)state->grp->gr_mem);
+                                        (const char **)state->grp->gr_mem,
+                                        NULL);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;

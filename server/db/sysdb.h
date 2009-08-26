@@ -449,21 +449,9 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                          uid_t uid, gid_t gid,
                                          const char *gecos,
                                          const char *homedir,
-                                         const char *shell);
+                                         const char *shell,
+                                         struct sysdb_attrs *attrs);
 int sysdb_store_user_recv(struct tevent_req *req);
-
-struct tevent_req *sysdb_store_user_with_attrs_send(TALLOC_CTX *mem_ctx,
-                                                struct tevent_context *ev,
-                                                struct sysdb_handle *handle,
-                                                struct sss_domain_info *domain,
-                                                const char *name,
-                                                const char *pwd,
-                                                uid_t uid, gid_t gid,
-                                                const char *gecos,
-                                                const char *homedir,
-                                                const char *shell,
-                                                struct sysdb_attrs *attrs);
-int sysdb_store_user_with_attrs_recv(struct tevent_req *req);
 
 struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
@@ -471,7 +459,8 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain,
                                           const char *name,
                                           gid_t gid,
-                                          const char **members);
+                                          const char **members,
+                                          struct sysdb_attrs *attrs);
 int sysdb_store_group_recv(struct tevent_req *req);
 
 struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
