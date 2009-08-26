@@ -488,8 +488,8 @@ static void groups_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct users_get_state *state = tevent_req_data(req,
-                                                     struct users_get_state);
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
     int ret;
 
     ret = sdap_id_connect_recv(subreq);
