@@ -1151,6 +1151,12 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     ret = sysdb_attrs_get_el(state->attrs,
                           opts->group_map[SDAP_AT_GROUP_GID].sys_name, &el);
     if (ret) goto fail;
+    if (el->num_values == 0) {
+        DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
+                  state->name, dom->name));
+        ret = EINVAL;
+        goto fail;
+    }
     errno = 0;
     l = strtol((const char *)el->values[0].data, NULL, 0);
     if (errno) {
