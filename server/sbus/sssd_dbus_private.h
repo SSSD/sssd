@@ -11,6 +11,7 @@ enum dbus_conn_type {
 };
 
 struct sbus_interface_p;
+struct sbus_watch_ctx;
 
 struct sbus_connection {
     struct tevent_context *ev;
@@ -39,14 +40,23 @@ struct sbus_connection {
     struct sbus_interface *server_intf;
     sbus_server_conn_init_fn srv_init_fn;
     void *srv_init_data;
+
+    /* watches list */
+    struct sbus_watch_ctx *watch_list;
 };
 
 /* =Watches=============================================================== */
 
 struct sbus_watch_ctx {
-    DBusWatch *dbus_watch;
+    struct sbus_watch_ctx *prev, *next;
+
     struct sbus_connection *conn;
+
     struct tevent_fd *fde;
+    int fd;
+
+    DBusWatch *dbus_read_watch;
+    DBusWatch *dbus_write_watch;
 };
 
 dbus_bool_t sbus_add_watch(DBusWatch *watch, void *data);

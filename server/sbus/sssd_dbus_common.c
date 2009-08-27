@@ -8,6 +8,34 @@
 
 /* =Watches=============================================================== */
 
+/* DBUS may ask us to add a watch to a file descriptor that already had a watch
+ * associated. Need to check if that's the case */
+static struct sbus_watch_ctx *fd_to_watch(struct sbus_watch_ctx *list, int fd)
+{
+    struct sbus_watch_ctx *watch_iter;
+
+    watch_iter = list;
+    while (watch_iter != NULL) {
+        if (watch_iter->fd == fd) {
+            return watch_iter;
+        }
+
+        watch_iter = watch_iter->next;
+    }
+
+    return NULL;
+}
+
+static int watch_destructor(void *mem)
+{
+    struct sbus_watch_ctx *watch;
+
+    watch = talloc_get_type(mem, struct sbus_watch_ctx);
+    DLIST_REMOVE(watch->conn->watch_list, watch);
+
+    return 0;
+}
+
 /*
  * watch_handler
  * Callback for D-BUS to handle messages on a file-descriptor
@@ -34,12 +62,16 @@ static void sbus_watch_handler(struct tevent_context *ev,
 
     /* Fire if readable */
     if (flags & TEVENT_FD_READ) {
-        dbus_watch_handle(watch->dbus_watch, DBUS_WATCH_READABLE);
+        if (watch->dbus_read_watch) {
+            dbus_watch_handle(watch->dbus_read_watch, DBUS_WATCH_READABLE);
+        }
     }
 
     /* Fire if writeable */
     if (flags & TEVENT_FD_WRITE) {
-        dbus_watch_handle(watch->dbus_watch, DBUS_WATCH_WRITABLE);
+        if (watch->dbus_write_watch) {
+            dbus_watch_handle(watch->dbus_write_watch, DBUS_WATCH_WRITABLE);
+        }
     }
 
     /* Release reference once done */
@@ -61,17 +93,10 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
     uint16_t event_flags;
     struct sbus_connection *conn;
     struct sbus_watch_ctx *watch;
+    dbus_bool_t enabled;
     int fd;
 
     conn = talloc_get_type(data, struct sbus_connection);
-
-    watch = talloc_zero(conn, struct sbus_watch_ctx);
-    if (!watch) {
-        DEBUG(0, ("Outr of Memory!\n"));
-        return FALSE;
-    }
-    watch->dbus_watch = dbus_watch;
-    watch->conn = conn;
 
 #ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
     fd = dbus_watch_get_unix_fd(dbus_watch);
@@ -79,10 +104,38 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
     fd = dbus_watch_get_fd(dbus_watch);
 #endif
 
-    flags = dbus_watch_get_flags(dbus_watch);
-    event_flags = 0;
+    watch = fd_to_watch(conn->watch_list, fd);
+    if (!watch) {
+        /* does not exist, allocate new one */
+        watch = talloc_zero(conn, struct sbus_watch_ctx);
+        if (!watch) {
+            DEBUG(0, ("Out of Memory!\n"));
+            return FALSE;
+        }
+        watch->conn = conn;
+        watch->fd = fd;
+    }
 
-    if (dbus_watch_get_enabled(dbus_watch)) {
+    enabled = dbus_watch_get_enabled(dbus_watch);
+    flags = dbus_watch_get_flags(dbus_watch);
+
+    /* Save the event to the watch object so it can be found later */
+    if (flags & DBUS_WATCH_READABLE) {
+        watch->dbus_read_watch = dbus_watch;
+    }
+    if (flags & DBUS_WATCH_WRITABLE) {
+        watch->dbus_write_watch = dbus_watch;
+    }
+    dbus_watch_set_data(dbus_watch, watch, NULL);
+
+    if (watch->fde) {
+        /* pre-existing event, just toggle flags */
+        sbus_toggle_watch(dbus_watch, data);
+        return TRUE;
+    }
+
+    event_flags = 0;
+    if (enabled) {
         if (flags & DBUS_WATCH_READABLE) {
             event_flags |= TEVENT_FD_READ;
         }
@@ -91,22 +144,24 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
         }
     }
 
-    DEBUG(8, ("%p: %d, %d=%s/%s\n",
-              dbus_watch, fd, flags,
-              ((event_flags & TEVENT_FD_READ)?"R":"-"),
-              ((event_flags & TEVENT_FD_WRITE)?"W":"-")));
-
     /* Add the file descriptor to the event loop */
     watch->fde = tevent_add_fd(conn->ev,
                                watch, fd, event_flags,
                                sbus_watch_handler, watch);
     if (!watch->fde) {
         DEBUG(0, ("Failed to set up fd event!\n"));
+        talloc_zfree(watch);
         return FALSE;
     }
 
-    /* Save the event to the watch object so it can be removed later */
-    dbus_watch_set_data(dbus_watch, watch, NULL);
+    DLIST_ADD(conn->watch_list, watch);
+    talloc_set_destructor((TALLOC_CTX *)watch, watch_destructor);
+
+    DEBUG(8, ("%p/%p (%d), %s/%s (%s)\n",
+              watch, dbus_watch, fd,
+              ((flags & DBUS_WATCH_READABLE)?"R":"-"),
+              ((flags & DBUS_WATCH_WRITABLE)?"W":"-"),
+              enabled?"enabled":"disabled"));
 
     return TRUE;
 }
@@ -119,21 +174,23 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
 void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
 {
     struct sbus_watch_ctx *watch;
-    uint16_t event_flags = 0;
     unsigned int flags;
+    dbus_bool_t enabled;
     void *watch_data;
+    int fd;
+
+    enabled = dbus_watch_get_enabled(dbus_watch);
+    flags = dbus_watch_get_flags(dbus_watch);
 
     watch_data = dbus_watch_get_data(dbus_watch);
     watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
     if (!watch) {
-        DEBUG(0, ("Watch does not carry watch context?!\n"));
-        /* TODO: abort ? */
+        DEBUG(2, ("[%p] does not carry watch context?!\n", dbus_watch));
+        /* abort ? */
         return;
     }
 
-    flags = dbus_watch_get_flags(dbus_watch);
-
-    if (dbus_watch_get_enabled(dbus_watch)) {
+    if (enabled) {
         if (flags & DBUS_WATCH_READABLE) {
             TEVENT_FD_READABLE(watch->fde);
         }
@@ -150,12 +207,17 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
     }
 
     if (debug_level >= 8) {
-        event_flags = tevent_fd_get_flags(watch->fde);
+#ifdef HAVE_DBUS_WATCH_GET_UNIX_FD
+        fd = dbus_watch_get_unix_fd(dbus_watch);
+#else
+        fd = dbus_watch_get_fd(dbus_watch);
+#endif
     }
-    DEBUG(8, ("%p: %p, %d=%s/%s\n",
-              dbus_watch, watch, flags,
-              ((event_flags & TEVENT_FD_READ)?"R":"-"),
-              ((event_flags & TEVENT_FD_WRITE)?"W":"-")));
+    DEBUG(8, ("%p/%p (%d), %s/%s (%s)\n",
+              watch, dbus_watch, fd,
+              ((flags & DBUS_WATCH_READABLE)?"R":"-"),
+              ((flags & DBUS_WATCH_WRITABLE)?"W":"-"),
+              enabled?"enabled":"disabled"));
 }
 
 /*
@@ -165,17 +227,32 @@ void sbus_toggle_watch(DBusWatch *dbus_watch, void *data)
  */
 void sbus_remove_watch(DBusWatch *dbus_watch, void *data)
 {
-    void *watch;
+    struct sbus_watch_ctx *watch;
+    void *watch_data;
 
-    DEBUG(8, ("%p\n", dbus_watch));
+    watch_data = dbus_watch_get_data(dbus_watch);
+    watch = talloc_get_type(watch_data, struct sbus_watch_ctx);
 
-    watch = dbus_watch_get_data(dbus_watch);
+    DEBUG(8, ("%p/%p\n", watch, dbus_watch));
+
+    if (!watch) {
+        DEBUG(2, ("DBUS trying to remove unknown watch!\n"));
+        return;
+    }
 
     /* remove dbus watch data */
     dbus_watch_set_data(dbus_watch, NULL, NULL);
 
-    /* Freeing the event object will remove it from the event loop */
-    talloc_free(watch);
+    /* check which watch to remove, or free if none left */
+    if (watch->dbus_read_watch == dbus_watch) {
+        watch->dbus_read_watch = NULL;
+    }
+    if (watch->dbus_write_watch == dbus_watch) {
+        watch->dbus_write_watch = NULL;
+    }
+    if (!watch->dbus_read_watch && !watch->dbus_write_watch) {
+        talloc_free(watch);
+    }
 }
 
 /* =Timeouts============================================================== */
@@ -225,7 +302,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
 
     timeout = talloc_zero(conn, struct sbus_timeout_ctx);
     if (!timeout) {
-        DEBUG(0, ("Outr of Memory!\n"));
+        DEBUG(0, ("Out of Memory!\n"));
         return FALSE;
     }
     timeout->dbus_timeout = dbus_timeout;
