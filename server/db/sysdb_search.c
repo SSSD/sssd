@@ -35,6 +35,7 @@ struct sysdb_search_ctx {
 
     struct sss_domain_info *domain;
 
+    bool enumeration;
     const char *expression;
 
     sysdb_callback_t callback;
@@ -297,6 +298,8 @@ int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    sctx->enumeration = true;
+
     if (expression)
         sctx->expression = expression;
     else
@@ -382,6 +385,158 @@ static void get_members(struct sysdb_search_ctx *sctx)
     if (ret != LDB_SUCCESS) {
         return request_ldberror(sctx, ret);
     }
+}
+
+static void match_group_members(struct sysdb_search_ctx *sctx);
+static void enum_members(struct sysdb_search_ctx *sctx)
+{
+    static const char *attrs[] = SYSDB_GRENT_ATTRS;
+    struct ldb_request *req;
+    struct ldb_dn *dn;
+    int ret;
+
+    /* search for all users that have memberof set */
+    sctx->expression = talloc_asprintf(sctx, SYSDB_GRNA2_FILTER, "*");
+    if (!sctx->expression) {
+        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
+                        SYSDB_TMPL_USER_BASE, sctx->domain->name);
+    if (!dn) {
+        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    sctx->gen_aux_fn = match_group_members;
+
+    ret = ldb_build_search_req(&req, sctx->ctx->ldb, sctx,
+                               dn, LDB_SCOPE_SUBTREE,
+                               sctx->expression, attrs, NULL,
+                               sctx, get_gen_callback,
+                               NULL);
+    if (ret != LDB_SUCCESS) {
+        return request_ldberror(sctx, ret);
+    }
+
+    ret = ldb_request(sctx->ctx->ldb, req);
+    if (ret != LDB_SUCCESS) {
+        return request_ldberror(sctx, ret);
+    }
+}
+
+static void match_group_members(struct sysdb_search_ctx *sctx)
+{
+    struct get_mem_ctx *gmctx;
+    struct ldb_message **users;
+    size_t num_users;
+    size_t res_idx, grp_idx, i;
+    const char *grp_dn;
+
+    gmctx = sctx->gmctx;
+
+    /* we have groups in gmctx->grps, and users in res->msgs
+     * now we need to create a new set where we have each group
+     * followed by pointers to its users */
+    users = sctx->res->msgs;
+    num_users = sctx->res->count;
+
+    /* allocate initial storage all in one go */
+    sctx->res->count = gmctx->num_grps + num_users;
+    sctx->res->msgs = talloc_array(sctx->res, struct ldb_message *,
+                                   sctx->res->count + 1);
+    if (!sctx->res->msgs) {
+        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    res_idx = 0;
+    for (grp_idx = 0; grp_idx < gmctx->num_grps; grp_idx++) {
+
+        /* store the group first */
+
+        if (res_idx == sctx->res->count) {
+            sctx->res->count += 10; /* allocate 10 at a time */
+            sctx->res->msgs = talloc_realloc(sctx->res, sctx->res->msgs,
+                                             struct ldb_message *,
+                                             sctx->res->count + 1);
+            if (!sctx->res->msgs) {
+                return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+            }
+        }
+
+        sctx->res->msgs[res_idx] = gmctx->grps[grp_idx];
+        res_idx++;
+
+        grp_dn = ldb_dn_get_linearized(gmctx->grps[grp_idx]->dn);
+
+        /* now search for the members */
+        for (i = 0; i < num_users; i++) {
+            struct ldb_message_element *el;
+            struct ldb_val *val;
+            int j;
+
+            el = ldb_msg_find_element(users[i], SYSDB_MEMBEROF);
+            for (j = 0; j < el->num_values; j++) {
+                val = &(el->values[j]);
+                /* HACK: dn comparisons should be made with ldb_dn_compare() but
+                 * that function requires slow conversions and memory
+                 * allocations. ATM all DNs we use internally should be safe to
+                 * compare directly in a case-insensitive manner */
+                if (strncasecmp(grp_dn, (char *)val->data, val->length) != 0) {
+                    continue;
+                }
+
+                /* ok users belong to this group */
+                if (res_idx == sctx->res->count) {
+                    sctx->res->count += 10; /* allocate 10 at a time */
+                    sctx->res->msgs = talloc_realloc(sctx->res,
+                                                     sctx->res->msgs,
+                                                     struct ldb_message *,
+                                                     sctx->res->count + 1);
+                    if (!sctx->res->msgs) {
+                        return request_ldberror(sctx,
+                                                LDB_ERR_OPERATIONS_ERROR);
+                    }
+                }
+
+                sctx->res->msgs[res_idx] = users[i];
+                res_idx++;
+
+                /* now remove value so that we do not parse it again, and
+                 * completely remove the user if it has no more values */
+                if (el->num_values == 1) {
+
+                    /* make sure to remove memberof as we messed it up */
+                    ldb_msg_remove_element(users[i], el);
+
+                    /* remove user from list by swapping it out and replacing
+                     * it with the last on the list and shortening the list */
+                    num_users--;
+                    if (i == num_users) {
+                        users[i] = NULL;
+                    } else {
+                        users[i] = users[num_users];
+                        users[num_users] = NULL;
+                        /* need to rewind or this user won't be checked */
+                        i--;
+                    }
+
+                } else {
+                    /* still more values, just swap out this one */
+                    el->num_values--;
+                    if (j != el->num_values) {
+                        /* swap last in */
+                        el->values[j] = el->values[el->num_values];
+                    }
+                }
+            }
+        }
+    }
+
+    /* count may be larger as we allocate in chuncks of 10,
+     * make sure we report back the real size */
+    sctx->res->count = res_idx;
+
+    return request_done(sctx);
 }
 
 static int mpg_convert(struct ldb_message *msg)
@@ -495,7 +650,11 @@ static int get_grp_callback(struct ldb_request *req,
             res->count = 0;
 
             /* now get members */
-            get_members(sctx);
+            if (sctx->enumeration) {
+                enum_members(sctx);
+            } else {
+                get_members(sctx);
+            }
             return LDB_SUCCESS;
         }
 
@@ -647,6 +806,8 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
     if (!sctx) {
         return ENOMEM;
     }
+
+    sctx->enumeration = true;
 
     if (domain->mpg) {
         sctx->expression = SYSDB_GRENT_MPG_FILTER;

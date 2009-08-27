@@ -119,8 +119,12 @@
                           SYSDB_LAST_UPDATE, \
                           "objectClass", \
                           NULL}
+#define SYSDB_GRENT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, \
+                           SYSDB_LAST_UPDATE, \
+                           "objectClass", \
+                           NULL}
 
-#define SYSDB_INITGR_ATTR "memberof"
+#define SYSDB_INITGR_ATTR SYSDB_MEMBEROF
 #define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, SYSDB_LAST_UPDATE, \
                             "objectClass", \
                             NULL}
