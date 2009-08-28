@@ -99,10 +99,10 @@ enum sdap_result {
 #define SDAP_AT_USER_GECOS 5
 #define SDAP_AT_USER_HOME 6
 #define SDAP_AT_USER_SHELL 7
-#define SDAP_AT_USER_UUID 8
-#define SDAP_AT_USER_PRINC 9
-#define SDAP_AT_USER_FULLNAME 10
-#define SDAP_AT_USER_MEMBEROF 11
+#define SDAP_AT_USER_PRINC 8
+#define SDAP_AT_USER_FULLNAME 9
+#define SDAP_AT_USER_MEMBEROF 10
+#define SDAP_AT_USER_UUID 11
 #define SDAP_AT_USER_MODSTAMP 12
 
 #define SDAP_OPTS_USER 13 /* attrs counter */
