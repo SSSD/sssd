@@ -25,8 +25,6 @@
 #include <popt.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
@@ -48,7 +46,7 @@ static void add_group_terminate(struct ops_ctx *data, int error)
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
     if (!req) {
         error = ENOMEM;
         goto fail;
@@ -78,7 +76,7 @@ static void add_group(struct tevent_req *req)
         return add_group_terminate(data, ret);
     }
 
-    subreq = sysdb_add_group_send(data, data->ev, data->handle,
+    subreq = sysdb_add_group_send(data, data->ctx->ev, data->handle,
                                   data->domain, data->name,
                                   data->gid, NULL);
     if (!subreq) {
@@ -111,7 +109,6 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     struct ops_ctx *data = NULL;
     int ret = EXIT_SUCCESS;
@@ -126,29 +123,11 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    CHECK_ROOT(ret, debug_prg_name);
-
-    ret = init_sss_tools(&ctx);
-    if(ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    data = talloc_zero(NULL, struct ops_ctx);
-    if (data == NULL) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
-        ERROR("Out of memory.\n");
-        return ENOMEM;
-    }
-    data->ctx = ctx;
-    data->ev = ctx->ev;
 
     /* parse params */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "GROUPNAME");
-    if((ret = poptGetNextOpt(pc)) < -1) {
+    if ((ret = poptGetNextOpt(pc)) < -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
@@ -160,6 +139,16 @@ int main(int argc, const char **argv)
     pc_groupname = poptGetArg(pc);
     if (pc_groupname == NULL) {
         usage(pc, _("Specify group to add\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    CHECK_ROOT(ret, debug_prg_name);
+
+    ret = init_sss_tools(&data);
+    if (ret != EOK) {
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -181,7 +170,7 @@ int main(int argc, const char **argv)
     }
 
     /* add_group */
-    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not add group.\n");
@@ -191,14 +180,14 @@ int main(int argc, const char **argv)
     tevent_req_set_callback(req, add_group, data);
 
     while (!data->done) {
-        tevent_loop_once(ctx->ev);
+        tevent_loop_once(data->ctx->ev);
     }
 
     if (data->error) {
         ret = data->error;
         switch (ret) {
             case EEXIST:
-                ERROR("A group with the same name or UID already exists\n");
+                ERROR("A group with the same name or GID already exists\n");
                 break;
 
             default:
@@ -213,7 +202,6 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 fini:
     talloc_free(data);
-    talloc_free(ctx);
     poptFreeContext(pc);
     exit(ret);
 }

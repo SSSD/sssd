@@ -24,8 +24,6 @@
 #include <talloc.h>
 #include <popt.h>
 #include <grp.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "db/sysdb.h"
@@ -50,7 +48,7 @@ static void groupdel_done(void *pvt, int error, struct ldb_result *ignore)
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
     if (!req) {
         error = ENOMEM;
         goto fail;
@@ -88,7 +86,7 @@ static void group_del(struct tevent_req *req)
         return groupdel_done(data, ENOMEM, NULL);
     }
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn, false);
+    subreq = sysdb_delete_entry_send(data, data->ctx->ev, data->handle, group_dn, false);
     if (!subreq)
         return groupdel_done(data, ENOMEM, NULL);
 
@@ -110,7 +108,6 @@ int main(int argc, const char **argv)
     int ret = EXIT_SUCCESS;
     int pc_debug = 0;
     struct ops_ctx *data = NULL;
-    struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     struct group *grp_info;
     const char *pc_groupname = NULL;
@@ -132,29 +129,11 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    CHECK_ROOT(ret, debug_prg_name);
-
-    ret = init_sss_tools(&ctx);
-    if(ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    data = talloc_zero(NULL, struct ops_ctx);
-    if (data == NULL) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
-        ERROR("Out of memory\n");
-        return ENOMEM;
-    }
-    data->ctx = ctx;
-    data->ev = ctx->ev;
 
     /* parse ops_ctx */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
-    poptSetOtherOptionHelp(pc, "USERNAME");
-    if((ret = poptGetNextOpt(pc)) < -1) {
+    poptSetOtherOptionHelp(pc, "GROUPNAME");
+    if ((ret = poptGetNextOpt(pc)) < -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
@@ -163,8 +142,18 @@ int main(int argc, const char **argv)
     debug_level = pc_debug;
 
     pc_groupname = poptGetArg(pc);
-    if(pc_groupname == NULL) {
+    if (pc_groupname == NULL) {
         usage(pc, _("Specify group to delete\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    CHECK_ROOT(ret, debug_prg_name);
+
+    ret = init_sss_tools(&data);
+    if (ret != EOK) {
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -191,7 +180,7 @@ int main(int argc, const char **argv)
     }
 
     /* groupdel */
-    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove group.\n");
@@ -201,13 +190,21 @@ int main(int argc, const char **argv)
     tevent_req_set_callback(req, group_del, data);
 
     while (!data->done) {
-        tevent_loop_once(ctx->ev);
+        tevent_loop_once(data->ctx->ev);
     }
 
     if (data->error) {
         ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Internal error. Could not remove group.\n");
+        switch (ret) {
+            case ENOENT:
+                ERROR("No such group\n");
+                break;
+
+            default:
+                ERROR("Internal error. Could not remove group.\n");
+                break;
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -215,7 +212,6 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 
 fini:
-    talloc_free(ctx);
     talloc_free(data);
     poptFreeContext(pc);
     exit(ret);

@@ -25,25 +25,6 @@
 
 #include "util/sssd-i18n.h"
 
-#define UID_NOT_SET 0
-#define GID_NOT_SET 0
-
-#define APPEND_PARAM(str, param, val) do { \
-    if (val) { \
-        str = talloc_asprintf_append(str, param, val); \
-        if (str == NULL) { \
-            return ENOMEM; \
-        } \
-    } \
-} while(0)
-
-#define APPEND_STRING(str, val) do { \
-    str = talloc_asprintf_append(str, "%s ", val); \
-    if (str == NULL) { \
-        return ENOMEM; \
-    } \
-} while(0)
-
 #define CHECK_ROOT(val, prg_name) do { \
     val = getuid(); \
     if (val != 0) { \
@@ -53,14 +34,6 @@
         goto fini; \
     } \
 } while(0)
-
-enum id_domain {
-    ID_IN_LOCAL = 0,
-    ID_IN_LEGACY_LOCAL,
-    ID_IN_OTHER,
-    ID_OUTSIDE,
-    ID_ERROR
-};
 
 struct tools_ctx {
     struct tevent_context *ev;
@@ -73,7 +46,6 @@ struct tools_ctx {
 
 struct ops_ctx {
     struct tools_ctx *ctx;
-    struct tevent_context *ev;
     struct sss_domain_info *domain;
 
     char *name;
@@ -94,9 +66,7 @@ struct ops_ctx {
     bool done;
 };
 
-int init_sss_tools(struct tools_ctx **_ctx);
-
-int setup_db(struct tools_ctx **ctx);
+int init_sss_tools(struct ops_ctx **_octx);
 
 void usage(poptContext pc, const char *error);
 

@@ -25,8 +25,6 @@
 #include <popt.h>
 #include <errno.h>
 #include <pwd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "util/util.h"
@@ -61,7 +59,7 @@ static void mod_user_done(struct ops_ctx *data, int error)
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
     if (!req) {
         error = ENOMEM;
         goto fail;
@@ -99,7 +97,7 @@ static void mod_user(struct tevent_req *req)
     }
 
     if (data->attrs->num != 0) {
-        subreq = sysdb_set_user_attr_send(data, data->ev, data->handle,
+        subreq = sysdb_set_user_attr_send(data, data->ctx->ev, data->handle,
                                           data->domain, data->name,
                                           data->attrs, SYSDB_MOD_REP);
         if (!subreq) {
@@ -159,7 +157,7 @@ static void remove_from_groups(struct ops_ctx *data)
     }
 
     req = sysdb_mod_group_member_send(data,
-                                      data->ev,
+                                      data->ctx->ev,
                                       data->handle,
                                       member_dn,
                                       parent_dn,
@@ -216,7 +214,7 @@ static void add_to_groups(struct ops_ctx *data)
     }
 
     req = sysdb_mod_group_member_send(data,
-                                      data->ev,
+                                      data->ctx->ev,
                                       data->handle,
                                       member_dn,
                                       parent_dn,
@@ -274,9 +272,8 @@ int main(int argc, const char **argv)
     };
     poptContext pc = NULL;
     struct ops_ctx *data = NULL;
-    struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
-    char *groups;
+    char *addgroups = NULL, *rmgroups = NULL;
     int ret;
     struct passwd *pwd_info;
     uid_t old_uid = 0;
@@ -291,65 +288,43 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    data = talloc_zero(ctx, struct ops_ctx);
-    if (data == NULL) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
-        ERROR("Out of memory\n");
-        return ENOMEM;
-    }
-    data->ctx = ctx;
-    data->ev = ctx->ev;
-
-    data->attrs = sysdb_new_attrs(ctx);
-    if (data->attrs == NULL) {
-        DEBUG(1, ("Could not allocate memory for sysdb_attrs context\n"));
-        ERROR("Out of memory\n");
-        return ENOMEM;
-    }
-
-    /* parse ops_ctx */
+    /* parse parameters */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
-        if (ret == 'a' || ret == 'r') {
-            groups = poptGetOptArg(pc);
-            if (!groups) {
-                ret = -1;
+        switch (ret) {
+            case 'a':
+                addgroups = poptGetOptArg(pc);
+                if (addgroups == NULL) {
+                    ret = -1;
+                }
                 break;
-            }
 
-            ret = parse_groups(ctx,
-                    groups,
-                    (ret == 'a') ? (&data->addgroups) : (&data->rmgroups));
-
-            free(groups);
-            if (ret != EOK) {
+            case 'r':
+                rmgroups = poptGetOptArg(pc);
+                if (rmgroups == NULL) {
+                    ret = -1;
+                }
                 break;
-            }
-        } else if (ret == 'L') {
-            pc_lock = DO_LOCK;
-        } else if (ret == 'U') {
-            pc_lock = DO_UNLOCK;
+
+            case 'L':
+                pc_lock = DO_LOCK;
+                break;
+
+            case 'U':
+                pc_lock = DO_UNLOCK;
+                break;
         }
     }
 
-    debug_level = pc_debug;
-
-    if(ret != -1) {
+    if (ret != -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
     }
+
+    debug_level = pc_debug;
 
     /* username is an argument without --option */
     pc_username = poptGetArg(pc);
@@ -357,6 +332,23 @@ int main(int argc, const char **argv)
         usage(pc, _("Specify user to modify\n"));
         ret = EXIT_FAILURE;
         goto fini;
+    }
+
+    CHECK_ROOT(ret, debug_prg_name);
+
+    ret = init_sss_tools(&data);
+    if (ret != EOK) {
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    data->attrs = sysdb_new_attrs(data->ctx);
+    if (data->attrs == NULL) {
+        DEBUG(1, ("Could not allocate memory for sysdb_attrs context\n"));
+        ERROR("Out of memory\n");
+        return ENOMEM;
     }
 
     /* if the domain was not given as part of FQDN, default to local domain */
@@ -376,6 +368,28 @@ int main(int argc, const char **argv)
         ERROR("The selected UID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
+    }
+
+    if (addgroups) {
+        ret = parse_groups(data,
+                           addgroups,
+                           &data->addgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse groups to add the user to\n"));
+            ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
+    }
+
+    if (rmgroups) {
+        ret = parse_groups(data,
+                           rmgroups,
+                           &data->rmgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse groups to remove the user from\n"));
+            ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
     }
 
     /* add parameters to changeset */
@@ -413,6 +427,7 @@ int main(int argc, const char **argv)
                   "Could not add attribute to changeset\n");
     }
 
+
     if(pc_gid) {
         ret = sysdb_attrs_add_long(data->attrs,
                                    SYSDB_GIDNUM,
@@ -438,7 +453,8 @@ int main(int argc, const char **argv)
                   "Could not add attribute to changeset\n");
     }
 
-    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
+
+    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");
@@ -448,7 +464,7 @@ int main(int argc, const char **argv)
     tevent_req_set_callback(req, mod_user, data);
 
     while (!data->done) {
-        tevent_loop_once(ctx->ev);
+        tevent_loop_once(data->ctx->ev);
     }
 
     if (data->error) {
@@ -476,7 +492,9 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 
 fini:
+    free(addgroups);
+    free(rmgroups);
     poptFreeContext(pc);
-    talloc_free(ctx);
+    talloc_free(data);
     exit(ret);
 }

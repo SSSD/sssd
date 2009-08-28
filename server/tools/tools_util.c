@@ -43,15 +43,14 @@ static struct sss_domain_info *get_local_domain(struct tools_ctx *ctx)
     return dom;
 }
 
-int setup_db(struct tools_ctx **tools_ctx)
+int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
 {
-    struct sss_domain_info *dom;
-    TALLOC_CTX *tmp_ctx;
     char *confdb_path;
     struct tools_ctx *ctx;
+    struct sss_domain_info *dom = NULL;
     int ret;
 
-    ctx = talloc_zero(NULL, struct tools_ctx);
+    ctx = talloc_zero(mem_ctx, struct tools_ctx);
     if (ctx == NULL) {
         DEBUG(1, ("Could not allocate memory for tools context\n"));
         return ENOMEM;
@@ -65,11 +64,7 @@ int setup_db(struct tools_ctx **tools_ctx)
         return EIO;
     }
 
-    tmp_ctx = talloc_new(ctx);
-    if (!tmp_ctx)
-        return ENOMEM;
-
-    confdb_path = talloc_asprintf(tmp_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
         talloc_free(ctx);
         return ENOMEM;
@@ -105,7 +100,7 @@ int setup_db(struct tools_ctx **tools_ctx)
         return ret;
     }
 
-    talloc_free(tmp_ctx);
+    talloc_free(confdb_path);
     *tools_ctx = ctx;
     return EOK;
 }
@@ -119,7 +114,6 @@ void usage(poptContext pc, const char *error)
     if (error) fprintf(stderr, "%s", error);
 }
 
-/* FIXME: avoid using strtok !! */
 int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
 {
     char **out;
@@ -252,26 +246,36 @@ int set_locale(void)
     return EOK;
 }
 
-int init_sss_tools(struct tools_ctx **_ctx)
+int init_sss_tools(struct ops_ctx **_octx)
 {
     int ret;
-    struct tools_ctx *ctx;
+    struct tools_ctx *tctx;
+    struct ops_ctx *octx;
+
+    octx = talloc_zero(NULL, struct ops_ctx);
+    if (octx == NULL) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
+        ERROR("Out of memory\n");
+        ret = ENOMEM;
+        goto fini;
+    }
 
     /* Connect to the database */
-    ret = setup_db(&ctx);
+    ret = setup_db(octx, &tctx);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up database\n"));
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    ret = sss_names_init(ctx, ctx->confdb, &ctx->snctx);
+    ret = sss_names_init(tctx, tctx->confdb, &tctx->snctx);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up parsing\n"));
         goto fini;
     }
 
-    *_ctx = ctx;
+    octx->ctx = tctx;
+    *_octx = octx;
     ret = EOK;
 fini:
     return ret;

@@ -25,8 +25,6 @@
 #include <popt.h>
 #include <errno.h>
 #include <grp.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "util/util.h"
@@ -49,7 +47,7 @@ static void mod_group_done(struct ops_ctx *data, int error)
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
     if (!req) {
         error = ENOMEM;
         goto fail;
@@ -98,7 +96,7 @@ static void mod_group(struct tevent_req *req)
             mod_group_done(data, ret);
         }
 
-        subreq = sysdb_set_group_attr_send(data, data->ev, data->handle,
+        subreq = sysdb_set_group_attr_send(data, data->ctx->ev, data->handle,
                                            data->domain, data->name,
                                            attrs, SYSDB_MOD_REP);
         if (!subreq) {
@@ -158,7 +156,7 @@ static void remove_from_groups(struct ops_ctx *data)
     }
 
     req = sysdb_mod_group_member_send(data,
-                                      data->ev,
+                                      data->ctx->ev,
                                       data->handle,
                                       member_dn,
                                       parent_dn,
@@ -215,7 +213,7 @@ static void add_to_groups(struct ops_ctx *data)
     }
 
     req = sysdb_mod_group_member_send(data,
-                                      data->ev,
+                                      data->ctx->ev,
                                       data->handle,
                                       member_dn,
                                       parent_dn,
@@ -266,9 +264,8 @@ int main(int argc, const char **argv)
     };
     poptContext pc = NULL;
     struct ops_ctx *data = NULL;
-    struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
-    char *groups;
+    char *addgroups = NULL, *rmgroups = NULL;
     int ret;
     struct group *grp_info;
     gid_t old_gid = 0;
@@ -283,48 +280,27 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    data = talloc_zero(ctx, struct ops_ctx);
-    if (data == NULL) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
-        ERROR("Out of memory\n");
-        return ENOMEM;
-    }
-    data->ctx = ctx;
-    data->ev = ctx->ev;
-
-    /* parse ops_ctx */
+    /* parse parameters */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
-    poptSetOtherOptionHelp(pc, "USERNAME");
+    poptSetOtherOptionHelp(pc, "GROUPNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
-        if (ret == 'a' || ret == 'r') {
-            groups = poptGetOptArg(pc);
-            if (!groups) {
-                ret = -1;
+        switch (ret) {
+            case 'a':
+                addgroups = poptGetOptArg(pc);
+                if (addgroups == NULL) {
+                    ret = -1;
+                }
                 break;
-            }
 
-            ret = parse_groups(ctx,
-                    groups,
-                    (ret == 'a') ? (&data->addgroups) : (&data->rmgroups));
-
-            free(groups);
-            if (ret != EOK) {
+            case 'r':
+                rmgroups = poptGetOptArg(pc);
+                if (rmgroups == NULL) {
+                    ret = -1;
+                }
                 break;
-            }
         }
     }
-
-    debug_level = pc_debug;
 
     if (ret != -1) {
         usage(pc, poptStrerror(ret));
@@ -340,7 +316,18 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    /* if the domain was not given as part of FQDN, default to local domain */
+    debug_level = pc_debug;
+
+    CHECK_ROOT(ret, debug_prg_name);
+
+    ret = init_sss_tools(&data);
+    if (ret != EOK) {
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
     ret = get_domain(data, pc_groupname);
     if (ret != EOK) {
         ERROR("Cannot get domain information\n");
@@ -349,6 +336,28 @@ int main(int argc, const char **argv)
     }
 
     data->gid = pc_gid;
+
+    if (addgroups) {
+        ret = parse_groups(data,
+                addgroups,
+                &data->addgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse groups to add the group to\n"));
+            ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
+    }
+
+    if (rmgroups) {
+        ret = parse_groups(data,
+                rmgroups,
+                &data->rmgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse groups to remove the group from\n"));
+            ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
+    }
 
     /* arguments processed, go on to actual work */
     grp_info = getgrnam(data->name);
@@ -362,7 +371,7 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify group.\n");
@@ -372,7 +381,7 @@ int main(int argc, const char **argv)
     tevent_req_set_callback(req, mod_group, data);
 
     while (!data->done) {
-        tevent_loop_once(ctx->ev);
+        tevent_loop_once(data->ctx->ev);
     }
 
     if (data->error) {
@@ -399,7 +408,9 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 
 fini:
+    free(addgroups);
+    free(rmgroups);
     poptFreeContext(pc);
-    talloc_free(ctx);
+    talloc_free(data);
     exit(ret);
 }

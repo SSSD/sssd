@@ -25,8 +25,6 @@
 #include <talloc.h>
 #include <popt.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "util/util.h"
@@ -125,7 +123,7 @@ static void add_user_terminate(struct ops_ctx *data, int error)
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
     if (!req) {
         error = ENOMEM;
         goto fail;
@@ -157,7 +155,7 @@ static void add_user(struct tevent_req *req)
         return add_user_terminate(data, ret);
     }
 
-    subreq = sysdb_add_user_send(data, data->ev, data->handle,
+    subreq = sysdb_add_user_send(data, data->ctx->ev, data->handle,
                                  data->domain, data->name,
                                  data->uid, data->gid,
                                  data->gecos, data->home,
@@ -205,7 +203,7 @@ static void add_to_groups(struct ops_ctx *data)
         return add_user_terminate(data, ENOMEM);
     }
 
-    subreq = sysdb_mod_group_member_send(data, data->ev, data->handle,
+    subreq = sysdb_mod_group_member_send(data, data->ctx->ev, data->handle,
                                          member_dn, parent_dn,
                                          LDB_FLAG_MOD_ADD);
     if (!subreq) {
@@ -259,7 +257,6 @@ int main(int argc, const char **argv)
     };
     poptContext pc = NULL;
     struct ops_ctx *data = NULL;
-    struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     char *groups = NULL;
     int ret;
@@ -273,26 +270,8 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&ctx);
-    if (ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    data = talloc_zero(ctx, struct ops_ctx);
-    if (data == NULL) {
-        DEBUG(1, ("Could not allocate memory for ops_ctx context\n"));
-        ERROR("Out of memory\n");
-        return ENOMEM;
-    }
-    data->ctx = ctx;
-    data->ev = ctx->ev;
-
-    /* parse ops_ctx */
+    /* parse parameters */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
@@ -302,17 +281,12 @@ int main(int argc, const char **argv)
                 ret = -1;
                 break;
             }
-
-            ret = parse_groups(ctx, groups, &data->groups);
-            if (ret != EOK) {
-                break;
-            }
         }
     }
 
     debug_level = pc_debug;
 
-    if(ret != -1) {
+    if (ret != -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
@@ -326,12 +300,31 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    CHECK_ROOT(ret, debug_prg_name);
+
+    ret = init_sss_tools(&data);
+    if (ret != EOK) {
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
     /* if the domain was not given as part of FQDN, default to local domain */
     ret = get_domain(data, pc_username);
     if (ret != EOK) {
         ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
+    }
+
+    if (groups) {
+        ret = parse_groups(data, groups, &data->groups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse groups to add the user to\n"));
+            ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
     }
 
     /* Same as shadow-utils useradd, -g can specify gid or group name */
@@ -403,7 +396,7 @@ int main(int argc, const char **argv)
     }
 
     /* useradd */
-    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");
@@ -413,7 +406,7 @@ int main(int argc, const char **argv)
     tevent_req_set_callback(req, add_user, data);
 
     while (!data->done) {
-        tevent_loop_once(ctx->ev);
+        tevent_loop_once(data->ctx->ev);
     }
 
     if (data->error) {
@@ -437,7 +430,7 @@ int main(int argc, const char **argv)
 
 fini:
     poptFreeContext(pc);
-    talloc_free(ctx);
+    talloc_free(data);
     free(groups);
     exit(ret);
 }

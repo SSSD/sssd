@@ -23,8 +23,6 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <pwd.h>
 #include <unistd.h>
 
@@ -50,7 +48,7 @@ static void userdel_done(void *pvt, int error, struct ldb_result *ignore)
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ev, data->handle);
+    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
     if (!req) {
         error = ENOMEM;
         goto fail;
@@ -90,7 +88,7 @@ static void user_del(struct tevent_req *req)
         return userdel_done(data, ENOMEM, NULL);
     }
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn, false);
+    subreq = sysdb_delete_entry_send(data, data->ctx->ev, data->handle, user_dn, false);
     if (!subreq)
         return userdel_done(data, ENOMEM, NULL);
 
@@ -111,7 +109,6 @@ int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     struct ops_ctx *data = NULL;
-    struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
     struct passwd *pwd_info;
     const char *pc_username = NULL;
@@ -134,26 +131,8 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
-    CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&ctx);
-    if(ret != EOK) {
-        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    data = talloc_zero(NULL, struct ops_ctx);
-    if (data == NULL) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
-        ERROR("Out of memory\n");
-        return ENOMEM;
-    }
-    data->ctx = ctx;
-    data->ev = ctx->ev;
-
-    /* parse ops_ctx */
+    /* parse parameters */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     if ((ret = poptGetNextOpt(pc)) < -1) {
@@ -167,6 +146,16 @@ int main(int argc, const char **argv)
     pc_username = poptGetArg(pc);
     if (pc_username == NULL) {
         usage(pc, _("Specify user to delete\n"));
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    CHECK_ROOT(ret, debug_prg_name);
+
+    ret = init_sss_tools(&data);
+    if (ret != EOK) {
+        DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
+        ERROR("Error initializing the tools\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -192,7 +181,7 @@ int main(int argc, const char **argv)
     }
 
     /* userdel */
-    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove user.\n");
@@ -202,13 +191,21 @@ int main(int argc, const char **argv)
     tevent_req_set_callback(req, user_del, data);
 
     while (!data->done) {
-        tevent_loop_once(ctx->ev);
+        tevent_loop_once(data->ctx->ev);
     }
 
     if (data->error) {
         ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Internal error. Could not remove user.\n");
+        switch (ret) {
+            case ENOENT:
+                ERROR("No such user\n");
+                break;
+
+            default:
+                ERROR("Internal error. Could not remove user.\n");
+                break;
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -216,7 +213,6 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 
 fini:
-    talloc_free(ctx);
     talloc_free(data);
     poptFreeContext(pc);
     exit(ret);
