@@ -29,6 +29,12 @@
 
 #define NAMES_CONFIG "config/names"
 
+#ifdef HAVE_LIBPCRE_LESSER_THAN_7
+#define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_EXTENDED)
+#else
+#define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_DUPNAMES | PCRE_EXTENDED)
+#endif
+
 char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid)
 {
     char *username;
@@ -63,6 +69,12 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
             ret = ENOMEM;
             goto done;
         }
+#ifdef HAVE_LIBPCRE_LESSER_THAN_7
+        DEBUG(2, ("This binary was build with a version of libpcre that does "
+                  "not support non-unique named subpatterns.\n"));
+        DEBUG(2, ("Please make sure that your pattern [%s] only contains "
+                  "subpatterns with a unique name.\n", ctx->re_pattern));
+#endif
     }
 
     ret = confdb_get_string(cdb, ctx, NAMES_CONFIG,
@@ -78,7 +90,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
     }
 
     ctx->re = pcre_compile2(ctx->re_pattern,
-                            PCRE_DUPNAMES | PCRE_EXTENDED,
+                            NAME_DOMAIN_PATTERN_OPTIONS,
                             &errval, &errstr, &errpos, NULL);
     if (!ctx->re) {
         DEBUG(1, ("Invalid Regular Expression pattern at position %d."

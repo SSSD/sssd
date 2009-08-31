@@ -137,6 +137,13 @@
                             which translates to "the name is everything up to the
                             <quote>@</quote> sign, the domain everything after that"
                         </para>
+                        <para>
+                            PLEASE NOTE: the support for non-unique named
+                            subpatterns is not available on all plattforms
+                            (e.g. RHEL5 and SLES10). Only plattforms with
+                            libpcre version 7 or higher can support non-unique
+                            named subpatterns.
+                        </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
