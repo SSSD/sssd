@@ -683,7 +683,7 @@ int confdb_get_domain(struct confdb_ctx *cdb,
     TALLOC_CTX *tmp_ctx;
     struct ldb_dn *dn;
     const char *tmp;
-    int ret;
+    int ret, val;
 
     tmp_ctx = talloc_new(mem_ctx);
     if (!tmp_ctx) return ENOMEM;
@@ -744,9 +744,21 @@ int confdb_get_domain(struct confdb_ctx *cdb,
                                                "timeout", 0);
 
     /* Determine if this domain can be enumerated */
-    domain->enumerate = ldb_msg_find_attr_as_int(res->msgs[0],
-                                                 "enumerate", 0);
-    if (domain->enumerate == 0) {
+
+    /* TEMP: test if the old bitfield conf value is used and warn it has been
+     * superceeded. */
+    val = ldb_msg_find_attr_as_int(res->msgs[0], "enumerate", 0);
+    if (val > 0) { /* ok there was a number in here */
+        DEBUG(0, ("Warning: enumeration parameter in %s still uses integers! "
+                  "Enumeration is now a boolean and takes true/false values. "
+                  "Interpreting as true\n", domain->name));
+        domain->enumerate = true;
+    } else { /* assume the new format */
+        if (ldb_msg_find_attr_as_bool(res->msgs[0], "enumerate", 0)) {
+            domain->enumerate = true;
+        }
+    }
+    if (!domain->enumerate) {
         DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
     }
 
@@ -782,6 +794,7 @@ int confdb_get_domain(struct confdb_ctx *cdb,
     }
 
     *_domain = domain;
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);

@@ -43,7 +43,7 @@ struct sss_domain_info {
     char *name;
     char *provider;
     int timeout;
-    int enumerate;
+    bool enumerate;
     bool fqnames;
     bool legacy;
     bool mpg;

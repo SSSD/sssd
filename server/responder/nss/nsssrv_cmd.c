@@ -1022,7 +1022,7 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
 
     /* do not reply until all domain searches are done */
     for (dom = dctx->domain->next; dom; dom = dom->next) {
-        if ((dom->enumerate & NSS_ENUM_USERS) != 0) break;
+        if (dom->enumerate != 0) break;
     }
     dctx->domain = dom;
 
@@ -1150,7 +1150,7 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 
     /* check if enumeration is enabled in any domain */
     for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-        if ((dom->enumerate & NSS_ENUM_USERS) != 0) break;
+        if (dom->enumerate != 0) break;
     }
     dctx->domain = dom;
 
@@ -2350,7 +2350,7 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
 
     /* do not reply until all domain searches are done */
     for (dom = dctx->domain->next; dom; dom = dom->next) {
-        if ((dom->enumerate & NSS_ENUM_GROUPS) != 0) break;
+        if (dom->enumerate != 0) break;
     }
     dctx->domain = dom;
 
@@ -2478,7 +2478,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     /* check if enumeration is enabled in any domain */
     for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-        if ((dom->enumerate & NSS_ENUM_GROUPS) != 0) break;
+        if (dom->enumerate != 0) break;
     }
     dctx->domain = dom;
 
