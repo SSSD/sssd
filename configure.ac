@@ -7,5 +7,5 @@ AC_PROG_INSTALL
 
 AC_CONFIG_SUBDIRS([replace common server sss_client])
 
-AC_CONFIG_FILES([Makefile sssd.spec])
+AC_CONFIG_FILES([Makefile contrib/sssd.spec])
 AC_OUTPUT

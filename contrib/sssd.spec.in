@@ -30,7 +30,8 @@ BuildRequires: autoconf
 BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: m4
-BuildRequires: popt-devel
+%{?fedora:BuildRequires: popt-devel}
+%{?rhel:BuildRequires: popt}
 BuildRequires: libtalloc-devel
 BuildRequires: libtevent-devel
 BuildRequires: libtdb-devel
@@ -135,6 +136,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Wed Sep 02 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.5.0-0
+- New upstream release 0.5.0
+
 * Mon May 18 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.4.0-1
 - Convert build system to automake
 

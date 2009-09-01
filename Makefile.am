@@ -6,7 +6,7 @@ RPMBUILD ?= $(PWD)/rpmbuild
 builddir ?= .
 
 dist_noinst_DATA = \
-    sssd.spec.in \
+    contrib/sssd.spec.in \
     BUILD.txt \
     COPYING
 
@@ -18,11 +18,17 @@ rpmroot:
 	mkdir -p $(RPMBUILD)/SRPMS
 
 rpms: dist-gzip rpmroot
-	cp $(builddir)/sssd.spec $(RPMBUILD)/SPECS
+	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
-	cd $(RPMBUILD); rpmbuild --define "_topdir $(RPMBUILD)" -ba SPECS/sssd.spec
+	cd $(RPMBUILD); \
+	rpmbuild --define "_topdir $(RPMBUILD)" -ba SPECS/sssd.spec
 
+# make srpms will use the old digest algorithm to be compatible
+# with RHEL5
 srpms: dist-gzip rpmroot
-	cp $(builddir)/sssd.spec $(RPMBUILD)/SPECS
+	cp $(builddir)/contrib/sssd.spec $(RPMBUILD)/SPECS
 	cp $(distdir).tar.gz $(RPMBUILD)/SOURCES
-	cd $(RPMBUILD); rpmbuild --define "_topdir $(RPMBUILD)" -bs SPECS/sssd.spec
+	cd $(RPMBUILD); \
+	rpmbuild --define "_topdir $(RPMBUILD)" \
+	         --define _source_filedigest_algorithm=1 \
+	         -bs SPECS/sssd.spec
