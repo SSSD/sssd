@@ -738,6 +738,7 @@ int confdb_get_domain(struct confdb_ctx *cdb,
         DEBUG(0, ("Domain [%s] does not specify a provider, disabling!\n",
                   domain->name));
         ret = EINVAL;
+        goto done;
     }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
