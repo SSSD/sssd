@@ -1307,13 +1307,16 @@ int sssm_ldap_init(struct be_ctx *bectx,
     }
 
     /* set up enumeration task */
-    ctx->last_run = tevent_timeval_current(); /* run the first immediately */
-    enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
+    if (ctx->be->domain->enumerate) {
+        /* run the first immediately */
+        ctx->last_run = tevent_timeval_current();
+        enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
                                  ldap_id_enumerate, ctx);
-    if (!enum_task) {
-        DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
-        ret = EFAULT;
-        goto done;
+        if (!enum_task) {
+            DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
+            ret = EFAULT;
+            goto done;
+        }
     }
 
     *ops = &sdap_id_ops;
