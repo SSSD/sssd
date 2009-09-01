@@ -684,6 +684,21 @@ static void get_pw_uid_remove_done(struct tevent_req *subreq)
 
 /* =Getpwent-wrapper======================================================*/
 
+struct enum_users_state {
+    struct tevent_context *ev;
+    struct proxy_ctx *ctx;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+    struct sysdb_handle *handle;
+
+    struct passwd *pwd;
+
+    size_t buflen;
+    char *buffer;
+
+    bool in_transaction;
+};
+
 static void enum_users_process(struct tevent_req *subreq);
 
 static struct tevent_req *enum_users_send(TALLOC_CTX *mem_ctx,
@@ -693,18 +708,32 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain)
 {
     struct tevent_req *req, *subreq;
-    struct proxy_state *state;
+    struct enum_users_state *state;
     enum nss_status status;
 
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
+    req = tevent_req_create(mem_ctx, &state, struct enum_users_state);
     if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
 
     state->ev = ev;
     state->ctx = ctx;
     state->sysdb = sysdb;
     state->domain = domain;
+    state->handle = NULL;
+
+    state->pwd = talloc(state, struct passwd);
+    if (!state->pwd) {
+        tevent_req_error(req, ENOMEM);
+        goto fail;
+    }
+
+    state->buflen = DEFAULT_BUFSIZE;
+    state->buffer = talloc_size(state, state->buflen);
+    if (!state->buffer) {
+        tevent_req_error(req, ENOMEM);
+        goto fail;
+    }
+
+    state->in_transaction = false;
 
     status = ctx->ops.setpwent();
     if (status != NSS_STATUS_SUCCESS) {
@@ -730,56 +759,51 @@ static void enum_users_process(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
+    struct enum_users_state *state = tevent_req_data(req,
+                                                struct enum_users_state);
     struct proxy_ctx *ctx = state->ctx;
     enum nss_status status;
-    char *buffer;
     char *newbuf;
-    size_t buflen;
     int ret;
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(subreq);
+    if (!state->in_transaction) {
+        ret = sysdb_transaction_recv(subreq, state, &state->handle);
+        if (ret) {
+            goto fail;
+        }
+        talloc_zfree(subreq);
 
-    state->pwd = talloc(state, struct passwd);
-    if (!state->pwd) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        state->in_transaction = true;
+    } else {
+        ret = sysdb_store_user_recv(subreq);
+        if (ret) {
+            /* Do not fail completely on errors.
+             * Just report the failure to save and go on */
+            DEBUG(2, ("Failed to store user. Ignoring.\n"));
+        }
+        talloc_zfree(subreq);
     }
-
-    buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
-    if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    /* getpwent is synchronous so instead of artifically wrapping it
-     * in fake async calls let's just loop here */
 
 again:
-    status = ctx->ops.getpwent_r(state->pwd, buffer, buflen, &ret);
+    /* get entry */
+    status = ctx->ops.getpwent_r(state->pwd,
+                                 state->buffer, state->buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
         /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
+        if (state->buflen < MAX_BUF_SIZE) {
+            state->buflen *= 2;
         }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
+        if (state->buflen > MAX_BUF_SIZE) {
+            state->buflen = MAX_BUF_SIZE;
         }
-        newbuf = talloc_realloc_size(state, buffer, buflen);
+        newbuf = talloc_realloc_size(state, state->buffer, state->buflen);
         if (!newbuf) {
             ret = ENOMEM;
             goto fail;
         }
-        buffer = newbuf;
+        state->buffer = newbuf;
         goto again;
 
     case NSS_STATUS_NOTFOUND:
@@ -813,14 +837,8 @@ again:
             tevent_req_error(req, ENOMEM);
             return;
         }
-        /* SYNC WAIT: (polls until req is done) */
-        if (!tevent_req_poll(subreq, state->ev)) {
-            tevent_req_error(req, EFAULT);
-            return;
-        }
-        ret = sysdb_store_user_recv(subreq);
-
-        goto again; /* next one */
+        tevent_req_set_callback(subreq, enum_users_process, req);
+        return;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -1203,6 +1221,21 @@ static void get_gr_gid_remove_done(struct tevent_req *subreq)
 
 /* =Getgrent-wrapper======================================================*/
 
+struct enum_groups_state {
+    struct tevent_context *ev;
+    struct proxy_ctx *ctx;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+    struct sysdb_handle *handle;
+
+    struct group *grp;
+
+    size_t buflen;
+    char *buffer;
+
+    bool in_transaction;
+};
+
 static void enum_groups_process(struct tevent_req *subreq);
 
 static struct tevent_req *enum_groups_send(TALLOC_CTX *mem_ctx,
@@ -1212,18 +1245,32 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain)
 {
     struct tevent_req *req, *subreq;
-    struct proxy_state *state;
+    struct enum_groups_state *state;
     enum nss_status status;
 
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
+    req = tevent_req_create(mem_ctx, &state, struct enum_groups_state);
     if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
 
     state->ev = ev;
     state->ctx = ctx;
     state->sysdb = sysdb;
     state->domain = domain;
+    state->handle = NULL;
+
+    state->grp = talloc(state, struct group);
+    if (!state->grp) {
+        tevent_req_error(req, ENOMEM);
+        goto fail;
+    }
+
+    state->buflen = DEFAULT_BUFSIZE;
+    state->buffer = talloc_size(state, state->buflen);
+    if (!state->buffer) {
+        tevent_req_error(req, ENOMEM);
+        goto fail;
+    }
+
+    state->in_transaction = false;
 
     status = ctx->ops.setgrent();
     if (status != NSS_STATUS_SUCCESS) {
@@ -1249,56 +1296,52 @@ static void enum_groups_process(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
+    struct enum_groups_state *state = tevent_req_data(req,
+                                                struct enum_groups_state);
     struct proxy_ctx *ctx = state->ctx;
     enum nss_status status;
-    char *buffer;
     char *newbuf;
-    size_t buflen;
     int ret;
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(subreq);
+    if (!state->in_transaction) {
+        ret = sysdb_transaction_recv(subreq, state, &state->handle);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
+        talloc_zfree(subreq);
 
-    state->grp = talloc(state, struct group);
-    if (!state->grp) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        state->in_transaction = true;
+    } else {
+        ret = sysdb_store_group_recv(subreq);
+        if (ret) {
+            /* Do not fail completely on errors.
+             * Just report the failure to save and go on */
+            DEBUG(2, ("Failed to store group. Ignoring.\n"));
+        }
+        talloc_zfree(subreq);
     }
-
-    buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
-    if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    /* getgrent is synchronous so instead of artifically wrapping it
-     * in fake async calls let's just loop here */
 
 again:
-    status = ctx->ops.getgrent_r(state->grp, buffer, buflen, &ret);
+    /* get entry */
+    status = ctx->ops.getgrent_r(state->grp,
+                                 state->buffer, state->buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
         /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
+        if (state->buflen < MAX_BUF_SIZE) {
+            state->buflen *= 2;
         }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
+        if (state->buflen > MAX_BUF_SIZE) {
+            state->buflen = MAX_BUF_SIZE;
         }
-        newbuf = talloc_realloc_size(state, buffer, buflen);
+        newbuf = talloc_realloc_size(state, state->buffer, state->buflen);
         if (!newbuf) {
             ret = ENOMEM;
             goto fail;
         }
-        buffer = newbuf;
+        state->buffer = newbuf;
         goto again;
 
     case NSS_STATUS_NOTFOUND:
@@ -1329,14 +1372,8 @@ again:
             tevent_req_error(req, ENOMEM);
             return;
         }
-        /* SYNC WAIT: (polls until req is done) */
-        if (!tevent_req_poll(subreq, state->ev)) {
-            tevent_req_error(req, EFAULT);
-            return;
-        }
-        ret = sysdb_store_group_recv(subreq);
-
-        goto again; /* next one */
+        tevent_req_set_callback(subreq, enum_groups_process, req);
+        return;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
