@@ -28,6 +28,8 @@ WITH_CONFIG_APP_DIR
 WITH_APP_NAME
 WITH_APP_NAME_SIZE
 
+m4_include(def_macros.m4)
+
 AC_CONFIG_SUBDIRS([elapi_test])
 
 AC_CONFIG_FILES([Makefile elapi.pc])

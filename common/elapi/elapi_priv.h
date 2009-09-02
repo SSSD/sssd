@@ -153,11 +153,25 @@ struct elapi_sink_ctx {
     struct elapi_sink_cfg sink_cfg;
 };
 
-/* Generic data structure for the data output */
-struct elapi_data_out {
-    char *buffer;
-    size_t size;
-    size_t written;
+/* The structure to hold the event and its context */
+/* FIXME The event should be turned into this object
+ * on the high level before going
+ * into any target.
+ * and then this should be passed around
+ * instead of the actual event.
+ */
+struct elapi_event_ctx {
+    struct collection_item *event;
+    /* FIXME: other things:
+     * time stamp
+     * resolved message
+     */
+};
+
+/* Lookup structure for searching for providers */
+struct elapi_prvdr_lookup {
+    const char *name;
+    sink_cpb_fn ability;
 };
 
 
@@ -200,20 +214,25 @@ int elapi_sink_free_cb(const char *sink,
 
 /* Function to add a sink based on configuration  */
 int elapi_sink_add(struct collection_item **sink_ref,
-                   char *sink,
+                   const char *sink,
                    struct elapi_dispatcher *handle);
 
 /* Function to create a sink */
 int elapi_sink_create(struct elapi_sink_ctx **sink_ctx,
-                      char *name,
-                      struct collection_item *ini_config);
+                      const char *name,
+                      struct collection_item *ini_config,
+                      const char *appname);
 
 /* Destroy sink */
 void elapi_sink_destroy(struct elapi_sink_ctx *context);
 
+/* Send event into the sink */
+int elapi_sink_submit(struct elapi_sink_ctx *sink_ctx,
+                      struct collection_item *event);
+
 /* Create target object */
 int elapi_tgt_create(struct elapi_tgt_ctx **context,
-                     char *target,
+                     const char *target,
                      struct elapi_dispatcher *handle);
 
 /* Destroy target object */
@@ -237,18 +256,26 @@ int elapi_tgt_cb(const char *target,
                  void *passed_data,
                  int *stop);
 
+/* Submit event into the target */
+int elapi_tgt_submit(struct elapi_dispatcher *handle,
+                     struct elapi_tgt_ctx *context,
+                     struct collection_item *event);
+
 /* Create list of targets for a dispatcher */
 int elapi_tgt_mklist(struct elapi_dispatcher *handle);
 
 /* Send ELAPI config errors into a file */
 void elapi_dump_ini_err(struct collection_item *error_list);
 
-#ifdef ELAPI_UTEST
+#ifdef ELAPI_VERBOSE
 /* Print dispatcher internals for testing and debugging purposes */
 void elapi_print_dispatcher(struct elapi_dispatcher *handle);
 
 /* Print sink context details */
 void elapi_print_sink_ctx(struct elapi_sink_ctx *sink_context);
+#else
+#define elapi_print_dispatcher(arg)
+
 #endif
 
 #endif

@@ -31,11 +31,11 @@
 #include "trace.h"
 #include "config.h"
 
-/* NOTE: Add new provider names here */
-const char *providers[] = { ELAPI_EMB_PRVDR_FILE,
-                            ELAPI_EMB_PRVDR_STDERR,
-                            ELAPI_EMB_PRVDR_SYSLOG,
-                            NULL };
+/* NOTE: Add new provider here */
+struct elapi_prvdr_lookup providers[] =
+    {{ ELAPI_EMB_PRVDR_FILE, file_ability },
+/*   { ELAPI_EMB_PRVDR_SYSLOG, syslog_ability } */
+     { NULL, NULL }};
 
 
 /* This is a traverse callback for sink list */
@@ -68,7 +68,7 @@ void elapi_sink_destroy(struct elapi_sink_ctx *context)
 {
     TRACE_FLOW_STRING("elapi_sink_destroy", "Entry.");
 
-#ifdef ELAPI_UTEST
+#ifdef ELAPI_VERBOSE
     /* FIXME: Can be removeed when the interface is stable */
     /* For testing purposes print the context we are trying to free */
     elapi_print_sink_ctx(context);
@@ -135,7 +135,7 @@ int elapi_sink_free_cb(const char *sink,
 
 /* Function to read sink common configuration */
 static int elapi_read_sink_cfg(struct elapi_sink_cfg *sink_cfg,
-                               char *name,
+                               const char *name,
                                struct collection_item *ini_config)
 {
     int error = EOK;
@@ -165,7 +165,7 @@ static int elapi_read_sink_cfg(struct elapi_sink_cfg *sink_cfg,
 
     /* Get provider value */
     provider = get_const_string_config_value(cfg_item, &error);
-    if ((error) || (!provider)) {
+    if ((error) || (!provider) || (*provider == '\0')) {
         TRACE_ERROR_STRING("Invalid \"provider\" value", "Fatal Error!");
         return EINVAL;
     }
@@ -290,7 +290,7 @@ static int elapi_read_sink_cfg(struct elapi_sink_cfg *sink_cfg,
 }
 
 /* Function to load external sink library */
-static int elapi_load_lib(void **libhandle, sink_cpb_fn *sink_fn, char *name)
+static int elapi_load_lib(void **libhandle, sink_cpb_fn *sink_fn, const char *name)
 {
     char sink_lib_name[SINK_LIB_NAME_SIZE];
     sink_cpb_fn sink_symbol = NULL;
@@ -304,6 +304,13 @@ static int elapi_load_lib(void **libhandle, sink_cpb_fn *sink_fn, char *name)
         return EINVAL;
     }
 
+    /* I considered using snprintf here but prefer this way.
+     * Main reason is that snprintf will truncate
+     * the string and I would have to determine that after
+     * while in this implementation the copying
+     * would never even start if the buffer is not
+     * big enough.
+     */
     sprintf(sink_lib_name, SINK_NAME_TEMPLATE, name);
     TRACE_INFO_STRING("Name of the library to try to load:", sink_lib_name);
 
@@ -339,38 +346,24 @@ int elapi_sink_loader(struct elapi_sink_cfg *sink_cfg)
 
     TRACE_FLOW_STRING("elapi_sink_loader", "Entry point");
 
-    while (providers[num]) {
-        TRACE_INFO_STRING("Checking provider:", providers[num]);
-        if (strcasecmp(providers[num], sink_cfg->provider) == 0) break;
+    while (providers[num].name) {
+        TRACE_INFO_STRING("Checking provider:", providers[num].name);
+        if (strcasecmp(providers[num].name, sink_cfg->provider) == 0) {
+            TRACE_INFO_STRING("Using provider:", providers[num].name);
+            sink_cfg->ability = providers[num].ability;
+            TRACE_FLOW_STRING("elapi_sink_loader", "Exit");
+            return EOK;
+        }
         num++;
     }
 
-    TRACE_INFO_NUMBER("Provider number:", num);
+    TRACE_INFO_NUMBER("Provider not found.", "Assume external.");
 
-    /* NOTE: Add provider handler into the switch below */
-    switch (num) {
-    case ELAPI_EMB_PRVDR_FILENUM:
-        TRACE_INFO_STRING("Using \"file\" provider:", "");
-        sink_cfg->ability = file_ability;
-        break;
-/* FIXME: Not implemented yet
-    case ELAPI_EMB_PRVDR_STDERRNUM:
-        TRACE_INFO_STRING("Using \"stderr\" provider:", "");
-        sink_cfg->ability = stderr_ability;
-        break;
-    case ELAPI_EMB_PRVDR_SYSLOGNUM:
-        TRACE_INFO_STRING("Using \"syslog\" provider:", "");
-        sink_cfg->ability = syslog_ability;
-        break;
-*/
-    default:
-        /* It is an external provider */
-        error = elapi_load_lib(&(sink_cfg->libhandle), &(sink_cfg->ability), sink_cfg->provider);
-        if (error) {
-            TRACE_ERROR_NUMBER("Failed to load library", error);
-            return error;
-        }
-        break;
+    /* It is an external provider */
+    error = elapi_load_lib(&(sink_cfg->libhandle), &(sink_cfg->ability), sink_cfg->provider);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to load library", error);
+        return error;
     }
 
     TRACE_FLOW_STRING("elapi_sink_loader", "Exit");
@@ -380,8 +373,9 @@ int elapi_sink_loader(struct elapi_sink_cfg *sink_cfg)
 
 /* Function to load sink provider */
 int elapi_load_sink(struct elapi_sink_cfg *sink_cfg,
-                    char *name,
-                    struct collection_item *ini_config)
+                    const char *name,
+                    struct collection_item *ini_config,
+                    const char *appname)
 {
     int error = EOK;
     TRACE_FLOW_STRING("elapi_load_sink", "Entry point");
@@ -413,7 +407,8 @@ int elapi_load_sink(struct elapi_sink_cfg *sink_cfg,
      */
     error = sink_cfg->cpb_cb.init_cb(&(sink_cfg->priv_ctx),
                                        name,
-                                       ini_config);
+                                       ini_config,
+                                       appname);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to initalize sink", error);
         return error;
@@ -426,8 +421,9 @@ int elapi_load_sink(struct elapi_sink_cfg *sink_cfg,
 
 /* Function to create a sink */
 int elapi_sink_create(struct elapi_sink_ctx **sink_ctx,
-                      char *name,
-                      struct collection_item *ini_config)
+                      const char *name,
+                      struct collection_item *ini_config,
+                      const char *appname)
 {
     int error = EOK;
     uint32_t required;
@@ -476,7 +472,9 @@ int elapi_sink_create(struct elapi_sink_ctx **sink_ctx,
 
     /* Load sink */
     error = elapi_load_sink(&(sink_context->sink_cfg),
-                            name, ini_config);
+                            name,
+                            ini_config,
+                            appname);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to load sink", error);
         required = sink_context->sink_cfg.required;
@@ -496,5 +494,23 @@ int elapi_sink_create(struct elapi_sink_ctx **sink_ctx,
     *sink_ctx = sink_context;
 
     TRACE_FLOW_STRING("elapi_sink_create", "Exit");
+    return error;
+}
+
+/* Send event into the sink */
+int elapi_sink_submit(struct elapi_sink_ctx *sink_ctx,
+                      struct collection_item *event)
+{
+    int error = EOK;
+
+    TRACE_FLOW_STRING("elapi_sink_submit", "Entry");
+
+    /* FIXME: Manage the queue of the requests here.
+     * For now just call provider's submit function.
+     */
+    error = sink_ctx->sink_cfg.cpb_cb.submit_cb(sink_ctx->sink_cfg.priv_ctx,
+                                                event);
+
+    TRACE_FLOW_STRING("elapi_sink_submit", "Exit");
     return error;
 }

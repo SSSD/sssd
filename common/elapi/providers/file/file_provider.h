@@ -24,48 +24,75 @@
 
 #include "elapi_sink.h"
 
+/* Common configuration parameters */
+#define FILE_OUTNAME        "filename"
+#define FILE_KEEPOPEN       "keepopen"
+#define FILE_OUTMODE        "outmode"
+#define FILE_FIELDSET       "set"
+#define FILE_FORMAT         "format"
+#define FILE_FLUSH          "fsyncmode"
+
+
+/* Max supported mode */
+/* NOTE: Increase this value when you add a new mode.
+ * If it ever gets to 10 the logic in the
+ * function that builds the set needs to change.
+ */
+#define FILE_MAXMODE        5
+/* Modes: */
+#define FILE_MODE_CSV       0
+#define FILE_MODE_FORMAT    1
+#define FILE_MODE_HTML      2
+#define FILE_MODE_XML       3
+#define FILE_MODE_JSON      4
+#define FILE_MODE_KVP       5
+
+
+/* FIXME: Should it be a compile time switch? */
+#define FILE_SUFFIX ".log"
+#define FILE_SET_END '@'
+
+/* Field set collection */
+#define FILE_FIELDSET_COL   "set"
+#define FILE_FIELDSET_CLASS  21000
+
+/* Special file name - stderr is handled differently */
+#define FILE_STDERR "stderr"
+
 /* Structure that holds internal configuration of the file
  * provider.
  */
 struct file_prvdr_cfg {
     char *filename;                 /* File name */
+    uint32_t ownfile;               /* Do I own the file handle? */
     uint32_t keepopen;              /* Do we need to keep file open */
-    uint32_t fsyncmode;             /* How frequently data is fsynced */
+    int32_t fsyncmode;              /* How frequently data is fsynced */
     uint32_t outmode;               /* Output mode */
     struct collection_item *set;    /* Field set without leftovers symbol */
     uint32_t use_leftovers;         /* Was there a leftover symbol */
     uint32_t jam_leftovers;         /* leftovers should be serialized into one field */
     uint32_t mode_leftovers;        /* Format for the leftover fields */
-    uint32_t csvheader;             /* Include csv header or not? */
-    char csvqualifier;              /* What is the qualifier? */
-    char csvseparator;              /* What is the separator? */
-    uint32_t csvescape;             /* Do we need to escape strings ? */
-    char csvescchar;                /* What is the escape character? */
+    void *main_fmt_cfg;             /* Configuration data for the main format */
+    void *lo_fmt_cfg;               /* Configuration data for leftovers format */
+    /* FIXME add other config data strutures here */
+
+    /* FIXME: Rotation rules ? */
 };
+
 
 /* File context */
 struct file_prvdr_ctx {
     struct file_prvdr_cfg config; /* Configuration */
     int outfile;                  /* File handle */
+    uint32_t smode;               /* Sink's synch mode */
     /* FIXME - other things go here */
 };
 
-
-
-/* Function to read configuration */
-int file_read_cfg(struct file_prvdr_cfg *file_cfg,
-                  char *name,
-                  struct collection_item *ini_config);
-
-/* Function to create context */
-int file_create_ctx(struct file_prvdr_ctx **file_ctx,
-                    char *name,
-                    struct collection_item *ini_config);
-
 /* File init function */
 int file_init(void **priv_ctx,
-              char *name,
-              struct collection_item *ini_config);
+              const char *name,
+              struct collection_item *ini_config,
+              const char *appname);
 
 /* File close function */
 void file_close(void **priv_ctx);

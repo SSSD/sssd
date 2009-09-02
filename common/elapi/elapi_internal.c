@@ -48,6 +48,7 @@ int elapi_tgt_cb(const char *target,
                  void *passed_data,
                  int *stop)
 {
+    int error = EOK;
     struct elapi_tgt_data *target_data;
     struct elapi_tgt_ctx *context;
 
@@ -77,6 +78,14 @@ int elapi_tgt_cb(const char *target,
 
     printf("\n\n\nPROCESSING EVENT:\n");
     col_debug_collection(target_data->event, COL_TRAVERSE_DEFAULT);
+
+    /* Log event */
+    error = elapi_tgt_submit(target_data->handle, context, target_data->event);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to submit event to target", error);
+        return error;
+    }
+
 
     TRACE_FLOW_STRING("elapi_tgt_cb", "Exit.");
     return EOK;
@@ -113,7 +122,7 @@ int elapi_tgt_free_cb(const char *target,
  */
 /* FIXME - other arguments might be added later */
 int elapi_sink_add(struct collection_item **sink_ref,
-                   char *sink,
+                   const char *sink,
                    struct elapi_dispatcher *handle)
 {
     int error = EOK;
@@ -143,7 +152,7 @@ int elapi_sink_add(struct collection_item **sink_ref,
         TRACE_FLOW_STRING("No such sink yet, adding new sink:", sink);
 
         /* Create a sink object */
-        error = elapi_sink_create(&sink_context, sink, handle->ini_config);
+        error = elapi_sink_create(&sink_context, sink, handle->ini_config, handle->appname);
         if (error != 0) {
             TRACE_ERROR_NUMBER("Failed to add sink data as property", error);
             /* If create failed there is nothing to destroy */
@@ -201,7 +210,7 @@ void elapi_tgt_destroy(struct elapi_tgt_ctx *context)
 
 /* Allocate target context and load sinks to it */
 int elapi_tgt_create(struct elapi_tgt_ctx **context,
-                     char *target,
+                     const char *target,
                      struct elapi_dispatcher *handle)
 {
     int error = EOK;
@@ -441,6 +450,98 @@ int elapi_tgt_mklist(struct elapi_dispatcher *handle)
     return EOK;
 }
 
+/* Submit event into the target */
+/* FIXME: do we need the whole dispatcher here?
+ * probably not.
+ * Need to sort out what parts of it we actually
+ * need and pass them explicitely.
+ * The point is that the target should not
+ * know or care about the dispatcher internals
+ * passing it here is a violation of the
+ * several desing patterns so it should be
+ * eventually fixed.
+ */
+int elapi_tgt_submit(struct elapi_dispatcher *handle,
+                     struct elapi_tgt_ctx *context,
+                     struct collection_item *event)
+{
+    int error = EOK;
+    struct collection_iterator *iterator;
+    struct collection_item *sink_item;
+    struct elapi_sink_ctx *ctx;
+
+    TRACE_FLOW_STRING("elapi_tgt_submit", "Entry");
+
+    /* FIXME: General logic of the function
+     * should be the following:
+     * Get the list of the sinks
+     * For each sink
+     *    Get its status
+     *    Check if the sink is active
+     *    If it is active log into it
+     *        In error fail over to the next one
+     *        else done
+     *    else (not active) is it revivable?
+     *        If so is it time to revive?
+     *            If so mark as active and log into it
+     *                If error fail over
+     *                else done
+     *            else fail over
+     *        else fail over
+     *    else fail over
+     * End for each sink
+     *
+     * This logic will be implemented
+     * in the later patches
+     * for now we will try
+     * all the sinks without checking status.
+     */
+
+    error = col_bind_iterator(&iterator, context->sink_ref_list,
+                              COL_TRAVERSE_DEFAULT);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to bind iterator.", error);
+        return error;
+    }
+
+    while(1) {
+        /* Loop through the sink references */
+        error = col_iterate_collection(iterator, &sink_item);
+        if (error) {
+            TRACE_ERROR_NUMBER("Error iterating event:", error);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (sink_item == NULL) break;
+
+        /* Skip headers */
+        if (col_get_item_type(sink_item) == COL_TYPE_COLLECTION) continue;
+
+
+        /* Dereference the sink item to get context */
+        sink_item = *((struct collection_item **)(col_get_item_data(sink_item)));
+        ctx = *((struct elapi_sink_ctx **)(col_get_item_data(sink_item)));
+
+        /* FIXME: Check the sink status */
+
+        /* FIXME other parameters might be required... */
+        error = elapi_sink_submit(ctx, event);
+        if (error) {
+            TRACE_ERROR_NUMBER("Error submitting event:", error);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+    }
+
+    col_unbind_iterator(iterator);
+
+    TRACE_FLOW_STRING("elapi_tgt_submit", "Exit");
+    return EOK;
+
+}
 
 
 /* If we failed to read configuration record this in the local file */
@@ -483,14 +584,14 @@ void elapi_dump_ini_err(struct collection_item *error_list)
 /****************************************************************************/
 /* Functions below are added for debugging purposes                         */
 /****************************************************************************/
-#ifdef ELAPI_UTEST
+#ifdef ELAPI_VERBOSE
 
 void elapi_print_sink_ctx(struct elapi_sink_ctx *sink_context)
 {
     /* This will not print well on 64 bit but it is just debugging
      * so it is OK to have it.
      */
-    printf("Printing sink context using address %X\n", (uint32_t)(sink_context));
+    printf("Printing sink context using address %p\n", sink_context);
 
     printf("Mode: %s\n", sink_context->async_mode ? "true" : "false");
     if (sink_context->in_queue) col_print_collection(sink_context->in_queue);

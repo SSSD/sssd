@@ -39,7 +39,11 @@
 
 /* Log facility callbacks */
 /* FIXME - the signatures need to take into the account async processing */
-typedef int (*init_fn)(void **priv_ctx, char *name, struct collection_item *ini_config);
+typedef int (*init_fn)(void **priv_ctx,
+                       const char *name,
+                       struct collection_item *ini_config,
+                       const char *appname);
+
 typedef int (*submit_fn)(void *priv_ctx, struct collection_item *event);
 typedef void (*close_fn)(void **priv_ctx);
 

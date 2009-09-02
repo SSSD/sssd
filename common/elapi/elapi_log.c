@@ -38,24 +38,6 @@
 /* Pointer to default global dispatcher */
 struct elapi_dispatcher *global_dispatcher = NULL;
 
-/* Deafult sink names */
-char remote_sink[]      = "remote";
-char altremote_sink[]   = "altremote";
-char syslog_sink[]      = "syslog";
-char db_sink[]          = "db";
-char file_sink[]        = "file";
-char failover_sink[]    = "failover";
-char stderr_sink[]      = "stderr";
-
-/* Deafult sink list */
-char *default_sinks[] = { remote_sink,
-                          altremote_sink,
-                          syslog_sink,
-                          db_sink,
-                          file_sink,
-                          failover_sink,
-                          stderr_sink,
-                          NULL };
 
 /* Per review I was told to hard cord this name. So be it... */
 #define ELAPI_CONFIG_FILE_NAME  "elapi.conf"

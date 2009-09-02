@@ -31,11 +31,19 @@ pkgconfigdir = $(libdir)/pkgconfig
 dist_noinst_DATA = elapi.pc
 
 # Build libraries
-noinst_LTLIBRARIES = libprovider.la libelapi.la
+noinst_LTLIBRARIES = libelapibasic.la libprovider.la libelapi.la
+
+libelapibasic_la_SOURCES = \
+    elapi_basic.c \
+    elapi_basic.h
 
 libprovider_la_SOURCES = \
     $(prvdrdir)/file/file_provider.c \
-    $(prvdrdir)/file/file_provider.h
+    $(prvdrdir)/file/file_provider.h \
+    $(prvdrdir)/file/file_util.c \
+    $(prvdrdir)/file/file_util.h \
+    $(prvdrdir)/file/file_fmt_csv.c \
+    $(prvdrdir)/file/file_fmt_csv.h
 
 libelapi_la_SOURCES = \
     elapi_event.c \
@@ -47,5 +55,6 @@ libelapi_la_SOURCES = \
     elapi_sink.h \
     elapi_log.h \
     elapi_async.h \
-    elapi.h \
-    ./libprovider.la
+    elapi.h
+
+libelapi_la_LIBADD = libprovider.la libelapibasic.la

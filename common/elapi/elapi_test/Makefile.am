@@ -5,8 +5,7 @@ topdir=$(srcdir)/../..
 AM_CFLAGS = -DELAPI_DEFAULT_CONFIG_DIR=\"$(srcdir)\"   \
             -DELAPI_DEFAULT_CONFIG_APP_DIR=\"$(srcdir)\"   \
             -DELAPI_DEFAULT_APP_NAME=\"elapi_ut\" \
-            -DELAPI_DEFAULT_APP_NAME_SIZE=127 \
-            -DELAPI_UTEST
+            -DELAPI_DEFAULT_APP_NAME_SIZE=127
 
 if HAVE_GCC
     AM_CFLAGS += \
@@ -27,6 +26,8 @@ libelapi_test_la_SOURCES = \
     ../elapi_log.c \
     ../elapi_internal.c \
     ../elapi_sink.c \
+    ../elapi_basic.c \
+    ../elapi_basic.h \
     ../elapi_event.h \
     ../elapi_priv.h \
     ../elapi_sink.h \
@@ -34,7 +35,11 @@ libelapi_test_la_SOURCES = \
     ../elapi_async.h \
     ../elapi.h \
     ../providers/file/file_provider.c \
-    ../providers/file/file_provider.h
+    ../providers/file/file_provider.h \
+    ../providers/file/file_util.c \
+    ../providers/file/file_util.h \
+    ../providers/file/file_fmt_csv.c \
+    ../providers/file/file_fmt_csv.h
 
 # Build unit test
 check_PROGRAMS = elapi_ut
