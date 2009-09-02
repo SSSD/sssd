@@ -66,7 +66,6 @@ struct be_ctx {
     struct confdb_ctx *cdb;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
-    const char *name;
     const char *identity;
     const char *conf_path;
 

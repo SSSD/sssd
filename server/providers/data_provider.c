@@ -64,7 +64,6 @@ struct dp_client {
 struct dp_backend {
     struct dp_backend *prev;
     struct dp_backend *next;
-    char *name;
     char *domain;
     struct dp_client *dpcli;
 };
@@ -282,9 +281,8 @@ static int client_registration(DBusMessage *message,
             return ENOMEM;
         }
 
-        dpbe->name = talloc_strdup(dpbe, cli_name);
         dpbe->domain = talloc_strdup(dpbe, cli_domain);
-        if (!dpbe->name || !dpbe->domain) {
+        if (!dpbe->domain) {
             DEBUG(0, ("Out of memory!\n"));
             sbus_disconnect(conn);
             return ENOMEM;
@@ -294,8 +292,7 @@ static int client_registration(DBusMessage *message,
 
         DLIST_ADD(dpcli->dpctx->be_list, dpbe);
 
-        DEBUG(4, ("Added Backend client [%s], for domain [%s]\n",
-                  dpbe->name, dpbe->domain));
+        DEBUG(4, ("Added Backend client for domain [%s]\n", dpbe->domain));
 
         talloc_set_destructor((TALLOC_CTX *)dpbe, dp_backend_destructor);
         break;
@@ -398,9 +395,9 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
             goto done;
         }
 
-        DEBUG(4, ("Got reply (%u, %u, %s) from %s(%s)\n",
+        DEBUG(4, ("Got reply (%u, %u, %s) from (%s)\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg,
-                  bereq->be->name, bereq->be->domain));
+                  bereq->be->domain));
 
         break;
 
@@ -712,8 +709,8 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
             goto done;
         }
 
-        DEBUG(4, ("Got reply (%d, %s) from %s(%s)\n", pd->pam_status, pd->domain,
-                  bereq->be->name, bereq->be->domain));
+        DEBUG(4, ("Got reply (%d, %s) from (%s)\n", pd->pam_status, pd->domain,
+                  bereq->be->domain));
 
         break;
 
@@ -909,8 +906,8 @@ static int dp_backend_destructor(void *ctx)
     struct dp_backend *dpbe = talloc_get_type(ctx, struct dp_backend);
     if (dpbe->dpcli && dpbe->dpcli->dpctx && dpbe->dpcli->dpctx->be_list) {
         DLIST_REMOVE(dpbe->dpcli->dpctx->be_list, dpbe);
-        DEBUG(4, ("Removed Backend client [%s], for domain [%s]\n",
-                  dpbe->name, dpbe->domain));
+        DEBUG(4, ("Removed Backend client for domain [%s]\n",
+                  dpbe->domain));
     }
     return 0;
 }

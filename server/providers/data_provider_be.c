@@ -622,7 +622,7 @@ static int be_cli_init(struct be_ctx *ctx)
     /* Identify ourselves to the data provider */
     ret = dp_common_send_id(ctx->dp_conn,
                             DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
-                            ctx->name, ctx->domain->name);
+                            "", ctx->domain->name);
     if (ret != EOK) {
         DEBUG(0, ("Failed to identify to the data provider!\n"));
         return ret;
@@ -657,7 +657,7 @@ static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_ctx->dp_conn,
                                 DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
-                                be_ctx->name, be_ctx->domain->name);
+                                "", be_ctx->domain->name);
         if (ret != EOK) {
             DEBUG(0, ("Failed to send id to the data provider!\n"));
         } else {
@@ -879,13 +879,26 @@ static int be_rewrite(struct be_ctx *ctx)
     int ret;
     const char *val[2];
     val[1] = NULL;
+    char **get_values = NULL;
 
     /* "files" is a special case that means:
      *  provider = proxy
      *  libName  = files
      */
-    if (strcasecmp(ctx->name, "files") == 0) {
-        DEBUG(5, ("Rewriting provider %s\n", ctx->name));
+    ret = confdb_get_param(ctx->cdb, ctx, ctx->conf_path, "provider",
+                           &get_values);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to read provider from confdb.\n"));
+        return ret;
+    }
+    if (get_values[0] == NULL) {
+        DEBUG(1, ("Missing provider.\n"));
+        return EINVAL;
+    }
+
+    if (strcasecmp(get_values[0], "files") == 0) {
+        DEBUG(5, ("Rewriting provider %s\n", get_values[0]));
+        talloc_zfree(get_values);
 
         val[0] = "proxy";
         ret = confdb_add_param(ctx->cdb, true,
@@ -910,7 +923,6 @@ static int be_rewrite(struct be_ctx *ctx)
 }
 
 int be_process_init(TALLOC_CTX *mem_ctx,
-                    const char *be_name,
                     const char *be_domain,
                     struct tevent_context *ev,
                     struct confdb_ctx *cdb)
@@ -925,10 +937,9 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     }
     ctx->ev = ev;
     ctx->cdb = cdb;
-    ctx->name = talloc_strdup(ctx, be_name);
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
     ctx->conf_path = talloc_asprintf(ctx, "config/domains/%s", be_domain);
-    if (!ctx->name || !ctx->identity || !ctx->conf_path) {
+    if (!ctx->identity || !ctx->conf_path) {
         DEBUG(0, ("Out of memory!?\n"));
         return ENOMEM;
     }
@@ -1016,20 +1027,17 @@ int main(int argc, const char *argv[])
 {
     int opt;
     poptContext pc;
-    char *be_name;
-    char *be_domain;
-    char *srv_name;
-    char *conf_entry;
+    char *be_domain = NULL;
+    char *srv_name = NULL;
+    char *conf_entry = NULL;
     struct main_context *main_ctx;
     int ret;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
-        {"provider", 0, POPT_ARG_STRING, &be_name, 0,
-         "Information Provider", NULL },
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
-         "Domain of the information provider", NULL },
+         "Domain of the information provider (mandatory)", NULL },
         POPT_TABLEEND
     };
 
@@ -1044,10 +1052,16 @@ int main(int argc, const char *argv[])
         }
     }
 
+    if (be_domain == NULL) {
+        fprintf(stderr, "\nMissing option, --domain is a mandatory option.\n\n");
+            poptPrintUsage(pc, stderr, 0);
+            return 1;
+    }
+
     poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_name);
+    srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
     if (!srv_name) return 2;
 
     conf_entry = talloc_asprintf(NULL, BE_CONF_ENTRY, be_domain);
@@ -1066,7 +1080,7 @@ int main(int argc, const char *argv[])
     }
 
     ret = be_process_init(main_ctx,
-                          be_name, be_domain,
+                          be_domain,
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
     if (ret != EOK) {
@@ -1074,7 +1088,7 @@ int main(int argc, const char *argv[])
         return 3;
     }
 
-    DEBUG(1, ("Backend provider %s(%s) started!\n", be_name, be_domain));
+    DEBUG(1, ("Backend provider (%s) started!\n", be_domain));
 
     /* loop on main */
     server_loop(main_ctx);
