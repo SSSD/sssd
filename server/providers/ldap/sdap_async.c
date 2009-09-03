@@ -1831,9 +1831,9 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
         }
 
         state->filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
-                            state->opts->user_map[SDAP_AT_GROUP_MEMBER].name,
+                            state->opts->group_map[SDAP_AT_GROUP_MEMBER].name,
                             user_dn,
-                            state->opts->user_map[SDAP_OC_GROUP].name);
+                            state->opts->group_map[SDAP_OC_GROUP].name);
 
         talloc_free(msg);
         break;
