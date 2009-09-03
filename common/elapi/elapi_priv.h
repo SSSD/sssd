@@ -61,16 +61,18 @@
 
 /* Names of embedded providers */
 #define ELAPI_EMB_PRVDR_FILE    "file"
-#define ELAPI_EMB_PRVDR_STDERR  "stderr"
 #define ELAPI_EMB_PRVDR_SYSLOG  "syslog"
 
 /* Numbers for embedded providers */
 #define ELAPI_EMB_PRVDR_FILENUM     0
-#define ELAPI_EMB_PRVDR_STDERRNUM   1
-#define ELAPI_EMB_PRVDR_SYSLOGNUM   2
-
+#define ELAPI_EMB_PRVDR_SYSLOGNUM   1
 
 #define ELAPI_TARGET_ALL    0xFFFF  /* 65k targets should be enough */
+
+/* Possible values for onerror config parameter */
+#define ELAPI_ONERROR_REVIVE        0
+#define ELAPI_ONERROR_DISABLE       1
+
 
 struct elapi_dispatcher {
     /* Application name */
@@ -88,11 +90,13 @@ struct elapi_dispatcher {
     /* Default event template */
     struct collection_item *default_template;
     /* Async processing related data */
-    elapi_add_fd add_fd_add_fn;
-    elapi_rem_fd add_fd_rem_fn;
-    elapi_add_timer add_timer_fn;
-    void *callers_data;
+    struct elapi_async_ctx *async_ctx;
+    /* Indicator of our synch mode
+     * FIXME: Do we need it?
+     */
     uint32_t async_mode;
+    /* Time offset */
+    int32_t offset;
 };
 
 /* Structure to pass data from logging function to targets */
@@ -120,7 +124,7 @@ struct elapi_tgt_ctx {
      */
 };
 
-/* FIXME: Compbine with context */
+/* Structure that hols sink's error status */
 struct sink_status {
     int suspended;
     time_t lasttry;
@@ -145,12 +149,20 @@ struct elapi_sink_ctx {
     struct collection_item *in_queue;
     /* Pending list */
     struct collection_item *pending;
-    /* FIXME: add:
-     * sink's error status
-     */
+    /* Sink's error status */
+    struct sink_status status;
+    /* Synch/asynch mode */
     uint32_t async_mode;
     /* Sink configuration data */
     struct elapi_sink_cfg sink_cfg;
+    /* Back pointer to the target context.
+     * This is needed for the cases
+     * when we detect that sink
+     * is failed and we need
+     * to fail over for the next one.
+     */
+     struct elapi_tgt_ctx *tgt_ctx;
+
 };
 
 /* The structure to hold the event and its context */
@@ -161,11 +173,31 @@ struct elapi_sink_ctx {
  * instead of the actual event.
  */
 struct elapi_event_ctx {
-    struct collection_item *event;
-    /* FIXME: other things:
-     * time stamp
-     * resolved message
+    /* This is a copy of the event */
+    /* We have to copy it for two reasons:
+     * a) It needs to be flattened so
+     * that we do not get unnecesary naming
+     * collisions if same key appears on different
+     * levels
+     * b) In case of async logging we need
+     * the original event until we are sure
+     * it is actually logged. If we do not
+     * keep it around the application can modify
+     * it or delete it before we figured out
+     * that sink is broken and we need to fail over.
+     * If in this case we go to another sink
+     * and if we do not have the original event
+     * we are screwed.
      */
+    struct collection_item *event;
+    /* Reference count */
+    int refcount;
+    /* Event time */
+    time_t tm;
+    /* Resolved message */
+    char *message;
+    /* Time offset */
+    int32_t offset;
 };
 
 /* Lookup structure for searching for providers */

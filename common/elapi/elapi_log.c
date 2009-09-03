@@ -102,10 +102,7 @@ static int elapi_dsp_msg_with_vargs(uint32_t target,
 int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
                                 const char *appname,
                                 const char *config_path,
-                                elapi_add_fd add_fd_add_fn,
-                                elapi_rem_fd add_fd_rem_fn,
-                                elapi_add_timer add_timer_fn,
-                                void *callers_data)
+                                struct elapi_async_ctx *async_ctx)
 {
     struct elapi_dispatcher *handle = NULL;
     struct collection_item *error_set = NULL;
@@ -114,7 +111,6 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     const char *config_file = NULL;
     const char *config_dir = NULL;
     struct stat stat_data;
-    int prm_cnt = 0;
 
     TRACE_FLOW_STRING("elapi_create_dispatcher_adv", "Entry point");
 
@@ -132,20 +128,7 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         return EINVAL;
     }
 
-    /* Check that all the async data is present */
-    if (add_fd_add_fn) prm_cnt++;
-    if (add_fd_rem_fn) prm_cnt++;
-    if (add_timer_fn) prm_cnt++;
-    if (callers_data) prm_cnt++;
-
-    if ((prm_cnt > 0) && (prm_cnt < 4)) {
-        /* We got a mixture of NULLs and not NULLs.
-         * This is bad since all should be either provided
-         * or all should be NULL.
-         */
-        TRACE_ERROR_STRING("Invalid sync parameters.", "At least one is NULL while others are not.");
-        return EINVAL;
-    }
+    /* FIXME: Check if context is valid */
 
     /* Check what is passed in the config_path */
     if (config_path) {
@@ -264,13 +247,20 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     }
 
     /* Populate async processing data if any */
-    if (prm_cnt) {
+    if (async_ctx) {
         TRACE_INFO_STRING("Async data is present", "");
-        handle->add_fd_add_fn = add_fd_add_fn;
-        handle->add_fd_rem_fn = add_fd_rem_fn;
-        handle->add_timer_fn = add_timer_fn;
-        handle->callers_data = callers_data;
-        handle->async_mode = 1;
+        handle->async_ctx = malloc(sizeof(struct elapi_async_ctx));
+        if (handle->async_ctx != NULL) {
+            TRACE_ERROR_NUMBER("Failed to allocate async context", ENOMEM);
+            elapi_destroy_dispatcher(handle);
+            return ENOMEM;
+        }
+        /* Copy async data */
+        memcpy(handle->async_ctx, async_ctx, sizeof(struct elapi_async_ctx));
+    }
+    else {
+        TRACE_INFO_STRING("No async data present", "");
+        handle->async_ctx = NULL;
     }
 
     *dispatcher = handle;
@@ -293,9 +283,6 @@ int elapi_create_dispatcher(struct elapi_dispatcher **dispatcher,
     error = elapi_create_dispatcher_adv(dispatcher,
                                         appname,
                                         config_path,
-                                        NULL,
-                                        NULL,
-                                        NULL,
                                         NULL);
 
     TRACE_FLOW_STRING("elapi_create_dispatcher", "Exit.");
@@ -335,6 +322,8 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
 
 		TRACE_INFO_STRING("Freeing application name.", "");
         free(dispatcher->appname);
+		TRACE_INFO_STRING("Freeing async context.", "");
+        free(dispatcher->async_ctx);
         TRACE_INFO_STRING("Freeing config.", "");
         free_ini_config(dispatcher->ini_config);
         TRACE_INFO_STRING("Deleting targets name array.", "");

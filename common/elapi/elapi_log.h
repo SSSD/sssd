@@ -52,10 +52,7 @@ int elapi_create_dispatcher(struct elapi_dispatcher **dispatcher,  /* Handle of 
 int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,  /* Handle of the dispatcher will be stored in this variable */
                                 const char *appname,                   /* Application name. Passed to the sinks to do initialization */
                                 const char *config_path,               /* See notes below in the elapi_init() function. */
-                                elapi_add_fd add_fd_add_fn,            /* Caller's function to add file descriptor */
-                                elapi_rem_fd add_fd_rem_fn,            /* Caller's function to remove file descriptor */
-                                elapi_add_timer add_timer_fn,          /* Caller's function to add timer */
-                                void *callers_data);                   /* Data that needs to be passed when caller's callback is called. */
+                                struct elapi_async_ctx *async_ctx);    /* Async context. */
 
 /* Function to clean memory associated with the dispatcher */
 void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher);

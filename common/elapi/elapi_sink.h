@@ -32,11 +32,6 @@
 #define SINK_ENTRY_POINT    "get_sink_info"
 #define SINK_NAME_TEMPLATE  "libelapi_sink_%s.so"
 
-/* Flags related to loading sinks */
-#define SINK_FLAG_NO_LIMIT          0x00000000 /* NO limits to loading and manipulating this sink - default */
-#define SINK_FLAG_LOAD_SINGLE       0x00000001 /* Only allow one instance of the provider per process */
-
-
 /* Log facility callbacks */
 /* FIXME - the signatures need to take into the account async processing */
 typedef int (*init_fn)(void **priv_ctx,

@@ -22,51 +22,113 @@
 
 #include <sys/time.h>
 
-/* Signature ELAPI callback function that
- * should be called when the event loop got an event on the
- * socket or file descriptor.
- * ELAPI will always try to write to sockets in async way
- * if the sink has this capability.
- * So this is the callback that will always be
- * invoked when we get ACK from the process receiving events.
+#define ELAPI_FD_READ       0x00000001 /* request to read */
+#define ELAPI_FD_WRITE      0x00000002 /* request to write */
+
+/* Structure that holds ELAPI file descriptor's watch data */
+struct elapi_fd_data;
+
+/* Structure that holds ELAPI timer data */
+struct elapi_tm_data;
+
+/* Functions to set and get data from file descriptor data. */
+/* Functions return EINVAL if passed in argument is invalid. */
+int elapi_set_fd_priv(struct elapi_fd_data *fd_data,
+                      void *priv_data_to_set);
+int elapi_get_fd_priv(struct elapi_fd_data *fd_data,
+                      void **priv_data_to_get);
+/* Cleanup function */
+int elapi_destroy_fd_data(struct elapi_fd_data *fd_data);
+
+/* Functions to set and get custom data from timer data. */
+/* Functions return EINVAL if passed in argument is invalid. */
+int elapi_set_tm_priv(struct elapi_tm_data *tm_data,
+                      void *priv_data_to_set);
+int elapi_get_tm_priv(struct elapi_tm_data *tm_data,
+                      void **priv_data_to_get);
+/* Cleanup function */
+int elapi_destroy_tm_data(struct elapi_tm_data *tm_data);
+
+/* Public interfaces ELAPI exposes to handle fd or timer
+ * events (do not confuse with log events).
  */
-typedef int (*elapi_fd_callback)(int fd,                /* File descriptor     */
-                                 void *elapi_data);     /* ELAPI supplied data */
+int elapi_process_fd(struct elapi_fd_data *fd_data);
+int elapi_process_tm(struct elapi_tm_data *tm_data);
 
-/* Signature ELAPI callback function that
- * should be called when the event loop got a timer driven event.
+/* Signature of the function to add
+ * file descriptor into the event loop.
+ * Provided by caller of the ELAPI interface.
  */
-typedef int (*elapi_timer_callback)(void *elapi_data);  /* ELAPI supplied data */
+typedef int (*elapi_add_fd)(int fd,
+                            unsigned flags,
+                            struct elapi_fd_data *fd_data,
+                            void *ext_fd_data);
 
-/* Signature of the supplied by caller function that ELAPI
- * will call to add the fd into the application event processing loop.
+/* Signature of the function to remove
+ * file descriptor from the event loop.
+ * Provided by caller of the ELAPI interface.
  */
-typedef int (*elapi_add_fd)(int fd,                     /* File descriptor to add */
-                            void *callers_data,         /* Data that the function
-                                                         * would need to do its work */
-                            elapi_fd_callback handle,   /* Callback to call when event happens */
-                            void *elapi_data);          /* Data to pass to the callback */
+typedef int (*elapi_rem_fd)(int fd,
+                            struct elapi_fd_data *fd_data,
+                            void *ext_fd_data);
 
-/* Signature of the supplied by caller function that ELAPI
- * will call to remove the fd from the application event processing loop.
- * The implementation of the function should assume that
- * ELAPI will close file/socket descriptor after colling this function.
+/* Signature of the function to set
+ * file descriptor for read/write operation.
+ * Provided by caller of the ELAPI interface.
  */
-typedef int (*elapi_rem_fd)(int fd,                     /* File descriptor to add */
-                            void *callers_data);        /* Data that the function
-                                                         * would need to do its work */
+typedef int (*elapi_set_fd)(int fd,
+                            unsigned flags,
+                            struct elapi_fd_data *fd_data,
+                            void *ext_fd_data);
 
-/* Signature of the supplied by caller function that ELAPI
- * will call to add a new timer event to the application event processing loop.
+
+/* Signature of the function to add timer.
+ * Provided by caller of the ELAPI interface.
+ * Caller must be aware that the timeval strcuture
+ * is allocated on stack.
  */
-typedef int (*elapi_add_timer)(struct timeval timer,        /* Timer */
-                               void *callers_data,          /* Data that the function
-                                                             * would need to do its work */
-                               elapi_timer_callback handle, /* Callback to call when event happens */
-                               void *elapi_data);           /* Data to pass to the callback */
+typedef int (*elapi_add_tm)(struct timeval *tv,
+                            struct elapi_tm_data *tm_data,
+                            void *ext_tm_data);
+
+/* Signature of the function to add timer.
+ * Provided by caller of the ELAPI interface.
+ * Caller must be aware that the timeval strcuture
+ * is allocated on stack.
+ */
+typedef int (*elapi_rem_tm)(struct elapi_tm_data *tm_data,
+                            void *ext_tm_data);
 
 
 
+/* Structure that contains the pointer to functions
+ * that needed to be provided to enable async processing.
+ */
+struct elapi_async_ctx {
+    elapi_add_fd add_fd_cb;
+    elapi_rem_fd rem_fd_cb;
+    elapi_set_fd set_fd_cb;
+    void *ext_fd_data;
+    elapi_add_tm add_tm_cb;
+    elapi_rem_tm rem_tm_cb;
+    void *ext_tm_data;
+};
 
+/* Interface to create the async context */
+int elapi_create_asctx(struct elapi_async_ctx **ctx,
+                       elapi_add_fd add_fd_cb,
+                       elapi_rem_fd rem_fd_cb,
+                       elapi_set_fd set_fd_cb,
+                       void *ext_fd_data,
+                       elapi_add_tm add_tm_cb,
+                       elapi_rem_tm rem_tm_cb,
+                       void *ext_tm_data);
+
+/* Function to free the async context */
+void elapi_destroy_asctx(struct elapi_async_ctx *ctx);
+
+/* Function to validate the consistency of the
+ * async context */
+int elapi_check_asctx(struct elapi_async_ctx *ctx);
 
 #endif
