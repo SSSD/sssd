@@ -271,6 +271,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     struct sss_domain_info *dom;
     struct nss_ctx *nctx;
     int timeout;
@@ -388,7 +389,13 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
                 DEBUG(4, ("Requesting info for [%s@%s]\n",
                           cmdctx->name, dctx->domain->name));
 
-                ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
+                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                              dctx->domain, &sysdb);
+                if (ret != EOK) {
+                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                    NSS_CMD_FATAL_ERROR(cctx);
+                }
+                ret = sysdb_getpwnam(cmdctx, sysdb,
                                      dctx->domain, cmdctx->name,
                                      nss_cmd_getpwnam_callback, dctx);
                 if (ret != EOK) {
@@ -458,6 +465,7 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -479,7 +487,13 @@ static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_getpwnam(cmdctx, sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
 
@@ -501,6 +515,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     const char *rawname;
     char *domname;
@@ -602,7 +617,14 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s@%s]\n",
               cmdctx->name, dctx->domain->name));
 
-    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        ret = EFAULT;
+        goto done;
+    }
+    ret = sysdb_getpwnam(cmdctx, sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getpwnam_callback, dctx);
     if (ret != EOK) {
@@ -644,6 +666,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
@@ -748,7 +771,13 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
                 DEBUG(4, ("Requesting info for [%s@%s]\n",
                           cmdctx->name, dctx->domain->name));
 
-                ret = sysdb_getpwuid(cmdctx, cctx->rctx->sysdb,
+                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                              dctx->domain, &sysdb);
+                if (ret != EOK) {
+                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                    NSS_CMD_FATAL_ERROR(cctx);
+                }
+                ret = sysdb_getpwuid(cmdctx, sysdb,
                                      dctx->domain, cmdctx->id,
                                      nss_cmd_getpwuid_callback, dctx);
                 if (ret != EOK) {
@@ -818,6 +847,7 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -839,7 +869,13 @@ static void nss_cmd_getpwuid_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwuid(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_getpwuid(cmdctx, sysdb,
                          dctx->domain, cmdctx->id,
                          nss_cmd_getpwuid_callback, dctx);
 
@@ -860,6 +896,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     uint8_t *body;
     size_t blen;
@@ -920,7 +957,14 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
 
-        ret = sysdb_getpwuid(cmdctx, cctx->rctx->sysdb,
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                      dctx->domain, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            ret = EFAULT;
+            goto done;
+        }
+        ret = sysdb_getpwuid(cmdctx, sysdb,
                              dctx->domain, cmdctx->id,
                              nss_cmd_getpwuid_callback, dctx);
         if (ret != EOK) {
@@ -978,6 +1022,7 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct getent_ctx *pctx;
     struct nss_ctx *nctx;
     int timeout;
@@ -1040,7 +1085,13 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
                                        timeout, dom->name, SSS_DP_USER,
                                        NULL, 0);
         } else {
-            ret = sysdb_enumpwent(dctx, cctx->rctx->sysdb,
+            ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                          dctx->domain, &sysdb);
+            if (ret != EOK) {
+                DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            ret = sysdb_enumpwent(dctx, sysdb,
                                   dctx->domain, NULL,
                                   nss_cmd_setpwent_callback, dctx);
         }
@@ -1085,6 +1136,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -1094,7 +1146,13 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_enumpwent(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_enumpwent(cmdctx, sysdb,
                           dctx->domain, NULL,
                           nss_cmd_setpwent_callback, dctx);
     if (ret != EOK) {
@@ -1111,6 +1169,7 @@ static void nss_cmd_setpw_dp_callback(uint16_t err_maj, uint32_t err_min,
 static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
 {
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct nss_ctx *nctx;
@@ -1173,7 +1232,14 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
                                    timeout, dom->name, SSS_DP_USER,
                                    NULL, 0);
     } else {
-        ret = sysdb_enumpwent(dctx, cctx->rctx->sysdb,
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                      dctx->domain, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            ret = EFAULT;
+            goto done;
+        }
+        ret = sysdb_enumpwent(dctx, sysdb,
                               dctx->domain, NULL,
                               nss_cmd_setpwent_callback, dctx);
     }
@@ -1634,6 +1700,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
@@ -1740,7 +1807,13 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
                 DEBUG(4, ("Requesting info for [%s@%s]\n",
                           cmdctx->name, dctx->domain->name));
 
-                ret = sysdb_getgrnam(cmdctx, cctx->rctx->sysdb,
+                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                              dctx->domain, &sysdb);
+                if (ret != EOK) {
+                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                    NSS_CMD_FATAL_ERROR(cctx);
+                }
+                ret = sysdb_getgrnam(cmdctx, sysdb,
                                      dctx->domain, cmdctx->name,
                                      nss_cmd_getgrnam_callback, dctx);
                 if (ret != EOK) {
@@ -1806,6 +1879,7 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -1827,7 +1901,13 @@ static void nss_cmd_getgrnam_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getgrnam(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_getgrnam(cmdctx, sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
 
@@ -1849,6 +1929,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     const char *rawname;
     char *domname;
@@ -1950,7 +2031,14 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s@%s]\n",
               cmdctx->name, dctx->domain->name));
 
-    ret = sysdb_getgrnam(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        ret = EFAULT;
+        goto done;
+    }
+    ret = sysdb_getgrnam(cmdctx, sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getgrnam_callback, dctx);
     if (ret != EOK) {
@@ -1992,6 +2080,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
@@ -2087,7 +2176,13 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
                 DEBUG(4, ("Requesting info for [%s@%s]\n",
                           cmdctx->name, dctx->domain->name));
 
-                ret = sysdb_getgrgid(cmdctx, cctx->rctx->sysdb,
+                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                              dctx->domain, &sysdb);
+                if (ret != EOK) {
+                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                    NSS_CMD_FATAL_ERROR(cctx);
+                }
+                ret = sysdb_getgrgid(cmdctx, sysdb,
                                      dctx->domain, cmdctx->id,
                                      nss_cmd_getgrgid_callback, dctx);
                 if (ret != EOK) {
@@ -2151,6 +2246,7 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -2172,7 +2268,13 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getgrgid(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_getgrgid(cmdctx, sysdb,
                          dctx->domain, cmdctx->id,
                          nss_cmd_getgrgid_callback, dctx);
 
@@ -2193,6 +2295,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     uint8_t *body;
     size_t blen;
@@ -2253,7 +2356,14 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
         DEBUG(4, ("Requesting info for [%lu@%s]\n",
                   cmdctx->id, dctx->domain->name));
 
-        ret = sysdb_getgrgid(cmdctx, cctx->rctx->sysdb,
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                      dctx->domain, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            ret = EFAULT;
+            goto done;
+        }
+        ret = sysdb_getgrgid(cmdctx, sysdb,
                              dctx->domain, cmdctx->id,
                              nss_cmd_getgrgid_callback, dctx);
         if (ret != EOK) {
@@ -2311,6 +2421,7 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct getent_ctx *gctx;
     struct nss_ctx *nctx;
     int timeout;
@@ -2369,7 +2480,13 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
                                        timeout, dom->name, SSS_DP_GROUP,
                                        NULL, 0);
         } else {
-            ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
+            ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                          dctx->domain, &sysdb);
+            if (ret != EOK) {
+                DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                NSS_CMD_FATAL_ERROR(cctx);
+            }
+            ret = sysdb_enumgrent(dctx, sysdb,
                                   dctx->domain,
                                   nss_cmd_setgrent_callback, dctx);
         }
@@ -2414,6 +2531,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -2423,7 +2541,13 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_enumgrent(dctx, sysdb,
                           dctx->domain,
                           nss_cmd_setgrent_callback, dctx);
     if (ret != EOK) {
@@ -2440,6 +2564,7 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
 static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 {
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct nss_ctx *nctx;
@@ -2502,7 +2627,14 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
                                    timeout, dom->name, SSS_DP_GROUP,
                                    NULL, 0);
     } else {
-        ret = sysdb_enumgrent(dctx, cctx->rctx->sysdb,
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                      dctx->domain, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            ret = EFAULT;
+            goto done;
+        }
+        ret = sysdb_enumgrent(dctx, sysdb,
                               dctx->domain,
                               nss_cmd_setgrent_callback, dctx);
     }
@@ -2728,6 +2860,7 @@ static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -2737,7 +2870,13 @@ static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_initgroups(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_initgroups(cmdctx, sysdb,
                            dctx->domain, cmdctx->name,
                            nss_cmd_initgr_callback, cmdctx);
     if (ret != EOK) {
@@ -2760,6 +2899,7 @@ static void nss_cmd_getinitnam_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -2781,7 +2921,13 @@ static void nss_cmd_getinitnam_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_getpwnam(cmdctx, sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
 
@@ -2804,6 +2950,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int timeout;
     uint64_t lastUpdate;
@@ -2920,7 +3067,13 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
                 DEBUG(4, ("Requesting info for [%s@%s]\n",
                           cmdctx->name, dctx->domain->name));
 
-                ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
+                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                              dctx->domain, &sysdb);
+                if (ret != EOK) {
+                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                    NSS_CMD_FATAL_ERROR(cctx);
+                }
+                ret = sysdb_getpwnam(cmdctx, sysdb,
                                      dctx->domain, cmdctx->name,
                                      nss_cmd_getinit_callback, dctx);
                 if (ret != EOK) {
@@ -2991,6 +3144,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     const char *rawname;
     char *domname;
@@ -3092,7 +3246,14 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     DEBUG(4, ("Requesting info for [%s@%s]\n",
               cmdctx->name, dctx->domain->name));
 
-    ret = sysdb_getpwnam(cmdctx, cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        ret = EFAULT;
+        goto done;
+    }
+    ret = sysdb_getpwnam(cmdctx, sysdb,
                          dctx->domain, cmdctx->name,
                          nss_cmd_getinit_callback, dctx);
     if (ret != EOK) {

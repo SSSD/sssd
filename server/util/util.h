@@ -157,4 +157,7 @@ int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **domain, char **name);
 
+/* from backup-file.c */
+int backup_file(const char *src, int dbglvl);
+
 #endif /* __SSSD_UTIL_H__ */

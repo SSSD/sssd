@@ -510,7 +510,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     rctx->priv_sock_name = sss_priv_pipe_name;
     rctx->confdb_service_path = confdb_service_path;
 
-    ret = confdb_get_domains(rctx->cdb, rctx, &rctx->domains);
+    ret = confdb_get_domains(rctx->cdb, &rctx->domains);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up domain map\n"));
         return ret;
@@ -534,7 +534,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
-    ret = sysdb_init(rctx, ev, cdb, NULL, &rctx->sysdb);
+    ret = sysdb_init(rctx, ev, cdb, NULL, false, &rctx->db_list);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing resp_ctx\n"));
         return ret;

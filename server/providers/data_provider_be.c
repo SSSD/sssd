@@ -944,13 +944,13 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = confdb_get_domain(cdb, ctx, be_domain, &ctx->domain);
+    ret = confdb_get_domain(cdb, be_domain, &ctx->domain);
     if (ret != EOK) {
         DEBUG(0, ("fatal error retrieving domain configuration\n"));
         return ret;
     }
 
-    ret = sysdb_init(ctx, ev, cdb, NULL, &ctx->sysdb);
+    ret = sysdb_domain_init(ctx, ev, ctx->domain, DB_PATH, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error opening cache database\n"));
         return ret;

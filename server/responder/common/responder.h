@@ -62,7 +62,6 @@ struct resp_ctx {
     int lfd;
     struct tevent_fd *priv_lfde;
     int priv_lfd;
-    struct sysdb_ctx *sysdb;
     struct confdb_ctx *cdb;
     const char *sock_name;
     const char *priv_sock_name;
@@ -71,6 +70,7 @@ struct resp_ctx {
     struct sbus_connection *dp_conn;
 
     struct sss_domain_info *domains;
+    struct sysdb_ctx_list *db_list;
 
     struct sss_cmd_table *sss_cmds;
     const char *sss_pipe_name;

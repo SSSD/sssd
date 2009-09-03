@@ -25,6 +25,8 @@
 struct confdb_ctx {
     struct tevent_context *pev;
     struct ldb_context *ldb;
+
+    struct sss_domain_info *doms;
 };
 
 int parse_section(TALLOC_CTX *mem_ctx, const char *section,

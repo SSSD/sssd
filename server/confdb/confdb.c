@@ -673,10 +673,10 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int confdb_get_domain(struct confdb_ctx *cdb,
-                      TALLOC_CTX *mem_ctx,
-                      const char *name,
-                      struct sss_domain_info **_domain)
+static int confdb_get_domain_internal(struct confdb_ctx *cdb,
+                                      TALLOC_CTX *mem_ctx,
+                                      const char *name,
+                                      struct sss_domain_info **_domain)
 {
     struct sss_domain_info *domain;
     struct ldb_result *res;
@@ -803,16 +803,19 @@ done:
 }
 
 int confdb_get_domains(struct confdb_ctx *cdb,
-                       TALLOC_CTX *mem_ctx,
                        struct sss_domain_info **domains)
 {
     TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *domain, *prevdom = NULL;
-    struct sss_domain_info *first = NULL;
     char **domlist;
     int ret, i;
 
-    tmp_ctx = talloc_new(mem_ctx);
+    if (cdb->doms) {
+        *domains = cdb->doms;
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) return ENOMEM;
 
     ret = confdb_get_string_as_list(cdb, tmp_ctx,
@@ -827,7 +830,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     }
 
     for (i = 0; domlist[i]; i++) {
-        ret = confdb_get_domain(cdb, mem_ctx, domlist[i], &domain);
+        ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
         if (ret) {
             DEBUG(0, ("Error (%d [%s]) retrieving domain [%s], skipping!\n",
                       ret, strerror(ret), domlist[i]));
@@ -835,23 +838,46 @@ int confdb_get_domains(struct confdb_ctx *cdb,
             continue;
         }
 
-        if (first == NULL) {
-            first = domain;
-            prevdom = first;
+        if (cdb->doms == NULL) {
+            cdb->doms = domain;
+            prevdom = cdb->doms;
         } else {
             prevdom->next = domain;
             prevdom = domain;
         }
     }
 
-    if (first == NULL) {
+    if (cdb->doms == NULL) {
         DEBUG(0, ("No domains configured, fatal error!\n"));
         ret = ENOENT;
     }
 
-    *domains = first;
+    *domains = cdb->doms;
+    ret = EOK;
 
 done:
     talloc_free(tmp_ctx);
     return ret;
+}
+
+int confdb_get_domain(struct confdb_ctx *cdb,
+                      const char *name,
+                      struct sss_domain_info **_domain)
+{
+    struct sss_domain_info *dom, *doms;
+    int ret;
+
+    ret = confdb_get_domains(cdb, &doms);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    for (dom = doms; dom; dom = dom->next) {
+        if (strcasecmp(dom->name, name) == 0) {
+            *_domain = dom;
+            return EOK;
+        }
+    }
+
+    return ENOENT;
 }

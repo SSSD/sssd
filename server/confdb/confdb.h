@@ -91,12 +91,10 @@ int confdb_init(TALLOC_CTX *mem_ctx,
                 char *confdb_location);
 
 int confdb_get_domain(struct confdb_ctx *cdb,
-                      TALLOC_CTX *mem_ctx,
                       const char *name,
                       struct sss_domain_info **domain);
 
 int confdb_get_domains(struct confdb_ctx *cdb,
-                       TALLOC_CTX *mem_ctx,
                        struct sss_domain_info **domains);
 
 #endif

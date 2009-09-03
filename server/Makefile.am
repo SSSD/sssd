@@ -159,6 +159,7 @@ SSSD_UTIL_OBJ = \
     util/server.c \
     util/signal.c \
     util/usertools.c \
+    util/backup_file.c \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \

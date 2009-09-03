@@ -24,15 +24,19 @@
 #include <talloc.h>
 #include <tevent.h>
 #include <popt.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "util/util.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb_private.h"
+
+#define TESTS_PATH "tests_sysdb"
 
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
     struct tevent_context *ev;
-    struct sss_domain_info *domains;
+    struct sss_domain_info *domain;
 };
 
 static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
@@ -43,6 +47,14 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     const char *val[2];
     val[1] = NULL;
+
+    /* Create tests directory if it doesn't exist */
+    /* (relative to current dir) */
+    ret = mkdir(TESTS_PATH, 0775);
+    if (ret == -1 && errno != EEXIST) {
+        fail("Could not create %s directory", TESTS_PATH);
+        return EFAULT;
+    }
 
     test_ctx = talloc_zero(NULL, struct sysdb_test_ctx);
     if (test_ctx == NULL) {
@@ -60,7 +72,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return EIO;
     }
 
-    conf_db = talloc_asprintf(test_ctx, "tests_conf.ldb");
+    conf_db = talloc_asprintf(test_ctx, "%s/tests_conf.ldb", TESTS_PATH);
     if (conf_db == NULL) {
         fail("Out of memory, aborting!");
         talloc_free(test_ctx);
@@ -77,58 +89,52 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
     }
 
     val[0] = "LOCAL";
-    ret = confdb_add_param(test_ctx->confdb, true, "config/domains", "domains", val);
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/domains", "domains", val);
     if (ret != EOK) {
         fail("Could not initialize domains placeholder");
         talloc_free(test_ctx);
         return ret;
     }
 
-    val[0] = "foo";
-    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "provider", val);
+    val[0] = "local";
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/domains/LOCAL", "provider", val);
     if (ret != EOK) {
-        fail("Could not initialize domains placeholder");
+        fail("Could not initialize provider");
         talloc_free(test_ctx);
         return ret;
     }
 /*
     val[0] = "TRUE";
-    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "legacy", val);
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/domains/LOCAL", "magicPrivateGroups", val);
     if (ret != EOK) {
         fail("Could not initialize LOCAL domain");
         talloc_free(test_ctx);
         return ret;
     }
 */
-/*
     val[0] = "TRUE";
-    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "magicPrivateGroups", val);
-    if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
-        talloc_free(test_ctx);
-        return ret;
-    }
-*/
-    val[0] = "3";
-    ret = confdb_add_param(test_ctx->confdb, true, "config/domains/LOCAL", "enumerate", val);
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/domains/LOCAL", "enumerate", val);
     if (ret != EOK) {
         fail("Could not initialize LOCAL domain");
         talloc_free(test_ctx);
         return ret;
     }
 
-    ret = sysdb_init(test_ctx, test_ctx->ev, test_ctx->confdb, "tests.ldb",
-                     &test_ctx->sysdb);
+    ret = confdb_get_domain(test_ctx->confdb, "local", &test_ctx->domain);
     if (ret != EOK) {
-        fail("Could not initialize connection to the sysdb");
+        fail("Could not retrieve LOCAL domain");
         talloc_free(test_ctx);
         return ret;
     }
 
-    ret = confdb_get_domains(test_ctx->confdb, test_ctx,
-                             &test_ctx->domains);
+    ret = sysdb_domain_init(test_ctx, test_ctx->ev,
+                            test_ctx->domain, TESTS_PATH, &test_ctx->sysdb);
     if (ret != EOK) {
-        fail("Could not initialize domains");
+        fail("Could not initialize connection to the sysdb (%d)", ret);
         talloc_free(test_ctx);
         return ret;
     }
@@ -140,7 +146,6 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 struct test_data {
     struct tevent_context *ev;
     struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
     struct sysdb_test_ctx *ctx;
 
     const char *username;
@@ -155,25 +160,6 @@ struct test_data {
     struct sysdb_attrs *attrs;
     const char *attrval;  /* testing sysdb_get_user_attr */
 };
-
-static struct sss_domain_info *get_local_domain(struct sss_domain_info *domlist)
-{
-    struct sss_domain_info *local = domlist;
-
-    while (local) {
-        if (strcmp(local->name, "LOCAL") == 0)
-            break;
-
-        local = local->next;
-    }
-
-    if (local == NULL) {
-        fail("Could not set up the test (missing LOCAL domain)");
-        return NULL;
-    }
-
-    return local;
-}
 
 static int test_loop(struct test_data *data)
 {
@@ -236,7 +222,7 @@ static void test_add_user(struct tevent_req *subreq)
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
     subreq = sysdb_add_user_send(data, data->ev, data->handle,
-                                 data->domain, data->username,
+                                 data->ctx->domain, data->username,
                                  data->uid, 0,
                                  gecos, homedir, "/bin/bash",
                                  NULL);
@@ -276,7 +262,7 @@ static void test_store_user(struct tevent_req *req)
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
     subreq = sysdb_store_user_send(data, data->ev, data->handle,
-                                  data->domain, data->username, "x",
+                                  data->ctx->domain, data->username, "x",
                                   data->uid, 0,
                                   gecos, homedir,
                                   data->shell ? data->shell : "/bin/bash",
@@ -349,7 +335,7 @@ static void test_remove_user_by_uid(struct tevent_req *req)
 
     subreq = sysdb_delete_user_by_uid_send(data,
                                            data->ev, data->handle,
-                                           data->domain, data->uid,
+                                           data->ctx->domain, data->uid,
                                            true);
     if (!subreq) return test_return(data, ENOMEM);
 
@@ -383,7 +369,7 @@ static void test_remove_nonexistent_group(struct tevent_req *req)
 
     subreq = sysdb_delete_group_by_gid_send(data,
                                            data->ev, data->handle,
-                                           data->domain, data->uid,
+                                           data->ctx->domain, data->uid,
                                            false);
     if (!subreq) return test_return(data, ENOMEM);
 
@@ -417,7 +403,7 @@ static void test_remove_nonexistent_user(struct tevent_req *req)
 
     subreq = sysdb_delete_user_by_uid_send(data,
                                            data->ev, data->handle,
-                                           data->domain, data->uid,
+                                           data->ctx->domain, data->uid,
                                            false);
     if (!subreq) return test_return(data, ENOMEM);
 
@@ -451,7 +437,7 @@ static void test_add_group(struct tevent_req *req)
     }
 
     subreq = sysdb_add_group_send(data, data->ev, data->handle,
-                                  data->domain, data->groupname,
+                                  data->ctx->domain, data->groupname,
                                   data->gid, NULL);
     if (!subreq) {
         test_return(data, ret);
@@ -484,7 +470,7 @@ static void test_store_group(struct tevent_req *req)
     }
 
     subreq = sysdb_store_group_send(data, data->ev, data->handle,
-                                    data->domain, data->groupname,
+                                    data->ctx->domain, data->groupname,
                                     data->gid, NULL, NULL);
     if (!subreq) {
         test_return(data, ret);
@@ -551,7 +537,7 @@ static void test_remove_group_by_gid(struct tevent_req *req)
     }
 
     subreq = sysdb_delete_group_by_gid_send(data, data->ev, data->handle,
-                                            data->domain, data->gid,
+                                            data->ctx->domain, data->gid,
                                             true);
     if (!subreq) return test_return(data, ENOMEM);
 
@@ -723,7 +709,7 @@ static void test_set_user_attr(struct tevent_req *req)
     }
 
     subreq = sysdb_set_user_attr_send(data, data->ev, data->handle,
-                                      data->domain, data->username,
+                                      data->ctx->domain, data->username,
                                       data->attrs, SYSDB_MOD_REP);
     if (!subreq) return test_return(data, ENOMEM);
 
@@ -787,7 +773,7 @@ static void test_add_group_member(struct tevent_req *req)
     }
 
     subreq = sysdb_add_group_member_send(data, data->ev,
-                                         data->handle, data->domain,
+                                         data->handle, data->ctx->domain,
                                          data->groupname, username);
     if (!subreq) {
         test_return(data, ENOMEM);
@@ -825,7 +811,7 @@ static void test_remove_group_member(struct tevent_req *req)
     }
 
     subreq = sysdb_remove_group_member_send(data, data->ev,
-                                            data->handle, data->domain,
+                                            data->handle, data->ctx->domain,
                                             data->groupname, username);
     if (!subreq) {
         test_return(data, ENOMEM);
@@ -863,7 +849,6 @@ START_TEST (test_sysdb_store_user)
     data->uid = _i;
     data->gid = _i;
     data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -901,7 +886,6 @@ START_TEST (test_sysdb_store_user_existing)
     data->uid = _i;
     data->gid = _i;
     data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
     data->shell = talloc_asprintf(data, "/bin/ksh");
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
@@ -939,7 +923,6 @@ START_TEST (test_sysdb_store_group)
     data->ev = test_ctx->ev;
     data->gid = _i;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -1010,7 +993,6 @@ START_TEST (test_sysdb_remove_local_user_by_uid)
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
     data->uid = _i;
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -1081,7 +1063,6 @@ START_TEST (test_sysdb_remove_local_group_by_gid)
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
     data->gid = _i;
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -1119,7 +1100,6 @@ START_TEST (test_sysdb_add_user)
     data->uid = _i;
     data->gid = _i;
     data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!subreq) {
@@ -1157,7 +1137,6 @@ START_TEST (test_sysdb_add_group)
     data->uid = _i;
     data->gid = _i;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!subreq) {
@@ -1191,11 +1170,10 @@ START_TEST (test_sysdb_getpwnam)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->sysdb,
-                         data->domain,
+                         data->ctx->domain,
                          data->username,
                          test_getpwent,
                          data);
@@ -1231,11 +1209,10 @@ START_TEST (test_sysdb_getgrnam)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_getgrnam(test_ctx,
                          test_ctx->sysdb,
-                         data->domain,
+                         data->ctx->domain,
                          data->groupname,
                          test_getgrent,
                          data);
@@ -1279,11 +1256,10 @@ START_TEST (test_sysdb_getgrgid)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->gid = _i;
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_getgrgid(test_ctx,
                          test_ctx->sysdb,
-                         data->domain,
+                         data->ctx->domain,
                          data->gid,
                          test_getgrgid,
                          data);
@@ -1327,11 +1303,10 @@ START_TEST (test_sysdb_getpwuid)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->uid = _i;
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_getpwuid(test_ctx,
                          test_ctx->sysdb,
-                         data->domain,
+                         data->ctx->domain,
                          data->uid,
                          test_getpwuid,
                          data);
@@ -1368,11 +1343,10 @@ START_TEST (test_sysdb_enumgrent)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_enumgrent(test_ctx,
                          test_ctx->sysdb,
-                         data->domain,
+                         data->ctx->domain,
                          test_enumgrent,
                          data);
     if (ret == EOK) {
@@ -1402,11 +1376,10 @@ START_TEST (test_sysdb_enumpwent)
 
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_enumpwent(test_ctx,
                           test_ctx->sysdb,
-                          data->domain,
+                          data->ctx->domain,
                           NULL,
                           test_enumpwent,
                           data);
@@ -1441,7 +1414,6 @@ START_TEST (test_sysdb_set_user_attr)
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
     data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
@@ -1491,11 +1463,10 @@ START_TEST (test_sysdb_get_user_attr)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->username = talloc_asprintf(data, "testuser%d", _i);
-    data->domain = get_local_domain(test_ctx->domains);
 
     ret = sysdb_get_user_attr(data,
                               data->ctx->sysdb,
-                              data->domain,
+                              data->ctx->domain,
                               data->username,
                               attrs,
                               test_get_user_attr,
@@ -1535,7 +1506,6 @@ START_TEST (test_sysdb_add_group_member)
     data->ev = test_ctx->ev;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->uid = _i - 1000; /* the UID of user to add */
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -1572,7 +1542,6 @@ START_TEST (test_sysdb_remove_group_member)
     data->ev = test_ctx->ev;
     data->groupname = talloc_asprintf(data, "testgroup%d", _i);
     data->uid = _i - 1000; /* the UID of user to add */
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -1607,7 +1576,6 @@ START_TEST (test_sysdb_remove_nonexistent_user)
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
     data->uid = 12345;
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {
@@ -1643,7 +1611,6 @@ START_TEST (test_sysdb_remove_nonexistent_group)
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
     data->uid = 12345;
-    data->domain = get_local_domain(test_ctx->domains);
 
     req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
     if (!req) {

@@ -382,6 +382,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq);
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     struct pam_auth_req *preq;
     struct pam_data *pd;
     uint8_t *body;
@@ -486,7 +487,13 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     else {
         preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
 
-        ret = sysdb_getpwnam(preq, cctx->rctx->sysdb,
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                      preq->domain, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            goto done;
+        }
+        ret = sysdb_getpwnam(preq, sysdb,
                              preq->domain, preq->pd->user,
                              pam_check_user_callback, preq);
     }
@@ -509,6 +516,7 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
 {
     struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
     struct ldb_result *res = NULL;
+    struct sysdb_ctx *sysdb;
     int ret;
 
     if ((err_maj != DP_ERR_OK) && (err_maj != DP_ERR_OFFLINE)) {
@@ -531,7 +539,13 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
         return;
     }
 
-    ret = sysdb_getpwnam(preq, preq->cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                  preq->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        goto done;
+    }
+    ret = sysdb_getpwnam(preq, sysdb,
                          preq->domain, preq->pd->user,
                          pam_check_user_callback, preq);
 
@@ -547,6 +561,7 @@ static void pam_check_user_callback(void *ptr, int status,
 {
     struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     uint64_t lastUpdate;
     bool call_provider = false;
     time_t timeout;
@@ -673,7 +688,15 @@ static void pam_check_user_callback(void *ptr, int status,
                 else {
                     preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
 
-                    ret = sysdb_getpwnam(preq, preq->cctx->rctx->sysdb,
+                    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                                  preq->domain, &sysdb);
+                    if (ret != EOK) {
+                        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                        preq->pd->pam_status = PAM_SYSTEM_ERR;
+                        pam_reply(preq);
+                        return;
+                    }
+                    ret = sysdb_getpwnam(preq, sysdb,
                                          preq->domain, preq->pd->user,
                                          pam_check_user_callback, preq);
                 }

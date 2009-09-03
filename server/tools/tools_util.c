@@ -167,7 +167,7 @@ int setup_db(struct tools_ctx **tools_ctx)
         return ret;
     }
 
-    ret = confdb_get_domains(ctx->confdb, ctx, &ctx->domains);
+    ret = confdb_get_domains(ctx->confdb, &ctx->domains);
     if (ret != EOK) {
         DEBUG(1, ("Could not get domains"));
         talloc_free(ctx);
@@ -175,7 +175,7 @@ int setup_db(struct tools_ctx **tools_ctx)
     }
 
     /* open sysdb at default path */
-    ret = sysdb_init(ctx, ctx->ev, ctx->confdb, NULL, &ctx->sysdb);
+    ret = sysdb_init(ctx, ctx->ev, ctx->confdb, NULL, false, &ctx->db_list);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the sysdb"));
         talloc_free(ctx);

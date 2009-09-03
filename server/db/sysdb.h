@@ -26,7 +26,8 @@
 #include <tevent.h>
 
 #define SYSDB_CONF_SECTION "config/sysdb"
-#define SYSDB_FILE "sssd.ldb"
+#define CACHE_SYSDB_FILE "cache_%s.ldb"
+#define LOCAL_SYSDB_FILE "sssd.ldb"
 
 #define SYSDB_BASE "cn=sysdb"
 #define SYSDB_DOM_BASE "cn=%s,cn=sysdb"
@@ -137,6 +138,7 @@
 #define SYSDB_MOD_REP LDB_FLAG_MOD_REPLACE
 
 struct confdb_ctx;
+struct sysdb_ctx_list;
 struct sysdb_ctx;
 struct sysdb_handle;
 
@@ -215,7 +217,19 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
                struct tevent_context *ev,
                struct confdb_ctx *cdb,
                const char *alt_db_path,
-               struct sysdb_ctx **dbctx);
+               bool allow_upgrade,
+               struct sysdb_ctx_list **_ctx_list);
+/* used to initialize only one domain database.
+ * Do NOT use if sysdb_init has already been called */
+int sysdb_domain_init(TALLOC_CTX *mem_ctx,
+                      struct tevent_context *ev,
+                      struct sss_domain_info *domain,
+                      const char *db_path,
+                      struct sysdb_ctx **_ctx);
+
+int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
+                            struct sss_domain_info *domain,
+                            struct sysdb_ctx **_ctx);
 
 /* FIXME: REMOVE */
 typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);

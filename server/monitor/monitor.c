@@ -866,7 +866,7 @@ int get_monitor_config(struct mt_ctx *ctx)
     if(!ctx->domain_ctx) {
         return ENOMEM;
     }
-    ret = confdb_get_domains(ctx->cdb, ctx->domain_ctx, &ctx->domains);
+    ret = confdb_get_domains(ctx->cdb, &ctx->domains);
     if (ret != EOK) {
         DEBUG(0, ("No domains configured.\n"));
         return ret;
@@ -1780,7 +1780,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
                          const char *config_file)
 {
     struct mt_ctx *ctx;
-    struct sysdb_ctx *sysdb;
+    struct sysdb_ctx_list *db_list;
     struct tevent_signal *tes;
     int ret, i;
     char *cdb_file;
@@ -1860,19 +1860,16 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    /* Avoid a startup race condition between InfoPipe
-     * and NSS. If the sysdb doesn't exist yet, both
-     * will try to create it at the same time. So
-     * we'll have the monitor create it before either of
-     * those processes start.
+    /* Avoid a startup race condition between process.
+     * We need to handle DB upgrades or DB creation only
+     * in one process before all other start.
      */
-    ret = sysdb_init(mem_ctx, ctx->ev, ctx->cdb,
-                     NULL, &sysdb);
+    ret = sysdb_init(mem_ctx, ctx->ev, ctx->cdb, NULL, true, &db_list);
     if (ret != EOK) {
         talloc_free(ctx);
         return ret;
     }
-    talloc_free(sysdb);
+    talloc_free(db_list);
 
     /* Initialize D-BUS Server
      * The monitor will act as a D-BUS server for all

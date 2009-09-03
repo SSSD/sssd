@@ -261,8 +261,16 @@ int main(int argc, const char **argv)
             goto fini;
     }
 
+    ret = sysdb_get_ctx_from_list(ctx->db_list, data->domain, &data->sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Cannot get domain database!\n"));
+        ERROR("Internal error accesing database\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
     /* add_group */
-    req = sysdb_transaction_send(ctx, ctx->ev, ctx->sysdb);
+    req = sysdb_transaction_send(ctx, ctx->ev, data->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not add group.\n");

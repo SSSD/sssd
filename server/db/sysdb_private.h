@@ -23,7 +23,9 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
-#define SYSDB_VERSION "0.2"
+#define SYSDB_VERSION "0.3"
+#define SYSDB_VERSION_0_3 "0.3"
+#define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
 
 #define SYSDB_BASE_LDIF \
@@ -50,20 +52,8 @@
      "\n" \
      "dn: cn=sysdb\n" \
      "cn: sysdb\n" \
-     "version: 0.2\n" \
+     "version: " SYSDB_VERSION "\n" \
      "description: base object\n" \
-     "\n" \
-     "dn: cn=LOCAL,cn=sysdb\n" \
-     "cn: local\n" \
-     "description: Local system data\n" \
-     "\n" \
-     "dn: cn=Users,cn=LOCAL,cn=sysdb\n" \
-     "cn: users\n" \
-     "description: Local POSIX users\n" \
-     "\n" \
-     "dn: cn=Groups,cn=LOCAL,cn=sysdb\n" \
-     "cn: groups\n" \
-     "description: Local POSIX groups\n" \
      "\n"
 
 #include "db/sysdb.h"
@@ -80,10 +70,20 @@ struct sysdb_handle {
 
 struct sysdb_ctx {
     struct tevent_context *ev;
+
+    struct sss_domain_info *domain;
+
     struct ldb_context *ldb;
     char *ldb_file;
 
     struct sysdb_handle *queue;
+};
+
+struct sysdb_ctx_list {
+    struct sysdb_ctx **dbs;
+    size_t num_dbs;
+
+    char *db_path;
 };
 
 /* An operation blocks the transaction queue as well, but does not

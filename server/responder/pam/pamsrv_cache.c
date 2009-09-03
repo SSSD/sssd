@@ -132,6 +132,7 @@ done:
 
 int pam_cache_auth(struct pam_auth_req *preq)
 {
+    struct sysdb_ctx *sysdb;
     int ret;
 
     static const char *attrs[] = {SYSDB_NAME,
@@ -144,7 +145,13 @@ int pam_cache_auth(struct pam_auth_req *preq)
                                   "lastFailedLogin",
                                   NULL};
 
-    ret = sysdb_get_user_attr(preq, preq->cctx->rctx->sysdb,
+    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                  preq->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        return ret;
+    }
+    ret = sysdb_get_user_attr(preq, sysdb,
                               preq->domain, preq->pd->user, attrs,
                               pam_cache_auth_callback, preq);
 
