@@ -11,7 +11,9 @@ AC_DEFUN([SMB_MODULE_DEFAULT], [echo -n ""])
 AC_DEFUN([SMB_LIBRARY_ENABLE], [echo -n ""])
 AC_DEFUN([SMB_EXT_LIB], [echo -n ""])
 AC_DEFUN([SMB_ENABLE], [echo -n ""])
-AC_INIT([sss_daemon], [0.4.0], [freeipa-devel@redhat.com])
+AC_INIT([sss_daemon],
+        m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
+        [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([conf_macros.m4])
 AC_CONFIG_AUX_DIR([build])
 

@@ -1,4 +1,4 @@
-AC_INIT([elapi],[0.0.1],[freeipa-devel@redhat.com])
+AC_INIT([elapi],[0.0.1],[sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([elapi_ut.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

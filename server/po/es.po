@@ -6,7 +6,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
-"Report-Msgid-Bugs-To: freeipa-devel@redhat.com\n"
+"Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-08-24 14:04-0400\n"
 "PO-Revision-Date: 2009-06-15 10:21-0400\n"
 "Last-Translator: Automatically generated\n"

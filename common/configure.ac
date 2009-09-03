@@ -1,4 +1,6 @@
-AC_INIT([sssd_libs], [0.4.0], [freeipa-devel@redhat.com])
+AC_INIT([sssd_libs],
+        m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
+        [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([README])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

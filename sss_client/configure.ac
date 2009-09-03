@@ -1,5 +1,7 @@
 AC_PREREQ(2.50)
-AC_INIT([sss_client], 0.4.0, [freeipa-devel@redhat.com])
+AC_INIT([sss_client],
+        m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
+        [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([common.c])
 AC_CONFIG_HEADER(config.h)
 AC_CONFIG_AUX_DIR([build])
