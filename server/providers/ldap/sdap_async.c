@@ -1246,7 +1246,9 @@ static int sdap_save_group_recv(struct tevent_req *req,
         return err;
     }
 
-    *timestamp = talloc_steal(mem_ctx, state->timestamp);
+    if ( timestamp ) {
+        *timestamp = talloc_steal(mem_ctx, state->timestamp);
+    }
 
     return EOK;
 }
