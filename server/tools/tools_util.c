@@ -130,6 +130,7 @@ int get_domain_by_id(struct tools_ctx *ctx,
 
 int setup_db(struct tools_ctx **tools_ctx)
 {
+    struct sss_domain_info *dom;
     TALLOC_CTX *tmp_ctx;
     char *confdb_path;
     struct tools_ctx *ctx;
@@ -137,14 +138,14 @@ int setup_db(struct tools_ctx **tools_ctx)
 
     ctx = talloc_zero(NULL, struct tools_ctx);
     if (ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for tools context"));
+        DEBUG(1, ("Could not allocate memory for tools context\n"));
         return ENOMEM;
     }
 
     /* Create the event context */
     ctx->ev = tevent_context_init(ctx);
     if (ctx->ev == NULL) {
-        DEBUG(1, ("Could not create event context"));
+        DEBUG(1, ("Could not create event context\n"));
         talloc_free(ctx);
         return EIO;
     }
@@ -162,22 +163,29 @@ int setup_db(struct tools_ctx **tools_ctx)
     /* Connect to the conf db */
     ret = confdb_init(ctx, ctx->ev, &ctx->confdb, confdb_path);
     if (ret != EOK) {
-        DEBUG(1, ("Could not initialize connection to the confdb"));
+        DEBUG(1, ("Could not initialize connection to the confdb\n"));
         talloc_free(ctx);
         return ret;
     }
 
     ret = confdb_get_domains(ctx->confdb, &ctx->domains);
     if (ret != EOK) {
-        DEBUG(1, ("Could not get domains"));
+        DEBUG(1, ("Could not get domains\n"));
         talloc_free(ctx);
         return ret;
     }
 
-    /* open sysdb at default path */
-    ret = sysdb_init(ctx, ctx->ev, ctx->confdb, NULL, false, &ctx->db_list);
+    ret = confdb_get_domain(ctx->confdb, "local", &dom);
     if (ret != EOK) {
-        DEBUG(1, ("Could not initialize connection to the sysdb"));
+        DEBUG(1, ("Could not get 'local' domain\n"));
+        talloc_free(ctx);
+        return ret;
+    }
+
+    /* open 'local' sysdb at default path */
+    ret = sysdb_domain_init(ctx, ctx->ev, dom, DB_PATH, &ctx->sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Could not initialize connection to the sysdb\n"));
         talloc_free(ctx);
         return ret;
     }

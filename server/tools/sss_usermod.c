@@ -182,13 +182,13 @@ static void remove_from_groups(struct ops_ctx *data)
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
-    member_dn = sysdb_user_dn(data->sysdb, data,
+    member_dn = sysdb_user_dn(data->ctx->sysdb, data,
                               data->domain->name, data->name);
     if (!member_dn) {
         return mod_user_done(data, ENOMEM);
     }
 
-    parent_dn = sysdb_group_dn(data->sysdb, data,
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
                                data->domain->name,
                                data->rmgroups[data->cur]);
     if (!parent_dn) {
@@ -239,13 +239,13 @@ static void add_to_groups(struct ops_ctx *data)
     struct ldb_dn *member_dn;
     struct tevent_req *req;
 
-    member_dn = sysdb_user_dn(data->sysdb, data,
+    member_dn = sysdb_user_dn(data->ctx->sysdb, data,
                               data->domain->name, data->name);
     if (!member_dn) {
         return mod_user_done(data, ENOMEM);
     }
 
-    parent_dn = sysdb_group_dn(data->sysdb, data,
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
                                data->domain->name,
                                data->addgroups[data->cur]);
     if (!parent_dn) {
@@ -589,15 +589,7 @@ int main(int argc, const char **argv)
                   "Could not add attribute to changeset\n");
     }
 
-    ret = sysdb_get_ctx_from_list(ctx->db_list, data->domain, &data->sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Cannot get domain database!\n"));
-        ERROR("Internal error accesing database\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
-    req = sysdb_transaction_send(ctx, ctx->ev, data->sysdb);
+    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");

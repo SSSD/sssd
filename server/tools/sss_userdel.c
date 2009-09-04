@@ -91,7 +91,7 @@ static void user_del(struct tevent_req *req)
         return userdel_done(data, ret, NULL);
     }
 
-    user_dn = sysdb_user_dn(data->sysdb, data,
+    user_dn = sysdb_user_dn(data->ctx->sysdb, data,
                             data->domain->name, data->name);
     if (!user_dn) {
         DEBUG(1, ("Could not construct a user DN\n"));
@@ -265,16 +265,8 @@ int main(int argc, const char **argv)
             goto fini;
     }
 
-    ret = sysdb_get_ctx_from_list(ctx->db_list, data->domain, &data->sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Cannot get domain database!\n"));
-        ERROR("Internal error accesing database\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     /* userdel */
-    req = sysdb_transaction_send(ctx, ctx->ev, data->sysdb);
+    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove user.\n");

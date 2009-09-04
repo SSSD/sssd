@@ -43,7 +43,7 @@ enum id_domain {
 struct tools_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *confdb;
-    struct sysdb_ctx_list *db_list;
+    struct sysdb_ctx *sysdb;
     struct sss_names_ctx *snctx;
 
     struct sss_domain_info *domains;
@@ -53,7 +53,6 @@ struct ops_ctx {
     struct tools_ctx *ctx;
     struct tevent_context *ev;
     struct sss_domain_info *domain;
-    struct sysdb_ctx *sysdb;
 
     char *name;
     uid_t uid;

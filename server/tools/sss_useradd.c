@@ -126,7 +126,7 @@ static int get_gid(struct ops_ctx *data, const char *groupname)
         errno != 0 || data->gid == 0) {
         /* Does not look like a gid - find the group name */
 
-        ret = sysdb_getgrnam(data, data->sysdb,
+        ret = sysdb_getgrnam(data, data->ctx->sysdb,
                              data->domain, groupname,
                              get_gid_callback, data);
         if (ret != EOK) {
@@ -233,13 +233,13 @@ static void add_to_groups(struct ops_ctx *data)
     struct ldb_dn *member_dn;
     struct tevent_req *subreq;
 
-    member_dn = sysdb_user_dn(data->sysdb, data,
+    member_dn = sysdb_user_dn(data->ctx->sysdb, data,
                               data->domain->name, data->name);
     if (!member_dn) {
         return add_user_terminate(data, ENOMEM);
     }
 
-    parent_dn = sysdb_group_dn(data->sysdb, data,
+    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
                               data->domain->name,
                               data->groups[data->cur]);
     if (!parent_dn) {
@@ -526,16 +526,8 @@ int main(int argc, const char **argv)
             goto fini;
     }
 
-    ret = sysdb_get_ctx_from_list(ctx->db_list, data->domain, &data->sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Cannot get domain database!\n"));
-        ERROR("Internal error accesing database\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     /* useradd */
-    req = sysdb_transaction_send(ctx, ctx->ev, data->sysdb);
+    req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify user.\n");
