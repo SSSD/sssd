@@ -68,6 +68,25 @@ struct update_property {
         int found;
 };
 
+/* This struct is used to construct path
+ * to an item in the collection (tree)
+ */
+struct path_data {
+    char *name;
+    int length;
+    struct path_data *previous_path;
+};
+
+/* Structure to keep data needed to
+ * copy collection
+ * while traversing it
+ */
+struct col_copy {
+    int mode;
+    struct path_data *current_path;
+    char *given_name;
+    int given_len;
+};
 
 /******************** FUNCTION DECLARATIONS ****************************/
 
@@ -1113,11 +1132,6 @@ static void col_delete_collection(struct collection_item *ci)
 
 /* Internal data structures used for search */
 
-struct path_data {
-    char *name;
-    int length;
-    struct path_data *previous_path;
-};
 
 struct find_name {
     const char *name_to_find;
@@ -1133,7 +1147,8 @@ struct find_name {
 /* Create a new name */
 static int col_create_path_data(struct path_data **name_path,
                                 const char *name, int length,
-                                const char *property, int property_len)
+                                const char *property, int property_len,
+                                char sep)
 {
     int error = EOK;
     struct path_data *new_name_path;
@@ -1162,7 +1177,7 @@ static int col_create_path_data(struct path_data **name_path,
     if(length > 0) {
         memcpy(new_name_path->name, name, length);
         new_name_path->length = length;
-        new_name_path->name[new_name_path->length] = '!';
+        new_name_path->name[new_name_path->length] = sep;
         new_name_path->length++;
         new_name_path->name[new_name_path->length] = '\0';
         TRACE_INFO_STRING("Name so far:", new_name_path->name);
@@ -1792,7 +1807,8 @@ static int col_act_traverse_handler(struct collection_item *head,
         TRACE_INFO_STRING("col_act_traverse_handler", "About to create path data.");
 
         error = col_create_path_data(&(traverse_data->current_path),
-                                     name, length, property, property_len);
+                                     name, length,
+                                     property, property_len, '!');
 
         TRACE_INFO_NUMBER("col_create_path_data returned:", error);
         return error;
@@ -1899,62 +1915,198 @@ static int col_copy_traverse_handler(struct collection_item *head,
 {
     int error = EOK;
     struct collection_item *parent;
-    struct collection_item *item;
-    struct collection_item *new_collection = NULL;
+    struct collection_item *other = NULL;
+    struct col_copy *traverse_data;
+    struct path_data *temp;
+    char *name;
+    int length;
+    char *property = NULL;
+    int property_len;
+    struct collection_header *header;
 
     TRACE_FLOW_STRING("col_copy_traverse_handler", "Entry.");
 
-    parent = (struct collection_item *)passed_traverse_data;
+    parent = (struct collection_item *)custom_data;
+    traverse_data = (struct col_copy *)passed_traverse_data;
 
-    /* Skip current element but rather work with next if it is not NULL */
-    item = current->next;
-    if (item == NULL) return error;
+    /* We can be called when current points to NULL */
+    /* This will happen only in the FLATDOT case */
+    if (current == NULL) {
+        TRACE_INFO_STRING("col_copy_traverse_handler",
+                          "Special call at the end of the collection.");
+        temp = traverse_data->current_path;
+        traverse_data->current_path = temp->previous_path;
+        temp->previous_path = NULL;
+        col_delete_path_data(temp);
+        traverse_data->given_name = NULL;
+        traverse_data->given_len = 0;
+        TRACE_FLOW_NUMBER("Handling end of collection - removed path. Returning:", error);
+        return error;
+    }
+
+    /* Create new path at the beginning of a new sub collection */
+    if (current->type == COL_TYPE_COLLECTION) {
+
+        TRACE_INFO_STRING("col_copy_traverse_handler",
+                          "Processing collection handle.");
+        if (traverse_data->mode == COL_COPY_FLATDOT) {
+            /* Create new path */
+            if (traverse_data->current_path != NULL) {
+                TRACE_INFO_STRING("Already have part of the path", "");
+                name = traverse_data->current_path->name;
+                length = traverse_data->current_path->length;
+                TRACE_INFO_STRING("Path:", name);
+                TRACE_INFO_NUMBER("Path len:", length);
+            }
+            else {
+                name = NULL;
+                length = 0;
+            }
+
+            if (traverse_data->given_name != NULL) {
+                property = traverse_data->given_name;
+                property_len = traverse_data->given_len;
+            }
+            else {
+                property = current->property;
+                property_len = current->property_len;
+            }
+
+            TRACE_INFO_STRING("col_copy_traverse_handler", "About to create path data.");
+
+            error = col_create_path_data(&(traverse_data->current_path),
+                                         name, length,
+                                         property, property_len, '.');
+
+            TRACE_FLOW_NUMBER("col_copy_traverse_handler processed header:", error);
+            return error;
+        }
+        else {
+            TRACE_FLOW_NUMBER("col_copy_traverse_handler skipping the header:", error);
+            return error;
+        }
+    }
 
 
     /* Check if this is a special case of sub collection */
-    if (item->type == COL_TYPE_COLLECTIONREF) {
+    if (current->type == COL_TYPE_COLLECTIONREF) {
+
         TRACE_INFO_STRING("Found a subcollection we need to copy. Name:",
-                          item->property);
+                          current->property);
 
-        error = col_copy_collection(&new_collection,
-                                    *((struct collection_item **)(item->data)),
-                                    item->property);
-        if (error) {
-            TRACE_ERROR_NUMBER("Copy subcollection returned error:", error);
-            return error;
-        }
+        /* Based on the mode we need to do different things */
+        switch (traverse_data->mode) {
+        case COL_COPY_NORMAL:
 
-        /* Add new item to a collection
-         * all references are now sub collections */
-        error = col_insert_property_with_ref_int(parent,
-                                                 NULL,
-                                                 COL_DSP_END,
-                                                 NULL,
-                                                 0,
-                                                 0,
-                                                 item->property,
-                                                 COL_TYPE_COLLECTIONREF,
-                                                 (void *)(&new_collection),
-                                                 sizeof(struct collection_item **),
-                                                 NULL);
-        if (error) {
-            TRACE_ERROR_NUMBER("Add property returned error:", error);
+            error = col_copy_collection(&other,
+                                        *((struct collection_item **)(current->data)),
+                                        current->property,
+                                        COL_COPY_NORMAL);
+            if (error) {
+                TRACE_ERROR_NUMBER("Copy subcollection returned error:", error);
+                return error;
+            }
+
+            /* Add new item to a collection
+             * all references are now sub collections */
+            error = col_insert_property_with_ref_int(parent,
+                                                     NULL,
+                                                     COL_DSP_END,
+                                                     NULL,
+                                                     0,
+                                                     0,
+                                                     current->property,
+                                                     COL_TYPE_COLLECTIONREF,
+                                                     (void *)(&other),
+                                                     sizeof(struct collection_item **),
+                                                     NULL);
+
+            TRACE_FLOW_NUMBER("col_copy_traverse_handler returning in NORMAL mode:", error);
             return error;
+
+       case COL_COPY_KEEPREF:
+
+            /* Just increase reference count of the referenced collection */
+			other = *((struct collection_item **)(current->data));
+            header = (struct collection_header *)(other->data);
+            header->reference_count++;
+
+            /* Add new item to a collection
+             * all references are now sub collections */
+            error = col_insert_property_with_ref_int(parent,
+                                                     NULL,
+                                                     COL_DSP_END,
+                                                     NULL,
+                                                     0,
+                                                     0,
+                                                     current->property,
+                                                     COL_TYPE_COLLECTIONREF,
+                                                     (void *)(&other),
+                                                     sizeof(struct collection_item **),
+                                                     NULL);
+            TRACE_FLOW_NUMBER("col_copy_traverse_handler returning in KEEPREF mode:", error);
+            return error;
+
+        case COL_COPY_TOP:
+            /* Told to ignore sub collections */
+            TRACE_FLOW_NUMBER("col_copy_traverse_handler returning in TOP mode:", error);
+            return error;
+
+        case COL_COPY_FLATDOT:
+
+            traverse_data->given_name = current->property;
+            traverse_data->given_len = current->property_len;
+            TRACE_INFO_STRING("Saved given name:", traverse_data->given_name);
+            TRACE_FLOW_NUMBER("col_copy_traverse_handler returning in FLATDOT mode:", error);
+            return error;
+
+        /* NOTE: The mode COL_COPY_FLAT is not in the list of cases becuase
+         * in this flat mode we traverse collection using COL_TRAVERSE_FLAT flag
+         * thus we should not be called on referenced collections at all
+         * by the col_walk_items() function.
+         */
+
+        default:
+            TRACE_ERROR_NUMBER("col_copy_traverse_handler bad mode error:", EINVAL);
+            return EINVAL;
         }
     }
     else {
 
+        if (traverse_data->mode == COL_COPY_FLATDOT) {
+            /* Since this code can't use asprintf have to do it hard way */
+            property = malloc(traverse_data->current_path->length +
+                              current->property_len + 2);
+            if (property == NULL) {
+                TRACE_ERROR_NUMBER("Failed to allocate memory for a new name:", error);
+                return error;
+            }
+            memcpy(property, traverse_data->current_path->name,
+                   traverse_data->current_path->length);
+            property[traverse_data->current_path->length] = '.';
+            memcpy(property + traverse_data->current_path->length + 1,
+                   current->property, current->property_len);
+            property[traverse_data->current_path->length + 1 +
+                     current->property_len] = '\0';
+        }
+        else property = current->property;
+
+        TRACE_INFO_STRING("Using property:", property);
+
         error = col_insert_property_with_ref_int(parent,
                                                  NULL,
                                                  COL_DSP_END,
                                                  NULL,
                                                  0,
                                                  0,
-                                                 item->property,
-                                                 item->type,
-                                                 item->data,
-                                                 item->length,
+                                                 property,
+                                                 current->type,
+                                                 current->data,
+                                                 current->length,
                                                  NULL);
+        /* First free then check error */
+        if (traverse_data->mode == COL_COPY_FLATDOT) free(property);
+
         if (error) {
             TRACE_ERROR_NUMBER("Add property returned error:", error);
             return error;
@@ -1965,79 +2117,7 @@ static int col_copy_traverse_handler(struct collection_item *head,
     return error;
 }
 
-/* Function to copy collection as flat set */
-static int col_copy_collection_flat(struct collection_item *acceptor,
-                                    struct collection_item *donor)
-{
-    int error = EOK;
-    struct collection_iterator *iter = NULL;
-    struct collection_item *item = NULL;
-    struct collection_item *new_item = NULL;
-    struct collection_item *current = NULL;
 
-    TRACE_FLOW_STRING("col_copy_collection_flat", "Entry");
-
-    /* Bind iterator in flat mode */
-    error = col_bind_iterator(&iter, donor, COL_TRAVERSE_FLAT);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to bind iterator:", error);
-        return error;
-    }
-
-    /* Skip header */
-    error = col_iterate_collection(iter, &item);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to iterate on header:", error);
-        col_unbind_iterator(iter);
-        return error;
-    }
-
-    current = item->next;
-
-    while (current) {
-
-        /* Loop through a collection */
-        error = col_iterate_collection(iter, &item);
-        if (error) {
-            TRACE_ERROR_NUMBER("Failed to iterate:", error);
-            col_unbind_iterator(iter);
-            return error;
-        }
-
-        /* Create new item */
-        error = col_allocate_item(&new_item,
-                                  item->property,
-                                  item->data,
-                                  item->length,
-                                  item->type);
-        if(error) {
-            TRACE_ERROR_NUMBER("Error allocating end item.", error);
-            col_unbind_iterator(iter);
-            return error;
-        }
-
-        /* Insert this item into collection */
-        error = col_insert_item(acceptor,
-                                NULL,
-                                new_item,
-                                COL_DSP_END,
-                                NULL,
-                                0,
-                                COL_INSERT_DUPOVER);
-        if(error) {
-            TRACE_ERROR_NUMBER("Error allocating end item.", error);
-            col_unbind_iterator(iter);
-            col_delete_item(new_item);
-            return error;
-        }
-
-        current = item->next;
-    }
-
-    col_unbind_iterator(iter);
-    TRACE_FLOW_NUMBER("col_copy_collection_flat Exit returning", error);
-    return error;
-}
 
 
 /********************* MAIN INTERFACE FUNCTIONS *****************************/
@@ -2119,22 +2199,21 @@ void col_destroy_collection(struct collection_item *ci)
 }
 
 
-
-
-
 /* COPY */
-
 /* Create a deep copy of the current collection. */
 /* Referenced collections of the donor are copied as sub collections. */
 int col_copy_collection(struct collection_item **collection_copy,
                         struct collection_item *collection_to_copy,
-                        const char *name_to_use)
+                        const char *name_to_use,
+                        int copy_mode)
 {
     int error = EOK;
     struct collection_item *new_collection = NULL;
     const char *name;
     struct collection_header *header;
     unsigned depth = 0;
+    struct col_copy traverse_data;
+    int flags;
 
     TRACE_FLOW_STRING("col_copy_collection", "Entry.");
 
@@ -2147,6 +2226,12 @@ int col_copy_collection(struct collection_item **collection_copy,
     /* Storage is required too */
     if (collection_copy == NULL) {
         TRACE_ERROR_NUMBER("No memory provided to receive collection copy!", EINVAL);
+        return EINVAL;
+    }
+
+    /* NOTE: Refine this check if adding a new copy mode */
+    if ((copy_mode < 0) || (copy_mode > COL_COPY_TOP)) {
+        TRACE_ERROR_NUMBER("Invalid copy mode:", copy_mode);
         return EINVAL;
     }
 
@@ -2165,9 +2250,18 @@ int col_copy_collection(struct collection_item **collection_copy,
         return error;
     }
 
-    error = col_walk_items(collection_to_copy, COL_TRAVERSE_ONELEVEL,
-                           col_copy_traverse_handler, new_collection,
-                           NULL, NULL, &depth);
+    traverse_data.mode = copy_mode;
+    traverse_data.current_path = NULL;
+    traverse_data.given_name = NULL;
+    traverse_data.given_len = 0;
+
+    if (copy_mode == COL_COPY_FLATDOT) flags = COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END;
+    else if (copy_mode == COL_COPY_FLAT) flags = COL_TRAVERSE_FLAT;
+    else flags = COL_TRAVERSE_ONELEVEL;
+
+    error = col_walk_items(collection_to_copy, flags,
+                           col_copy_traverse_handler, (void *)(&traverse_data),
+                           NULL, new_collection, &depth);
 
     if (!error) *collection_copy = new_collection;
     else col_destroy_collection(new_collection);
@@ -2176,6 +2270,7 @@ int col_copy_collection(struct collection_item **collection_copy,
     return error;
 
 }
+
 
 /* EXTRACTION */
 
@@ -2272,6 +2367,9 @@ int col_add_collection_to_collection(struct collection_item *ci,
     struct collection_header *header;
     struct collection_item *collection_copy;
     int error = EOK;
+    struct col_copy traverse_data;
+    unsigned depth = 0;
+
 
     TRACE_FLOW_STRING("col_add_collection_to_collection", "Entry.");
 
@@ -2390,7 +2488,8 @@ int col_add_collection_to_collection(struct collection_item *ci,
 
         /* For future thread safety: Transaction start -> */
         error = col_copy_collection(&collection_copy,
-                                    collection_to_add, name_to_use);
+                                    collection_to_add, name_to_use,
+                                    COL_COPY_NORMAL);
         if (error) return error;
 
         TRACE_INFO_STRING("We have a collection copy.", collection_copy->property);
@@ -2398,17 +2497,17 @@ int col_add_collection_to_collection(struct collection_item *ci,
         TRACE_INFO_STRING("Acceptor collection.", acceptor->property);
         TRACE_INFO_NUMBER("Acceptor collection type.", acceptor->type);
 
-       error = col_insert_property_with_ref_int(acceptor,
-                                                NULL,
-                                                COL_DSP_END,
-                                                NULL,
-                                                0,
-                                                0,
-                                                name_to_use,
-                                                COL_TYPE_COLLECTIONREF,
-                                                (void *)(&collection_copy),
-                                                sizeof(struct collection_item **),
-                                                NULL);
+        error = col_insert_property_with_ref_int(acceptor,
+                                                 NULL,
+                                                 COL_DSP_END,
+                                                 NULL,
+                                                 0,
+                                                 0,
+                                                 name_to_use,
+                                                 COL_TYPE_COLLECTIONREF,
+                                                 (void *)(&collection_copy),
+                                                 sizeof(struct collection_item **),
+                                                 NULL);
 
         /* -> Transaction end */
         TRACE_INFO_NUMBER("Adding property returned:", error);
@@ -2417,11 +2516,66 @@ int col_add_collection_to_collection(struct collection_item *ci,
     case COL_ADD_MODE_FLAT:
         TRACE_INFO_STRING("We are flattening the collection.", "");
 
-        error = col_copy_collection_flat(acceptor, collection_to_add);
+        traverse_data.mode = COL_COPY_FLAT;
+        traverse_data.current_path = NULL;
+
+        if ((name_to_use) && (*name_to_use)) {
+            /* The normal assignement generates a warning
+             * becuase I am assigning const to a non const.
+             * I can't make the structure member to be const
+             * since it changes but it changes
+             * to point to different stings at different time
+             * This is just an initial sting it will use.
+             * The logic does not change the content of the string.
+             * To overcome the issue I use memcpy();
+             */
+            memcpy(&(traverse_data.given_name),
+                   &(name_to_use), sizeof(char *));
+            traverse_data.given_len = strlen(name_to_use);
+        }
+        else {
+            traverse_data.given_name = NULL;
+            traverse_data.given_len = 0;
+        }
+
+        error = col_walk_items(collection_to_add, COL_TRAVERSE_FLAT,
+                               col_copy_traverse_handler, (void *)(&traverse_data),
+                               NULL, acceptor, &depth);
 
         TRACE_INFO_NUMBER("Copy collection flat returned:", error);
         break;
 
+    case COL_ADD_MODE_FLATDOT:
+        TRACE_INFO_STRING("We are flattening the collection with dots.", "");
+
+        traverse_data.mode = COL_COPY_FLATDOT;
+        traverse_data.current_path = NULL;
+
+        if ((name_to_use) && (*name_to_use)) {
+            /* The normal assignement generates a warning
+             * becuase I am assigning const to a non const.
+             * I can't make the structure member to be const
+             * since it changes but it changes
+             * to point to different stings at different time
+             * This is just an initial sting it will use.
+             * The logic does not change the content of the string.
+             * To overcome the issue I use memcpy();
+             */
+            memcpy(&(traverse_data.given_name),
+                   &(name_to_use), sizeof(char *));
+            traverse_data.given_len = strlen(name_to_use);
+        }
+        else {
+            traverse_data.given_name = NULL;
+            traverse_data.given_len = 0;
+        }
+
+        error = col_walk_items(collection_to_add, COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END,
+                               col_copy_traverse_handler, (void *)(&traverse_data),
+                               NULL, acceptor, &depth);
+
+        TRACE_INFO_NUMBER("Copy collection flatdot returned:", error);
+        break;
 
     default:
         error = EINVAL;
@@ -3088,87 +3242,4 @@ int col_get_item_length(struct collection_item *ci)
 void *col_get_item_data(struct collection_item *ci)
 {
     return ci->data;
-}
-
-
-/* Set time stamp in the collection - FIXME move to another level */
-int col_set_timestamp(struct collection_item *ci,
-                      struct collection_item **timestr_ref,
-                      struct collection_item **timeint_ref)
-{
-    time_t utctime;
-    struct tm time_struct;
-    char time_array[TIME_ARRAY_SIZE+1];
-    int len;
-    struct collection_item *timestr = NULL;
-    struct collection_item *timeint = NULL;
-    int error = EOK;
-
-    TRACE_FLOW_STRING("col_set_timestamp", "Entry point");
-
-    utctime = time(NULL);
-    localtime_r(&utctime, &time_struct);
-
-    len = strftime(time_array, TIME_ARRAY_SIZE, DATE_FORMAT, &time_struct);
-    if (len == 0) {
-        TRACE_ERROR_STRING("col_set_timestamp", "CODING ERROR - INCREASE THE BUFFER");
-        return EMSGSIZE;
-    }
-
-    TRACE_INFO_STRING("Timestamp:", time_array);
-
-    /* Check if we have the timestamp item already */
-    error = col_get_item(ci, TS_NAME, COL_TYPE_STRING,
-                         COL_TRAVERSE_IGNORE, &timestr);
-    if (error) {
-        TRACE_ERROR_NUMBER("search failed with error:", error);
-        return error;
-    }
-
-    if (timestr != NULL) {
-        /* There is a timestamp */
-        free(timestr->data);
-        timestr->data = strdup(time_array);
-        if (timestr->data == NULL) {
-            TRACE_ERROR_NUMBER("failed to add timestamp property:", error);
-            return ENOMEM;
-        }
-        timestr->length = len+1;
-        *timestr_ref = timestr;
-    }
-    else {
-        /* Add timestamp to the collection */
-        error = col_add_str_property_with_ref(ci, NULL, TS_NAME,
-                                              time_array, len+1, timestr_ref);
-        if (error) {
-            TRACE_ERROR_NUMBER("failed to add timestamp property:", error);
-            return error;
-        }
-    }
-
-    /* Check if we have the time item already */
-    error = col_get_item(ci, T_NAME, COL_TYPE_INTEGER,
-                         COL_TRAVERSE_IGNORE, &timeint);
-    if (error) {
-        TRACE_ERROR_NUMBER("search failed with error:", error);
-        return error;
-    }
-
-    if (timeint != NULL) {
-        /* There is a time property */
-        *((int *)(timeint->data)) = utctime;
-        *timeint_ref = timeint;
-    }
-    else {
-        /* Add time to the collection */
-        error = col_add_int_property_with_ref(ci, NULL, T_NAME,
-                                              utctime, timeint_ref);
-        if (error) {
-            TRACE_ERROR_NUMBER("failed to add time property:", error);
-            return error;
-        }
-    }
-
-    TRACE_FLOW_STRING("col_set_timestamp", "Exit point");
-    return EOK;
 }

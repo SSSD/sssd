@@ -262,6 +262,32 @@ int complex_event_test(void)
 
     col_destroy_collection(col);
 
+    if ((error = col_create_collection(&col, "flat", 0)) ||
+        /* We are forsing overwrite with different type */
+        (error = col_add_int_property(col, NULL, "zzz", 1)) ||
+        (error = col_add_long_property(col, NULL, "zzz2", 100000000L))) {
+        elapi_destroy_event_template(template);
+        printf("Failed to add property. Error %d\n", error);
+        elapi_destroy_event(event);
+        return error;
+    }
+
+    error = elapi_modify_event(
+        event,
+        col,
+        COL_ADD_MODE_FLATDOT,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to set create template %d\n", error);
+        elapi_destroy_event(event);
+        elapi_destroy_event_template(template);
+        col_destroy_collection(col);
+        return error;
+    }
+
+    col_destroy_collection(col);
+
     error = elapi_copy_event(&event_copy, event);
     if (error) {
         printf("Failed to set create template %d\n", error);

@@ -70,10 +70,18 @@
                                      * fail. */
 #define COL_ADD_MODE_CLONE     2    /* Creates a deep copy of a collection with
                                      * its sub collections */
-
 #define COL_ADD_MODE_FLAT      3    /* Creates a deep copy of a collection with
-                                     * its sub collections flattening and resolving
-                                     * duplicates.
+                                     * its sub collections flattening and NOT
+                                     * resolving duplicates.
+                                     */
+#define COL_ADD_MODE_FLATDOT   4    /* Creates a deep copy of a collection with
+                                     * its sub collections flattening and NOT
+                                     * resolving duplicates. Names are contructed
+                                     * in dotted notation.
+                                     * For example the subcollection
+                                     * named "sub" containing "foo" and
+                                     * "bar" will be flattened as:
+                                     * "sub.foo", "sub.bar".
                                      */
 
 /* Modes how the collection is traversed */
@@ -89,6 +97,14 @@
 #define COL_TRAVERSE_IGNORE   0x00000004  /* Ignore sub collections as if none
                                            * is present */
 #define COL_TRAVERSE_FLAT     0x00000008  /* Flatten the collection. */
+#define COL_TRAVERSE_FLATDOT  0x00000010  /* Flatten the collection but use
+                                           * dotted notation for property names
+                                           * For example the subcollection
+                                           * named "sub" containing "foo" and
+                                           * "bar" will be flattened as:
+                                           * "sub.foo", "sub.bar".
+                                           */
+
 
 /* Additional iterator flags
  * NOTE: ignored by traverse functions */
@@ -112,11 +128,21 @@
  * DO NOT MIX THEM IN ONE ITERATOR.
  */
 
-/* FIXME: move to event level - this does not belong to collection */
-/* Time stamp property name */
-#define TS_NAME         "stamp"
-/* Time property name */
-#define T_NAME          "time"
+
+/* Modes accepted by copy collection function */
+#define COL_COPY_NORMAL         0    /* Deep copy. Referenced collections
+                                      * of the donor are copied as sub
+                                      * collections.
+                                      */
+#define COL_COPY_FLAT           1    /* Deep copy. Collection is flattend. */
+#define COL_COPY_FLATDOT        2    /* Deep copy. Collection is flattend.
+                                      * Names are concatenated with dot.
+                                      */
+#define COL_COPY_KEEPREF        3    /* Deep copy but leave references
+                                      * as references.
+                                      */
+#define COL_COPY_TOP            4    /* Copy only top level
+                                      */
 
 /* Match values */
 #define COL_NOMATCH 0
@@ -315,15 +341,6 @@ int col_add_any_property_with_ref(struct collection_item *ci,
                                   int type, void *data, int length,
                                   struct collection_item **ret_ref);
 
-/* FIXME - does not belong here - move to other place */
-/* Function to create a timestamp */
-/* Automatically adds/updates time and timestamp properties in the
- * collection returning references */
-int col_set_timestamp(struct collection_item *ci,
-                      struct collection_item **timestr_ref,
-                      struct collection_item **timeint_ref);
-
-
 /* Update functions */
 /* All update functions search the property using the search algorithm
  * described at the top of the header file.
@@ -398,10 +415,11 @@ int col_add_collection_to_collection(struct collection_item *ci,            /* C
                                  int mode);                                 /* How this collection needs to be added */
 
 /* Create a deep copy of the current collection. */
-/* Referenced collections of the donor are copied as sub collections. */
+/* The acceptable modes are defined at the top */
 int col_copy_collection(struct collection_item **collection_copy,
                         struct collection_item *collection_to_copy,
-                        const char *name_to_use);
+                        const char *name_to_use,
+                        int copy_mode);
 
 /* Signature of the callback that needs to be used when
    traversing a collection or looking for a specific item */

@@ -283,7 +283,7 @@ int mixed_collection_test(void)
     col_debug_collection(socket1, COL_TRAVERSE_DEFAULT);
     printf("Creating a copy of SOCKET1 collection named SOCKET2.\n");
 
-    error = col_copy_collection(&socket2, socket1, "socket2");
+    error = col_copy_collection(&socket2, socket1, "socket2", COL_COPY_NORMAL);
     if (error) {
         col_destroy_collection(peer);
         col_destroy_collection(host);
@@ -640,13 +640,23 @@ int iterator_test(void)
         return error;
     }
 
-    error = col_add_collection_to_collection(peer, NULL, "forth", socket1, COL_ADD_MODE_EMBED);
+    error = col_add_collection_to_collection(peer, NULL, "forth", socket1, COL_ADD_MODE_FLATDOT);
     if (error) {
         col_destroy_collection(peer);
         col_destroy_collection(socket1);
         printf("Failed to add collection to collection. Error %d\n", error);
         return error;
     }
+
+    error = col_add_collection_to_collection(peer, NULL, NULL, socket1, COL_ADD_MODE_FLATDOT);
+    if (error) {
+        col_destroy_collection(peer);
+        col_destroy_collection(socket1);
+        printf("Failed to add collection to collection. Error %d\n", error);
+        return error;
+    }
+
+    col_destroy_collection(socket1);
 
     /* Bind iterator */
     error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_DEFAULT);

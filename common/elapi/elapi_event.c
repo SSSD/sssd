@@ -1001,7 +1001,8 @@ int elapi_copy_event(struct collection_item **new_event,
 
     error = col_copy_collection(new_event,
                                 source_event,
-                                NULL);
+                                NULL,
+                                COL_COPY_NORMAL);
 
     TRACE_FLOW_NUMBER("elapi_copy_event. Exit Returning", error);
     return error;
