@@ -28,6 +28,7 @@
 
 #define MAX_CHILD_MSG_SIZE 255
 #define CCACHE_ENV_NAME "KRB5CCNAME"
+#define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
 
 typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
 
@@ -64,32 +65,5 @@ struct krb5_ctx {
     bool try_simple_upn;
     char *changepw_principle;
 };
-
-struct krb5_req {
-    krb5_context ctx;
-    krb5_ccache cc;
-    krb5_principal princ;
-    char* name;
-    krb5_creds *creds;
-    krb5_get_init_creds_opt *options;
-    pid_t child_pid;
-    int fd;
-
-    struct be_req *req;
-    struct pam_data *pd;
-    struct krb5_ctx *krb5_ctx;
-    void (*client)(int fd, struct krb5_req *kr);
-};
-
-static krb5_context krb5_error_ctx;
-static const char *__krb5_error_msg;
-#define KRB5_DEBUG(level, krb5_error) do { \
-    __krb5_error_msg = krb5_get_error_message(krb5_error_ctx, krb5_error); \
-    DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
-    krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
-} while(0);
-
-void tgt_req_child(int fd, struct krb5_req *kr);
-void changepw_child(int fd, struct krb5_req *kr);
 
 #endif /* __KRB5_AUTH_H__ */

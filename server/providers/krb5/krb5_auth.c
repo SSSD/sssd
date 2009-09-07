@@ -40,6 +40,109 @@
 #include "krb5_plugin/sssd_krb5_locator_plugin.h"
 #include "providers/krb5/krb5_auth.h"
 
+#ifndef SSSD_LIBEXEC_PATH
+#error "SSSD_LIBEXEC_PATH not defined"
+#else
+#define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
+#endif
+
+struct krb5child_req {
+    pid_t child_pid;
+    int read_from_child_fd;
+    int write_to_child_fd;
+
+    struct be_req *req;
+    struct pam_data *pd;
+    struct krb5_ctx *krb5_ctx;
+};
+
+static errno_t become_user(uid_t uid, gid_t gid)
+{
+    int ret;
+    ret = setgid(gid);
+    if (ret == -1) {
+        DEBUG(1, ("setgid failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    ret = setuid(uid);
+    if (ret == -1) {
+        DEBUG(1, ("setuid failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    ret = setegid(gid);
+    if (ret == -1) {
+        DEBUG(1, ("setegid failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    ret = seteuid(uid);
+    if (ret == -1) {
+        DEBUG(1, ("seteuid failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    return EOK;
+}
+
+struct io_buffer {
+    uint8_t *data;
+    size_t size;
+};
+
+errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
+{
+    struct io_buffer *buf;
+    size_t rp;
+
+    buf = talloc(kr, struct io_buffer);
+    if (buf == NULL) {
+        DEBUG(1, ("talloc failed.\n"));
+        return ENOMEM;
+    }
+
+    buf->size = 3*sizeof(int) + strlen(kr->pd->upn) + kr->pd->authtok_size;
+    if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+        buf->size += sizeof(int) + kr->pd->newauthtok_size;
+    }
+
+    buf->data = talloc_size(kr, buf->size);
+    if (buf->data == NULL) {
+        DEBUG(1, ("talloc_size failed.\n"));
+        talloc_free(buf);
+        return ENOMEM;
+    }
+
+    rp = 0;
+    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->cmd;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = strlen(kr->pd->upn);
+    rp += sizeof(uint32_t);
+
+    memcpy(&buf->data[rp], kr->pd->upn, strlen(kr->pd->upn));
+    rp += strlen(kr->pd->upn);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->authtok_size;
+    rp += sizeof(uint32_t);
+
+    memcpy(&buf->data[rp], kr->pd->authtok, kr->pd->authtok_size);
+    rp += kr->pd->authtok_size;
+
+    if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
+        ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->newauthtok_size;
+        rp += sizeof(uint32_t);
+
+        memcpy(&buf->data[rp], kr->pd->newauthtok, kr->pd->newauthtok_size);
+        rp += kr->pd->newauthtok_size;
+    }
+
+    *io_buf = buf;
+
+    return EOK;
+}
+
 static void fd_nonblocking(int fd) {
     int flags;
 
@@ -56,45 +159,31 @@ static void fd_nonblocking(int fd) {
     return;
 }
 
-static void krb5_cleanup(struct krb5_req *kr)
+static void krb5_cleanup(struct krb5child_req *kr)
 {
     if (kr == NULL) return;
 
-    /* FIXME: is it safe to drop the "!= NULL" checks? */
-    if (kr->options != NULL)
-        krb5_get_init_creds_opt_free(kr->ctx, kr->options);
-    if (kr->creds != NULL)
-        krb5_free_cred_contents(kr->ctx, kr->creds);
-    if (kr->name != NULL)
-        krb5_free_unparsed_name(kr->ctx, kr->name);
-    if (kr->princ != NULL)
-        krb5_free_principal(kr->ctx, kr->princ);
-    if (kr->cc != NULL)
-        krb5_cc_close(kr->ctx, kr->cc);
-    if (kr->ctx != NULL)
-        krb5_free_context(kr->ctx);
-
-    memset(kr, 0, sizeof(struct krb5_req));
+    memset(kr, 0, sizeof(struct krb5child_req));
 
     talloc_zfree(kr);
 }
 
-static int krb5_setup(struct be_req *req, const char *user_princ_str,
-                      struct krb5_req **krb5_req)
+static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req)
 {
-    struct krb5_req *kr = NULL;
+    struct krb5child_req *kr = NULL;
     struct krb5_ctx *krb5_ctx;
     struct pam_data *pd;
-    krb5_error_code kerr = 0;
+    errno_t err;
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
-    krb5_ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct krb5_ctx);
+    krb5_ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+                               struct krb5_ctx);
 
-    kr = talloc_zero(req, struct krb5_req);
+    kr = talloc_zero(req, struct krb5child_req);
     if (kr == NULL) {
         DEBUG(1, ("talloc failed.\n"));
-        kerr = ENOMEM;
+        err = ENOMEM;
         goto failed;
     }
 
@@ -102,70 +191,14 @@ static int krb5_setup(struct be_req *req, const char *user_princ_str,
     kr->req = req;
     kr->krb5_ctx = krb5_ctx;
 
-    switch(pd->cmd) {
-        case SSS_PAM_AUTHENTICATE:
-            kr->client = tgt_req_child;
-            break;
-        case SSS_PAM_CHAUTHTOK:
-            kr->client = changepw_child;
-            break;
-        default:
-            DEBUG(1, ("PAM command [%d] not supported.\n", pd->cmd));
-            kerr = EINVAL;
-            goto failed;
-    }
-
-    kerr = krb5_init_context(&kr->ctx);
-    if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
-        goto failed;
-    }
-
-    kerr = krb5_parse_name(kr->ctx, user_princ_str, &kr->princ);
-    if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
-        goto failed;
-    }
-
-    kerr = krb5_unparse_name(kr->ctx, kr->princ, &kr->name);
-    if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
-        goto failed;
-    }
-
-    kr->creds = talloc_zero(kr, krb5_creds);
-    if (kr->creds == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
-        kerr = ENOMEM;
-        goto failed;
-    }
-
-    kerr = krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
-    if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
-        goto failed;
-    }
-
-/* TODO: set options, e.g.
- *  krb5_get_init_creds_opt_set_tkt_life
- *  krb5_get_init_creds_opt_set_renew_life
- *  krb5_get_init_creds_opt_set_forwardable
- *  krb5_get_init_creds_opt_set_proxiable
- *  krb5_get_init_creds_opt_set_etype_list
- *  krb5_get_init_creds_opt_set_address_list
- *  krb5_get_init_creds_opt_set_preauth_list
- *  krb5_get_init_creds_opt_set_salt
- *  krb5_get_init_creds_opt_set_change_password_prompt
- *  krb5_get_init_creds_opt_set_pa
- */
-
     *krb5_req = kr;
+
     return EOK;
 
 failed:
     krb5_cleanup(kr);
 
-    return kerr;
+    return err;
 }
 
 static void wait_for_child_handler(struct tevent_context *ev,
@@ -198,32 +231,81 @@ static void wait_for_child_handler(struct tevent_context *ev,
     return;
 }
 
-static int fork_child(struct krb5_req *kr)
+static errno_t fork_child(struct krb5child_req *kr)
 {
-    int pipefd[2];
+    int pipefd_to_child[2];
+    int pipefd_from_child[2];
     pid_t pid;
     int ret;
+    errno_t err;
 
-    ret = pipe(pipefd);
+    ret = pipe(pipefd_from_child);
     if (ret == -1) {
+        err = errno;
         DEBUG(1, ("pipe failed [%d][%s].\n", errno, strerror(errno)));
-        return -1;
+        return err;
     }
+    ret = pipe(pipefd_to_child);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(1, ("pipe failed [%d][%s].\n", errno, strerror(errno)));
+        return err;
+    }
+
     pid = fork();
 
     if (pid == 0) { /* child */
-        close(pipefd[0]);
-        kr->client(pipefd[1], kr);
+        //talloc_free(kr->req->be_ctx->ev);
+
+        ret = chdir("/tmp");
+        if (ret == -1) {
+            err = errno;
+            DEBUG(1, ("chdir failed [%d][%s].\n", errno, strerror(errno)));
+            return err;
+        }
+
+        ret = become_user(kr->pd->pw_uid, kr->pd->gr_gid);
+        if (ret != EOK) {
+            DEBUG(1, ("become_user failed.\n"));
+            return ret;
+        }
+
+
+        close(pipefd_to_child[1]);
+        ret = dup2(pipefd_to_child[0],STDIN_FILENO);
+        if (ret == -1) {
+            err = errno;
+            DEBUG(1, ("dup2 failed [%d][%s].\n", errno, strerror(errno)));
+            return err;
+        }
+
+        close(pipefd_from_child[0]);
+        ret = dup2(pipefd_from_child[1],STDOUT_FILENO);
+        if (ret == -1) {
+            err = errno;
+            DEBUG(1, ("dup2 failed [%d][%s].\n", errno, strerror(errno)));
+            return err;
+        }
+
+        ret = execl(KRB5_CHILD, KRB5_CHILD, NULL);
+        if (ret == -1) {
+            err = errno;
+            DEBUG(1, ("execl failed [%d][%s].\n", errno, strerror(errno)));
+            return err;
+        }
     } else if (pid > 0) { /* parent */
         kr->child_pid = pid;
-        kr->fd = pipefd[0];
-        close(pipefd[1]);
-
-        fd_nonblocking(kr->fd);
+        kr->read_from_child_fd = pipefd_from_child[0];
+        close(pipefd_from_child[1]);
+        kr->write_to_child_fd = pipefd_to_child[1];
+        close(pipefd_to_child[0]);
+        fd_nonblocking(kr->read_from_child_fd);
+        fd_nonblocking(kr->write_to_child_fd);
 
     } else { /* error */
+        err = errno;
         DEBUG(1, ("fork failed [%d][%s].\n", errno, strerror(errno)));
-        return -1;
+        return err;
     }
 
     return EOK;
@@ -310,7 +392,7 @@ static ssize_t read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 }
 
 struct handle_child_state {
-    struct krb5_req *kr;
+    struct krb5child_req *kr;
     ssize_t len;
     uint8_t *buf;
 };
@@ -318,16 +400,30 @@ struct handle_child_state {
 static void handle_child_done(struct tevent_req *subreq);
 
 static struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
-                        struct krb5_req *kr)
+                        struct krb5child_req *kr)
 {
     int ret;
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct handle_child_state *state;
+    struct io_buffer *buf;
+
+    ret = create_send_buffer(kr, &buf);
+    if (ret != EOK) {
+        DEBUG(1, ("create_send_buffer failed.\n"));
+        return NULL;
+    }
 
     ret = fork_child(kr);
     if (ret != EOK) {
         DEBUG(1, ("fork_child failed.\n"));
+        return NULL;
+    }
+
+    ret = write(kr->write_to_child_fd, buf->data, buf->size);
+    close(kr->write_to_child_fd);
+    if (ret == -1) {
+        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
         return NULL;
     }
 
@@ -338,7 +434,7 @@ static struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx, struct tevent_c
 
     state->kr = kr;
 
-    subreq = read_pipe_send(state, ev, kr->fd);
+    subreq = read_pipe_send(state, ev, kr->read_from_child_fd);
     if (tevent_req_nomem(subreq, req)) {
         return tevent_req_post(req, ev);
     }
@@ -356,7 +452,7 @@ static void handle_child_done(struct tevent_req *subreq)
 
     state->len = read_pipe_recv(subreq, state, &state->buf, &error);
     talloc_zfree(subreq);
-    close(state->kr->fd);
+    close(state->kr->read_from_child_fd);
     if (state->len == -1) {
         tevent_req_error(req, error);
         return;
@@ -427,12 +523,12 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
 {
     struct be_req *be_req = talloc_get_type(pvt, struct be_req);
     struct krb5_ctx *krb5_ctx;
-    struct krb5_req *kr = NULL;
+    struct krb5child_req *kr = NULL;
     struct tevent_req *req;
     int ret;
     struct pam_data *pd;
     int pam_status=PAM_SYSTEM_ERR;
-    const char *upn = NULL;
+    //const char *upn = NULL;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
     krb5_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
@@ -449,16 +545,16 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
         break;
 
     case 1:
-        upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
-        if (upn == NULL && krb5_ctx->try_simple_upn) {
+        pd->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
+        if (pd->upn == NULL && krb5_ctx->try_simple_upn) {
             /* NOTE: this is a hack, works only in some environments */
             if (krb5_ctx->realm != NULL) {
-                upn = talloc_asprintf(be_req, "%s@%s", pd->user,
+                pd->upn = talloc_asprintf(be_req, "%s@%s", pd->user,
                                       krb5_ctx->realm);
-                if (upn == NULL) {
+                if (pd->upn == NULL) {
                     DEBUG(1, ("failed to build simple upn.\n"));
                 }
-                DEBUG(9, ("Using simple UPN [%s].\n", upn));
+                DEBUG(9, ("Using simple UPN [%s].\n", pd->upn));
             }
         }
         break;
@@ -469,12 +565,12 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
         break;
     }
 
-    if (upn == NULL) {
+    if (pd->upn == NULL) {
         DEBUG(1, ("Cannot set UPN.\n"));
         goto failed;
     }
 
-    ret = krb5_setup(be_req, upn, &kr);
+    ret = krb5_setup(be_req, &kr);
     if (ret != EOK) {
         DEBUG(1, ("krb5_setup failed.\n"));
         goto failed;
@@ -499,7 +595,8 @@ failed:
 
 static void krb5_pam_handler_done(struct tevent_req *req)
 {
-    struct krb5_req *kr = tevent_req_callback_data(req, struct krb5_req);
+    struct krb5child_req *kr = tevent_req_callback_data(req,
+                                                        struct krb5child_req);
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
     struct krb5_ctx *krb5_ctx = kr->krb5_ctx;
@@ -718,6 +815,12 @@ int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
         }
     }
     ctx->changepw_principle = value;
+
+    ret = setenv(SSSD_KRB5_CHANGEPW_PRINCIPLE, ctx->changepw_principle, 1);
+    if (ret != EOK) {
+        DEBUG(2, ("setenv %s failed, password change might fail.\n",
+                  SSSD_KRB5_CHANGEPW_PRINCIPLE));
+    }
 
 /* TODO: set options */
 

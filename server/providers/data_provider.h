@@ -119,6 +119,8 @@ struct pam_data {
     int priv;
     uid_t pw_uid;
     gid_t gr_gid;
+
+    const char *upn;
 };
 
 /* from dp_auth_util.c */

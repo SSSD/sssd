@@ -51,6 +51,7 @@ sssdlibexec_PROGRAMS = \
     sssd_pam \
     sssd_dp \
     sssd_be \
+    krb5_child \
     $(sssd_pk) \
     $(sssd_info)
 
@@ -403,8 +404,7 @@ libsss_proxy_la_LDFLAGS = \
     -module
 
 libsss_krb5_la_SOURCES = \
-    providers/krb5/krb5_auth.c \
-    providers/krb5/krb5_child.c
+    providers/krb5/krb5_auth.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
@@ -413,6 +413,16 @@ libsss_krb5_la_LIBADD = \
 libsss_krb5_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
+
+krb5_child_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
+    providers/krb5/krb5_child.c
+krb5_child_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS)
+krb5_child_LDADD = \
+    $(TALLOC_LIBS) \
+    $(KRB5_LIBS)
 
 memberof_la_SOURCES = \
     ldb_modules/memberof.c
