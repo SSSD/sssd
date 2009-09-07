@@ -110,7 +110,6 @@ DHASH_LIBS = \
 AM_CPPFLAGS = -Wall \
     -Iinclude \
     -I.. \
-    -I$(DBUS_CFLAGS) \
     -I$(srcdir)/include \
     -Iinclude \
     -I. \
