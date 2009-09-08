@@ -29,63 +29,6 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
-/*
- * Returns:
- * 0 = yes, local domain proxying to files
- * -1 = no, other type of domain
- * > 0 = error code
- */
-static int is_domain_local_legacy(struct tools_ctx *ctx, struct sss_domain_info *dom)
-{
-    char *libname = NULL;
-    char *conf_path = NULL;
-    int ret = -1;
-
-    /* Is there a better way to find out? Having LEGACYLOCAL as reserved would help */
-    conf_path = talloc_asprintf(ctx, "config/domains/%s", dom->name);
-    if (conf_path == NULL ) {
-        return ENOMEM;
-    }
-
-    ret = confdb_get_string(ctx->confdb, ctx, conf_path,
-                            "libName", NULL, &libname);
-    if (ret != EOK) {
-        talloc_free(conf_path);
-        return ret;
-    }
-    if (libname == NULL) {
-        talloc_free(conf_path);
-        return -1;
-    }
-
-    if (strcasecmp(libname, "files") == 0) {
-        talloc_free(conf_path);
-        talloc_free(libname);
-        return EOK;
-    }
-
-    talloc_free(conf_path);
-    talloc_free(libname);
-    return -1;
-}
-
-enum id_domain get_domain_type(struct tools_ctx *ctx,
-                               struct sss_domain_info *dom)
-{
-    if (dom == NULL) {
-        return ID_OUTSIDE;
-    }
-
-    if (strcasecmp(dom->provider, "local") == 0) {
-        return ID_IN_LOCAL;
-    } else if (strcasecmp(dom->provider, "files") == 0 ||
-               is_domain_local_legacy(ctx, dom) == 0) {
-        return ID_IN_LEGACY_LOCAL;
-    }
-
-    return ID_IN_OTHER;
-}
-
 static struct sss_domain_info *get_local_domain(struct tools_ctx *ctx)
 {
     struct sss_domain_info *dom = NULL;
@@ -98,34 +41,6 @@ static struct sss_domain_info *get_local_domain(struct tools_ctx *ctx)
     }
 
     return dom;
-}
-
-int get_domain_by_id(struct tools_ctx *ctx,
-                     uint32_t id,
-                     struct sss_domain_info **_dom)
-{
-    struct sss_domain_info *dom = NULL;
-    int ret = EOK;
-
-    if (id) {
-        for (dom = ctx->domains; dom; dom = dom->next) {
-            if (id >= dom->id_min &&
-                (dom->id_max == 0 || id <= dom->id_max)) {
-                break;
-            }
-        }
-    }
-
-    if (dom == NULL && id == 0) {
-        dom = get_local_domain(ctx);
-        if (dom == NULL) {
-            DEBUG(1, ("Cannot find local domain info\n"));
-            ret = ENOENT;
-        }
-    }
-
-    *_dom = dom;
-    return ret;
 }
 
 int setup_db(struct tools_ctx **tools_ctx)
@@ -248,8 +163,8 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     return EOK;
 }
 
-int parse_name_domain(struct ops_ctx *octx,
-                      const char *fullname)
+static int parse_name_domain(struct ops_ctx *octx,
+                             const char *fullname)
 {
     int ret;
     char *domain = NULL;
@@ -277,6 +192,37 @@ int parse_name_domain(struct ops_ctx *octx,
             DEBUG(0, ("Invalid domain %s specified in FQDN\n", domain));
             return EINVAL;
         }
+    }
+
+    return EOK;
+}
+
+int get_domain(struct ops_ctx *octx,
+               const char *fullname)
+{
+    int ret;
+
+    ret = parse_name_domain(octx, fullname);
+    if (ret != EOK) {
+        return ret;
+    }
+    if (octx->domain == NULL) {
+        octx->domain = get_local_domain(octx->ctx);
+        if (octx->domain == NULL) {
+            return EINVAL;
+        }
+    }
+
+    return EOK;
+}
+
+int id_in_range(uint32_t id,
+                struct sss_domain_info *dom)
+{
+    if (id &&
+        ((id < dom->id_min) ||
+         (dom->id_max && id > dom->id_max))) {
+        return ERANGE;
     }
 
     return EOK;

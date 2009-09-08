@@ -78,18 +78,16 @@ int setup_db(struct tools_ctx **ctx);
 
 void usage(poptContext pc, const char *error);
 
-int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out);
-
-enum id_domain get_domain_type(struct tools_ctx *ctx,
-                               struct sss_domain_info *dom);
-
-int get_domain_by_id(struct tools_ctx *ctx,
-                     uint32_t id,
-                     struct sss_domain_info **_dom);
-
 int set_locale(void);
 
-int parse_name_domain(struct ops_ctx *octx,
-                      const char *fullname);
+int get_domain(struct ops_ctx *octx,
+               const char *fullname);
+
+int id_in_range(uint32_t id,
+                struct sss_domain_info *dom);
+
+int parse_groups(TALLOC_CTX *mem_ctx,
+                 const char *optstr,
+                 char ***_out);
 
 #endif  /* __TOOLS_UTIL_H__ */

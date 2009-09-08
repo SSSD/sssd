@@ -32,18 +32,6 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
-#ifndef GROUPADD
-#define GROUPADD SHADOW_UTILS_PATH"/groupadd "
-#endif
-
-#ifndef GROUPADD_GID
-#define GROUPADD_GID "-g %u "
-#endif
-
-#ifndef GROUPADD_GROUPNAME
-#define GROUPADD_GROUPNAME "%s "
-#endif
-
 static void add_group_req_done(struct tevent_req *req)
 {
     struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
@@ -110,36 +98,6 @@ static void add_group_done(struct tevent_req *subreq)
     return add_group_terminate(data, ret);
 }
 
-static int groupadd_legacy(struct ops_ctx *ctx)
-{
-    int ret = EOK;
-    char *command = NULL;
-
-    command = talloc_asprintf(ctx, "%s ", GROUPADD);
-    if (command == NULL) {
-        DEBUG(1, ("Cannot allocate memory for command string\n"));
-        return ENOMEM;
-    }
-
-    APPEND_PARAM(command, GROUPADD_GID, ctx->gid);
-    APPEND_STRING(command, ctx->name);
-
-    ret = system(command);
-    if (ret) {
-        if (ret == -1) {
-            DEBUG(1, ("system(3) failed\n"));
-        } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n",
-                      command, WEXITSTATUS(ret)));
-        }
-        talloc_free(command);
-        return EFAULT;
-    }
-
-    talloc_free(command);
-    return ret;
-}
-
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
@@ -152,7 +110,6 @@ int main(int argc, const char **argv)
             0, _("The GID of the group"), NULL },
         POPT_TABLEEND
     };
-    struct sss_domain_info *dom;
     poptContext pc = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
@@ -207,58 +164,20 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = parse_name_domain(data, pc_groupname);
+    ret = get_domain(data, pc_groupname);
     if (ret != EOK) {
+        ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     data->gid = pc_gid;
 
-    ret = get_domain_by_id(data->ctx, data->gid, &dom);
-    if (ret != EOK) {
-        ERROR("Cannot get domain info\n");
+    /* arguments processed, go on to actual work */
+    if (id_in_range(data->gid, data->domain) != EOK) {
+        ERROR("The selected GID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
-    }
-    if (data->domain && data->gid && data->domain != dom) {
-        ERROR("Selected domain %s conflicts with selected GID %llu\n",
-                data->domain->name, (unsigned long long int) data->gid);
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    if (data->domain == NULL && dom) {
-        data->domain = dom;
-    }
-
-    ret = get_domain_type(data->ctx, data->domain);
-    switch (ret) {
-        case ID_IN_LOCAL:
-            break;
-
-        case ID_IN_LEGACY_LOCAL:
-            ret = groupadd_legacy(data);
-            if(ret != EOK) {
-                ERROR("Cannot add group to domain using the legacy tools\n");
-            }
-            goto fini;
-
-        case ID_OUTSIDE:
-            ERROR("The selected GID is outside all domain ranges\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        case ID_IN_OTHER:
-            DEBUG(1, ("Cannot add group to domain %s\n", dom->name));
-            ERROR("Unsupported domain type");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        default:
-            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
-            ERROR("Error looking up domain\n");
-            ret = EXIT_FAILURE;
-            goto fini;
     }
 
     /* add_group */

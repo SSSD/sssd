@@ -34,47 +34,6 @@
 #include "tools/tools_util.h"
 #include "util/sssd-i18n.h"
 
-/* Define default command strings if not redefined by user */
-#ifndef USERADD
-#define USERADD SHADOW_UTILS_PATH"/useradd "
-#endif
-
-#ifndef USERADD_UID
-#define USERADD_UID "-u %u "
-#endif
-
-#ifndef USERADD_GID
-#define USERADD_GID "-g %u "
-#endif
-
-#ifndef USERADD_GECOS
-#define USERADD_GECOS "-c %s "
-#endif
-
-#ifndef USERADD_HOME
-#define USERADD_HOME "-d %s "
-#endif
-
-#ifndef USERADD_SHELL
-#define USERADD_SHELL "-s %s "
-#endif
-
-#ifndef USERADD_GROUPS
-#define USERADD_GROUPS "-G %s "
-#endif
-
-#ifndef USERADD_UID_MIN
-#define USERADD_UID_MIN "-K UID_MIN=%d "
-#endif
-
-#ifndef USERADD_UID_MAX
-#define USERADD_UID_MAX "-K UID_MAX=%d "
-#endif
-
-#ifndef USERADD_USERNAME
-#define USERADD_USERNAME "%s "
-#endif
-
 /* Default settings for user attributes */
 #define CONFDB_DFL_SECTION "config/user_defaults"
 
@@ -277,50 +236,6 @@ static void add_to_groups_done(struct tevent_req *subreq)
     return add_to_groups(data);
 }
 
-static int useradd_legacy(struct ops_ctx *ctx, char *grouplist)
-{
-    int ret = EOK;
-    char *command = NULL;
-
-    APPEND_STRING(command, USERADD);
-
-    APPEND_PARAM(command, USERADD_SHELL, ctx->shell);
-
-    APPEND_PARAM(command, USERADD_GECOS, ctx->gecos);
-
-    APPEND_PARAM(command, USERADD_HOME, ctx->home);
-
-    APPEND_PARAM(command, USERADD_UID, ctx->uid);
-
-    APPEND_PARAM(command, USERADD_GID, ctx->gid);
-
-    APPEND_PARAM(command, USERADD_UID_MIN, ctx->domain->id_min);
-
-    /* id_max == 0 means no limit */
-    if (ctx->domain->id_max) {
-        APPEND_PARAM(command, USERADD_UID_MAX, ctx->domain->id_max);
-    }
-
-    APPEND_PARAM(command, USERADD_GROUPS, grouplist);
-
-    APPEND_PARAM(command, USERADD_USERNAME, ctx->name);
-
-    ret = system(command);
-    if (ret) {
-        if (ret == -1) {
-            DEBUG(1, ("system(3) failed\n"));
-        } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n",
-                      command, WEXITSTATUS(ret)));
-        }
-        talloc_free(command);
-        return EFAULT;
-    }
-
-    talloc_free(command);
-    return ret;
-}
-
 int main(int argc, const char **argv)
 {
     uid_t pc_uid = 0;
@@ -343,7 +258,6 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct sss_domain_info *dom = NULL;
     struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
@@ -412,8 +326,10 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = parse_name_domain(data, pc_username);
+    /* if the domain was not given as part of FQDN, default to local domain */
+    ret = get_domain(data, pc_username);
     if (ret != EOK) {
+        ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -480,50 +396,10 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
-    ret = get_domain_by_id(data->ctx, data->uid, &dom);
-    if (ret != EOK) {
-        ERROR("Cannot get domain info\n");
+    if (id_in_range(data->uid, data->domain) != EOK) {
+        ERROR("The selected UID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
-    }
-    if (data->domain && data->uid && data->domain != dom) {
-        ERROR("Selected domain %s conflicts with selected UID %llu\n",
-                data->domain->name, (unsigned long long int) data->uid);
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    if (data->domain == NULL && dom) {
-        data->domain = dom;
-    }
-
-    ret = get_domain_type(data->ctx, data->domain);
-    switch (ret) {
-        case ID_IN_LOCAL:
-            break;
-
-        case ID_IN_LEGACY_LOCAL:
-            ret = useradd_legacy(data, groups);
-            if(ret != EOK) {
-                ERROR("Cannot add user to domain using the legacy tools\n");
-            }
-            goto fini;
-
-        case ID_OUTSIDE:
-            ERROR("The selected UID is outside all domain ranges\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        case ID_IN_OTHER:
-            DEBUG(1, ("Cannot add user to domain %s\n", dom->name));
-            ERROR("Unsupported domain type\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        default:
-            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
-            ERROR("Error looking up domain\n");
-            ret = EXIT_FAILURE;
-            goto fini;
     }
 
     /* useradd */

@@ -33,18 +33,6 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
-#ifndef GROUPMOD
-#define GROUPMOD SHADOW_UTILS_PATH"/groupmod "
-#endif
-
-#ifndef GROUPMOD_GID
-#define GROUPMOD_GID "-g %u "
-#endif
-
-#ifndef GROUPMOD_GROUPNAME
-#define GROUPMOD_GROUPNAME "%s "
-#endif
-
 static void mod_group_req_done(struct tevent_req *req)
 {
     struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
@@ -260,56 +248,6 @@ static void add_to_groups_done(struct tevent_req *req)
     return add_to_groups(data);
 }
 
-static int groupmod_legacy(struct tools_ctx *tools_ctx,
-                           struct ops_ctx *ctx,
-                           struct sss_domain_info *old_domain)
-{
-    int ret = EOK;
-    char *command = NULL;
-    struct sss_domain_info *dom = NULL;
-
-    APPEND_STRING(command, GROUPMOD);
-
-    if (ctx->addgroups || ctx->rmgroups) {
-        ERROR("Group nesting is not supported in this domain\n");
-        talloc_free(command);
-        return EINVAL;
-    }
-
-    if (ctx->gid) {
-        ret = get_domain_by_id(tools_ctx, ctx->gid, &dom);
-        if (ret != EOK) {
-            ERROR("Cannot get domain info\n");
-            talloc_free(command);
-            return EINVAL;
-        }
-        if (dom == old_domain) {
-            APPEND_PARAM(command, GROUPMOD_GID, ctx->gid);
-        } else {
-            ERROR("Changing gid only allowed inside the same domain\n");
-            talloc_free(command);
-            return EINVAL;
-        }
-    }
-
-    APPEND_PARAM(command, GROUPMOD_GROUPNAME, ctx->name);
-
-    ret = system(command);
-    if (ret) {
-        if (ret == -1) {
-            DEBUG(1, ("system(3) failed\n"));
-        } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n",
-                      command, WEXITSTATUS(ret)));
-        }
-        talloc_free(command);
-        return EFAULT;
-    }
-
-    talloc_free(command);
-    return ret;
-}
-
 int main(int argc, const char **argv)
 {
     gid_t pc_gid = 0;
@@ -327,7 +265,6 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct sss_domain_info *dom;
     struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
@@ -403,8 +340,10 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = parse_name_domain(data, pc_groupname);
+    /* if the domain was not given as part of FQDN, default to local domain */
+    ret = get_domain(data, pc_groupname);
     if (ret != EOK) {
+        ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -417,50 +356,10 @@ int main(int argc, const char **argv)
        old_gid = grp_info->gr_gid;
     }
 
-    ret = get_domain_by_id(data->ctx, data->gid, &dom);
-    if (ret != EOK) {
-        ERROR("Cannot get domain info\n");
+    if (id_in_range(data->gid, data->domain) != EOK) {
+        ERROR("The selected GID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
-    }
-    if (data->domain && data->gid && data->domain != dom) {
-        ERROR("Selected domain %s conflicts with selected GID %llu\n",
-                data->domain->name, (unsigned long long int) data->gid);
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    if (data->domain == NULL && dom) {
-        data->domain = dom;
-    }
-
-    ret = get_domain_type(data->ctx, data->domain);
-    switch (ret) {
-        case ID_IN_LOCAL:
-            break;
-
-        case ID_IN_LEGACY_LOCAL:
-            ret = groupmod_legacy(ctx, data, data->domain);
-            if(ret != EOK) {
-                ERROR("Cannot delete group from domain using the legacy tools\n");
-            }
-            goto fini;
-
-        case ID_OUTSIDE:
-            ERROR("The selected GID is outside all domain ranges\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        case ID_IN_OTHER:
-            DEBUG(1, ("Cannot modify group from domain %s\n", dom->name));
-            ERROR("Unsupported domain type\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        default:
-            DEBUG(1, ("Unknown return code %d from get_domain_type\n", ret));
-            ERROR("Error looking up domain\n");
-            ret = EXIT_FAILURE;
-            goto fini;
     }
 
     req = sysdb_transaction_send(ctx, ctx->ev, data->ctx->sysdb);

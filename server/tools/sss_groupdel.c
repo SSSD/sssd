@@ -32,15 +32,6 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 
-#ifndef GROUPDEL
-#define GROUPDEL SHADOW_UTILS_PATH"/groupdel "
-#endif
-
-#ifndef GROUPDEL_GROUPNAME
-#define GROUPDEL_GROUPNAME "%s "
-#endif
-
-
 static void groupdel_req_done(struct tevent_req *req)
 {
     struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
@@ -114,30 +105,6 @@ static void group_del_done(struct tevent_req *subreq)
     return groupdel_done(data, ret, NULL);
 }
 
-static int groupdel_legacy(struct ops_ctx *ctx)
-{
-    int ret = EOK;
-    char *command = NULL;
-
-    APPEND_STRING(command, GROUPDEL);
-    APPEND_PARAM(command, GROUPDEL_GROUPNAME, ctx->name);
-
-    ret = system(command);
-    if (ret) {
-        if (ret == -1) {
-            DEBUG(1, ("system(3) failed\n"));
-        } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n",
-                      command, WEXITSTATUS(ret)));
-        }
-        talloc_free(command);
-        return EFAULT;
-    }
-
-    talloc_free(command);
-    return ret;
-}
-
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
@@ -145,10 +112,8 @@ int main(int argc, const char **argv)
     struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
-    struct sss_domain_info *dom;
     struct group *grp_info;
     const char *pc_groupname = NULL;
-    enum id_domain domain_type;
 
     poptContext pc = NULL;
     struct poptOption long_options[] = {
@@ -204,8 +169,10 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = parse_name_domain(data, pc_groupname);
+    /* if the domain was not given as part of FQDN, default to local domain */
+    ret = get_domain(data, pc_groupname);
     if (ret != EOK) {
+        ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -217,52 +184,10 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
-    ret = get_domain_by_id(data->ctx, data->gid, &dom);
-    if (ret != EOK) {
-        ERROR("Cannot get domain info\n");
+    if (id_in_range(data->gid, data->domain) != EOK) {
+        ERROR("The selected GID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
-    }
-    if (data->domain && data->gid && data->domain != dom) {
-        ERROR("Selected domain %s conflicts with selected GID %llu\n",
-                data->domain->name, (unsigned long long int) data->gid);
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    if (data->domain == NULL && dom) {
-        data->domain = dom;
-    }
-
-    domain_type = get_domain_type(data->ctx, data->domain);
-    switch (domain_type) {
-        case ID_IN_LOCAL:
-            break;
-
-        case ID_IN_LEGACY_LOCAL:
-            ret = groupdel_legacy(data);
-            if(ret != EOK) {
-                ERROR("Cannot delete group from domain using the legacy tools\n");
-                ret = EXIT_FAILURE;
-                goto fini;
-            }
-            break; /* Also delete possible cached entries in sysdb */
-
-        case ID_OUTSIDE:
-            ERROR("The selected GID is outside all domain ranges\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        case ID_IN_OTHER:
-            DEBUG(1, ("Cannot remove group from domain %s\n", dom->name));
-            ERROR("Unsupported domain type\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        default:
-            DEBUG(1, ("Unknown return code %d from get_domain_type\n", domain_type));
-            ERROR("Error looking up domain\n");
-            ret = EXIT_FAILURE;
-            goto fini;
     }
 
     /* groupdel */
@@ -282,21 +207,7 @@ int main(int argc, const char **argv)
     if (data->error) {
         ret = data->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
-        switch (ret) {
-            case ENOENT:
-                /* if we got ENOENT after deleting group from legacy domain
-                 * that just means there was no cached entry to delete */
-                if (domain_type == ID_IN_LEGACY_LOCAL) {
-                    ret = EXIT_SUCCESS;
-                    goto fini;
-                }
-                ERROR("No such user\n");
-                break;
-
-            default:
-                ERROR("Internal error. Could not remove group.\n");
-                break;
-        }
+        ERROR("Internal error. Could not remove group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }

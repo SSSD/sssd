@@ -45,43 +45,6 @@
         } \
 } while(0)
 
-/* Define default command strings if not redefined by user */
-#ifndef USERMOD
-#define USERMOD SHADOW_UTILS_PATH"/usermod "
-#endif
-
-#ifndef USERMOD_UID
-#define USERMOD_UID "-u %u "
-#endif
-
-#ifndef USERMOD_GID
-#define USERMOD_GID "-g %u "
-#endif
-
-#ifndef USERMOD_GECOS
-#define USERMOD_GECOS "-c %s "
-#endif
-
-#ifndef USERMOD_HOME
-#define USERMOD_HOME "-d %s "
-#endif
-
-#ifndef USERMOD_SHELL
-#define USERMOD_SHELL "-s %s "
-#endif
-
-#ifndef USERMOD_LOCK
-#define USERMOD_LOCK  "--lock "
-#endif
-
-#ifndef USERMOD_UNLOCK
-#define USERMOD_UNLOCK "--unlock "
-#endif
-
-#ifndef USERMOD_USERNAME
-#define USERMOD_USERNAME "%s"
-#endif
-
 static void mod_user_req_done(struct tevent_req *req)
 {
     struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
@@ -286,80 +249,6 @@ static void add_to_groups_done(struct tevent_req *req)
     return add_to_groups(data);
 }
 
-static int usermod_legacy(struct tools_ctx *tools_ctx, struct ops_ctx *ctx,
-                          uid_t uid, gid_t gid,
-                          const char *gecos, const char *home,
-                          const char *shell, int lock,
-                          struct sss_domain_info *old_domain)
-{
-    int ret = EOK;
-    char *command = NULL;
-    struct sss_domain_info *dom = NULL;
-
-    APPEND_STRING(command, USERMOD);
-
-    if (uid) {
-        ret = get_domain_by_id(tools_ctx, ctx->gid, &dom);
-        if (ret != EOK) {
-            ERROR("Cannot get domain info\n");
-            talloc_free(command);
-            return EINVAL;
-        }
-        if (dom == old_domain) {
-            APPEND_PARAM(command, USERMOD_UID, uid);
-        } else {
-            ERROR("Changing uid only allowed inside the same domain\n");
-            talloc_free(command);
-            return EINVAL;
-        }
-    }
-
-    if (gid) {
-        ret = get_domain_by_id(tools_ctx, ctx->gid, &dom);
-        if (ret != EOK) {
-            ERROR("Cannot get domain info\n");
-            talloc_free(command);
-            return EINVAL;
-        }
-        if (dom == old_domain) {
-            APPEND_PARAM(command, USERMOD_GID, gid);
-        } else {
-            ERROR("Changing gid only allowed inside the same domain\n");
-            talloc_free(command);
-            return EINVAL;
-        }
-    }
-
-    APPEND_PARAM(command, USERMOD_GECOS, gecos);
-    APPEND_PARAM(command, USERMOD_HOME, home);
-    APPEND_PARAM(command, USERMOD_SHELL, shell);
-
-    if (lock == DO_LOCK) {
-        APPEND_STRING(command, USERMOD_LOCK);
-    }
-
-    if (lock == DO_UNLOCK) {
-        APPEND_STRING(command, USERMOD_UNLOCK);
-    }
-
-    APPEND_PARAM(command, USERMOD_USERNAME, ctx->name);
-
-    ret = system(command);
-    if (ret) {
-        if (ret == -1) {
-            DEBUG(1, ("system(3) failed\n"));
-        } else {
-            DEBUG(1, ("Could not exec '%s', return code: %d\n",
-                      command, WEXITSTATUS(ret)));
-        }
-        talloc_free(command);
-        return EFAULT;
-    }
-
-    talloc_free(command);
-    return ret;
-}
-
 int main(int argc, const char **argv)
 {
     int pc_lock = 0;
@@ -384,7 +273,6 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct sss_domain_info *dom;
     struct ops_ctx *data = NULL;
     struct tools_ctx *ctx = NULL;
     struct tevent_req *req;
@@ -471,8 +359,10 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = parse_name_domain(data, pc_username);
+    /* if the domain was not given as part of FQDN, default to local domain */
+    ret = get_domain(data, pc_username);
     if (ret != EOK) {
+        ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -482,51 +372,10 @@ int main(int argc, const char **argv)
         old_uid = pwd_info->pw_uid;
     }
 
-    ret = get_domain_by_id(data->ctx, data->uid, &dom);
-    if (ret != EOK) {
-        ERROR("Cannot get domain info\n");
+    if (id_in_range(data->uid, data->domain) != EOK) {
+        ERROR("The selected UID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
-    }
-    if (data->domain && data->uid && data->domain != dom) {
-        ERROR("Selected domain %s conflicts with selected UID %llu\n",
-                data->domain->name, (unsigned long long int) data->uid);
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    if (data->domain == NULL && dom) {
-        data->domain = dom;
-    }
-
-    ret = get_domain_type(data->ctx, data->domain);
-    switch (ret) {
-        case ID_IN_LOCAL:
-            break;
-
-        case ID_IN_LEGACY_LOCAL:
-            ret = usermod_legacy(ctx, data, pc_uid, pc_gid, pc_gecos,
-                                 pc_home, pc_shell, pc_lock, data->domain);
-            if(ret != EOK) {
-                ERROR("Cannot delete user from domain using the legacy tools\n");
-            }
-            goto fini;
-
-        case ID_OUTSIDE:
-            ERROR("The selected UID is outside all domain ranges\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        case ID_IN_OTHER:
-            DEBUG(1, ("Cannot modify user from domain %s\n", dom->name));
-            ERROR("Unsupported domain type\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-
-        default:
-            DEBUG(1, ("Unknown return code %d from find_domain_for_id\n", ret));
-            ERROR("Error looking up domain\n");
-            ret = EXIT_FAILURE;
-            goto fini;
     }
 
     /* add parameters to changeset */
