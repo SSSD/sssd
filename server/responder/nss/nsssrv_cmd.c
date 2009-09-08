@@ -80,6 +80,12 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
     return; \
 } while(0)
 
+#define NSS_CMD_FATAL_ERROR_CODE(cctx, ret) do { \
+    DEBUG(1,("Fatal error, killing connection!")); \
+    talloc_free(cctx); \
+    return ret; \
+} while(0)
+
 static struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
                                            const char *domain)
 {
@@ -262,6 +268,84 @@ done:
     return EOK;
 }
 
+static errno_t check_cache(struct nss_dom_ctx *dctx,
+                           struct nss_ctx *nctx,
+                           struct ldb_result *res,
+                           int req_type,
+                           const char *opt_name,
+                           uint32_t opt_id,
+                           sss_dp_callback_t callback)
+{
+    errno_t ret;
+    int timeout;
+    time_t now;
+    uint64_t lastUpdate;
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    bool call_provider = false;
+
+    if (dctx->check_provider) {
+        switch (res->count) {
+        case 0:
+            call_provider = true;
+            break;
+
+        case 1:
+            timeout = nctx->cache_timeout;
+            now = time(NULL);
+
+            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                     SYSDB_LAST_UPDATE, 0);
+            if (lastUpdate + timeout < now) {
+                call_provider = true;
+            }
+            break;
+
+        default:
+            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
+            ret = nss_cmd_send_error(cmdctx, ENOENT);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR_CODE(cctx, ENOENT);
+            }
+            sss_cmd_done(cctx, cmdctx);
+            return ENOENT;
+        }
+    }
+
+    if (call_provider) {
+        /* dont loop forever :-) */
+        dctx->check_provider = false;
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* keep around current data in case backend is offline */
+        if (res->count) {
+            dctx->res = talloc_steal(dctx, res);
+        }
+
+        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
+                                   callback, dctx, timeout,
+                                   dctx->domain->name, req_type,
+                                   opt_name, opt_id);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            ret = nss_cmd_send_error(cmdctx, ret);
+            if (ret != EOK) {
+                NSS_CMD_FATAL_ERROR_CODE(cctx, EIO);
+            }
+            sss_cmd_done(cctx, cmdctx);
+            return EIO;
+        }
+
+        /* Tell the calling function to return so the dp callback
+         * can resolve
+         */
+        return EAGAIN;
+    }
+
+    return EOK;
+}
+
 static void nss_cmd_getpwnam_dp_callback(uint16_t err_maj, uint32_t err_min,
                                          const char *err_msg, void *ptr);
 
@@ -274,11 +358,8 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *dom;
     struct nss_ctx *nctx;
-    int timeout;
-    uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
-    bool call_provider = false;
     bool neghit = false;
     int ncret;
     int ret;
@@ -294,57 +375,13 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
         return;
     }
 
-    if (dctx->check_provider) {
-        switch (res->count) {
-        case 0:
-            call_provider = true;
-            break;
-
-        case 1:
-            timeout = nctx->cache_timeout;
-
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < time(NULL)) {
-                call_provider = true;
-            }
-            break;
-
-        default:
-            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
-            ret = nss_cmd_send_error(cmdctx, ENOENT);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-            return;
-        }
-    }
-
-    if (call_provider) {
-
-        /* dont loop forever :-) */
-        dctx->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-        /* keep around current data in case backend is offline */
-        if (res->count) {
-            dctx->res = talloc_steal(dctx, res);
-        }
-
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_getpwnam_dp_callback, dctx,
-                                   timeout, dctx->domain->name, SSS_DP_USER,
-                                   cmdctx->name, 0);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-        }
+    ret = check_cache(dctx, nctx, res,
+                      SSS_DP_USER, cmdctx->name, 0,
+                      nss_cmd_getpwnam_dp_callback);
+    if (ret != EOK) {
+        /* Anything but EOK means we should reenter the mainloop
+         * because we may be refreshing the cache
+         */
         return;
     }
 
@@ -668,11 +705,8 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
-    int timeout;
-    uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
-    bool call_provider = false;
     bool neghit = false;
     int ret;
     int ncret;
@@ -688,57 +722,13 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
         return;
     }
 
-    if (dctx->check_provider) {
-        switch (res->count) {
-        case 0:
-            call_provider = true;
-            break;
-
-        case 1:
-            timeout = nctx->cache_timeout;
-
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < time(NULL)) {
-                call_provider = true;
-            }
-            break;
-
-        default:
-            DEBUG(1, ("getpwuid call returned more than one result !?!\n"));
-            ret = nss_cmd_send_error(cmdctx, ENOENT);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-            return;
-        }
-    }
-
-    if (call_provider) {
-
-        /* dont loop forever :-) */
-        dctx->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-        /* keep around current data in case backend is offline */
-        if (res->count) {
-            dctx->res = talloc_steal(dctx, res);
-        }
-
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_getpwuid_dp_callback, dctx,
-                                   timeout, dctx->domain->name, SSS_DP_USER,
-                                   NULL, cmdctx->id);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-        }
+    ret = check_cache(dctx, nctx, res,
+                      SSS_DP_USER, NULL, cmdctx->id,
+                      nss_cmd_getpwuid_dp_callback);
+    if (ret != EOK) {
+        /* Anything but EOK means we should reenter the mainloop
+         * because we may be refreshing the cache
+         */
         return;
     }
 
@@ -1702,11 +1692,8 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
-    int timeout;
-    uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
-    bool call_provider = false;
     bool neghit = false;
     int ncret;
     int i, ret;
@@ -1722,47 +1709,13 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
         return;
     }
 
-    if (dctx->check_provider) {
-        switch (res->count) {
-        case 0:
-            call_provider = true;
-            break;
-
-        default:
-            timeout = nctx->cache_timeout;
-
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < time(NULL)) {
-                call_provider = true;
-            }
-        }
-    }
-
-    if (call_provider) {
-
-        /* dont loop forever :-) */
-        dctx->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-        /* keep around current data in case backend is offline */
-        if (res->count) {
-            dctx->res = talloc_steal(dctx, res);
-        }
-
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_getgrnam_dp_callback, dctx,
-                                   timeout, dctx->domain->name, SSS_DP_GROUP,
-                                   cmdctx->name, 0);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-        }
+    ret = check_cache(dctx, nctx, res,
+                      SSS_DP_GROUP, cmdctx->name, 0,
+                      nss_cmd_getgrnam_dp_callback);
+    if (ret != EOK) {
+        /* Anything but EOK means we should reenter the mainloop
+         * because we may be refreshing the cache
+         */
         return;
     }
 
@@ -2082,11 +2035,8 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
-    int timeout;
-    uint64_t lastUpdate;
     uint8_t *body;
     size_t blen;
-    bool call_provider = false;
     bool neghit = false;
     int i, ret;
     int ncret;
@@ -2102,47 +2052,13 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         return;
     }
 
-    if (dctx->check_provider) {
-        switch (res->count) {
-        case 0:
-            call_provider = true;
-            break;
-
-        default:
-            timeout = nctx->cache_timeout;
-
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < time(NULL)) {
-                call_provider = true;
-            }
-        }
-    }
-
-    if (call_provider) {
-
-        /* dont loop forever :-) */
-        dctx->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-        /* keep around current data in case backend is offline */
-        if (res->count) {
-            dctx->res = talloc_steal(dctx, res);
-        }
-
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_getgrgid_dp_callback, dctx,
-                                   timeout, dctx->domain->name, SSS_DP_GROUP,
-                                   NULL, cmdctx->id);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-        }
+    ret = check_cache(dctx, nctx, res,
+                      SSS_DP_GROUP, NULL, cmdctx->id,
+                      nss_cmd_getgrgid_dp_callback);
+    if (ret != EOK) {
+        /* Anything but EOK means we should reenter the mainloop
+         * because we may be refreshing the cache
+         */
         return;
     }
 
