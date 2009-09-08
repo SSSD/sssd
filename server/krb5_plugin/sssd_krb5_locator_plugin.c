@@ -21,6 +21,10 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
     struct sssd_ctx *ctx;
     char *dummy;
 
+#ifdef KRB5_PLUGIN_DEBUG
+    fprintf(stderr,"sssd_krb5_locator_init called\n");
+#endif
+
     ctx = calloc(1,sizeof(struct sssd_ctx));
     if (ctx == NULL) return ENOMEM;
 
@@ -51,6 +55,10 @@ void sssd_krb5_locator_close(void *private_data)
 {
     struct sssd_ctx *ctx;
 
+#ifdef KRB5_PLUGIN_DEBUG
+    fprintf(stderr,"sssd_krb5_locator_close called\n");
+#endif
+
     if (private_data == NULL) return;
 
     ctx = (struct sssd_ctx *) private_data;
@@ -72,6 +80,8 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     int ret;
     struct sockaddr_in addr;
     struct sssd_ctx *ctx;
+
+    memset(&addr, 0, sizeof(struct sockaddr_in));
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
