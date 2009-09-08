@@ -1424,7 +1424,7 @@ static void sdap_get_users_save_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
-    char *timestamp;
+    char *timestamp = NULL;
     int ret;
 
     ret = sdap_save_user_recv(subreq, state, &timestamp);

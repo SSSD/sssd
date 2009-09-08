@@ -1368,7 +1368,7 @@ static int fill_grent(struct sss_packet *packet,
     size_t nsize;
     size_t delim;
     size_t dom_len;
-    int i, ret, num, memnum;
+    int i, ret, num, memnum, used;
     size_t rzero, rsize;
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
@@ -1384,6 +1384,7 @@ static int fill_grent(struct sss_packet *packet,
 
     num = 0;
     memnum = 0;
+    used = 0;
 
     /* first 2 fields (len and reserved), filled up later */
     ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -1394,7 +1395,7 @@ static int fill_grent(struct sss_packet *packet,
     rzero = 2*sizeof(uint32_t);
     rsize = 0;
 
-    for (i = 0; i < *count; i++) {
+    for (i = 0; i < *count; i++, used++) {
         msg = msgs[i];
 
         /* new group */
@@ -1607,7 +1608,7 @@ static int fill_grent(struct sss_packet *packet,
     }
 
 done:
-    *count = i;
+    *count = used;
 
     if (num == 0) {
         /* if num is 0 most probably something went wrong,
