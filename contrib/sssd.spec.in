@@ -92,10 +92,16 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
     $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
 
+touch locator.filelist
+if test -e $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
+then
+    echo %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so > locator.filelist
+fi
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files
+%files -f locator.filelist
 %defattr(-,root,root,-)
 %doc COPYING
 %{_initrddir}/%{name}
@@ -109,7 +115,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so
-%{_libdir}/krb5/plugins/libkrb5/*
 %dir %{sssdstatedir}
 %attr(700,root,root) %dir %{dbpath}
 %attr(755,root,root) %dir %{pipepath}

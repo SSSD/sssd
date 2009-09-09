@@ -22,10 +22,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include <errno.h>
 #include <sys/time.h>
-#include <krb5/krb5.h>
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>

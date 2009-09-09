@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd_krb5_locator_plugin</refname>
+        <refpurpose>the configuration file for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            The Kerberos locator plugin
+            <command>sssd_krb5_locator_plugin</command> is used by the Kerberos
+            provider of
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>
+            to tell the Kerberos libraries what Realm and which KDC to use.
+            Typically this is done in
+            <citerefentry>
+                <refentrytitle>krb5.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            which is always read by the Kerberos libraries. To simplyfy the
+            configuration the Realm and the KDC can be defined in
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            as described in
+            <citerefentry>
+                <refentrytitle>sssd-krb5.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+        </para>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>
+            puts the Realm and the name or IP address of the KDC into the
+            enviroment variables SSSD_KRB5_REALM and SSSD_KRB5_KDC respectively.
+            When <command>sssd_krb5_locator_plugin</command> is called by the
+            kerberos libraries it reads and evaluates these variable and returns
+            them to the libraries.
+        </para>
+    </refsect1>
+
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            Not all Kerberos implementations support the use of plugins. If
+            <command>sssd_krb5_locator_plugin</command> is not available on
+            your system you have to edit /etc/krb5.conf to reflect your
+            Kerberos setup.
+        </para>
+        <para>
+            If the enviroment variable SSSD_KRB5_LOCATOR_DEBUG is set to any
+            value debug messages will be sent to stderr.
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>
+        </para>
+    </refsect1>
+</refentry>
+</reference>

@@ -67,6 +67,12 @@ m4_include([external/python.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
+dnl if test -n "`$PKG_CONFIG --modversion dbus-1 | grep '^0\.'`" ; then
+if ! $PKG_CONFIG --atleast-version 1.0.0 dbus-1; then
+    DBUS_CFLAGS="$DBUS_CFLAGS -DDBUS_API_SUBJECT_TO_CHANGE"
+    AC_MSG_RESULT([setting -DDBUS_API_SUBJECT_TO_CHANGE])
+fi
+
 if test x$has_dbus != xno; then
     SAFE_LDFLAGS="$LDFLAGS"
     LDFLAGS="$DBUS_LIBS"

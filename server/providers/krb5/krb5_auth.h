@@ -26,8 +26,15 @@
 #ifndef __KRB5_AUTH_H__
 #define __KRB5_AUTH_H__
 
+#include "config.h"
+
 #include <stdbool.h>
+
+#ifdef HAVE_KRB5_KRB5_H
 #include <krb5/krb5.h>
+#else
+#include <krb5.h>
+#endif
 
 #define MAX_CHILD_MSG_SIZE 255
 #define CCACHE_ENV_NAME "KRB5CCNAME"
@@ -78,9 +85,6 @@ struct krb5_ctx {
     char* k4_cache_name;
 
     action_type action;
-
-    int num_pa_opts;
-    krb5_gic_opt_pa_data *pa_opts;
 
     char *kdcip;
     char *realm;

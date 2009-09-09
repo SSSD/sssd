@@ -7,7 +7,9 @@ builddir ?= .
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 ldblibdir = $(libdir)/ldb
+if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugindir = @krb5pluginpath@
+endif
 sssdconfdir = $(sysconfdir)/sssd
 dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
@@ -78,8 +80,10 @@ sssdlib_LTLIBRARIES = \
 ldblib_LTLIBRARIES = \
     memberof.la
 
+if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugin_LTLIBRARIES = \
     sssd_krb5_locator_plugin.la
+endif
 
 noinst_LTLIBRARIES = \
     libsss_crypt.la
@@ -203,8 +207,8 @@ SSSD_LIBS = \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(REPLACE_LIBS) \
-    $(NSS_LIBS) \
-    libsss_crypt.la
+    libsss_crypt.la \
+    $(NSS_LIBS)
 
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
@@ -464,6 +468,7 @@ memberof_la_LDFLAGS = \
     -avoid-version \
     -module
 
+if BUILD_KRB5_LOCATOR_PLUGIN
 sssd_krb5_locator_plugin_la_SOURCES = \
     krb5_plugin/sssd_krb5_locator_plugin.c
 sssd_krb5_locator_plugin_la_CFLAGS = \
@@ -472,6 +477,7 @@ sssd_krb5_locator_plugin_la_CFLAGS = \
 sssd_krb5_locator_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
+endif
 
 if BUILD_PYTHON_BINDINGS
 pysss_la_SOURCES = \
@@ -501,7 +507,8 @@ XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 
 dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
 		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
-		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5
+		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5 \
+		man/sssd_krb5_locator_plugin.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
