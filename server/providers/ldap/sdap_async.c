@@ -372,7 +372,7 @@ static void sdap_op_timeout(struct tevent_req *req)
     }
 
     /* signal the caller that we have a timeout */
-    op->callback(op, NULL, ETIME, op->data);
+    op->callback(op, NULL, ETIMEDOUT, op->data);
 
     /* send back to the server an abandon (see destructor) and free the op */
     talloc_free(op);
@@ -534,7 +534,7 @@ fail:
         tevent_req_error(req, ret);
     } else {
         if (lret == LDAP_SERVER_DOWN) {
-            tevent_req_error(req, EAGAIN);
+            tevent_req_error(req, ETIMEDOUT);
         } else {
             tevent_req_error(req, EIO);
         }
@@ -635,6 +635,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     struct simple_bind_state *state;
     int ret = EOK;
     int msgid;
+    int ldap_err;
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -655,7 +656,16 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     ret = ldap_sasl_bind(state->sh->ldap, state->user_dn, LDAP_SASL_SIMPLE,
                          state->pw, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
-        DEBUG(1, ("ldap_bind failed\n"));
+        ret = ldap_get_option(state->sh->ldap,
+                              LDAP_OPT_RESULT_CODE, &ldap_err);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_bind failed (couldn't get ldap error)\n"));
+            ret = LDAP_LOCAL_ERROR;
+        } else {
+            DEBUG(1, ("ldap_bind failed (%d)[%s]\n",
+                      ldap_err, ldap_err2string(ldap_err)));
+            ret = ldap_err;
+        }
         goto fail;
     }
     DEBUG(8, ("ldap simple bind sent, msgid = %d\n", msgid));
@@ -678,7 +688,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
 
 fail:
     if (ret == LDAP_SERVER_DOWN) {
-        tevent_req_error(req, EAGAIN);
+        tevent_req_error(req, ETIMEDOUT);
     } else {
         tevent_req_error(req, EIO);
     }
@@ -726,11 +736,12 @@ static int simple_bind_recv(struct tevent_req *req, int *ldaperr)
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         *ldaperr = LDAP_OTHER;
-        return -1;
+        if (err) return err;
+        return EIO;
     }
 
     *ldaperr = state->result;
-    return 0;
+    return EOK;
 }
 
 /* ==Authenticaticate-User-by-DN========================================== */
@@ -790,8 +801,8 @@ static void sdap_auth_done(struct tevent_req *subreq)
     int ret;
 
     ret = simple_bind_recv(subreq, &state->result);
-    if (ret == -1) {
-        tevent_req_error(req, EFAULT);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
         return;
     }
     tevent_req_done(req);

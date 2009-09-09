@@ -58,10 +58,20 @@ static bool is_offline(struct sdap_id_ctx *ctx)
 {
     time_t now = time(NULL);
 
+    /* check if we are past the offline blackout timeout */
     if (ctx->went_offline + ctx->opts->offline_timeout < now) {
-        return false;
+        ctx->offline = false;
     }
+
     return ctx->offline;
+}
+
+static void mark_offline(struct sdap_id_ctx *ctx)
+{
+    DEBUG(8, ("Going offline!\n"));
+
+    ctx->went_offline = time(NULL);
+    ctx->offline = true;
 }
 
 static void sdap_check_online(struct be_req *req)
@@ -376,16 +386,26 @@ static void users_get_op_done(struct tevent_req *subreq)
 static void users_get_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
     uint64_t err;
     const char *error = NULL;
     int ret = EOK;
 
+
     if (tevent_req_is_error(req, &tstate, &err)) {
         ret = err;
     }
 
-    if (ret) error = "Enum Users Failed";
+    if (ret) {
+        error = "Enum Users Failed";
+
+        if (ret == ETIMEDOUT) {
+            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                                  struct sdap_id_ctx);
+            mark_offline(ctx);
+        }
+    }
 
     return sdap_req_done(breq, ret, error);
 }
@@ -532,6 +552,7 @@ static void groups_get_op_done(struct tevent_req *subreq)
 static void groups_get_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
     uint64_t err;
     const char *error = NULL;
@@ -541,7 +562,15 @@ static void groups_get_done(struct tevent_req *req)
         ret = err;
     }
 
-    if (ret) error = "Enum Groups Failed";
+    if (ret) {
+        error = "Enum Groups Failed";
+
+        if (ret == ETIMEDOUT) {
+            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                                  struct sdap_id_ctx);
+            mark_offline(ctx);
+        }
+    }
 
     return sdap_req_done(breq, ret, error);
 }
@@ -663,6 +692,7 @@ static void groups_by_user_op_done(struct tevent_req *subreq)
 static void groups_by_user_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
     uint64_t err;
     const char *error = NULL;
@@ -672,7 +702,15 @@ static void groups_by_user_done(struct tevent_req *req)
         ret = err;
     }
 
-    if (ret) error = "Init Groups Failed";
+    if (ret) {
+        error = "Init Groups Failed";
+
+        if (ret == ETIMEDOUT) {
+            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                                  struct sdap_id_ctx);
+            mark_offline(ctx);
+        }
+    }
 
     return sdap_req_done(breq, ret, error);
 }
@@ -792,6 +830,13 @@ static void ldap_id_enumerate(struct tevent_context *ev,
     struct tevent_timer *timeout;
     struct tevent_req *req;
 
+    if (is_offline(ctx)) {
+        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+        /* schedule starting from now, not the last run */
+        ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
+        return;
+    }
+
     ctx->last_run = tv;
 
     req = ldap_id_enumerate_send(ev, ctx);
@@ -894,7 +939,7 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
     struct global_enum_state *state = tevent_req_data(req,
                                                  struct global_enum_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = 0;
 
     if (tevent_req_is_error(subreq, &tstate, &err)) {
         goto fail;
@@ -910,6 +955,15 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
     return;
 
 fail:
+    if (err) {
+        DEBUG(9, ("User enumeration failed with: (%d)[%s]\n",
+                  (int)err, strerror(err)));
+
+        if (err == ETIMEDOUT) {
+            mark_offline(state->ctx);
+        }
+    }
+
     DEBUG(1, ("Failed to enumerate users, retrying later!\n"));
     /* schedule starting from now, not the last run */
     ldap_id_enumerate_set_timer(state->ctx, tevent_timeval_current());
@@ -936,6 +990,10 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
     return;
 
 fail:
+    if (err == ETIMEDOUT) {
+        mark_offline(state->ctx);
+    }
+
     DEBUG(1, ("Failed to enumerate groups, retrying later!\n"));
     /* schedule starting from now, not the last run */
     ldap_id_enumerate_set_timer(state->ctx, tevent_timeval_current());
@@ -1118,7 +1176,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
 
-        attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
+    attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
 
     if (ctx->max_group_timestamp) {
         state->filter = talloc_asprintf(state,
