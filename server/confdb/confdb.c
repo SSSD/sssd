@@ -784,6 +784,11 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                                "minId", SSSD_MIN_ID);
     domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[0],
                                                "maxId", 0);
+    if ((domain->id_max && (domain->id_max < domain->id_min)) ||
+         (domain->id_min < 0)){
+        ret = EINVAL;
+        goto done;
+    }
 
     /* Do we allow to cache credentials */
     if (ldb_msg_find_attr_as_bool(res->msgs[0], "cache-credentials", 0)) {
@@ -848,8 +853,9 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     }
 
     if (cdb->doms == NULL) {
-        DEBUG(0, ("No domains configured, fatal error!\n"));
+        DEBUG(0, ("No properly configured domains, fatal error!\n"));
         ret = ENOENT;
+        goto done;
     }
 
     *domains = cdb->doms;
