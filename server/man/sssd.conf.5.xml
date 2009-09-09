@@ -463,26 +463,20 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>enumerate (integer)</term>
+                    <term>enumerate (bool)</term>
                     <listitem>
                         <para>
                             Determines if a domain can be enumerated. This
                             parameter can have one of the following values:
                         </para>
                         <para>
-                            0 = No enumeration
+                            TRUE = Users and groups are enumerated
                         </para>
                         <para>
-                            1 = Enumerate users
+                            FALSE = No enumerations for this domain
                         </para>
                         <para>
-                            2 = Enumerate groups
-                        </para>
-                        <para>
-                            3 = Enumerate both
-                        </para>
-                        <para>
-                            Default: 0
+                            Default: FALSE
                         </para>
                     </listitem>
                 </varlistentry>
@@ -648,7 +642,7 @@ domains = LOCAL,FILES
 
 [domains/LOCAL]
 description = LOCAL Users domain
-enumerate = 3
+enumerate = TRUE
 minId = 5000
 maxId = 30000
 legacy = FALSE
@@ -657,7 +651,7 @@ provider = local
 
 [domains/FILES]
 description = Users stored in UNIX files
-enumerate = 3
+enumerate = TRUE
 minId = 500
 maxId = 4999
 provider = files
