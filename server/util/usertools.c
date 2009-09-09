@@ -64,16 +64,18 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
 
     if (!ctx->re_pattern) {
         ctx->re_pattern = talloc_strdup(ctx,
-                                "(?<name>[^@]+)@?(?<domain>[^@]*$)");
+                                "(?P<name>[^@]+)@?(?P<domain>[^@]*$)");
         if (!ctx->re_pattern) {
             ret = ENOMEM;
             goto done;
         }
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
+    } else {
         DEBUG(2, ("This binary was build with a version of libpcre that does "
                   "not support non-unique named subpatterns.\n"));
         DEBUG(2, ("Please make sure that your pattern [%s] only contains "
-                  "subpatterns with a unique name.\n", ctx->re_pattern));
+                  "subpatterns with a unique name and uses "
+                  "the Python syntax (?P<name>).\n", ctx->re_pattern));
 #endif
     }
 

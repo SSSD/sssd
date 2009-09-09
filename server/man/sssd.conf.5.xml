@@ -133,7 +133,7 @@
                             containing user name and domain into these components.
                         </para>
                         <para>
-                            Default: <quote>(?&lt;name&gt;[^@]+)@?(?&lt;domain&gt;[^@]*$)</quote>
+                            Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
                             which translates to "the name is everything up to the
                             <quote>@</quote> sign, the domain everything after that"
                         </para>
@@ -143,6 +143,11 @@
                             (e.g. RHEL5 and SLES10). Only plattforms with
                             libpcre version 7 or higher can support non-unique
                             named subpatterns.
+                        </para>
+                        <para>
+                            PLEASE NOTE ALSO: older version of libpcre only
+                            support the Python syntax (?P&lt;name&gt;) to label
+                            subpatterns.
                         </para>
                     </listitem>
                 </varlistentry>
