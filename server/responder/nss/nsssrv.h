@@ -46,9 +46,11 @@ struct getent_ctx;
 struct nss_ctx {
     struct resp_ctx *rctx;
 
-    int cache_timeout;
     int neg_timeout;
     struct nss_nc_ctx *ncache;
+
+    int cache_timeout;
+    int cache_refresh_timeout;
 
     int enum_cache_timeout;
     time_t last_user_enum;

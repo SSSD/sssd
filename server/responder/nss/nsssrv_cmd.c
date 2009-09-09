@@ -278,26 +278,50 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
 {
     errno_t ret;
     int timeout;
+    int refresh_timeout;
     time_t now;
     uint64_t lastUpdate;
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     bool call_provider = false;
+    sss_dp_callback_t cb = NULL;
 
     if (dctx->check_provider) {
         switch (res->count) {
         case 0:
+            /* This is a cache miss. We need to get the updated user
+             * information before returning it.
+             */
             call_provider = true;
+            cb = callback;
             break;
 
         case 1:
             timeout = nctx->cache_timeout;
+            refresh_timeout = nctx->cache_refresh_timeout;
             now = time(NULL);
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
             if (lastUpdate + timeout < now) {
+                /* This is a cache miss. We need to get the updated user
+                 * information before returning it.
+                 */
                 call_provider = true;
+                cb = callback;
+            }
+            else if (refresh_timeout && (lastUpdate + refresh_timeout < now)) {
+                /* We're past the the cache refresh timeout
+                 * We'll return the value from the cache, but we'll also
+                 * queue the cache entry for update out-of-band.
+                 */
+                call_provider = true;
+                cb = NULL;
+            }
+            else {
+                /* Cache is still valid. Just return it. */
+                call_provider = false;
+                cb = NULL;
             }
             break;
 
@@ -340,7 +364,16 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
         /* Tell the calling function to return so the dp callback
          * can resolve
          */
-        return EAGAIN;
+        if (cb) {
+            return EAGAIN;
+        }
+
+        /* No callback required
+         * This was an out-of-band update. We'll return EOK
+         * so the calling function can return the cached entry
+         * immediately.
+         */
+        DEBUG(3, ("Updating cache out-of-band\n"));
     }
 
     return EOK;

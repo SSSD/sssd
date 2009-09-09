@@ -336,6 +336,19 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>EntryCacheNoWaitRefreshTimeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How long should nss_sss return cached entries before
+                            initiating an out-of-band cache refresh (0 disables
+                            this feature)
+                        </para>
+                        <para>
+                            Default: 0
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>EntryNegativeTimeout (integer)</term>
                     <listitem>
                         <para>

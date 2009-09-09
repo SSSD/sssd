@@ -107,6 +107,22 @@ static int nss_get_config(struct nss_ctx *nctx,
                          &nctx->filter_users_in_groups);
     if (ret != EOK) goto done;
 
+
+    ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
+                         "EntryCacheNoWaitRefreshTimeout", 0,
+                         &nctx->cache_refresh_timeout);
+    if (ret != EOK) goto done;
+    if (nctx->cache_refresh_timeout >= nctx->cache_timeout) {
+        DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout exceeds"
+                 "EntryCacheTimeout. Disabling feature.\n"));
+        nctx->cache_refresh_timeout = 0;
+    }
+    if (nctx->cache_refresh_timeout < 0) {
+        DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout is"
+                 "invalid. Disabling feature.\n"));
+        nctx->cache_refresh_timeout = 0;
+    }
+
     ret = confdb_get_string_as_list(cdb, tmpctx, NSS_SRV_CONFIG,
                                     "filterUsers", &filter_list);
     if (ret == ENOENT) filter_list = NULL;
