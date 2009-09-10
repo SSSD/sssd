@@ -241,18 +241,11 @@ static int col_allocate_item(struct collection_item **ci, const char *property,
         return ENOMEM;
     }
 
-    item->phash = FNV1a_base;
-    item->property_len = 0;
-
-    while (property[item->property_len] != 0) {
-        item->phash = item->phash ^ toupper(property[item->property_len]);
-        item->phash *= FNV1a_prime;
-        item->property_len++;
-    }
-
+    item->phash = col_make_hash(property, &(item->property_len));
     TRACE_INFO_NUMBER("Item hash", item->phash);
     TRACE_INFO_NUMBER("Item property length", item->property_len);
     TRACE_INFO_NUMBER("Item property strlen", strlen(item->property));
+
 
     /* Deal with data */
     item->data = malloc(length);
@@ -2873,14 +2866,10 @@ int col_modify_item(struct collection_item *item,
         }
 
         /* Update property length and hash if we rename the property */
-        item->phash = FNV1a_base;
-        item->property_len = 0;
-
-        while (property[item->property_len] != 0) {
-            item->phash = item->phash ^ toupper(property[item->property_len]);
-            item->phash *= FNV1a_prime;
-            item->property_len++;
-        }
+        item->phash = col_make_hash(property, &(item->property_len));
+        TRACE_INFO_NUMBER("Item hash", item->phash);
+        TRACE_INFO_NUMBER("Item property length", item->property_len);
+        TRACE_INFO_NUMBER("Item property strlen", strlen(item->property));
 
     }
 
@@ -3342,4 +3331,38 @@ int col_get_item_length(struct collection_item *ci)
 void *col_get_item_data(struct collection_item *ci)
 {
     return ci->data;
+}
+
+/* Get hash */
+uint64_t col_get_item_hash(struct collection_item *ci)
+{
+    return ci->phash;
+}
+
+/* Calculates hash of the string using internal hashing
+ * algorithm. Populates "length" with length
+ * of the string not counting 0.
+ * Length argument can be NULL.
+ */
+uint64_t col_make_hash(const char *string, int *length)
+{
+    uint64_t hash = 0;
+    int str_len = 0;
+
+    TRACE_FLOW_STRING("col_make_hash called for string:", string);
+
+    if (string) {
+        hash = FNV1a_base;
+        while (string[str_len] != 0) {
+            hash = hash ^ toupper(string[str_len]);
+            hash *= FNV1a_prime;
+            str_len++;
+        }
+    }
+
+    if (length) *length = str_len;
+
+    TRACE_FLOW_NUMBER("col_make_hash returning hash:", hash);
+
+    return hash;
 }

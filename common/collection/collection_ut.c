@@ -592,6 +592,7 @@ int iterator_test(void)
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
     int depth = 0;
     int idepth = 0;
+    int len = 0;
 
     printf("\n\n==== ITERATOR TEST ====\n\n");
 
@@ -767,6 +768,26 @@ int iterator_test(void)
                 col_destroy_collection(peer);
                 return error;
             }
+
+            printf("Item name: %s\n", col_get_item_property(item, NULL));
+            printf("Item hash: %lu\n", (unsigned long int)col_get_item_hash(item));
+            error = col_modify_item_property(item, "new_name");
+            if (error) {
+                printf("We expected success but got error %d\n", error);
+                col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
+                return error;
+            }
+            len = 0;
+            printf("Item name: %s\n", col_get_item_property(item, &len));
+            printf("Item hash: %lu\n", (unsigned long int)col_get_item_hash(item));
+            printf("Item length: %d\n", len);
+
+            len = 0;
+            printf("String name: %s\n", "new_name");
+            printf("String hash: %lu\n", (unsigned long int)col_make_hash("new_name", &len));
+            printf("String length: %d\n", len);
+
         }
     }
     while(1);

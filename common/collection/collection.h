@@ -22,6 +22,8 @@
 #ifndef COLLECTION_H
 #define COLLECTION_H
 
+#include <stdint.h>
+
 #ifndef EOK
 #define EOK 0
 #endif
@@ -490,6 +492,14 @@ const char *col_get_item_property(struct collection_item *ci, int *property_len)
 int col_get_item_type(struct collection_item *ci);
 int col_get_item_length(struct collection_item *ci);
 void *col_get_item_data(struct collection_item *ci);
+uint64_t col_get_item_hash(struct collection_item *ci);
+
+/* Calculates hash of the string using internal hashing
+ * algorithm. Populates "length" with length
+ * of the string not counting 0.
+ * Length argument can be NULL.
+ */
+uint64_t col_make_hash(const char *string, int *length);
 
 /* If you want to modify the item that you got as a result of iterating through collection
  * or by calling col_get_item(). If you want to rename item provide a new name in the property
