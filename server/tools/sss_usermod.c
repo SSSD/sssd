@@ -165,7 +165,7 @@ int main(int argc, const char **argv)
     /* if the domain was not given as part of FQDN, default to local domain */
     ret = parse_name_domain(tctx, pc_username);
     if (ret != EOK) {
-        ERROR("Cannot get domain information\n");
+        ERROR("Invalid domain specified in FQDN\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -183,6 +183,13 @@ int main(int argc, const char **argv)
             ERROR("Internal error while parsing parameters\n");
             goto fini;
         }
+
+        ret = parse_group_name_domain(tctx, tctx->octx->addgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse FQDN groups to add the user to\n"));
+            ERROR("Groups must be in the same domain as user\n");
+            goto fini;
+        }
     }
 
     if (rmgroups) {
@@ -190,6 +197,13 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to remove the user from\n"));
             ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
+
+        ret = parse_group_name_domain(tctx, tctx->octx->rmgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse FQDN groups to remove the user from\n"));
+            ERROR("Groups must be in the same domain as user\n");
             goto fini;
         }
     }

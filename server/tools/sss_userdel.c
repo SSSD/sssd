@@ -124,7 +124,7 @@ int main(int argc, const char **argv)
     /* if the domain was not given as part of FQDN, default to local domain */
     ret = parse_name_domain(tctx, pc_username);
     if (ret != EOK) {
-        ERROR("Cannot get domain information\n");
+        ERROR("Invalid domain specified in FQDN\n");
         ret = EXIT_FAILURE;
         goto fini;
     }

@@ -149,7 +149,7 @@ int main(int argc, const char **argv)
 
     ret = parse_name_domain(tctx, pc_groupname);
     if (ret != EOK) {
-        ERROR("Cannot get domain information\n");
+        ERROR("Invalid domain specified in FQDN\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
@@ -163,6 +163,13 @@ int main(int argc, const char **argv)
             ERROR("Internal error while parsing parameters\n");
             goto fini;
         }
+
+        ret = parse_group_name_domain(tctx, tctx->octx->addgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse FQDN groups to add the group to\n"));
+            ERROR("Member groups must be in the same domain as parent group\n");
+            goto fini;
+        }
     }
 
     if (rmgroups) {
@@ -170,6 +177,13 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to remove the group from\n"));
             ERROR("Internal error while parsing parameters\n");
+            goto fini;
+        }
+
+        ret = parse_group_name_domain(tctx, tctx->octx->rmgroups);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot parse FQDN groups to remove the group from\n"));
+            ERROR("Member groups must be in the same domain as parent group\n");
             goto fini;
         }
     }

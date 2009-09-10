@@ -135,6 +135,44 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     return EOK;
 }
 
+int parse_group_name_domain(struct tools_ctx *tctx,
+                            char **groups)
+{
+    int i;
+    int ret;
+    char *name = NULL;
+    char *domain = NULL;
+
+    if (!groups) {
+        return EOK;
+    }
+
+    for (i = 0; groups[i]; ++i) {
+        ret = sss_parse_name(tctx, tctx->snctx, groups[i], &domain, &name);
+
+        /* If FQDN is specified, it must be within the same domain as user */
+        if (domain) {
+            if (strcmp(domain, tctx->octx->domain->name) != 0) {
+                return EINVAL;
+            }
+
+            /* Use only groupname */
+            talloc_zfree(groups[i]);
+            groups[i] = talloc_strdup(tctx, name);
+            if (groups[i] == NULL) {
+                return ENOMEM;
+            }
+        }
+
+        talloc_zfree(name);
+        talloc_zfree(domain);
+    }
+
+    talloc_zfree(name);
+    talloc_zfree(domain);
+    return EOK;
+}
+
 int parse_name_domain(struct tools_ctx *tctx,
                       const char *fullname)
 {
@@ -152,7 +190,7 @@ int parse_name_domain(struct tools_ctx *tctx,
         DEBUG(5, ("Parsed domain: %s\n", domain));
         /* only the local domain, whatever named is allowed in tools */
         if (strcasecmp(domain, tctx->local->name) != 0) {
-            DEBUG(0, ("Invalid domain %s specified in FQDN\n", domain));
+            DEBUG(1, ("Invalid domain %s specified in FQDN\n", domain));
             return EINVAL;
         }
     }

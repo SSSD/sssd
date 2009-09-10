@@ -70,6 +70,9 @@ int parse_groups(TALLOC_CTX *mem_ctx,
                  const char *optstr,
                  char ***_out);
 
+int parse_group_name_domain(struct tools_ctx *tctx,
+                            char **groups);
+
 void tools_transaction_done(struct tevent_req *req);
 
 #endif  /* __TOOLS_UTIL_H__ */
