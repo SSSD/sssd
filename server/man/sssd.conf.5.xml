@@ -560,6 +560,32 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>auth-module (string)</term>
+                    <listitem>
+                        <para>
+                            The authentication module used for the domain.
+                            Supported auth modules are:
+                        </para>
+                        <para>
+                            <quote>ldap</quote> for native LDAP authentication. See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>krb5</quote> for Kerberos authentication. See
+                            <citerefentry>
+                                <refentrytitle>sssd-krb5</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring Kerberos.
+                        </para>
+                        <para>
+                            <quote>proxy</quote> for relaying authentication to some other PAM target.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 
@@ -567,19 +593,6 @@
             Options valid for proxy domains.
 
             <variablelist>
-                <varlistentry>
-                    <term>auth-module (string)</term>
-                    <listitem>
-                        <para>
-                            The authentication module used. Two
-                            authentication modules are provided -
-                            <quote>ldap</quote> for native LDAP authentication
-                            and <quote>proxy</quote>, used for relaying
-                            authentication to some other PAM target.
-                        </para>
-                    </listitem>
-                </varlistentry>
-
                 <varlistentry>
                     <term>pam-target (string)</term>
                     <listitem>
