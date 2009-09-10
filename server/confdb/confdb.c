@@ -21,11 +21,13 @@
 
 #define _GNU_SOURCE
 
+#include <ctype.h>
 #include "config.h"
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_private.h"
 #include "util/btreemap.h"
+#include "util/strtonum.h"
 #include "db/sysdb.h"
 
 #define CONFDB_DOMAINS_PATH "config/domains"
@@ -673,6 +675,39 @@ int confdb_init(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t get_entry_as_uint32(struct ldb_message *msg,
+                                   uint32_t *return_value,
+                                   const char *entry,
+                                   uint32_t default_value)
+{
+    const char *tmp = NULL;
+    char *endptr;
+    uint32_t u32ret = 0;
+
+    tmp = ldb_msg_find_attr_as_string(msg, entry, NULL);
+    if (tmp == NULL) {
+        *return_value = default_value;
+        return EOK;
+    }
+
+    if ((*tmp == '-') || (*tmp == '\0')) {
+        return EINVAL;
+    }
+
+    u32ret = strtouint32 (tmp, &endptr, 10);
+    if (errno) {
+        return errno;
+    }
+
+    if (*endptr != '\0') {
+        /* Not all of the string was a valid number */
+        return EINVAL;
+    }
+
+    *return_value = u32ret;
+    return EOK;
+}
+
 static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                       TALLOC_CTX *mem_ctx,
                                       const char *name,
@@ -780,12 +815,24 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         domain->fqnames = true;
     }
 
-    domain->id_min = ldb_msg_find_attr_as_uint(res->msgs[0],
-                                               "minId", SSSD_MIN_ID);
-    domain->id_max = ldb_msg_find_attr_as_uint(res->msgs[0],
-                                               "maxId", 0);
-    if ((domain->id_max && (domain->id_max < domain->id_min)) ||
-         (domain->id_min < 0)){
+    ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
+                              "minId", SSSD_MIN_ID);
+    if (ret != EOK) {
+        DEBUG(0, ("Invalid value for minId\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = get_entry_as_uint32(res->msgs[0], &domain->id_max,
+                              "maxId", 0);
+    if (ret != EOK) {
+        DEBUG(0, ("Invalid value for maxId\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (domain->id_max && (domain->id_max < domain->id_min)) {
+        DEBUG(0, ("Invalid domain range\n"));
         ret = EINVAL;
         goto done;
     }
