@@ -61,6 +61,7 @@ m4_include([external/libpcre.m4])
 m4_include([external/krb5.m4])
 m4_include([external/libcares.m4])
 m4_include([external/docbook.m4])
+m4_include([external/sizes.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])

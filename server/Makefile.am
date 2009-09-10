@@ -160,6 +160,7 @@ SSSD_UTIL_OBJ = \
     util/signal.c \
     util/usertools.c \
     util/backup_file.c \
+    util/strtonum.c \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \
@@ -203,6 +204,7 @@ dist_noinst_HEADERS = \
     util/dlinklist.h \
     util/sssd-i18n.h \
     util/util.h \
+    util/strtonum.h \
     config.h \
     monitor/monitor.h \
     monitor/monitor_interfaces.h \
