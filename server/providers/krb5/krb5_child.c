@@ -24,12 +24,15 @@
 
 #include <krb5/krb5.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include <security/pam_modules.h>
 
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_utils.h"
 
 struct krb5_req {
     krb5_context ctx;
@@ -46,6 +49,8 @@ struct krb5_req {
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
     errno_t (*child_req)(int fd, struct krb5_req *kr);
+
+    char *ccname;
 };
 
 static krb5_context krb5_error_ctx;
@@ -107,7 +112,6 @@ static errno_t pack_response_packet(struct response *resp, int status, int type,
 static struct response *prepare_response_message(struct krb5_req *kr,
                                         krb5_error_code kerr, int pam_status)
 {
-    const char *cc_name = NULL;
     char *msg = NULL;
     const char *krb5_msg = NULL;
     int ret;
@@ -120,13 +124,12 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     }
 
     if (kerr == 0) {
-        cc_name = krb5_cc_get_name(kr->ctx, kr->cc);
-        if (cc_name == NULL) {
-            DEBUG(1, ("krb5_cc_get_name failed.\n"));
+        if (kr->cc == NULL || kr->ccname == NULL) {
+            DEBUG(1, ("Error obtaining ccname.\n"));
             return NULL;
         }
 
-        msg = talloc_asprintf(kr, "%s=%s",CCACHE_ENV_NAME, cc_name);
+        msg = talloc_asprintf(kr, "%s=%s",CCACHE_ENV_NAME, kr->ccname);
         if (msg == NULL) {
             DEBUG(1, ("talloc_asprintf failed.\n"));
             return NULL;
@@ -157,6 +160,9 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         char *password)
 {
     krb5_error_code kerr = 0;
+    int fd = -1;
+    size_t ccname_len = 0;
+    size_t offset = 0;
 
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         password, NULL, NULL, 0, NULL,
@@ -166,16 +172,37 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         return kerr;
     }
 
-    kerr = krb5_cc_default(kr->ctx, &kr->cc);
+    if (kr->ccname[0] == '/' || strncmp(kr->ccname, "FILE:", 5) == 0) {
+        offset = 0;
+        if (kr->ccname[0] == 'F') {
+            offset = 5;
+        }
+        ccname_len = strlen(kr->ccname + offset);
+        if (ccname_len >= 6 &&
+            strcmp(kr->ccname + (ccname_len-6), "XXXXXX")==0 ) {
+            fd = mkstemp(kr->ccname + offset);
+            if (fd == -1) {
+                DEBUG(1, ("mkstemp failed [%d][%s].\n", errno,
+                          strerror(errno)));
+                kerr = KRB5KRB_ERR_GENERIC;
+                goto done;
+            }
+        }
+    }
+
+    kerr = krb5_cc_resolve(kr->ctx, kr->ccname, &kr->cc);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
-        return kerr;
+        goto done;
     }
 
     kerr = krb5_cc_initialize(kr->ctx, kr->cc, kr->princ);
+    if (fd != -1) {
+        close(fd);
+    }
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
-        return kerr;
+        goto done;
     }
 
     kerr = krb5_cc_store_cred(kr->ctx, kr->cc, kr->creds);
@@ -183,12 +210,15 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         KRB5_DEBUG(1, kerr);
         krb5_cc_destroy(kr->ctx, kr->cc);
         kr->cc = NULL;
-        return kerr;
+        goto done;
     }
 
+    kerr = 0;
+
+done:
     krb5_free_cred_contents(kr->ctx, kr->creds);
 
-    return 0;
+    return kerr;
 
 }
 
@@ -205,15 +235,6 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     krb5_data result_code_string;
     krb5_data result_string;
 
-    char *changepw_principle = NULL;
-
-    changepw_principle = getenv(SSSD_KRB5_CHANGEPW_PRINCIPLE);
-    if (changepw_principle == NULL) {
-        DEBUG(1, ("Change password principle not available.\n"));
-        kerr = KRB5KRB_ERR_GENERIC;
-        goto sendresponse;
-    }
-
     pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
                               kr->pd->authtok_size);
     if (pass_str == NULL) {
@@ -224,7 +245,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         pass_str, NULL, NULL, 0,
-                                        changepw_principle,
+                                        kr->krb5_ctx->changepw_principle,
                                         kr->options);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
@@ -362,7 +383,8 @@ sendresponse:
     return EOK;
 }
 
-static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd)
+static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
+                             char **ccname)
 {
     size_t p = 0;
     uint32_t *len;
@@ -378,6 +400,14 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd)
     if (str == NULL) return ENOMEM;
     str[*len] = '\0';
     pd->upn = (char *) str;
+    p += *len;
+
+    len = ((uint32_t *)(buf+p));
+    p += sizeof(uint32_t);
+    str = talloc_memdup(pd, buf+p, sizeof(char) * (*len + 1));
+    if (str == NULL) return ENOMEM;
+    str[*len] = '\0';
+    *ccname = (char *) str;
     p += *len;
 
     len = ((uint32_t *)(buf+p));
@@ -411,12 +441,12 @@ static int krb5_cleanup(void *ptr)
     struct krb5_req *kr = talloc_get_type(ptr, struct krb5_req);
     if (kr == NULL) return EOK;
 
-    /* FIXME: is it safe to drop the "!= NULL" checks? */
     if (kr->options != NULL)
         krb5_get_init_creds_opt_free(kr->ctx, kr->options);
-    if (kr->creds != NULL)
+    if (kr->creds != NULL) {
         krb5_free_cred_contents(kr->ctx, kr->creds);
         krb5_free_creds(kr->ctx, kr->creds);
+    }
     if (kr->name != NULL)
         krb5_free_unparsed_name(kr->ctx, kr->name);
     if (kr->princ != NULL)
@@ -426,6 +456,9 @@ static int krb5_cleanup(void *ptr)
     if (kr->ctx != NULL)
         krb5_free_context(kr->ctx);
 
+    if (kr->krb5_ctx != NULL) {
+        memset(kr->krb5_ctx, 0, sizeof(struct krb5_ctx));
+    }
     memset(kr, 0, sizeof(struct krb5_req));
 
     return EOK;
@@ -444,6 +477,27 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
         goto failed;
     }
     talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
+
+    kr->krb5_ctx = talloc_zero(kr, struct krb5_ctx);
+    if (kr->krb5_ctx == NULL) {
+        DEBUG(1, ("talloc failed.\n"));
+        kerr = ENOMEM;
+        goto failed;
+    }
+
+    kr->krb5_ctx->changepw_principle = getenv(SSSD_KRB5_CHANGEPW_PRINCIPLE);
+    if (kr->krb5_ctx->changepw_principle == NULL) {
+        DEBUG(1, ("Cannot read [%s] from environment.\n",
+                  SSSD_KRB5_CHANGEPW_PRINCIPLE));
+        if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+            goto failed;
+        }
+    }
+
+    kr->krb5_ctx->realm = getenv(SSSD_KRB5_REALM);
+    if (kr->krb5_ctx->realm == NULL) {
+        DEBUG(2, ("Cannot read [%s] from environment.\n", SSSD_KRB5_REALM));
+    }
 
     kr->pd = pd;
 
@@ -513,12 +567,15 @@ failed:
     return kerr;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     uint8_t *buf = NULL;
     int ret;
     struct pam_data *pd = NULL;
     struct krb5_req *kr = NULL;
+    char *ccname;
+
+    debug_prg_name = argv[0];
 
     pd = talloc(NULL, struct pam_data);
 
@@ -536,14 +593,21 @@ int main(void)
     }
     close(STDIN_FILENO);
 
-    ret = unpack_buffer(buf, ret, pd);
+    ret = unpack_buffer(buf, ret, pd, &ccname);
     if (ret != EOK) {
         DEBUG(1, ("unpack_buffer failed.\n"));
         talloc_free(pd);
         exit(-1);
     }
 
-    krb5_setup(pd, pd->upn, &kr);
+    ret = krb5_setup(pd, pd->upn, &kr);
+    if (ret != EOK) {
+        DEBUG(1, ("krb5_setup failed.\n"));
+        talloc_free(pd);
+        exit(-1);
+    }
+    kr->ccname = ccname;
+
     ret = kr->child_req(STDOUT_FILENO, kr);
     if (ret != EOK) {
         DEBUG(1, ("Child request failed.\n"));

@@ -59,7 +59,8 @@ if HAVE_CHECK
     non_interactive_check_based_tests = \
         sysdb-tests \
         strtonum-tests \
-        resolv-tests
+        resolv-tests \
+        krb5-utils-tests
 endif
 
 check_PROGRAMS = \
@@ -228,10 +229,10 @@ dist_noinst_HEADERS = \
     providers/dp_backend.h \
     providers/providers.h \
     providers/krb5/krb5_auth.h \
+    providers/krb5/krb5_utils.h \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
     tools/tools_util.h \
-    krb5_plugin/sssd_krb5_locator_plugin.h \
     resolv/async_resolv.h \
     resolv/ares/ares_parse_srv_reply.h \
     resolv/ares/ares_parse_txt_reply.h
@@ -355,6 +356,16 @@ strtonum_tests_CFLAGS = \
 strtonum_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
+
+krb5_utils_tests_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
+    tests/krb5_utils-tests.c \
+    providers/krb5/krb5_utils.c
+krb5_utils_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+krb5_utils_tests_LDADD = \
+    $(CHECK_LIBS) \
+    $(TALLOC_LIBS)
 endif
 
 stress_tests_SOURCES = \
@@ -404,6 +415,7 @@ libsss_proxy_la_LDFLAGS = \
     -module
 
 libsss_krb5_la_SOURCES = \
+    providers/krb5/krb5_utils.c \
     providers/krb5/krb5_auth.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \

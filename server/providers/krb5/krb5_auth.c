@@ -31,30 +31,22 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <pwd.h>
+#include <sys/stat.h>
+
 
 #include <security/pam_modules.h>
 
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
-#include "krb5_plugin/sssd_krb5_locator_plugin.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_utils.h"
 
 #ifndef SSSD_LIBEXEC_PATH
 #error "SSSD_LIBEXEC_PATH not defined"
 #else
 #define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
 #endif
-
-struct krb5child_req {
-    pid_t child_pid;
-    int read_from_child_fd;
-    int write_to_child_fd;
-
-    struct be_req *req;
-    struct pam_data *pd;
-    struct krb5_ctx *krb5_ctx;
-};
 
 static errno_t become_user(uid_t uid, gid_t gid)
 {
@@ -102,7 +94,8 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
         return ENOMEM;
     }
 
-    buf->size = 3*sizeof(int) + strlen(kr->pd->upn) + kr->pd->authtok_size;
+    buf->size = 4*sizeof(int) + strlen(kr->pd->upn) + strlen(kr->ccname) +
+                kr->pd->authtok_size;
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
         buf->size += sizeof(int) + kr->pd->newauthtok_size;
     }
@@ -118,11 +111,17 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->cmd;
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = strlen(kr->pd->upn);
+    ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(kr->pd->upn);
     rp += sizeof(uint32_t);
 
     memcpy(&buf->data[rp], kr->pd->upn, strlen(kr->pd->upn));
     rp += strlen(kr->pd->upn);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(kr->ccname);
+    rp += sizeof(uint32_t);
+
+    memcpy(&buf->data[rp], kr->ccname, strlen(kr->ccname));
+    rp += strlen(kr->ccname);
 
     ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->authtok_size;
     rp += sizeof(uint32_t);
@@ -168,7 +167,8 @@ static void krb5_cleanup(struct krb5child_req *kr)
     talloc_zfree(kr);
 }
 
-static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req)
+static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req,
+                          const char *homedir)
 {
     struct krb5child_req *kr = NULL;
     struct krb5_ctx *krb5_ctx;
@@ -190,6 +190,14 @@ static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req)
     kr->pd = pd;
     kr->req = req;
     kr->krb5_ctx = krb5_ctx;
+    kr->homedir = homedir;
+
+    kr->ccname = expand_ccname_template(kr, kr, krb5_ctx->ccname_template);
+    if (kr->ccname == NULL) {
+        DEBUG(1, ("expand_ccname_template failed.\n"));
+        err = EINVAL;
+        goto failed;
+    }
 
     *krb5_req = kr;
 
@@ -501,13 +509,14 @@ static void krb5_pam_handler(struct be_req *be_req)
         goto done;
     }
 
-    attrs = talloc_array(be_req, const char *, 2);
+    attrs = talloc_array(be_req, const char *, 3);
     if (attrs == NULL) {
         goto done;
     }
 
     attrs[0] = SYSDB_UPN;
-    attrs[1] = NULL;
+    attrs[1] = SYSDB_HOMEDIR;
+    attrs[2] = NULL;
 
     ret = sysdb_get_user_attr(be_req, be_req->be_ctx->sysdb,
                               be_req->be_ctx->domain, pd->user, attrs,
@@ -534,7 +543,7 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
     int ret;
     struct pam_data *pd;
     int pam_status=PAM_SYSTEM_ERR;
-    //const char *upn = NULL;
+    const char *homedir = NULL;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
     krb5_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
@@ -563,6 +572,12 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
                 DEBUG(9, ("Using simple UPN [%s].\n", pd->upn));
             }
         }
+
+        homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,
+                                              NULL);
+        if (homedir == NULL) {
+            DEBUG(4, ("Home directory for user [%s] not known.\n", pd->user));
+        }
         break;
 
     default:
@@ -576,7 +591,7 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
         goto failed;
     }
 
-    ret = krb5_setup(be_req, &kr);
+    ret = krb5_setup(be_req, &kr, homedir);
     if (ret != EOK) {
         DEBUG(1, ("krb5_setup failed.\n"));
         goto failed;
@@ -665,7 +680,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     }
 
     if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_AUTHENTICATE) {
-        env = talloc_asprintf(pd, "%s=%s", SSSD_REALM, krb5_ctx->realm);
+        env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_REALM, krb5_ctx->realm);
         if (env == NULL) {
             DEBUG(1, ("talloc_asprintf failed.\n"));
             goto done;
@@ -676,7 +691,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
             goto done;
         }
 
-        env = talloc_asprintf(pd, "%s=%s", SSSD_KDC, krb5_ctx->kdcip);
+        env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_KDC, krb5_ctx->kdcip);
         if (env == NULL) {
             DEBUG(1, ("talloc_asprintf failed.\n"));
             goto done;
@@ -770,6 +785,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     bool bool_value;
     int ret;
     struct tevent_signal *sige;
+    struct stat stat_buf;
 
     ctx = talloc_zero(bectx, struct krb5_ctx);
     if (!ctx) {
@@ -785,10 +801,10 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     if (value == NULL) {
         DEBUG(2, ("Missing krb5KDCIP, authentication might fail.\n"));
     } else {
-        ret = setenv(SSSD_KDC, value, 1);
+        ret = setenv(SSSD_KRB5_KDC, value, 1);
         if (ret != EOK) {
             DEBUG(2, ("setenv %s failed, authentication might fail.\n",
-                      SSSD_KDC));
+                      SSSD_KRB5_KDC));
         }
     }
     ctx->kdcip = value;
@@ -799,13 +815,39 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     if (value == NULL) {
         DEBUG(4, ("Missing krb5REALM authentication might fail.\n"));
     } else {
-        ret = setenv(SSSD_REALM, value, 1);
+        ret = setenv(SSSD_KRB5_REALM, value, 1);
         if (ret != EOK) {
             DEBUG(2, ("setenv %s failed, authentication might fail.\n",
-                      SSSD_REALM));
+                      SSSD_KRB5_REALM));
         }
     }
     ctx->realm = value;
+
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                            "krb5ccache_dir", "/tmp", &value);
+    if (ret != EOK) goto fail;
+    ret = lstat(value, &stat_buf);
+    if (ret != EOK) {
+        DEBUG(1, ("lstat for [%s] failed: [%d][%s].\n", value, errno,
+                  strerror(errno)));
+        goto fail;
+    }
+    if ( !S_ISDIR(stat_buf.st_mode) ) {
+        DEBUG(1, ("Value of krb5ccache_dir [%s] is not a directory.\n", value));
+        goto fail;
+    }
+    ctx->ccache_dir = value;
+
+    ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
+                            "krb5ccname_template", "FILE:%d/krb5cc_%U_XXXXXX",
+                            &value);
+    if (ret != EOK) goto fail;
+    if (value[0] != '/' && strncmp(value, "FILE:", 5) != 0) {
+        DEBUG(1, ("Currently only file based credential caches are supported "
+                  "and krb5ccname_template must start with '/' or 'FILE:'\n"));
+        goto fail;
+    }
+    ctx->ccname_template = value;
 
     ret = confdb_get_bool(bectx->cdb, ctx, bectx->conf_path,
                           "krb5try_simple_upn", false, &bool_value);

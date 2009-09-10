@@ -26,11 +26,31 @@
 #ifndef __KRB5_AUTH_H__
 #define __KRB5_AUTH_H__
 
+#include <stdbool.h>
+#include <krb5/krb5.h>
+
 #define MAX_CHILD_MSG_SIZE 255
 #define CCACHE_ENV_NAME "KRB5CCNAME"
+
 #define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
+#define SSSD_KRB5_KDC "SSSD_KRB5_KDC"
+#define SSSD_KRB5_REALM "SSSD_KRB5_REALM"
+
 
 typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
+
+struct krb5child_req {
+    pid_t child_pid;
+    int read_from_child_fd;
+    int write_to_child_fd;
+
+    struct be_req *req;
+    struct pam_data *pd;
+    struct krb5_ctx *krb5_ctx;
+
+    char *ccname;
+    const char *homedir;
+};
 
 struct krb5_ctx {
     /* opts taken from kinit */
@@ -64,6 +84,8 @@ struct krb5_ctx {
     char *realm;
     bool try_simple_upn;
     char *changepw_principle;
+    char *ccache_dir;
+    char *ccname_template;
 };
 
 #endif /* __KRB5_AUTH_H__ */

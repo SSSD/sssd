@@ -1,8 +1,13 @@
 /*
+    SSSD
+
+    Kerberos Backend, header file for utilities
+
     Authors:
         Sumit Bose <sbose@redhat.com>
 
     Copyright (C) 2009 Red Hat
+
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,11 +23,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef __SSSD_KRB5_LOCATOR_PLUGIN_H__
-#define __SSSD_KRB5_LOCATOR_PLUGIN_H__
+#ifndef __KRB5_UTILS_H__
+#define __KRB5_UTILS_H__
 
-#define SSSD_KDC "SSSD_KDC"
-#define SSSD_REALM "SSSD_REALM"
+#include <talloc.h>
 
-#endif /* __SSSD_KRB5_LOCATOR_PLUGIN_H__ */
+#include "providers/krb5/krb5_auth.h"
+#include "providers/data_provider.h"
 
+char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
+                             const char *template);
+
+#endif /* __KRB5_UTILS_H__ */

@@ -28,7 +28,7 @@
 
 #include <krb5/locate_plugin.h>
 
-#include "krb5_plugin/sssd_krb5_locator_plugin.h"
+#include "providers/krb5/krb5_auth.h"
 
 struct sssd_ctx {
     char *sssd_realm;
@@ -48,12 +48,12 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
     ctx = calloc(1,sizeof(struct sssd_ctx));
     if (ctx == NULL) return ENOMEM;
 
-    dummy = getenv(SSSD_REALM);
+    dummy = getenv(SSSD_KRB5_REALM);
     if (dummy == NULL) goto failed;
     ctx->sssd_realm = strdup(dummy);
     if (ctx->sssd_realm == NULL) goto failed;
 
-    dummy = getenv(SSSD_KDC);
+    dummy = getenv(SSSD_KRB5_KDC);
     if (dummy == NULL) goto failed;
     ctx->sssd_kdc = strdup(dummy);
     if (ctx->sssd_kdc == NULL) goto failed;
