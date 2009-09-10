@@ -86,6 +86,8 @@ struct col_copy {
     struct path_data *current_path;
     char *given_name;
     int given_len;
+    col_copy_cb copy_cb;
+    void *ext_data;
 };
 
 /******************** FUNCTION DECLARATIONS ****************************/
@@ -875,7 +877,7 @@ int col_remove_item(struct collection_item *ci,
 }
 
 /* Remove item (property) from current collection.
- * Just a simple wropper.
+ * Just a simple wrapper.
  */
 int col_remove_item_from_current(struct collection_item *ci,
                                  int disposition,
@@ -1014,6 +1016,64 @@ static int col_insert_property_with_ref_int(struct collection_item *collection,
     TRACE_FLOW_STRING("col_insert_property_with_ref_int", "Exit");
     return EOK;
 }
+
+/* Special function used to copy item from one
+ * collection to another using caller's callback.
+ */
+static int col_copy_item_with_cb(struct collection_item *collection,
+                                 const char *property,
+                                 int type,
+                                 const void *data,
+                                 int length,
+                                 col_copy_cb copy_cb,
+                                 void *ext_data)
+{
+    struct collection_item *item = NULL;
+    int skip = 0;
+    int error = EOK;
+
+    TRACE_FLOW_STRING("col_copy_item_with_cb", "Entry point.");
+
+    /* Create a new property out of the given parameters */
+    error = col_allocate_item(&item, property, data, length, type);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to allocate item", error);
+        return error;
+    }
+
+    /* Call callback if any */
+    if (copy_cb) {
+        TRACE_INFO_STRING("Calling callback for item:", item->property);
+        error = copy_cb(item, ext_data, &skip);
+        if (error) {
+            TRACE_ERROR_NUMBER("Callback failed", error);
+            col_delete_item(item);
+            return error;
+        }
+    }
+
+    /* Are we told to skip this item? */
+    if (skip) col_delete_item(item);
+    else {
+        /* Insted property into the collection */
+        error = col_insert_item(collection,
+                                NULL,
+                                item,
+                                COL_DSP_END,
+                                NULL,
+                                0,
+                                0);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to insert item", error);
+            col_delete_item(item);
+            return error;
+        }
+    }
+
+    TRACE_FLOW_STRING("col_copy_item_with_cb", "Exit");
+    return EOK;
+}
+
 
 /* This is public function so we need to check the validity
  * of the arguments.
@@ -1923,6 +1983,7 @@ static int col_copy_traverse_handler(struct collection_item *head,
     char *property = NULL;
     int property_len;
     struct collection_header *header;
+    char *offset;
 
     TRACE_FLOW_STRING("col_copy_traverse_handler", "Entry.");
 
@@ -1957,19 +2018,29 @@ static int col_copy_traverse_handler(struct collection_item *head,
                 length = traverse_data->current_path->length;
                 TRACE_INFO_STRING("Path:", name);
                 TRACE_INFO_NUMBER("Path len:", length);
+                if (traverse_data->given_name != NULL) {
+                    property = traverse_data->given_name;
+                    property_len = traverse_data->given_len;
+                }
+                else {
+                    property = current->property;
+                    property_len = current->property_len;
+                }
             }
             else {
+                /* Do not create prefix for top collection
+                 * if there is no given name.
+                 */
                 name = NULL;
                 length = 0;
-            }
-
-            if (traverse_data->given_name != NULL) {
-                property = traverse_data->given_name;
-                property_len = traverse_data->given_len;
-            }
-            else {
-                property = current->property;
-                property_len = current->property_len;
+                if (traverse_data->given_name != NULL) {
+                    property = traverse_data->given_name;
+                    property_len = traverse_data->given_len;
+                }
+                else {
+                    property = NULL;
+                    property_len = 0;
+                }
             }
 
             TRACE_INFO_STRING("col_copy_traverse_handler", "About to create path data.");
@@ -2081,34 +2152,34 @@ static int col_copy_traverse_handler(struct collection_item *head,
                 TRACE_ERROR_NUMBER("Failed to allocate memory for a new name:", error);
                 return error;
             }
-            memcpy(property, traverse_data->current_path->name,
-                   traverse_data->current_path->length);
-            property[traverse_data->current_path->length] = '.';
-            memcpy(property + traverse_data->current_path->length + 1,
-                   current->property, current->property_len);
-            property[traverse_data->current_path->length + 1 +
-                     current->property_len] = '\0';
+            /* Add first part and dot only if we have prefix */
+            offset = property;
+            if (traverse_data->current_path->length) {
+                memcpy(offset, traverse_data->current_path->name,
+                       traverse_data->current_path->length);
+                offset[traverse_data->current_path->length] = '.';
+                offset += traverse_data->current_path->length + 1;
+            }
+            memcpy(offset, current->property, current->property_len);
+            offset[current->property_len] = '\0';
         }
         else property = current->property;
 
         TRACE_INFO_STRING("Using property:", property);
 
-        error = col_insert_property_with_ref_int(parent,
-                                                 NULL,
-                                                 COL_DSP_END,
-                                                 NULL,
-                                                 0,
-                                                 0,
-                                                 property,
-                                                 current->type,
-                                                 current->data,
-                                                 current->length,
-                                                 NULL);
-        /* First free then check error */
+        error = col_copy_item_with_cb(parent,
+                                      property,
+                                      current->type,
+                                      current->data,
+                                      current->length,
+                                      traverse_data->copy_cb,
+                                      traverse_data->ext_data);
+
+        /* Free property if we allocated it */
         if (traverse_data->mode == COL_COPY_FLATDOT) free(property);
 
         if (error) {
-            TRACE_ERROR_NUMBER("Add property returned error:", error);
+            TRACE_ERROR_NUMBER("Failed to copy property:", error);
             return error;
         }
     }
@@ -2200,12 +2271,35 @@ void col_destroy_collection(struct collection_item *ci)
 
 
 /* COPY */
-/* Create a deep copy of the current collection. */
-/* Referenced collections of the donor are copied as sub collections. */
+
+/* Wrapper around a more advanced function */
 int col_copy_collection(struct collection_item **collection_copy,
                         struct collection_item *collection_to_copy,
                         const char *name_to_use,
                         int copy_mode)
+{
+    int error = EOK;
+    TRACE_FLOW_STRING("col_copy_collection", "Entry.");
+
+    error = col_copy_collection_with_cb(collection_copy,
+                                        collection_to_copy,
+                                        name_to_use,
+                                        copy_mode,
+                                        NULL,
+                                        NULL);
+
+    TRACE_FLOW_NUMBER("col_copy_collection. Exit. Returning", error);
+    return error;
+}
+
+/* Create a deep copy of the current collection. */
+/* Referenced collections of the donor are copied as sub collections. */
+int col_copy_collection_with_cb(struct collection_item **collection_copy,
+                                struct collection_item *collection_to_copy,
+                                const char *name_to_use,
+                                int copy_mode,
+                                col_copy_cb copy_cb,
+                                void *ext_data)
 {
     int error = EOK;
     struct collection_item *new_collection = NULL;
@@ -2215,9 +2309,9 @@ int col_copy_collection(struct collection_item **collection_copy,
     struct col_copy traverse_data;
     int flags;
 
-    TRACE_FLOW_STRING("col_copy_collection", "Entry.");
+    TRACE_FLOW_STRING("col_copy_collection_with_cb", "Entry.");
 
-    /* Collection is requered */
+    /* Collection is required */
     if (collection_to_copy == NULL) {
         TRACE_ERROR_NUMBER("No collection to search!", EINVAL);
         return EINVAL;
@@ -2254,6 +2348,8 @@ int col_copy_collection(struct collection_item **collection_copy,
     traverse_data.current_path = NULL;
     traverse_data.given_name = NULL;
     traverse_data.given_len = 0;
+    traverse_data.copy_cb = copy_cb;
+    traverse_data.ext_data = ext_data;
 
     if (copy_mode == COL_COPY_FLATDOT) flags = COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END;
     else if (copy_mode == COL_COPY_FLAT) flags = COL_TRAVERSE_FLAT;
@@ -2266,7 +2362,7 @@ int col_copy_collection(struct collection_item **collection_copy,
     if (!error) *collection_copy = new_collection;
     else col_destroy_collection(new_collection);
 
-    TRACE_FLOW_NUMBER("col_copy_collection returning", error);
+    TRACE_FLOW_NUMBER("col_copy_collection_with_cb returning", error);
     return error;
 
 }
@@ -2518,8 +2614,10 @@ int col_add_collection_to_collection(struct collection_item *ci,
 
         traverse_data.mode = COL_COPY_FLAT;
         traverse_data.current_path = NULL;
+        traverse_data.copy_cb = NULL;
+        traverse_data.ext_data = NULL;
 
-        if ((name_to_use) && (*name_to_use)) {
+        if ((as_property) && (*as_property)) {
             /* The normal assignement generates a warning
              * becuase I am assigning const to a non const.
              * I can't make the structure member to be const
@@ -2530,8 +2628,8 @@ int col_add_collection_to_collection(struct collection_item *ci,
              * To overcome the issue I use memcpy();
              */
             memcpy(&(traverse_data.given_name),
-                   &(name_to_use), sizeof(char *));
-            traverse_data.given_len = strlen(name_to_use);
+                   &(as_property), sizeof(char *));
+            traverse_data.given_len = strlen(as_property);
         }
         else {
             traverse_data.given_name = NULL;
@@ -2550,8 +2648,10 @@ int col_add_collection_to_collection(struct collection_item *ci,
 
         traverse_data.mode = COL_COPY_FLATDOT;
         traverse_data.current_path = NULL;
+        traverse_data.copy_cb = NULL;
+        traverse_data.ext_data = NULL;
 
-        if ((name_to_use) && (*name_to_use)) {
+        if ((as_property) && (*as_property)) {
             /* The normal assignement generates a warning
              * becuase I am assigning const to a non const.
              * I can't make the structure member to be const
@@ -2562,8 +2662,8 @@ int col_add_collection_to_collection(struct collection_item *ci,
              * To overcome the issue I use memcpy();
              */
             memcpy(&(traverse_data.given_name),
-                   &(name_to_use), sizeof(char *));
-            traverse_data.given_len = strlen(name_to_use);
+                   &(as_property), sizeof(char *));
+            traverse_data.given_len = strlen(as_property);
         }
         else {
             traverse_data.given_name = NULL;

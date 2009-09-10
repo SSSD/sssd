@@ -97,13 +97,6 @@
 #define COL_TRAVERSE_IGNORE   0x00000004  /* Ignore sub collections as if none
                                            * is present */
 #define COL_TRAVERSE_FLAT     0x00000008  /* Flatten the collection. */
-#define COL_TRAVERSE_FLATDOT  0x00000010  /* Flatten the collection but use
-                                           * dotted notation for property names
-                                           * For example the subcollection
-                                           * named "sub" containing "foo" and
-                                           * "bar" will be flattened as:
-                                           * "sub.foo", "sub.bar".
-                                           */
 
 
 /* Additional iterator flags
@@ -414,12 +407,31 @@ int col_add_collection_to_collection(struct collection_item *ci,            /* C
                                  struct collection_item *collection_to_add, /* Collection to add */
                                  int mode);                                 /* How this collection needs to be added */
 
-/* Create a deep copy of the current collection. */
-/* The acceptable modes are defined at the top */
+/* Create a deep copy of the current collection.
+ * Wraps the function below.
+ * The acceptable modes are defined at the top.
+ */
 int col_copy_collection(struct collection_item **collection_copy,
                         struct collection_item *collection_to_copy,
                         const char *name_to_use,
                         int copy_mode);
+
+/* Callback used in the next function */
+typedef int (*col_copy_cb)(struct collection_item *item,
+                           void *ext_data,
+                           int *skip);
+
+/* Create a deep copy of the current collection.
+ * Calls caller provided callback before
+ * copying each item's data.
+ * The acceptable modes are defined at the top.
+ */
+int col_copy_collection_with_cb(struct collection_item **collection_copy,
+                                struct collection_item *collection_to_copy,
+                                const char *name_to_use,
+                                int copy_mode,
+                                col_copy_cb copy_cb,
+                                void *ext_data);
 
 /* Signature of the callback that needs to be used when
    traversing a collection or looking for a specific item */

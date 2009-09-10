@@ -222,16 +222,30 @@ int add_collection_test(void)
     return error;
 }
 
+int copy_cb(struct collection_item *item,
+            void *ext_data,
+            int *skip)
+{
+    printf("INSIDE Copy Callback\n");
+    col_debug_item(item);
+    printf("Passed in data: %s\n", (char *) ext_data);
+    if (strcmp(col_get_item_property(item, NULL), "id") == 0) *skip = 1;
+    return EOK;
+}
+
+
 int mixed_collection_test(void)
 {
     struct collection_item *peer;
     struct collection_item *socket1;
     struct collection_item *socket2;
+    struct collection_item *socket3;
     struct collection_item *event;
     struct collection_item *host;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
     int found = 0;
     unsigned int class = 0;
+    char foo[] = "foo";
 
     int error = EOK;
 
@@ -294,6 +308,20 @@ int mixed_collection_test(void)
 
     col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
     col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+
+    error = col_copy_collection_with_cb(&socket3, socket1, "socket3",
+                                        COL_COPY_FLATDOT, copy_cb, (void *)foo);
+    if (error) {
+        col_destroy_collection(peer);
+        col_destroy_collection(host);
+        col_destroy_collection(socket1);
+        col_destroy_collection(socket2);
+        printf("Failed to copy collection. Error %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(socket3, COL_TRAVERSE_DEFAULT);
+    col_destroy_collection(socket3);
 
     printf("Adding PEER collection to SOCKET2 collection as a reference named PEER2\n");
 

@@ -244,7 +244,7 @@ int col_get_data_len(int type, int length)
     case COL_TYPE_UNSIGNED:
     case COL_TYPE_LONG:
     case COL_TYPE_ULONG:
-        len = 15;
+        len = 20;
         break;
 
     case COL_TYPE_STRING:
