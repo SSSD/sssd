@@ -105,7 +105,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         talloc_free(test_ctx);
         return ret;
     }
-/*
+
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domains/LOCAL", "magicPrivateGroups", val);
@@ -114,7 +114,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         talloc_free(test_ctx);
         return ret;
     }
-*/
+
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
                            "config/domains/LOCAL", "enumerate", val);
@@ -471,7 +471,7 @@ static void test_store_group(struct tevent_req *req)
 
     subreq = sysdb_store_group_send(data, data->ev, data->handle,
                                     data->ctx->domain, data->groupname,
-                                    data->gid, NULL, NULL);
+                                    data->gid, NULL, NULL, NULL);
     if (!subreq) {
         test_return(data, ret);
     }

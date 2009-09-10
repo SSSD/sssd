@@ -1120,11 +1120,14 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
     struct tevent_req *req, *subreq;
     struct sdap_save_group_state *state;
     struct ldb_message_element *el;
-    int i, ret;
-    const char **members;
+    const char **member_groups = NULL;
+    const char **member_users = NULL;
+    struct sysdb_attrs *group_attrs;
+    int mu, mg;
+    int i;
     long int l;
     gid_t gid;
-    struct sysdb_attrs *group_attrs;
+    int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_save_group_state);
     if (!req) return NULL;
@@ -1148,22 +1151,6 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         goto fail;
     }
     state->name = (const char *)el->values[0].data;
-
-    ret = sysdb_attrs_get_el(state->attrs,
-                          opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
-    if (ret) goto fail;
-    if (el->num_values == 0) members = NULL;
-    else {
-        members = talloc_array(state, const char *, el->num_values +1);
-        if (!members) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        for (i = 0; i < el->num_values; i++) {
-            members[i] = (char *)el->values[i].data;
-        }
-        members[i] =  NULL;
-    }
 
     ret = sysdb_attrs_get_el(state->attrs,
                           opts->group_map[SDAP_AT_GROUP_GID].sys_name, &el);
@@ -1211,11 +1198,182 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         }
     }
 
+    switch (opts->schema_type) {
+    case SDAP_SCHEMA_RFC2307:
+
+        ret = sysdb_attrs_get_el(state->attrs,
+                        opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
+        if (ret) goto fail;
+        if (el->num_values == 0) {
+            DEBUG(7, ("[RFC2307bis] No members for group [%s]\n", state->name));
+            break;
+        }
+
+        DEBUG(7, ("[RFC2307] Adding member users to group [%s]\n",
+                  state->name));
+
+        member_users = talloc_array(state, const char *,
+                                    el->num_values +1);
+        if (!member_users) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        for (i = 0; i < el->num_values; i++) {
+            member_users[i] = (char *)el->values[i].data;
+            DEBUG(7, ("    member user %d: [%s]\n", i, member_users[i]));
+        }
+        member_users[i] =  NULL;
+
+        break;
+
+    case SDAP_SCHEMA_RFC2307BIS:
+    case SDAP_SCHEMA_IPA_V1:
+
+        /* if this is the first time we are called, check if users and
+         * groups base DNs are set, if not do it */
+        if (!opts->users_base) {
+            opts->users_base = ldb_dn_new_fmt(opts,
+                                    sysdb_handle_get_ldb(state->handle), "%s",
+                                    opts->basic[SDAP_USER_SEARCH_BASE].value);
+            if (!opts->users_base) {
+                DEBUG(1, ("Unable to get casefold Users Base DN from [%s]\n",
+                          opts->basic[SDAP_USER_SEARCH_BASE].value));
+                DEBUG(1, ("Out of memory?!\n"));
+                ret = ENOMEM;
+                goto fail;
+            }
+        }
+        if (!opts->groups_base) {
+            opts->groups_base = ldb_dn_new_fmt(state->handle,
+                                    sysdb_handle_get_ldb(state->handle), "%s",
+                                    opts->basic[SDAP_GROUP_SEARCH_BASE].value);
+            if (!opts->users_base) {
+                DEBUG(1, ("Unable to get casefold Users Base DN from [%s]\n",
+                          opts->basic[SDAP_USER_SEARCH_BASE].value));
+                DEBUG(1, ("Out of memory?!\n"));
+                ret = ENOMEM;
+                goto fail;
+            }
+        }
+
+        ret = sysdb_attrs_get_el(state->attrs,
+                        opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
+        if (ret) goto fail;
+        if (el->num_values == 0) {
+            DEBUG(7, ("[RFC2307bis] No members for group [%s]\n", state->name));
+            break;
+        }
+
+        /* this will hold both lists,
+         * users filling up from top and groups from bottom,
+         * so the array will need 2 slots for NULL terminating element */
+        member_users = talloc_zero_array(state, const char *,
+                                         el->num_values +2);
+        if (!member_users) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        mg = el->num_values;
+        mu = 0;
+
+        DEBUG(7, ("[RFC2307bis] Adding members to group [%s]\n", state->name));
+
+        for (i = 0; i < el->num_values; i++) {
+
+            struct ldb_dn *tmp_dn = NULL;
+            const struct ldb_val *v;
+
+
+            /* parse out DN */
+            tmp_dn = ldb_dn_new_fmt(member_users,
+                                    sysdb_handle_get_ldb(state->handle),
+                                    "%.*s",
+                                    (int)el->values[i].length,
+                                    (char *)el->values[i].data);
+            if (!tmp_dn) {
+                DEBUG(1, ("Unable to parse DN: [%.*s]\n",
+                          (int)el->values[i].length,
+                          (char *)el->values[i].data));
+                continue;
+            }
+            v = ldb_dn_get_rdn_val(tmp_dn);
+            if (!v) {
+                DEBUG(1, ("Unable to parse DN: [%.*s]\n",
+                          (int)el->values[i].length,
+                          (char *)el->values[i].data));
+                continue;
+            }
+            DEBUG(9, ("Member DN [%.*s], RDN [%.*s]\n",
+                      (int)el->values[i].length, (char *)el->values[i].data,
+                      (int)v->length, (char *)v->data));
+
+            if (ldb_dn_compare_base(opts->users_base, tmp_dn) == 0) {
+                member_users[mu] = talloc_asprintf(member_users,
+                                                   "%.*s",
+                                                   (int)v->length,
+                                                   (char *)v->data);
+                if (!member_users[mu]) {
+                    DEBUG(1, ("Out of memory?!\n"));
+                    continue;
+                }
+
+                DEBUG(7, ("    member user %d: [%s]\n", i, member_users[mu]));
+
+                mu++;
+
+            } else if (ldb_dn_compare_base(opts->groups_base, tmp_dn) == 0) {
+                member_users[mg] = talloc_asprintf(member_users,
+                                                   "%.*s",
+                                                   (int)v->length,
+                                                   (char *)v->data);
+                if (!member_users[mg]) {
+                    DEBUG(1, ("Out of memory?!\n"));
+                    continue;
+                }
+
+                DEBUG(7, ("    member group %d: [%s]\n", i, member_users[mg]));
+
+                mg--;
+
+            } else {
+                DEBUG(1, ("Unkown Member type for DN: [%s]\n",
+                          (int)el->values[i].length,
+                          (char *)el->values[i].data));
+                continue;
+            }
+            if (mu > mg) { /* shouldn't be possible */
+                DEBUG(0, ("Fatal Internal error: aborting\n"));
+                ret = EFAULT;
+                goto fail;
+            }
+        }
+
+        /* if there are groups, set member_groups */
+        if (mg != el->num_values) {
+            member_groups = &member_users[mg+1];
+        }
+
+        /* if there are no users, reset member_users */
+        if (mu == 0) {
+            member_users = NULL;
+        }
+
+        break;
+
+    default:
+        DEBUG(0, ("FATAL ERROR: Unhandled schema type! (%d)\n",
+                  opts->schema_type));
+        ret = EFAULT;
+        goto fail;
+    }
+
     DEBUG(6, ("Storing info for group %s\n", state->name));
 
     subreq = sysdb_store_group_send(state, state->ev,
                                     state->handle, state->dom,
-                                    state->name, gid, members,
+                                    state->name, gid,
+                                    member_users, member_groups,
                                     group_attrs);
     if (!subreq) {
         ret = ENOMEM;
@@ -1555,7 +1713,14 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
         return;
     }
 
-    DEBUG(5, ("calling ldap_search_ext with [%s].\n", state->filter));
+    DEBUG(7, ("calling ldap_search_ext with [%s].\n", state->filter));
+    if (debug_level >= 7) {
+        int i;
+
+        for (i = 0; state->attrs[i]; i++) {
+            DEBUG(7, ("Requesting attrs: [%s]\n", state->attrs[i]));
+        }
+    }
 
     lret = ldap_search_ext(state->sh->ldap,
                            state->opts->basic[SDAP_GROUP_SEARCH_BASE].value,

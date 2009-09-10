@@ -152,6 +152,9 @@ struct sdap_options {
         SDAP_SCHEMA_RFC2307BIS = 2, /* member = dn */
         SDAP_SCHEMA_IPA_V1 = 3      /* member/memberof with unrolling */
     } schema_type;
+
+    struct ldb_dn *users_base;
+    struct ldb_dn *groups_base;
 };
 
 int sdap_get_options(TALLOC_CTX *memctx,

@@ -33,10 +33,10 @@ struct sdap_gen_opts default_basic_opts[] = {
     { "network_timeout", "5", NULL },
     { "opt_timeout", "5", NULL },
     { "tls_reqcert", "hard", NULL },
-    { "userSearchBase", "dc=example,dc=com", NULL },
+    { "userSearchBase", "ou=People,dc=example,dc=com", NULL },
     { "userSearchScope", "sub", NULL },
     { "userSearchFilter", NULL, NULL },
-    { "groupSearchBase", "dc=example,dc=com", NULL },
+    { "groupSearchBase", "ou=Group,dc=example,dc=com", NULL },
     { "groupSearchScope", "sub", NULL },
     { "groupSearchFilter", NULL, NULL },
     { "ldapSchema", "rfc2307", NULL },
@@ -111,7 +111,7 @@ int sdap_get_options(TALLOC_CTX *memctx,
     struct sdap_options *opts;
     int i, ret;
 
-    opts = talloc(memctx, struct sdap_options);
+    opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
 
     opts->basic = talloc_array(opts, struct sdap_gen_opts, SDAP_OPTS_BASIC);

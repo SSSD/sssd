@@ -47,6 +47,11 @@ struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx)
     return ctx->ldb;
 }
 
+struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle)
+{
+    return handle->ctx->ldb;
+}
+
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx)
 {
     return talloc_zero(memctx, struct sysdb_attrs);

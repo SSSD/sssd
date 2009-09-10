@@ -177,6 +177,9 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
                                const char *domain);
 
+struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
+struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle);
+
 /* function to start and finish a transaction
  * sysdb_transaction_send() will queue a request for a transaction
  * when it is done it will call the tevent_req callback, which must
@@ -477,7 +480,8 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain,
                                           const char *name,
                                           gid_t gid,
-                                          const char **members,
+                                          const char **member_users,
+                                          const char **member_groups,
                                           struct sysdb_attrs *attrs);
 int sysdb_store_group_recv(struct tevent_req *req);
 

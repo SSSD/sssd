@@ -797,11 +797,6 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
     }
 
-    /* Determine if this is a legacy domain */
-    if (ldb_msg_find_attr_as_bool(res->msgs[0], "legacy", 0)) {
-        domain->legacy = true;
-    }
-
     /* Determine if this is domain uses MPG */
     if (strcasecmp(domain->provider, "local") == 0 ||
         ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_MPG, 0)) {
