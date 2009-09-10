@@ -28,9 +28,9 @@
 typedef int (*monitor_reconf_fn) (struct config_file_ctx *file_ctx,
                                   const char *filename);
 
-int monitor_process_init(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *event_ctx,
-                         struct confdb_ctx *cdb,
+struct mt_ctx;
+
+int monitor_process_init(struct mt_ctx *ctx,
                          const char *config_file);
 
 #endif /* _MONITOR_H */

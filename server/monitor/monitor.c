@@ -1385,6 +1385,86 @@ int read_config_file(const char *config_file)
     return ret;
 }
 
+static errno_t load_configuration(TALLOC_CTX *mem_ctx,
+                                  const char *config_file,
+                                  struct mt_ctx **monitor)
+{
+    errno_t ret;
+    struct mt_ctx *ctx;
+    char *cdb_file = NULL;
+
+    ctx = talloc_zero(mem_ctx, struct mt_ctx);
+    if(!ctx) {
+        return ENOMEM;
+    }
+
+    cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
+    if (cdb_file == NULL) {
+        DEBUG(0,("Out of memory, aborting!\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_init(ctx, &ctx->cdb, cdb_file);
+    if (ret != EOK) {
+        DEBUG(0,("The confdb initialization failed\n"));
+        goto done;
+    }
+    talloc_free(cdb_file);
+
+    /* Initialize the CDB from the configuration file */
+    ret = confdb_test(ctx->cdb);
+    if (ret == ENOENT) {
+        /* First-time setup */
+
+        /* Purge any existing confdb in case an old
+         * misconfiguration gets in the way
+         */
+        talloc_zfree(ctx->cdb);
+        unlink(cdb_file);
+
+        ret = confdb_init(ctx, &ctx->cdb, cdb_file);
+        if (ret != EOK) {
+            DEBUG(0,("The confdb initialization failed\n"));
+            goto done;
+        }
+
+        /* Load special entries */
+        ret = confdb_create_base(ctx->cdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Unable to load special entries into confdb\n"));
+            goto done;
+        }
+    } else if (ret != EOK) {
+        DEBUG(0, ("Fatal error initializing confdb\n"));
+        goto done;
+    }
+
+    ret = confdb_init_db(config_file, ctx->cdb);
+    if (ret != EOK) {
+        DEBUG(0, ("ConfDB initialization has failed [%s]\n",
+              strerror(ret)));
+        goto done;
+    }
+
+    /* Validate the configuration in the database */
+    /* Read in the monitor's configuration */
+    ret = get_monitor_config(ctx);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *monitor = ctx;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ctx);
+    }
+    return ret;
+}
+
 #ifdef HAVE_SYS_INOTIFY_H
 static void process_config_file(struct tevent_context *ev,
                                 struct tevent_timer *te,
@@ -1774,81 +1854,18 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-int monitor_process_init(TALLOC_CTX *mem_ctx,
-                         struct tevent_context *event_ctx,
-                         struct confdb_ctx *cdb,
+int monitor_process_init(struct mt_ctx *ctx,
                          const char *config_file)
 {
-    struct mt_ctx *ctx;
+    TALLOC_CTX *tmp_ctx;
     struct sysdb_ctx_list *db_list;
     struct tevent_signal *tes;
     int ret, i;
-    char *cdb_file;
     struct sss_domain_info *dom;
-
-    ctx = talloc_zero(mem_ctx, struct mt_ctx);
-    if (!ctx) {
-        DEBUG(0, ("fatal error initializing monitor!\n"));
-        return ENOMEM;
-    }
-    ctx->ev = event_ctx;
-    ctx->cdb = cdb;
-
-    /* Initialize the CDB from the configuration file */
-    ret = confdb_test(ctx->cdb);
-    if (ret == ENOENT) {
-        /* First-time setup */
-
-        /* Purge any existing confdb in case an old
-         * misconfiguration gets in the way
-         */
-        talloc_free(ctx->cdb);
-        cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
-        if (cdb_file == NULL) {
-            DEBUG(0,("Out of memory, aborting!\n"));
-            talloc_free(ctx);
-            return ENOMEM;
-        }
-
-        unlink(cdb_file);
-        ret = confdb_init(ctx, &ctx->cdb, cdb_file);
-        if (ret != EOK) {
-            DEBUG(0,("The confdb initialization failed\n"));
-            talloc_free(ctx);
-            return ret;
-        }
-
-        /* Load special entries */
-        ret = confdb_create_base(ctx->cdb);
-        if (ret != EOK) {
-            talloc_free(ctx);
-            return ret;
-        }
-    } else if (ret != EOK) {
-        DEBUG(0, ("Fatal error initializing confdb\n"));
-        talloc_free(ctx);
-        return ret;
-    }
-
-    ret = confdb_init_db(config_file, ctx->cdb);
-    if (ret != EOK) {
-        DEBUG(0, ("ConfDB initialization has failed [%s]\n",
-              strerror(ret)));
-        talloc_free(ctx);
-        return ret;
-    }
-
-    /* Read in the monitor's configuration */
-    ret = get_monitor_config(ctx);
-    if (ret != EOK) {
-        talloc_free(ctx);
-        return ret;
-    }
 
     /* Watch for changes to the confdb config file */
     ret = monitor_config_file(ctx, ctx, config_file, monitor_signal_reconf);
     if (ret != EOK) {
-        talloc_free(ctx);
         return ret;
     }
 
@@ -1856,7 +1873,6 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     ret = monitor_config_file(ctx, ctx, RESOLV_CONF_PATH,
                               monitor_update_resolv);
     if (ret != EOK) {
-        talloc_free(ctx);
         return ret;
     }
 
@@ -1864,19 +1880,21 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
      * We need to handle DB upgrades or DB creation only
      * in one process before all other start.
      */
-    ret = sysdb_init(mem_ctx, ctx->ev, ctx->cdb, NULL, true, &db_list);
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+    ret = sysdb_init(tmp_ctx, ctx->ev, ctx->cdb, NULL, true, &db_list);
     if (ret != EOK) {
-        talloc_free(ctx);
         return ret;
     }
-    talloc_free(db_list);
+    talloc_zfree(tmp_ctx);
 
     /* Initialize D-BUS Server
      * The monitor will act as a D-BUS server for all
      * SSSD processes */
     ret = monitor_dbus_init(ctx);
     if (ret != EOK) {
-        talloc_free(ctx);
         return ret;
     }
 
@@ -1897,7 +1915,6 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     tes = tevent_add_signal(ctx->ev, ctx, SIGHUP, 0,
                             monitor_hup, ctx);
     if (tes == NULL) {
-        talloc_free(ctx);
         return EIO;
     }
 
@@ -1905,7 +1922,6 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     tes = tevent_add_signal(ctx->ev, ctx, SIGINT, 0,
                             monitor_quit, ctx);
     if (tes == NULL) {
-        talloc_free(ctx);
         return EIO;
     }
 
@@ -1913,7 +1929,6 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
     tes = tevent_add_signal(ctx->ev, ctx, SIGTERM, 0,
                             monitor_quit, ctx);
     if (tes == NULL) {
-        talloc_free(ctx);
         return EIO;
     }
 
@@ -2332,6 +2347,8 @@ int main(int argc, const char *argv[])
     char *config_file = NULL;
     int flags = 0;
     struct main_context *main_ctx;
+    TALLOC_CTX *tmp_ctx;
+    struct mt_ctx *monitor;
     int ret;
 
     struct poptOption long_options[] = {
@@ -2365,13 +2382,18 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return 7;
+    }
+
     if (opt_daemon) flags |= FLAGS_DAEMON;
     if (opt_interactive) flags |= FLAGS_INTERACTIVE;
 
     if (opt_config_file)
-        config_file = talloc_strdup(NULL, opt_config_file);
+        config_file = talloc_strdup(tmp_ctx, opt_config_file);
     else
-        config_file = talloc_strdup(NULL, CONFDB_DEFAULT_CONFIG_FILE);
+        config_file = talloc_strdup(tmp_ctx, CONFDB_DEFAULT_CONFIG_FILE);
     if(!config_file)
         return 6;
 
@@ -2379,19 +2401,20 @@ int main(int argc, const char *argv[])
     flags |= FLAGS_PID_FILE;
 
     /* Parse config file, fail if cannot be done */
-    ret = read_config_file(config_file);
+    ret = load_configuration(tmp_ctx, config_file, &monitor);
     if (ret != EOK) return 4;
 
     /* set up things like debug , signals, daemonization, etc... */
     ret = server_setup("sssd", flags, MONITOR_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
-    ret = monitor_process_init(main_ctx,
-                               main_ctx->event_ctx,
-                               main_ctx->confdb_ctx,
+    monitor->ev = main_ctx->event_ctx;
+    talloc_steal(main_ctx, monitor);
+
+    ret = monitor_process_init(monitor,
                                config_file);
     if (ret != EOK) return 3;
-    talloc_free(config_file);
+    talloc_free(tmp_ctx);
 
     /* loop on main */
     server_loop(main_ctx);
