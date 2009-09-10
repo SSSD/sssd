@@ -47,7 +47,7 @@ static void close_low_fds(bool stderr_too)
 	int i;
 
 	close(0);
-	close(1); 
+	close(1);
 
 	if (stderr_too)
 		close(2);
@@ -354,7 +354,7 @@ int server_setup(const char *name, int flags,
     }
     DEBUG(3, ("CONFDB: %s\n", conf_db));
 
-    ret = confdb_init(ctx, event_ctx, &ctx->confdb_ctx, conf_db);
+    ret = confdb_init(ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
         DEBUG(0,("The confdb initialization failed\n"));
         return ret;

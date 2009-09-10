@@ -86,7 +86,6 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                               char ***result);
 
 int confdb_init(TALLOC_CTX *mem_ctx,
-                struct tevent_context *ev,
                 struct confdb_ctx **cdb_ctx,
                 char *confdb_location);
 

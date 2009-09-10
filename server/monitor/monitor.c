@@ -1811,7 +1811,7 @@ int monitor_process_init(TALLOC_CTX *mem_ctx,
         }
 
         unlink(cdb_file);
-        ret = confdb_init(ctx, ctx->ev, &ctx->cdb, cdb_file);
+        ret = confdb_init(ctx, &ctx->cdb, cdb_file);
         if (ret != EOK) {
             DEBUG(0,("The confdb initialization failed\n"));
             talloc_free(ctx);

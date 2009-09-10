@@ -76,7 +76,7 @@ int setup_db(struct tools_ctx **tools_ctx)
     }
 
     /* Connect to the conf db */
-    ret = confdb_init(ctx, ctx->ev, &ctx->confdb, confdb_path);
+    ret = confdb_init(ctx, &ctx->confdb, confdb_path);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the confdb\n"));
         talloc_free(ctx);

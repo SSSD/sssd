@@ -627,7 +627,6 @@ done:
 }
 
 int confdb_init(TALLOC_CTX *mem_ctx,
-                struct tevent_context *ev,
                 struct confdb_ctx **cdb_ctx,
                 char *confdb_location)
 {
