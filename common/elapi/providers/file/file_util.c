@@ -26,7 +26,6 @@
  * of the collection structure so have to include
  * private header here.
  */
-#include "collection_priv.h"
 #include "file_provider.h"
 #include "file_util.h"
 #include "ini_config.h"
@@ -74,6 +73,8 @@ static int file_split_by_set(struct collection_item **leftovers,
     struct collection_iterator *it_set;
     struct collection_item *lo = NULL;
     int found = 0;
+    int len1, len2;
+
     TRACE_FLOW_STRING("file_split_by_set", "Entry");
 
     /* First prepare set for use */
@@ -123,7 +124,7 @@ static int file_split_by_set(struct collection_item **leftovers,
         if (item_event == NULL) break;
 
         /* Skip headers */
-        if (item_event->type == COL_TYPE_COLLECTION) continue;
+        if (col_get_item_type(item_event) == COL_TYPE_COLLECTION) continue;
 
         /* For each item in the event find an item in the set */
         error =  col_bind_iterator(&it_set, cfg->set, COL_TRAVERSE_ONELEVEL);
@@ -150,27 +151,30 @@ static int file_split_by_set(struct collection_item **leftovers,
             if (item_set == NULL) break;
 
             /* Skip headers */
-            if (item_set->type == COL_TYPE_COLLECTION) continue;
+            if (col_get_item_type(item_set) == COL_TYPE_COLLECTION) continue;
 
             /* Hashes should match and the data in the set should be NULL,
              * and legths should be same.
              */
-            if ((item_event->phash == item_set->phash) &&
-                (*((struct collection_item **)(item_set->data)) == NULL) &&
-                (item_event->property_len == item_set->property_len)) {
+            (void)col_get_item_property(item_event, &len1);
+            (void)col_get_item_property(item_set, &len2);
+
+            if ((col_get_item_hash(item_event) == col_get_item_hash(item_set)) &&
+                (*((struct collection_item **)(col_get_item_data(item_set))) == NULL) &&
+                (len1 == len2)) {
                 /* This is a candidate for match - compare strings */
                 TRACE_INFO_STRING("Found a good candidate for match.","");
-                TRACE_INFO_STRING("Set item:", item_set->property);
-                TRACE_INFO_STRING("Event:", item_event->property);
+                TRACE_INFO_STRING("Set item:", col_get_item_property(item_set, NULL));
+                TRACE_INFO_STRING("Event:", col_get_item_property(item_event, NULL));
 
-                if (strncasecmp(item_set->property,
-                                item_event->property,
-                                item_event->property_len) == 0) {
+                if (strncasecmp(col_get_item_property(item_set, NULL),
+                                col_get_item_property(item_event, NULL),
+                                len1) == 0) {
                     TRACE_INFO_STRING("Match found!","");
-                    TRACE_INFO_STRING("Set item:", item_set->property);
-                    TRACE_INFO_STRING("Event:", item_event->property);
+                    TRACE_INFO_STRING("Set item:", col_get_item_property(item_set, NULL));
+                    TRACE_INFO_STRING("Event:", col_get_item_property(item_event, NULL));
 
-                    *((struct collection_item **)(item_set->data)) = item_event;
+                    *((struct collection_item **)(col_get_item_data(item_set))) = item_event;
                     found = 1;
                     break;
                 }
@@ -335,22 +339,22 @@ static int file_serialize_list(struct elapi_data_out **out_data,
         if (item == NULL) break;
 
         /* Skip headers */
-        if (item->type == COL_TYPE_COLLECTION) continue;
+        if (col_get_item_type(item) == COL_TYPE_COLLECTION) continue;
 
         /* Got item */
         if (reference) {
             /* Derefernce the item before using */
-            item = *((struct collection_item **)(item->data));
+            item = *((struct collection_item **)(col_get_item_data(item)));
         }
 
         if (item) {
-            TRACE_ERROR_NUMBER("Item property", item->property);
+            TRACE_ERROR_NUMBER("Item property", col_get_item_property(item, NULL));
 
             /* Serialize this item */
             error = file_serialize_item(to_use,
-                                        item->type,
-                                        item->length,
-                                        item->data,
+                                        col_get_item_type(item),
+                                        col_get_item_length(item),
+                                        col_get_item_data(item),
                                         mode,
                                         mode_cfg);
         }
