@@ -57,6 +57,7 @@ sssdlibexec_PROGRAMS = \
 if HAVE_CHECK
     non_interactive_check_based_tests = \
         sysdb-tests \
+        strtonum-tests \
         resolv-tests
 endif
 
@@ -341,6 +342,16 @@ sysdb_tests_SOURCES = \
 sysdb_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
+    
+strtonum_tests_SOURCES = \
+    tests/strtonum-tests.c \
+    util/debug.c \
+    util/strtonum.c
+strtonum_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+strtonum_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
 endif
