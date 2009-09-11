@@ -495,20 +495,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>legacy (bool)</term>
-                    <listitem>
-                        <para>
-                            A legacy domain is a strictly POSIX domain in
-                            terms of attributes it supports. Groups in legacy
-                            domains can't be nested.
-                        </para>
-                        <para>
-                            Default: FALSE
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>store-legacy-passwords (bool)</term>
                     <listitem>
                         <para>

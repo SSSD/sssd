@@ -62,6 +62,35 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldapSchema (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the Schema Type in use on the target LDAP
+                            server.
+                            Depending on the selected schema the default
+                            attribute names retrieved from the servers may vary.
+                            Also the way some attributes are handled may differ.
+
+                            There are currently 2 schema types supported:
+                            rfc2307
+                            rfc2307bis
+
+                            The main difference between these 2 schema types is
+                            how group memberships are recorder in the server.
+                            With rfc2307 group members are listed by name in an
+                            attribute called <emphasis>memberUid</emphasis>.
+                            With rfc2307bis grpoup members are listed by DN and
+                            stored in an attribute called
+                            <emphasis>member</emphasis>.
+
+                        </para>
+                        <para>
+                            Default: rfc2307
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>defaultBindDn (string)</term>
                     <listitem>
                         <para>
@@ -306,7 +335,7 @@
                             the members of the group.
                         </para>
                         <para>
-                            Default: memberuid
+                            Default: memberuid (rfc2307) / member (rfc2307bis)
                         </para>
                     </listitem>
                 </varlistentry>
