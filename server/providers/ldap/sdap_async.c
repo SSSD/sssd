@@ -300,8 +300,14 @@ static void sdap_unlock_next_reply(struct sdap_op *op)
 {
     struct timeval no_timeout = {0, 0};
     struct tevent_timer *te;
+    struct sdap_msg *next_reply;
 
-    op->list = op->list->next;
+    if (op->list) {
+        next_reply = op->list->next;
+        /* get rid of the previous reply, it has been processed already */
+        talloc_zfree(op->list);
+        op->list = next_reply;
+    }
 
     /* if there are still replies to parse, queue a new operation */
     if (op->list) {
@@ -1392,9 +1398,6 @@ static void sdap_get_users_done(struct sdap_op *op,
             return;
         }
         tevent_req_set_callback(subreq, sdap_get_users_save_done, req);
-        /* attach reply to subreq,
-         * will not be needed anymore once subreq is done */
-        talloc_steal(subreq, reply);
 
         break;
 
@@ -1616,9 +1619,6 @@ static void sdap_get_groups_done(struct sdap_op *op,
             return;
         }
         tevent_req_set_callback(subreq, sdap_get_groups_save_done, req);
-        /* attach reply to subreq,
-         * will not be needed anymore once subreq is done */
-        talloc_steal(subreq, reply);
 
         break;
 
@@ -1945,9 +1945,6 @@ static void sdap_get_initgr_done(struct sdap_op *op,
             return;
         }
         tevent_req_set_callback(subreq, sdap_get_initgr_save_done, req);
-        /* attach reply to subreq,
-         * will not be needed anymore once subreq is done */
-        talloc_steal(subreq, reply);
 
         break;
 
