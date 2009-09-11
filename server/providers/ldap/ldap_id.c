@@ -846,7 +846,6 @@ static void ldap_id_enumerate(struct tevent_context *ev,
         ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
         return;
     }
-
     tevent_req_set_callback(req, ldap_id_enumerate_reschedule, ctx);
 
     /* if enumeration takes so long, either we try to enumerate too
@@ -877,6 +876,18 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
 {
     struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
                                                        struct sdap_id_ctx);
+    struct timeval tv;
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        /* On error schedule starting from now, not the last run */
+        tv = tevent_timeval_current();
+    } else {
+        tv = ctx->last_run;
+    }
+    talloc_zfree(req);
+
     ldap_id_enumerate_set_timer(ctx, ctx->last_run);
 }
 
@@ -965,10 +976,7 @@ fail:
     }
 
     DEBUG(1, ("Failed to enumerate users, retrying later!\n"));
-    /* schedule starting from now, not the last run */
-    ldap_id_enumerate_set_timer(state->ctx, tevent_timeval_current());
-
-    talloc_zfree(req);
+    tevent_req_done(req);
 }
 
 static void ldap_id_enum_groups_done(struct tevent_req *subreq)
@@ -983,10 +991,9 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
     if (tevent_req_is_error(subreq, &tstate, &err)) {
         goto fail;
     }
-    talloc_zfree(req);
+    talloc_zfree(subreq);
 
-    ldap_id_enumerate_set_timer(state->ctx, state->ctx->last_run);
-
+    tevent_req_done(req);
     return;
 
 fail:
@@ -995,10 +1002,7 @@ fail:
     }
 
     DEBUG(1, ("Failed to enumerate groups, retrying later!\n"));
-    /* schedule starting from now, not the last run */
-    ldap_id_enumerate_set_timer(state->ctx, tevent_timeval_current());
-
-    talloc_zfree(req);
+    tevent_req_done(req);
 }
 
 /* ==User-Enumeration===================================================== */
