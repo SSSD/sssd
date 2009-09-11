@@ -52,6 +52,7 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
+#include "util/sssd-i18n.h"
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
@@ -2350,6 +2351,7 @@ int main(int argc, const char *argv[])
     TALLOC_CTX *tmp_ctx;
     struct mt_ctx *monitor;
     int ret;
+    uid_t uid;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -2381,6 +2383,13 @@ int main(int argc, const char *argv[])
     }
 
     poptFreeContext(pc);
+
+    uid = getuid();
+    if (uid != 0) {
+        DEBUG(1, ("Running under %d, must be root\n", uid));
+        ERROR("sssd must be run as root\n");
+        return 8;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
