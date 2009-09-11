@@ -32,7 +32,6 @@
 #include <libintl.h>
 #define _(String) gettext (String)
 /* INI file is used as a collection */
-#include "collection_priv.h"
 #include "collection.h"
 #include "collection_tools.h"
 #include "trace.h"
@@ -545,11 +544,18 @@ int config_for_app(const char *application,
     struct collection_item **pass_common = NULL;
     struct collection_item **pass_specific = NULL;
     int created = 0;
+    int tried = 0;
+    int noents = 0;
 
     TRACE_FLOW_STRING("config_to_collection", "Entry");
 
     if (ini_config == NULL) {
-        TRACE_ERROR_NUMBER("Failed to create collection", EINVAL);
+        TRACE_ERROR_NUMBER("Invalid parameter", EINVAL);
+        return EINVAL;
+    }
+
+    if ((config_file == NULL) && (config_dir == NULL)) {
+        TRACE_ERROR_NUMBER("Noop call of the function is invalid", EINVAL);
         return EINVAL;
     }
 
@@ -582,10 +588,13 @@ int config_for_app(const char *application,
                                       COL_CLASS_INI_CONFIG);
         if (error != EOK) {
             TRACE_ERROR_NUMBER("Failed to create collection", error);
-            col_destroy_collection(*error_set);
-            *error_set = NULL;
+            if (error_set) {
+                col_destroy_collection(*error_set);
+                *error_set = NULL;
+            }
             return error;
         }
+        created = 1;
     }
     /* Is the collection of the right class? */
     else if (col_is_of_class(*ini_config, COL_CLASS_INI_CONFIG)) {
@@ -598,16 +607,20 @@ int config_for_app(const char *application,
         TRACE_INFO_STRING("Reading master file:", config_file);
         error = ini_to_collection(config_file, *ini_config,
                                   error_level, pass_common, NULL);
+        tried++;
         /* ENOENT and EOK are Ok */
-        if (error && (error != ENOENT)) {
-            TRACE_ERROR_NUMBER("Failed to read master file", error);
-            /* In case of error when we created collection - delete it */
-            if(error && created) {
-                col_destroy_collection(*ini_config);
-                *ini_config = NULL;
+        if (error) {
+            if (error != ENOENT) {
+                TRACE_ERROR_NUMBER("Failed to read master file", error);
+                /* In case of error when we created collection - delete it */
+                if(error && created) {
+                    col_destroy_collection(*ini_config);
+                    *ini_config = NULL;
+                }
+                /* We do not clear the error_set here */
+                return error;
             }
-            /* We do not clear the error_set here */
-            return error;
+            else noents++;
         }
         /* Add error results if any to the overarching error collection */
         if ((pass_common != NULL) && (*pass_common != NULL)) {
@@ -620,8 +633,10 @@ int config_for_app(const char *application,
                     col_destroy_collection(*ini_config);
                     *ini_config = NULL;
                 }
-                col_destroy_collection(*error_set);
-                *error_set = NULL;
+                if (error_set) {
+                    col_destroy_collection(*error_set);
+                    *error_set = NULL;
+                }
                 TRACE_ERROR_NUMBER("Failed to add error collection to another error collection", error);
                 return error;
             }
@@ -635,12 +650,14 @@ int config_for_app(const char *application,
             error = ENOMEM;
             TRACE_ERROR_NUMBER("Failed to allocate memory for file name", error);
             /* In case of error when we created collection - delete it */
-            if(error && created) {
+            if(created) {
                 col_destroy_collection(*ini_config);
                 *ini_config = NULL;
             }
-            col_destroy_collection(*error_set);
-            *error_set = NULL;
+            if (error_set) {
+                col_destroy_collection(*error_set);
+                *error_set = NULL;
+            }
             return error;
         }
 
@@ -650,19 +667,22 @@ int config_for_app(const char *application,
         /* Read master file */
         error = ini_to_collection(file_name, *ini_config,
                                   error_level, pass_specific, NULL);
+        tried++;
         free(file_name);
         /* ENOENT and EOK are Ok */
-        if (error && (error != ENOENT)) {
-            TRACE_ERROR_NUMBER("Failed to read specific application file", error);
-            /* In case of error when we created collection - delete it */
-            if (error && created) {
-                col_destroy_collection(*ini_config);
-                *ini_config = NULL;
+        if (error) {
+            if (error != ENOENT) {
+                TRACE_ERROR_NUMBER("Failed to read specific application file", error);
+                /* In case of error when we created collection - delete it */
+                if (error && created) {
+                    col_destroy_collection(*ini_config);
+                    *ini_config = NULL;
+                }
+                /* We do not clear the error_set here */
+                return error;
             }
-            /* We do not clear the error_set here */
-            return error;
+            else noents++;
         }
-
         /* Add error results if any to the overarching error collection */
         if ((pass_specific != NULL) && (*pass_specific != NULL)) {
             error = col_add_collection_to_collection(*error_set, NULL, NULL,
@@ -673,12 +693,34 @@ int config_for_app(const char *application,
                     col_destroy_collection(*ini_config);
                     *ini_config = NULL;
                 }
-                col_destroy_collection(*error_set);
-                *error_set = NULL;
+                if (error_set) {
+                    col_destroy_collection(*error_set);
+                    *error_set = NULL;
+                }
                 TRACE_ERROR_NUMBER("Failed to add error collection to another error collection", error);
                 return error;
             }
         }
+    }
+
+    /* If we failed to read or access file as many
+     * times as we tried and we told to stop on any errors
+     * we should report an error.
+     */
+    TRACE_INFO_NUMBER("Tried:", tried);
+    TRACE_INFO_NUMBER("Noents:", noents);
+
+    if ((tried == noents) && (error_level == INI_STOP_ON_ANY)) {
+        TRACE_ERROR_NUMBER("Fail to read or access all the files tried", ENOENT);
+        if (created) {
+            col_destroy_collection(*ini_config);
+            *ini_config = NULL;
+        }
+        if (error_set) {
+            col_destroy_collection(*error_set);
+            *error_set = NULL;
+        }
+        return ENOENT;
     }
 
     TRACE_FLOW_STRING("config_to_collection", "Exit");
@@ -1432,9 +1474,9 @@ char **get_string_config_array(struct collection_item *item,
 
     /* Loop through the string */
     dest = copy;
-    buff = item->data;
+    buff = col_get_item_data(item);
     start = buff;
-    dlen = item->length - 1;
+    dlen = col_get_item_length(item) - 1;
     for(i = 0; i < dlen; i++) {
         growlen = 1;
         for(j = 0; j < lensep; j++) {

@@ -35,6 +35,20 @@ int basic_test(void)
     struct collection_item *ini_config = NULL;
     struct collection_item *error_set = NULL;
 
+    error = config_for_app("test", NULL, NULL,
+                           &ini_config, INI_STOP_ON_NONE, &error_set);
+    if (error != EINVAL) {
+        printf("Expected error EINVAL got somethign else: %d\n",error);
+        return EINVAL;
+    }
+
+    error = config_for_app("test", "foo", "bar",
+                           &ini_config, INI_STOP_ON_ANY, &error_set);
+    if (error != ENOENT) {
+        printf("Expected error ENOENT got somethign else: %d\n",error);
+        return ENOENT;
+    }
+
     error = config_for_app("test", "./ini.conf", "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
