@@ -665,6 +665,8 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
     if (ret != LDB_SUCCESS) {
+        DEBUG(0, ("Unable to open config database [%s]\n",
+                  confdb_location));
         talloc_free(cdb);
         return EIO;
     }
