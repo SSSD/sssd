@@ -66,6 +66,7 @@ struct pam_items {
     size_t pam_newauthtok_size;
     char *pam_cli_locale;
     size_t pam_cli_locale_size;
+    pid_t cli_pid;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -124,11 +125,29 @@ static size_t add_authtok_item(enum pam_item_type type,
     return rp;
 }
 
+
+static size_t add_uint32_t_item(enum pam_item_type type, const uint32_t val,
+                                uint8_t *buf) {
+    size_t rp=0;
+
+
+    ((uint32_t *)(&buf[rp]))[0] = type;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf[rp]))[0] = sizeof(uint32_t);
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf[rp]))[0] = val;
+    rp += sizeof(uint32_t);
+
+    return rp;
+}
+
 static size_t add_string_item(enum pam_item_type type, const char *str,
                            const size_t size, uint8_t *buf) {
     size_t rp=0;
 
-    if (*str == '\0') return 0;
+    if (str == NULL || *str == '\0') return 0;
 
     ((uint32_t *)(&buf[rp]))[0] = type;
     rp += sizeof(uint32_t);
@@ -151,20 +170,21 @@ static int pack_message_v2(struct pam_items *pi, size_t *size,
     len = sizeof(uint32_t) +
           2*sizeof(uint32_t) + pi->pam_user_size +
           sizeof(uint32_t);
-    len +=  *pi->pam_service != '\0' ?
+    len += *pi->pam_service != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_service_size : 0;
-    len +=  *pi->pam_tty != '\0' ?
+    len += *pi->pam_tty != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_tty_size : 0;
-    len +=  *pi->pam_ruser != '\0' ?
+    len += *pi->pam_ruser != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_ruser_size : 0;
-    len +=  *pi->pam_rhost != '\0' ?
+    len += *pi->pam_rhost != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_rhost_size : 0;
-    len +=  *pi->pam_cli_locale != '\0' ?
+    len += *pi->pam_cli_locale != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_cli_locale_size : 0;
-    len +=  pi->pam_authtok != NULL ?
+    len += pi->pam_authtok != NULL ?
                 3*sizeof(uint32_t) + pi->pam_authtok_size : 0;
-    len +=  pi->pam_newauthtok != NULL ?
+    len += pi->pam_newauthtok != NULL ?
                 3*sizeof(uint32_t) + pi->pam_newauthtok_size : 0;
+    len += 3*sizeof(uint32_t); /* cli_pid */
 
     buf = malloc(len);
     if (buf == NULL) {
@@ -191,8 +211,10 @@ static int pack_message_v2(struct pam_items *pi, size_t *size,
     rp += add_string_item(PAM_ITEM_RHOST, pi->pam_rhost, pi->pam_rhost_size,
                           &buf[rp]);
 
-    rp += add_string_item(PAM_CLI_LOCALE, pi->pam_cli_locale,
+    rp += add_string_item(PAM_ITEM_CLI_LOCALE, pi->pam_cli_locale,
                           pi->pam_cli_locale_size, &buf[rp]);
+
+    rp += add_uint32_t_item(PAM_ITEM_CLI_PID, (uint32_t) pi->cli_pid, &buf[rp]);
 
     rp += add_authtok_item(PAM_ITEM_AUTHTOK, pi->pam_authtok_type,
                            pi->pam_authtok, pi->pam_authtok_size, &buf[rp]);
@@ -486,6 +508,8 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     }
     pi->pam_cli_locale_size = strlen(pi->pam_cli_locale)+1;
 
+    pi->cli_pid = getpid();
+
     return PAM_SUCCESS;
 }
 
@@ -505,6 +529,7 @@ static void print_pam_items(struct pam_items *pi)
     D(("Authtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_authtok)));
     D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
     D(("Locale: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_cli_locale)));
+    D(("Cli_PID: %d", pi->cli_pid));
 }
 
 static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,

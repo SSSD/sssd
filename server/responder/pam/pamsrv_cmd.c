@@ -71,6 +71,20 @@ static int extract_string(char **var, uint8_t *body, size_t blen, size_t *c) {
     return EOK;
 }
 
+static int extract_uint32_t(uint32_t *var, uint8_t *body, size_t blen, size_t *c) {
+    uint32_t size;
+
+    if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
+
+    size = ((uint32_t *)&body[*c])[0];
+    *c += sizeof(uint32_t);
+
+    *var = ((uint32_t *)&body[*c])[0];
+    *c += sizeof(uint32_t);
+
+    return EOK;
+}
+
 static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
@@ -117,6 +131,11 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
                 break;
             case PAM_ITEM_RHOST:
                 ret = extract_string(&pd->rhost, body, blen, &c);
+                if (ret != EOK) return ret;
+                break;
+            case PAM_ITEM_CLI_PID:
+                ret = extract_uint32_t(&pd->cli_pid,
+                                       body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
             case PAM_ITEM_AUTHTOK:

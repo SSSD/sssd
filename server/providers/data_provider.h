@@ -110,6 +110,7 @@ struct pam_data {
     char *rhost;
     uint8_t *authtok;
     uint8_t *newauthtok;
+    uint32_t cli_pid;
 
     int pam_status;
     int response_delay;

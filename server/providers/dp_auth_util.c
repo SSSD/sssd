@@ -37,6 +37,7 @@ void pam_print_data(int l, struct pam_data *pd)
     DEBUG(l, ("priv: %d\n", pd->priv));
     DEBUG(l, ("pw_uid: %d\n", pd->pw_uid));
     DEBUG(l, ("gr_gid: %d\n", pd->gr_gid));
+    DEBUG(l, ("cli_pid: %d\n", pd->cli_pid));
 }
 
 int pam_add_response(struct pam_data *pd, enum response_type type,
@@ -76,17 +77,18 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
                                    DBUS_TYPE_STRING, &(pd->tty),
                                    DBUS_TYPE_STRING, &(pd->ruser),
                                    DBUS_TYPE_STRING, &(pd->rhost),
-                                   DBUS_TYPE_INT32, &(pd->authtok_type),
+                                   DBUS_TYPE_UINT32, &(pd->authtok_type),
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                        &(pd->authtok),
                                        (pd->authtok_size),
-                                   DBUS_TYPE_INT32, &(pd->newauthtok_type),
+                                   DBUS_TYPE_UINT32, &(pd->newauthtok_type),
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                        &(pd->newauthtok),
                                        pd->newauthtok_size,
                                    DBUS_TYPE_INT32, &(pd->priv),
                                    DBUS_TYPE_INT32, &(pd->pw_uid),
                                    DBUS_TYPE_INT32, &(pd->gr_gid),
+                                   DBUS_TYPE_UINT32, &(pd->cli_pid),
                                    DBUS_TYPE_INVALID);
 
     return ret;
@@ -104,17 +106,18 @@ bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbu
                                 DBUS_TYPE_STRING, &(pd->tty),
                                 DBUS_TYPE_STRING, &(pd->ruser),
                                 DBUS_TYPE_STRING, &(pd->rhost),
-                                DBUS_TYPE_INT32, &(pd->authtok_type),
+                                DBUS_TYPE_UINT32, &(pd->authtok_type),
                                 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                     &(pd->authtok),
                                     &(pd->authtok_size),
-                                DBUS_TYPE_INT32, &(pd->newauthtok_type),
+                                DBUS_TYPE_UINT32, &(pd->newauthtok_type),
                                 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
                                     &(pd->newauthtok),
                                     &(pd->newauthtok_size),
                                 DBUS_TYPE_INT32, &(pd->priv),
                                 DBUS_TYPE_INT32, &(pd->pw_uid),
                                 DBUS_TYPE_INT32, &(pd->gr_gid),
+                                DBUS_TYPE_UINT32, &(pd->cli_pid),
                                 DBUS_TYPE_INVALID);
 
     return ret;
