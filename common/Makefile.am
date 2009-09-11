@@ -16,3 +16,8 @@ libsssd_util_la_CFLAGS = $(AM_CFLAGS) \
     -I ./elapi \
     -I ./trace
 endif
+
+tests: all
+	for subdir in $(SUBDIRS); do \
+		$(MAKE) -C $$subdir $@; \
+	done

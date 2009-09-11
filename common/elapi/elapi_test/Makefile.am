@@ -47,3 +47,5 @@ elapi_ut_SOURCES = elapi_ut.c
 elapi_ut_LDADD = libelapi_test.la ../../ini/libini_config.la ../../collection/libcollection.la -ldl
 
 TESTS = elapi_ut
+
+tests: all $(check_PROGRAMS)

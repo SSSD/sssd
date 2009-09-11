@@ -48,3 +48,4 @@ libreplace_a_DEPENDENCIES = \
 libreplace_a_LIBADD = \
     @LIBREPLACEOBJ@
 
+tests: all

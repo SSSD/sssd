@@ -15,3 +15,4 @@ libpath_utils_la_SOURCES = \
     path_utils.c \
     path_utils.h
 
+tests: all $(check_PROGRAMS)

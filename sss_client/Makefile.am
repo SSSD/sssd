@@ -65,3 +65,6 @@ install-data-hook:
 	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
 
 CLEANFILES = *.X
+
+tests: all $(check_PROGRAMS)
+

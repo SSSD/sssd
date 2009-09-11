@@ -21,3 +21,5 @@ dhash_example_LDADD = dhash.o
 
 examplesdir = $(docdir)/examples
 dist_noinst_DATA += dhash_test.c dhash_example.c
+
+tests: all $(check_PROGRAMS)

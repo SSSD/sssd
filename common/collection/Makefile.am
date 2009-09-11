@@ -43,3 +43,5 @@ collection_queue_ut_SOURCES = collection_queue_ut.c
 collection_queue_ut_LDADD = libcollection.la
 
 TESTS = collection_ut collection_stack_ut collection_queue_ut
+
+tests: all $(check_PROGRAMS)

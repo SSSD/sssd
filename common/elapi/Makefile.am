@@ -58,3 +58,8 @@ libelapi_la_SOURCES = \
     elapi.h
 
 libelapi_la_LIBADD = libprovider.la libelapibasic.la
+
+tests: all
+	for subdir in $(SUBDIRS); do \
+		$(MAKE) -C $$subdir $@; \
+	done

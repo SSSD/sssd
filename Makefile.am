@@ -32,3 +32,9 @@ srpms: dist-gzip rpmroot
 	rpmbuild --define "_topdir $(RPMBUILD)" \
 	         --define _source_filedigest_algorithm=1 \
 	         -bs SPECS/sssd.spec
+
+tests: all
+	for subdir in $(SUBDIRS); do \
+		$(MAKE) -C $$subdir $@; \
+	done
+

@@ -34,3 +34,5 @@ ini_config_ut_SOURCES = ini_config_ut.c
 ini_config_ut_LDADD = libini_config.la ../collection/libcollection.la
 
 TESTS = ini_config_ut
+
+tests: all $(check_PROGRAMS)

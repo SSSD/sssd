@@ -481,3 +481,5 @@ installsssddirs::
 install-exec-hook: installsssddirs
 
 CLEANFILES = *.X */*.X */*/*.X
+
+tests: all $(check_PROGRAMS)
