@@ -287,16 +287,16 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
     sss_dp_callback_t cb = NULL;
 
     if (dctx->check_provider) {
-        switch (res->count) {
-        case 0:
+        if (res->count == 0) {
             /* This is a cache miss. We need to get the updated user
              * information before returning it.
              */
             call_provider = true;
             cb = callback;
-            break;
 
-        case 1:
+        } else if ((req_type == SSS_DP_GROUP) ||
+                   ((req_type == SSS_DP_USER) && (res->count == 1))) {
+
             timeout = nctx->cache_timeout;
             refresh_timeout = nctx->cache_refresh_timeout;
             now = time(NULL);
@@ -323,10 +323,12 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
                 call_provider = false;
                 cb = NULL;
             }
-            break;
 
-        default:
-            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
+        } else {
+            if (req_type == SSS_DP_USER) {
+                DEBUG(1, ("getpwXXX call returned more than one result!"
+                          " DB Corrupted?\n"));
+            }
             ret = nss_cmd_send_error(cmdctx, ENOENT);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR_CODE(cctx, ENOENT);
