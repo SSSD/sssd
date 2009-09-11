@@ -1410,7 +1410,6 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
         DEBUG(0,("The confdb initialization failed\n"));
         goto done;
     }
-    talloc_free(cdb_file);
 
     /* Initialize the CDB from the configuration file */
     ret = confdb_test(ctx->cdb);
@@ -1439,6 +1438,7 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
         DEBUG(0, ("Fatal error initializing confdb\n"));
         goto done;
     }
+    talloc_zfree(cdb_file);
 
     ret = confdb_init_db(config_file, ctx->cdb);
     if (ret != EOK) {
