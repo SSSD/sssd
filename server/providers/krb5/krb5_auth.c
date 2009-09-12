@@ -489,6 +489,12 @@ static void krb5_pam_handler(struct be_req *be_req)
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
+    if (be_is_offline(be_req->be_ctx)) {
+        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+        pam_status = PAM_AUTHINFO_UNAVAIL;
+        goto done;
+    }
+
     if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_PAM_CHAUTHTOK) {
         DEBUG(4, ("krb5 does not handles pam task %d.\n", pd->cmd));
         pam_status = PAM_SUCCESS;
@@ -653,6 +659,11 @@ static void krb5_pam_handler_done(struct tevent_req *req)
 
     pd->pam_status = *msg_status;
 
+    if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
+        be_mark_offline(be_req->be_ctx);
+        goto done;
+    }
+
     if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_AUTHENTICATE) {
         env = talloc_asprintf(pd, "%s=%s", SSSD_REALM, krb5_ctx->realm);
         if (env == NULL) {
@@ -741,20 +752,18 @@ static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
 }
 
 struct bet_ops krb5_auth_ops = {
-    .check_online = NULL,
     .handler = krb5_pam_handler,
     .finalize = NULL,
 };
 
 struct bet_ops krb5_chpass_ops = {
-    .check_online = NULL,
     .handler = krb5_pam_handler,
     .finalize = NULL,
 };
 
 
-int sssm_krb5_auth_init(struct be_ctx *bectx, struct bet_ops **ops,
-                   void **pvt_auth_data)
+int sssm_krb5_auth_init(struct be_ctx *bectx,
+                        struct bet_ops **ops, void **pvt_auth_data)
 {
     struct krb5_ctx *ctx = NULL;
     char *value = NULL;

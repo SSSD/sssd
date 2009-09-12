@@ -40,7 +40,7 @@
 #include "providers/ldap/sdap_async.h"
 
 struct sdap_auth_ctx {
-    struct be_ctx *bectx;
+    struct be_ctx *be;
     struct sdap_options *opts;
 };
 
@@ -87,8 +87,8 @@ struct tevent_req *get_user_dn_send(TALLOC_CTX *memctx,
 
     /* this sysdb call uses a sysdn operation, which means it will be
      * schedule only after we return, no timer hack needed */
-    ret = sysdb_get_user_attr(state, state->ctx->bectx->sysdb,
-                              state->ctx->bectx->domain, state->name,
+    ret = sysdb_get_user_attr(state, state->ctx->be->sysdb,
+                              state->ctx->be->domain, state->name,
                               state->attrs, get_user_dn_done, req);
     if (ret) {
         tevent_req_error(req, ret);
@@ -292,7 +292,7 @@ int auth_recv(struct tevent_req *req, enum sdap_result *result,
     uint64_t err;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err == EAGAIN) *result = SDAP_UNAVAIL;
+        if (err == ETIMEDOUT) *result = SDAP_UNAVAIL;
         else *result = SDAP_ERROR;
         return EOK;
     }
@@ -337,6 +337,12 @@ static void sdap_pam_chpass_send(struct be_req *breq)
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                           struct sdap_auth_ctx);
     pd = talloc_get_type(breq->req_data, struct pam_data);
+
+    if (be_is_offline(ctx->be)) {
+        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+        pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        goto done;
+    }
 
     DEBUG(2, ("starting password change request for user [%s].\n", pd->user));
 
@@ -466,6 +472,12 @@ static void sdap_pam_auth_send(struct be_req *breq)
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct sdap_auth_ctx);
     pd = talloc_get_type(breq->req_data, struct pam_data);
 
+    if (be_is_offline(ctx->be)) {
+        DEBUG(4, ("Backend is marked offline, retry later!\n"));
+        pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        goto done;
+    }
+
     pd->pam_status = PAM_SYSTEM_ERR;
 
     switch (pd->cmd) {
@@ -531,6 +543,11 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
+    if (result == SDAP_UNAVAIL) {
+        be_mark_offline(state->breq->be_ctx);
+        goto done;
+    }
+
     if (result == SDAP_AUTH_SUCCESS &&
         state->breq->be_ctx->domain->cache_credentials) {
 
@@ -589,13 +606,11 @@ static void sdap_shutdown(struct be_req *req)
 }
 
 struct bet_ops sdap_auth_ops = {
-    .check_online = NULL,
     .handler = sdap_pam_auth_send,
     .finalize = sdap_shutdown
 };
 
 struct bet_ops sdap_chpass_ops = {
-    .check_online = NULL,
     .handler = sdap_pam_chpass_send,
     .finalize = sdap_shutdown
 };
@@ -612,7 +627,7 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
     ctx = talloc(bectx, struct sdap_auth_ctx);
     if (!ctx) return ENOMEM;
 
-    ctx->bectx = bectx;
+    ctx->be = bectx;
 
     ret = sdap_get_options(ctx, bectx->cdb, bectx->conf_path,
                               &ctx->opts);

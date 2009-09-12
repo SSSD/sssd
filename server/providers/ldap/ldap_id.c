@@ -39,9 +39,6 @@ struct sdap_id_ctx {
     /* global sdap handler */
     struct sdap_handle *gsh;
 
-    time_t went_offline;
-    bool offline;
-
     /* enumeration loop timer */
     struct timeval last_run;
 
@@ -52,43 +49,6 @@ struct sdap_id_ctx {
 static void sdap_req_done(struct be_req *req, int ret, const char *err)
 {
     return req->fn(req, ret, err);
-}
-
-static bool is_offline(struct sdap_id_ctx *ctx)
-{
-    time_t now = time(NULL);
-
-    /* check if we are past the offline blackout timeout */
-    if (ctx->went_offline + ctx->opts->offline_timeout < now) {
-        ctx->offline = false;
-    }
-
-    return ctx->offline;
-}
-
-static void mark_offline(struct sdap_id_ctx *ctx)
-{
-    DEBUG(8, ("Going offline!\n"));
-
-    ctx->went_offline = time(NULL);
-    ctx->offline = true;
-}
-
-static void sdap_check_online(struct be_req *req)
-{
-    struct be_online_req *oreq;
-    struct sdap_id_ctx *ctx;
-
-    ctx = talloc_get_type(req->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
-    oreq = talloc_get_type(req->req_data, struct be_online_req);
-
-    if (is_offline(ctx)) {
-        oreq->online = MOD_OFFLINE;
-    } else {
-        oreq->online = MOD_ONLINE;
-    }
-
-    sdap_req_done(req, EOK, NULL);
 }
 
 static int build_attrs_from_map(TALLOC_CTX *memctx,
@@ -403,7 +363,7 @@ static void users_get_done(struct tevent_req *req)
         if (ret == ETIMEDOUT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
-            mark_offline(ctx);
+            be_mark_offline(ctx->be);
         }
     }
 
@@ -568,7 +528,7 @@ static void groups_get_done(struct tevent_req *req)
         if (ret == ETIMEDOUT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
-            mark_offline(ctx);
+            be_mark_offline(ctx->be);
         }
     }
 
@@ -708,7 +668,7 @@ static void groups_by_user_done(struct tevent_req *req)
         if (ret == ETIMEDOUT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
-            mark_offline(ctx);
+            be_mark_offline(ctx->be);
         }
     }
 
@@ -731,7 +691,7 @@ static void sdap_get_account_info(struct be_req *breq)
 
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
 
-    if (is_offline(ctx)) {
+    if (be_is_offline(ctx->be)) {
         return sdap_req_done(breq, EAGAIN, "Offline");
     }
 
@@ -830,7 +790,7 @@ static void ldap_id_enumerate(struct tevent_context *ev,
     struct tevent_timer *timeout;
     struct tevent_req *req;
 
-    if (is_offline(ctx)) {
+    if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
         /* schedule starting from now, not the last run */
         ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
@@ -971,7 +931,7 @@ fail:
                   (int)err, strerror(err)));
 
         if (err == ETIMEDOUT) {
-            mark_offline(state->ctx);
+            be_mark_offline(state->ctx->be);
         }
     }
 
@@ -998,7 +958,7 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
 
 fail:
     if (err == ETIMEDOUT) {
-        mark_offline(state->ctx);
+        be_mark_offline(state->ctx->be);
     }
 
     DEBUG(1, ("Failed to enumerate groups, retrying later!\n"));
@@ -1312,7 +1272,6 @@ static void sdap_shutdown(struct be_req *req)
 }
 
 struct bet_ops sdap_id_ops = {
-    .check_online = sdap_check_online,
     .handler = sdap_get_account_info,
     .finalize = sdap_shutdown
 };

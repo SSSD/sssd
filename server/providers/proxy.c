@@ -57,11 +57,12 @@ struct proxy_nss_ops {
 };
 
 struct proxy_ctx {
+    struct be_ctx *be;
     struct proxy_nss_ops ops;
-    bool offline;
 };
 
 struct proxy_auth_ctx {
+    struct be_ctx *be;
     char *pam_target;
 };
 
@@ -69,49 +70,6 @@ struct authtok_conv {
     uint32_t authtok_size;
     uint8_t *authtok;
 };
-
-static void offline_timeout(struct tevent_context *ev, struct tevent_timer *tt,
-                            struct timeval tv, void *pvt)
-{
-    struct proxy_ctx *ctx;
-
-    ctx = talloc_get_type(pvt, struct proxy_ctx);
-    ctx->offline = false;
-}
-
-static void go_offline(struct be_ctx *be_ctx)
-{
-    struct proxy_ctx *ctx;
-    struct tevent_timer *tt;
-    struct timeval timeout;
-    int ret;
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
-
-    ret = gettimeofday(&timeout, NULL);
-    if (ret == -1) {
-        DEBUG(1, ("gettimeofday failed [%d][%s].\n", errno, strerror(errno)));
-        return;
-    }
-    timeout.tv_sec += 15; /* TODO: get from conf */
-
-    tt = tevent_add_timer(be_ctx->ev, ctx, timeout, offline_timeout, ctx);
-    if (tt == NULL) {
-        DEBUG(1, ("Failed to add timer\n"));
-        return;
-    }
-
-    ctx->offline = true;
-}
-
-static bool is_offline(struct be_ctx *be_ctx)
-{
-    struct proxy_ctx *ctx;
-
-    ctx = talloc_get_type(be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
-
-    return ctx->offline;
-}
 
 static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
                             struct pam_response **response,
@@ -235,6 +193,10 @@ static void proxy_pam_handler(struct be_req *req) {
         }
 
         DEBUG(4, ("Pam result: [%d][%s]\n", pam_status, pam_strerror(pamh, pam_status)));
+
+        if (pam_status == PAM_AUTHINFO_UNAVAIL) {
+            be_mark_offline(req->be_ctx);
+        }
 
         ret = pam_end(pamh, pam_status);
         if (ret != PAM_SUCCESS) {
@@ -1904,22 +1866,6 @@ static int get_group_from_gid_recv(struct tevent_req *req)
 
 /* =Proxy_Id-Functions====================================================*/
 
-/* TODO: actually do check something */
-static void proxy_check_online(struct be_req *req)
-{
-    struct be_online_req *oreq;
-
-    oreq = talloc_get_type(req->req_data, struct be_online_req);
-
-    if (is_offline(req->be_ctx)) {
-        oreq->online = MOD_OFFLINE;
-    } else {
-        oreq->online = MOD_ONLINE;
-    }
-
-    req->fn(req, EOK, NULL);
-}
-
 static void proxy_get_account_info_done(struct tevent_req *subreq);
 
 /* TODO: See if we can use async_req code */
@@ -1940,7 +1886,7 @@ static void proxy_get_account_info(struct be_req *breq)
     sysdb = breq->be_ctx->sysdb;
     domain = breq->be_ctx->domain;
 
-    if (is_offline(breq->be_ctx)) {
+    if (be_is_offline(breq->be_ctx)) {
         return proxy_reply(breq, EAGAIN, "Offline");
     }
 
@@ -2082,7 +2028,7 @@ static void proxy_get_account_info_done(struct tevent_req *subreq)
     if (ret) {
         if (ret == ENXIO) {
             DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
-            go_offline(breq->be_ctx);
+            be_mark_offline(breq->be_ctx);
         }
     }
     proxy_reply(breq, ret, NULL);
@@ -2101,25 +2047,21 @@ static void proxy_auth_shutdown(struct be_req *req)
 }
 
 struct bet_ops proxy_id_ops = {
-    .check_online = proxy_check_online,
     .handler = proxy_get_account_info,
     .finalize = proxy_shutdown
 };
 
 struct bet_ops proxy_auth_ops = {
-    .check_online = proxy_check_online,
     .handler = proxy_pam_handler,
     .finalize = proxy_auth_shutdown
 };
 
 struct bet_ops proxy_access_ops = {
-    .check_online = proxy_check_online,
     .handler = proxy_pam_handler,
     .finalize = proxy_auth_shutdown
 };
 
 struct bet_ops proxy_chpass_ops = {
-    .check_online = proxy_check_online,
     .handler = proxy_pam_handler,
     .finalize = proxy_auth_shutdown
 };
@@ -2151,6 +2093,7 @@ int sssm_proxy_init(struct be_ctx *bectx,
     if (!ctx) {
         return ENOMEM;
     }
+    ctx->be = bectx;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                            "libName", NULL, &libname);
@@ -2271,7 +2214,10 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     int ret;
 
     ctx = talloc(bectx, struct proxy_auth_ctx);
-    if (!ctx) return ENOMEM;
+    if (!ctx) {
+        return ENOMEM;
+    }
+    ctx->be = bectx;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                            "pam-target", NULL, &ctx->pam_target);

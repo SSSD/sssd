@@ -133,66 +133,39 @@ static int be_file_request(struct be_ctx *ctx,
     return EOK;
 }
 
-static void online_chk_callback(struct be_req *req, int status,
-                                const char *errstr)
+
+bool be_is_offline(struct be_ctx *ctx)
 {
-    struct be_online_req *oreq;
-    DBusMessage *reply;
-    DBusConnection *dbus_conn;
-    dbus_bool_t dbret;
-    dbus_uint16_t online;
-    dbus_uint16_t err_maj = 0;
-    dbus_uint32_t err_min = 0;
-    const char *err_msg = "Success";
+    time_t now = time(NULL);
 
-    oreq = talloc_get_type(req->req_data, struct be_online_req);
-
-    if (status != EOK) {
-        online = MOD_OFFLINE;
-        err_maj = DP_ERR_FATAL;
-        err_min = status;
-        err_msg = errstr;
+    /* check if we are past the offline blackout timeout */
+    /* FIXME: get offline_timeout from configuration */
+    if (ctx->offstat.went_offline + 60 < now) {
+        ctx->offstat.offline = false;
     }
 
-    online = oreq->online;
-    reply = (DBusMessage *)req->pvt;
-
-    dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, &online,
-                                     DBUS_TYPE_UINT16, &err_maj,
-                                     DBUS_TYPE_UINT32, &err_min,
-                                     DBUS_TYPE_STRING, &err_msg,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(1, ("Failed to generate dbus reply\n"));
-        return;
-    }
-
-    dbus_conn = sbus_get_connection(req->be_ctx->dp_conn);
-    dbus_connection_send(dbus_conn, reply, NULL);
-    dbus_message_unref(reply);
-
-    DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
-
-    /* finally free the request */
-    talloc_free(req);
+    return ctx->offstat.offline;
 }
 
+void be_mark_offline(struct be_ctx *ctx)
+{
+    DEBUG(8, ("Going offline!\n"));
+
+    ctx->offstat.went_offline = time(NULL);
+    ctx->offstat.offline = true;
+}
 
 static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
 {
-    struct be_online_req *req;
-    struct be_req *be_req;
     struct be_ctx *ctx;
     DBusMessage *reply;
+    DBusConnection *dbus_conn;
     dbus_bool_t dbret;
     void *user_data;
-    int ret;
     dbus_uint16_t online;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    const char *err_msg;
+    dbus_uint16_t err_maj = 0;
+    dbus_uint32_t err_min = 0;
+    static const char *err_msg = "Success";
 
     user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
@@ -202,45 +175,10 @@ static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
 
-    /* process request */
-    be_req = talloc(ctx, struct be_req);
-    if (!be_req) {
+    if (be_is_offline(ctx)) {
         online = MOD_OFFLINE;
-        err_maj = DP_ERR_FATAL;
-        err_min = ENOMEM;
-        err_msg = "Out of memory";
-        goto done;
-    }
-    be_req->be_ctx = ctx;
-    be_req->fn = online_chk_callback;
-    be_req->pvt = reply;
-
-    req = talloc(be_req, struct be_online_req);
-    if (!req) {
-        online = MOD_OFFLINE;
-        err_maj = DP_ERR_FATAL;
-        err_min = ENOMEM;
-        err_msg = "Out of memory";
-        goto done;
-    }
-    req->online = 0;
-
-    be_req->req_data = req;
-
-    ret = be_file_request(ctx, ctx->bet_info[BET_ID].bet_ops->check_online, be_req);
-    if (ret != EOK) {
-        online = MOD_OFFLINE;
-        err_maj = DP_ERR_FATAL;
-        err_min = ret;
-        err_msg = "Failed to file request";
-        goto done;
-    }
-
-    return EOK;
-
-done:
-    if (be_req) {
-        talloc_free(be_req);
+    } else {
+        online = MOD_ONLINE;
     }
 
     dbret = dbus_message_append_args(reply,
@@ -249,14 +187,21 @@ done:
                                      DBUS_TYPE_UINT32, &err_min,
                                      DBUS_TYPE_STRING, &err_msg,
                                      DBUS_TYPE_INVALID);
-    if (!dbret) return EIO;
+    if (!dbret) {
+        DEBUG(1, ("Failed to generate dbus reply\n"));
+        return EIO;
+    }
 
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
+    dbus_conn = sbus_get_connection(ctx->dp_conn);
+    dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
+
+    DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
+              err_maj, err_min, err_msg));
 
     return EOK;
 }
+
 
 
 static void acctinfo_callback(struct be_req *req, int status,

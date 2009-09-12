@@ -60,6 +60,10 @@ struct bet_info {
     void *pvt_bet_data;
 };
 
+struct be_offline_status {
+    time_t went_offline;
+    bool offline;
+};
 
 struct be_ctx {
     struct tevent_context *ev;
@@ -68,6 +72,8 @@ struct be_ctx {
     struct sss_domain_info *domain;
     const char *identity;
     const char *conf_path;
+
+    struct be_offline_status offstat;
 
     struct sbus_connection *mon_conn;
     struct sbus_connection *dp_conn;
@@ -97,8 +103,7 @@ struct be_acct_req {
     char *filter_value;
 };
 
-struct be_online_req {
-    int online;
-};
+bool be_is_offline(struct be_ctx *ctx);
+void be_mark_offline(struct be_ctx *ctx);
 
 #endif /* __DP_BACKEND_H___ */
