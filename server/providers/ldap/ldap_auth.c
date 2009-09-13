@@ -126,7 +126,8 @@ static void get_user_dn_done(void *pvt, int err, struct ldb_result *res)
             dn = talloc_asprintf(state, "%s=%s,%s",
                         state->ctx->opts->user_map[SDAP_AT_USER_NAME].name,
                         state->name,
-                        state->ctx->opts->basic[SDAP_USER_SEARCH_BASE].value);
+                        sdap_go_get_string(state->ctx->opts->basic,
+                                           SDAP_USER_SEARCH_BASE));
             if (!dn) {
                 tevent_req_error(req, ENOMEM);
                 break;
@@ -173,7 +174,7 @@ struct auth_state {
     struct tevent_context *ev;
     struct sdap_auth_ctx *ctx;
     const char *username;
-    const char *password;
+    struct sdap_blob password;
 
     struct sdap_handle *sh;
 
@@ -185,11 +186,11 @@ static void auth_connect_done(struct tevent_req *subreq);
 static void auth_get_user_dn_done(struct tevent_req *subreq);
 static void auth_bind_user_done(struct tevent_req *subreq);
 
-struct tevent_req *auth_send(TALLOC_CTX *memctx,
-                             struct tevent_context *ev,
-                             struct sdap_auth_ctx *ctx,
-                             const char *username,
-                             const char *password)
+static struct tevent_req *auth_send(TALLOC_CTX *memctx,
+                                    struct tevent_context *ev,
+                                    struct sdap_auth_ctx *ctx,
+                                    const char *username,
+                                    struct sdap_blob password)
 {
     struct tevent_req *req, *subreq;
     struct auth_state *state;
@@ -333,6 +334,7 @@ static void sdap_pam_chpass_send(struct be_req *breq)
     struct sdap_auth_ctx *ctx;
     struct tevent_req *subreq;
     struct pam_data *pd;
+    struct sdap_blob authtok;
 
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                           struct sdap_auth_ctx);
@@ -371,8 +373,10 @@ static void sdap_pam_chpass_send(struct be_req *breq)
     talloc_set_destructor((TALLOC_CTX *)state->new_password,
                           password_destructor);
 
+    authtok.data = (uint8_t *)state->password;
+    authtok.length = strlen(state->password);
     subreq = auth_send(breq, breq->be_ctx->ev,
-                       ctx, state->username, state->password);
+                       ctx, state->username, authtok);
     if (!subreq) goto done;
 
     tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
@@ -454,7 +458,7 @@ struct sdap_pam_auth_state {
     struct be_req *breq;
     struct pam_data *pd;
     const char *username;
-    char *password;
+    struct sdap_blob password;
 };
 
 static void sdap_pam_auth_done(struct tevent_req *req);
@@ -489,14 +493,11 @@ static void sdap_pam_auth_send(struct be_req *breq)
         state->breq = breq;
         state->pd = pd;
         state->username = pd->user;
-        state->password = talloc_strndup(state,
-                                         (char *)pd->authtok, pd->authtok_size);
-        if (!state->password) goto done;
-        talloc_set_destructor((TALLOC_CTX *)state->password,
-                              password_destructor);
+        state->password.data = pd->authtok;
+        state->password.length = pd->authtok_size;
 
-        subreq = auth_send(breq, breq->be_ctx->ev,
-                                ctx, state->username, state->password);
+        subreq = auth_send(breq, breq->be_ctx->ev, ctx,
+                           state->username, state->password);
         if (!subreq) goto done;
 
         tevent_req_set_callback(subreq, sdap_pam_auth_done, state);
@@ -551,12 +552,21 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     if (result == SDAP_AUTH_SUCCESS &&
         state->breq->be_ctx->domain->cache_credentials) {
 
+        char *password = talloc_strndup(state, (char *)
+                                        state->password.data,
+                                        state->password.length);
+        if (!password) {
+            DEBUG(2, ("Failed to cache password for %s\n", state->username));
+            goto done;
+        }
+        talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
+
         subreq = sysdb_cache_password_send(state,
                                            state->breq->be_ctx->ev,
                                            state->breq->be_ctx->sysdb,
                                            NULL,
                                            state->breq->be_ctx->domain,
-                                           state->username, state->password);
+                                           state->username, password);
 
         /* password caching failures are not fatal errors */
         if (!subreq) {
@@ -633,7 +643,7 @@ int sssm_ldap_auth_init(struct be_ctx *bectx,
                               &ctx->opts);
     if (ret != EOK) goto done;
 
-    tls_reqcert = ctx->opts->basic[SDAP_TLS_REQCERT].value;
+    tls_reqcert = sdap_go_get_string(ctx->opts->basic, SDAP_TLS_REQCERT);
     if (tls_reqcert) {
         if (strcasecmp(tls_reqcert, "never") == 0) {
             ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;

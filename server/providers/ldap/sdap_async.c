@@ -472,7 +472,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         return NULL;
     }
     /* Initialize LDAP handler */
-    lret = ldap_initialize(&state->sh->ldap, opts->basic[SDAP_URI].value);
+    lret = ldap_initialize(&state->sh->ldap,
+                           sdap_go_get_string(opts->basic, SDAP_URI));
     if (lret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_initialize failed: %s\n", ldap_err2string(ret)));
         goto fail;
@@ -487,22 +488,22 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
 
     /* Set Network Timeout */
-    tv.tv_sec = opts->network_timeout;
+    tv.tv_sec = sdap_go_get_int(opts->basic, SDAP_NETWORK_TIMEOUT);
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_NETWORK_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set network timeout to %d\n",
-                  opts->network_timeout));
+                  sdap_go_get_int(opts->basic, SDAP_NETWORK_TIMEOUT)));
         goto fail;
     }
 
     /* Set Default Timeout */
-    tv.tv_sec = opts->opt_timeout;
+    tv.tv_sec = sdap_go_get_int(opts->basic, SDAP_OPT_TIMEOUT);
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set default timeout to %d\n",
-                  opts->opt_timeout));
+                  sdap_go_get_int(opts->basic, SDAP_OPT_TIMEOUT)));
         goto fail;
     }
 
@@ -766,7 +767,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct sdap_handle *sh,
                                   const char *user_dn,
                                   const char *authtok_type,
-                                  const char *password)
+                                  struct sdap_blob authtok)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
@@ -780,13 +781,8 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->user_dn = user_dn;
-    if (password) {
-        state->pw.bv_val = discard_const(password);
-        state->pw.bv_len = strlen(password);
-    } else {
-        state->pw.bv_val = NULL;
-        state->pw.bv_len = 0;
-    }
+    state->pw.bv_val = (char *)authtok.data;
+    state->pw.bv_len = authtok.length;
 
     subreq = simple_bind_send(state, ev, sh, user_dn, &state->pw);
     if (!subreq) {
@@ -1020,7 +1016,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
             ret = ENOMEM;
             goto fail;
         }
-        if (opts->force_upper_case_realm) {
+        if (sdap_go_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
             make_realm_upper_case(upn);
         }
         DEBUG(7, ("Adding user principle [%s] to attributes of [%s].\n",
@@ -1234,10 +1230,12 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         if (!opts->users_base) {
             opts->users_base = ldb_dn_new_fmt(opts,
                                     sysdb_handle_get_ldb(state->handle), "%s",
-                                    opts->basic[SDAP_USER_SEARCH_BASE].value);
+                                    sdap_go_get_string(opts->basic,
+                                                      SDAP_USER_SEARCH_BASE));
             if (!opts->users_base) {
                 DEBUG(1, ("Unable to get casefold Users Base DN from [%s]\n",
-                          opts->basic[SDAP_USER_SEARCH_BASE].value));
+                          sdap_go_get_string(opts->basic,
+                                             SDAP_USER_SEARCH_BASE)));
                 DEBUG(1, ("Out of memory?!\n"));
                 ret = ENOMEM;
                 goto fail;
@@ -1246,10 +1244,12 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         if (!opts->groups_base) {
             opts->groups_base = ldb_dn_new_fmt(state->handle,
                                     sysdb_handle_get_ldb(state->handle), "%s",
-                                    opts->basic[SDAP_GROUP_SEARCH_BASE].value);
+                                    sdap_go_get_string(opts->basic,
+                                                      SDAP_GROUP_SEARCH_BASE));
             if (!opts->users_base) {
                 DEBUG(1, ("Unable to get casefold Users Base DN from [%s]\n",
-                          opts->basic[SDAP_USER_SEARCH_BASE].value));
+                          sdap_go_get_string(opts->basic,
+                                             SDAP_GROUP_SEARCH_BASE)));
                 DEBUG(1, ("Out of memory?!\n"));
                 ret = ENOMEM;
                 goto fail;
@@ -1500,7 +1500,8 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
     DEBUG(5, ("calling ldap_search_ext with [%s].\n", state->filter));
 
     lret = ldap_search_ext(state->sh->ldap,
-                           state->opts->basic[SDAP_USER_SEARCH_BASE].value,
+                           sdap_go_get_string(state->opts->basic,
+                                              SDAP_USER_SEARCH_BASE),
                            LDAP_SCOPE_SUBTREE, state->filter,
                            discard_const(state->attrs),
                            false, NULL, NULL, NULL, 0, &msgid);
@@ -1723,7 +1724,8 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
     }
 
     lret = ldap_search_ext(state->sh->ldap,
-                           state->opts->basic[SDAP_GROUP_SEARCH_BASE].value,
+                           sdap_go_get_string(state->opts->basic,
+                                              SDAP_GROUP_SEARCH_BASE),
                            LDAP_SCOPE_SUBTREE, state->filter,
                            discard_const(state->attrs),
                            false, NULL, NULL, NULL, 0, &msgid);
@@ -2053,7 +2055,8 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
     DEBUG(5, ("calling ldap_search_ext with filter:[%s].\n", state->filter));
 
     lret = ldap_search_ext(state->sh->ldap,
-                           state->opts->basic[SDAP_GROUP_SEARCH_BASE].value,
+                           sdap_go_get_string(state->opts->basic,
+                                              SDAP_GROUP_SEARCH_BASE),
                            LDAP_SCOPE_SUBTREE, state->filter,
                            discard_const(state->grp_attrs),
                            false, NULL, NULL, NULL, 0, &msgid);

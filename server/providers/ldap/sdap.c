@@ -25,24 +25,31 @@
 #include "confdb/confdb.h"
 #include "providers/ldap/sdap.h"
 
+#define NULL_STRING { .string = NULL }
+#define NULL_BLOB { .blob = { NULL, 0 } }
+#define NULL_NUMBER { .number = 0 }
+#define BOOL_FALSE { .boolean = false }
+#define BOOL_TRUE { .boolean = true }
+
 struct sdap_gen_opts default_basic_opts[] = {
-    { "ldapUri", "ldap://localhost", NULL },
-    { "defaultBindDn", NULL, NULL },
-    { "defaultAuthtokType", NULL, NULL },
-    { "defaultAuthtok", NULL, NULL },
-    { "network_timeout", "5", NULL },
-    { "opt_timeout", "5", NULL },
-    { "tls_reqcert", "hard", NULL },
-    { "userSearchBase", "ou=People,dc=example,dc=com", NULL },
-    { "userSearchScope", "sub", NULL },
-    { "userSearchFilter", NULL, NULL },
-    { "groupSearchBase", "ou=Group,dc=example,dc=com", NULL },
-    { "groupSearchScope", "sub", NULL },
-    { "groupSearchFilter", NULL, NULL },
-    { "ldapSchema", "rfc2307", NULL },
-    { "offline_timeout", "60", NULL },
-    { "force_upper_case_realm", "0", NULL },
-    { "enumeration_refresh_timeout", "300", NULL }
+    { "ldapUri", SDAP_STRING, { "ldap://localhost" }, NULL_STRING },
+    { "defaultBindDn", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "defaultAuthtokType", SDAP_STRING, NULL_STRING, NULL_STRING},
+    { "defaultAuthtok", SDAP_BLOB, NULL_BLOB, NULL_BLOB },
+    { "network_timeout", SDAP_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "opt_timeout", SDAP_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "tls_reqcert", SDAP_STRING, { "hard" }, NULL_STRING },
+    { "userSearchBase", SDAP_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
+    { "userSearchScope", SDAP_STRING, { "sub" }, NULL_STRING },
+    { "userSearchFilter", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "groupSearchBase", SDAP_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
+    { "groupSearchScope", SDAP_STRING, { "sub" }, NULL_STRING },
+    { "groupSearchFilter", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldapSchema", SDAP_STRING, { "rfc2307" }, NULL_STRING },
+    { "offline_timeout", SDAP_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "force_upper_case_realm", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "enumeration_refresh_timeout", SDAP_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER }
 };
 
 struct sdap_id_map rfc2307_user_map[] = {
@@ -109,6 +116,7 @@ int sdap_get_options(TALLOC_CTX *memctx,
     struct sdap_id_map *default_user_map;
     struct sdap_id_map *default_group_map;
     struct sdap_options *opts;
+    char *schema;
     int i, ret;
 
     opts = talloc_zero(memctx, struct sdap_options);
@@ -124,76 +132,98 @@ int sdap_get_options(TALLOC_CTX *memctx,
     if (!opts) return ENOMEM;
 
     for (i = 0; i < SDAP_OPTS_BASIC; i++) {
+        char *tmp;
 
         opts->basic[i].opt_name = default_basic_opts[i].opt_name;
-        opts->basic[i].def_value = default_basic_opts[i].def_value;
+        opts->basic[i].type = default_basic_opts[i].type;
+        opts->basic[i].def_val = default_basic_opts[i].def_val;
+        ret = EOK;
 
-        ret = confdb_get_string(cdb, opts, conf_path,
-                                opts->basic[i].opt_name,
-                                opts->basic[i].def_value,
-                                &opts->basic[i].value);
-        if (ret != EOK ||
-            (opts->basic[i].def_value && !opts->basic[i].value)) {
-            DEBUG(0, ("Failed to retrieve a value (%s)\n",
-                      opts->basic[i].opt_name));
-            if (ret != EOK) ret = EINVAL;
-            goto done;
+        switch (default_basic_opts[i].type) {
+        case SDAP_STRING:
+            ret = confdb_get_string(cdb, opts, conf_path,
+                                    opts->basic[i].opt_name,
+                                    opts->basic[i].def_val.cstring,
+                                    &opts->basic[i].val.string);
+            if (ret != EOK ||
+                ((opts->basic[i].def_val.string != NULL) &&
+                 (opts->basic[i].val.string == NULL))) {
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
+                if (ret == EOK) ret = EINVAL;
+                goto done;
+            }
+            DEBUG(6, ("Option %s has value %s\n",
+                  opts->basic[i].opt_name, opts->basic[i].val.cstring));
+            break;
+
+        case SDAP_BLOB:
+            ret = confdb_get_string(cdb, opts, conf_path,
+                                    opts->basic[i].opt_name,
+                                    NULL, &tmp);
+            if (ret != EOK) {
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
+                goto done;
+            }
+
+            if (tmp) {
+                opts->basic[i].val.blob.data = (uint8_t *)tmp;
+                opts->basic[i].val.blob.length = strlen(tmp);
+            } else {
+                opts->basic[i].val.blob.data = NULL;
+                opts->basic[i].val.blob.length = 0;
+            }
+
+            DEBUG(6, ("Option %s has %s value\n",
+                      opts->basic[i].opt_name,
+                      opts->basic[i].val.blob.length?"a":"no"));
+            break;
+
+        case SDAP_NUMBER:
+            ret = confdb_get_int(cdb, opts, conf_path,
+                                 opts->basic[i].opt_name,
+                                 opts->basic[i].def_val.number,
+                                 &opts->basic[i].val.number);
+            if (ret != EOK) {
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
+                goto done;
+            }
+            DEBUG(6, ("Option %s has value %d\n",
+                  opts->basic[i].opt_name, opts->basic[i].val.number));
+            break;
+
+        case SDAP_BOOL:
+            ret = confdb_get_bool(cdb, opts, conf_path,
+                                  opts->basic[i].opt_name,
+                                  opts->basic[i].def_val.boolean,
+                                  &opts->basic[i].val.boolean);
+            if (ret != EOK) {
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
+                goto done;
+            }
+            DEBUG(6, ("Option %s is %s\n",
+                      opts->basic[i].opt_name,
+                      opts->basic[i].val.boolean?"TRUE":"FALSE"));
+            break;
         }
-
-        DEBUG(5, ("Option %s has value %s\n",
-                  opts->basic[i].opt_name, opts->basic[i].value));
     }
-
-    /* re-read special options that are easier to be consumed after they are
-     * transformed */
-
-/* TODO: better to have a blob object than a string here */
-    ret = confdb_get_string(cdb, opts, conf_path,
-                            "defaultAuthtok", NULL,
-                            &opts->default_authtok);
-    if (ret != EOK) goto done;
-    if (opts->default_authtok) {
-        opts->default_authtok_size = strlen(opts->default_authtok);
-    }
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "network_timeout", 5,
-                         &opts->network_timeout);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "opt_timeout", 5,
-                         &opts->opt_timeout);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "offline_timeout", 60,
-                         &opts->offline_timeout);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_bool(cdb, opts, conf_path,
-                         "force_upper_case_realm", false,
-                         &opts->force_upper_case_realm);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_int(cdb, opts, conf_path,
-                         "enumeration_refresh_timeout", 300,
-                         &opts->enum_refresh_timeout);
-    if (ret != EOK) goto done;
 
     /* schema type */
-    if (strcasecmp(opts->basic[SDAP_SCHEMA].value, "rfc2307") == 0) {
+    schema = sdap_go_get_string(opts->basic, SDAP_SCHEMA);
+    if (strcasecmp(schema, "rfc2307") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307;
         default_user_map = rfc2307_user_map;
         default_group_map = rfc2307_group_map;
     } else
-    if (strcasecmp(opts->basic[SDAP_SCHEMA].value, "rfc2307bis") == 0) {
+    if (strcasecmp(schema, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
     } else {
-        DEBUG(0, ("Unrecognized schema type: %s\n",
-                  opts->basic[SDAP_SCHEMA].value));
+        DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;
         goto done;
     }
@@ -249,6 +279,90 @@ done:
     if (ret != EOK) talloc_zfree(opts);
     return ret;
 }
+
+/* =Basic-Option-Helpers================================================== */
+
+static const char *sdap_type_to_string(enum sdap_type type)
+{
+    switch (type) {
+    case SDAP_STRING:
+        return "String";
+    case SDAP_BLOB:
+        return "Blob";
+    case SDAP_NUMBER:
+        return "Number";
+    case SDAP_BOOL:
+        return "Boolean";
+    }
+    return NULL;
+}
+
+const char *_sdap_go_get_cstring(struct sdap_gen_opts *opts,
+                                 int id, const char *location)
+{
+    if (opts[id].type != SDAP_STRING) {
+        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
+        return NULL;
+    }
+    return opts[id].val.cstring;
+}
+
+char *_sdap_go_get_string(struct sdap_gen_opts *opts,
+                          int id, const char *location)
+{
+    if (opts[id].type != SDAP_STRING) {
+        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
+        return NULL;
+    }
+    return opts[id].val.string;
+}
+
+struct sdap_blob _sdap_go_get_blob(struct sdap_gen_opts *opts,
+                                   int id, const char *location)
+{
+    struct sdap_blob null_blob = { NULL, 0 };
+    if (opts[id].type != SDAP_BLOB) {
+        DEBUG(0, ("[%s] Requested type 'Blob' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
+        return null_blob;
+    }
+    return opts[id].val.blob;
+}
+
+int _sdap_go_get_int(struct sdap_gen_opts *opts,
+                     int id, const char *location)
+{
+    if (opts[id].type != SDAP_NUMBER) {
+        DEBUG(0, ("[%s] Requested type 'Number' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
+        return 0;
+    }
+    return opts[id].val.number;
+}
+
+bool _sdap_go_get_bool(struct sdap_gen_opts *opts,
+                       int id, const char *location)
+{
+    if (opts[id].type != SDAP_BOOL) {
+        DEBUG(0, ("[%s] Requested type 'Boolean' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
+        return false;
+    }
+    return opts[id].val.boolean;
+}
+
 
 /* =Parse-msg============================================================= */
 

@@ -98,7 +98,7 @@ struct sdap_id_connect_state {
     bool use_start_tls;
     char *defaultBindDn;
     char *defaultAuthtokType;
-    char *defaultAuthtok;
+    struct sdap_blob defaultAuthtok;
 
     struct sdap_handle *sh;
 };
@@ -106,13 +106,13 @@ struct sdap_id_connect_state {
 static void sdap_id_connect_done(struct tevent_req *subreq);
 static void sdap_id_bind_done(struct tevent_req *subreq);
 
-struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
-                                        struct tevent_context *ev,
-                                        struct sdap_id_ctx *ctx,
-                                        bool use_start_tls,
-                                        char *defaultBindDn,
-                                        char *defaultAuthtokType,
-                                        char *defaultAuthtok)
+static struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
+                                               struct tevent_context *ev,
+                                               struct sdap_id_ctx *ctx,
+                                               bool use_start_tls,
+                                               char *defaultBindDn,
+                                               char *defaultAuthtokType,
+                                               struct sdap_blob defaultAuthtok)
 {
     struct tevent_req *req, *subreq;
     struct sdap_id_connect_state *state;
@@ -268,9 +268,12 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_id_connect_send(state, ev, ctx, false,
-                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_BIND_DN),
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK_TYPE),
+                             sdap_go_get_blob(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK));
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -434,9 +437,12 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_id_connect_send(state, ev, ctx, false,
-                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_BIND_DN),
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK_TYPE),
+                             sdap_go_get_blob(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK));
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -574,9 +580,12 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_id_connect_send(state, ev, ctx, false,
-                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_BIND_DN),
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK_TYPE),
+                             sdap_go_get_blob(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK));
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -789,6 +798,7 @@ static void ldap_id_enumerate(struct tevent_context *ev,
     struct sdap_id_ctx *ctx = talloc_get_type(pvt, struct sdap_id_ctx);
     struct tevent_timer *timeout;
     struct tevent_req *req;
+    int ert;
 
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
@@ -811,7 +821,8 @@ static void ldap_id_enumerate(struct tevent_context *ev,
     /* if enumeration takes so long, either we try to enumerate too
      * frequently, or something went seriously wrong */
     tv = tevent_timeval_current();
-    tv = tevent_timeval_add(&tv, ctx->opts->enum_refresh_timeout, 0);
+    ert = sdap_go_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    tv = tevent_timeval_add(&tv, ert, 0);
     timeout = tevent_add_timer(ctx->be->ev, req, tv,
                                ldap_id_enumerate_timeout, req);
     return;
@@ -824,9 +835,10 @@ static void ldap_id_enumerate_timeout(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
                                                        struct sdap_id_ctx);
+    int ert;
 
-    DEBUG(1, ("Enumeration timed out! Timeout too small? (%ds)!\n",
-              ctx->opts->enum_refresh_timeout));
+    ert = sdap_go_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    DEBUG(1, ("Enumeration timed out! Timeout too small? (%ds)!\n", ert));
     ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
 
     talloc_zfree(req);
@@ -855,8 +867,10 @@ static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
                                         struct timeval tv)
 {
     struct tevent_timer *enum_task;
+    int ert;
 
-    tv = tevent_timeval_add(&tv, ctx->opts->enum_refresh_timeout, 0);
+    ert = sdap_go_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    tv = tevent_timeval_add(&tv, ert, 0);
     enum_task = tevent_add_timer(ctx->be->ev, ctx, tv, ldap_id_enumerate, ctx);
     if (!enum_task) {
         DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
@@ -965,6 +979,7 @@ fail:
     tevent_req_done(req);
 }
 
+
 /* ==User-Enumeration===================================================== */
 
 struct enum_users_state {
@@ -1025,9 +1040,12 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_id_connect_send(state, ev, ctx, false,
-                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_BIND_DN),
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK_TYPE),
+                             sdap_go_get_blob(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK));
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -1175,9 +1193,12 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_id_connect_send(state, ev, ctx, false,
-                              ctx->opts->basic[SDAP_DEFAULT_BIND_DN].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK_TYPE].value,
-                              ctx->opts->basic[SDAP_DEFAULT_AUTHTOK].value);
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_BIND_DN),
+                             sdap_go_get_string(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK_TYPE),
+                             sdap_go_get_blob(ctx->opts->basic,
+                                                SDAP_DEFAULT_AUTHTOK));
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -1291,10 +1312,9 @@ int sssm_ldap_init(struct be_ctx *bectx,
 
     ctx->be = bectx;
 
-    ret = sdap_get_options(ctx, bectx->cdb, bectx->conf_path,
-                           &ctx->opts);
+    ret = sdap_get_options(ctx, bectx->cdb, bectx->conf_path, &ctx->opts);
 
-    tls_reqcert = ctx->opts->basic[SDAP_TLS_REQCERT].value;
+    tls_reqcert = sdap_go_get_string(ctx->opts->basic, SDAP_TLS_REQCERT);
     if (tls_reqcert) {
         if (strcasecmp(tls_reqcert, "never") == 0) {
             ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;

@@ -69,60 +69,88 @@ enum sdap_result {
     SDAP_AUTH_FAILED
 };
 
-#define SDAP_URI 0
-#define SDAP_DEFAULT_BIND_DN 1
-#define SDAP_DEFAULT_AUTHTOK_TYPE 2
-#define SDAP_DEFAULT_AUTHTOK 3
-#define SDAP_NETWROK_TIMEOUT 4
-#define SDAP_OPT_TIMEOUT 5
-#define SDAP_TLS_REQCERT 6
-#define SDAP_USER_SEARCH_BASE 7
-#define SDAP_USER_SEARCH_SCOPE 8
-#define SDAP_USER_SEARCH_FILTER 9
-#define SDAP_GROUP_SEARCH_BASE 10
-#define SDAP_GROUP_SEARCH_SCOPE 11
-#define SDAP_GROUP_SEARCH_FILTER 12
-#define SDAP_SCHEMA 13
-#define SDAP_OFFLINE_TIMEOUT 14
-#define SDAP_FORCE_UPPER_CASE_REALM 15
-#define SDAP_ENUM_REFRESH_TIMEOUT 16
+enum sdap_basic_opt {
+    SDAP_URI = 0,
+    SDAP_DEFAULT_BIND_DN,
+    SDAP_DEFAULT_AUTHTOK_TYPE,
+    SDAP_DEFAULT_AUTHTOK,
+    SDAP_NETWORK_TIMEOUT,
+    SDAP_OPT_TIMEOUT,
+    SDAP_TLS_REQCERT,
+    SDAP_USER_SEARCH_BASE,
+    SDAP_USER_SEARCH_SCOPE,
+    SDAP_USER_SEARCH_FILTER,
+    SDAP_GROUP_SEARCH_BASE,
+    SDAP_GROUP_SEARCH_SCOPE,
+    SDAP_GROUP_SEARCH_FILTER,
+    SDAP_SCHEMA,
+    SDAP_OFFLINE_TIMEOUT,
+    SDAP_FORCE_UPPER_CASE_REALM,
+    SDAP_ENUM_REFRESH_TIMEOUT,
+    SDAP_STALE_TIME,
 
-#define SDAP_OPTS_BASIC 17 /* opts counter */
-
-/* the objectclass must be the first attribute.
- * Functions depend on this */
-#define SDAP_OC_USER 0
-#define SDAP_AT_USER_NAME 1
-#define SDAP_AT_USER_PWD 2
-#define SDAP_AT_USER_UID 3
-#define SDAP_AT_USER_GID 4
-#define SDAP_AT_USER_GECOS 5
-#define SDAP_AT_USER_HOME 6
-#define SDAP_AT_USER_SHELL 7
-#define SDAP_AT_USER_PRINC 8
-#define SDAP_AT_USER_FULLNAME 9
-#define SDAP_AT_USER_MEMBEROF 10
-#define SDAP_AT_USER_UUID 11
-#define SDAP_AT_USER_MODSTAMP 12
-
-#define SDAP_OPTS_USER 13 /* attrs counter */
+    SDAP_OPTS_BASIC /* opts counter */
+};
 
 /* the objectclass must be the first attribute.
  * Functions depend on this */
-#define SDAP_OC_GROUP 0
-#define SDAP_AT_GROUP_NAME 1
-#define SDAP_AT_GROUP_PWD 2
-#define SDAP_AT_GROUP_GID 3
-#define SDAP_AT_GROUP_MEMBER 4
-#define SDAP_AT_GROUP_UUID 5
-#define SDAP_AT_GROUP_MODSTAMP 6
+enum sdap_user_opt {
+    SDAP_OC_USER = 0,
+    SDAP_AT_USER_NAME,
+    SDAP_AT_USER_PWD,
+    SDAP_AT_USER_UID,
+    SDAP_AT_USER_GID,
+    SDAP_AT_USER_GECOS,
+    SDAP_AT_USER_HOME,
+    SDAP_AT_USER_SHELL,
+    SDAP_AT_USER_PRINC,
+    SDAP_AT_USER_FULLNAME,
+    SDAP_AT_USER_MEMBEROF,
+    SDAP_AT_USER_UUID,
+    SDAP_AT_USER_MODSTAMP,
 
-#define SDAP_OPTS_GROUP 7 /* attrs counter */
+    SDAP_OPTS_USER /* attrs counter */
+};
+
+/* the objectclass must be the first attribute.
+ * Functions depend on this */
+enum sdap_group_opt {
+    SDAP_OC_GROUP = 0,
+    SDAP_AT_GROUP_NAME,
+    SDAP_AT_GROUP_PWD,
+    SDAP_AT_GROUP_GID,
+    SDAP_AT_GROUP_MEMBER,
+    SDAP_AT_GROUP_UUID,
+    SDAP_AT_GROUP_MODSTAMP,
+
+    SDAP_OPTS_GROUP /* attrs counter */
+};
+
+enum sdap_type {
+    SDAP_STRING,
+    SDAP_BLOB,
+    SDAP_NUMBER,
+    SDAP_BOOL
+};
+
+struct sdap_blob {
+    uint8_t *data;
+    size_t length;
+};
+
+union sdap_value {
+    const char *cstring;
+    char *string;
+    struct sdap_blob blob;
+    int number;
+    bool boolean;
+};
 
 struct sdap_gen_opts {
     const char *opt_name;
-    const char *def_value;
-    char *value;
+    enum sdap_type type;
+    union sdap_value def_val;
+    union sdap_value val;
 };
 
 struct sdap_id_map {
@@ -136,15 +164,6 @@ struct sdap_options {
     struct sdap_gen_opts *basic;
     struct sdap_id_map *user_map;
     struct sdap_id_map *group_map;
-
-    /* transformed for easier consumption */
-    uint32_t default_authtok_size;
-    char *default_authtok; /* todo: turn into uint8_t */
-    int network_timeout;
-    int opt_timeout;
-    int offline_timeout;
-    int enum_refresh_timeout;
-    bool force_upper_case_realm;
 
     /* supported schema types */
     enum schema_type {
@@ -161,6 +180,22 @@ int sdap_get_options(TALLOC_CTX *memctx,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
                      struct sdap_options **_opts);
+
+const char *_sdap_go_get_cstring(struct sdap_gen_opts *opts,
+                                 int id, const char *location);
+char *_sdap_go_get_string(struct sdap_gen_opts *opts,
+                          int id, const char *location);
+struct sdap_blob _sdap_go_get_blob(struct sdap_gen_opts *opts,
+                                   int id, const char *location);
+int _sdap_go_get_int(struct sdap_gen_opts *opts,
+                     int id, const char *location);
+bool _sdap_go_get_bool(struct sdap_gen_opts *opts,
+                       int id, const char *location);
+#define sdap_go_get_cstring(o, i) _sdap_go_get_cstring(o, i, __FUNCTION__)
+#define sdap_go_get_string(o, i) _sdap_go_get_string(o, i, __FUNCTION__)
+#define sdap_go_get_blob(o, i) _sdap_go_get_blob(o, i, __FUNCTION__)
+#define sdap_go_get_int(o, i) _sdap_go_get_int(o, i, __FUNCTION__)
+#define sdap_go_get_bool(o, i) _sdap_go_get_bool(o, i, __FUNCTION__)
 
 int sdap_parse_user(TALLOC_CTX *memctx, struct sdap_options *opts,
                     struct sdap_handle *sh, struct sdap_msg *sm,
