@@ -30,86 +30,47 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 
-static void userdel_req_done(struct tevent_req *req)
+static void del_user_transaction(struct tevent_req *req)
 {
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
+    int ret;
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                struct tools_ctx);
+    struct tevent_req *subreq;
 
-    data->error = sysdb_transaction_commit_recv(req);
-    data->done = true;
-}
+    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    talloc_zfree(req);
 
-/* sysdb callback */
-static void userdel_done(void *pvt, int error, struct ldb_result *ignore)
-{
-    struct ops_ctx *data = talloc_get_type(pvt, struct ops_ctx);
-    struct tevent_req *req;
-
-    if (error != EOK) {
+    /* userdel */
+    ret = userdel(tctx, tctx->ev,
+                  tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
-    if (!req) {
-        error = ENOMEM;
+    subreq = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
+    if (!subreq) {
+        ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(req, userdel_req_done, data);
-
+    tevent_req_set_callback(subreq, tools_transaction_done, tctx);
     return;
 
 fail:
-    /* free transaction */
-    talloc_zfree(data->handle);
-
-    data->error = error;
-    data->done = true;
-}
-
-static void user_del_done(struct tevent_req *subreq);
-
-static void user_del(struct tevent_req *req)
-{
-    struct ops_ctx *data;
-    struct tevent_req *subreq;
-    struct ldb_dn *user_dn;
-    int ret;
-
-    data = tevent_req_callback_data(req, struct ops_ctx);
-
-    ret = sysdb_transaction_recv(req, data, &data->handle);
-    if (ret != EOK) {
-        return userdel_done(data, ret, NULL);
-    }
-
-    user_dn = sysdb_user_dn(data->ctx->sysdb, data,
-                            data->domain->name, data->name);
-    if (!user_dn) {
-        DEBUG(1, ("Could not construct a user DN\n"));
-        return userdel_done(data, ENOMEM, NULL);
-    }
-
-    subreq = sysdb_delete_entry_send(data, data->ctx->ev, data->handle, user_dn, false);
-    if (!subreq)
-        return userdel_done(data, ENOMEM, NULL);
-
-    tevent_req_set_callback(subreq, user_del_done, data);
-}
-
-static void user_del_done(struct tevent_req *subreq)
-{
-    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-
-    return userdel_done(data, ret, NULL);
+    /* free transaction and signal error */
+    talloc_zfree(tctx->handle);
+    tctx->transaction_done = true;
+    tctx->error = ret;
 }
 
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
-    struct ops_ctx *data = NULL;
     struct tevent_req *req;
+    struct tools_ctx *tctx = NULL;
     struct passwd *pwd_info;
     const char *pc_username = NULL;
 
@@ -152,7 +113,7 @@ int main(int argc, const char **argv)
 
     CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&data);
+    ret = init_sss_tools(&tctx);
     if (ret != EOK) {
         DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
         ERROR("Error initializing the tools\n");
@@ -161,7 +122,7 @@ int main(int argc, const char **argv)
     }
 
     /* if the domain was not given as part of FQDN, default to local domain */
-    ret = get_domain(data, pc_username);
+    ret = parse_name_domain(tctx, pc_username);
     if (ret != EOK) {
         ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
@@ -169,33 +130,33 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
-    pwd_info = getpwnam(data->name);
+    pwd_info = getpwnam(tctx->octx->name);
     if (pwd_info) {
-        data->uid = pwd_info->pw_uid;
+        tctx->octx->uid = pwd_info->pw_uid;
     }
 
-    if (id_in_range(data->uid, data->domain) != EOK) {
+    if (id_in_range(tctx->octx->uid, tctx->octx->domain) != EOK) {
         ERROR("The selected UID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* userdel */
-    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove user.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, user_del, data);
+    tevent_req_set_callback(req, del_user_transaction, tctx);
 
-    while (!data->done) {
-        tevent_loop_once(data->ctx->ev);
+    while (!tctx->transaction_done) {
+        tevent_loop_once(tctx->ev);
     }
 
-    if (data->error) {
-        ret = data->error;
+    if (tctx->error) {
+        ret = tctx->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
@@ -213,7 +174,7 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 
 fini:
-    talloc_free(data);
+    talloc_free(tctx);
     poptFreeContext(pc);
     exit(ret);
 }

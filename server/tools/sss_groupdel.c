@@ -30,87 +30,50 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 
-static void groupdel_req_done(struct tevent_req *req)
+static void del_group_transaction(struct tevent_req *req)
 {
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
+    int ret;
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                struct tools_ctx);
+    struct tevent_req *subreq;
 
-    data->error = sysdb_transaction_commit_recv(req);
-    data->done = true;
-}
+    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    talloc_zfree(req);
 
-/* sysdb callback */
-static void groupdel_done(void *pvt, int error, struct ldb_result *ignore)
-{
-    struct ops_ctx *data = talloc_get_type(pvt, struct ops_ctx);
-    struct tevent_req *req;
-
-    if (error != EOK) {
+    /* groupdel */
+    ret = groupdel(tctx, tctx->ev,
+                   tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
-    if (!req) {
-        error = ENOMEM;
+    subreq = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
+    if (!subreq) {
+        ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(req, groupdel_req_done, data);
-
+    tevent_req_set_callback(subreq, tools_transaction_done, tctx);
     return;
 
 fail:
-    /* free transaction */
-    talloc_zfree(data->handle);
-
-    data->error = error;
-    data->done = true;
-}
-
-static void group_del_done(struct tevent_req *subreq);
-
-static void group_del(struct tevent_req *req)
-{
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
-    struct tevent_req *subreq;
-    struct ldb_dn *group_dn;
-    int ret;
-
-    ret = sysdb_transaction_recv(req, data, &data->handle);
-    if (ret != EOK) {
-        return groupdel_done(data, ret, NULL);
-    }
-
-    group_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                              data->domain->name, data->name);
-    if (group_dn == NULL) {
-        DEBUG(1, ("Could not construct a group DN\n"));
-        return groupdel_done(data, ENOMEM, NULL);
-    }
-
-    subreq = sysdb_delete_entry_send(data, data->ctx->ev, data->handle, group_dn, false);
-    if (!subreq)
-        return groupdel_done(data, ENOMEM, NULL);
-
-    tevent_req_set_callback(subreq, group_del_done, data);
-}
-
-static void group_del_done(struct tevent_req *subreq)
-{
-    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-
-    return groupdel_done(data, ret, NULL);
+    /* free transaction and signal error */
+    talloc_zfree(tctx->handle);
+    tctx->transaction_done = true;
+    tctx->error = ret;
 }
 
 int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     int pc_debug = 0;
-    struct ops_ctx *data = NULL;
-    struct tevent_req *req;
     struct group *grp_info;
     const char *pc_groupname = NULL;
+    struct tools_ctx *tctx = NULL;
+    struct tevent_req *req;
 
     poptContext pc = NULL;
     struct poptOption long_options[] = {
@@ -150,7 +113,7 @@ int main(int argc, const char **argv)
 
     CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&data);
+    ret = init_sss_tools(&tctx);
     if (ret != EOK) {
         DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
         ERROR("Error initializing the tools\n");
@@ -159,7 +122,7 @@ int main(int argc, const char **argv)
     }
 
     /* if the domain was not given as part of FQDN, default to local domain */
-    ret = get_domain(data, pc_groupname);
+    ret = parse_name_domain(tctx, pc_groupname);
     if (ret != EOK) {
         ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
@@ -167,34 +130,34 @@ int main(int argc, const char **argv)
     }
 
     /* arguments processed, go on to actual work */
-    grp_info = getgrnam(data->name);
+    grp_info = getgrnam(tctx->octx->name);
     if (grp_info) {
-        data->gid = grp_info->gr_gid;
+        tctx->octx->gid = grp_info->gr_gid;
     }
 
     /* arguments processed, go on to actual work */
-    if (id_in_range(data->gid, data->domain) != EOK) {
+    if (id_in_range(tctx->octx->uid, tctx->octx->domain) != EOK) {
         ERROR("The selected GID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* groupdel */
-    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not remove group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, group_del, data);
+    tevent_req_set_callback(req, del_group_transaction, tctx);
 
-    while (!data->done) {
-        tevent_loop_once(data->ctx->ev);
+    while (!tctx->transaction_done) {
+        tevent_loop_once(tctx->ev);
     }
 
-    if (data->error) {
-        ret = data->error;
+    if (tctx->error) {
+        ret = tctx->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
@@ -212,7 +175,7 @@ int main(int argc, const char **argv)
     ret = EXIT_SUCCESS;
 
 fini:
-    talloc_free(data);
+    talloc_free(tctx);
     poptFreeContext(pc);
     exit(ret);
 }

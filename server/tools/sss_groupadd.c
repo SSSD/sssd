@@ -30,70 +30,40 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
-static void add_group_req_done(struct tevent_req *req)
+static void add_group_transaction(struct tevent_req *req)
 {
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
+    int ret;
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                struct tools_ctx);
+    struct tevent_req *subreq;
 
-    data->error = sysdb_transaction_commit_recv(req);
-    data->done = true;
-}
+    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    talloc_zfree(req);
 
-static void add_group_terminate(struct ops_ctx *data, int error)
-{
-    struct tevent_req *req;
-
-    if (error != EOK) {
+    /* groupadd */
+    ret = groupadd(tctx, tctx->ev,
+                  tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
-    if (!req) {
-        error = ENOMEM;
+    subreq = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
+    if (!subreq) {
+        ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(req, add_group_req_done, data);
-
+    tevent_req_set_callback(subreq, tools_transaction_done, tctx);
     return;
 
 fail:
-    /* free transaction */
-    talloc_zfree(data->handle);
-
-    data->error = error;
-    data->done = true;
-}
-
-static void add_group_done(struct tevent_req *subreq);
-
-static void add_group(struct tevent_req *req)
-{
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
-    struct tevent_req *subreq;
-    int ret;
-
-    ret = sysdb_transaction_recv(req, data, &data->handle);
-    if (ret != EOK) {
-        return add_group_terminate(data, ret);
-    }
-
-    subreq = sysdb_add_group_send(data, data->ctx->ev, data->handle,
-                                  data->domain, data->name,
-                                  data->gid, NULL);
-    if (!subreq) {
-        add_group_terminate(data, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, add_group_done, data);
-}
-
-static void add_group_done(struct tevent_req *subreq)
-{
-    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
-    int ret;
-
-    ret = sysdb_add_group_recv(subreq);
-    talloc_zfree(subreq);
-
-    return add_group_terminate(data, ret);
+    /* free transaction and signal error */
+    talloc_zfree(tctx->handle);
+    tctx->transaction_done = true;
+    tctx->error = ret;
 }
 
 int main(int argc, const char **argv)
@@ -109,10 +79,10 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct tevent_req *req;
-    struct ops_ctx *data = NULL;
+    struct tools_ctx *tctx = NULL;
     int ret = EXIT_SUCCESS;
     const char *pc_groupname = NULL;
+    struct tevent_req *req;
 
     debug_prg_name = argv[0];
 
@@ -145,7 +115,7 @@ int main(int argc, const char **argv)
 
     CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&data);
+    ret = init_sss_tools(&tctx);
     if (ret != EOK) {
         DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
         ERROR("Error initializing the tools\n");
@@ -153,38 +123,39 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = get_domain(data, pc_groupname);
+    /* if the domain was not given as part of FQDN, default to local domain */
+    ret = parse_name_domain(tctx, pc_groupname);
     if (ret != EOK) {
         ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    data->gid = pc_gid;
+    tctx->octx->gid = pc_gid;
 
     /* arguments processed, go on to actual work */
-    if (id_in_range(data->gid, data->domain) != EOK) {
+    if (id_in_range(tctx->octx->gid, tctx->octx->domain) != EOK) {
         ERROR("The selected GID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
     /* add_group */
-    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not add group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, add_group, data);
+    tevent_req_set_callback(req, add_group_transaction, tctx);
 
-    while (!data->done) {
-        tevent_loop_once(data->ctx->ev);
+    while (!tctx->transaction_done) {
+        tevent_loop_once(tctx->ev);
     }
 
-    if (data->error) {
-        ret = data->error;
+    if (tctx->error) {
+        ret = tctx->error;
         switch (ret) {
             case EEXIST:
                 ERROR("A group with the same name or GID already exists\n");
@@ -201,7 +172,7 @@ int main(int argc, const char **argv)
 
     ret = EXIT_SUCCESS;
 fini:
-    talloc_free(data);
+    talloc_free(tctx);
     poptFreeContext(pc);
     exit(ret);
 }

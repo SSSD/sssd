@@ -31,219 +31,40 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
-static void mod_group_req_done(struct tevent_req *req)
+static void mod_group_transaction(struct tevent_req *req)
 {
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
+    int ret;
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                struct tools_ctx);
+    struct tevent_req *subreq;
 
-    data->error = sysdb_transaction_commit_recv(req);
-    data->done = true;
-}
+    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    talloc_zfree(req);
 
-static void mod_group_done(struct ops_ctx *data, int error)
-{
-    struct tevent_req *req;
-
-    if (error != EOK) {
+    /* groupmod */
+    ret = groupmod(tctx, tctx->ev,
+                  tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
         goto fail;
     }
 
-    req = sysdb_transaction_commit_send(data, data->ctx->ev, data->handle);
-    if (!req) {
-        error = ENOMEM;
+    subreq = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
+    if (!subreq) {
+        ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(req, mod_group_req_done, data);
-
+    tevent_req_set_callback(subreq, tools_transaction_done, tctx);
     return;
 
 fail:
-    /* free transaction */
-    talloc_zfree(data->handle);
-
-    data->error = error;
-    data->done = true;
-}
-
-static void mod_group_attr_done(struct tevent_req *req);
-static void mod_group_cont(struct ops_ctx *data);
-static void remove_from_groups(struct ops_ctx *data);
-static void remove_from_groups_done(struct tevent_req *req);
-static void add_to_groups(struct ops_ctx *data);
-static void add_to_groups_done(struct tevent_req *req);
-
-static void mod_group(struct tevent_req *req)
-{
-    struct ops_ctx *data;
-    struct tevent_req *subreq;
-    struct sysdb_attrs *attrs;
-    int ret;
-
-    data = tevent_req_callback_data(req, struct ops_ctx);
-
-    ret = sysdb_transaction_recv(req, data, &data->handle);
-    if (ret != EOK) {
-        return mod_group_done(data, ret);
-    }
-    talloc_zfree(req);
-
-    if (data->gid != 0) {
-        attrs = sysdb_new_attrs(data);
-        if (!attrs) {
-            mod_group_done(data, ENOMEM);
-        }
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, data->gid);
-        if (ret) {
-            mod_group_done(data, ret);
-        }
-
-        subreq = sysdb_set_group_attr_send(data, data->ctx->ev, data->handle,
-                                           data->domain, data->name,
-                                           attrs, SYSDB_MOD_REP);
-        if (!subreq) {
-            return mod_group_done(data, ENOMEM);
-        }
-        tevent_req_set_callback(subreq, mod_group_attr_done, data);
-        return;
-    }
-
-    return mod_group_cont(data);
-}
-
-static void mod_group_attr_done(struct tevent_req *subreq)
-{
-    struct ops_ctx *data = tevent_req_callback_data(subreq, struct ops_ctx);
-    int ret;
-
-    ret = sysdb_set_group_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        return mod_group_done(data, ret);
-    }
-
-    mod_group_cont(data);
-}
-
-static void mod_group_cont(struct ops_ctx *data)
-{
-    if (data->rmgroups != NULL) {
-        return remove_from_groups(data);
-    }
-
-    if (data->addgroups != NULL) {
-        return add_to_groups(data);
-    }
-
-    return mod_group_done(data, EOK);
-}
-
-static void remove_from_groups(struct ops_ctx *data)
-{
-    struct ldb_dn *parent_dn;
-    struct ldb_dn *member_dn;
-    struct tevent_req *req;
-
-    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                               data->domain->name, data->name);
-    if (!parent_dn) {
-        return mod_group_done(data, ENOMEM);
-    }
-
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                               data->domain->name,
-                               data->rmgroups[data->cur]);
-    if (!member_dn) {
-        return mod_group_done(data, ENOMEM);
-    }
-
-    req = sysdb_mod_group_member_send(data,
-                                      data->ctx->ev,
-                                      data->handle,
-                                      member_dn,
-                                      parent_dn,
-                                      LDB_FLAG_MOD_DELETE);
-    if (!req) {
-        return mod_group_done(data, ENOMEM);
-    }
-    tevent_req_set_callback(req, remove_from_groups_done, data);
-}
-
-static void remove_from_groups_done(struct tevent_req *req)
-{
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
-    int ret;
-
-    ret = sysdb_mod_group_member_recv(req);
-    if (ret) {
-        return mod_group_done(data, ret);
-    }
-    talloc_zfree(req);
-
-    /* go on to next group */
-    data->cur++;
-
-    /* check if we added all of them */
-    if (data->rmgroups[data->cur] == NULL) {
-        data->cur = 0;
-        if (data->addgroups != NULL) {
-            return remove_from_groups(data);
-        }
-        return mod_group_done(data, EOK);
-    }
-
-    return remove_from_groups(data);
-}
-
-static void add_to_groups(struct ops_ctx *data)
-{
-    struct ldb_dn *parent_dn;
-    struct ldb_dn *member_dn;
-    struct tevent_req *req;
-
-    parent_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                               data->domain->name, data->name);
-    if (!parent_dn) {
-        return mod_group_done(data, ENOMEM);
-    }
-
-    member_dn = sysdb_group_dn(data->ctx->sysdb, data,
-                               data->domain->name,
-                               data->addgroups[data->cur]);
-    if (!member_dn) {
-        return mod_group_done(data, ENOMEM);
-    }
-
-    req = sysdb_mod_group_member_send(data,
-                                      data->ctx->ev,
-                                      data->handle,
-                                      member_dn,
-                                      parent_dn,
-                                      LDB_FLAG_MOD_ADD);
-    if (!req) {
-        return mod_group_done(data, ENOMEM);
-    }
-    tevent_req_set_callback(req, add_to_groups_done, data);
-}
-
-static void add_to_groups_done(struct tevent_req *req)
-{
-    struct ops_ctx *data = tevent_req_callback_data(req, struct ops_ctx);
-    int ret;
-
-    ret = sysdb_mod_group_member_recv(req);
-    if (ret) {
-        return mod_group_done(data, ret);
-    }
-    talloc_zfree(req);
-
-    /* go on to next group */
-    data->cur++;
-
-    /* check if we added all of them */
-    if (data->addgroups[data->cur] == NULL) {
-        return mod_group_done(data, EOK);
-    }
-
-    return add_to_groups(data);
+    /* free transaction and signal error */
+    talloc_zfree(tctx->handle);
+    tctx->transaction_done = true;
+    tctx->error = ret;
 }
 
 int main(int argc, const char **argv)
@@ -263,13 +84,11 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct ops_ctx *data = NULL;
-    struct tevent_req *req;
+    struct tools_ctx *tctx = NULL;
     char *addgroups = NULL, *rmgroups = NULL;
     int ret;
-    struct group *grp_info;
-    gid_t old_gid = 0;
     const char *pc_groupname = NULL;
+    struct tevent_req *req;
 
     debug_prg_name = argv[0];
 
@@ -320,7 +139,7 @@ int main(int argc, const char **argv)
 
     CHECK_ROOT(ret, debug_prg_name);
 
-    ret = init_sss_tools(&data);
+    ret = init_sss_tools(&tctx);
     if (ret != EOK) {
         DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
         ERROR("Error initializing the tools\n");
@@ -328,19 +147,17 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = get_domain(data, pc_groupname);
+    ret = parse_name_domain(tctx, pc_groupname);
     if (ret != EOK) {
         ERROR("Cannot get domain information\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    data->gid = pc_gid;
+    tctx->octx->gid = pc_gid;
 
     if (addgroups) {
-        ret = parse_groups(data,
-                addgroups,
-                &data->addgroups);
+        ret = parse_groups(tctx, addgroups, &tctx->octx->addgroups);
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to add the group to\n"));
             ERROR("Internal error while parsing parameters\n");
@@ -349,9 +166,7 @@ int main(int argc, const char **argv)
     }
 
     if (rmgroups) {
-        ret = parse_groups(data,
-                rmgroups,
-                &data->rmgroups);
+        ret = parse_groups(tctx, rmgroups, &tctx->octx->rmgroups);
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to remove the group from\n"));
             ERROR("Internal error while parsing parameters\n");
@@ -359,33 +174,27 @@ int main(int argc, const char **argv)
         }
     }
 
-    /* arguments processed, go on to actual work */
-    grp_info = getgrnam(data->name);
-    if (grp_info) {
-       old_gid = grp_info->gr_gid;
-    }
-
-    if (id_in_range(data->gid, data->domain) != EOK) {
+    if (id_in_range(tctx->octx->gid, tctx->octx->domain) != EOK) {
         ERROR("The selected GID is outside the allowed range\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
 
-    req = sysdb_transaction_send(data, data->ctx->ev, data->ctx->sysdb);
+    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
     if (!req) {
         DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
         ERROR("Transaction error. Could not modify group.\n");
         ret = EXIT_FAILURE;
         goto fini;
     }
-    tevent_req_set_callback(req, mod_group, data);
+    tevent_req_set_callback(req, mod_group_transaction, tctx);
 
-    while (!data->done) {
-        tevent_loop_once(data->ctx->ev);
+    while (!tctx->transaction_done) {
+        tevent_loop_once(tctx->ev);
     }
 
-    if (data->error) {
-        ret = data->error;
+    if (tctx->error) {
+        ret = tctx->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
@@ -411,6 +220,6 @@ fini:
     free(addgroups);
     free(rmgroups);
     poptFreeContext(pc);
-    talloc_free(data);
+    talloc_free(tctx);
     exit(ret);
 }

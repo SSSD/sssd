@@ -24,6 +24,7 @@
 #define __TOOLS_UTIL_H__
 
 #include "util/sssd-i18n.h"
+#include "tools/sss_sync_ops.h"
 
 #define CHECK_ROOT(val, prg_name) do { \
     val = getuid(); \
@@ -39,41 +40,26 @@ struct tools_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *confdb;
     struct sysdb_ctx *sysdb;
+
     struct sss_names_ctx *snctx;
+    struct sss_domain_info *local;
 
-    struct sss_domain_info *domains;
-};
-
-struct ops_ctx {
-    struct tools_ctx *ctx;
-    struct sss_domain_info *domain;
-
-    char *name;
-    uid_t uid;
-    gid_t gid;
-    char *gecos;
-    char *home;
-    char *shell;
-    struct sysdb_attrs *attrs;
-
-    char **addgroups;
-    char **rmgroups;
-    char **groups;
-    int cur;
+    struct ops_ctx *octx;
 
     struct sysdb_handle *handle;
+    int transaction_done;
     int error;
-    bool done;
 };
 
-int init_sss_tools(struct ops_ctx **_octx);
+int init_sss_tools(struct tools_ctx **_tctx);
 
 void usage(poptContext pc, const char *error);
 
 int set_locale(void);
 
-int get_domain(struct ops_ctx *octx,
-               const char *fullname);
+
+int parse_name_domain(struct tools_ctx *tctx,
+                      const char *fullname);
 
 int id_in_range(uint32_t id,
                 struct sss_domain_info *dom);
@@ -81,5 +67,7 @@ int id_in_range(uint32_t id,
 int parse_groups(TALLOC_CTX *mem_ctx,
                  const char *optstr,
                  char ***_out);
+
+void tools_transaction_done(struct tevent_req *req);
 
 #endif  /* __TOOLS_UTIL_H__ */

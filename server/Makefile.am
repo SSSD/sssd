@@ -173,6 +173,7 @@ SSSD_RESPONDER_OBJ = \
     responder/common/responder_packet.c
 
 SSSD_TOOLS_OBJ = \
+    tools/sss_sync_ops.c \
     tools/tools_util.c
 
 SSSD_RESOLV_OBJ = \
@@ -233,6 +234,7 @@ dist_noinst_HEADERS = \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
     tools/tools_util.h \
+    tools/sss_sync_ops.h \
     resolv/async_resolv.h \
     resolv/ares/ares_parse_srv_reply.h \
     resolv/ares/ares_parse_txt_reply.h

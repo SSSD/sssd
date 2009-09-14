@@ -29,25 +29,10 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 
-static struct sss_domain_info *get_local_domain(struct tools_ctx *ctx)
-{
-    struct sss_domain_info *dom = NULL;
-
-    /* No ID specified, find LOCAL */
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        if (strcasecmp(dom->provider, "local") == 0) {
-            break;
-        }
-    }
-
-    return dom;
-}
-
-int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
+static int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
 {
     char *confdb_path;
     struct tools_ctx *ctx;
-    struct sss_domain_info *dom = NULL;
     int ret;
 
     ctx = talloc_zero(mem_ctx, struct tools_ctx);
@@ -78,14 +63,7 @@ int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
         return ret;
     }
 
-    ret = confdb_get_domains(ctx->confdb, &ctx->domains);
-    if (ret != EOK) {
-        DEBUG(1, ("Could not get domains\n"));
-        talloc_free(ctx);
-        return ret;
-    }
-
-    ret = confdb_get_domain(ctx->confdb, "local", &dom);
+    ret = confdb_get_domain(ctx->confdb, "local", &ctx->local);
     if (ret != EOK) {
         DEBUG(1, ("Could not get 'local' domain\n"));
         talloc_free(ctx);
@@ -93,7 +71,7 @@ int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
     }
 
     /* open 'local' sysdb at default path */
-    ret = sysdb_domain_init(ctx, ctx->ev, dom, DB_PATH, &ctx->sysdb);
+    ret = sysdb_domain_init(ctx, ctx->ev, ctx->local, DB_PATH, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the sysdb\n"));
         talloc_free(ctx);
@@ -157,52 +135,24 @@ int parse_groups(TALLOC_CTX *mem_ctx, const char *optstr, char ***_out)
     return EOK;
 }
 
-static int parse_name_domain(struct ops_ctx *octx,
-                             const char *fullname)
+int parse_name_domain(struct tools_ctx *tctx,
+                      const char *fullname)
 {
     int ret;
     char *domain = NULL;
-    struct sss_domain_info *dom;
 
-    ret = sss_parse_name(octx, octx->ctx->snctx, fullname, &domain, &octx->name);
+    ret = sss_parse_name(tctx, tctx->snctx, fullname, &domain, &tctx->octx->name);
     if (ret != EOK) {
         DEBUG(0, ("Cannot parse full name\n"));
         return ret;
     }
-    DEBUG(5, ("Parsed username: %s\n", octx->name));
+    DEBUG(5, ("Parsed username: %s\n", tctx->octx->name));
 
     if (domain) {
         DEBUG(5, ("Parsed domain: %s\n", domain));
-
-        /* Got string domain name, find corresponding sss_domain_info */
-        for (dom = octx->ctx->domains; dom; dom = dom->next) {
-            if (strcasecmp(dom->name, domain) == 0) {
-                DEBUG(6, ("Found sss_domain_info for given domain name\n"));
-                octx->domain = dom;
-                break;
-            }
-        }
-        if (octx->domain == NULL) {
+        /* only the local domain, whatever named is allowed in tools */
+        if (strcasecmp(domain, tctx->local->name) != 0) {
             DEBUG(0, ("Invalid domain %s specified in FQDN\n", domain));
-            return EINVAL;
-        }
-    }
-
-    return EOK;
-}
-
-int get_domain(struct ops_ctx *octx,
-               const char *fullname)
-{
-    int ret;
-
-    ret = parse_name_domain(octx, fullname);
-    if (ret != EOK) {
-        return ret;
-    }
-    if (octx->domain == NULL) {
-        octx->domain = get_local_domain(octx->ctx);
-        if (octx->domain == NULL) {
             return EINVAL;
         }
     }
@@ -246,7 +196,7 @@ int set_locale(void)
     return EOK;
 }
 
-int init_sss_tools(struct ops_ctx **_octx)
+int init_sss_tools(struct tools_ctx **_tctx)
 {
     int ret;
     struct tools_ctx *tctx;
@@ -264,7 +214,6 @@ int init_sss_tools(struct ops_ctx **_octx)
     ret = setup_db(octx, &tctx);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up database\n"));
-        ret = EXIT_FAILURE;
         goto fini;
     }
 
@@ -274,10 +223,24 @@ int init_sss_tools(struct ops_ctx **_octx)
         goto fini;
     }
 
-    octx->ctx = tctx;
-    *_octx = octx;
+    octx->domain = tctx->local;
+    tctx->octx = octx;
+
+    *_tctx = tctx;
     ret = EOK;
 fini:
     return ret;
+}
+
+/*
+ * Common transaction finish
+ */
+void tools_transaction_done(struct tevent_req *req)
+{
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                      struct tools_ctx);
+
+    tctx->error = sysdb_transaction_commit_recv(req);
+    tctx->transaction_done = true;
 }
 
