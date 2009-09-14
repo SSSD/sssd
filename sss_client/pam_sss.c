@@ -158,7 +158,7 @@ static size_t add_string_item(enum pam_item_type type, const char *str,
     return rp;
 }
 
-static int pack_message_v2(struct pam_items *pi, size_t *size,
+static int pack_message_v3(struct pam_items *pi, size_t *size,
                            uint8_t **buffer) {
     int len;
     uint8_t *buf;
@@ -526,7 +526,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
 
     print_pam_items(pi);
 
-    ret = pack_message_v2(pi, &rd.len, &buf);
+    ret = pack_message_v3(pi, &rd.len, &buf);
     if (ret != 0) {
         D(("pack_message failed."));
         pam_status = PAM_SYSTEM_ERR;

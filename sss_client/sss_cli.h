@@ -21,7 +21,7 @@ typedef int errno_t;
 #endif
 
 #define SSS_NSS_PROTOCOL_VERSION 1
-#define SSS_PAM_PROTOCOL_VERSION 2
+#define SSS_PAM_PROTOCOL_VERSION 3
 
 enum sss_cli_command {
 /* null */

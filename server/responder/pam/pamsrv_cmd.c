@@ -167,6 +167,26 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
 
 }
 
+static int pam_parse_in_data_v3(struct sss_names_ctx *snctx,
+                             struct pam_data *pd,
+                             uint8_t *body, size_t blen)
+{
+    int ret;
+
+    ret = pam_parse_in_data_v2(snctx, pd, body, blen);
+    if (ret != EOK) {
+        DEBUG(1, ("pam_parse_in_data_v2 failed.\n"));
+        return ret;
+    }
+
+    if (pd->cli_pid == 0) {
+        DEBUG(1, ("Missing client PID.\n"));
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
 static int pam_parse_in_data(struct sss_names_ctx *snctx,
                              struct pam_data *pd,
                              uint8_t *body, size_t blen)
@@ -439,6 +459,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             break;
         case 2:
             ret = pam_parse_in_data_v2(cctx->rctx->names, pd, body, blen);
+            break;
+        case 3:
+            ret = pam_parse_in_data_v3(cctx->rctx->names, pd, body, blen);
             break;
         default:
             DEBUG(1, ("Illegal protocol version [%d].\n",
@@ -843,8 +866,9 @@ static int pam_cmd_chauthtok(struct cli_ctx *cctx) {
 struct cli_protocol_version *register_cli_protocol_version(void)
 {
     static struct cli_protocol_version pam_cli_protocol_version[] = {
-        {1, "2008-09-05", "initial version, \\0 terminated strings"},
+        {3, "2009-09-14", "make cli_pid mandatory"},
         {2, "2009-05-12", "new format <type><size><data>"},
+        {1, "2008-09-05", "initial version, \\0 terminated strings"},
         {0, NULL, NULL}
     };
 
