@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <syslog.h>
-#include <locale.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_misc.h>
@@ -64,8 +63,6 @@ struct pam_items {
     size_t pam_authtok_size;
     int pam_newauthtok_type;
     size_t pam_newauthtok_size;
-    char *pam_cli_locale;
-    size_t pam_cli_locale_size;
     pid_t cli_pid;
 };
 
@@ -178,8 +175,6 @@ static int pack_message_v2(struct pam_items *pi, size_t *size,
                 2*sizeof(uint32_t) + pi->pam_ruser_size : 0;
     len += *pi->pam_rhost != '\0' ?
                 2*sizeof(uint32_t) + pi->pam_rhost_size : 0;
-    len += *pi->pam_cli_locale != '\0' ?
-                2*sizeof(uint32_t) + pi->pam_cli_locale_size : 0;
     len += pi->pam_authtok != NULL ?
                 3*sizeof(uint32_t) + pi->pam_authtok_size : 0;
     len += pi->pam_newauthtok != NULL ?
@@ -210,9 +205,6 @@ static int pack_message_v2(struct pam_items *pi, size_t *size,
 
     rp += add_string_item(PAM_ITEM_RHOST, pi->pam_rhost, pi->pam_rhost_size,
                           &buf[rp]);
-
-    rp += add_string_item(PAM_ITEM_CLI_LOCALE, pi->pam_cli_locale,
-                          pi->pam_cli_locale_size, &buf[rp]);
 
     rp += add_uint32_t_item(PAM_ITEM_CLI_PID, (uint32_t) pi->cli_pid, &buf[rp]);
 
@@ -447,7 +439,6 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
 static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 {
     int ret;
-    char *cli_locale;
 
     pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
     pi->pam_authtok = NULL;
@@ -499,15 +490,6 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     if (ret != PAM_SUCCESS) return ret;
     if (pi->pamstack_oldauthtok == NULL) pi->pamstack_oldauthtok="";
 
-    cli_locale = setlocale(LC_ALL, NULL);
-    if (cli_locale == NULL) {
-        pi->pam_cli_locale = strdup("");
-    } else {
-        pi->pam_cli_locale = strdup(cli_locale);
-        if (pi->pam_cli_locale == NULL) return PAM_BUF_ERR;
-    }
-    pi->pam_cli_locale_size = strlen(pi->pam_cli_locale)+1;
-
     pi->cli_pid = getpid();
 
     return PAM_SUCCESS;
@@ -528,7 +510,6 @@ static void print_pam_items(struct pam_items *pi)
             CHECK_AND_RETURN_PI_STRING(pi->pamstack_oldauthtok)));
     D(("Authtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_authtok)));
     D(("Newauthtok: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_newauthtok)));
-    D(("Locale: %s", CHECK_AND_RETURN_PI_STRING(pi->pam_cli_locale)));
     D(("Cli_PID: %d", pi->cli_pid));
 }
 
