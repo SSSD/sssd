@@ -71,4 +71,11 @@ struct collection_header {
     unsigned cclass;
 };
 
+/* Internal function to allocate item */
+int col_allocate_item(struct collection_item **ci,
+                      const char *property,
+                      const void *item_data,
+                      int length,
+                      int type);
+
 #endif

@@ -29,6 +29,7 @@ libcollection_la_SOURCES = \
     collection_queue.c \
     collection_stack.c \
     collection_cmp.c \
+    collection_iter.c \
     collection.h \
     collection_tools.h \
     collection_priv.h \
