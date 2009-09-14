@@ -158,13 +158,73 @@ static void fd_nonblocking(int fd) {
     return;
 }
 
-static void krb5_cleanup(struct krb5child_req *kr)
+static void krb5_child_timeout(struct tevent_context *ev,
+                               struct tevent_timer *te,
+                               struct timeval tv, void *pvt)
 {
-    if (kr == NULL) return;
+    struct krb5child_req *kr = talloc_get_type(pvt, struct krb5child_req);
+    struct be_req *be_req = kr->req;
+    struct pam_data *pd = kr->pd;
+    int ret;
+
+    if (kr->timeout_handler == NULL) {
+        return;
+    }
+
+    DEBUG(9, ("timeout for child [%d] reached.\n", kr->child_pid));
+
+    ret = kill(kr->child_pid, SIGKILL);
+    if (ret == -1) {
+        DEBUG(1, ("kill failed [%d][%s].\n", errno, strerror(errno)));
+    }
+
+    talloc_zfree(kr);
+
+    pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+    be_mark_offline(be_req->be_ctx);
+
+    be_req->fn(be_req, pd->pam_status, NULL);
+}
+
+static errno_t activate_child_timeout_handler(struct krb5child_req *kr)
+{
+    struct timeval tv;
+
+    tv = tevent_timeval_current();
+    tv = tevent_timeval_add(&tv, kr->krb5_ctx->auth_timeout, 0);
+    kr->timeout_handler = tevent_add_timer(kr->req->be_ctx->ev, kr, tv,
+                                           krb5_child_timeout, kr);
+    if (kr->timeout_handler == NULL) {
+        DEBUG(1, ("tevent_add_timer failed.\n"));
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+static int krb5_cleanup(void *ptr)
+{
+    int ret;
+    struct krb5child_req *kr = talloc_get_type(ptr, struct krb5child_req);
+
+    if (kr == NULL) return EOK;
+
+    if (kr->read_from_child_fd != -1) {
+        ret = close(kr->read_from_child_fd);
+        if (ret != EOK) {
+            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+        }
+    }
+    if (kr->write_to_child_fd != -1) {
+        ret = close(kr->write_to_child_fd);
+        if (ret != EOK) {
+            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+        }
+    }
 
     memset(kr, 0, sizeof(struct krb5child_req));
 
-    talloc_zfree(kr);
+    return EOK;
 }
 
 static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req,
@@ -186,6 +246,9 @@ static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req,
         err = ENOMEM;
         goto failed;
     }
+    kr->read_from_child_fd = -1;
+    kr->write_to_child_fd = -1;
+    talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
     kr->pd = pd;
     kr->req = req;
@@ -204,7 +267,7 @@ static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req,
     return EOK;
 
 failed:
-    krb5_cleanup(kr);
+    talloc_zfree(kr);
 
     return err;
 }
@@ -309,6 +372,11 @@ static errno_t fork_child(struct krb5child_req *kr)
         close(pipefd_to_child[0]);
         fd_nonblocking(kr->read_from_child_fd);
         fd_nonblocking(kr->write_to_child_fd);
+
+        err = activate_child_timeout_handler(kr);
+        if (err != EOK) {
+            DEBUG(1, ("activate_child_timeout_handler failed.\n"));
+        }
 
     } else { /* error */
         err = errno;
@@ -430,6 +498,7 @@ static struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx, struct tevent_c
 
     ret = write(kr->write_to_child_fd, buf->data, buf->size);
     close(kr->write_to_child_fd);
+    kr->write_to_child_fd = -1;
     if (ret == -1) {
         DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
         return NULL;
@@ -460,7 +529,9 @@ static void handle_child_done(struct tevent_req *subreq)
 
     state->len = read_pipe_recv(subreq, state, &state->buf, &error);
     talloc_zfree(subreq);
+    talloc_zfree(state->kr->timeout_handler);
     close(state->kr->read_from_child_fd);
+    state->kr->read_from_child_fd = -1;
     if (state->len == -1) {
         tevent_req_error(req, error);
         return;
@@ -607,7 +678,7 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
     return;
 
 failed:
-    krb5_cleanup(kr);
+    talloc_free(kr);
 
     pd->pam_status = pam_status;
 
@@ -634,7 +705,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     char *env = NULL;
 
     pd->pam_status = PAM_SYSTEM_ERR;
-    krb5_cleanup(kr);
+    talloc_free(kr);
 
     len = handle_child_recv(req, pd, &buf, &error);
     talloc_zfree(req);
@@ -783,6 +854,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     struct krb5_ctx *ctx = NULL;
     char *value = NULL;
     bool bool_value;
+    int int_value;
     int ret;
     struct tevent_signal *sige;
     struct stat stat_buf;
@@ -872,6 +944,15 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         DEBUG(2, ("setenv %s failed, password change might fail.\n",
                   SSSD_KRB5_CHANGEPW_PRINCIPLE));
     }
+
+    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
+                         "krb5auth_timeout", 15, &int_value);
+    if (ret != EOK) goto fail;
+    if (int_value <= 0) {
+        DEBUG(4, ("krb5auth_timeout has to be a positive value.\n"));
+        goto fail;
+    }
+    ctx->auth_timeout = int_value;
 
 /* TODO: set options */
 

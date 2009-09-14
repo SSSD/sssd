@@ -162,6 +162,20 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5auth_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Timeout in seconds after an online authentication or
+                            change password request is aborted. If possible the
+                            authentication request is continued offline.
+                        </para>
+                        <para>
+                            Default: 15
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

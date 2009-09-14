@@ -48,6 +48,8 @@ struct krb5child_req {
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
 
+    struct tevent_timer *timeout_handler;
+
     char *ccname;
     const char *homedir;
 };
@@ -86,6 +88,7 @@ struct krb5_ctx {
     char *changepw_principle;
     char *ccache_dir;
     char *ccname_template;
+    int auth_timeout;
 };
 
 #endif /* __KRB5_AUTH_H__ */
