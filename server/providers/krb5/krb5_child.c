@@ -177,7 +177,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         if (kr->ccname[0] == 'F') {
             offset = 5;
         }
-        ccname_len = strlen(kr->ccname + offset);
+        ccname_len = strlen(kr->ccname);
         if (ccname_len >= 6 &&
             strcmp(kr->ccname + (ccname_len-6), "XXXXXX")==0 ) {
             fd = mkstemp(kr->ccname + offset);
