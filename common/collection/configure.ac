@@ -24,5 +24,12 @@ AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TR
 AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([long long])
 
+AC_CHECK_FUNC([strcasestr],
+              AC_DEFINE([HAVE_STRCASESTR],
+                        [1],
+                        [Define if strcasestr exists]),
+              AC_MSG_ERROR("Platform must support strcasestr"))
+
+
 AC_CONFIG_FILES([Makefile collection.pc])
 AC_OUTPUT

@@ -117,7 +117,7 @@ int col_debug_handle(const char *property,
                (nest_level -1) * 4, "",
                property,
                length,
-               (*((unsigned char *)(data)) == '\0') ? "flase" : "true",
+               (*((unsigned char *)(data)) == '\0') ? "false" : "true",
                nest_level);
         break;
     case COL_TYPE_COLLECTION:

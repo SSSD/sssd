@@ -28,7 +28,7 @@
 #include "config.h"
 #include "trace.h"
 
-/* The collection should use the teal structures */
+/* The collection should use the real structures */
 #include "collection_priv.h"
 #include "collection.h"
 

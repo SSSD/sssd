@@ -501,6 +501,113 @@ uint64_t col_get_item_hash(struct collection_item *ci);
  */
 uint64_t col_make_hash(const char *string, int *length);
 
+/* Compare two items.
+ * The second item is evaluated against the first.
+ * Function returns 0 if two items are the same
+ * and non-zero otherwise.
+ * The in_flags is a bit mask that defines
+ * how the items should be compared.
+ * See below the list of conbstants
+ * defined for this purpose.
+ * If items are different they might be orderable
+ * or not. For example one can order items by name
+ * but not by type.
+ * If the result of the function is non-zero
+ * the out_flags (if provided) will be
+ * set to indicate if the second item is greater
+ * then the first.
+ */
+int col_compare_items(struct collection_item *first,
+                      struct collection_item *second,
+                      unsigned in_flags,
+                      unsigned *out_flags);
+
+/********* Possible valies for input flags ********/
+/* How to compare properties?
+ * The following 4 flags are mutually exclusive
+ */
+#define COL_CMPIN_PROP_EQU    0x000000004 /* Properties should be same */
+#define COL_CMPIN_PROP_BEG    0x000000005 /* Properties start same */
+#define COL_CMPIN_PROP_MID    0x000000006 /* One is substring of another */
+#define COL_CMPIN_PROP_END    0x000000007 /* One property ends with another */
+
+/* Make sure that there is a dot.
+ * Useful with _BEG, _MID and _END flags to check that the there is
+ * a dot (if present) in the right place (before, after or both).
+ * For example the first item is named "foo.bar" and the second
+ * is "bar". Using _END the "bar" will be found but if _DOT flag is
+ * used too the function will also check if there was a "." before the found
+ * string in this case.
+ * Ignored in case of _EQU.
+ */
+#define COL_CMPIN_PROP_DOT     0x000000008
+
+/* Compare property lenghts */
+#define COL_CMPIN_PROP_LEN     0x000000010
+
+/* Compare types */
+#define COL_CMPIN_TYPE         0x000000020
+
+/* Compare data len */
+#define COL_CMPIN_DATA_LEN     0x000000040
+
+/* Compare data (up to the length of the second one)
+ * if type is the same. If type is different
+ * function will assume data is different
+ * without performing actual comparison.
+ */
+#define COL_CMPIN_DATA         0x000000080
+
+/********* Possible values for output flags *********/
+/* If _EQU was specified and the property of the second item
+ * is greater the following bit will be set
+ */
+#define COL_CMPOUT_PROP_STR    0x00000001
+/* If we were told to compare property lengths
+ * and second is longer this bit will be set
+ */
+#define COL_CMPOUT_PROP_LEN    0x00000002
+/* If we were told to compare data lengths
+ * and second is longer this bit will be set
+ */
+#define COL_CMPOUT_DATA_LEN    0x00000004
+/* If we were told to compare data
+ * and types are the same then
+ * if the second one is greater this bit will
+ * be set. If data is binary flag is never set
+ */
+#define COL_CMPOUT_DATA    0x00000008
+
+
+/* Sort collection.
+ * cmp_flags are the same as in_flags for the compare
+ * function. The sort_flags is an OR of the costants
+ * defined below.
+ * If the subcollections are included in sorting
+ * each collection is sorted separately (this is not a global sort).
+ * It might be dangerous to sort subcollections if
+ * subcollection is not owned by current collection.
+ * If it is a reference to an external collection
+ * there might be an issue. To skip the collections that
+ * externally referenced use MYSUB flag.
+ * Keep in mind that if the collection
+ * has two references to the same other
+ * collection it is impossible to detect
+ * this situation. If MYSUB is used in this
+ * case such collection will be ignored
+ * If MYSUB is not used the collection
+ * will be sorted more than once.
+ */
+int col_sort_collection(struct collection_item *col,
+                        unsigned cmp_flags,
+                        unsigned sort_flags);
+
+/* Sort flags */
+#define COL_SORT_ASC    0x00000000
+#define COL_SORT_DESC   0x00000001
+#define COL_SORT_SUB    0x00000002
+#define COL_SORT_MYSUB  0x00000004
+
 /* If you want to modify the item that you got as a result of iterating through collection
  * or by calling col_get_item(). If you want to rename item provide a new name in the property
  * argument. If you want the data to remain unchanged use 0 as length parameter.

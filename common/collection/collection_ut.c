@@ -1323,9 +1323,9 @@ int search_test(void)
         (error = col_add_collection_to_collection(level1, NULL, NULL, level2, COL_ADD_MODE_REFERENCE)) ||
         (error = col_create_collection(&level3, "level3", 0)) ||
         (error = col_add_collection_to_collection(level1, "level2", NULL, level3, COL_ADD_MODE_REFERENCE)) ||
-        (error = col_create_collection(&level4, "level4", 0)) ||
+        (error = col_create_collection(&level4, "leveL4", 0)) ||
         (error = col_add_collection_to_collection(level1, "level3", NULL, level4, COL_ADD_MODE_REFERENCE)) ||
-        (error = col_add_int_property(level1, "level4", "id", 1)) ||
+        (error = col_add_int_property(level1, "leveL4", "id", 1)) ||
         (error = col_add_long_property(level1, "level3", "packets", 100000000L)) ||
         (error = col_add_binary_property(level1, "level2", "stack", binary_dump, sizeof(binary_dump)))) {
         col_destroy_collection(level1);
@@ -1424,6 +1424,146 @@ int search_test(void)
     return EOK;
 }
 
+/* Sort test */
+int sort_test(void)
+{
+    struct collection_item *level1 = NULL;
+    struct collection_item *level2a = NULL;
+    struct collection_item *level2b = NULL;
+    struct collection_item *level3 = NULL;
+    int error = 0;
+
+    printf("\n\n==== SORT TEST ====\n\n");
+
+    if ((error = col_create_collection(&level1, "level1", 0)) ||
+        (error = col_create_collection(&level2a, "level2a", 0)) ||
+        (error = col_add_collection_to_collection(level1, NULL, NULL, level2a, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_create_collection(&level2b, "level2b", 0)) ||
+        (error = col_add_collection_to_collection(level1, NULL, NULL, level2b, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_create_collection(&level3, "level3", 0)) ||
+        (error = col_add_collection_to_collection(level1, "level2a", NULL, level3, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_add_collection_to_collection(level1, "level2b", NULL, level3, COL_ADD_MODE_REFERENCE)) ||
+        (error = col_add_int_property(level1, NULL, "int3", 1)) ||
+        (error = col_add_int_property(level1, NULL, "int2", 2)) ||
+        (error = col_add_int_property(level1, NULL, "int1", 3)) ||
+        (error = col_add_bool_property(level1, NULL, "bool3", 1)) ||
+        (error = col_add_bool_property(level1, NULL, "bool2", 1)) ||
+        (error = col_add_bool_property(level1, NULL, "bool1", 0)) ||
+        (error = col_add_unsigned_property(level1, NULL, "unsigned1", 2)) ||
+        (error = col_add_unsigned_property(level1, NULL, "unsigned3", 1)) ||
+        (error = col_add_unsigned_property(level1, NULL, "unsigned2", 3)) ||
+        (error = col_add_long_property(level1, NULL, "long3", 1)) ||
+        (error = col_add_long_property(level1, NULL, "long2", 2)) ||
+        (error = col_add_long_property(level1, NULL, "long1", 3)) ||
+        (error = col_add_ulong_property(level1, NULL, "ulong1", 2)) ||
+        (error = col_add_ulong_property(level1, NULL, "ulong3", 1)) ||
+        (error = col_add_ulong_property(level1, NULL, "ulong2", 3)) ||
+        (error = col_add_double_property(level1, NULL, "double1", 2.2)) ||
+        (error = col_add_double_property(level1, NULL, "double3", 1.1)) ||
+        (error = col_add_double_property(level1, NULL, "double2", 3.3)) ||
+        (error = col_add_int_property(level3, NULL, "int3L3", 1)) ||
+        (error = col_add_int_property(level3, NULL, "int2L3", 2)) ||
+        (error = col_add_int_property(level3, NULL, "int1L3", 3)) ||
+        (error = col_add_unsigned_property(level1, "level2a!level3", "unsigned1L3", 2)) ||
+        (error = col_add_unsigned_property(level1, "level2a!level3", "unsigned3L3", 1)) ||
+        (error = col_add_unsigned_property(level1, "level2a!level3", "unsigned2L3", 3)) ||
+        (error = col_add_long_property(level1, "level2b!level3", "long3L3", 1)) ||
+        (error = col_add_long_property(level1, "level2b!level3", "long2L3", 2)) ||
+        (error = col_add_long_property(level1, "level2b!level3", "long1L3", 3)) ||
+        (error = col_add_ulong_property(level1, "level3", "ulong1L3", 2)) ||
+        (error = col_add_ulong_property(level1, "level3", "ulong3L3", 1)) ||
+        (error = col_add_ulong_property(level1, "level3", "ulong2L3", 3)) ||
+        (error = col_add_bool_property(level3, NULL, "bool3", 1)) ||
+        (error = col_add_bool_property(level3, NULL, "bool2", 1)) ||
+        (error = col_add_bool_property(level3, NULL, "bool1", 0)) ||
+        (error = col_add_double_property(level3, NULL, "double1L3", 2.2)) ||
+        (error = col_add_double_property(level3, NULL, "double3L3", 1.1)) ||
+        (error = col_add_double_property(level3, NULL, "double2L3", 3.3))) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2a);
+        col_destroy_collection(level2b);
+        col_destroy_collection(level3);
+        printf("Failed to build test. Error %d\n", error);
+        return error;
+    }
+
+    printf("\nUNSORTED COLLECTION\n\n");
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    error = col_sort_collection(level1, COL_CMPIN_PROP_EQU, COL_SORT_SUB | COL_SORT_MYSUB);
+    if (error) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2a);
+        col_destroy_collection(level2b);
+        col_destroy_collection(level3);
+        printf("Failed sort. Error %d\n", error);
+        return error;
+    }
+
+    printf("\nSORTED BUT SKIPPING REFERENCES\n\n");
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    error = col_sort_collection(level1, COL_CMPIN_PROP_EQU, COL_SORT_SUB);
+    if (error) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2a);
+        col_destroy_collection(level2b);
+        col_destroy_collection(level3);
+        printf("Failed sort. Error %d\n", error);
+        return error;
+    }
+
+    printf("\nSORTED BUT NOT SKIPPING REFERENCES\n\n");
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    error = col_sort_collection(level1, COL_CMPIN_DATA_LEN, COL_SORT_SUB | COL_SORT_DESC);
+    if (error) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2a);
+        col_destroy_collection(level2b);
+        col_destroy_collection(level3);
+        printf("Failed sort. Error %d\n", error);
+        return error;
+    }
+
+    printf("\nSORTED DESC NOT SKIPPING BY LENGTH OF DATA\n\n");
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    error = col_sort_collection(level1, COL_CMPIN_PROP_LEN, COL_SORT_SUB | COL_SORT_DESC);
+    if (error) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2a);
+        col_destroy_collection(level2b);
+        col_destroy_collection(level3);
+        printf("Failed sort. Error %d\n", error);
+        return error;
+    }
+
+    printf("\nSORTED DESC NOT SKIPPING BY LENGTH OF PROPERTY\n\n");
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    error = col_sort_collection(level1, COL_CMPIN_DATA, COL_SORT_SUB | COL_SORT_DESC);
+    if (error) {
+        col_destroy_collection(level1);
+        col_destroy_collection(level2a);
+        col_destroy_collection(level2b);
+        col_destroy_collection(level3);
+        printf("Failed sort. Error %d\n", error);
+        return error;
+    }
+
+    printf("\nSORTED DESC NOT SKIPPING BY DATA\n\n");
+    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+
+    col_destroy_collection(level1);
+    col_destroy_collection(level2a);
+    col_destroy_collection(level2b);
+    col_destroy_collection(level3);
+
+    printf("\n\n==== SORT TEST END ====\n\n");
+
+    return EOK;
+}
 
 /* Main function of the unit test */
 
@@ -1439,7 +1579,8 @@ int main(int argc, char *argv[])
         (error = iterator_test()) ||
         (error = insert_extract_test()) ||
         (error = delete_test()) ||
-        (error = search_test())) {
+        (error = search_test()) ||
+        (error = sort_test())) {
         printf("Failed!\n");
     }
     else printf("Success!\n");
