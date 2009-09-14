@@ -23,6 +23,8 @@
 #ifndef __TOOLS_UTIL_H__
 #define __TOOLS_UTIL_H__
 
+#include <popt.h>
+
 #include "util/sssd-i18n.h"
 #include "tools/sss_sync_ops.h"
 

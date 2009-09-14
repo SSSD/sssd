@@ -104,6 +104,14 @@ void debug_fn(const char *format, ...);
 #define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
 #endif
 
+#ifndef discard_const_p
+#if defined(__intptr_t_defined) || defined(HAVE_INTPTR_T)
+# define discard_const_p(type, ptr) ((type *)((intptr_t)(ptr)))
+#else
+# define discard_const_p(type, ptr) ((type *)(ptr))
+#endif
+#endif
+
 /* TODO: remove later
  * These functions are available in the latest tevent and are the ones that
  * should be used as tevent_req is rightfully opaque there */

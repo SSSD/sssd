@@ -137,3 +137,20 @@ AC_DEFUN([WITH_KRB5_PLUGIN_PATH],
     fi
     AC_SUBST(krb5pluginpath)
   ])
+
+AC_DEFUN([WITH_PYTHON_BINDINGS],
+  [ AC_ARG_WITH([python-bindings],
+                [AC_HELP_STRING([--with-python-bindings],
+                                [Whether to build python bindings [yes]]
+                               )
+                ],
+                [],
+                with_python_bindings=yes
+               )
+    if test x"$with_python_bindings" == xyes; then
+        HAVE_PYTHON_BINDINGS=1
+        AC_SUBST(HAVE_PYTHON_BINDINGS)
+    fi
+    AM_CONDITIONAL([BUILD_PYTHON_BINDINGS], [test x"$with_python_bindings" = xyes])
+  ])
+

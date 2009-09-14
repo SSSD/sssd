@@ -88,6 +88,11 @@ libsss_crypt_la_SOURCES = \
 libsss_crypt_la_CPPFLAGS = \
     $(NSS_CFLAGS)
 
+if BUILD_PYTHON_BINDINGS
+pyexec_LTLIBRARIES = \
+    pysss.la
+endif
+
 ###############################
 # Global compilation settings #
 ###############################
@@ -198,6 +203,18 @@ SSSD_LIBS = \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(REPLACE_LIBS) \
+    $(NSS_LIBS) \
+    libsss_crypt.la
+
+PYTHON_BINDINGS_LIBS = \
+    $(TALLOC_LIBS) \
+    $(TDB_LIBS) \
+    $(TEVENT_LIBS) \
+    $(POPT_LIBS) \
+    $(LDB_LIBS) \
+    $(DBUS_LIBS) \
+    $(REPLACE_LIBS) \
+    $(PCRE_LIBS) \
     $(NSS_LIBS) \
     libsss_crypt.la
 
@@ -443,6 +460,7 @@ memberof_la_SOURCES = \
     ldb_modules/memberof.c
 memberof_la_CFLAGS = \
     $(AM_CFLAGS)
+memberof_la_LIBADD = $(LDB_LIBS)
 memberof_la_LDFLAGS = \
     -avoid-version \
     -module
@@ -455,6 +473,22 @@ sssd_krb5_locator_plugin_la_CFLAGS = \
 sssd_krb5_locator_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
+
+if BUILD_PYTHON_BINDINGS
+pysss_la_SOURCES = \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_TOOLS_OBJ) \
+    python/pysss.c
+pysss_la_CFLAGS = \
+    $(AM_CFLAGS)  \
+    $(PYTHON_CFLAGS)
+pysss_la_LIBADD = \
+    $(PYTHON_BINDINGS_LIBS) \
+    $(PYTHON_LIBS)
+pysss_la_LDFLAGS = \
+    -avoid-version \
+    -module
+endif
 
 ############
 # MANPAGES #
