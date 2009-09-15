@@ -1,6 +1,6 @@
 Name: @PACKAGE_NAME@
 Version: @PACKAGE_VERSION@
-Release: 0%{?dist}
+Release: 0@PRERELEASE_VERSION@%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
 # The entire source code is GPLv3+ except replace/ which is LGPLv3+
