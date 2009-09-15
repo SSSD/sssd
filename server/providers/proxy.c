@@ -1062,7 +1062,7 @@ static void get_gr_gid_process(struct tevent_req *subreq)
     char *buffer;
     char *newbuf;
     size_t buflen;
-    bool delete_user = false;
+    bool delete_group = false;
     int ret;
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
@@ -1108,14 +1108,14 @@ again:
 
     case NSS_STATUS_NOTFOUND:
 
-        delete_user = true;
+        delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
         /* gid=0 is an invalid value */
         if (state->grp->gr_gid == 0) {
-            delete_user = true;
+            delete_group = true;
             break;
         }
 
@@ -1144,7 +1144,7 @@ again:
         return;
     }
 
-    if (delete_user) {
+    if (delete_group) {
         subreq = sysdb_delete_group_by_gid_send(state, state->ev,
                                                 state->handle,
                                                 state->domain,
