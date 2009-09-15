@@ -39,6 +39,9 @@ libreplace_sources = \
 noinst_LIBRARIES = \
     libreplace.a
 
+dist_noinst_DATA = \
+    autoconf-2.60.m4
+
 libreplace_a_SOURCES =
 EXTRA_libreplace_a_SOURCES = \
     $(libreplace_sources)
