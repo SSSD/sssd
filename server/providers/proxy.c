@@ -361,6 +361,8 @@ static void get_pw_name_process(struct tevent_req *subreq)
     bool delete_user = false;
     int ret;
 
+    DEBUG(7, ("Searching user by name (%s)\n", state->name));
+
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     if (ret) {
         tevent_req_error(req, ret);
@@ -389,10 +391,15 @@ static void get_pw_name_process(struct tevent_req *subreq)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
+        DEBUG(7, ("User %s not found.\n", state->name));
         delete_user = true;
         break;
 
     case NSS_STATUS_SUCCESS:
+
+        DEBUG(7, ("User %s found: (%s, %d, %d)\n",
+                  state->name, state->pwd->pw_name,
+                  state->pwd->pw_uid, state->pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
         if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
@@ -430,6 +437,9 @@ static void get_pw_name_process(struct tevent_req *subreq)
 
     if (delete_user) {
         struct ldb_dn *dn;
+
+        DEBUG(7, ("User %s does not exist (or is invalid) on remote server,"
+                  " deleting!\n", state->name));
 
         dn = sysdb_user_dn(state->sysdb, state,
                            state->domain->name, state->name);
@@ -542,6 +552,8 @@ static void get_pw_uid_process(struct tevent_req *subreq)
     bool delete_user = false;
     int ret;
 
+    DEBUG(7, ("Searching user by uid (%d)\n", state->uid));
+
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     if (ret) {
         tevent_req_error(req, ret);
@@ -562,16 +574,24 @@ static void get_pw_uid_process(struct tevent_req *subreq)
         return;
     }
 
+    /* always zero out the pwd structure */
+    memset(state->pwd, 0, sizeof(struct passwd));
+
     status = ctx->ops.getpwuid_r(state->uid, state->pwd,
                                  buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
+        DEBUG(7, ("User %d not found.\n", state->uid));
         delete_user = true;
         break;
 
     case NSS_STATUS_SUCCESS:
+
+        DEBUG(7, ("User %d found (%s, %d, %d)\n",
+                  state->uid, state->pwd->pw_name,
+                  state->pwd->pw_uid, state->pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
         if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
@@ -608,6 +628,9 @@ static void get_pw_uid_process(struct tevent_req *subreq)
     }
 
     if (delete_user) {
+        DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
+                  " deleting!\n", state->uid));
+
         subreq = sysdb_delete_user_by_uid_send(state, state->ev,
                                                state->handle,
                                                state->domain,
@@ -672,6 +695,8 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req, *subreq;
     struct enum_users_state *state;
     enum nss_status status;
+
+    DEBUG(7, ("Enumerating users\n"));
 
     req = tevent_req_create(mem_ctx, &state, struct enum_users_state);
     if (!req) return NULL;
@@ -747,6 +772,9 @@ static void enum_users_process(struct tevent_req *subreq)
     }
 
 again:
+    /* always zero out the pwd structure */
+    memset(state->pwd, 0, sizeof(struct passwd));
+
     /* get entry */
     status = ctx->ops.getpwent_r(state->pwd,
                                  state->buffer, state->buflen, &ret);
@@ -769,7 +797,10 @@ again:
         goto again;
 
     case NSS_STATUS_NOTFOUND:
+
         /* we are done here */
+        DEBUG(7, ("Enumeration completed.\n"));
+
         ctx->ops.endpwent();
         subreq = sysdb_transaction_commit_send(state, state->ev,
                                                state->handle);
@@ -781,6 +812,10 @@ again:
         return;
 
     case NSS_STATUS_SUCCESS:
+
+        DEBUG(7, ("User found (%s, %d, %d)\n", state->pwd->pw_name,
+                  state->pwd->pw_uid, state->pwd->pw_gid));
+
         /* uid=0 or gid=0 are invalid values */
         if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
             goto again; /* skip */
@@ -819,6 +854,24 @@ fail:
 }
 
 /* =Getgrnam-wrapper======================================================*/
+
+#define DEBUG_GR_MEM(level, state) \
+    do { \
+        if (debug_level >= level) { \
+            if (!state->grp->gr_mem || !state->grp->gr_mem[0]) { \
+                DEBUG(level, ("Group %s has no members!\n", \
+                              state->grp->gr_name)); \
+            } else { \
+                int i = 0; \
+                while (state->grp->gr_mem[i]) { \
+                    /* count */ \
+                    i++; \
+                } \
+                DEBUG(level, ("Group %s has %d members!\n", \
+                              state->grp->gr_name, i)); \
+            } \
+        } \
+    } while(0)
 
 static void get_gr_name_process(struct tevent_req *subreq);
 static void get_gr_name_remove_done(struct tevent_req *subreq);
@@ -867,7 +920,10 @@ static void get_gr_name_process(struct tevent_req *subreq)
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
+    const char **members;
     int ret;
+
+    DEBUG(7, ("Searching group by name (%s)\n", state->name));
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     if (ret) {
@@ -892,6 +948,9 @@ static void get_gr_name_process(struct tevent_req *subreq)
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
 again:
+    /* always zero out the grp structure */
+    memset(state->grp, 0, sizeof(struct group));
+
     status = ctx->ops.getgrnam_r(state->name, state->grp,
                                  buffer, buflen, &ret);
 
@@ -914,10 +973,14 @@ again:
 
     case NSS_STATUS_NOTFOUND:
 
+        DEBUG(7, ("Group %s not found.\n", state->name));
         delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
+
+        DEBUG(7, ("Group %s found: (%s, %d)\n", state->name,
+                  state->grp->gr_name, state->grp->gr_gid));
 
         /* gid=0 is an invalid value */
         if (state->grp->gr_gid == 0) {
@@ -925,12 +988,19 @@ again:
             break;
         }
 
+        DEBUG_GR_MEM(7, state);
+
+        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
+            members = (const char **)state->grp->gr_mem;
+        } else {
+            members = NULL;
+        }
+
         subreq = sysdb_store_group_send(state, state->ev, state->handle,
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        (const char **)state->grp->gr_mem,
-                                        NULL, NULL);
+                                        members, NULL, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -952,6 +1022,9 @@ again:
 
     if (delete_group) {
         struct ldb_dn *dn;
+
+        DEBUG(7, ("Group %s does not exist (or is invalid) on remote server,"
+                  " deleting!\n", state->name));
 
         dn = sysdb_group_dn(state->sysdb, state,
                             state->domain->name, state->name);
@@ -1063,7 +1136,10 @@ static void get_gr_gid_process(struct tevent_req *subreq)
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
+    const char **members;
     int ret;
+
+    DEBUG(7, ("Searching group by gid (%d)\n", state->gid));
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
     if (ret) {
@@ -1086,6 +1162,9 @@ static void get_gr_gid_process(struct tevent_req *subreq)
     }
 
 again:
+    /* always zero out the group structure */
+    memset(state->grp, 0, sizeof(struct group));
+
     status = ctx->ops.getgrgid_r(state->gid, state->grp,
                                  buffer, buflen, &ret);
 
@@ -1108,10 +1187,14 @@ again:
 
     case NSS_STATUS_NOTFOUND:
 
+        DEBUG(7, ("Group %d not found.\n", state->gid));
         delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
+
+        DEBUG(7, ("Group %d found (%s, %d)\n", state->gid,
+                  state->grp->gr_name, state->grp->gr_gid));
 
         /* gid=0 is an invalid value */
         if (state->grp->gr_gid == 0) {
@@ -1119,12 +1202,19 @@ again:
             break;
         }
 
+        DEBUG_GR_MEM(7, state);
+
+        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
+            members = (const char **)state->grp->gr_mem;
+        } else {
+            members = NULL;
+        }
+
         subreq = sysdb_store_group_send(state, state->ev, state->handle,
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        (const char **)state->grp->gr_mem,
-                                        NULL, NULL);
+                                        members, NULL, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1145,6 +1235,10 @@ again:
     }
 
     if (delete_group) {
+
+        DEBUG(7, ("Group %d does not exist (or is invalid) on remote server,"
+                  " deleting!\n", state->gid));
+
         subreq = sysdb_delete_group_by_gid_send(state, state->ev,
                                                 state->handle,
                                                 state->domain,
@@ -1210,6 +1304,8 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *mem_ctx,
     struct enum_groups_state *state;
     enum nss_status status;
 
+    DEBUG(7, ("Enumerating groups\n"));
+
     req = tevent_req_create(mem_ctx, &state, struct enum_groups_state);
     if (!req) return NULL;
 
@@ -1262,6 +1358,7 @@ static void enum_groups_process(struct tevent_req *subreq)
                                                 struct enum_groups_state);
     struct proxy_ctx *ctx = state->ctx;
     enum nss_status status;
+    const char **members;
     char *newbuf;
     int ret;
 
@@ -1285,6 +1382,9 @@ static void enum_groups_process(struct tevent_req *subreq)
     }
 
 again:
+    /* always zero out the grp structure */
+    memset(state->grp, 0, sizeof(struct group));
+
     /* get entry */
     status = ctx->ops.getgrent_r(state->grp,
                                  state->buffer, state->buflen, &ret);
@@ -1307,7 +1407,10 @@ again:
         goto again;
 
     case NSS_STATUS_NOTFOUND:
+
         /* we are done here */
+        DEBUG(7, ("Enumeration completed.\n"));
+
         ctx->ops.endgrent();
         subreq = sysdb_transaction_commit_send(state, state->ev,
                                                state->handle);
@@ -1324,12 +1427,22 @@ again:
             goto again; /* skip */
         }
 
+        DEBUG(7, ("Group found (%s, %d)\n",
+                  state->grp->gr_name, state->grp->gr_gid));
+
+        DEBUG_GR_MEM(7, state);
+
+        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
+            members = (const char **)state->grp->gr_mem;
+        } else {
+            members = NULL;
+        }
+
         subreq = sysdb_store_group_send(state, state->ev, state->handle,
                                        state->domain,
                                        state->grp->gr_name,
                                        state->grp->gr_gid,
-                                       (const char **)state->grp->gr_mem,
-                                       NULL, NULL);
+                                       members, NULL, NULL);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1739,6 +1852,9 @@ static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
     }
 
 again:
+    /* always zero out the grp structure */
+    memset(state->grp, 0, sizeof(struct group));
+
     status = ctx->ops.getgrgid_r(state->gid, state->grp,
                                  buffer, buflen, &ret);
 
