@@ -742,6 +742,9 @@ int col_get_iterator_depth(struct collection_iterator *iterator, int *depth);
  */
 int col_get_item_depth(struct collection_iterator *iterator, int *depth);
 
+/* Pins down the iterator to loop around current point */
+void col_pin_iterator(struct collection_iterator *iterator);
+
 /* FIXME - Do we need to be able to rewind iterator? */
 
 /* Set collection class */

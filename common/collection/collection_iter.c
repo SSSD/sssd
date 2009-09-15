@@ -87,6 +87,8 @@ int col_bind_iterator(struct collection_iterator **iterator,
     iter->stack_depth = 0;
     iter->item_level = 0;
     iter->flags = mode_flags;
+    iter->pin_level = 0;
+    iter->can_break = 0;
 
     TRACE_INFO_NUMBER("Iterator flags", iter->flags);
 
@@ -110,6 +112,7 @@ int col_bind_iterator(struct collection_iterator **iterator,
     header = (struct collection_header *)ci->data;
     header->reference_count++;
     iter->top = ci;
+    iter->pin = ci;
     *(iter->stack) = ci;
     iter->stack_depth++;
 
@@ -213,16 +216,28 @@ int col_iterate_collection(struct collection_iterator *iterator,
 
         TRACE_INFO_NUMBER("Stack depth:", iterator->stack_depth);
 
-        /* Are we done? */
         if (iterator->stack_depth == 0) {
-            TRACE_FLOW_STRING("We are done.", "");
-            *item = NULL;
-            return EOK;
+            /* Re-init so if we continue looping we start over */
+            iterator->stack[0] = iterator->top;
+            iterator->stack_depth++;
+            iterator->item_level = 0;
         }
 
         /* Is current item available */
         current = iterator->stack[iterator->stack_depth - 1];
         iterator->item_level = iterator->stack_depth - 1;
+
+        /* Are we done? */
+        if (((iterator->stack_depth - 1) == iterator->pin_level) &&
+            (iterator->pin == current)) {
+            if (iterator->can_break) {
+                TRACE_FLOW_STRING("We are done.", "");
+                *item = NULL;
+                iterator->can_break = 0;
+                return EOK;
+            }
+            else iterator->can_break = 1;
+        }
 
         /* We are not done so check if we have an item  */
         if (current != NULL) {
@@ -357,6 +372,30 @@ int col_iterate_collection(struct collection_iterator *iterator,
         }
     }
 
-    TRACE_FLOW_STRING("iterate_collection", "Exit");
+    TRACE_FLOW_STRING("col_iterate_collection", "Exit");
     return EOK;
+}
+
+
+/* Pins down the iterator to loop around this point */
+void col_pin_iterator(struct collection_iterator *iterator)
+{
+    TRACE_FLOW_STRING("col_iterator_add_pin", "Entry");
+
+    while ((iterator->stack[iterator->stack_depth - 1] == NULL) &&
+            (iterator->stack_depth)) {
+        iterator->stack_depth--;
+    }
+
+    if (iterator->stack_depth == 0) {
+        iterator->pin = iterator->top;
+        iterator->pin_level = 0;
+    }
+    else {
+        iterator->pin = iterator->stack[iterator->stack_depth - 1];
+        iterator->pin_level = iterator->stack_depth - 1;
+    }
+    iterator->can_break = 0;
+
+    TRACE_FLOW_STRING("col_iterator_add_pin", "Exit");
 }

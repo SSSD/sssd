@@ -593,6 +593,7 @@ int iterator_test(void)
     int depth = 0;
     int idepth = 0;
     int len = 0;
+    int i;
 
     printf("\n\n==== ITERATOR TEST ====\n\n");
 
@@ -1015,8 +1016,6 @@ int iterator_test(void)
         return error;
     }
 
-    col_destroy_collection(peer);
-
     printf("\n\nIterate up test:\n\n");
 
     do {
@@ -1026,6 +1025,7 @@ int iterator_test(void)
         if (error) {
             printf("Error (iterate): %d\n", error);
             col_unbind_iterator(iterator);
+            col_destroy_collection(peer);
             return error;
         }
 
@@ -1065,6 +1065,174 @@ int iterator_test(void)
     while(1);
 
     col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_FLAT | COL_TRAVERSE_END);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    printf("\n\nCircled looping:\n\n");
+
+    for (i = 0; i < 200; i++) {
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == NULL) printf("Reached end.\n\n");
+        else {
+            depth = 0;
+            col_get_item_depth(iterator, &depth);
+            printf("%*s", depth * 4, "");
+            col_debug_item(item);
+        }
+    }
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_FLAT | COL_TRAVERSE_END);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    printf("\n\nCircled looping with pin:\n\n");
+
+    do {
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        if (strcmp(col_get_item_property(item, NULL), "queue") == 0) {
+            /* Make it a new looping point */
+            col_pin_iterator(iterator);
+            printf("Found pin point.\n\n");
+            break;
+        }
+        /* Are we done ? */
+        if (item == NULL) {
+            printf("Unexpected end.\n\n");
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return EINVAL;
+        }
+        else {
+            depth = 0;
+            col_get_item_depth(iterator, &depth);
+            printf("%*s", depth * 4, "");
+            col_debug_item(item);
+        }
+    }
+    while(1);
+
+    /* Second loop around the pin point */
+    for (i = 0; i < 200; i++) {
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == NULL) printf("Reached end.\n\n");
+        else {
+            depth = 0;
+            col_get_item_depth(iterator, &depth);
+            printf("%*s", depth * 4, "");
+            col_debug_item(item);
+        }
+    }
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+
+
+    /* Bind iterator again in flat mode */
+    error =  col_bind_iterator(&iterator, peer, COL_TRAVERSE_DEFAULT | COL_TRAVERSE_END);
+    if (error) {
+        printf("Error (bind): %d\n", error);
+        col_destroy_collection(peer);
+        return error;
+    }
+
+    printf("\n\nCircled looping with pin (default):\n\n");
+
+    do {
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        if (strcmp(col_get_item_property(item, NULL), "queue") == 0) {
+            /* Make it a new looping point */
+            col_pin_iterator(iterator);
+            printf("Found pin point.\n\n");
+            break;
+        }
+        /* Are we done ? */
+        if (item == NULL) {
+            printf("Unexpected end.\n\n");
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return EINVAL;
+        }
+        else {
+            depth = 0;
+            col_get_item_depth(iterator, &depth);
+            printf("%*s", depth * 4, "");
+            col_debug_item(item);
+        }
+    }
+    while(1);
+
+    /* Second loop around the pin point */
+    for (i = 0; i < 200; i++) {
+        /* Loop through a collection */
+        error = col_iterate_collection(iterator, &item);
+        if (error) {
+            printf("Error (iterate): %d\n", error);
+            col_destroy_collection(peer);
+            col_unbind_iterator(iterator);
+            return error;
+        }
+
+        /* Are we done ? */
+        if (item == NULL) printf("Reached end.\n\n");
+        else {
+            depth = 0;
+            col_get_item_depth(iterator, &depth);
+            printf("%*s", depth * 4, "");
+            col_debug_item(item);
+        }
+    }
+
+    /* Do not forget to unbind iterator - otherwise there will be a leak */
+    col_unbind_iterator(iterator);
+    col_destroy_collection(peer);
+
     return EOK;
 }
 

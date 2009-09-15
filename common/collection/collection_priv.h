@@ -60,6 +60,9 @@ struct collection_iterator {
     unsigned item_level;
     int flags;
     struct collection_item *end_item;
+    struct collection_item *pin;
+    unsigned pin_level;
+    unsigned can_break;
 };
 
 
