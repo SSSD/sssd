@@ -20,7 +20,8 @@ dist_noinst_DATA = \
     ini_config.pc \
     ini.conf \
     ini.d/real.conf \
-    ini.d/test.conf
+    ini.d/test.conf \
+    m4
 
 # Build library
 noinst_LTLIBRARIES = libini_config.la

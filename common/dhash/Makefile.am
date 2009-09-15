@@ -8,7 +8,9 @@ endif
 ACLOCAL_AMFLAGS = -I m4
 
 pkgconfigdir = $(libdir)/pkgconfig
-dist_noinst_DATA = dhash.pc
+dist_noinst_DATA = \
+    dhash.pc \
+    m4
 
 noinst_LTLIBRARIES = libdhash.la
 libdhash_la_SOURCES = \

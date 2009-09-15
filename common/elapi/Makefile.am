@@ -28,7 +28,9 @@ ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
-dist_noinst_DATA = elapi.pc
+dist_noinst_DATA = \
+    elapi.pc \
+    m4
 
 # Build libraries
 noinst_LTLIBRARIES = libelapibasic.la libprovider.la libelapi.la

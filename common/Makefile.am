@@ -1,5 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = trace collection ini dhash path_utils elapi
+
+dist_noinst_DATA = \
+    m4
+
 if SINGLELIB
 # Build all components as a single shared library
 lib_LTLIBRARIES = libsssd_util.la

@@ -59,7 +59,8 @@ pam_test_client_LDFLAGS = -lpam -lpam_misc
 EXTRA_DIST = build/config.rpath
 dist_noinst_DATA = \
     sss_nss.exports \
-    sss_pam.exports
+    sss_pam.exports \
+    m4
 
 install-data-hook:
 	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2

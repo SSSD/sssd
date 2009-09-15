@@ -287,7 +287,8 @@ dist_noinst_DATA = \
     examples/sssdproxylocal \
     examples/sssdproxytest \
     examples/sudo \
-    providers/sssd_be.exports
+    providers/sssd_be.exports \
+    m4
 
 ######################
 # Command-line Tools #

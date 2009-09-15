@@ -8,7 +8,9 @@ endif
 ACLOCAL_AMFLAGS = -I m4
 
 pkgconfigdir = $(libdir)/pkgconfig
-dist_noinst_DATA = path_utils.pc
+dist_noinst_DATA = \
+    path_utils.pc \
+    m4
 
 noinst_LTLIBRARIES = libpath_utils.la
 libpath_utils_la_SOURCES = \

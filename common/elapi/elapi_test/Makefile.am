@@ -18,6 +18,8 @@ AM_CPPFLAGS = -I$(topdir) -I$(topdir)/ini -I$(topdir)/trace -I$(topdir)/collecti
 
 ACLOCAL_AMFLAGS = -I m4
 
+dist_noinst_DATA = m4
+
 # Build library
 noinst_LTLIBRARIES = libelapi_test.la
 

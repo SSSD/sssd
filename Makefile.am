@@ -6,6 +6,7 @@ RPMBUILD ?= $(PWD)/rpmbuild
 builddir ?= .
 
 dist_noinst_DATA = \
+    m4 \
     contrib/sssd.spec.in \
     BUILD.txt \
     COPYING

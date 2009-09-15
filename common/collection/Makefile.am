@@ -16,7 +16,9 @@ ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
-dist_noinst_DATA = collection.pc
+dist_noinst_DATA = \
+    collection.pc \
+    m4
 
 # Build library
 noinst_LTLIBRARIES = libcollection.la
