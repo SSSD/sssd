@@ -172,16 +172,7 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     }
 
     /* Clean memory - we need it to be able to destroy the dispatcher at any moment */
-    /* FIXME - eventually remove the memset from here when the structure finalizes */
-    /* Valgrind requires explicit initialization of the structure member, otherwise
-     * it complains about jump or move based on the uninitialized variable.
-     */
-    memset(handle, 0, sizeof(struct elapi_dispatcher *));
-    handle->ini_config = NULL;
-    handle->target_list = NULL;
-    handle->sink_list = NULL;
-    handle->targets = NULL;
-    handle->default_template = NULL;
+    memset(handle, 0, sizeof(struct elapi_dispatcher));
 
     /* Save application name in the handle */
     if (appname != NULL) handle->appname = strdup(appname);
