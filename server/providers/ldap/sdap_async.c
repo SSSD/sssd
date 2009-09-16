@@ -578,10 +578,17 @@ static void sdap_connect_done(struct sdap_op *op,
     DEBUG(3, ("START TLS result: %s(%d), %s\n",
               ldap_err2string(state->result), state->result, errmsg));
 
+    if (ldap_tls_inplace(state->sh->ldap)) {
+        DEBUG(9, ("SSL/TLS handler already in place.\n"));
+        tevent_req_done(req);
+        return;
+    }
+
 /* FIXME: take care that ldap_install_tls might block */
     ret = ldap_install_tls(state->sh->ldap);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_install_tls failed.\n"));
+        DEBUG(1, ("ldap_install_tls failed: [%d][%s]\n", ret,
+                  ldap_err2string(ret)));
         state->result = ret;
         tevent_req_error(req, EIO);
         return;
