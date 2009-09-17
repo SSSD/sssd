@@ -191,6 +191,91 @@ fail:
     return ret;
 }
 
+int sdap_parse_generic_entry(TALLOC_CTX *memctx,
+                                    struct sdap_handle *sh,
+                                    struct sdap_msg *sm,
+                                    struct sysdb_attrs **_attrs)
+{
+    struct sysdb_attrs *attrs;
+    BerElement *ber = NULL;
+    struct berval **vals;
+    struct ldb_val v;
+    char *str;
+    int lerrno;
+    int i;
+    int ret;
+
+    lerrno = 0;
+    ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+
+    attrs = sysdb_new_attrs(memctx);
+    if (!attrs) return ENOMEM;
+
+    str = ldap_get_dn(sh->ldap, sm->msg);
+    if (!str) {
+        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+        DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
+                  lerrno, ldap_err2string(lerrno)));
+        ret = EIO;
+        goto fail;
+    }
+
+    DEBUG(9, ("OriginalDN: [%s].\n", str));
+    ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
+    if (ret) goto fail;
+    ldap_memfree(str);
+
+    str = ldap_first_attribute(sh->ldap, sm->msg, &ber);
+    if (!str) {
+        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+        DEBUG(9, ("Entry has no attributes [%d(%s)]!?\n",
+                  lerrno, ldap_err2string(lerrno)));
+    }
+    while (str) {
+        vals = ldap_get_values_len(sh->ldap, sm->msg, str);
+        if (!vals) {
+            ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+            DEBUG(1, ("LDAP Library error: %d(%s)",
+                      lerrno, ldap_err2string(lerrno)));
+            ret = EIO;
+            goto fail;
+        }
+        if (!vals[0]) {
+            DEBUG(1, ("Missing value after ldap_get_values() ??\n"));
+            ret = EINVAL;
+            goto fail;
+        }
+        for (i = 0; vals[i]; i++) {
+            v.data = (uint8_t *) vals[i]->bv_val;
+            v.length = vals[i]->bv_len;
+
+            ret = sysdb_attrs_add_val(attrs, str, &v);
+            if (ret) goto fail;
+        }
+        ldap_value_free_len(vals);
+
+        ldap_memfree(str);
+        str = ldap_next_attribute(sh->ldap, sm->msg, ber);
+    }
+    ber_free(ber, 0);
+
+    ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
+    if (lerrno) {
+        DEBUG(1, ("LDAP Library error: %d(%s)",
+                  lerrno, ldap_err2string(lerrno)));
+        ret = EIO;
+        goto fail;
+    }
+
+    *_attrs = attrs;
+    return EOK;
+
+fail:
+    if (ber) ber_free(ber, 0);
+    talloc_free(attrs);
+    return ret;
+}
+
 /* This function converts an ldap message into a sysdb_attrs structure.
  * It converts only known user attributes, the rest are ignored.
  * If the entry is not that of an user an error is returned.

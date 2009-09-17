@@ -203,6 +203,11 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sysdb_attrs **_attrs, char **_dn);
 
+int sdap_parse_generic_entry(TALLOC_CTX *memctx,
+                                    struct sdap_handle *sh,
+                                    struct sdap_msg *sm,
+                                    struct sysdb_attrs **_attrs);
+
 int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
                     struct sdap_msg *sm, char **_dn);
 

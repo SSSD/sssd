@@ -30,6 +30,8 @@
 
 #define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
 
+#define REPLY_REALLOC_INCREMENT 10
+
 static void make_realm_upper_case(const char *upn)
 {
     char *c;
@@ -3018,5 +3020,204 @@ int sdap_cli_connect_recv(struct tevent_req *req, TALLOC_CTX *memctx,
     if (!*gsh) {
         return ENOMEM;
     }
+    return EOK;
+}
+
+/* ==Generic Search============================================ */
+
+struct sdap_get_generic_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+    struct sss_domain_info *dom;
+    const char **attrs;
+    const char *filter;
+    const char *search_base;
+    struct sysdb_attrs **reply;
+    size_t reply_max;
+    size_t reply_count;
+
+    struct sysdb_handle *handle;
+    struct sdap_op *op;
+};
+
+static errno_t add_to_reply(TALLOC_CTX *memctx,
+                            struct sdap_get_generic_state *state,
+                            struct sysdb_attrs *msg);
+
+static void sdap_get_generic_done(struct sdap_op *op,
+                                 struct sdap_msg *reply,
+                                 int error, void *pvt);
+
+struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
+                                       struct tevent_context *ev,
+                                       struct sss_domain_info *dom,
+                                       struct sysdb_ctx *sysdb,
+                                       struct sdap_options *opts,
+                                       struct sdap_handle *sh,
+                                       const char **attrs,
+                                       const char *filter,
+                                       const char *search_base)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_get_generic_state *state = NULL;
+    int lret;
+    int ret;
+    int msgid;
+
+    req = tevent_req_create(memctx, &state, struct sdap_get_generic_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+    state->dom = dom;
+    state->sh = sh;
+    state->filter = filter;
+    state->attrs = attrs;
+    state->search_base = search_base;
+    state->reply = NULL;
+    state->reply_max = 0;
+    state->reply_count = 0;
+    state->op = NULL;
+    state->handle = NULL;
+
+    DEBUG(7, ("calling ldap_search_ext with [%s][%s].\n", state->filter,
+                                                          state->search_base));
+    if (debug_level >= 7) {
+        int i;
+
+        for (i = 0; state->attrs[i]; i++) {
+            DEBUG(7, ("Requesting attrs: [%s]\n", state->attrs[i]));
+        }
+    }
+
+    lret = ldap_search_ext(state->sh->ldap, state->search_base,
+                           LDAP_SCOPE_SUBTREE, state->filter,
+                           discard_const(state->attrs),
+                           false, NULL, NULL, NULL, 0, &msgid);
+    if (lret != LDAP_SUCCESS) {
+        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
+        ret = EIO;
+        goto fail;
+    }
+    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
+
+    ret = sdap_op_add(state, state->ev, state->sh, msgid,
+                      sdap_get_generic_done, req,
+                      dp_opt_get_int(state->opts->basic,SDAP_SEARCH_TIMEOUT),
+                      &state->op);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        goto fail;
+    }
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+
+static void sdap_get_generic_done(struct sdap_op *op,
+                                 struct sdap_msg *reply,
+                                 int error, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct sdap_get_generic_state *state = tevent_req_data(req,
+                                            struct sdap_get_generic_state);
+    int ret;
+    struct sysdb_attrs *attrs;
+
+    if (error) {
+        tevent_req_error(req, error);
+        return;
+    }
+
+    switch (ldap_msgtype(reply->msg)) {
+    case LDAP_RES_SEARCH_REFERENCE:
+        /* ignore references for now */
+        talloc_free(reply);
+
+        /* unlock the operation so that we can proceed with the next result */
+        sdap_unlock_next_reply(state->op);
+        break;
+
+    case LDAP_RES_SEARCH_ENTRY:
+        ret = sdap_parse_generic_entry(state, state->sh, reply, &attrs);
+        if (ret != EOK) {
+            DEBUG(1, ("sdap_parse_generic_entry failed.\n"));
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        ret = add_to_reply(state, state, attrs);
+        if (ret != EOK) {
+            DEBUG(1, ("add_to_reply failed.\n"));
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        sdap_unlock_next_reply(state->op);
+        break;
+    case LDAP_RES_SEARCH_RESULT:
+        tevent_req_done(req);
+        return;
+
+        break;
+    default:
+        /* what is going on here !? */
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    return;
+}
+
+int sdap_get_generic_recv(struct tevent_req *req,
+                          TALLOC_CTX *mem_ctx,
+                          size_t *reply_count,
+                          struct sysdb_attrs ***reply)
+{
+    struct sdap_get_generic_state *state = tevent_req_data(req,
+                                            struct sdap_get_generic_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+    int i;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (err) return err;
+        return EIO;
+    }
+
+    *reply_count = state->reply_count;
+    *reply = talloc_steal(mem_ctx, state->reply);
+    for (i = 0; i < state->reply_count; i++) {
+        talloc_steal(mem_ctx, state->reply[i]);
+    }
+
+    return EOK;
+}
+
+static errno_t add_to_reply(TALLOC_CTX *memctx,
+                            struct sdap_get_generic_state *state,
+                            struct sysdb_attrs *msg)
+{
+    struct sysdb_attrs **dummy;
+
+    if (state->reply == NULL || state->reply_max == state->reply_count) {
+        state->reply_max += REPLY_REALLOC_INCREMENT;
+        dummy = talloc_realloc(memctx, state->reply, struct sysdb_attrs *,
+                               state->reply_max);
+        if (dummy == NULL) {
+            DEBUG(1, ("talloc_realloc failed.\n"));
+            return ENOMEM;
+        }
+        state->reply = dummy;
+    }
+
+    state->reply[state->reply_count++] = talloc_steal(state->reply, msg);
+
     return EOK;
 }
