@@ -910,7 +910,8 @@ static int load_backend_module(struct be_ctx *ctx,
         ++lb;
         if (lb >= BET_MAX) {
             DEBUG(2, ("Backend context corrupted.\n"));
-            return EINVAL;
+            ret = EINVAL;
+            goto done;
         }
     }
 
@@ -918,7 +919,8 @@ static int load_backend_module(struct be_ctx *ctx,
         path = talloc_asprintf(tmp_ctx, "%s/libsss_%s.so",
                                DATA_PROVIDER_PLUGINS_PATH, mod_name);
         if (!path) {
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
 
         DEBUG(7, ("Loading backend [%s] with path [%s].\n", mod_name, path));
