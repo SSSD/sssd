@@ -140,6 +140,7 @@
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
 #define SYSDB_TMPL_GROUP SYSDB_NAME"=%s,"SYSDB_TMPL_GROUP_BASE
+#define SYSDB_TMPL_CUSTOM_SUBTREE "cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_CUSTOM SYSDB_NAME"=%s,cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 
 #define SYSDB_MOD_ADD LDB_FLAG_MOD_ADD
@@ -193,6 +194,9 @@ struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
                                 const char *domain, const char *object_name,
                                 const char *subtree_name);
+struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
+                                       const char *domain,
+                                       const char *subtree_name);
 
 
 

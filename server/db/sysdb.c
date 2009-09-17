@@ -24,6 +24,14 @@
 #include "confdb/confdb.h"
 #include <time.h>
 
+
+struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
+                                       const char *domain,
+                                       const char *subtree_name)
+{
+    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_CUSTOM_SUBTREE,
+                          subtree_name, domain);
+}
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
                                 const char *domain, const char *object_name,
                                 const char *subtree_name)

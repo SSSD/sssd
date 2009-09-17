@@ -29,6 +29,7 @@
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/ipa/ipa_access.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -48,6 +49,11 @@ struct bet_ops ipa_chpass_ops = {
     .finalize = NULL,
 };
 
+struct bet_ops ipa_access_ops = {
+    .handler = ipa_access_handler,
+    .finalize = NULL
+};
+
 int sssm_ipa_init(struct be_ctx *bectx,
                   struct bet_ops **ops,
                   void **pvt_data)
@@ -62,6 +68,13 @@ int sssm_ipa_init(struct be_ctx *bectx,
     }
     if (!ipa_options) {
         return ENOMEM;
+    }
+
+    if (ipa_options->id_ctx) {
+        /* already initialized */
+        *ops = &ipa_id_ops;
+        *pvt_data = ipa_options->id_ctx;
+        return EOK;
     }
 
     ctx = talloc_zero(ipa_options, struct sdap_id_ctx);
@@ -186,7 +199,46 @@ done:
 
 int sssm_ipa_chpass_init(struct be_ctx *bectx,
                          struct bet_ops **ops,
-                         void **pvt_auth_data)
+                         void **pvt_data)
 {
-    return sssm_ipa_auth_init(bectx, ops, pvt_auth_data);
+    int ret;
+    ret = sssm_ipa_auth_init(bectx, ops, pvt_data);
+    *ops = &ipa_chpass_ops;
+    return ret;
+}
+
+int sssm_ipa_access_init(struct be_ctx *bectx,
+                         struct bet_ops **ops,
+                         void **pvt_data)
+{
+    int ret;
+    struct ipa_access_ctx *ipa_access_ctx;
+
+    ipa_access_ctx = talloc_zero(bectx, struct ipa_access_ctx);
+    if (ipa_access_ctx == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = sssm_ipa_init(bectx, ops, (void **) &ipa_access_ctx->sdap_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("sssm_ipa_init failed.\n"));
+        goto done;
+    }
+
+    ret = dp_copy_options(ipa_access_ctx, ipa_options->basic,
+                          IPA_OPTS_BASIC, &ipa_access_ctx->ipa_options);
+    if (ret != EOK) {
+        DEBUG(1, ("dp_copy_options failed.\n"));
+        goto done;
+    }
+
+    *ops = &ipa_access_ops;
+    *pvt_data = ipa_access_ctx;
+
+done:
+    if (ret != EOK) {
+        talloc_free(ipa_access_ctx);
+    }
+    return ret;
 }
