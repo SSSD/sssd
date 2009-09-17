@@ -126,7 +126,7 @@
                     <listitem>
                         <para>
                             The default base DN to use for
-                            performing LDAP operations.
+                            performing LDAP user operations.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -285,6 +285,16 @@
                         </para>
                         <para>
                             Default: memberOf
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>groupSearchBase (string)</term>
+                    <listitem>
+                        <para>
+                            The default base DN to use for
+                            performing LDAP group operations.
                         </para>
                     </listitem>
                 </varlistentry>
