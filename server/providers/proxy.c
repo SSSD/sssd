@@ -2118,6 +2118,9 @@ static void proxy_get_account_info(struct be_req *breq)
         if (strchr(ar->filter_value, '*')) {
             return proxy_reply(breq, EINVAL, "Invalid filter value");
         }
+        if (ctx->ops.initgroups_dyn == NULL) {
+            return proxy_reply(breq, ENODEV, "Initgroups call not supported");
+        }
         subreq = get_initgr_send(breq, ev, ctx, sysdb,
                                  domain, ar->filter_value);
         if (!subreq) {
