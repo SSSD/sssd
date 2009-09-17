@@ -275,7 +275,7 @@ int file_get_csv_cfg(void **storage,
     TRACE_FLOW_STRING("file_get_csv_cfg", "Entry");
 
     /* Allocate memory for configuration */
-    cfg = (struct file_csv_cfg *)malloc(sizeof(struct file_csv_cfg));
+    cfg = (struct file_csv_cfg *) calloc(1, sizeof(struct file_csv_cfg));
     if (cfg == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate storage for CSV configuration", ENOMEM);
         return ENOMEM;

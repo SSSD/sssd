@@ -432,27 +432,11 @@ int elapi_sink_create(struct elapi_sink_ctx **sink_ctx,
     TRACE_FLOW_STRING("elapi_sink_create", "Entry point");
 
     /* Allocate context */
-    sink_context = (struct elapi_sink_ctx *)malloc(sizeof(struct elapi_sink_ctx));
+    sink_context = (struct elapi_sink_ctx *)calloc(1, sizeof(struct elapi_sink_ctx));
     if (sink_context == NULL) {
         TRACE_ERROR_NUMBER("Memory allocation failed. Error", ENOMEM);
         return ENOMEM;
     }
-
-    /* Initialize the allocatable items so that we can call destroy function
-     * in case of error.
-     * FIXME - add initialization here for other elements as they are added.
-     */
-
-    sink_context->async_mode = 0;
-    sink_context->in_queue = NULL;
-    sink_context->pending = NULL;
-    sink_context->sink_cfg.provider = NULL;
-    sink_context->sink_cfg.priv_ctx = NULL;
-    sink_context->sink_cfg.libhandle = NULL;
-    sink_context->sink_cfg.ability = NULL;
-    sink_context->sink_cfg.cpb_cb.init_cb = NULL;
-    sink_context->sink_cfg.cpb_cb.submit_cb = NULL;
-    sink_context->sink_cfg.cpb_cb.close_cb = NULL;
 
     /* Read common fields */
     error = elapi_read_sink_cfg(&(sink_context->sink_cfg),

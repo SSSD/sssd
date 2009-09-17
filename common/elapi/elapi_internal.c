@@ -242,18 +242,11 @@ int elapi_tgt_create(struct elapi_tgt_ctx **context,
     }
 
     /* Allocate context */
-    target_context = (struct elapi_tgt_ctx *)malloc(sizeof(struct elapi_tgt_ctx));
+    target_context = (struct elapi_tgt_ctx *)calloc(1, sizeof(struct elapi_tgt_ctx));
     if (target_context == NULL) {
         TRACE_ERROR_NUMBER("Memory allocation failed. Error", ENOMEM);
         return ENOMEM;
     }
-
-    /* Initialize the allocatable items so that we can call destroy function
-     * in case of error.
-     * FIXME - add initialization here for other elements as they are added.
-     */
-
-    target_context->sink_ref_list = NULL;
 
     /* Assign target's value */
     error = get_config_item(target,

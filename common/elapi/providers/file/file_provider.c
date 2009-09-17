@@ -550,16 +550,12 @@ static int file_create_ctx(struct file_prvdr_ctx **file_ctx,
 
     TRACE_FLOW_STRING("file_create_ctx", "Entry point");
 
-    ctx = (struct file_prvdr_ctx *)malloc(sizeof(struct file_prvdr_ctx));
+    ctx = (struct file_prvdr_ctx *)calloc(1, sizeof(struct file_prvdr_ctx));
     if (ctx == NULL) {
         TRACE_ERROR_NUMBER("Failed to allocate context", ENOMEM);
         return ENOMEM;
     }
-
-    /* Init allocatable items */
-    ctx->config.filename = NULL;
-    ctx->config.main_fmt_cfg = NULL;
-    ctx->config.lo_fmt_cfg = NULL;
+    /* Init items */
     ctx->outfile = -1;
 
     /* Read configuration data */

@@ -165,14 +165,11 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
     TRACE_INFO_STRING("DIR:", config_dir);
 
     /* Allocate memory */
-    handle = (struct elapi_dispatcher *) malloc(sizeof(struct elapi_dispatcher));
+    handle = (struct elapi_dispatcher *) calloc(1, sizeof(struct elapi_dispatcher));
     if (handle == NULL) {
         TRACE_ERROR_NUMBER("Memory allocation failed. Error", ENOMEM);
         return ENOMEM;
     }
-
-    /* Clean memory - we need it to be able to destroy the dispatcher at any moment */
-    memset(handle, 0, sizeof(struct elapi_dispatcher));
 
     /* Save application name in the handle */
     if (appname != NULL) handle->appname = strdup(appname);
