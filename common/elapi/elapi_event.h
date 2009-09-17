@@ -46,6 +46,11 @@
  */
 #define E_MESSAGE   "__message__"
 
+
+/* Standard prefix for internal attributes */
+#define E_PREFIX        "__"
+#define E_PREFIX_LEN    2
+
 /* Base argument in the template creation function is a bit mask.
  * Each supported predefined element corresponds to its bit in
  * the mask.

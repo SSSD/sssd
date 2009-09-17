@@ -38,7 +38,7 @@ int elapi_set_fd_priv(struct elapi_fd_data *fd_data,
 int elapi_get_fd_priv(struct elapi_fd_data *fd_data,
                       void **priv_data_to_get);
 /* Cleanup function */
-int elapi_destroy_fd_data(struct elapi_fd_data *fd_data);
+void elapi_destroy_fd_data(struct elapi_fd_data *fd_data);
 
 /* Functions to set and get custom data from timer data. */
 /* Functions return EINVAL if passed in argument is invalid. */
@@ -47,7 +47,7 @@ int elapi_set_tm_priv(struct elapi_tm_data *tm_data,
 int elapi_get_tm_priv(struct elapi_tm_data *tm_data,
                       void **priv_data_to_get);
 /* Cleanup function */
-int elapi_destroy_tm_data(struct elapi_tm_data *tm_data);
+void elapi_destroy_tm_data(struct elapi_tm_data *tm_data);
 
 /* Public interfaces ELAPI exposes to handle fd or timer
  * events (do not confuse with log events).
@@ -84,10 +84,8 @@ typedef int (*elapi_set_fd)(int fd,
 
 /* Signature of the function to add timer.
  * Provided by caller of the ELAPI interface.
- * Caller must be aware that the timeval strcuture
- * is allocated on stack.
  */
-typedef int (*elapi_add_tm)(struct timeval *tv,
+typedef int (*elapi_add_tm)(struct timeval tv,
                             struct elapi_tm_data *tm_data,
                             void *ext_tm_data);
 
@@ -101,34 +99,5 @@ typedef int (*elapi_rem_tm)(struct elapi_tm_data *tm_data,
 
 
 
-/* Structure that contains the pointer to functions
- * that needed to be provided to enable async processing.
- */
-struct elapi_async_ctx {
-    elapi_add_fd add_fd_cb;
-    elapi_rem_fd rem_fd_cb;
-    elapi_set_fd set_fd_cb;
-    void *ext_fd_data;
-    elapi_add_tm add_tm_cb;
-    elapi_rem_tm rem_tm_cb;
-    void *ext_tm_data;
-};
-
-/* Interface to create the async context */
-int elapi_create_asctx(struct elapi_async_ctx **ctx,
-                       elapi_add_fd add_fd_cb,
-                       elapi_rem_fd rem_fd_cb,
-                       elapi_set_fd set_fd_cb,
-                       void *ext_fd_data,
-                       elapi_add_tm add_tm_cb,
-                       elapi_rem_tm rem_tm_cb,
-                       void *ext_tm_data);
-
-/* Function to free the async context */
-void elapi_destroy_asctx(struct elapi_async_ctx *ctx);
-
-/* Function to validate the consistency of the
- * async context */
-int elapi_check_asctx(struct elapi_async_ctx *ctx);
 
 #endif

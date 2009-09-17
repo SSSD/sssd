@@ -42,6 +42,23 @@ struct elapi_dispatcher;
  */
 
 /********** Main functions of the interface **********/
+/* Structure that contains the pointer to functions
+ * that needed to be provided to enable async processing.
+ */
+struct elapi_async_ctx;
+
+/* Interface to create the async context */
+int elapi_create_asctx(struct elapi_async_ctx **ctx,
+                       elapi_add_fd add_fd_cb,
+                       elapi_rem_fd rem_fd_cb,
+                       elapi_set_fd set_fd_cb,
+                       void *ext_fd_data,
+                       elapi_add_tm add_tm_cb,
+                       elapi_rem_tm rem_tm_cb,
+                       void *ext_tm_data);
+
+/* Function to free the async context */
+void elapi_destroy_asctx(struct elapi_async_ctx *ctx);
 
 /* Function to create a dispatcher */
 int elapi_create_dispatcher(struct elapi_dispatcher **dispatcher,  /* Handle of the dispatcher will be stored in this variable */
@@ -52,7 +69,7 @@ int elapi_create_dispatcher(struct elapi_dispatcher **dispatcher,  /* Handle of 
 int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,  /* Handle of the dispatcher will be stored in this variable */
                                 const char *appname,                   /* Application name. Passed to the sinks to do initialization */
                                 const char *config_path,               /* See notes below in the elapi_init() function. */
-                                struct elapi_async_ctx *async_ctx);    /* Async context. */
+                                struct elapi_async_ctx *ctx);          /* Async context. */
 
 /* Function to clean memory associated with the dispatcher */
 void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher);

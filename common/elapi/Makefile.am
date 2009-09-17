@@ -51,12 +51,16 @@ libelapi_la_SOURCES = \
     elapi_event.c \
     elapi_log.c \
     elapi_internal.c \
-    elapi_event.h \
     elapi_sink.c \
+    elapi_resolve.c \
+    elapi_async.c \
+    elapi_event.h \
     elapi_priv.h \
     elapi_sink.h \
     elapi_log.h \
     elapi_async.h \
+    elapi_fd.h \
+    elapi_tm.h \
     elapi.h
 
 libelapi_la_LIBADD = libprovider.la libelapibasic.la

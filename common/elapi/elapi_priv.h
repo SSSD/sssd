@@ -21,6 +21,7 @@
 #define ELAPI_PRIV_H
 
 #include <stdint.h>
+#include <stdarg.h>
 
 #include "collection.h"
 #include "elapi_async.h"
@@ -33,6 +34,7 @@
 #define COL_CLASS_ELAPI_SINK        COL_CLASS_ELAPI_BASE + 2
 #define COL_CLASS_ELAPI_TARGET      COL_CLASS_ELAPI_BASE + 3
 #define COL_CLASS_ELAPI_SINK_REF    COL_CLASS_ELAPI_BASE + 4
+#define COL_CLASS_ELAPI_RES_ITEM    COL_CLASS_ELAPI_BASE + 5
 
 /* Names for the collections */
 #define E_TEMPLATE_NAME "template"
@@ -51,6 +53,7 @@
 #define ELAPI_SINK_ONERROR  "onerror"
 #define ELAPI_SINK_TIMEOUT  "timeout"
 #define ELAPI_SINK_SYNCH    "synch"
+#define ELAPI_RESOLVE_ITEM  "res_item"
 
 /* Default timout before dispatcher tries to revive sink.
  * The actual value is configurable on per sink basis
@@ -73,6 +76,22 @@
 #define ELAPI_ONERROR_REVIVE        0
 #define ELAPI_ONERROR_DISABLE       1
 
+/* Structure that contains the pointer to functions
+ * that needed to be provided to enable async processing.
+ */
+struct elapi_async_ctx {
+    /* Callbacks related to file descriptor. */
+    elapi_add_fd add_fd_cb;
+    elapi_rem_fd rem_fd_cb;
+    elapi_set_fd set_fd_cb;
+    /* File descriptor callback external data. */
+    void *ext_fd_data;
+    /* Callbacks for timer */
+    elapi_add_tm add_tm_cb;
+    elapi_rem_tm rem_tm_cb;
+    /* Timer's external data */
+    void *ext_tm_data;
+};
 
 struct elapi_dispatcher {
     /* Application name */
@@ -87,24 +106,14 @@ struct elapi_dispatcher {
     struct collection_item *sink_list;
     /* Configuration */
     struct collection_item *ini_config;
+    /* Items to resolve */
+    struct collection_iterator *resolve_list;
     /* Default event template */
     struct collection_item *default_template;
     /* Async processing related data */
     struct elapi_async_ctx *async_ctx;
-    /* Indicator of our synch mode
-     * FIXME: Do we need it?
-     */
-    uint32_t async_mode;
-    /* Time offset */
-    int32_t offset;
 };
 
-/* Structure to pass data from logging function to targets */
-struct elapi_tgt_data {
-    struct collection_item *event;
-    struct elapi_dispatcher *handle;
-    uint32_t target_mask;
-};
 
 /* This is a structure that holds the information
  *  about the target.
@@ -165,40 +174,31 @@ struct elapi_sink_ctx {
 
 };
 
-/* The structure to hold the event and its context */
-/* FIXME The event should be turned into this object
- * on the high level before going
- * into any target.
- * and then this should be passed around
- * instead of the actual event.
+/* A helper structure that holds data
+ * needed to resolve the event.
  */
-struct elapi_event_ctx {
-    /* This is a copy of the event */
-    /* We have to copy it for two reasons:
-     * a) It needs to be flattened so
-     * that we do not get unnecesary naming
-     * collisions if same key appears on different
-     * levels
-     * b) In case of async logging we need
-     * the original event until we are sure
-     * it is actually logged. If we do not
-     * keep it around the application can modify
-     * it or delete it before we figured out
-     * that sink is broken and we need to fail over.
-     * If in this case we go to another sink
-     * and if we do not have the original event
-     * we are screwed.
-     */
+struct elapi_resolve_data {
+    /* Reference to the event */
     struct collection_item *event;
-    /* Reference count */
-    int refcount;
-    /* Event time */
+    /* Reference back to dispatcher */
+    struct elapi_dispatcher *handle;
+    /* Time related data */
     time_t tm;
-    /* Resolved message */
-    char *message;
+    /* Structured UTC time */
+    struct tm utc_time;
+    /* Structured local time */
+    struct tm local_time;
     /* Time offset */
-    int32_t offset;
+    int offset;
 };
+
+/* Structure to pass data from logging function to targets */
+struct elapi_tgt_data {
+    struct collection_item *event;
+    struct elapi_dispatcher *handle;
+    uint32_t target_mask;
+};
+
 
 /* Lookup structure for searching for providers */
 struct elapi_prvdr_lookup {
@@ -212,6 +212,26 @@ struct elapi_get_sink {
     int action;
     int found;
 };
+
+/* Signature of the item resolution function */
+typedef int (*elapi_rslv_cb)(struct elapi_resolve_data *resolver,
+                             struct collection_item *item,
+                             int *skip);
+
+/* Structure to hold type-callback tuples */
+struct elapi_rslv_item_data {
+    int type;
+    elapi_rslv_cb resolve_cb;
+};
+
+/* Structure to hold name-data tuples */
+struct elapi_resolve_list {
+    const char *name;
+    struct elapi_rslv_item_data resolve_item;
+};
+
+/* Function to initialize resolution list */
+int elapi_init_resolve_list(struct collection_iterator **list);
 
 /* Function to create event using arg list */
 int elapi_create_event_with_vargs(struct collection_item **event,
@@ -295,6 +315,11 @@ int elapi_tgt_submit(struct elapi_dispatcher *handle,
 
 /* Create list of targets for a dispatcher */
 int elapi_tgt_mklist(struct elapi_dispatcher *handle);
+
+/* Create event context */
+int elapi_resolve_event(struct collection_item **final_event,
+                        struct collection_item *event,
+                        struct elapi_dispatcher *handle);
 
 /* Send ELAPI config errors into a file */
 void elapi_dump_ini_err(struct collection_item *error_list);

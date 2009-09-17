@@ -97,6 +97,101 @@ static int elapi_dsp_msg_with_vargs(uint32_t target,
 
 
 /********** Main functions of the interface **********/
+/* Function to free the async context */
+void elapi_destroy_asctx(struct elapi_async_ctx *ctx)
+{
+    TRACE_FLOW_STRING("elapi_destroy_asctx", "Entry");
+
+    free(ctx);
+
+    TRACE_FLOW_STRING("elapi_destroy_asctx", "Exit");
+}
+
+/* Function to validate the consistency of the
+ * async context */
+static int elapi_check_asctx(struct elapi_async_ctx *ctx)
+{
+    int error = EOK;
+
+    TRACE_FLOW_STRING("elapi_check_asctx", "Entry");
+
+    /* Check callbacks */
+    if ((ctx->add_fd_cb == NULL) ||
+        (ctx->rem_fd_cb == NULL) ||
+        (ctx->set_fd_cb == NULL) ||
+        (ctx->add_tm_cb == NULL) ||
+        (ctx->rem_tm_cb == NULL)) {
+        TRACE_ERROR_NUMBER("One of the callbacks is missing. Error", EINVAL);
+        return EINVAL;
+    }
+
+    /* We do not check the data pointers.
+     * Why? Becuase thought it is a bad approach
+     * the data the callbacks will use
+     * can be a global (bad but can be!).
+     * So forcing caller to provide non-NULL
+     * data pointers is a bit too much.
+     */
+
+    TRACE_FLOW_STRING("elapi_check_asctx", "Exit");
+    return error;
+}
+
+/* Interface to create the async context */
+int elapi_create_asctx(struct elapi_async_ctx **ctx,
+                       elapi_add_fd add_fd_cb,
+                       elapi_rem_fd rem_fd_cb,
+                       elapi_set_fd set_fd_cb,
+                       void *ext_fd_data,
+                       elapi_add_tm add_tm_cb,
+                       elapi_rem_tm rem_tm_cb,
+                       void *ext_tm_data)
+{
+    int error = EOK;
+    struct elapi_async_ctx *ctx_new;
+
+    TRACE_FLOW_STRING("elapi_create_asctx", "Entry");
+
+    /* Allocate data, copy it and then check.
+     * Why this order? Why not check first
+     * without allocating memory and wasting
+     * cycles for it?
+     * Becuase the check function can be used
+     * in other place to validate that the context
+     * is correct. Allocating and freeing
+     * data is not an overhead since
+     * it is going to catch development
+     * error that would not exist in the final
+     * product. Otherwise the progam just
+     * would not run.
+     */
+
+    ctx_new = (struct elapi_async_ctx *)malloc(sizeof(struct elapi_async_ctx));
+    if (ctx_new == NULL) {
+        TRACE_ERROR_NUMBER("Failed to allocate memory for the context", ENOMEM);
+        return ENOMEM;
+    }
+
+    ctx_new->add_fd_cb = add_fd_cb;
+    ctx_new->rem_fd_cb = rem_fd_cb;
+    ctx_new->set_fd_cb = set_fd_cb;
+    ctx_new->add_tm_cb = add_tm_cb;
+    ctx_new->rem_tm_cb = rem_tm_cb;
+    ctx_new->ext_fd_data = ext_fd_data;
+    ctx_new->ext_tm_data = ext_tm_data;
+
+    error = elapi_check_asctx(ctx_new);
+    if (error) {
+        TRACE_ERROR_NUMBER("Check context failed", error);
+        elapi_destroy_asctx(ctx_new);
+        return error;
+    }
+
+    *ctx = ctx_new;
+
+    TRACE_FLOW_STRING("elapi_create_asctx", "Exit");
+    return error;
+}
 
 /* Function to create a dispatcher */
 int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
@@ -128,7 +223,14 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         return EINVAL;
     }
 
-    /* FIXME: Check if context is valid */
+    /* Check if context is valid */
+    if (async_ctx) {
+        error = elapi_check_asctx(async_ctx);
+        if (error) {
+            TRACE_ERROR_NUMBER("Check context failed", error);
+            return error;
+        }
+    }
 
     /* Check what is passed in the config_path */
     if (config_path) {
@@ -251,6 +353,14 @@ int elapi_create_dispatcher_adv(struct elapi_dispatcher **dispatcher,
         handle->async_ctx = NULL;
     }
 
+    /* Build the list of the items we know how to resolve */
+    error = elapi_init_resolve_list(&(handle->resolve_list));
+    if (error != EOK) {
+        TRACE_ERROR_NUMBER("Failed to create list of resolvers. Error", error);
+        elapi_destroy_dispatcher(handle);
+        return error;
+    }
+
     *dispatcher = handle;
 
     TRACE_FLOW_STRING("elapi_create_dispatcher_adv", "Returning Success.");
@@ -316,6 +426,8 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
         free_ini_config(dispatcher->ini_config);
         TRACE_INFO_STRING("Deleting targets name array.", "");
         free_string_config_array(dispatcher->targets);
+        TRACE_INFO_STRING("Unbind resolver iterator.", "");
+        col_unbind_iterator(dispatcher->resolve_list);
 		TRACE_INFO_STRING("Freeing dispatcher.", "");
         free(dispatcher);
     }
@@ -330,6 +442,7 @@ int elapi_dsp_log(uint32_t target,
 {
     int error = EOK;
     struct elapi_tgt_data target_data;
+    struct collection_item *resolved_event;
 
     TRACE_FLOW_STRING("elapi_dsp_log", "Entry");
 
@@ -339,9 +452,16 @@ int elapi_dsp_log(uint32_t target,
         return EINVAL;
     }
 
+    /* Create a resolved event */
+    error = elapi_resolve_event(&resolved_event, event, dispatcher);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to create event context. Error", error);
+        return error;
+    }
+
     /* Wrap parameters into one argument and pass on */
     target_data.handle = dispatcher;
-    target_data.event = event;
+    target_data.event = resolved_event;
     target_data.target_mask = target;
 
     TRACE_INFO_NUMBER("Target mask is:", target_data.target_mask);
@@ -351,6 +471,8 @@ int elapi_dsp_log(uint32_t target,
                                     COL_TRAVERSE_ONELEVEL,
                                     elapi_tgt_cb,
                                     (void *)(&target_data));
+
+    elapi_destroy_event(resolved_event);
 
     TRACE_FLOW_NUMBER("elapi_dsp_log Exit. Returning", error);
     return error;

@@ -208,8 +208,8 @@ int complex_event_test(void)
         return error;
     }
 
-    col_debug_collection(template, COL_TRAVERSE_FLAT);
-    col_debug_collection(event, COL_TRAVERSE_FLAT);
+    col_debug_collection(template, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
 
     error = elapi_log(E_TARGET_DEBUG, event);
 
@@ -233,8 +233,9 @@ int complex_event_test(void)
         "%d(int_number),", -200,
         "%u(unsigned_number)", 300,
         "%ld(long_number)", -1234567,
+        "%lu(long_unsigned)", -1234567,
         E_MESSAGE,
-        "%(stamp), %s(sub_string), %(int_number), %(unsigned_number), %(long_unsigned_number), %(bin), %e(double_number)",
+        "%(stamp), %(sub_string), %(int_number), %(unsigned_number), %(long_unsigned_number), %(bin), %(double_number)",
         E_EOARG);
 
     if (error) {
@@ -270,8 +271,11 @@ int complex_event_test(void)
 
     col_destroy_collection(col);
 
-    col_debug_collection(template, COL_TRAVERSE_FLAT);
-    col_debug_collection(event, COL_TRAVERSE_FLAT);
+    col_debug_collection(template, COL_TRAVERSE_DEFAULT);
+
+    printf("\nPRINTING EVENT\n\n");
+    printf("\nPRINTING EVENT, removed message added bin\n\n");
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
 
 
     if ((error = col_create_collection(&col, "test", 0)) ||
@@ -300,6 +304,10 @@ int complex_event_test(void)
         return error;
     }
 
+    printf("\nPRINTING EVENT, removed message, added bin,\n"
+           "added test collection with zzz & zzz2\n\n");
+
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
     col_destroy_collection(col);
 
     if ((error = col_create_collection(&col, "flat", 0)) ||
@@ -326,6 +334,9 @@ int complex_event_test(void)
         return error;
     }
 
+    printf("\nPRINTING EVENT, added flat collection with zzz & zzz2\n\n");
+
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
     col_destroy_collection(col);
 
     error = elapi_copy_event(&event_copy, event);

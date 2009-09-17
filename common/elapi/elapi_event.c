@@ -449,7 +449,7 @@ static int interpret_key(char *key,
             adjust_by = 2;
         }
         else if ((*cursor == 'u') && (*(cursor+1) == '(')) {
-            *type = COL_TYPE_INTEGER;
+            *type = COL_TYPE_UNSIGNED;
             adjust_by = 2;
         }
         else if ((*cursor == 'l') && ((*(cursor+1) == 'i')||(*(cursor+1) == 'd')) && (*(cursor+2) == '(')) {
@@ -457,7 +457,7 @@ static int interpret_key(char *key,
             adjust_by = 3;
         }
         else if ((*cursor == 'l') && (*(cursor+1) == 'u') && (*(cursor+2) == '(')) {
-            *type = COL_TYPE_LONG;
+            *type = COL_TYPE_ULONG;
             adjust_by = 3;
         }
         else if (((*cursor == 'f')||(*cursor == 'e')) && (*(cursor+1) == '(')) {
@@ -866,6 +866,7 @@ int elapi_create_event_with_vargs(struct collection_item **event,
 {
     int error = EOK;
     struct collection_item *evt = NULL;
+    const char *alias;
 
     TRACE_FLOW_STRING("elapi_create_event_with_vargs", "Entry");
 
@@ -897,9 +898,17 @@ int elapi_create_event_with_vargs(struct collection_item **event,
         }
     }
 
-    /* Add elements from the template */
+    /* Add elements from the collection */
     if (collection != NULL) {
-        error = col_add_collection_to_collection(evt, NULL, NULL, collection, mode);
+        /* If we are told to use FLAT DOT mode
+         * add collection with prefixing here.
+         */
+        if (mode == COL_ADD_MODE_FLATDOT) {
+            alias = col_get_item_property(collection, NULL);
+        }
+        else alias = NULL;
+
+        error = col_add_collection_to_collection(evt, NULL, alias, collection, mode);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to add elements from external collection. Error", error);
             col_destroy_collection(evt);
@@ -955,6 +964,7 @@ int elapi_modify_event(struct collection_item *event,
 {
     int error = EOK;
     va_list args;
+    const char *alias;
 
     TRACE_FLOW_STRING("elapi_modify_event", "Entry");
 
@@ -966,7 +976,14 @@ int elapi_modify_event(struct collection_item *event,
 
     /* Add elements from the template */
     if (collection != NULL) {
-        error = col_add_collection_to_collection(event, NULL, NULL, collection, mode);
+        /* If we are told to use FLAT DOT mode
+         * add collection with prefixing here.
+         */
+        if (mode == COL_ADD_MODE_FLATDOT) {
+            alias = col_get_item_property(collection, NULL);
+        }
+        else alias = NULL;
+        error = col_add_collection_to_collection(event, NULL, alias, collection, mode);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to add elements from external collection. Error", error);
             col_destroy_collection(event);

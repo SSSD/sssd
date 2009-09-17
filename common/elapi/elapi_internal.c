@@ -74,18 +74,12 @@ int elapi_tgt_cb(const char *target,
 
     TRACE_INFO_STRING("Current event will be logged into the target:", target);
 
-    /* FIXME THIS IS A PLACEHOLDER FUNCTION FOR NOW */
-
-    printf("\n\n\nPROCESSING EVENT:\n");
-    col_debug_collection(target_data->event, COL_TRAVERSE_DEFAULT);
-
     /* Log event */
     error = elapi_tgt_submit(target_data->handle, context, target_data->event);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to submit event to target", error);
         return error;
     }
-
 
     TRACE_FLOW_STRING("elapi_tgt_cb", "Exit.");
     return EOK;
