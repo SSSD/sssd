@@ -998,10 +998,10 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct sdap_id_ctx *ctx)
 {
     struct tevent_req *req, *subreq;
-    struct users_get_state *state;
+    struct enum_users_state *state;
     int ret;
 
-    req = tevent_req_create(memctx, &state, struct users_get_state);
+    req = tevent_req_create(memctx, &state, struct enum_users_state);
     if (!req) return NULL;
 
     state->ev = ev;
