@@ -116,7 +116,7 @@
  * the event is created so initializing them
  * does not make sense unless you use the base
  * that does not include them.
- * The list of key value pairs should be terminated by special
+ * The list of key value pairs MUST be terminated by special
  * argument E_EOARG.
  */
 int elapi_create_event_template(struct collection_item **template,

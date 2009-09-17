@@ -27,6 +27,46 @@
 /* THIS IS A PRIVATE HEADER - included for debugging purposes only! */
 #include "elapi_priv.h"
 
+#define APPNAME             "elapi_ut"
+#define ELAPI_CONFIG_FILE   "elapi_ut.conf"
+
+typedef (*test_fn)(void);
+
+int elapi_init_test(void)
+{
+    int error = 0;
+
+    printf("elapi_init test START:\n");
+
+    error = elapi_init(APPNAME, "./"ELAPI_CONFIG_FILE);
+    if (error) {
+        printf("elapi_init failed: %d", error);
+        return error;
+    }
+
+    elapi_close();
+
+    printf("elapi_init test success!\n");
+    return 0;
+}
+
+int elapi_get_default_template_test(void)
+{
+    struct collection_item *template;
+    int error = 0;
+
+    printf("elapi_get_default_template_test test START:\n");
+
+    error = elapi_get_default_template(&template);
+    if (error) {
+        printf("elapi_get_default_template failed: %d", error);
+        return error;
+    }
+
+    printf("elapi_get_default_template test success!\n");
+    return 0;
+}
+
 int simple_event_test(void)
 {
     int error = 0;
@@ -355,13 +395,23 @@ int complex_event_test(void)
 int main(int argc, char *argv[])
 {
     int error = 0;
+    test_fn tests[] = { elapi_init_test,
+                        elapi_get_default_template_test,
+                        simple_event_test,
+                        complex_event_test,
+                        NULL };
+    test_fn t;
+    int i = 0;
 
     printf("Start\n");
-    if ((error = simple_event_test()) ||
-        (error = complex_event_test())) {
-        printf("Failed!\n");
+    while (t = tests[i++]) {
+        error = t();
+        if (error) {
+            printf("Failed!\n");
+            return error;
+        }
     }
-    else printf("Success!\n");
-    /* Add other tests here ... */
-    return error;
+
+    printf("Success!\n");
+    return 0;
 }

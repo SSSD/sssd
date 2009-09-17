@@ -411,7 +411,7 @@ int elapi_get_default_template(struct collection_item **template)
         (global_dispatcher->default_template == NULL)) {
         TRACE_INFO_STRING("Default template does not exit", "");
 
-        error = elapi_set_default_template(E_BASE_DEFV1);
+        error = elapi_set_default_template(E_BASE_DEFV1, E_EOARG);
         if (error) {
             TRACE_ERROR_NUMBER("Set default template returned error", error);
             return error;
