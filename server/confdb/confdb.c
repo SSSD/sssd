@@ -33,6 +33,13 @@
 #define CONFDB_DOMAINS_PATH "config/domains"
 #define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
 #define CONFDB_DOMAIN_ATTR "cn"
+#define CONFDB_PROVIDER "provider"
+#define CONFDB_TIMEOUT "timeout"
+#define CONFDB_ENUMERATE "enumerate"
+#define CONFDB_MINID "minId"
+#define CONFDB_MAXID "maxId"
+#define CONFDB_CACHE_CREDS "cache-credentials"
+#define CONFDB_LEGACY_PASS "store-legacy-passwords"
 #define CONFDB_MPG "magicPrivateGroups"
 #define CONFDB_FQ "useFullyQualifiedNames"
 
@@ -685,6 +692,12 @@ static errno_t get_entry_as_uint32(struct ldb_message *msg,
     char *endptr;
     uint32_t u32ret = 0;
 
+    *return_value = 0;
+
+    if (!msg || !entry) {
+        return EFAULT;
+    }
+
     tmp = ldb_msg_find_attr_as_string(msg, entry, NULL);
     if (tmp == NULL) {
         *return_value = default_value;
@@ -706,6 +719,39 @@ static errno_t get_entry_as_uint32(struct ldb_message *msg,
     }
 
     *return_value = u32ret;
+    return EOK;
+}
+
+static errno_t get_entry_as_bool(struct ldb_message *msg,
+                                   bool *return_value,
+                                   const char *entry,
+                                   bool default_value)
+{
+    const char *tmp = NULL;
+    char *endptr;
+
+    *return_value = 0;
+
+    if (!msg || !entry) {
+        return EFAULT;
+    }
+
+    tmp = ldb_msg_find_attr_as_string(msg, entry, NULL);
+    if (tmp == NULL || *tmp == '\0') {
+        *return_value = default_value;
+        return EOK;
+    }
+
+    if (strcasecmp(tmp, "FALSE") == 0) {
+        *return_value = 0;
+    }
+    else if (strcasecmp(tmp, "TRUE") == 0) {
+        *return_value = 1;
+    }
+    else {
+        return EINVAL;
+    }
+
     return EOK;
 }
 
@@ -762,7 +808,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0], "provider", NULL);
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PROVIDER, NULL);
     if (tmp) {
         domain->provider = talloc_strdup(domain, tmp);
         if (!domain->provider) {
@@ -778,21 +824,24 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
-                                               "timeout", 0);
+                                               CONFDB_TIMEOUT, 0);
 
     /* Determine if this domain can be enumerated */
 
     /* TEMP: test if the old bitfield conf value is used and warn it has been
      * superceeded. */
-    val = ldb_msg_find_attr_as_int(res->msgs[0], "enumerate", 0);
+    val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_ENUMERATE, 0);
     if (val > 0) { /* ok there was a number in here */
         SYSLOG_ERROR("Warning: enumeration parameter in %s still uses integers! "
                      "Enumeration is now a boolean and takes true/false values. "
                      "Interpreting as true\n", domain->name);
         domain->enumerate = true;
     } else { /* assume the new format */
-        if (ldb_msg_find_attr_as_bool(res->msgs[0], "enumerate", 0)) {
-            domain->enumerate = true;
+        ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
+                                CONFDB_ENUMERATE, 0);
+        if(ret != EOK) {
+            SYSLOG_ERROR("Invalid value for %s\n", CONFDB_ENUMERATE);
+            goto done;
         }
     }
     if (!domain->enumerate) {
@@ -800,19 +849,27 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     /* Determine if this is domain uses MPG */
-    if (strcasecmp(domain->provider, "local") == 0 ||
-        ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_MPG, 0)) {
+    ret = get_entry_as_bool(res->msgs[0], &domain->mpg, CONFDB_MPG, 0);
+    if(ret != EOK) {
+        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_MPG);
+        goto done;
+    }
+
+    /* The local provider always uses MPG, so override it */
+    if (strcasecmp(domain->provider, "local") == 0) {
         domain->mpg = true;
     }
 
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
-    if (ldb_msg_find_attr_as_bool(res->msgs[0], CONFDB_FQ, 0)) {
-        domain->fqnames = true;
+    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_FQ, 0);
+    if(ret != EOK) {
+        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_FQ);
+        goto done;
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
-                              "minId", SSSD_MIN_ID);
+                              CONFDB_MINID, SSSD_MIN_ID);
     if (ret != EOK) {
         SYSLOG_ERROR("Invalid value for minId\n");
         ret = EINVAL;
@@ -820,7 +877,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_max,
-                              "maxId", 0);
+                              CONFDB_MAXID, 0);
     if (ret != EOK) {
         SYSLOG_ERROR("Invalid value for maxId\n");
         ret = EINVAL;
@@ -834,12 +891,18 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     /* Do we allow to cache credentials */
-    if (ldb_msg_find_attr_as_bool(res->msgs[0], "cache-credentials", 0)) {
-        domain->cache_credentials = true;
+    ret = get_entry_as_bool(res->msgs[0], &domain->cache_credentials,
+                            CONFDB_CACHE_CREDS, 0);
+    if(ret != EOK) {
+        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_CACHE_CREDS);
+        goto done;
     }
 
-    if (ldb_msg_find_attr_as_bool(res->msgs[0], "store-legacy-passwords", 0)) {
-        domain->legacy_passwords = true;
+    ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
+                            CONFDB_LEGACY_PASS, 0);
+    if(ret != EOK) {
+        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_LEGACY_PASS);
+        goto done;
     }
 
     *_domain = domain;
