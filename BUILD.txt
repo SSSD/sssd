@@ -10,7 +10,14 @@ talloc, tdb, tevent, ldb
 
 They are now available in major distribution development branches.
 
-If you want to build them from source download the latest samba master branch
+If you want to build them from source download the latest samba master branch.
+
+To install all of the dependencies in Fedora before building sssd:
+yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
+    dbus-devel libxslt-devel docbook-style-xsl krb5-devel \
+    docbook-style-xsl libxml2 pam-devel nss-devel libtevent \
+    libtevent-devel libtdb libtdb-devel libtalloc libtalloc-devel \
+    libldb libldb-devel cvs popt-devel
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 How to build everything in one go (Preferred approach)
