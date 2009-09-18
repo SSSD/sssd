@@ -62,11 +62,11 @@ static void close_low_fds(bool stderr_too)
 		if (fd < 0)
 			fd = open("/dev/null",O_WRONLY,0);
 		if (fd < 0) {
-			DEBUG(0,("Can't open /dev/null\n"));
+                        SYSLOG_ERROR("Can't open /dev/null\n");
 			return;
 		}
 		if (fd != i) {
-			DEBUG(0,("Didn't get file descriptor %d\n",i));
+                        SYSLOG_ERROR("Didn't get file descriptor %d\n",i);
 			return;
 		}
 	}
@@ -94,8 +94,8 @@ void become_daemon(bool Fork)
         errno = 0;
         if(chdir("/") == -1) {
             ret = errno;
-            DEBUG(0, ("Cannot change directory (%d [%s])\n",
-                    ret, strerror(ret)));
+            SYSLOG_ERROR("Cannot change directory (%d [%s])\n",
+                      ret, strerror(ret));
             return;
         }
 
@@ -187,7 +187,7 @@ static void sig_term(int sig)
 #if HAVE_GETPGRP
 	static int done_sigterm;
 	if (done_sigterm == 0 && getpgrp() == getpid()) {
-		DEBUG(0,("SIGTERM: killing children\n"));
+                SYSLOG_NOTICE("SIGTERM: killing children\n");
 		done_sigterm = 1;
 		kill(-getpgrp(), SIGTERM);
 	}
@@ -201,7 +201,7 @@ static void sig_segv_abrt(int sig)
 #if HAVE_GETPGRP
 	static int done;
 	if (done == 0 && getpgrp() == getpid()) {
-		DEBUG(0,("%s: killing children\n", strsignal(sig)));
+                SYSLOG_NOTICE("%s: killing children\n", strsignal(sig));
 		done = 1;
 		kill(-getpgrp(), SIGTERM);
 	}
@@ -258,7 +258,7 @@ static void server_stdin_handler(struct tevent_context *event_ctx,
 	const char *binary_name = (const char *)private;
 	uint8_t c;
 	if (read(0, &c, 1) == 0) {
-		DEBUG(0,("%s: EOF on stdin - terminating\n", binary_name));
+                SYSLOG_NOTICE("%s: EOF on stdin - terminating\n", binary_name);
 #if HAVE_GETPGRP
 		if (getpgrp() == getpid()) {
 			kill(-getpgrp(), SIGTERM);
@@ -320,8 +320,8 @@ int server_setup(const char *name, int flags,
     if (flags & FLAGS_PID_FILE) {
         ret = pidfile(PID_PATH, name);
         if (ret != EOK) {
-            DEBUG(0, ("Error creating pidfile! (%d [%s])\n",
-                      ret, strerror(ret)));
+            SYSLOG_ERROR("Error creating pidfile! (%d [%s])\n",
+                         ret, strerror(ret));
             return ret;
         }
     }
@@ -335,13 +335,13 @@ int server_setup(const char *name, int flags,
      * Everything else should hang off that */
     event_ctx = tevent_context_init(talloc_autofree_context());
     if (event_ctx == NULL) {
-        DEBUG(0,("The event context initialiaziton failed\n"));
+        SYSLOG_ERROR("The event context initialiaziton failed\n");
         return 1;
     }
 
     ctx = talloc(event_ctx, struct main_context);
     if (ctx == NULL) {
-        DEBUG(0,("Out of memory, aborting!\n"));
+        SYSLOG_ERROR("Out of memory, aborting!\n");
         return ENOMEM;
     }
 
@@ -349,14 +349,14 @@ int server_setup(const char *name, int flags,
 
     conf_db = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (conf_db == NULL) {
-        DEBUG(0,("Out of memory, aborting!\n"));
+        SYSLOG_ERROR("Out of memory, aborting!\n");
         return ENOMEM;
     }
     DEBUG(3, ("CONFDB: %s\n", conf_db));
 
     ret = confdb_init(ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
-        DEBUG(0,("The confdb initialization failed\n"));
+        SYSLOG_ERROR("The confdb initialization failed\n");
         return ret;
     }
 
@@ -364,8 +364,8 @@ int server_setup(const char *name, int flags,
     ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
                          "debug-level", debug_level, &debug_level);
     if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
+        SYSLOG_ERROR("Error reading from confdb (%d) [%s]\n",
+                     ret, strerror(ret));
         return ret;
     }
 
@@ -374,8 +374,8 @@ int server_setup(const char *name, int flags,
     ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
                           "debug-timestamps", dt, &dt);
     if (ret != EOK) {
-        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
-                  ret, strerror(ret)));
+        SYSLOG_ERROR("Error reading from confdb (%d) [%s]\n",
+                     ret, strerror(ret));
         return ret;
     }
     if (dt) debug_timestamps = 1;

@@ -70,7 +70,7 @@ static int sss_dp_req_destructor(void *ptr)
     key.str = sdp_req->key;
     int hret = hash_delete(dp_requests, &key);
     if (hret != HASH_SUCCESS) {
-        DEBUG(0, ("Could not clear entry from request queue\n"));
+        SYSLOG_ERROR("Could not clear entry from request queue\n");
         /* This should never happen */
         return EIO;
     }
@@ -269,7 +269,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
             /* We have a new request asking for a callback */
             sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
             if (!sdp_req) {
-                DEBUG(0, ("Could not retrieve DP request context\n"));
+                SYSLOG_ERROR("Could not retrieve DP request context\n");
                 ret = EIO;
                 goto done;
             }
@@ -303,8 +303,8 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
             value.ptr = sdp_req;
             hret = hash_enter(dp_requests, &key, &value);
             if (hret != HASH_SUCCESS) {
-                DEBUG(0, ("Could not store request query (%s)",
-                          hash_error_string(hret)));
+                SYSLOG_ERROR("Could not store request query (%s)",
+                             hash_error_string(hret));
                 ret = EIO;
                 goto done;
             }
@@ -315,8 +315,8 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         break;
 
     default:
-        DEBUG(0,("Could not query request list (%s)\n",
-                  hash_error_string(hret)));
+        SYSLOG_ERROR("Could not query request list (%s)\n",
+                     hash_error_string(hret));
         ret = EIO;
         goto done;
     }
@@ -364,7 +364,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                        DP_CLI_INTERFACE,
                                        DP_SRV_METHOD_GETACCTINFO);
     if (msg == NULL) {
-        DEBUG(0,("Out of memory?!\n"));
+        SYSLOG_ERROR("Out of memory?!\n");
         return ENOMEM;
     }
 
@@ -390,7 +390,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
          * We can't communicate on this connection
          * We'll drop it using the default destructor.
          */
-        DEBUG(0, ("D-BUS send failed.\n"));
+        SYSLOG_ERROR("D-BUS send failed.\n");
         dbus_message_unref(msg);
         return EIO;
     }
@@ -423,7 +423,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                          sss_dp_send_acct_callback,
                                          sdp_req, NULL);
     if (!dbret) {
-        DEBUG(0, ("Could not queue up pending request!"));
+        SYSLOG_ERROR("Could not queue up pending request!");
         talloc_zfree(sdp_req);
         dbus_pending_call_cancel(pending_reply);
         dbus_message_unref(msg);
@@ -456,7 +456,7 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
+        SYSLOG_ERROR("Severe error. A reply callback was called but no reply was received and no timeout occurred\n");
 
         /* FIXME: Destroy this connection ? */
         err = EIO;
@@ -490,8 +490,8 @@ static int sss_dp_get_reply(DBusPendingCall *pending,
             err = ETIME;
             goto done;
         }
-        DEBUG(0,("The Data Provider returned an error [%s]\n",
-                 dbus_message_get_error_name(reply)));
+        SYSLOG_ERROR("The Data Provider returned an error [%s]\n",
+                     dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
     default:
         /*

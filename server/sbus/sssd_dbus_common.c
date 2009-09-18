@@ -130,7 +130,7 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
         /* does not exist, allocate new one */
         watch = talloc_zero(conn, struct sbus_watch_ctx);
         if (!watch) {
-            DEBUG(0, ("Out of Memory!\n"));
+            SYSLOG_ERROR("Out of Memory!\n");
             return FALSE;
         }
         watch->conn = conn;
@@ -170,7 +170,7 @@ dbus_bool_t sbus_add_watch(DBusWatch *dbus_watch, void *data)
                                watch, fd, event_flags,
                                sbus_watch_handler, watch);
     if (!watch->fde) {
-        DEBUG(0, ("Failed to set up fd event!\n"));
+        SYSLOG_ERROR("Failed to set up fd event!\n");
         talloc_zfree(watch);
         return FALSE;
     }
@@ -323,7 +323,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
 
     timeout = talloc_zero(conn, struct sbus_timeout_ctx);
     if (!timeout) {
-        DEBUG(0, ("Out of Memory!\n"));
+        SYSLOG_ERROR("Out of Memory!\n");
         return FALSE;
     }
     timeout->dbus_timeout = dbus_timeout;
@@ -332,7 +332,7 @@ dbus_bool_t sbus_add_timeout(DBusTimeout *dbus_timeout, void *data)
     timeout->te = tevent_add_timer(conn->ev, timeout, tv,
                                    sbus_timeout_handler, timeout);
     if (!timeout->te) {
-        DEBUG(0, ("Failed to set up timeout event!\n"));
+        SYSLOG_ERROR("Failed to set up timeout event!\n");
         return FALSE;
     }
 

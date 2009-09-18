@@ -30,6 +30,7 @@
 #include <limits.h>
 #include <time.h>
 #include <pcre.h>
+#include <syslog.h>
 #include "config.h"
 #include "talloc.h"
 #include "tevent.h"
@@ -43,6 +44,7 @@ typedef int errno_t;
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
+extern int send_syslog;
 void debug_fn(const char *format, ...);
 
 #define SSSD_DEBUG_OPTS \
@@ -80,6 +82,20 @@ void debug_fn(const char *format, ...);
 
 #define PRINT(fmt, ...) fprintf(stdout, gettext(fmt), ##__VA_ARGS__)
 #define ERROR(fmt, ...) fprintf(stderr, gettext(fmt), ##__VA_ARGS__)
+
+#define SYSLOG_ERROR(...) do { \
+    DEBUG(0, (__VA_ARGS__)); \
+    if (send_syslog) { \
+        syslog(LOG_ERR, __VA_ARGS__); \
+    } \
+} while(0);
+
+#define SYSLOG_NOTICE(...) do { \
+    DEBUG(0, (__VA_ARGS__)); \
+    if (send_syslog) { \
+        syslog(LOG_NOTICE, __VA_ARGS__); \
+    } \
+} while(0);
 
 #ifndef discard_const
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))

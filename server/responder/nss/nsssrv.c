@@ -46,6 +46,8 @@
 
 #define SSS_NSS_PIPE_NAME "nss"
 
+#define PRG_NAME "sssd[nss]"
+
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method monitor_nss_methods[] = {
@@ -113,13 +115,13 @@ static int nss_get_config(struct nss_ctx *nctx,
                          &nctx->cache_refresh_timeout);
     if (ret != EOK) goto done;
     if (nctx->cache_refresh_timeout >= nctx->cache_timeout) {
-        DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout exceeds"
-                 "EntryCacheTimeout. Disabling feature.\n"));
+        SYSLOG_ERROR("Configuration error: EntryCacheNoWaitRefreshTimeout exceeds"
+                     "EntryCacheTimeout. Disabling feature.\n");
         nctx->cache_refresh_timeout = 0;
     }
     if (nctx->cache_refresh_timeout < 0) {
-        DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout is"
-                 "invalid. Disabling feature.\n"));
+        SYSLOG_ERROR("Configuration error: EntryCacheNoWaitRefreshTimeout is"
+                     "invalid. Disabling feature.\n");
         nctx->cache_refresh_timeout = 0;
     }
 
@@ -239,7 +241,7 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
     }
 
     /* Failed to reconnect */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    SYSLOG_ERROR("Could not reconnect to data provider.\n");
     /* Kill the backend and let the monitor restart it */
     nss_shutdown(rctx);
 }
@@ -254,13 +256,13 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
-        DEBUG(0, ("fatal error initializing nss_ctx\n"));
+        SYSLOG_ERROR("fatal error initializing nss_ctx\n");
         return ENOMEM;
     }
 
     ret = nss_ncache_init(nctx, &nctx->ncache);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing negative cache\n"));
+        SYSLOG_ERROR("fatal error initializing negative cache\n");
         return ret;
     }
 
@@ -285,7 +287,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = nss_get_config(nctx, nctx->rctx, cdb);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error getting nss config\n"));
+        SYSLOG_ERROR("fatal error getting nss config\n");
         return ret;
     }
 
@@ -294,7 +296,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                          SERVICE_CONF_ENTRY,
                          "reconnection_retries", 3, &max_retries);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        SYSLOG_ERROR("Failed to set up automatic reconnection\n");
         return ret;
     }
 
@@ -333,8 +335,11 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+    /* enable syslog logging */
+    openlog(PRG_NAME, LOG_PID, LOG_DAEMON);
+
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[nss]", 0, NSS_SRV_CONFIG, &main_ctx);
+    ret = server_setup(PRG_NAME, 0, NSS_SRV_CONFIG, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
@@ -350,6 +355,9 @@ int main(int argc, const char *argv[])
 
     /* loop on main */
     server_loop(main_ctx);
+
+    /* close syslog */
+    closelog();
 
     return 0;
 }

@@ -873,7 +873,7 @@ static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
     tv = tevent_timeval_add(&tv, ert, 0);
     enum_task = tevent_add_timer(ctx->be->ev, ctx, tv, ldap_id_enumerate, ctx);
     if (!enum_task) {
-        DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
+        SYSLOG_ERROR("FATAL: failed to setup enumeration task!\n");
         /* shutdown! */
         exit(1);
     }
@@ -1354,7 +1354,7 @@ int sssm_ldap_init(struct be_ctx *bectx,
         enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
                                  ldap_id_enumerate, ctx);
         if (!enum_task) {
-            DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
+            SYSLOG_ERROR("FATAL: failed to setup enumeration task!\n");
             ret = EFAULT;
             goto done;
         }

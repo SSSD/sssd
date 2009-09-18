@@ -516,7 +516,7 @@ static int mon_cli_init(struct be_ctx *ctx)
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(ctx, ctx->cdb, &sbus_address);
     if (ret != EOK) {
-        DEBUG(0, ("Could not locate monitor address.\n"));
+        SYSLOG_ERROR("Could not locate monitor address.\n");
         return ret;
     }
 
@@ -524,7 +524,7 @@ static int mon_cli_init(struct be_ctx *ctx)
                            &monitor_be_interface, &ctx->mon_conn,
                            NULL, ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        SYSLOG_ERROR("Failed to connect to monitor services.\n");
         return ret;
     }
 
@@ -533,7 +533,7 @@ static int mon_cli_init(struct be_ctx *ctx)
                                  ctx->identity,
                                  DATA_PROVIDER_VERSION);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to identify to the monitor!\n"));
+        SYSLOG_ERROR("Failed to identify to the monitor!\n");
         return ret;
     }
 
@@ -552,7 +552,7 @@ static int be_cli_init(struct be_ctx *ctx)
     /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(ctx, ctx->cdb, &sbus_address);
     if (ret != EOK) {
-        DEBUG(0, ("Could not locate monitor address.\n"));
+        SYSLOG_ERROR("Could not locate monitor address.\n");
         return ret;
     }
 
@@ -560,7 +560,7 @@ static int be_cli_init(struct be_ctx *ctx)
                            &be_interface, &ctx->dp_conn,
                            NULL, ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to monitor services.\n"));
+        SYSLOG_ERROR("Failed to connect to monitor services.\n");
         return ret;
     }
 
@@ -569,7 +569,7 @@ static int be_cli_init(struct be_ctx *ctx)
                             DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
                             "", ctx->domain->name);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to identify to the data provider!\n"));
+        SYSLOG_ERROR("Failed to identify to the data provider!\n");
         return ret;
     }
 
@@ -577,7 +577,7 @@ static int be_cli_init(struct be_ctx *ctx)
     ret = confdb_get_int(ctx->cdb, ctx, SERVICE_CONF_ENTRY,
                          "reconnection_retries", 3, &max_retries);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to set up automatic reconnection\n"));
+        SYSLOG_ERROR("Failed to set up automatic reconnection\n");
         return ret;
     }
 
@@ -604,20 +604,20 @@ static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void
                                 DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
                                 "", be_ctx->domain->name);
         if (ret != EOK) {
-            DEBUG(0, ("Failed to send id to the data provider!\n"));
+            SYSLOG_ERROR("Failed to send id to the data provider!\n");
         } else {
             return;
         }
     }
 
     /* Handle failure */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
+    SYSLOG_ERROR("Could not reconnect to data provider.\n");
 
     /* Kill the backend and let the monitor restart it */
     ret = be_finalize(be_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]\n",
-                  ret, strerror(ret)));
+        SYSLOG_ERROR("Finalizing back-end failed with error [%d] [%s]\n",
+                     ret, strerror(ret));
         be_shutdown(NULL, ret, NULL);
     }
 }
@@ -629,8 +629,8 @@ static void be_shutdown(struct be_req *req, int status, const char *errstr)
         exit(0);
 
     /* Something went wrong in finalize */
-    DEBUG(0, ("Finalizing auth module failed with error [%d] [%s]\n",
-              status, errstr ? : strerror(status)));
+    SYSLOG_ERROR("Finalizing auth module failed with error [%d] [%s]\n",
+                 status, errstr ? : strerror(status));
 
     exit(1);
 }
@@ -643,8 +643,8 @@ static void be_id_shutdown(struct be_req *req, int status, const char *errstr)
 
     if (status != EOK) {
         /* Something went wrong in finalize */
-        DEBUG(0, ("Finalizing auth module failed with error [%d] [%s]\n",
-                  status, errstr ? : strerror(status)));
+        SYSLOG_ERROR("Finalizing auth module failed with error [%d] [%s]\n",
+                     status, errstr ? : strerror(status));
     }
 
     ctx = req->be_ctx;
@@ -690,7 +690,7 @@ static int be_finalize(struct be_ctx *ctx)
 
 fail:
     /* If we got here, we couldn't shut down cleanly. */
-    DEBUG(0, ("ERROR: could not shut down cleanly.\n"));
+    SYSLOG_ERROR("ERROR: could not shut down cleanly.\n");
     return ret;
 }
 
@@ -784,8 +784,8 @@ static int load_backend_module(struct be_ctx *ctx,
         DEBUG(7, ("Loading backend [%s] with path [%s].\n", mod_name, path));
         handle = dlopen(path, RTLD_NOW);
         if (!handle) {
-            DEBUG(0, ("Unable to load %s module with path (%s), error: %s\n",
-                      mod_name, path, dlerror()));
+            SYSLOG_ERROR("Unable to load %s module with path (%s), error: %s\n",
+                         mod_name, path, dlerror());
             ret = ELIBACC;
             goto done;
         }
@@ -797,16 +797,16 @@ static int load_backend_module(struct be_ctx *ctx,
     mod_init_fn = (bet_init_fn_t)dlsym(ctx->loaded_be[lb].handle,
                                            mod_init_fn_name);
     if (mod_init_fn == NULL) {
-        DEBUG(0, ("Unable to load init fn %s from module %s, error: %s\n",
-                  mod_init_fn_name, mod_name, dlerror()));
+        SYSLOG_ERROR("Unable to load init fn %s from module %s, error: %s\n",
+                     mod_init_fn_name, mod_name, dlerror());
         ret = ELIBBAD;
         goto done;
     }
 
     ret = mod_init_fn(ctx, be_ops, be_pvt_data);
     if (ret != EOK) {
-        DEBUG(0, ("Error (%d) in module (%s) initialization (%s)!\n",
-                  ret, mod_name, mod_init_fn_name));
+        SYSLOG_ERROR("Error (%d) in module (%s) initialization (%s)!\n",
+                     ret, mod_name, mod_init_fn_name);
         goto done;
     }
 
@@ -877,7 +877,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
 
     ctx = talloc_zero(mem_ctx, struct be_ctx);
     if (!ctx) {
-        DEBUG(0, ("fatal error initializing be_ctx\n"));
+        SYSLOG_ERROR("fatal error initializing be_ctx\n");
         return ENOMEM;
     }
     ctx->ev = ev;
@@ -885,37 +885,37 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
     ctx->conf_path = talloc_asprintf(ctx, "config/domains/%s", be_domain);
     if (!ctx->identity || !ctx->conf_path) {
-        DEBUG(0, ("Out of memory!?\n"));
+        SYSLOG_ERROR("Out of memory!?\n");
         return ENOMEM;
     }
 
     ret = confdb_get_domain(cdb, be_domain, &ctx->domain);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error retrieving domain configuration\n"));
+        SYSLOG_ERROR("fatal error retrieving domain configuration\n");
         return ret;
     }
 
     ret = sysdb_domain_init(ctx, ev, ctx->domain, DB_PATH, &ctx->sysdb);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error opening cache database\n"));
+        SYSLOG_ERROR("fatal error opening cache database\n");
         return ret;
     }
 
     ret = mon_cli_init(ctx);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error setting up monitor bus\n"));
+        SYSLOG_ERROR("fatal error setting up monitor bus\n");
         return ret;
     }
 
     ret = be_cli_init(ctx);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error setting up server bus\n"));
+        SYSLOG_ERROR("fatal error setting up server bus\n");
         return ret;
     }
 
     ret = be_rewrite(ctx);
     if (ret != EOK) {
-        DEBUG(0, ("error rewriting provider types\n"));
+        SYSLOG_ERROR("error rewriting provider types\n");
         return ret;
     }
 
@@ -923,7 +923,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               &ctx->bet_info[BET_ID].bet_ops,
                               &ctx->bet_info[BET_ID].pvt_bet_data);
     if (ret != EOK) {
-        DEBUG(0, ("fatal error initializing data providers\n"));
+        SYSLOG_ERROR("fatal error initializing data providers\n");
         return ret;
     }
 
@@ -932,7 +932,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               &ctx->bet_info[BET_AUTH].pvt_bet_data);
     if (ret != EOK) {
         if (ret != ENOENT) {
-            DEBUG(0, ("fatal error initializing data providers\n"));
+            SYSLOG_ERROR("fatal error initializing data providers\n");
             return ret;
         }
         DEBUG(1, ("No authentication module provided for [%s] !!\n",
@@ -944,7 +944,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               &ctx->bet_info[BET_ACCESS].pvt_bet_data);
     if (ret != EOK) {
         if (ret != ENOENT) {
-            DEBUG(0, ("fatal error initializing data providers\n"));
+            SYSLOG_ERROR("fatal error initializing data providers\n");
             return ret;
         }
         DEBUG(1, ("No access control module provided for [%s] "
@@ -958,7 +958,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                               &ctx->bet_info[BET_CHPASS].pvt_bet_data);
     if (ret != EOK) {
         if (ret != ENOENT) {
-            DEBUG(0, ("fatal error initializing data providers\n"));
+            SYSLOG_ERROR("fatal error initializing data providers\n");
             return ret;
         }
         DEBUG(1, ("No change password module provided for [%s] !!\n",
@@ -1012,9 +1012,12 @@ int main(int argc, const char *argv[])
     conf_entry = talloc_asprintf(NULL, BE_CONF_ENTRY, be_domain);
     if (!conf_entry) return 2;
 
+    /* enable syslog logging */
+    openlog(srv_name, LOG_PID, LOG_DAEMON);
+
     ret = server_setup(srv_name, 0, conf_entry, &main_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not set up mainloop [%d]\n", ret));
+        SYSLOG_ERROR("Could not set up mainloop [%d]\n", ret);
         return 2;
     }
 
@@ -1029,7 +1032,7 @@ int main(int argc, const char *argv[])
                           main_ctx->event_ctx,
                           main_ctx->confdb_ctx);
     if (ret != EOK) {
-        DEBUG(0, ("Could not initialize backend [%d]\n", ret));
+        SYSLOG_ERROR("Could not initialize backend [%d]\n", ret);
         return 3;
     }
 
@@ -1037,6 +1040,9 @@ int main(int argc, const char *argv[])
 
     /* loop on main */
     server_loop(main_ctx);
+
+    /* close syslog */
+    closelog();
 
     return 0;
 }

@@ -74,8 +74,8 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        DEBUG(0, ("Severe error. A reply callback was called but no"
-                  " reply was received and no timeout occurred\n"));
+        SYSLOG_ERROR("Severe error. A reply callback was called but no"
+                  " reply was received and no timeout occurred\n");
 
         /* FIXME: Destroy this connection ? */
         goto done;
@@ -99,8 +99,8 @@ static void id_callback(DBusPendingCall *pending, void *ptr)
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
-        DEBUG(0,("The Monitor returned an error [%s]\n",
-                 dbus_message_get_error_name(reply)));
+        SYSLOG_ERROR("The Monitor returned an error [%s]\n",
+                     dbus_message_get_error_name(reply));
         /* Falling through to default intentionally*/
     default:
         /*
@@ -136,7 +136,7 @@ int monitor_common_send_id(struct sbus_connection *conn,
                                        MON_SRV_INTERFACE,
                                        MON_SRV_METHOD_REGISTER);
     if (msg == NULL) {
-        DEBUG(0, ("Out of memory?!\n"));
+        SYSLOG_ERROR("Out of memory?!\n");
         return ENOMEM;
     }
 
@@ -159,7 +159,7 @@ int monitor_common_send_id(struct sbus_connection *conn,
          * We can't communicate on this connection
          * We'll drop it using the default destructor.
          */
-        DEBUG(0, ("D-BUS send failed.\n"));
+        SYSLOG_ERROR("D-BUS send failed.\n");
         dbus_message_unref(msg);
         return EIO;
     }

@@ -1350,7 +1350,7 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
                 continue;
             }
             if (mu > mg) { /* shouldn't be possible */
-                DEBUG(0, ("Fatal Internal error: aborting\n"));
+                SYSLOG_ERROR("Fatal Internal error: aborting\n");
                 ret = EFAULT;
                 goto fail;
             }
@@ -1369,8 +1369,8 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         break;
 
     default:
-        DEBUG(0, ("FATAL ERROR: Unhandled schema type! (%d)\n",
-                  opts->schema_type));
+        SYSLOG_ERROR("FATAL ERROR: Unhandled schema type! (%d)\n",
+                     opts->schema_type);
         ret = EFAULT;
         goto fail;
     }

@@ -532,7 +532,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
                                       preq->domain, &sysdb);
         if (ret != EOK) {
-            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            SYSLOG_ERROR("Fatal: Sysdb CTX not found for this domain!\n");
             goto done;
         }
         ret = sysdb_getpwnam(preq, sysdb,
@@ -584,7 +584,7 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
     ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
                                   preq->domain, &sysdb);
     if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        SYSLOG_ERROR("Fatal: Sysdb CTX not found for this domain!\n");
         goto done;
     }
     ret = sysdb_getpwnam(preq, sysdb,
@@ -733,7 +733,7 @@ static void pam_check_user_callback(void *ptr, int status,
                     ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
                                                   preq->domain, &sysdb);
                     if (ret != EOK) {
-                        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                        SYSLOG_ERROR("Fatal: Sysdb CTX not found for this domain!\n");
                         preq->pd->pam_status = PAM_SYSTEM_ERR;
                         pam_reply(preq);
                         return;

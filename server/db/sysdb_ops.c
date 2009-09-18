@@ -1352,8 +1352,8 @@ static void sysdb_get_new_id_base(struct tevent_req *subreq)
 
         if ((state->domain->id_max != 0) &&
             (state->new_id > state->domain->id_max)) {
-            DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
-                      state->new_id, state->domain->id_max));
+            SYSLOG_ERROR("Failed to allocate new id, out of range (%u/%u)\n",
+                         state->new_id, state->domain->id_max);
             tevent_req_error(req, ERANGE);
             return;
         }
@@ -1484,8 +1484,8 @@ static void sysdb_get_new_id_verify(struct tevent_req *subreq)
         /* check again we are not falling out of range */
         if ((state->domain->id_max != 0) &&
             (state->new_id > state->domain->id_max)) {
-            DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
-                      state->new_id, state->domain->id_max));
+            SYSLOG_ERROR("Failed to allocate new id, out of range (%u/%u)\n",
+                         state->new_id, state->domain->id_max);
             tevent_req_error(req, ERANGE);
             return;
         }
@@ -1733,7 +1733,7 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
 
     if (domain->mpg) {
         if (gid != 0) {
-            DEBUG(0, ("Cannot add user with arbitrary GID in MPG domain!\n"));
+            SYSLOG_ERROR("Cannot add user with arbitrary GID in MPG domain!\n");
             ERROR_OUT(ret, EINVAL, fail);
         }
         state->gid = state->uid;

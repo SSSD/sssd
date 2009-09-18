@@ -793,11 +793,11 @@ static void krb5_pam_handler_done(struct tevent_req *req)
                 }
                 break;
             default:
-                DEBUG(0, ("unsupported PAM command [%d].\n", pd->cmd));
+                SYSLOG_ERROR("unsupported PAM command [%d].\n", pd->cmd);
         }
 
         if (password == NULL) {
-            DEBUG(0, ("password not available, offline auth may not work.\n"));
+            SYSLOG_ERROR("password not available, offline auth may not work.\n");
             goto done;
         }
 
