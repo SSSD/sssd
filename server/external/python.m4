@@ -1,17 +1,26 @@
 dnl Check for python-config and substitute needed CFLAGS and LDFLAGS
 dnl Usage:
 dnl     AM_PYTHON_CONFIG
+
 AC_DEFUN([AM_PYTHON_CONFIG],
 [   AC_SUBST(PYTHON_CFLAGS)
     AC_SUBST(PYTHON_LIBS)
 
-    AC_PATH_PROG(PYTHON_CONFIG, python-config)
-    AC_MSG_CHECKING(for working python-config)
-    if test -x "$PYTHON_CONFIG"; then
-        PYTHON_CFLAGS="`$PYTHON_CONFIG --includes`"
-        PYTHON_CFLAGS=$PYTHON_CFLAGS" -fno-strict-aliasing"
-        PYTHON_LIBS="`$PYTHON_CONFIG --libs`"
-        AC_MSG_RESULT([yes])
+dnl We need to check for python build flags using distutils.sysconfig
+dnl We cannot use python-config, as it was not available on older
+dnl versions of python
+    AC_PATH_PROG(PYTHON, python)
+    AC_MSG_CHECKING([for working python])
+    if test -x "$PYTHON"; then
+        PYTHON_CFLAGS="`$PYTHON -c \"from distutils import sysconfig; \
+            print '-I' + sysconfig.get_python_inc() + \
+            ' -I' + sysconfig.get_python_inc(plat_specific=True) + ' ' + \
+            sysconfig.get_config_var('BASECFLAGS')\"`"
+        PYTHON_LIBS="`$PYTHON -c \"from distutils import sysconfig; \
+            print \\\" \\\".join(sysconfig.get_config_var('LIBS').split() + \
+            sysconfig.get_config_var('SYSLIBS').split()) + \
+            ' -lpython' + sysconfig.get_config_var('VERSION')\"`"
+            AC_MSG_RESULT([yes])
     else
         AC_MSG_ERROR([no. Please install python devel package])
     fi
