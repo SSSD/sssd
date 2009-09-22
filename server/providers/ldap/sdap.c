@@ -148,8 +148,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
             if (ret != EOK ||
                 ((opts->basic[i].def_val.string != NULL) &&
                  (opts->basic[i].val.string == NULL))) {
-                SYSLOG_ERROR("Failed to retrieve value for option (%s)\n",
-                             opts->basic[i].opt_name);
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
                 if (ret == EOK) ret = EINVAL;
                 goto done;
             }
@@ -162,8 +162,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
                                     opts->basic[i].opt_name,
                                     NULL, &tmp);
             if (ret != EOK) {
-                SYSLOG_ERROR("Failed to retrieve value for option (%s)\n",
-                             opts->basic[i].opt_name);
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
                 goto done;
             }
 
@@ -186,8 +186,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
                                  opts->basic[i].def_val.number,
                                  &opts->basic[i].val.number);
             if (ret != EOK) {
-                SYSLOG_ERROR("Failed to retrieve value for option (%s)\n",
-                             opts->basic[i].opt_name);
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
                 goto done;
             }
             DEBUG(6, ("Option %s has value %d\n",
@@ -200,8 +200,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
                                   opts->basic[i].def_val.boolean,
                                   &opts->basic[i].val.boolean);
             if (ret != EOK) {
-                SYSLOG_ERROR("Failed to retrieve value for option (%s)\n",
-                             opts->basic[i].opt_name);
+                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
+                          opts->basic[i].opt_name));
                 goto done;
             }
             DEBUG(6, ("Option %s is %s\n",
@@ -223,7 +223,7 @@ int sdap_get_options(TALLOC_CTX *memctx,
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
     } else {
-        SYSLOG_ERROR("Unrecognized schema type: %s\n", schema);
+        DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;
         goto done;
     }
@@ -240,8 +240,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
                                 &opts->user_map[i].name);
         if (ret != EOK ||
             (opts->user_map[i].def_name && !opts->user_map[i].name)) {
-            SYSLOG_ERROR("Failed to retrieve a value (%s)\n",
-                         opts->user_map[i].opt_name);
+            DEBUG(0, ("Failed to retrieve a value (%s)\n",
+                      opts->user_map[i].opt_name));
             if (ret != EOK) ret = EINVAL;
             goto done;
         }
@@ -262,8 +262,8 @@ int sdap_get_options(TALLOC_CTX *memctx,
                                 &opts->group_map[i].name);
         if (ret != EOK ||
             (opts->group_map[i].def_name && !opts->group_map[i].name)) {
-            SYSLOG_ERROR("Failed to retrieve a value (%s)\n",
-                         opts->group_map[i].opt_name);
+            DEBUG(0, ("Failed to retrieve a value (%s)\n",
+                      opts->group_map[i].opt_name));
             if (ret != EOK) ret = EINVAL;
             goto done;
         }
@@ -301,10 +301,10 @@ const char *_sdap_go_get_cstring(struct sdap_gen_opts *opts,
                                  int id, const char *location)
 {
     if (opts[id].type != SDAP_STRING) {
-        SYSLOG_ERROR("[%s] Requested type 'String' for option '%s'"
-                     " but value is of type '%s'!\n",
-                     location, opts[id].opt_name,
-                     sdap_type_to_string(opts[id].type));
+        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
         return NULL;
     }
     return opts[id].val.cstring;
@@ -314,10 +314,10 @@ char *_sdap_go_get_string(struct sdap_gen_opts *opts,
                           int id, const char *location)
 {
     if (opts[id].type != SDAP_STRING) {
-        SYSLOG_ERROR("[%s] Requested type 'String' for option '%s'"
-                     " but value is of type '%s'!\n",
-                     location, opts[id].opt_name,
-                     sdap_type_to_string(opts[id].type));
+        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
         return NULL;
     }
     return opts[id].val.string;
@@ -328,10 +328,10 @@ struct sdap_blob _sdap_go_get_blob(struct sdap_gen_opts *opts,
 {
     struct sdap_blob null_blob = { NULL, 0 };
     if (opts[id].type != SDAP_BLOB) {
-        SYSLOG_ERROR("[%s] Requested type 'Blob' for option '%s'"
-                     " but value is of type '%s'!\n",
-                     location, opts[id].opt_name,
-                     sdap_type_to_string(opts[id].type));
+        DEBUG(0, ("[%s] Requested type 'Blob' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
         return null_blob;
     }
     return opts[id].val.blob;
@@ -341,10 +341,10 @@ int _sdap_go_get_int(struct sdap_gen_opts *opts,
                      int id, const char *location)
 {
     if (opts[id].type != SDAP_NUMBER) {
-        SYSLOG_ERROR("[%s] Requested type 'Number' for option '%s'"
-                     " but value is of type '%s'!\n",
-                     location, opts[id].opt_name,
-                     sdap_type_to_string(opts[id].type));
+        DEBUG(0, ("[%s] Requested type 'Number' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
         return 0;
     }
     return opts[id].val.number;
@@ -354,10 +354,10 @@ bool _sdap_go_get_bool(struct sdap_gen_opts *opts,
                        int id, const char *location)
 {
     if (opts[id].type != SDAP_BOOL) {
-        SYSLOG_ERROR("[%s] Requested type 'Boolean' for option '%s'"
-                     " but value is of type '%s'!\n",
-                     location, opts[id].opt_name,
-                     sdap_type_to_string(opts[id].type));
+        DEBUG(0, ("[%s] Requested type 'Boolean' for option '%s'"
+                  " but value is of type '%s'!\n",
+                  location, opts[id].opt_name,
+                  sdap_type_to_string(opts[id].type)));
         return false;
     }
     return opts[id].val.boolean;

@@ -148,7 +148,7 @@ int pam_cache_auth(struct pam_auth_req *preq)
     ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
                                   preq->domain, &sysdb);
     if (ret != EOK) {
-        SYSLOG_ERROR("Fatal: Sysdb CTX not found for this domain!\n");
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
         return ret;
     }
     ret = sysdb_get_user_attr(preq, sysdb,

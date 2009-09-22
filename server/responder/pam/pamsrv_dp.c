@@ -46,7 +46,7 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
     dbus_pending_call_block(pending);
     msg = dbus_pending_call_steal_reply(pending);
     if (msg == NULL) {
-        SYSLOG_ERROR("Severe error. A reply callback was called but no reply was received and no timeout occurred\n");
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
@@ -57,18 +57,18 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
         case DBUS_MESSAGE_TYPE_METHOD_RETURN:
             ret = dp_unpack_pam_response(msg, preq->pd, &dbus_error);
             if (!ret) {
-                SYSLOG_ERROR("Failed to parse reply.\n");
+                DEBUG(0, ("Failed to parse reply.\n"));
                 preq->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
             DEBUG(4, ("received: [%d][%s]\n", preq->pd->pam_status, preq->pd->domain));
             break;
         case DBUS_MESSAGE_TYPE_ERROR:
-            SYSLOG_ERROR("Reply error.\n");
+            DEBUG(0, ("Reply error.\n"));
             preq->pd->pam_status = PAM_SYSTEM_ERR;
             break;
         default:
-            SYSLOG_ERROR("Default... what now?.\n");
+            DEBUG(0, ("Default... what now?.\n"));
             preq->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
@@ -103,7 +103,7 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
                                        DP_CLI_INTERFACE,
                                        DP_SRV_METHOD_PAMHANDLER);
     if (msg == NULL) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         return ENOMEM;
     }
 
@@ -124,7 +124,7 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
          * We can't communicate on this connection
          * We'll drop it using the default destructor.
          */
-        SYSLOG_ERROR("D-BUS send failed.\n");
+        DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         return EIO;
     }

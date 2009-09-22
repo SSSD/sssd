@@ -665,15 +665,15 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 
     ret = ldb_set_debug(cdb->ldb, ldb_debug_messages, NULL);
     if (ret != LDB_SUCCESS) {
-        SYSLOG_ERROR("Could not set up debug fn.\n");
+        DEBUG(0,("Could not set up debug fn.\n"));
         talloc_free(cdb);
         return EIO;
     }
 
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
     if (ret != LDB_SUCCESS) {
-        SYSLOG_ERROR("Unable to open config database [%s]\n",
-                     confdb_location);
+        DEBUG(0, ("Unable to open config database [%s]\n",
+                  confdb_location));
         talloc_free(cdb);
         return EIO;
     }
@@ -785,7 +785,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     if (res->count != 1) {
-        SYSLOG_ERROR("Unknown domain [%s]\n", name);
+        DEBUG(0, ("Unknown domain [%s]\n", name));
         ret = ENOENT;
         goto done;
     }
@@ -798,7 +798,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     tmp = ldb_msg_find_attr_as_string(res->msgs[0], "cn", NULL);
     if (!tmp) {
-        SYSLOG_ERROR("Invalid configuration entry, fatal error!\n");
+        DEBUG(0, ("Invalid configuration entry, fatal error!\n"));
         ret = EINVAL;
         goto done;
     }
@@ -817,8 +817,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
     else {
-        SYSLOG_ERROR("Domain [%s] does not specify a provider, disabling!\n",
-                     domain->name);
+        DEBUG(0, ("Domain [%s] does not specify a provider, disabling!\n",
+                  domain->name));
         ret = EINVAL;
         goto done;
     }
@@ -832,15 +832,15 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
      * superceeded. */
     val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_ENUMERATE, 0);
     if (val > 0) { /* ok there was a number in here */
-        SYSLOG_ERROR("Warning: enumeration parameter in %s still uses integers! "
-                     "Enumeration is now a boolean and takes true/false values. "
-                     "Interpreting as true\n", domain->name);
+        DEBUG(0, ("Warning: enumeration parameter in %s still uses integers! "
+                  "Enumeration is now a boolean and takes true/false values. "
+                  "Interpreting as true\n", domain->name));
         domain->enumerate = true;
     } else { /* assume the new format */
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
                                 CONFDB_ENUMERATE, 0);
         if(ret != EOK) {
-            SYSLOG_ERROR("Invalid value for %s\n", CONFDB_ENUMERATE);
+            DEBUG(0, ("Invalid value for %s\n", CONFDB_ENUMERATE));
             goto done;
         }
     }
@@ -851,7 +851,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     /* Determine if this is domain uses MPG */
     ret = get_entry_as_bool(res->msgs[0], &domain->mpg, CONFDB_MPG, 0);
     if(ret != EOK) {
-        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_MPG);
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_MPG));
         goto done;
     }
 
@@ -864,14 +864,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
      * in NSS interfaces */
     ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_FQ, 0);
     if(ret != EOK) {
-        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_FQ);
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_FQ));
         goto done;
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
                               CONFDB_MINID, SSSD_MIN_ID);
     if (ret != EOK) {
-        SYSLOG_ERROR("Invalid value for minId\n");
+        DEBUG(0, ("Invalid value for minId\n"));
         ret = EINVAL;
         goto done;
     }
@@ -879,13 +879,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_max,
                               CONFDB_MAXID, 0);
     if (ret != EOK) {
-        SYSLOG_ERROR("Invalid value for maxId\n");
+        DEBUG(0, ("Invalid value for maxId\n"));
         ret = EINVAL;
         goto done;
     }
 
     if (domain->id_max && (domain->id_max < domain->id_min)) {
-        SYSLOG_ERROR("Invalid domain range\n");
+        DEBUG(0, ("Invalid domain range\n"));
         ret = EINVAL;
         goto done;
     }
@@ -894,14 +894,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     ret = get_entry_as_bool(res->msgs[0], &domain->cache_credentials,
                             CONFDB_CACHE_CREDS, 0);
     if(ret != EOK) {
-        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_CACHE_CREDS);
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_CACHE_CREDS));
         goto done;
     }
 
     ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
                             CONFDB_LEGACY_PASS, 0);
     if(ret != EOK) {
-        SYSLOG_ERROR("Invalid value for %s\n", CONFDB_LEGACY_PASS);
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_LEGACY_PASS));
         goto done;
     }
 
@@ -932,19 +932,19 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     ret = confdb_get_string_as_list(cdb, tmp_ctx,
                                     CONFDB_DOMAINS_PATH, "domains", &domlist);
     if (ret == ENOENT) {
-        SYSLOG_ERROR("No domains configured, fatal error!\n");
+        DEBUG(0, ("No domains configured, fatal error!\n"));
         goto done;
     }
     if (ret != EOK ) {
-        SYSLOG_ERROR("Fatal error retrieving domains list!\n");
+        DEBUG(0, ("Fatal error retrieving domains list!\n"));
         goto done;
     }
 
     for (i = 0; domlist[i]; i++) {
         ret = confdb_get_domain_internal(cdb, cdb, domlist[i], &domain);
         if (ret) {
-            SYSLOG_ERROR("Error (%d [%s]) retrieving domain [%s], skipping!\n",
-                         ret, strerror(ret), domlist[i]);
+            DEBUG(0, ("Error (%d [%s]) retrieving domain [%s], skipping!\n",
+                      ret, strerror(ret), domlist[i]));
             ret = EOK;
             continue;
         }
@@ -959,7 +959,7 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     }
 
     if (cdb->doms == NULL) {
-        SYSLOG_ERROR("No properly configured domains, fatal error!\n");
+        DEBUG(0, ("No properly configured domains, fatal error!\n"));
         ret = ENOENT;
         goto done;
     }

@@ -72,7 +72,7 @@ static void client_send(struct tevent_context *ev, struct cli_ctx *cctx)
         return;
     }
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to read request, aborting client!\n");
+        DEBUG(0, ("Failed to read request, aborting client!\n"));
         talloc_free(cctx);
         return;
     }
@@ -92,7 +92,7 @@ static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
     if (!cctx->creq) {
         cctx->creq = talloc_zero(cctx, struct cli_request);
         if (!cctx->creq) {
-            SYSLOG_ERROR("Failed to alloc request, aborting client!\n");
+            DEBUG(0, ("Failed to alloc request, aborting client!\n"));
             talloc_free(cctx);
             return;
         }
@@ -102,7 +102,7 @@ static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
         ret = sss_packet_new(cctx->creq, SSS_PACKET_MAX_RECV_SIZE,
                              0, &cctx->creq->in);
         if (ret != EOK) {
-            SYSLOG_ERROR("Failed to alloc request, aborting client!\n");
+            DEBUG(0, ("Failed to alloc request, aborting client!\n"));
             talloc_free(cctx);
             return;
         }
@@ -116,7 +116,7 @@ static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
         /* execute command */
         ret = sss_cmd_execute(cctx, cctx->rctx->sss_cmds);
         if (ret != EOK) {
-            SYSLOG_ERROR("Failed to execute request, aborting client!\n");
+            DEBUG(0, ("Failed to execute request, aborting client!\n"));
             talloc_free(cctx);
         }
         /* past this point cctx can be freed at any time by callbacks
@@ -193,7 +193,7 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
     if (!cctx) {
         struct sockaddr_un addr;
         int fd;
-        SYSLOG_ERROR("Out of memory trying to setup client context on privileged pipe!\n");
+        DEBUG(0, ("Out of memory trying to setup client context on privileged pipe!\n"));
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
         len = sizeof(addr);
@@ -246,7 +246,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     if (!cctx) {
         struct sockaddr_un addr;
         int fd;
-        SYSLOG_ERROR("Out of memory trying to setup client context!\n");
+        DEBUG(0, ("Out of memory trying to setup client context!\n"));
         /* accept and close to signal the client we have a problem */
         memset(&addr, 0, sizeof(addr));
         len = sizeof(addr);
@@ -295,7 +295,7 @@ static int sss_monitor_init(struct resp_ctx *rctx,
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(rctx, rctx->cdb, &sbus_address);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not locate monitor address.\n");
+        DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
     }
 
@@ -303,14 +303,14 @@ static int sss_monitor_init(struct resp_ctx *rctx,
                            intf, &rctx->mon_conn,
                            NULL, NULL);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to connect to monitor services.\n");
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
     }
 
     /* Identify ourselves to the monitor */
     ret = monitor_common_send_id(rctx->mon_conn, svc_name, svc_version);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to identify to the monitor!\n");
+        DEBUG(0, ("Failed to identify to the monitor!\n"));
         return ret;
     }
 
@@ -328,7 +328,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     /* Set up SBUS connection to the monitor */
     ret = dp_get_sbus_address(rctx, rctx->cdb, &sbus_address);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not locate DP address.\n");
+        DEBUG(0, ("Could not locate DP address.\n"));
         return ret;
     }
 
@@ -336,7 +336,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
                            intf, &rctx->dp_conn,
                            NULL, NULL);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to connect to monitor services.\n");
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
     }
 
@@ -345,7 +345,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
                             cli_type, cli_version,
                             cli_name, cli_domain);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to identify to the DP!\n");
+        DEBUG(0, ("Failed to identify to the DP!\n"));
         return ret;
     }
 
@@ -414,18 +414,18 @@ static int set_unix_socket(struct resp_ctx *rctx)
         unlink(rctx->sock_name);
 
         if (bind(rctx->lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            SYSLOG_ERROR("Unable to bind on socket '%s'\n", rctx->sock_name);
+            DEBUG(0,("Unable to bind on socket '%s'\n", rctx->sock_name));
             goto failed;
         }
         if (listen(rctx->lfd, 10) != 0) {
-            SYSLOG_ERROR("Unable to listen on socket '%s'\n", rctx->sock_name);
+            DEBUG(0,("Unable to listen on socket '%s'\n", rctx->sock_name));
             goto failed;
         }
 
         rctx->lfde = tevent_add_fd(rctx->ev, rctx, rctx->lfd,
                                    TEVENT_FD_READ, accept_fd_handler, rctx);
         if (!rctx->lfde) {
-            SYSLOG_ERROR("Failed to queue handler on pipe\n");
+            DEBUG(0, ("Failed to queue handler on pipe\n"));
             goto failed;
         }
     }
@@ -450,18 +450,18 @@ static int set_unix_socket(struct resp_ctx *rctx)
         unlink(rctx->priv_sock_name);
 
         if (bind(rctx->priv_lfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-            SYSLOG_ERROR("Unable to bind on socket '%s'\n", rctx->priv_sock_name);
+            DEBUG(0,("Unable to bind on socket '%s'\n", rctx->priv_sock_name));
             goto failed;
         }
         if (listen(rctx->priv_lfd, 10) != 0) {
-            SYSLOG_ERROR("Unable to listen on socket '%s'\n", rctx->priv_sock_name);
+            DEBUG(0,("Unable to listen on socket '%s'\n", rctx->priv_sock_name));
             goto failed;
         }
 
         rctx->priv_lfde = tevent_add_fd(rctx->ev, rctx, rctx->priv_lfd,
                                    TEVENT_FD_READ, accept_priv_fd_handler, rctx);
         if (!rctx->priv_lfde) {
-            SYSLOG_ERROR("Failed to queue handler on privileged pipe\n");
+            DEBUG(0, ("Failed to queue handler on privileged pipe\n"));
             goto failed;
         }
     }
@@ -500,7 +500,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
     if (!rctx) {
-        SYSLOG_ERROR("fatal error initializing resp_ctx\n");
+        DEBUG(0, ("fatal error initializing resp_ctx\n"));
         return ENOMEM;
     }
     rctx->ev = ev;
@@ -512,13 +512,13 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
 
     ret = confdb_get_domains(rctx->cdb, &rctx->domains);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error setting up domain map\n");
+        DEBUG(0, ("fatal error setting up domain map\n"));
         return ret;
     }
 
     ret = sss_monitor_init(rctx, monitor_intf, svc_name, svc_version);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error setting up message bus\n");
+        DEBUG(0, ("fatal error setting up message bus\n"));
         return ret;
     }
 
@@ -526,30 +526,30 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                       cli_type, cli_version,
                       cli_name, cli_domain);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error setting up backend connector\n");
+        DEBUG(0, ("fatal error setting up backend connector\n"));
         return ret;
     }
     else if (!rctx->dp_conn) {
-        SYSLOG_ERROR("Data Provider is not yet available. Retrying.\n");
+        DEBUG(0, ("Data Provider is not yet available. Retrying.\n"));
         return EIO;
     }
 
     ret = sysdb_init(rctx, ev, cdb, NULL, false, &rctx->db_list);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error initializing resp_ctx\n");
+        DEBUG(0, ("fatal error initializing resp_ctx\n"));
         return ret;
     }
 
     ret = sss_names_init(rctx, rctx->cdb, &rctx->names);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error initializing regex data\n");
+        DEBUG(0, ("fatal error initializing regex data\n"));
         return ret;
     }
 
     /* after all initializations we are ready to listen on our socket */
     ret = set_unix_socket(rctx);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error initializing socket\n");
+        DEBUG(0, ("fatal error initializing socket\n"));
         return ret;
     }
 

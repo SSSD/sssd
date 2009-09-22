@@ -48,8 +48,6 @@
 #define PAM_SBUS_SERVICE_NAME "pam"
 #define PAM_SRV_CONFIG "config/services/pam"
 
-#define PRG_NAME "sssd[pam]"
-
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method monitor_pam_methods[] = {
@@ -119,7 +117,7 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
     }
 
     /* Handle failure */
-    SYSLOG_ERROR("Could not reconnect to data provider.\n");
+    DEBUG(0, ("Could not reconnect to data provider.\n"));
     /* Kill the backend and let the monitor restart it */
     pam_shutdown(rctx);
 }
@@ -157,7 +155,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     ret = confdb_get_int(rctx->cdb, rctx, SERVICE_CONF_ENTRY,
                          "reconnection_retries", 3, &max_retries);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to set up automatic reconnection\n");
+        DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;
     }
 
@@ -193,11 +191,8 @@ int main(int argc, const char *argv[])
 
 	poptFreeContext(pc);
 
-    /* enable syslog logging */
-    openlog(PRG_NAME, LOG_PID, LOG_DAEMON);
-
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup(PRG_NAME, 0, PAM_SRV_CONFIG, &main_ctx);
+    ret = server_setup("sssd[pam]", 0, PAM_SRV_CONFIG, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
@@ -213,9 +208,6 @@ int main(int argc, const char *argv[])
 
     /* loop on main */
     server_loop(main_ctx);
-
-    /* close syslog */
-    closelog();
 
     return 0;
 }

@@ -59,8 +59,6 @@
 #define MONITOR_DEF_PING_TIME 10
 #define MONITOR_CONF_ENTRY "config/services/monitor"
 
-#define PRG_NAME    "sssd"
-
 struct svc_spy;
 
 struct mt_svc {
@@ -199,7 +197,7 @@ static int client_registration(DBusMessage *message,
     data = sbus_conn_get_private_data(conn);
     mini = talloc_get_type(data, struct mon_init_conn);
     if (!mini) {
-        SYSLOG_ERROR("Connection holds no valid init data\n");
+        DEBUG(0, ("Connection holds no valid init data\n"));
         return EINVAL;
     }
 
@@ -232,8 +230,8 @@ static int client_registration(DBusMessage *message,
         svc = svc->next;
     }
     if (!svc) {
-        SYSLOG_ERROR("Unable to find peer [%s] in list of services,"
-                  " killing connection!\n", svc_name);
+        DEBUG(0, ("Unable to find peer [%s] in list of services,"
+                  " killing connection!\n", svc_name));
         sbus_disconnect(conn);
         /* FIXME: should we just talloc_zfree(conn) ? */
         goto done;
@@ -247,7 +245,7 @@ static int client_registration(DBusMessage *message,
      * try to access or even free, freed memory. */
     ret = add_svc_conn_spy(svc);
     if (ret) {
-        SYSLOG_ERROR("Failed to attch spy\n");
+        DEBUG(0, ("Failed to attch spy\n"));
         goto done;
     }
 
@@ -371,7 +369,7 @@ static void svc_try_restart(struct mt_svc *svc, time_t now)
 
     /* restart the process */
     if (svc->restarts > 3) { /* TODO: get val from config */
-        SYSLOG_ERROR("Process [%s], definitely stopped!\n", svc->name);
+        DEBUG(0, ("Process [%s], definitely stopped!\n", svc->name));
         talloc_free(svc);
         return;
     }
@@ -383,7 +381,7 @@ static void svc_try_restart(struct mt_svc *svc, time_t now)
 
     ret = start_service(svc, false);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to restart service '%s'\n", svc->name);
+        DEBUG(0,("Failed to restart service '%s'\n", svc->name));
         talloc_free(svc);
         return;
     }
@@ -468,8 +466,8 @@ static void set_tasks_checker(struct mt_svc *svc)
     tv.tv_usec = 0;
     te = tevent_add_timer(svc->mt_ctx->ev, svc, tv, tasks_check_handler, svc);
     if (te == NULL) {
-        SYSLOG_ERROR("failed to add event, monitor offline for [%s]!\n",
-                     svc->name);
+        DEBUG(0, ("failed to add event, monitor offline for [%s]!\n",
+                  svc->name));
         /* FIXME: shutdown ? */
     }
     svc->ping_ev = te;
@@ -491,8 +489,8 @@ static void global_checks_handler(struct tevent_context *ev,
     }
 
     if (pid == -1) {
-        SYSLOG_ERROR("waitpid returned -1 (errno:%d[%s])\n",
-                     errno, strerror(errno));
+        DEBUG(0, ("waitpid returned -1 (errno:%d[%s])\n",
+                  errno, strerror(errno)));
         goto done;
     }
 
@@ -506,7 +504,7 @@ static void global_checks_handler(struct tevent_context *ev,
         }
     }
     if (svc == NULL) {
-        SYSLOG_ERROR("Unknown child (%d) did exit\n", pid);
+        DEBUG(0, ("Unknown child (%d) did exit\n", pid));
     }
 
 done:
@@ -523,7 +521,7 @@ static void set_global_checker(struct mt_ctx *ctx)
     tv.tv_usec = 0;
     te = tevent_add_timer(ctx->ev, ctx, tv, global_checks_handler, ctx);
     if (te == NULL) {
-        SYSLOG_ERROR("failed to add global checker event! PANIC TIME!\n");
+        DEBUG(0, ("failed to add global checker event! PANIC TIME!\n"));
         /* FIXME: is this right ? shoulkd we try to clean up first ?*/
         exit(-1);
     }
@@ -534,9 +532,9 @@ static int monitor_kill_service (struct mt_svc *svc)
     int ret;
     ret = kill(svc->pid, SIGTERM);
     if (ret != EOK) {
-        SYSLOG_ERROR("Sending signal to child (%s:%d) failed! "
-                     "Ignore and pretend child is dead.\n",
-                     svc->name, svc->pid);
+        DEBUG(0,("Sending signal to child (%s:%d) failed! "
+                 "Ignore and pretend child is dead.\n",
+                 svc->name, svc->pid));
     }
 
     return ret;
@@ -554,8 +552,8 @@ static void shutdown_reply(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        SYSLOG_ERROR("A reply callback was called but no reply was received"
-                     " and no timeout occurred\n");
+        DEBUG(0, ("A reply callback was called but no reply was received"
+                  " and no timeout occurred\n"));
 
         /* Destroy this connection */
         monitor_kill_service(svc);
@@ -572,7 +570,7 @@ static void shutdown_reply(DBusPendingCall *pending, void *data)
         /* Something went wrong on the client side
          * Time to forcibly kill the service
          */
-        SYSLOG_ERROR("Received an error shutting down service.\n");
+        DEBUG(0, ("Received an error shutting down service.\n"));
         monitor_kill_service(svc);
     }
 
@@ -606,7 +604,7 @@ static int monitor_shutdown_service(struct mt_svc *svc)
                                        MONITOR_INTERFACE,
                                        MON_CLI_METHOD_SHUTDOWN);
     if (!msg) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         monitor_kill_service(svc);
         talloc_free(svc);
         return ENOMEM;
@@ -615,7 +613,7 @@ static int monitor_shutdown_service(struct mt_svc *svc)
     dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
     if (!dbret || pending_reply == NULL) {
-        SYSLOG_ERROR("D-BUS send failed.\n");
+        DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         monitor_kill_service(svc);
         talloc_free(svc);
@@ -640,8 +638,8 @@ static void reload_reply(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        SYSLOG_ERROR("A reply callback was called but no reply was received"
-                     " and no timeout occurred\n");
+        DEBUG(0, ("A reply callback was called but no reply was received"
+                  " and no timeout occurred\n"));
 
         /* Destroy this connection */
         sbus_disconnect(svc->conn);
@@ -665,7 +663,7 @@ static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
     /* Update the confdb configuration */
     ret = confdb_init_db(filename, file_ctx->mt_ctx->cdb);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not reload configuration!");
+        DEBUG(0, ("Could not reload configuration!"));
         kill(getpid(), SIGTERM);
         return ret;
     }
@@ -721,7 +719,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
                                        MONITOR_INTERFACE,
                                        svc_signal);
     if (!msg) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         monitor_kill_service(svc);
         talloc_free(svc);
         return ENOMEM;
@@ -730,7 +728,7 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
     dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
                                             svc->mt_ctx->service_id_timeout);
     if (!dbret || pending_reply == NULL) {
-        SYSLOG_ERROR("D-BUS send failed.\n");
+        DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         monitor_kill_service(svc);
         talloc_free(svc);
@@ -856,12 +854,12 @@ int get_monitor_config(struct mt_ctx *ctx)
                                     SERVICE_CONF_ENTRY, "activeServices",
                                     &ctx->services);
     if (ret != EOK) {
-        SYSLOG_ERROR("No services configured\n");
+        DEBUG(0, ("No services configured!\n"));
         return EINVAL;
     }
     ret = append_data_provider(ctx);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not add Data Provider to the list of services!\n");
+        DEBUG(0, ("Could not add Data Provider to the list of services!\n"));
         return ret;
     }
 
@@ -871,13 +869,13 @@ int get_monitor_config(struct mt_ctx *ctx)
     }
     ret = confdb_get_domains(ctx->cdb, &ctx->domains);
     if (ret != EOK) {
-        SYSLOG_ERROR("No domains configured.\n");
+        DEBUG(0, ("No domains configured.\n"));
         return ret;
     }
 
     ret = check_local_domain_unique(ctx->domains);
     if (ret != EOK) {
-        SYSLOG_ERROR("More than one local domain configured.\n");
+        DEBUG(0, ("More than one local domain configured.\n"));
         return ret;
     }
 
@@ -926,7 +924,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     ret = confdb_get_string(ctx->cdb, svc, path, "command",
                             NULL, &svc->command);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to start service '%s'\n", svc->name);
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
         return ret;
     }
@@ -946,7 +944,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     ret = confdb_get_int(ctx->cdb, svc, path, "timeout",
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to start service '%s'\n", svc->name);
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
         return ret;
     }
@@ -966,7 +964,7 @@ static int add_new_service(struct mt_ctx *ctx, const char *name, bool startup)
 
     ret = start_service(svc, startup);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to start service '%s'\n", svc->name);
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
     }
 
@@ -1011,7 +1009,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     ret = confdb_get_string(ctx->cdb, svc, path,
                             "provider", NULL, &svc->provider);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to find provider from [%s] configuration\n", name);
+        DEBUG(0, ("Failed to find provider from [%s] configuration\n", name));
         talloc_free(svc);
         return ret;
     }
@@ -1019,7 +1017,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     ret = confdb_get_string(ctx->cdb, svc, path,
                             "command", NULL, &svc->command);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to find command from [%s] configuration\n", name);
+        DEBUG(0, ("Failed to find command from [%s] configuration\n", name));
         talloc_free(svc);
         return ret;
     }
@@ -1027,7 +1025,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     ret = confdb_get_int(ctx->cdb, svc, path, "timeout",
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to start service '%s'\n", svc->name);
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
         return ret;
     }
@@ -1064,14 +1062,14 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name, bool startup)
 
     ret = get_provider_config(ctx, name, &svc);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not get provider configuration for [%s]\n",
-                  name);
+        DEBUG(0, ("Could not get provider configuration for [%s]\n",
+                  name));
         return ret;
     }
 
     ret = start_service(svc, startup);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to start service '%s'\n", svc->name);
+        DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
     }
 
@@ -1097,7 +1095,8 @@ static void remove_service(struct mt_ctx *ctx, const char *name)
         /* Shut it down */
         ret = monitor_shutdown_service(cur_svc);
         if (ret != EOK) {
-            SYSLOG_ERROR("Unable to shut down service [%s]!", name);
+            DEBUG(0, ("Unable to shut down service [%s]!",
+                      name));
             /* TODO: Handle this better */
         }
     }
@@ -1159,7 +1158,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
                     break;
             }
             if (cur_svc == NULL) {
-                SYSLOG_ERROR("Service entry missing data\n");
+                DEBUG(0, ("Service entry missing data\n"));
                 /* This shouldn't be possible, but if it happens
                  * we'll throw an error
                  */
@@ -1172,9 +1171,9 @@ static int update_monitor_config(struct mt_ctx *ctx)
              */
             ret = get_service_config(ctx, new_config->services[i], &new_svc);
             if (ret != EOK) {
-                SYSLOG_ERROR("Unable to determine if service has changed.\n");
-                SYSLOG_ERROR("Disabling service [%s].\n",
-                             new_config->services[i]);
+                DEBUG(0, ("Unable to determine if service has changed.\n"));
+                DEBUG(0, ("Disabling service [%s].\n",
+                          new_config->services[i]));
                 /* Not much we can do here, no way to know whether the
                  * current configuration is safe, and restarting the
                  * service won't work because the new startup requires
@@ -1247,7 +1246,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
                 cur_svc = cur_svc->next;
             }
             if (cur_svc == NULL) {
-                SYSLOG_ERROR("Service entry missing data for [%s]\n", new_dom->name);
+                DEBUG(0, ("Service entry missing data for [%s]\n", new_dom->name));
                 /* This shouldn't be possible
                  */
                 talloc_free(new_config);
@@ -1259,9 +1258,9 @@ static int update_monitor_config(struct mt_ctx *ctx)
              */
             ret = get_provider_config(ctx, new_dom->name, &new_svc);
             if (ret != EOK) {
-                SYSLOG_ERROR("Unable to determine if service has changed.\n");
-                SYSLOG_ERROR("Disabling service [%s].\n",
-                             new_config->services[i]);
+                DEBUG(0, ("Unable to determine if service has changed.\n"));
+                DEBUG(0, ("Disabling service [%s].\n",
+                          new_config->services[i]));
                 /* Not much we can do here, no way to know whether the
                  * current configuration is safe, and restarting the
                  * service won't work because the new startup requires
@@ -1338,14 +1337,11 @@ static int monitor_cleanup(void)
     ret = unlink(file);
     if (ret == -1) {
         ret = errno;
-        SYSLOG_ERROR("Error removing pidfile! (%d [%s])\n",
-                     ret, strerror(ret));
+        DEBUG(0, ("Error removing pidfile! (%d [%s])\n",
+                ret, strerror(ret)));
         talloc_free(file);
         return errno;
     }
-
-    /* close syslog */
-    closelog();
 
     talloc_free(file);
     return EOK;
@@ -1362,7 +1358,7 @@ static void monitor_quit(struct tevent_context *ev,
 
 #if HAVE_GETPGRP
     if (getpgrp() == getpid()) {
-        SYSLOG_NOTICE("%s: killing children\n", strsignal(signum));
+        DEBUG(0,("%s: killing children\n", strsignal(signum)));
         kill(-getpgrp(), SIGTERM);
     }
 #endif
@@ -1380,8 +1376,8 @@ int read_config_file(const char *config_file)
     ret = config_from_file("sssd", config_file, &sssd_config,
                            INI_STOP_ON_ANY, &error_list);
     if (ret != EOK) {
-        SYSLOG_ERROR("Parse error reading configuration file [%s]\n",
-                     config_file)
+        DEBUG(0, ("Parse error reading configuration file [%s]\n",
+                  config_file));
         print_file_parsing_errors(stderr, error_list);
     }
 
@@ -1405,14 +1401,14 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
     cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (cdb_file == NULL) {
-        SYSLOG_ERROR("Out of memory, aborting!\n");
+        DEBUG(0,("Out of memory, aborting!\n"));
         ret = ENOMEM;
         goto done;
     }
 
     ret = confdb_init(ctx, &ctx->cdb, cdb_file);
     if (ret != EOK) {
-        SYSLOG_ERROR("The confdb initialization failed\n");
+        DEBUG(0,("The confdb initialization failed\n"));
         goto done;
     }
 
@@ -1429,26 +1425,26 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
 
         ret = confdb_init(ctx, &ctx->cdb, cdb_file);
         if (ret != EOK) {
-            SYSLOG_ERROR("The confdb initialization failed\n");
+            DEBUG(0,("The confdb initialization failed\n"));
             goto done;
         }
 
         /* Load special entries */
         ret = confdb_create_base(ctx->cdb);
         if (ret != EOK) {
-            SYSLOG_ERROR("Unable to load special entries into confdb\n");
+            DEBUG(0, ("Unable to load special entries into confdb\n"));
             goto done;
         }
     } else if (ret != EOK) {
-        SYSLOG_ERROR("Fatal error initializing confdb\n");
+        DEBUG(0, ("Fatal error initializing confdb\n"));
         goto done;
     }
     talloc_zfree(cdb_file);
 
     ret = confdb_init_db(config_file, ctx->cdb);
     if (ret != EOK) {
-        SYSLOG_ERROR("ConfDB initialization has failed [%s]\n",
-                     strerror(ret))
+        DEBUG(0, ("ConfDB initialization has failed [%s]\n",
+              strerror(ret)));
         goto done;
     }
 
@@ -1500,7 +1496,7 @@ static void config_file_changed(struct tevent_context *ev,
 
     te = tevent_add_timer(ev, ev, tv, process_config_file, file_ctx);
     if (!te) {
-        SYSLOG_ERROR("Unable to queue config file update! Exiting.");
+        DEBUG(0, ("Unable to queue config file update! Exiting."));
         kill(getpid(), SIGTERM);
         return;
     }
@@ -1547,7 +1543,7 @@ static void process_config_file(struct tevent_context *ev,
         len = read(file_ctx->mt_ctx->inotify_fd, buf+total_len,
                    event_size-total_len);
         if (len == -1 && errno != EINTR) {
-            SYSLOG_ERROR("Critical error reading inotify file descriptor.\n");
+            DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
             talloc_free(tmp_ctx);
             return;
         }
@@ -1569,7 +1565,7 @@ static void process_config_file(struct tevent_context *ev,
         while (total_len < in_event->len) {
             len = read(file_ctx->mt_ctx->inotify_fd, &name, in_event->len);
             if (len == -1 && errno != EINTR) {
-                SYSLOG_ERROR("Critical error reading inotify file descriptor.\n");
+                DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
                 talloc_free(tmp_ctx);
                 return;
             }
@@ -1585,7 +1581,7 @@ static void process_config_file(struct tevent_context *ev,
         }
     }
     if (!cb) {
-        SYSLOG_ERROR("Unknown watch descriptor\n");
+        DEBUG(0, ("Unknown watch descriptor\n"));
         return;
     }
 
@@ -1604,7 +1600,7 @@ static void process_config_file(struct tevent_context *ev,
         cb->retries = 0;
         rw_ctx = talloc(file_ctx, struct rewatch_ctx);
         if(!rw_ctx) {
-            SYSLOG_ERROR("Could not restore inotify watch. Quitting!\n");
+            DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
             return;
@@ -1614,7 +1610,7 @@ static void process_config_file(struct tevent_context *ev,
 
         tev = tevent_add_timer(ev, rw_ctx, tv, rewatch_config_file, rw_ctx);
         if (te == NULL) {
-            SYSLOG_ERROR("Could not restore inotify watch. Quitting!\n");
+            DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
@@ -1646,7 +1642,7 @@ static void rewatch_config_file(struct tevent_context *ev,
     /* Retry six times at five-second intervals before giving up */
     cb->retries++;
     if (cb->retries > 6) {
-        SYSLOG_ERROR("Could not restore inotify watch. Quitting!\n");
+        DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
         close(file_ctx->mt_ctx->inotify_fd);
         kill(getpid(), SIGTERM);
     }
@@ -1664,7 +1660,7 @@ static void rewatch_config_file(struct tevent_context *ev,
 
         tev = tevent_add_timer(ev, ev, tv, rewatch_config_file, rw_ctx);
         if (te == NULL) {
-            SYSLOG_ERROR("Could not restore inotify watch. Quitting!\n");
+            DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
@@ -1697,8 +1693,8 @@ static void poll_config_file(struct tevent_context *ev,
         ret = stat(cb->filename, &file_stat);
         if (ret < 0) {
             err = errno;
-            SYSLOG_ERROR("Could not stat file [%s]. Error [%d:%s]\n",
-                         cb->filename, err, strerror(err))
+            DEBUG(0, ("Could not stat file [%s]. Error [%d:%s]\n",
+                      cb->filename, err, strerror(err)));
             /* TODO: If the config file is missing, should we shut down? */
             return;
         }
@@ -1722,7 +1718,7 @@ static void poll_config_file(struct tevent_context *ev,
     file_ctx->timer = tevent_add_timer(ev, file_ctx->parent_ctx, tv,
                              poll_config_file, file_ctx);
     if (!file_ctx->timer) {
-        SYSLOG_ERROR("Error: Config file no longer monitored for changes!");
+        DEBUG(0, ("Error: Config file no longer monitored for changes!"));
     }
 }
 
@@ -1740,8 +1736,8 @@ static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
         file_ctx->mt_ctx->inotify_fd = inotify_init();
         if (file_ctx->mt_ctx->inotify_fd < 0) {
             err = errno;
-            SYSLOG_ERROR("Could not initialize inotify, error [%d:%s]\n",
-                      err, strerror(err))
+            DEBUG(0, ("Could not initialize inotify, error [%d:%s]\n",
+                      err, strerror(err)));
             return err;
         }
 
@@ -1786,8 +1782,8 @@ static int try_inotify(struct config_file_ctx *file_ctx, const char *filename,
                                cb->filename, IN_MODIFY);
     if (cb->wd < 0) {
         err = errno;
-        SYSLOG_ERROR("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
-                     cb->filename, err, strerror(err))
+        DEBUG(0, ("Could not add inotify watch for file [%s]. Error [%d:%s]\n",
+                  cb->filename, err, strerror(err)));
         close(file_ctx->mt_ctx->inotify_fd);
         return err;
     }
@@ -1814,8 +1810,8 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
     ret = stat(file, &file_stat);
     if (ret < 0) {
         err = errno;
-        SYSLOG_ERROR("Could not stat file [%s]. Error [%d:%s]\n",
-                     file, err, strerror(err))
+        DEBUG(0, ("Could not stat file [%s]. Error [%d:%s]\n",
+                  file, err, strerror(err)));
         return err;
     }
     if (!ctx->file_ctx) {
@@ -1972,7 +1968,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 
     mini = talloc(conn, struct mon_init_conn);
     if (!mini) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -1984,7 +1980,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 
     mini->timeout = tevent_add_timer(ctx->ev, mini, tv, init_timeout, mini);
     if (!mini->timeout) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -2026,7 +2022,7 @@ static int service_send_ping(struct mt_svc *svc)
                                        MONITOR_INTERFACE,
                                        MON_CLI_METHOD_PING);
     if (!msg) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         talloc_zfree(svc->conn);
         return ENOMEM;
     }
@@ -2039,7 +2035,7 @@ static int service_send_ping(struct mt_svc *svc)
          * We can't communicate on this connection
          * We'll drop it using the default destructor.
          */
-        SYSLOG_ERROR("D-BUS send failed.\n");
+        DEBUG(0, ("D-BUS send failed.\n"));
         talloc_zfree(svc->conn);
         return EIO;
     }
@@ -2066,8 +2062,8 @@ static void ping_check(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        SYSLOG_ERROR("A reply callback was called but no reply was received"
-                  " and no timeout occurred\n");
+        DEBUG(0, ("A reply callback was called but no reply was received"
+                  " and no timeout occurred\n"));
 
         /* Destroy this connection */
         sbus_disconnect(svc->conn);
@@ -2093,8 +2089,8 @@ static void ping_check(DBusPendingCall *pending, void *data)
         if (strcmp(dbus_error_name, DBUS_ERROR_TIMEOUT) == 0)
             break;
 
-        SYSLOG_ERROR("A service PING returned an error [%s], closing connection.\n",
-                     dbus_error_name);
+        DEBUG(0,("A service PING returned an error [%s], closing connection.\n",
+                 dbus_error_name));
         /* Falling through to default intentionally*/
     default:
         /*
@@ -2139,7 +2135,7 @@ static int service_check_alive(struct mt_svc *svc)
     if (WIFEXITED(status)) { /* children exited on it's own */
         /* TODO: check configuration to see if it was removed
          * from the list of process to run */
-        SYSLOG_NOTICE("Process [%s] exited\n", svc->name);
+        DEBUG(0,("Process [%s] exited\n", svc->name));
     }
 
     return ECHILD;
@@ -2276,7 +2272,7 @@ static int start_service(struct mt_svc *svc, bool startup)
     te = tevent_add_timer(svc->mt_ctx->ev, svc, tv,
                           service_startup_handler, svc);
     if (te == NULL) {
-        SYSLOG_ERROR("Unable to queue service %s for startup\n", svc->name);
+        DEBUG(0, ("Unable to queue service %s for startup\n", svc->name));
         return ENOMEM;
     }
     return EOK;
@@ -2314,7 +2310,7 @@ static void service_startup_handler(struct tevent_context *ev,
     mt_svc->pid = fork();
     if (mt_svc->pid != 0) {
         if (mt_svc->pid == -1) {
-            SYSLOG_ERROR("Could not fork child to start service [%s]. Continuing.\n", mt_svc->name);
+            DEBUG(0, ("Could not fork child to start service [%s]. Continuing.\n", mt_svc->name))
             return;
         }
 
@@ -2334,7 +2330,7 @@ static void service_startup_handler(struct tevent_context *ev,
 
     /* If we are here, exec() has failed
      * Print errno and abort quickly */
-    SYSLOG_ERROR("Could not exec %s, reason: %s\n", mt_svc->command, strerror(errno));
+    DEBUG(0,("Could not exec %s, reason: %s\n", mt_svc->command, strerror(errno)));
 
     /* We have to call _exit() instead of exit() here
      * because a bug in D-BUS will cause the server to
@@ -2412,9 +2408,6 @@ int main(int argc, const char *argv[])
 
     /* we want a pid file check */
     flags |= FLAGS_PID_FILE;
-
-    /* enable syslog logging */
-    openlog(PRG_NAME, LOG_PID, LOG_DAEMON);
 
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, &monitor);

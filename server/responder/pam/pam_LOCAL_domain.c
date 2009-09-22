@@ -462,7 +462,7 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
     ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
                                   preq->domain, &lreq->dbctx);
     if (ret != EOK) {
-        SYSLOG_ERROR("Fatal: Sysdb CTX not found for this domain!\n");
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
         talloc_free(lreq);
         return ret;
     }

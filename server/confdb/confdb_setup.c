@@ -110,8 +110,8 @@ int confdb_create_base(struct confdb_ctx *cdb)
     while ((ldif = ldb_ldif_read_string(cdb->ldb, &base_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            SYSLOG_ERROR("Failed to initialize DB (%d,[%s]), aborting!\n",
-                         ret, ldb_errstring(cdb->ldb));
+            DEBUG(0, ("Failed to initialize DB (%d,[%s]), aborting!\n",
+                      ret, ldb_errstring(cdb->ldb)));
             return EIO;
         }
         ldb_ldif_read_free(cdb->ldb, ldif);
@@ -279,13 +279,13 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     /* ok, first of all stat conf file */
     ret = stat(config_file, &cstat);
     if (ret != 0) {
-        SYSLOG_ERROR("Unable to stat config file [%s]! (%d [%s])\n",
-                     config_file, errno, strerror(errno));
+        DEBUG(0, ("Unable to stat config file [%s]! (%d [%s])\n",
+                  config_file, errno, strerror(errno)));
         return errno;
     }
     ret = snprintf(timestr, 21, "%llu", (long long unsigned)cstat.st_mtime);
     if (ret <= 0 || ret >= 21) {
-        SYSLOG_ERROR("Failed to convert time_t to string ??\n");
+        DEBUG(0, ("Failed to convert time_t to string ??\n"));
         return errno ? errno: EFAULT;
     }
 
@@ -303,7 +303,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     /* Set up a transaction to replace the configuration */
     ret = ldb_transaction_start(cdb->ldb);
     if (ret != LDB_SUCCESS) {
-        SYSLOG_ERROR("Failed to start a transaction for updating the configuration\n");
+        DEBUG(0, ("Failed to start a transaction for updating the configuration\n"));
         talloc_free(tmp_ctx);
         return sysdb_error_to_errno(ret);
     }
@@ -311,7 +311,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     /* Purge existing database */
     ret = confdb_purge(cdb);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not purge existing configuration\n");
+        DEBUG(0, ("Could not purge existing configuration\n"));
         goto done;
     }
 
@@ -319,8 +319,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = config_from_file("sssd", config_file, &sssd_config,
                            INI_STOP_ON_ANY, &error_list);
     if (ret != EOK) {
-        SYSLOG_ERROR("Parse error reading configuration file [%s]\n",
-                     config_file);
+        DEBUG(0, ("Parse error reading configuration file [%s]\n",
+                  config_file));
         print_file_parsing_errors(stderr, error_list);
         free_ini_config_errors(error_list);
         free_ini_config(sssd_config);
@@ -330,7 +330,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = confdb_create_ldif(tmp_ctx, sssd_config, &config_ldif);
     free_ini_config(sssd_config);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not create LDIF for confdb\n");
+        DEBUG(0, ("Could not create LDIF for confdb\n"));
         goto done;
     }
 
@@ -340,8 +340,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     while ((ldif = ldb_ldif_read_string(cdb->ldb, (const char **)&config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            SYSLOG_ERROR("Failed to initialize DB (%d,[%s]), aborting!\n",
-                         ret, ldb_errstring(cdb->ldb));
+            DEBUG(0, ("Failed to initialize DB (%d,[%s]), aborting!\n",
+                      ret, ldb_errstring(cdb->ldb)));
             ret = EIO;
             goto done;
         }

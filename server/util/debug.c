@@ -29,7 +29,6 @@
 const char *debug_prg_name = "sssd";
 int debug_level = 0;
 int debug_timestamps = 0;
-int send_syslog = 1;
 
 void debug_fn(const char *format, ...)
 {

@@ -226,9 +226,6 @@ int init_sss_tools(struct tools_ctx **_tctx)
     octx->domain = tctx->local;
     tctx->octx = octx;
 
-    /* No syslog in tools */
-    send_syslog = 0;
-
     *_tctx = tctx;
     ret = EOK;
 fini:

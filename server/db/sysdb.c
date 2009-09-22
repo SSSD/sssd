@@ -808,16 +808,16 @@ static int sysdb_upgrade_02(struct confdb_ctx *cdb,
         }
 
         if (strcmp(version, SYSDB_VERSION_0_2) != 0) {
-            SYSLOG_ERROR("Wrong DB version [%s],"
-                         " expected [%s] for this upgrade!\n",
-                         version, SYSDB_VERSION);
+            DEBUG(0,("Wrong DB version [%s],"
+                     " expected [%s] for this upgrade!\n",
+                     version, SYSDB_VERSION));
             ret = EINVAL;
             goto done;
         }
     }
     talloc_zfree(res);
 
-    SYSLOG_NOTICE("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3);
+    DEBUG(0, ("UPGRADING DB TO VERSION %s\n", SYSDB_VERSION_0_3));
 
     /* ldb uses posix locks,
      * posix is stupid and kills all locks when you close *any* file
@@ -924,18 +924,18 @@ static int sysdb_upgrade_02(struct confdb_ctx *cdb,
 
             ret = ldb_add(ctx->ldb, msg);
             if (ret != LDB_SUCCESS) {
-                SYSLOG_ERROR("WARNING: Could not add entry %s,"
-                             " to new ldb file! (%d [%s])\n",
-                             ldb_dn_get_linearized(msg->dn),
-                             ret, ldb_errstring(ctx->ldb));
+                DEBUG(0, ("WARNING: Could not add entry %s,"
+                          " to new ldb file! (%d [%s])\n",
+                          ldb_dn_get_linearized(msg->dn),
+                          ret, ldb_errstring(ctx->ldb)));
             }
 
             ret = ldb_delete(local->ldb, msg->dn);
             if (ret != LDB_SUCCESS) {
-                SYSLOG_ERROR("WARNING: Could not remove entry %s,"
-                             " from old ldb file! (%d [%s])\n",
-                             ldb_dn_get_linearized(msg->dn),
-                             ret, ldb_errstring(local->ldb));
+                DEBUG(0, ("WARNING: Could not remove entry %s,"
+                          " from old ldb file! (%d [%s])\n",
+                          ldb_dn_get_linearized(msg->dn),
+                          ret, ldb_errstring(local->ldb)));
             }
         }
 
@@ -1129,8 +1129,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
             }
 
             if (!allow_upgrade) {
-                SYSLOG_ERROR("Wrong DB version (got %s expected %s)\n",
-                             version, SYSDB_VERSION);
+                DEBUG(0, ("Wrong DB version (got %s expected %s)\n",
+                          version, SYSDB_VERSION));
                 ret = EINVAL;
                 goto done;
             }
@@ -1144,8 +1144,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
             if (strcmp(version, SYSDB_VERSION_0_2) == 0) {
                 /* if this is not local we have a big problem */
                 if (strcasecmp(domain->provider, "local") != 0) {
-                    SYSLOG_ERROR("Fatal: providers other than 'local'"
-                                 " shouldn't present v0.2, db corrupted?\n");
+                    DEBUG(0, ("Fatal: providers other than 'local'"
+                              " shouldn't present v0.2, db corrupted?\n"));
                     ret = EFAULT;
                     goto done;
                 }
@@ -1155,9 +1155,9 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                 if (need_02_upgrade) {
                     *need_02_upgrade = true;
                 } else {
-                    SYSLOG_ERROR("DB file seem to need an upgrade,"
-                                 " but upgrade flag is not provided,"
-                                 " db corrupted?\n");
+                    DEBUG(0, ("DB file seem to need an upgrade,"
+                              " but upgrade flag is not provided,"
+                              " db corrupted?\n"));
                     ret = EFAULT;
                     goto done;
                 }
@@ -1168,8 +1168,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
         }
 
-        SYSLOG_ERROR("Unknown DB version [%s], expected [%s] for domain %s!\n",
-                     version?version:"not found", SYSDB_VERSION, domain->name);
+        DEBUG(0,("Unknown DB version [%s], expected [%s] for domain %s!\n",
+                 version?version:"not found", SYSDB_VERSION, domain->name));
         ret = EINVAL;
         goto done;
     }
@@ -1180,8 +1180,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     while ((ldif = ldb_ldif_read_string(ctx->ldb, &base_ldif))) {
         ret = ldb_add(ctx->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            SYSLOG_ERROR("Failed to initialize DB (%d, [%s]) for domain %s!",
-                         ret, ldb_errstring(ctx->ldb), domain->name);
+            DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+                      ret, ldb_errstring(ctx->ldb), domain->name));
             ret = EIO;
             goto done;
         }
@@ -1208,8 +1208,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* do a synchronous add */
     ret = ldb_add(ctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        SYSLOG_ERROR("Failed to initialize DB (%d, [%s]) for domain %s!",
-                     ret, ldb_errstring(ctx->ldb), domain->name);
+        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+                  ret, ldb_errstring(ctx->ldb), domain->name));
         ret = EIO;
         goto done;
     }
@@ -1236,8 +1236,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* do a synchronous add */
     ret = ldb_add(ctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        SYSLOG_ERROR("Failed to initialize DB (%d, [%s]) for domain %s!",
-                     ret, ldb_errstring(ctx->ldb), domain->name);
+        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+                  ret, ldb_errstring(ctx->ldb), domain->name));
         ret = EIO;
         goto done;
     }
@@ -1264,8 +1264,8 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* do a synchronous add */
     ret = ldb_add(ctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        SYSLOG_ERROR("Failed to initialize DB (%d, [%s]) for domain %s!",
-                     ret, ldb_errstring(ctx->ldb), domain->name);
+        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+                  ret, ldb_errstring(ctx->ldb), domain->name));
         ret = EIO;
         goto done;
     }
@@ -1360,10 +1360,10 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 
         ret = sysdb_upgrade_02(cdb, ev, ctx, ctx_list);
         if (ret != EOK) {
-            SYSLOG_ERROR("FATAL: Upgrade form db version %s failed!\n",
-                         SYSDB_VERSION_0_2);
-            SYSLOG_ERROR("You can find a backup of the database "
-                         "in file named %s.bak", ctx->ldb_file);
+            DEBUG(0, ("FATAL: Upgrade form db version %d failed!\n",
+                      SYSDB_VERSION_0_2));
+            DEBUG(0, ("You can find a backup of the database here: %s\n",
+                      backup_file));
             talloc_zfree(ctx_list);
             return ret;
         }

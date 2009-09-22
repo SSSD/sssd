@@ -43,8 +43,6 @@
 
 #define DP_CONF_ENTRY "config/services/dp"
 
-#define PRG_NAME    "sssd"
-
 struct dp_backend;
 struct dp_frontend;
 
@@ -153,7 +151,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
     /* Set up SBUS connection to the monitor */
     ret = monitor_get_sbus_address(dpctx, dpctx->cdb, &sbus_address);
     if (ret != EOK) {
-        SYSLOG_ERROR("Could not locate monitor address.\n");
+        DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
     }
 
@@ -161,7 +159,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
                            &monitor_dp_interface, &conn,
                            NULL, NULL);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to connect to monitor services.\n");
+        DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
     }
 
@@ -170,7 +168,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
                                  DATA_PROVIDER_SERVICE_NAME,
                                  DATA_PROVIDER_VERSION);
     if (ret != EOK) {
-        SYSLOG_ERROR("Failed to identify to the monitor!\n");
+        DEBUG(0, ("Failed to identify to the monitor!\n"));
         return ret;
     }
 
@@ -204,7 +202,7 @@ static int dp_client_init(struct sbus_connection *conn, void *data)
 
     dpcli = talloc(conn, struct dp_client);
     if (!dpcli) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -218,7 +216,7 @@ static int dp_client_init(struct sbus_connection *conn, void *data)
     dpcli->timeout = tevent_add_timer(dpctx->ev, dpcli,
                                       tv, init_timeout, dpcli);
     if (!dpcli->timeout) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         talloc_zfree(conn);
         return ENOMEM;
     }
@@ -250,7 +248,7 @@ static int client_registration(DBusMessage *message,
     data = sbus_conn_get_private_data(conn);
     dpcli = talloc_get_type(data, struct dp_client);
     if (!dpcli) {
-        SYSLOG_ERROR("Connection holds no valid init data\n");
+        DEBUG(0, ("Connection holds no valid init data\n"));
         return EINVAL;
     }
 
@@ -278,14 +276,14 @@ static int client_registration(DBusMessage *message,
     case DP_CLI_BACKEND:
         dpbe = talloc_zero(dpcli->dpctx, struct dp_backend);
         if (!dpbe) {
-            SYSLOG_ERROR("Out of memory!\n");
+            DEBUG(0, ("Out of memory!\n"));
             sbus_disconnect(conn);
             return ENOMEM;
         }
 
         dpbe->domain = talloc_strdup(dpbe, cli_domain);
         if (!dpbe->domain) {
-            SYSLOG_ERROR("Out of memory!\n");
+            DEBUG(0, ("Out of memory!\n"));
             sbus_disconnect(conn);
             return ENOMEM;
         }
@@ -302,14 +300,14 @@ static int client_registration(DBusMessage *message,
     case DP_CLI_FRONTEND:
         dpfe = talloc_zero(dpcli->dpctx, struct dp_frontend);
         if (!dpfe) {
-            SYSLOG_ERROR("Out of memory!\n");
+            DEBUG(0, ("Out of memory!\n"));
             sbus_disconnect(conn);
             return ENOMEM;
         }
 
         dpfe->name = talloc_strdup(dpfe, cli_name);
         if (!dpfe->name) {
-            SYSLOG_ERROR("Out of memory!\n");
+            DEBUG(0, ("Out of memory!\n"));
             sbus_disconnect(conn);
             return ENOMEM;
         }
@@ -332,7 +330,7 @@ static int client_registration(DBusMessage *message,
     /* reply that all is ok */
     reply = dbus_message_new_method_return(message);
     if (!reply) {
-        SYSLOG_ERROR("Dbus Out of memory!\n");
+        DEBUG(0, ("Dbus Out of memory!\n"));
         return ENOMEM;
     }
 
@@ -340,7 +338,7 @@ static int client_registration(DBusMessage *message,
                                      DBUS_TYPE_UINT16, &version,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
-        SYSLOG_ERROR("Failed to build dbus reply\n");
+        DEBUG(0, ("Failed to build dbus reply\n"));
         dbus_message_unref(reply);
         sbus_disconnect(conn);
         return EIO;
@@ -375,7 +373,7 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        SYSLOG_ERROR("Severe error. A reply callback was called but no reply was received and no timeout occurred\n");
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
         sbus_disconnect(bereq->be->dpcli->conn);
@@ -404,8 +402,8 @@ static void be_got_account_info(DBusPendingCall *pending, void *data)
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
-        SYSLOG_ERROR("The Data Provider returned an error [%s], closing connection.\n",
-                     dbus_message_get_error_name(reply));
+        DEBUG(0,("The Data Provider returned an error [%s], closing connection.\n",
+                 dbus_message_get_error_name(reply)));
         /* Falling through to default intentionally*/
     default:
         /*
@@ -470,7 +468,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
                                        DP_CLI_INTERFACE,
                                        DP_CLI_METHOD_GETACCTINFO);
     if (msg == NULL) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         return ENOMEM;
     }
 
@@ -494,7 +492,7 @@ static int dp_send_acct_req(struct dp_be_request *bereq,
          * We can't communicate on this connection
          * We'll drop it using the default destructor.
          */
-        SYSLOG_ERROR("D-BUS send failed.\n");
+        DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         return EIO;
     }
@@ -690,7 +688,7 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
          * until reply is valid or timeout has occurred. If reply is NULL
          * here, something is seriously wrong and we should bail out.
          */
-        SYSLOG_ERROR("Severe error. A reply callback was called but no reply was received and no timeout occurred\n");
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
 
         /* Destroy this connection */
         sbus_disconnect(bereq->be->dpcli->conn);
@@ -717,8 +715,8 @@ static void be_got_pam_reply(DBusPendingCall *pending, void *data)
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
-        SYSLOG_ERROR("The Data Provider returned an error [%s], closing connection.\n",
-                     dbus_message_get_error_name(reply));
+        DEBUG(0,("The Data Provider returned an error [%s], closing connection.\n",
+                 dbus_message_get_error_name(reply)));
         /* Falling through to default intentionally*/
     default:
         /*
@@ -767,7 +765,7 @@ static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
                                        DP_CLI_INTERFACE,
                                        DP_CLI_METHOD_PAMHANDLER);
     if (msg == NULL) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         return ENOMEM;
     }
 
@@ -788,7 +786,7 @@ static int dp_call_pamhandler(struct dp_be_request *bereq, struct pam_data *pd)
          * We can't communicate on this connection
          * We'll drop it using the default destructor.
          */
-        SYSLOG_ERROR("D-BUS send failed.\n");
+        DEBUG(0, ("D-BUS send failed.\n"));
         dbus_message_unref(msg);
         return EIO;
     }
@@ -829,7 +827,7 @@ static int dp_pamhandler(DBusMessage *message, struct sbus_connection *conn)
 
     ret = dp_unpack_pam_request(message, pd, &dbus_error);
     if (!ret) {
-        SYSLOG_ERROR("Failed, to parse message!\n");
+        DEBUG(0,("Failed, to parse message!\n"));
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         talloc_free(pd);
         return EIO;
@@ -840,7 +838,7 @@ static int dp_pamhandler(DBusMessage *message, struct sbus_connection *conn)
 
     reply = dbus_message_new_method_return(message);
     if (!reply) {
-        SYSLOG_ERROR("Out of memory?!\n");
+        DEBUG(0,("Out of memory?!\n"));
         talloc_free(pd);
         return ENOMEM;
     }
@@ -966,7 +964,7 @@ static int dp_process_init(TALLOC_CTX *mem_ctx,
 
     dpctx = talloc_zero(mem_ctx, struct dp_ctx);
     if (!dpctx) {
-        SYSLOG_ERROR("fatal error initializing dp_ctx\n");
+        DEBUG(0, ("fatal error initializing dp_ctx\n"));
         return ENOMEM;
     }
     dpctx->ev = ev;
@@ -974,13 +972,13 @@ static int dp_process_init(TALLOC_CTX *mem_ctx,
 
     ret = dp_monitor_init(dpctx);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error setting up monitor bus\n");
+        DEBUG(0, ("fatal error setting up monitor bus\n"));
         return ret;
     }
 
     ret = dp_srv_init(dpctx);
     if (ret != EOK) {
-        SYSLOG_ERROR("fatal error setting up server bus\n");
+        DEBUG(0, ("fatal error setting up server bus\n"));
         return ret;
     }
 
@@ -1013,11 +1011,8 @@ int main(int argc, const char *argv[])
 
 	poptFreeContext(pc);
 
-    /* enable syslog logging */
-    openlog(PRG_NAME, LOG_PID, LOG_DAEMON);
-
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup(PRG_NAME, 0, DP_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd[dp]", 0, DP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();
@@ -1033,9 +1028,6 @@ int main(int argc, const char *argv[])
 
     /* loop on main */
     server_loop(main_ctx);
-
-    /* close syslog */
-    closelog();
 
     return 0;
 }

@@ -61,7 +61,7 @@ static void sbus_dispatch(struct tevent_context *ev,
         /* Currently trying to reconnect, defer dispatch */
         new_event = tevent_add_timer(ev, conn, tv, sbus_dispatch, conn);
         if (new_event == NULL) {
-            SYSLOG_ERROR("Could not defer dispatch!\n");
+            DEBUG(0,("Could not defer dispatch!\n"));
         }
         return;
     }
@@ -75,7 +75,7 @@ static void sbus_dispatch(struct tevent_context *ev,
             return;
         }
 
-        SYSLOG_ERROR("Cannot start auto-reconnection.\n");
+        DEBUG(0, ("Cannot start auto-reconnection.\n"));
         conn->reconnect_callback(conn,
                                  SBUS_RECONNECT_ERROR,
                                  conn->reconnect_pvt);
@@ -483,7 +483,7 @@ int sbus_conn_add_interface(struct sbus_connection *conn,
     path = intf->path;
 
     if (path_in_interface_list(conn->intf_list, path)) {
-        SYSLOG_ERROR("Cannot add method context with identical path.\n");
+        DEBUG(0, ("Cannot add method context with identical path.\n"));
         return EINVAL;
     }
 
@@ -499,7 +499,7 @@ int sbus_conn_add_interface(struct sbus_connection *conn,
     dbret = dbus_connection_register_object_path(conn->dbus.conn,
                                                  path, &intf->vtable, intf_p);
     if (!dbret) {
-        SYSLOG_ERROR("Could not register object path to the connection.\n");
+        DEBUG(0, ("Could not register object path to the connection.\n"));
         return ENOMEM;
     }
 
@@ -580,7 +580,7 @@ static void sbus_reconnect(struct tevent_context *ev,
                                                          &iter->intf->vtable,
                                                          iter);
             if (!dbret) {
-                SYSLOG_ERROR("Could not register object path.\n");
+                DEBUG(0, ("Could not register object path.\n"));
                 dbus_connection_unref(conn->dbus.conn);
                 goto failed;
             }
