@@ -362,7 +362,8 @@ int server_setup(const char *name, int flags,
 
     /* set debug level if any in conf_entry */
     ret = confdb_get_int(ctx->confdb_ctx, ctx, conf_entry,
-                         "debug-level", debug_level, &debug_level);
+                         CONFDB_SERVICE_DEBUG_LEVEL,
+                         debug_level, &debug_level);
     if (ret != EOK) {
         DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
                   ret, strerror(ret)));
@@ -372,7 +373,8 @@ int server_setup(const char *name, int flags,
     /* same for debug timestamps */
     dt = (debug_timestamps != 0);
     ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
-                          "debug-timestamps", dt, &dt);
+                          CONFDB_SERVICE_DEBUG_TIMESTAMPS,
+                          dt, &dt);
     if (ret != EOK) {
         DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
                   ret, strerror(ret)));

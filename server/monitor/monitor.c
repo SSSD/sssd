@@ -57,7 +57,6 @@
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */
 #define MONITOR_DEF_PING_TIME 10
-#define MONITOR_CONF_ENTRY "config/services/monitor"
 
 struct svc_spy;
 
@@ -341,10 +340,9 @@ static int monitor_dbus_init(struct mt_ctx *ctx)
     char *monitor_address;
     int ret;
 
-    monitor_address = talloc_asprintf(ctx, "unix:path=%s/%s",
-                                      PIPE_PATH, SSSD_SERVICE_PIPE);
-    if (!monitor_address) {
-        return ENOMEM;
+    ret = monitor_get_sbus_address(ctx, &monitor_address);
+    if (ret != EOK) {
+        return ret;
     }
 
     ret = sbus_new_server(ctx, ctx->ev,
@@ -845,7 +843,8 @@ int get_monitor_config(struct mt_ctx *ctx)
     int timeout_seconds;
 
     ret = confdb_get_int(ctx->cdb, ctx,
-                         MONITOR_CONF_ENTRY, "sbusTimeout",
+                         CONFDB_MONITOR_CONF_ENTRY,
+                         CONFDB_MONITOR_SBUS_TIMEOUT,
                          10, &timeout_seconds);
     if (ret != EOK) {
         return ret;
@@ -858,7 +857,8 @@ int get_monitor_config(struct mt_ctx *ctx)
         return ENOMEM;
     }
     ret = confdb_get_string_as_list(ctx->cdb, ctx->service_ctx,
-                                    SERVICE_CONF_ENTRY, "activeServices",
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_SERVICES,
                                     &ctx->services);
     if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
@@ -922,13 +922,14 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         return ENOMEM;
     }
 
-    path = talloc_asprintf(svc, "config/services/%s", svc->name);
+    path = talloc_asprintf(svc, CONFDB_SERVICE_PATH_TMPL, svc->name);
     if (!path) {
         talloc_free(svc);
         return ENOMEM;
     }
 
-    ret = confdb_get_string(ctx->cdb, svc, path, "command",
+    ret = confdb_get_string(ctx->cdb, svc, path,
+                            CONFDB_SERVICE_COMMAND,
                             NULL, &svc->command);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
@@ -948,7 +949,8 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         }
     }
 
-    ret = confdb_get_int(ctx->cdb, svc, path, "timeout",
+    ret = confdb_get_int(ctx->cdb, svc, path,
+                         CONFDB_SERVICE_TIMEOUT,
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
@@ -1007,29 +1009,32 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         return ENOMEM;
     }
 
-    path = talloc_asprintf(svc, "config/domains/%s", name);
+    path = talloc_asprintf(svc, CONFDB_DOMAIN_PATH_TMPL, name);
     if (!path) {
         talloc_free(svc);
         return ENOMEM;
     }
 
     ret = confdb_get_string(ctx->cdb, svc, path,
-                            "provider", NULL, &svc->provider);
+                            CONFDB_DOMAIN_ID_PROVIDER,
+                            NULL, &svc->provider);
     if (ret != EOK) {
-        DEBUG(0, ("Failed to find provider from [%s] configuration\n", name));
+        DEBUG(0, ("Failed to find ID provider from [%s] configuration\n", name));
         talloc_free(svc);
         return ret;
     }
 
     ret = confdb_get_string(ctx->cdb, svc, path,
-                            "command", NULL, &svc->command);
+                            CONFDB_DOMAIN_COMMAND,
+                            NULL, &svc->command);
     if (ret != EOK) {
         DEBUG(0, ("Failed to find command from [%s] configuration\n", name));
         talloc_free(svc);
         return ret;
     }
 
-    ret = confdb_get_int(ctx->cdb, svc, path, "timeout",
+    ret = confdb_get_int(ctx->cdb, svc, path,
+                         CONFDB_DOMAIN_TIMEOUT,
                          MONITOR_DEF_PING_TIME, &svc->ping_time);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
@@ -2427,7 +2432,7 @@ int main(int argc, const char *argv[])
     if (ret != EOK) return 4;
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd", flags, MONITOR_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd", flags, CONFDB_MONITOR_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     monitor->ev = main_ctx->event_ctx;

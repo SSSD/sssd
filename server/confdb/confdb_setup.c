@@ -57,9 +57,15 @@ int confdb_test(struct confdb_ctx *cdb)
     }
 
     if (strcmp(values[0], CONFDB_VERSION) != 0) {
-        /* bad version get out */
+        /* Existing version does not match executable version */
+        DEBUG(1, ("Upgrading confdb version from %s to %s\n",
+                  values[0], CONFDB_VERSION));
+
+        /* This is recoverable, since we purge the confdb file
+         * when we re-initialize it.
+         */
         talloc_free(values);
-        return EIO;
+        return ENOENT;
     }
 
     talloc_free(values);
@@ -266,12 +272,14 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     int ret, i;
     struct collection_item *sssd_config = NULL;
     struct collection_item *error_list = NULL;
+    struct collection_item *item = NULL;
     char *config_ldif;
     struct ldb_ldif *ldif;
     TALLOC_CTX *tmp_ctx;
     char *lasttimestr, timestr[21];
     const char *vals[2] = { timestr, NULL };
     struct stat cstat;
+    int version;
 
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) return ENOMEM;
@@ -324,6 +332,35 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
         print_file_parsing_errors(stderr, error_list);
         free_ini_config_errors(error_list);
         free_ini_config(sssd_config);
+        goto done;
+    }
+
+    /* Make sure that the config file version matches the confdb version */
+    ret = get_config_item("sssd", "config_file_version",
+                          sssd_config, &item);
+    if (ret != EOK) {
+        DEBUG(0, ("Internal error determining config_file_version\n"));
+        goto done;
+    }
+    if (item == NULL) {
+        /* No known version. Assumed to be version 1 */
+        DEBUG(0, ("Config file is an old version. "
+                  "Please run configuration upgrade script.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    version = get_int_config_value(item, 1, -1, &ret);
+    if (ret != EOK) {
+        DEBUG(0, ("Config file version could not be determined\n"));
+        goto done;
+    } else if (version < CONFDB_VERSION_INT) {
+        DEBUG(0, ("Config file is an old version. "
+                  "Please run configuration upgrade script.\n"));
+        ret = EINVAL;
+        goto done;
+    } else if (version > CONFDB_VERSION_INT) {
+        DEBUG(0, ("Config file version is newer than confdb\n"));
+        ret = EINVAL;
         goto done;
     }
 

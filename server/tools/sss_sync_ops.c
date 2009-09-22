@@ -27,11 +27,6 @@
 #include "tools/sss_sync_ops.h"
 
 /* Default settings for user attributes */
-#define CONFDB_DFL_SECTION "config/user_defaults"
-
-#define DFL_SHELL_ATTR     "defaultShell"
-#define DFL_BASEDIR_ATTR   "baseDirectory"
-
 #define DFL_SHELL_VAL      "/bin/bash"
 #define DFL_BASEDIR_VAL    "/home"
 
@@ -1129,17 +1124,24 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
     int ret;
     char *basedir = NULL;
     char *dfl_shell = NULL;
+    char *conf_path = NULL;
+
+    conf_path = talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL, data->domain->name);
+    if (!conf_path) {
+        return ENOMEM;
+    }
 
     data->gecos = talloc_strdup(mem_ctx, gecos ? gecos : data->name);
     if (!data->gecos) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     if (homedir) {
         data->home = talloc_strdup(data, homedir);
     } else {
         ret = confdb_get_string(confdb, mem_ctx,
-                                CONFDB_DFL_SECTION, DFL_BASEDIR_ATTR,
+                                conf_path, CONFDB_LOCAL_DEFAULT_BASEDIR,
                                 DFL_BASEDIR_VAL, &basedir);
         if (ret != EOK) {
             goto done;
@@ -1157,7 +1159,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
 
     if (!shell) {
         ret = confdb_get_string(confdb, mem_ctx,
-                                CONFDB_DFL_SECTION, DFL_SHELL_ATTR,
+                                conf_path, CONFDB_LOCAL_DEFAULT_SHELL,
                                 DFL_SHELL_VAL, &dfl_shell);
         if (ret != EOK) {
             goto done;
@@ -1174,6 +1176,7 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
 done:
     talloc_free(dfl_shell);
     talloc_free(basedir);
+    talloc_free(conf_path);
     return ret;
 }
 

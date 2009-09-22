@@ -34,7 +34,74 @@
 #define CONFDB_DEFAULT_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
 #define SSSD_MIN_ID 1000
 
-#define SERVICE_CONF_ENTRY "config/services"
+/* Configuration options */
+
+/* Services */
+#define CONFDB_SERVICE_PATH_TMPL "config/%s"
+#define CONFDB_SERVICE_COMMAND "command"
+#define CONFDB_SERVICE_DEBUG_LEVEL "debug_level"
+#define CONFDB_SERVICE_DEBUG_TIMESTAMPS "debug_timestamps"
+#define CONFDB_SERVICE_TIMEOUT "timeout"
+#define CONFDB_SERVICE_RECON_RETRIES "reconnection_retries"
+
+/* Monitor */
+#define CONFDB_MONITOR_CONF_ENTRY "config/sssd"
+#define CONFDB_MONITOR_SBUS_TIMEOUT "sbus_timeout"
+#define CONFDB_MONITOR_ACTIVE_SERVICES "services"
+#define CONFDB_MONITOR_ACTIVE_DOMAINS "domains"
+#define CONFDB_MONITOR_NAME_REGEX   "re_expression"
+#define CONFDB_MONITOR_FULL_NAME_FORMAT "full_name_format"
+
+/* NSS */
+#define CONFDB_NSS_CONF_ENTRY "config/nss"
+#define CONFDB_NSS_ENUM_CACHE_TIMEOUT "enum_cache_timeout"
+#define CONFDB_NSS_ENTRY_CACHE_TIMEOUT "entry_cache_timeout"
+#define CONFDB_NSS_ENTRY_CACHE_NOWAIT_TIMEOUT "entry_cache_nowait_timeout"
+#define CONFDB_NSS_ENTRY_NEG_TIMEOUT "entry_negative_timeout"
+#define CONFDB_NSS_FILTER_USERS_IN_GROUPS "filter_users_in_groups"
+#define CONFDB_NSS_FILTER_USERS "filter_users"
+#define CONFDB_NSS_FILTER_GROUPS "filter_groups"
+
+/* PAM */
+#define CONFDB_PAM_CONF_ENTRY "config/pam"
+
+/* Data Provider */
+#define CONFDB_DP_CONF_ENTRY "config/dp"
+
+/* Domains */
+#define CONFDB_DOMAIN_PATH_TMPL "config/domain/%s"
+#define CONFDB_DOMAIN_BASEDN "cn=domain,cn=config"
+#define CONFDB_DOMAIN_ID_PROVIDER "id_provider"
+#define CONFDB_DOMAIN_AUTH_PROVIDER "auth_provider"
+#define CONFDB_DOMAIN_ACCESS_PROVIDER "access_provider"
+#define CONFDB_DOMAIN_CHPASS_PROVIDER "chpass_provider"
+#define CONFDB_DOMAIN_COMMAND "command"
+#define CONFDB_DOMAIN_TIMEOUT "timeout"
+#define CONFDB_DOMAIN_ATTR "cn"
+#define CONFDB_DOMAIN_ENUMERATE "enumerate"
+#define CONFDB_DOMAIN_MINID "min_id"
+#define CONFDB_DOMAIN_MAXID "max_id"
+#define CONFDB_DOMAIN_CACHE_CREDS "cache_credentials"
+#define CONFDB_DOMAIN_LEGACY_PASS "store_legacy_passwords"
+#define CONFDB_DOMAIN_MPG "magic_private_groups"
+#define CONFDB_DOMAIN_FQ "use_fully_qualified_names"
+
+/* Local Provider */
+#define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
+#define CONFDB_LOCAL_DEFAULT_BASEDIR "base_directory"
+
+/* Proxy Provider */
+#define CONFDB_PROXY_LIBNAME "proxy_lib_name"
+#define CONFDB_PROXY_PAM_TARGET "proxy_pam_target"
+
+/* KRB5 Provider */
+#define CONFDB_KRB5_KDCIP "krb5_kdcip"
+#define CONFDB_KRB5_REALM "krb5_realm"
+#define CONFDB_KRB5_CCACHEDIR "krb5_ccachedir"
+#define CONFDB_KRB5_CCNAME_TMPL "krb5_ccname_template"
+#define CONFDB_KRB5_TRY_SIMPLE_UPN "krb5_try_simple_upn"
+#define CONFDB_KRB5_CHANGEPW_PRINC "krb5_changepw_principle"
+#define CONFDB_KRB5_AUTH_TIMEOUT "krb5_auth_timeout"
 
 struct confdb_ctx;
 struct config_file_ctx;

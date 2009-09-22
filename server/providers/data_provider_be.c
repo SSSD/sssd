@@ -44,8 +44,6 @@
 #include "providers/dp_backend.h"
 #include "monitor/monitor_interfaces.h"
 
-#define BE_CONF_ENTRY "config/domains/%s"
-
 struct sbus_method monitor_be_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
@@ -81,10 +79,10 @@ struct sbus_interface be_interface = {
 
 static struct bet_data bet_data[] = {
     {BET_NULL, NULL, NULL},
-    {BET_ID, "provider", "sssm_%s_init"},
-    {BET_AUTH, "auth-module", "sssm_%s_auth_init"},
-    {BET_ACCESS, "access-module", "sssm_%s_access_init"},
-    {BET_CHPASS, "chpass-module", "sssm_%s_chpass_init"},
+    {BET_ID, CONFDB_DOMAIN_ID_PROVIDER, "sssm_%s_init"},
+    {BET_AUTH, CONFDB_DOMAIN_AUTH_PROVIDER, "sssm_%s_auth_init"},
+    {BET_ACCESS, CONFDB_DOMAIN_ACCESS_PROVIDER, "sssm_%s_access_init"},
+    {BET_CHPASS, CONFDB_DOMAIN_CHPASS_PROVIDER, "sssm_%s_chpass_init"},
     {BET_MAX, NULL, NULL}
 };
 
@@ -514,7 +512,7 @@ static int mon_cli_init(struct be_ctx *ctx)
     int ret;
 
     /* Set up SBUS connection to the monitor */
-    ret = monitor_get_sbus_address(ctx, ctx->cdb, &sbus_address);
+    ret = monitor_get_sbus_address(ctx, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
@@ -550,7 +548,7 @@ static int be_cli_init(struct be_ctx *ctx)
     char *sbus_address;
 
     /* Set up SBUS connection to the monitor */
-    ret = dp_get_sbus_address(ctx, ctx->cdb, &sbus_address);
+    ret = dp_get_sbus_address(ctx, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
@@ -574,8 +572,8 @@ static int be_cli_init(struct be_ctx *ctx)
     }
 
     /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ctx->cdb, ctx, SERVICE_CONF_ENTRY,
-                         "reconnection_retries", 3, &max_retries);
+    ret = confdb_get_int(ctx->cdb, ctx, CONFDB_DP_CONF_ENTRY,
+                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;
@@ -833,7 +831,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ctx->ev = ev;
     ctx->cdb = cdb;
     ctx->identity = talloc_asprintf(ctx, "%%BE_%s", be_domain);
-    ctx->conf_path = talloc_asprintf(ctx, "config/domains/%s", be_domain);
+    ctx->conf_path = talloc_asprintf(ctx, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!ctx->identity || !ctx->conf_path) {
         DEBUG(0, ("Out of memory!?\n"));
         return ENOMEM;
@@ -953,7 +951,7 @@ int main(int argc, const char *argv[])
     srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
     if (!srv_name) return 2;
 
-    conf_entry = talloc_asprintf(NULL, BE_CONF_ENTRY, be_domain);
+    conf_entry = talloc_asprintf(NULL, CONFDB_DOMAIN_PATH_TMPL, be_domain);
     if (!conf_entry) return 2;
 
     ret = server_setup(srv_name, 0, conf_entry, &main_ctx);

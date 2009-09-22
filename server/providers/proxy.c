@@ -2215,7 +2215,7 @@ int sssm_proxy_init(struct be_ctx *bectx,
     ctx->be = bectx;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "libName", NULL, &libname);
+                            CONFDB_PROXY_LIBNAME, NULL, &libname);
     if (ret != EOK) goto done;
     if (libname == NULL) {
         ret = ENOENT;
@@ -2339,7 +2339,8 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     ctx->be = bectx;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                           "pam-target", NULL, &ctx->pam_target);
+                            CONFDB_PROXY_PAM_TARGET, NULL,
+                            &ctx->pam_target);
     if (ret != EOK) goto done;
     if (!ctx->pam_target) {
         ctx->pam_target = talloc_strdup(ctx, "sssd_pam_proxy_default");

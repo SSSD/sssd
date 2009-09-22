@@ -87,29 +87,29 @@ static int nss_get_config(struct nss_ctx *nctx,
     tmpctx = talloc_new(nctx);
     if (!tmpctx) return ENOMEM;
 
-    ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
-                         "EnumCacheTimeout", 120,
+    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENUM_CACHE_TIMEOUT, 120,
                          &nctx->enum_cache_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
-                         "EntryCacheTimeout", 600,
+    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_CACHE_TIMEOUT, 600,
                          &nctx->cache_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
-                         "EntryNegativeTimeout", 15,
+    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
                          &nctx->neg_timeout);
     if (ret != EOK) goto done;
 
-    ret = confdb_get_bool(cdb, nctx, NSS_SRV_CONFIG,
-                         "filterUsersInGroups", true,
+    ret = confdb_get_bool(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_FILTER_USERS_IN_GROUPS, true,
                          &nctx->filter_users_in_groups);
     if (ret != EOK) goto done;
 
 
-    ret = confdb_get_int(cdb, nctx, NSS_SRV_CONFIG,
-                         "EntryCacheNoWaitRefreshTimeout", 0,
+    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_CACHE_NOWAIT_TIMEOUT, 0,
                          &nctx->cache_refresh_timeout);
     if (ret != EOK) goto done;
     if (nctx->cache_refresh_timeout >= nctx->cache_timeout) {
@@ -123,9 +123,18 @@ static int nss_get_config(struct nss_ctx *nctx,
         nctx->cache_refresh_timeout = 0;
     }
 
-    ret = confdb_get_string_as_list(cdb, tmpctx, NSS_SRV_CONFIG,
-                                    "filterUsers", &filter_list);
-    if (ret == ENOENT) filter_list = NULL;
+    ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_FILTER_USERS, &filter_list);
+    if (ret == ENOENT) {
+        filter_list = talloc_array(tmpctx, char *, 2);
+        filter_list[0] = talloc_strdup(tmpctx, "root");
+        filter_list[1] = NULL;
+        if (!filter_list || !filter_list[0]) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = EOK;
+    }
     else if (ret != EOK) goto done;
 
     for (i = 0; (filter_list && filter_list[i]); i++) {
@@ -158,12 +167,21 @@ static int nss_get_config(struct nss_ctx *nctx,
         }
     }
 
-    ret = confdb_get_string_as_list(cdb, tmpctx, NSS_SRV_CONFIG,
-                                    "filterGroups", &filter_list);
-    if (ret == ENOENT) filter_list = NULL;
+    ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_FILTER_GROUPS, &filter_list);
+    if (ret == ENOENT) {
+        filter_list = talloc_array(tmpctx, char *, 2);
+        filter_list[0] = talloc_strdup(tmpctx, "root");
+        filter_list[1] = NULL;
+        if (!filter_list || !filter_list[0]) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = EOK;
+    }
     else if (ret != EOK) goto done;
 
-    for (i = 0; filter_list[i]; i++) {
+    for (i = 0; (filter_list && filter_list[i]); i++) {
         ret = sss_parse_name(tmpctx, nctx->rctx->names,
                              filter_list[i], &domain, &name);
         if (ret != EOK) {
@@ -193,6 +211,7 @@ static int nss_get_config(struct nss_ctx *nctx,
         }
     }
 
+    ret = 0;
 done:
     talloc_free(tmpctx);
     return ret;
@@ -269,7 +288,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     ret = sss_process_init(nctx, ev, cdb,
                            nss_cmds,
                            SSS_NSS_SOCKET_NAME, NULL,
-                           NSS_SRV_CONFIG,
+                           CONFDB_NSS_CONF_ENTRY,
                            NSS_SBUS_SERVICE_NAME,
                            NSS_SBUS_SERVICE_VERSION,
                            &monitor_nss_interface,
@@ -291,8 +310,9 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
 
     /* Enable automatic reconnection to the Data Provider */
     ret = confdb_get_int(nctx->rctx->cdb, nctx->rctx,
-                         SERVICE_CONF_ENTRY,
-                         "reconnection_retries", 3, &max_retries);
+                         CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_SERVICE_RECON_RETRIES,
+                         3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;
@@ -334,7 +354,7 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[nss]", 0, NSS_SRV_CONFIG, &main_ctx);
+    ret = server_setup("sssd[nss]", 0, CONFDB_NSS_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

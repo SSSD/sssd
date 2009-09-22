@@ -41,8 +41,6 @@
 #include "dp_interfaces.h"
 #include "monitor/monitor_interfaces.h"
 
-#define DP_CONF_ENTRY "config/services/dp"
-
 struct dp_backend;
 struct dp_frontend;
 
@@ -149,7 +147,7 @@ static int dp_monitor_init(struct dp_ctx *dpctx)
     int ret;
 
     /* Set up SBUS connection to the monitor */
-    ret = monitor_get_sbus_address(dpctx, dpctx->cdb, &sbus_address);
+    ret = monitor_get_sbus_address(dpctx, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
@@ -927,31 +925,14 @@ static int dp_frontend_destructor(void *ctx)
 static int dp_srv_init(struct dp_ctx *dpctx)
 {
     char *dpbus_address;
-    char *default_dp_address;
     int ret;
 
     DEBUG(3, ("Initializing Data Provider D-BUS Server\n"));
-    default_dp_address = talloc_asprintf(dpctx, "unix:path=%s/%s",
-                                         PIPE_PATH, DATA_PROVIDER_PIPE);
-    if (default_dp_address == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = confdb_get_string(dpctx->cdb, dpctx,
-                            DP_CONF_ENTRY, "dpbusAddress",
-                            default_dp_address, &dpbus_address);
-    if (ret != EOK) goto done;
+    ret = dp_get_sbus_address(dpctx, &dpbus_address);
 
     ret = sbus_new_server(dpctx, dpctx->ev, dpbus_address,
                           &dp_interface, &dpctx->sbus_srv,
                           dp_client_init, dpctx);
-    if (ret != EOK) {
-        goto done;
-    }
-
-done:
-    talloc_free(default_dp_address);
     return ret;
 }
 
@@ -1012,7 +993,7 @@ int main(int argc, const char *argv[])
 	poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[dp]", 0, DP_CONF_ENTRY, &main_ctx);
+    ret = server_setup("sssd[dp]", 0, CONFDB_DP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

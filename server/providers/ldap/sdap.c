@@ -32,78 +32,78 @@
 #define BOOL_TRUE { .boolean = true }
 
 struct sdap_gen_opts default_basic_opts[] = {
-    { "ldapUri", SDAP_STRING, { "ldap://localhost" }, NULL_STRING },
-    { "defaultBindDn", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "defaultAuthtokType", SDAP_STRING, NULL_STRING, NULL_STRING},
-    { "defaultAuthtok", SDAP_BLOB, NULL_BLOB, NULL_BLOB },
-    { "network_timeout", SDAP_NUMBER, { .number = 5 }, NULL_NUMBER },
-    { "opt_timeout", SDAP_NUMBER, { .number = 5 }, NULL_NUMBER },
-    { "tls_reqcert", SDAP_STRING, { "hard" }, NULL_STRING },
-    { "userSearchBase", SDAP_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
-    { "userSearchScope", SDAP_STRING, { "sub" }, NULL_STRING },
-    { "userSearchFilter", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "groupSearchBase", SDAP_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
-    { "groupSearchScope", SDAP_STRING, { "sub" }, NULL_STRING },
-    { "groupSearchFilter", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldapSchema", SDAP_STRING, { "rfc2307" }, NULL_STRING },
-    { "offline_timeout", SDAP_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "force_upper_case_realm", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "enumeration_refresh_timeout", SDAP_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER }
+    { "ldap_uri", SDAP_STRING, { "ldap://localhost" }, NULL_STRING },
+    { "ldap_default_bind_dn", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_default_authtok_type", SDAP_STRING, NULL_STRING, NULL_STRING},
+    { "ldap_default_authtok", SDAP_BLOB, NULL_BLOB, NULL_BLOB },
+    { "ldap_network_timeout", SDAP_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "ldap_opt_timeout", SDAP_NUMBER, { .number = 5 }, NULL_NUMBER },
+    { "ldap_tls_reqcert", SDAP_STRING, { "hard" }, NULL_STRING },
+    { "ldap_user_search_base", SDAP_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
+    { "ldap_user_search_scope", SDAP_STRING, { "sub" }, NULL_STRING },
+    { "ldap_user_search_filter", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_group_search_base", SDAP_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
+    { "ldap_group_search_scope", SDAP_STRING, { "sub" }, NULL_STRING },
+    { "ldap_group_search_filter", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_schema", SDAP_STRING, { "rfc2307" }, NULL_STRING },
+    { "ldap_offline_timeout", SDAP_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "ldap_force_upper_case_realm", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_enumeration_refresh_timeout", SDAP_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER }
 };
 
 struct sdap_id_map rfc2307_user_map[] = {
-    { "userObjectClass", "posixAccount", SYSDB_USER_CLASS, NULL },
-    { "userName", "uid", SYSDB_NAME, NULL },
-    { "userPwd", "userPassword", SYSDB_PWD, NULL },
-    { "userUidNumber", "uidNumber", SYSDB_UIDNUM, NULL },
-    { "userGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "userGecos", "gecos", SYSDB_GECOS, NULL },
-    { "userHomeDirectory", "homeDirectory", SYSDB_HOMEDIR, NULL },
-    { "userShell", "loginShell", SYSDB_SHELL, NULL },
-    { "userPrincipal", "krbPrincipalName", SYSDB_UPN, NULL },
-    { "userFullname", "cn", SYSDB_FULLNAME, NULL },
-    { "userMemberOf", NULL, SYSDB_MEMBEROF, NULL },
-    { "userUUID", NULL, SYSDB_UUID, NULL },
-    { "userModifyTimestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+    { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
+    { "ldap_user_name", "uid", SYSDB_NAME, NULL },
+    { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
+    { "ldap_user_uid_number", "uidNumber", SYSDB_UIDNUM, NULL },
+    { "ldap_user_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_user_gecos", "gecos", SYSDB_GECOS, NULL },
+    { "ldap_user_home_directory", "homeDirectory", SYSDB_HOMEDIR, NULL },
+    { "ldap_user_shell", "loginShell", SYSDB_SHELL, NULL },
+    { "ldap_user_principal", "krbPrincipalName", SYSDB_UPN, NULL },
+    { "ldap_user_fullname", "cn", SYSDB_FULLNAME, NULL },
+    { "ldap_user_member_of", NULL, SYSDB_MEMBEROF, NULL },
+    { "ldap_user_uuid", NULL, SYSDB_UUID, NULL },
+    { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
 struct sdap_id_map rfc2307_group_map[] = {
-    { "groupObjectClass", "posixGroup", SYSDB_GROUP_CLASS, NULL },
-    { "groupName", "cn", SYSDB_NAME, NULL },
-    { "groupPwd", "userPassword", SYSDB_PWD, NULL },
-    { "groupGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "groupMember", "memberuid", SYSDB_MEMBER, NULL },
-    { "groupUUID", NULL, SYSDB_UUID, NULL },
-    { "groupModifyTimestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+    { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
+    { "ldap_group_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
+    { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_group_member", "memberuid", SYSDB_MEMBER, NULL },
+    { "ldap_group_uuid", NULL, SYSDB_UUID, NULL },
+    { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
 struct sdap_id_map rfc2307bis_user_map[] = {
-    { "userObjectClass", "posixAccount", SYSDB_USER_CLASS, NULL },
-    { "userName", "uid", SYSDB_NAME, NULL },
-    { "userPwd", "userPassword", SYSDB_PWD, NULL },
-    { "userUidNumber", "uidNumber", SYSDB_UIDNUM, NULL },
-    { "userGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "userGecos", "gecos", SYSDB_GECOS, NULL },
-    { "userHomeDirectory", "homeDirectory", SYSDB_HOMEDIR, NULL },
-    { "userShell", "loginShell", SYSDB_SHELL, NULL },
-    { "userPrincipal", "krbPrincipalName", SYSDB_UPN, NULL },
-    { "userFullname", "cn", SYSDB_FULLNAME, NULL },
-    { "userMemberOf", "memberOf", SYSDB_MEMBEROF, NULL },
+    { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
+    { "ldap_user_name", "uid", SYSDB_NAME, NULL },
+    { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
+    { "ldap_user_uid_number", "uidNumber", SYSDB_UIDNUM, NULL },
+    { "ldap_user_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_user_gecos", "gecos", SYSDB_GECOS, NULL },
+    { "ldap_user_home_directory", "homeDirectory", SYSDB_HOMEDIR, NULL },
+    { "ldap_user_shell", "loginShell", SYSDB_SHELL, NULL },
+    { "ldap_user_principal", "krbPrincipalName", SYSDB_UPN, NULL },
+    { "ldap_user_fullname", "cn", SYSDB_FULLNAME, NULL },
+    { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
     /* FIXME: this is 389ds specific */
-    { "userUUID", "nsUniqueId", SYSDB_UUID, NULL },
-    { "userModifyTimestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+    { "ldap_user_uuid", "nsUniqueId", SYSDB_UUID, NULL },
+    { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
 struct sdap_id_map rfc2307bis_group_map[] = {
-    { "groupObjectClass", "posixGroup", SYSDB_GROUP_CLASS, NULL },
-    { "groupName", "cn", SYSDB_NAME, NULL },
-    { "groupPwd", "userPassword", SYSDB_PWD, NULL },
-    { "groupGidNumber", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "groupMember", "member", SYSDB_MEMBER, NULL },
+    { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
+    { "ldap_group_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
+    { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
+    { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
     /* FIXME: this is 389ds specific */
-    { "groupUUID", "nsUniqueId", SYSDB_UUID, NULL },
-    { "groupModifyTimestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+    { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
+    { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
 /* =Retrieve-Options====================================================== */

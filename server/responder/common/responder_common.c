@@ -293,7 +293,7 @@ static int sss_monitor_init(struct resp_ctx *rctx,
     int ret;
 
     /* Set up SBUS connection to the monitor */
-    ret = monitor_get_sbus_address(rctx, rctx->cdb, &sbus_address);
+    ret = monitor_get_sbus_address(rctx, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate monitor address.\n"));
         return ret;
@@ -326,7 +326,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     int ret;
 
     /* Set up SBUS connection to the monitor */
-    ret = dp_get_sbus_address(rctx, rctx->cdb, &sbus_address);
+    ret = dp_get_sbus_address(rctx, &sbus_address);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate DP address.\n"));
         return ret;

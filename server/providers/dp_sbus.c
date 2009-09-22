@@ -27,9 +27,8 @@
 #include "providers/data_provider.h"
 #include "providers/dp_interfaces.h"
 
-int dp_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb, char **address)
+int dp_get_sbus_address(TALLOC_CTX *mem_ctx, char **address)
 {
-    int ret;
     char *default_address;
 
     *address = NULL;
@@ -39,20 +38,7 @@ int dp_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb, char **a
         return ENOMEM;
     }
 
-    if (confdb == NULL) {
-        /* If the confdb isn't specified, fall to the default */
-        *address = default_address;
-        talloc_steal(mem_ctx, default_address);
-        ret = EOK;
-        goto done;
-    }
-
-    ret = confdb_get_string(confdb, mem_ctx,
-                            "config/services/dp", "sbusAddress",
-                            default_address, address);
-
-done:
-    talloc_free(default_address);
-    return ret;
+    *address = default_address;
+    return EOK;
 }
 

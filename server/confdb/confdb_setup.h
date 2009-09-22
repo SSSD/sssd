@@ -22,7 +22,8 @@
 #ifndef CONFDB_SETUP_H_
 #define CONFDB_SETUP_H_
 
-#define CONFDB_VERSION "1"
+#define CONFDB_VERSION "2"
+#define CONFDB_VERSION_INT 2
 
 #define CONFDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \
@@ -41,7 +42,7 @@
 
 #define CONFDB_INTERNAL_LDIF \
      "dn: cn=config\n" \
-     "version: 1\n" \
+     "version: "CONFDB_VERSION"\n" \
      "\n"
 
 int confdb_create_base(struct confdb_ctx *cdb);

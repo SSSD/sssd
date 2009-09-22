@@ -44,8 +44,7 @@
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 
-int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
-                             char **address);
+int monitor_get_sbus_address(TALLOC_CTX *mem_ctx, char **address);
 int monitor_common_send_id(struct sbus_connection *conn,
                            const char *name, uint16_t version);
 int monitor_common_pong(DBusMessage *message,

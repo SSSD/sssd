@@ -39,8 +39,6 @@
 
 #define NSS_PACKET_MAX_RECV_SIZE 1024
 
-#define NSS_SRV_CONFIG "config/services/nss"
-
 struct getent_ctx;
 
 struct nss_ctx {

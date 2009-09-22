@@ -27,8 +27,6 @@
 #include "confdb/confdb.h"
 #include "util/util.h"
 
-#define NAMES_CONFIG "config/names"
-
 #ifdef HAVE_LIBPCRE_LESSER_THAN_7
 #define NAME_DOMAIN_PATTERN_OPTIONS (PCRE_EXTENDED)
 #else
@@ -58,8 +56,8 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
     ctx = talloc_zero(ctx, struct sss_names_ctx);
     if (!ctx) return ENOMEM;
 
-    ret = confdb_get_string(cdb, ctx, NAMES_CONFIG,
-                            "re-expression", NULL, &ctx->re_pattern);
+    ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_NAME_REGEX, NULL, &ctx->re_pattern);
     if (ret != EOK) goto done;
 
     if (!ctx->re_pattern) {
@@ -79,8 +77,8 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
 #endif
     }
 
-    ret = confdb_get_string(cdb, ctx, NAMES_CONFIG,
-                            "full-name-format", NULL, &ctx->fq_fmt);
+    ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
+                            CONFDB_MONITOR_FULL_NAME_FORMAT, NULL, &ctx->fq_fmt);
     if (ret != EOK) goto done;
 
     if (!ctx->fq_fmt) {

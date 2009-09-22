@@ -867,7 +867,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     ctx->action = INIT_PW;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                            "krb5KDCIP", NULL, &value);
+                            CONFDB_KRB5_KDCIP, NULL, &value);
     if (ret != EOK) goto fail;
     if (value == NULL) {
         DEBUG(2, ("Missing krb5KDCIP, authentication might fail.\n"));
@@ -881,7 +881,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     ctx->kdcip = value;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                            "krb5REALM", NULL, &value);
+                            CONFDB_KRB5_REALM, NULL, &value);
     if (ret != EOK) goto fail;
     if (value == NULL) {
         DEBUG(4, ("Missing krb5REALM authentication might fail.\n"));
@@ -895,7 +895,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     ctx->realm = value;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                            "krb5ccache_dir", "/tmp", &value);
+                            CONFDB_KRB5_CCACHEDIR, "/tmp", &value);
     if (ret != EOK) goto fail;
     ret = lstat(value, &stat_buf);
     if (ret != EOK) {
@@ -910,7 +910,8 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     ctx->ccache_dir = value;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                            "krb5ccname_template", "FILE:%d/krb5cc_%U_XXXXXX",
+                            CONFDB_KRB5_CCNAME_TMPL,
+                            "FILE:%d/krb5cc_%U_XXXXXX",
                             &value);
     if (ret != EOK) goto fail;
     if (value[0] != '/' && strncmp(value, "FILE:", 5) != 0) {
@@ -921,12 +922,14 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     ctx->ccname_template = value;
 
     ret = confdb_get_bool(bectx->cdb, ctx, bectx->conf_path,
-                          "krb5try_simple_upn", false, &bool_value);
+                          CONFDB_KRB5_TRY_SIMPLE_UPN, false,
+                          &bool_value);
     if (ret != EOK) goto fail;
     ctx->try_simple_upn = bool_value;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
-                            "krb5changepw_principle", "kadmin/changepw",
+                            CONFDB_KRB5_CHANGEPW_PRINC,
+                            "kadmin/changepw",
                             &value);
     if (ret != EOK) goto fail;
     if (strchr(value, '@') == NULL) {
@@ -945,7 +948,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     }
 
     ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
-                         "krb5auth_timeout", 15, &int_value);
+                         CONFDB_KRB5_AUTH_TIMEOUT, 15, &int_value);
     if (ret != EOK) goto fail;
     if (int_value <= 0) {
         DEBUG(4, ("krb5auth_timeout has to be a positive value.\n"));

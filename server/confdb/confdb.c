@@ -30,19 +30,6 @@
 #include "util/strtonum.h"
 #include "db/sysdb.h"
 
-#define CONFDB_DOMAINS_PATH "config/domains"
-#define CONFDB_DOMAIN_BASEDN "cn=domains,cn=config"
-#define CONFDB_DOMAIN_ATTR "cn"
-#define CONFDB_PROVIDER "provider"
-#define CONFDB_TIMEOUT "timeout"
-#define CONFDB_ENUMERATE "enumerate"
-#define CONFDB_MINID "minId"
-#define CONFDB_MAXID "maxId"
-#define CONFDB_CACHE_CREDS "cache-credentials"
-#define CONFDB_LEGACY_PASS "store-legacy-passwords"
-#define CONFDB_MPG "magicPrivateGroups"
-#define CONFDB_FQ "useFullyQualifiedNames"
-
 #define CONFDB_ZERO_CHECK_OR_JUMP(var, ret, err, label) do { \
     if (!var) { \
         ret = err; \
@@ -728,7 +715,6 @@ static errno_t get_entry_as_bool(struct ldb_message *msg,
                                    bool default_value)
 {
     const char *tmp = NULL;
-    char *endptr;
 
     *return_value = 0;
 
@@ -808,7 +794,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
-    tmp = ldb_msg_find_attr_as_string(res->msgs[0], CONFDB_PROVIDER, NULL);
+    tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                      CONFDB_DOMAIN_ID_PROVIDER,
+                                      NULL);
     if (tmp) {
         domain->provider = talloc_strdup(domain, tmp);
         if (!domain->provider) {
@@ -817,20 +805,20 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         }
     }
     else {
-        DEBUG(0, ("Domain [%s] does not specify a provider, disabling!\n",
+        DEBUG(0, ("Domain [%s] does not specify an ID provider, disabling!\n",
                   domain->name));
         ret = EINVAL;
         goto done;
     }
 
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
-                                               CONFDB_TIMEOUT, 0);
+                                               CONFDB_DOMAIN_TIMEOUT, 0);
 
     /* Determine if this domain can be enumerated */
 
     /* TEMP: test if the old bitfield conf value is used and warn it has been
      * superceeded. */
-    val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_ENUMERATE, 0);
+    val = ldb_msg_find_attr_as_int(res->msgs[0], CONFDB_DOMAIN_ENUMERATE, 0);
     if (val > 0) { /* ok there was a number in here */
         DEBUG(0, ("Warning: enumeration parameter in %s still uses integers! "
                   "Enumeration is now a boolean and takes true/false values. "
@@ -838,9 +826,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         domain->enumerate = true;
     } else { /* assume the new format */
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
-                                CONFDB_ENUMERATE, 0);
+                                CONFDB_DOMAIN_ENUMERATE, 0);
         if(ret != EOK) {
-            DEBUG(0, ("Invalid value for %s\n", CONFDB_ENUMERATE));
+            DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE));
             goto done;
         }
     }
@@ -849,9 +837,9 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     /* Determine if this is domain uses MPG */
-    ret = get_entry_as_bool(res->msgs[0], &domain->mpg, CONFDB_MPG, 0);
+    ret = get_entry_as_bool(res->msgs[0], &domain->mpg, CONFDB_DOMAIN_MPG, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_MPG));
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_MPG));
         goto done;
     }
 
@@ -862,14 +850,14 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
-    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_FQ, 0);
+    ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_DOMAIN_FQ, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_FQ));
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_FQ));
         goto done;
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
-                              CONFDB_MINID, SSSD_MIN_ID);
+                              CONFDB_DOMAIN_MINID, SSSD_MIN_ID);
     if (ret != EOK) {
         DEBUG(0, ("Invalid value for minId\n"));
         ret = EINVAL;
@@ -877,7 +865,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_max,
-                              CONFDB_MAXID, 0);
+                              CONFDB_DOMAIN_MAXID, 0);
     if (ret != EOK) {
         DEBUG(0, ("Invalid value for maxId\n"));
         ret = EINVAL;
@@ -892,16 +880,16 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
 
     /* Do we allow to cache credentials */
     ret = get_entry_as_bool(res->msgs[0], &domain->cache_credentials,
-                            CONFDB_CACHE_CREDS, 0);
+                            CONFDB_DOMAIN_CACHE_CREDS, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_CACHE_CREDS));
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_CACHE_CREDS));
         goto done;
     }
 
     ret = get_entry_as_bool(res->msgs[0], &domain->legacy_passwords,
-                            CONFDB_LEGACY_PASS, 0);
+                            CONFDB_DOMAIN_LEGACY_PASS, 0);
     if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_LEGACY_PASS));
+        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_LEGACY_PASS));
         goto done;
     }
 
@@ -930,7 +918,9 @@ int confdb_get_domains(struct confdb_ctx *cdb,
     if (!tmp_ctx) return ENOMEM;
 
     ret = confdb_get_string_as_list(cdb, tmp_ctx,
-                                    CONFDB_DOMAINS_PATH, "domains", &domlist);
+                                    CONFDB_MONITOR_CONF_ENTRY,
+                                    CONFDB_MONITOR_ACTIVE_DOMAINS,
+                                    &domlist);
     if (ret == ENOENT) {
         DEBUG(0, ("No domains configured, fatal error!\n"));
         goto done;

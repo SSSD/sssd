@@ -46,7 +46,6 @@
 
 #define PAM_SBUS_SERVICE_VERSION 0x0001
 #define PAM_SBUS_SERVICE_NAME "pam"
-#define PAM_SRV_CONFIG "config/services/pam"
 
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 
@@ -135,7 +134,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            pam_cmds,
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
-                           PAM_SRV_CONFIG,
+                           CONFDB_PAM_CONF_ENTRY,
                            PAM_SBUS_SERVICE_NAME,
                            PAM_SBUS_SERVICE_VERSION,
                            &monitor_pam_interface,
@@ -152,8 +151,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     /* FIXME: "retries" is too generic, either get it from a global config
      * or specify these retries are about the sbus connections to DP */
-    ret = confdb_get_int(rctx->cdb, rctx, SERVICE_CONF_ENTRY,
-                         "reconnection_retries", 3, &max_retries);
+    ret = confdb_get_int(rctx->cdb, rctx, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;
@@ -192,7 +191,7 @@ int main(int argc, const char *argv[])
 	poptFreeContext(pc);
 
     /* set up things like debug , signals, daemonization, etc... */
-    ret = server_setup("sssd[pam]", 0, PAM_SRV_CONFIG, &main_ctx);
+    ret = server_setup("sssd[pam]", 0, CONFDB_PAM_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 
     ret = die_if_parent_died();

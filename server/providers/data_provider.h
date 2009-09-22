@@ -143,8 +143,7 @@ int dp_common_send_id(struct sbus_connection *conn,
                       const char *name, const char *domain);
 
 /* from dp_sbus.c */
-int dp_get_sbus_address(TALLOC_CTX *mem_ctx, struct confdb_ctx *confdb,
-                        char **address);
+int dp_get_sbus_address(TALLOC_CTX *mem_ctx, char **address);
 
 
 #endif /* __DATA_PROVIDER_ */
