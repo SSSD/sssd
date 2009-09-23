@@ -817,56 +817,6 @@ done:
     return ret;
 }
 
-/* Some providers are just aliases for more complicated settings,
- * rewrite the alias into the actual settings */
-static int be_rewrite(struct be_ctx *ctx)
-{
-    int ret;
-    const char *val[2];
-    val[1] = NULL;
-    char **get_values = NULL;
-
-    /* "files" is a special case that means:
-     *  provider = proxy
-     *  libName  = files
-     */
-    ret = confdb_get_param(ctx->cdb, ctx, ctx->conf_path, "provider",
-                           &get_values);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to read provider from confdb.\n"));
-        return ret;
-    }
-    if (get_values[0] == NULL) {
-        DEBUG(1, ("Missing provider.\n"));
-        return EINVAL;
-    }
-
-    if (strcasecmp(get_values[0], "files") == 0) {
-        DEBUG(5, ("Rewriting provider %s\n", get_values[0]));
-        talloc_zfree(get_values);
-
-        val[0] = "proxy";
-        ret = confdb_add_param(ctx->cdb, true,
-                               ctx->conf_path,
-                               "provider",
-                               val);
-        if (ret) {
-            return ret;
-        }
-
-        val[0] = "files";
-        ret = confdb_add_param(ctx->cdb, true,
-                               ctx->conf_path,
-                               "libName",
-                               val);
-        if (ret) {
-            return ret;
-        }
-    }
-
-    return EOK;
-}
-
 int be_process_init(TALLOC_CTX *mem_ctx,
                     const char *be_domain,
                     struct tevent_context *ev,
@@ -910,12 +860,6 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     ret = be_cli_init(ctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up server bus\n"));
-        return ret;
-    }
-
-    ret = be_rewrite(ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("error rewriting provider types\n"));
         return ret;
     }
 

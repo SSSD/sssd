@@ -303,7 +303,6 @@ sssd_be_LDFLAGS = \
 
 dist_noinst_DATA = \
     examples/sssd.conf \
-    examples/sssdproxylocal \
     examples/sssdproxytest \
     examples/sudo \
     providers/sssd_be.exports \

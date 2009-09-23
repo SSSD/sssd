@@ -516,9 +516,6 @@
                             Supported backends:
                         </para>
                         <para>
-                            files: traditional UNIX files (<filename>/etc/passwd</filename>)
-                        </para>
-                        <para>
                             proxy: Support a legacy NSS provider
                         </para>
                         <para>
@@ -637,7 +634,7 @@ description = Service Monitor Configuration
 
 [domains]
 description = Domains served by SSSD
-domains = LOCAL,FILES
+domains = LOCAL
 
 [domains/LOCAL]
 description = LOCAL Users domain
@@ -647,13 +644,6 @@ maxId = 30000
 legacy = FALSE
 magicPrivateGroups = TRUE
 provider = local
-
-[domains/FILES]
-description = Users stored in UNIX files
-enumerate = TRUE
-minId = 500
-maxId = 4999
-provider = files
 </programlisting>
         </para>
     </refsect1>
