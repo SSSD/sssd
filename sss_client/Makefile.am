@@ -65,6 +65,22 @@ dist_noinst_DATA = \
 install-data-hook:
 	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
 
+############
+# MANPAGES #
+############
+
+#Special Rules:
+export SGML_CATALOG_FILES
+DOCBOOK_XSLT = http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl
+XMLLINT_FLAGS = --catalogs --postvalid --nonet --xinclude --noout
+XSLTPROC_FLAGS = --catalogs --xinclude --nonet
+
+dist_man_MANS = man/pam_sss.8
+
+SUFFIXES = .8.xml .8
+.8.xml.8:
+	$(XMLLINT) $(XMLLINT_FLAGS) $<
+	$(XSLTPROC) -o $@  $(XSLTPROC_FLAGS) $(DOCBOOK_XSLT) $<
 CLEANFILES = *.X
 
 tests: all $(check_PROGRAMS)

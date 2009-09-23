@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <refentryinfo>
+        <productname>SSSD</productname>
+        <orgname>The SSSD upstream - http://fedorahosted.org/sssd</orgname>
+    </refentryinfo>
+
+    <refmeta>
+        <refentrytitle>pam_sss</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>pam_sss</refname>
+        <refpurpose>PAM module for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>pam_sss.so</command>
+            <arg choice='opt'>
+                <replaceable>forward_pass</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>use_first_pass</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>use_authtok</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para><command>pam_sss.so</command> is the PAM interface to the System
+        Security Services daemon (SSSD). Errors and results are logged through
+        <command>syslog(3)</command> with the LOG_AUTHPRIV facility.</para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>forward_pass</option>
+                </term>
+                <listitem>
+                    <para>If <option>forward_pass</option> is set the entered
+                    password is put on the stack for other PAM modules to use.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>use_first_pass</option>
+                </term>
+                <listitem>
+                    <para>The argument use_first_pass forces the module to use
+                    a previous stacked modules password and will never prompt
+                    the user - if no password is available or the password is
+                    not appropriate, the user will be denied access.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>use_authtok</option>
+                </term>
+                <listitem>
+                    <para>When password changing enforce the module to set the
+                    new password to the one provided by a previously stacked
+                    password module.</para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='module_types_provides'>
+        <title>MODULE TYPES PROVIDED</title>
+        <para>All module types (<option>account</option>, <option>auth</option>,
+        <option>password</option> and <option>session</option>) are provided.
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>
+        </para>
+    </refsect1>
+</refentry>
+</reference>

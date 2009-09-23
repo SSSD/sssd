@@ -674,6 +674,9 @@ provider = local
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sss_usermod</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>.
         </para>
     </refsect1>

@@ -35,31 +35,19 @@ AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nsslibdir],
               [nsslibdir=$libdir])
 AC_SUBST(nsslibdir)
 
-AC_DEFUN([BUILD_WITH_AUX_INFO],
-  [ AC_ARG_WITH([aux-info],
-                [AC_HELP_STRING([--with-aux-info],
-                                [Build with -aux-info output])])
-  ])
-AM_CONDITIONAL([WANT_AUX_INFO], [test x$with_aux_info = xyes])
+m4_include([conf_macros.m4])
 BUILD_WITH_AUX_INFO
-
-AC_DEFUN([WITH_PIPE_PATH],
-  [ AC_ARG_WITH([pipe-path],
-                [AC_HELP_STRING([--with-pipe-path=PATH],
-                                [Where to store pipe files for the SSSD interconnects [/var/lib/sss/pipes]]
-                               )
-                ]
-               )
-    config_pipepath="\"VARDIR\"/lib/sss/pipes"
-    pipepath="${localstatedir}/lib/sss/pipes"
-    if test x"$with_pipe_path" != x; then
-        config_pipepath=$with_pipe_path
-        pipepath=$with_pipe_path
-    fi
-    AC_SUBST(pipepath)
-    AC_DEFINE_UNQUOTED(PIPE_PATH, "$config_pipepath", [Where to store pipe files for the SSSD interconnects])
-  ])
 WITH_PIPE_PATH
+WITH_MANPAGES
+WITH_XML_CATALOG
+
+m4_include([external/docbook.m4])
+if test x$HAVE_MANPAGES != x; then
+    CHECK_XML_TOOLS
+    CHECK_STYLESHEET([$SGML_CATALOG_FILES],
+                     [http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl],
+                     [Docbook XSL templates])
+fi
 
 AC_CONFIG_FILES([Makefile po/Makefile.in])
 AC_OUTPUT
