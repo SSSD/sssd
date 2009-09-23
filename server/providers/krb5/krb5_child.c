@@ -33,6 +33,8 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
+#define IN_BUF_SIZE 512
+
 struct krb5_req {
     krb5_context ctx;
     krb5_ccache cc;
@@ -598,6 +600,7 @@ int main(int argc, char *argv[])
 {
     uint8_t *buf = NULL;
     int ret;
+    ssize_t len = 0;
     struct pam_data *pd = NULL;
     struct krb5_req *kr = NULL;
     char *ccname;
@@ -606,32 +609,43 @@ int main(int argc, char *argv[])
 
     pd = talloc(NULL, struct pam_data);
 
-    buf = talloc_size(pd, sizeof(uint8_t)*512);
+    buf = talloc_size(pd, sizeof(uint8_t)*IN_BUF_SIZE);
     if (buf == NULL) {
         DEBUG(1, ("malloc failed.\n"));
         _exit(-1);
     }
 
-    ret = read(STDIN_FILENO, buf, 512);
-    if (ret == -1) {
-        DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-        talloc_free(pd);
-        exit(-1);
+    while ((ret = read(STDIN_FILENO, buf + len, IN_BUF_SIZE - len)) != 0) {
+        if (ret == -1) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            }
+            DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
+            goto fail;
+        } else if (ret > 0) {
+            len += ret;
+            if (len > IN_BUF_SIZE) {
+                DEBUG(1, ("read too much, this should never happen.\n"));
+                goto fail;
+            }
+            continue;
+        } else {
+            DEBUG(1, ("unexpected return code of read [%d].\n", ret));
+            goto fail;
+        }
     }
     close(STDIN_FILENO);
 
     ret = unpack_buffer(buf, ret, pd, &ccname);
     if (ret != EOK) {
         DEBUG(1, ("unpack_buffer failed.\n"));
-        talloc_free(pd);
-        exit(-1);
+        goto fail;
     }
 
     ret = krb5_setup(pd, pd->upn, &kr);
     if (ret != EOK) {
         DEBUG(1, ("krb5_setup failed.\n"));
-        talloc_free(pd);
-        exit(-1);
+        goto fail;
     }
     kr->ccname = ccname;
 
@@ -644,4 +658,8 @@ int main(int argc, char *argv[])
     talloc_free(pd);
 
     return 0;
+
+fail:
+    talloc_free(pd);
+    exit(-1);
 }
