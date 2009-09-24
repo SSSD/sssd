@@ -53,16 +53,18 @@
         <title>SPECIAL SECTIONS</title>
 
         <refsect2 id='services'>
-            <title>The [services] section</title>
+            <title>The [sssd] section</title>
             <para>
                 Individual pieces of SSSD functionality are provided by special
                 SSSD services that are started and stopped together with SSSD.
-                The services are managed by a special service called
-                <quote>monitor</quote>.
+                The services are managed by a special service frequently called
+                <quote>monitor</quote>. The <quote>[sssd]</quote> section is used
+                to configure the monitor as well as some other important options
+                like the identity domains.
                 <variablelist>
                     <title>Section parameters</title>
                     <varlistentry>
-                        <term>activeServices</term>
+                        <term>services</term>
                         <listitem>
                             <para>
                                 Comma separated list of services that are
@@ -91,119 +93,63 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>domains</term>
+                        <listitem>
+                            <para>
+                                A domain is a database containing user
+                                information. SSSD can use more domains
+                                at the same time, but at least one
+                                must be configured or SSSD won't start.
+                                This parameter described the list of domains
+                                in the order you want them to be queried.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>re_expression (string)</term>
+                        <listitem>
+                            <para>
+                                Regular expression that describes how to parse the string
+                                containing user name and domain into these components.
+                            </para>
+                            <para>
+                                Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
+                                which translates to "the name is everything up to the
+                                <quote>@</quote> sign, the domain everything after that"
+                            </para>
+                            <para>
+                                PLEASE NOTE: the support for non-unique named
+                                subpatterns is not available on all plattforms
+                                (e.g. RHEL5 and SLES10). Only plattforms with
+                                libpcre version 7 or higher can support non-unique
+                                named subpatterns.
+                            </para>
+                            <para>
+                                PLEASE NOTE ALSO: older version of libpcre only
+                                support the Python syntax (?P&lt;name&gt;) to label
+                                subpatterns.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>full_name_format (string)</term>
+                        <listitem>
+                            <para>
+                                A <citerefentry>
+                                    <refentrytitle>printf</refentrytitle>
+                                    <manvolnum>3</manvolnum>
+                                </citerefentry>-compatible format that describes how to
+                                translate a (name, domain) tuple into a fully qualified
+                                name.
+                            </para>
+                            <para>
+                                Default: <quote>%1$s@%2$s</quote>.
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
-        </refsect2>
-
-        <refsect2 id='domains'>
-            <title>The [domains] section</title>
-            <para>
-                A domain is a database containing user information. SSSD can
-                use more domains at the same time, but at least one must
-                be configured or SSSD won't start.
-            </para>
-            <variablelist>
-                <title>Section parameters</title>
-                <varlistentry>
-                    <term>domains</term>
-                    <listitem>
-                        <para>
-                            The list of domains in the order you want them
-                            to be queried
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-        </refsect2>
-
-        <refsect2 id='names'>
-            <title>The [names] section</title>
-            <para>
-                This section allows to configure how a name, or a fully qualified
-                name looks like. These settings are used by both the PAM and NSS
-                responders.
-            </para>
-            <variablelist>
-                <title>Section parameters</title>
-                <varlistentry>
-                    <term>re-expression (string)</term>
-                    <listitem>
-                        <para>
-                            Regular expression that describes how to parse the string
-                            containing user name and domain into these components.
-                        </para>
-                        <para>
-                            Default: <quote>(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)</quote>
-                            which translates to "the name is everything up to the
-                            <quote>@</quote> sign, the domain everything after that"
-                        </para>
-                        <para>
-                            PLEASE NOTE: the support for non-unique named
-                            subpatterns is not available on all plattforms
-                            (e.g. RHEL5 and SLES10). Only plattforms with
-                            libpcre version 7 or higher can support non-unique
-                            named subpatterns.
-                        </para>
-                        <para>
-                            PLEASE NOTE ALSO: older version of libpcre only
-                            support the Python syntax (?P&lt;name&gt;) to label
-                            subpatterns.
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>full-name-format (string)</term>
-                    <listitem>
-                        <para>
-                            A <citerefentry>
-                                <refentrytitle>printf</refentrytitle>
-                                <manvolnum>3</manvolnum>
-                            </citerefentry>-compatible format that describes how to
-                            translate a (name, domain) tuple into a fully qualified
-                            name.
-                        </para>
-                        <para>
-                            Default: <quote>%1$s@%2$s</quote>.
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-        </refsect2>
-
-        <refsect2 id='user_defaults'>
-            <title>The [user_defaults] section</title>
-            <para>
-                This section contains settings that alter default values used
-                when adding a user with SSSD userspace tools (sss_useradd).
-            </para>
-            <variablelist>
-                <title>Section parameters</title>
-                <varlistentry>
-                    <term>defaultShell (string)</term>
-                    <listitem>
-                        <para>
-                            The default shell for users created
-                            with SSSD userspace tools.
-                        </para>
-                        <para>
-                            Default: <filename>/bin/bash</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>baseDirectory (string)</term>
-                    <listitem>
-                        <para>
-                            The tools append the login name to
-                            <replaceable>baseDirectory</replaceable> and
-                            use that as the home directory.
-                        </para>
-                        <para>
-                            Default: <filename>/home</filename>
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
         </refsect2>
 
     </refsect1>
@@ -213,8 +159,8 @@
         <para>
             Settings that can be used to configure different services
             are described in this section. They should reside in the
-            [services/<replaceable>NAME</replaceable>] section, for example,
-            for NSS service, the section would be <quote>[services/nss]</quote>
+            [<replaceable>$NAME</replaceable>] section, for example,
+            for NSS service, the section would be <quote>[nss]</quote>
         </para>
 
         <refsect2 id='general'>
@@ -224,7 +170,7 @@
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>debug-level (integer)</term>
+                    <term>debug_level (integer)</term>
                     <listitem>
                         <para>
                             Sets the debug level for the service. The
@@ -277,19 +223,7 @@
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>sbusAddress (string)</term>
-                    <listitem>
-                        <para>
-                            The services in sssd communicate over an internal
-                            wrapper on top of D-Bus called S-Bus. This
-                            directive can be used to specify the address
-                            to connect to.  The vast majority of configurations
-                            will not need to change this setting.
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
-                    <term>sbusTimeout (string)</term>
+                    <term>sbus_timeout (string)</term>
                     <listitem>
                         <para>
                             Specifies the timeout for messages sent over the SBUS.
@@ -311,7 +245,7 @@
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>EnumCacheTimeout (integer)</term>
+                    <term>enum_cache_timeout (integer)</term>
                     <listitem>
                         <para>
                             How long should nss_sss cache enumerations
@@ -323,7 +257,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>EntryCacheTimeout (integer)</term>
+                    <term>entry_cache_timeout (integer)</term>
                     <listitem>
                         <para>
                             How long should nss_sss cache positive cache hits
@@ -336,7 +270,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>EntryCacheNoWaitRefreshTimeout (integer)</term>
+                    <term>entry_cache_nowait_timeout (integer)</term>
                     <listitem>
                         <para>
                             How long should nss_sss return cached entries before
@@ -349,7 +283,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>EntryNegativeTimeout (integer)</term>
+                    <term>entry_negative_timeout (integer)</term>
                     <listitem>
                         <para>
                             How long should nss_sss cache negative cache hits
@@ -362,17 +296,20 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>filterUsers, filterGroups (string)</term>
+                    <term>filter_users, filter_groups (string)</term>
                     <listitem>
                         <para>
                             Exclude certain users from being fetched from the sss
                             NSS database. This is particulary useful for system
-                            accounts like root.
+                            accounts.
+                        </para>
+                        <para>
+                            Default: root
                         </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>filterUsersInGroups (bool)</term>
+                    <term>filter_users_in_groups (bool)</term>
                     <listitem>
                         <para>
                             If you want filtered user still be group members
@@ -392,17 +329,17 @@
         <para>
             These configuration options can be present in a domain
             configuration section, that is, in a section called
-            <quote>[domains/<replaceable>NAME</replaceable>]</quote>
+            <quote>[domain/<replaceable>NAME</replaceable>]</quote>
             <variablelist>
                 <varlistentry>
-                    <term>minId,maxId (integer)</term>
+                    <term>min_id,max_id (integer)</term>
                     <listitem>
                         <para>
                             UID limits for the domain. If a domain contains
                             entry that is outside these limits, it is ignored
                         </para>
                         <para>
-                            Default: 0 (no limit)
+                            Default: 1000 for min_id, 0 (no limit) for max_id
                         </para>
                     </listitem>
                 </varlistentry>
@@ -422,7 +359,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>magicPrivateGroups (bool)</term>
+                    <term>magic_private_groups (bool)</term>
                     <listitem>
                         <para>
                             By using the Magic Private Groups option, you
@@ -482,7 +419,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>cache-credentials (bool)</term>
+                    <term>cache_credentials (bool)</term>
                     <listitem>
                         <para>
                             Determines if user credentials are also cached
@@ -495,7 +432,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>store-legacy-passwords (bool)</term>
+                    <term>store_legacy_passwords (bool)</term>
                     <listitem>
                         <para>
                             Whether to also store passwords in a legacy domain
@@ -507,10 +444,11 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>provider (string)</term>
+                    <term>id_provider (string)</term>
                     <listitem>
                         <para>
-                            The Data Provider backend to use for this domain.
+                            The Data Provider identity backend to use for this
+                            domain.
                         </para>
                         <para>
                             Supported backends:
@@ -528,7 +466,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>useFullyQualifiedNames (bool)</term>
+                    <term>use_fully_qualified_names (bool)</term>
                     <listitem>
                         <para>
                             If set to TRUE, all requests to this domain
@@ -544,11 +482,11 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>auth-module (string)</term>
+                    <term>auth_provider (string)</term>
                     <listitem>
                         <para>
-                            The authentication module used for the domain.
-                            Supported auth modules are:
+                            The authentication provider used for the domain.
+                            Supported auth providers are:
                         </para>
                         <para>
                             <quote>ldap</quote> for native LDAP authentication. See
@@ -577,7 +515,7 @@
 
             <variablelist>
                 <varlistentry>
-                    <term>pam-target (string)</term>
+                    <term>proxy_pam_target (string)</term>
                     <listitem>
                         <para>
                             The proxy target PAM proxies to.
@@ -589,7 +527,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>libName (string)</term>
+                    <term>proxy_lib_name (string)</term>
                     <listitem>
                         <para>
                             The name of the NSS library to use in proxy
@@ -602,6 +540,44 @@
                 </varlistentry>
             </variablelist>
         </para>
+
+        <refsect2 id='local_domain'>
+            <title>The local domain section</title>
+            <para>
+                This section contains settings for domain that stores users and
+                groups in SSSD native database, that is, a domain that uses
+                <replaceable>id_provider=local</replaceable>.
+            </para>
+            <variablelist>
+                <title>Section parameters</title>
+                <varlistentry>
+                    <term>default_shell (string)</term>
+                    <listitem>
+                        <para>
+                            The default shell for users created
+                            with SSSD userspace tools.
+                        </para>
+                        <para>
+                            Default: <filename>/bin/bash</filename>
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>base_directory (string)</term>
+                    <listitem>
+                        <para>
+                            The tools append the login name to
+                            <replaceable>base_directory</replaceable> and
+                            use that as the home directory.
+                        </para>
+                        <para>
+                            Default: <filename>/home</filename>
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
+
     </refsect1>
 
     <refsect1 id='example'>
@@ -611,39 +587,26 @@
             not describe configuration of the domains themselves - refer to
             documentation on configuring domains for more details.
 <programlisting>
-[services]
-description =  Local Service Configuration
-activeServices = nss, pam
-reconnection_retries = 3
-
-[services/nss]
-description = NSS Responder Configuration
-filterGroups = root
-filterUsers = root
-debug-level = 4
-
-[services/dp]
-description = Data Provider Configuration
-debug-level = 4
-
-[services/pam]
-description = PAM Responder Configuration
-
-[services/monitor]
-description = Service Monitor Configuration
-
-[domains]
-description = Domains served by SSSD
+[sssd]
 domains = LOCAL
+services = nss, dp, pam
+config_file_version = 2
+sbus_timeout = 30
 
-[domains/LOCAL]
-description = LOCAL Users domain
-enumerate = TRUE
-minId = 5000
-maxId = 30000
-legacy = FALSE
-magicPrivateGroups = TRUE
-provider = local
+[nss]
+filter_groups = root
+filter_users = root
+
+[pam]
+
+[dp]
+
+[domain/LOCAL]
+id_provider = local
+min_id = 1000
+max_id = 5000
+default_shell = /bin/ksh
+enumerate = true
 </programlisting>
         </para>
     </refsect1>

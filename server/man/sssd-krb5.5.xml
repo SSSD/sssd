@@ -46,7 +46,7 @@
             for details on the configuration of a SSSD domain.
             <variablelist>
                 <varlistentry>
-                    <term>krb5KDCIP (string)</term>
+                    <term>krb5_kdcip (string)</term>
                     <listitem>
                         <para>
                             Specifies the IP address of the Kerberos server.
@@ -55,7 +55,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5REALM (string)</term>
+                    <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
                             The name of the Kerberos realm.
@@ -64,7 +64,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5try_simple_upn (boolean)</term>
+                    <term>krb5_try_simple_upn (boolean)</term>
                     <listitem>
                         <para>
                             Set this option to 'true'
@@ -78,7 +78,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5changepw_principle (string)</term>
+                    <term>krb5_changepw_principle (string)</term>
                     <listitem>
                         <para>
                             The priciple of the change password service.
@@ -93,7 +93,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5ccache_dir (string)</term>
+                    <term>krb5_ccachedir (string)</term>
                     <listitem>
                         <para>
                             Directory to store credential caches.
@@ -105,7 +105,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5ccname_template (string)</term>
+                    <term>krb5_ccname_template (string)</term>
                     <listitem>
                         <para>
                             Location of the user's credential cache. Currently
@@ -163,7 +163,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5auth_timeout (integer)</term>
+                    <term>krb5_auth_timeout (integer)</term>
                     <listitem>
                         <para>
                             Timeout in seconds after an online authentication or
@@ -185,14 +185,16 @@
         <para>
             The following example assumes that SSSD is correctly
             configured and FOO is one of the domains in the
-            <replaceable>[domains]</replaceable> section.
+            <replaceable>[sssd]</replaceable> section. This example shows
+            only configuration of Kerberos authentication, it does not include
+            any identity provider.
         </para>
         <para>
 <programlisting>
-    [domains/FOO]
-    auth-module = krb5
-    krb5KDCIP = 192.168.1.1
-    krb5REALM = EXAMPLE.COM
+    [domain/FOO]
+    auth_provider = krb5
+    krb5_kdcip = 192.168.1.1
+    krb5_realm = EXAMPLE.COM
 </programlisting>
         </para>
     </refsect1>

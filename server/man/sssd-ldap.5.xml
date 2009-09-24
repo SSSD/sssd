@@ -49,7 +49,7 @@
 
             <variablelist>
                 <varlistentry>
-                    <term>ldapUri (string)</term>
+                    <term>ldap_uri (string)</term>
                     <listitem>
                         <para>
                             Specifies the URI of the LDAP server to which
@@ -62,7 +62,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldapSchema (string)</term>
+                    <term>ldap_schema (string)</term>
                     <listitem>
                         <para>
                             Specifies the Schema Type in use on the target LDAP
@@ -91,7 +91,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>defaultBindDn (string)</term>
+                    <term>ldap_default_bind_dn (string)</term>
                     <listitem>
                         <para>
                             The default bind DN to use for
@@ -101,7 +101,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>defaultAuthtokType (string)</term>
+                    <term>ldap_default_authtok_type (string)</term>
                     <listitem>
                         <para>
                             The type of the authentication token of the
@@ -112,7 +112,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>defaultAuthtok (string)</term>
+                    <term>ldap_default_authtok (string)</term>
                     <listitem>
                         <para>
                             The authentication token of the default bind DN.
@@ -122,7 +122,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userSearchBase (string)</term>
+                    <term>ldap_user_search_base (string)</term>
                     <listitem>
                         <para>
                             The default base DN to use for
@@ -132,7 +132,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userObjectClass (string)</term>
+                    <term>ldap_user_object_class (string)</term>
                     <listitem>
                         <para>
                             The object class of a user entry in LDAP.
@@ -144,7 +144,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userName (string)</term>
+                    <term>ldap_user_name (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -157,7 +157,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userUidNumber (string)</term>
+                    <term>ldap_user_uid_number (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -170,7 +170,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userGidNumber (string)</term>
+                    <term>ldap_user_gid_number (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -183,7 +183,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userGecos (string)</term>
+                    <term>ldap_user_gecos (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -196,7 +196,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userHomeDirectory (string)</term>
+                    <term>ldap_user_home_directory (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains the name of the
@@ -209,7 +209,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userShell (string)</term>
+                    <term>ldap_user_shell (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains the path of the
@@ -222,7 +222,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userUUID (string)</term>
+                    <term>ldap_user_uuid (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains the UUID/GUID of
@@ -235,7 +235,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userPrincipal (string)</term>
+                    <term>ldap_user_principal (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains the Kerberos
@@ -248,7 +248,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>force_upper_case_realm (boolean)</term>
+                    <term>ldap_force_upper_case_realm (boolean)</term>
                     <listitem>
                         <para>
                             Some directory servers, for example Active Directory,
@@ -264,7 +264,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userFullname (string)</term>
+                    <term>ldap_user_fullname (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -277,7 +277,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>userMemberOf (string)</term>
+                    <term>ldap_user_member_of (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that list the user's
@@ -290,7 +290,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>groupSearchBase (string)</term>
+                    <term>ldap_group_search_base (string)</term>
                     <listitem>
                         <para>
                             The default base DN to use for
@@ -300,7 +300,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>groupObjectClass (string)</term>
+                    <term>ldap_group_object_class (string)</term>
                     <listitem>
                         <para>
                             The object class of a group entry in LDAP.
@@ -312,7 +312,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>groupName (string)</term>
+                    <term>ldap_group_name (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -325,7 +325,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>groupGidNumber (string)</term>
+                    <term>ldap_group_gid_number (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that corresponds to
@@ -338,7 +338,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>groupMember (string)</term>
+                    <term>ldap_group_member (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains the names of
@@ -351,7 +351,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>groupUUID (string)</term>
+                    <term>ldap_group_uuid (string)</term>
                     <listitem>
                         <para>
                             The LDAP attribute that contains the UUID/GUID of
@@ -364,7 +364,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>network_timeout (integer)</term>
+                    <term>ldap_network_timeout (integer)</term>
                     <listitem>
                         <para>
                             Specifies the timeout (in seconds) after which
@@ -390,7 +390,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>opt_timeout (integer)</term>
+                    <term>ldap_opt_timeout (integer)</term>
                     <listitem>
                         <para>
                             Specifies a timeout (in seconds) after which
@@ -404,7 +404,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>tls_reqcert (string)</term>
+                    <term>ldap_tls_reqcert (string)</term>
                     <listitem>
                         <para>
                             Specifies what checks to perform on server
@@ -455,10 +455,14 @@
         </para>
         <para>
 <programlisting>
-    [domains/LDAP]
-    auth-module = ldap
-    ldapUri = ldap://ldap.mydomain.org
-    userSearchBase = dc=mydomain,dc=org
+    [domain/LDAP]
+    id_provider = ldap
+    auth_provider = ldap
+    ldap_uri = ldap://ldap.mydomain.org
+    ldap_user_search_base = dc=mydomain,dc=org
+    ldap_tls_reqcert = demand
+    cache_credentials = true
+    enumerate = true
 </programlisting>
         </para>
     </refsect1>
