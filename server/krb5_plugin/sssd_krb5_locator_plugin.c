@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#define _GNU_SOURCE
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -33,10 +33,39 @@
 
 #include "providers/krb5/krb5_auth.h"
 
+#define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
+#define DEBUG_KEY "[sssd_krb5_locator] "
+#define DEBUG(body) do { \
+    if (ctx->debug) { \
+        debug_fn body; \
+    } \
+} while(0);
+
 struct sssd_ctx {
     char *sssd_realm;
     struct addrinfo *sssd_kdc_addrinfo;
+    bool debug;
 };
+
+void debug_fn(const char *format, ...)
+{
+    va_list ap;
+    char *s = NULL;
+    int ret;
+
+    va_start(ap, format);
+
+    ret = vasprintf(&s, format, ap);
+    if (ret < 0) {
+        /* ENOMEM */
+        return;
+    }
+
+    va_end(ap);
+
+    fprintf(stderr, DEBUG_KEY "%s", s);
+    free(s);
+}
 
 krb5_error_code sssd_krb5_locator_init(krb5_context context,
                                        void **private_data)
@@ -45,13 +74,16 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
     const char *dummy;
     int ret;
 
-
-#ifdef KRB5_PLUGIN_DEBUG
-    fprintf(stderr,"sssd_krb5_locator_init called\n");
-#endif
-
     ctx = calloc(1,sizeof(struct sssd_ctx));
     if (ctx == NULL) return ENOMEM;
+
+    dummy = getenv(SSSD_KRB5_LOCATOR_DEBUG);
+    if (dummy == NULL) {
+        ctx->debug = false;
+    } else {
+        ctx->debug = true;
+        DEBUG(("sssd_krb5_locator_init called\n"));
+    }
 
     dummy = getenv(SSSD_KRB5_REALM);
     if (dummy == NULL) goto failed;
@@ -63,14 +95,10 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
 
     ret = getaddrinfo(dummy, "kerberos", NULL, &ctx->sssd_kdc_addrinfo);
     if (ret != 0) {
-#ifdef KRB5_PLUGIN_DEBUG
-        fprintf(stderr,"getaddrinfo failed [%d][%s].\n", ret,
-                                                         gai_strerror(ret));
+        DEBUG(("getaddrinfo failed [%d][%s].\n", ret, gai_strerror(ret)));
         if (ret == EAI_SYSTEM) {
-            fprintf(stderr,"getaddrinfo failed [%d][%s].\n", errno,
-                                                             strerror(errno));
+            DEBUG(("getaddrinfo failed [%d][%s].\n", errno, strerror(errno)));
         }
-#endif
         goto failed;
     }
 
@@ -91,13 +119,11 @@ void sssd_krb5_locator_close(void *private_data)
 {
     struct sssd_ctx *ctx;
 
-#ifdef KRB5_PLUGIN_DEBUG
-    fprintf(stderr,"sssd_krb5_locator_close called\n");
-#endif
-
     if (private_data == NULL) return;
 
     ctx = (struct sssd_ctx *) private_data;
+    DEBUG(("sssd_krb5_locator_close called\n"));
+
     freeaddrinfo(ctx->sssd_kdc_addrinfo);
     free(ctx->sssd_realm);
     free(ctx);
@@ -122,11 +148,9 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
 
-#ifdef KRB5_PLUGIN_DEBUG
-    fprintf(stderr,"sssd_realm[%s] requested realm[%s] family[%d] "
-                   "socktype[%d] locate_service[%d]\n",
-                   ctx->sssd_realm, realm, family, socktype, svc);
-#endif
+    DEBUG(("sssd_realm[%s] requested realm[%s] family[%d] socktype[%d] "
+          "locate_service[%d]\n", ctx->sssd_realm, realm, family, socktype,
+          svc));
 
     switch (svc) {
         case locate_service_kdc:
@@ -161,33 +185,28 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         return KRB5_PLUGIN_NO_HANDLE;
 
     for (ai = ctx->sssd_kdc_addrinfo; ai != NULL; ai = ai->ai_next) {
-#ifdef KRB5_PLUGIN_DEBUG
-        ret = getnameinfo(ai->ai_addr, ai->ai_addrlen, hostip, NI_MAXHOST, NULL,
-                          0, NI_NUMERICHOST);
+        ret = getnameinfo(ai->ai_addr, ai->ai_addrlen, hostip, NI_MAXHOST,
+                          NULL, 0, NI_NUMERICHOST);
         if (ret != 0) {
-            fprintf(stderr,"getnameinfo failed [%d][%s].\n",
-                           ret, gai_strerror(ret));
+            DEBUG(("getnameinfo failed [%d][%s].\n", ret, gai_strerror(ret)));
             if (ret == EAI_SYSTEM) {
-                fprintf(stderr,"getnameinfo failed [%d][%s].\n",
-                               errno, strerror(errno));
+                DEBUG(("getnameinfo failed [%d][%s].\n", errno, strerror(errno)));
             }
         }
-        fprintf(stderr,"addr[%s] family[%d] socktype[%d] - ",
-                hostip, ai->ai_family, ai->ai_socktype);
-#endif
+        DEBUG(("addr[%s] family[%d] socktype[%d] - ", hostip, ai->ai_family,
+                                                      ai->ai_socktype));
+
         if ((family == AF_UNSPEC || ai->ai_family == family) &&
             ai->ai_socktype == socktype) {
 
             ret = cbfunc(cbdata, socktype, ai->ai_addr);
-#ifdef KRB5_PLUGIN_DEBUG
             if (ret != 0) {
-                fprintf(stderr,"\ncbfunc failed\n");
+                DEBUG(("\ncbfunc failed\n"));
             } else {
-                fprintf(stderr,"used\n");
+                DEBUG(("used\n"));
             }
         } else {
-            fprintf(stderr," NOT used\n");
-#endif
+            DEBUG((" NOT used\n"));
         }
     }
 
