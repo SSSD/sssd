@@ -1871,12 +1871,18 @@ int monitor_process_init(struct mt_ctx *ctx,
     int ret, i;
     struct sss_domain_info *dom;
 
+#if 0
+    This feature is incomplete and can leave the SSSD in a bad state if the
+    config file is changed while the SSSD is running.
+
+    Uncomment this once the backends are honoring reloadConfig()
+
     /* Watch for changes to the confdb config file */
     ret = monitor_config_file(ctx, ctx, config_file, monitor_signal_reconf);
     if (ret != EOK) {
         return ret;
     }
-
+#endif
     /* Watch for changes to the DNS resolv.conf */
     ret = monitor_config_file(ctx, ctx, RESOLV_CONF_PATH,
                               monitor_update_resolv);
