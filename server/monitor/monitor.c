@@ -80,7 +80,8 @@ struct mt_svc {
 
     int restarts;
     time_t last_restart;
-    time_t last_pong;
+    time_t last_ping;
+    int failed_pongs;
 
     int debug_level;
 
@@ -435,8 +436,13 @@ static void tasks_check_handler(struct tevent_context *ev,
             break;
         }
 
-        if (svc->last_pong != 0) {
-            if ((now - svc->last_pong) > (svc->ping_time * 3)) {
+        if (svc->last_ping != 0) {
+            if ((now - svc->last_ping) > (svc->ping_time)) {
+                svc->failed_pongs++;
+            } else {
+                svc->failed_pongs = 0;
+            }
+            if (svc->failed_pongs > 3) {
                 /* too long since we last heard of this process */
                 DEBUG(1, ("Killing service [%s], not responding to pings!\n",
                           svc->name));
@@ -445,6 +451,7 @@ static void tasks_check_handler(struct tevent_context *ev,
             }
         }
 
+        svc->last_ping = now;
     }
 
     if (!process_alive) {
@@ -2074,11 +2081,11 @@ static void ping_check(DBusPendingCall *pending, void *data)
     switch (type) {
     case DBUS_MESSAGE_TYPE_METHOD_RETURN:
         /* ok peer replied,
-         * set the reply timestamp into the service structure */
+         * make sure we reset the failure counter in the service structure */
 
         DEBUG(4,("Service %s replied to ping\n", svc->name));
 
-        svc->last_pong = time(NULL);
+        svc->failed_pongs = 0;
         break;
 
     case DBUS_MESSAGE_TYPE_ERROR:
@@ -2315,7 +2322,7 @@ static void service_startup_handler(struct tevent_context *ev,
         }
 
         /* Parent */
-        mt_svc->last_pong = time(NULL);
+        mt_svc->failed_pongs = 0;
         DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
         talloc_set_destructor((TALLOC_CTX *)mt_svc, delist_service);
         set_tasks_checker(mt_svc);
