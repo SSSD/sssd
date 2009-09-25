@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-08-24 14:04-0400\n"
+"POT-Creation-Date: 2009-09-25 13:56-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,241 +16,204 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: tools/sss_groupdel.c:157 tools/sss_groupmod.c:320 tools/sss_userdel.c:158
-#: tools/sss_useradd.c:336 tools/sss_groupadd.c:150 tools/sss_usermod.c:374
+#: tools/sss_groupdel.c:82 tools/sss_groupmod.c:77 tools/sss_userdel.c:82
+#: tools/sss_useradd.c:157 tools/sss_groupadd.c:76 tools/sss_usermod.c:81
 msgid "The debug level to run with"
 msgstr ""
 
-#: tools/sss_groupdel.c:166 tools/sss_groupmod.c:345 tools/sss_userdel.c:167
-#: tools/sss_useradd.c:358 tools/sss_groupadd.c:168 tools/sss_usermod.c:402
+#: tools/sss_groupdel.c:91 tools/sss_groupmod.c:98 tools/sss_userdel.c:91
+#: tools/sss_useradd.c:177 tools/sss_groupadd.c:92 tools/sss_usermod.c:105
 msgid "Error setting the locale\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:175 tools/sss_groupmod.c:354 tools/sss_userdel.c:176
-#: tools/sss_useradd.c:367 tools/sss_groupadd.c:177 tools/sss_usermod.c:411
-msgid "Error initializing the tools\n"
-msgstr ""
-
-#: tools/sss_groupdel.c:183 tools/sss_groupmod.c:362 tools/sss_userdel.c:184
-#: tools/sss_useradd.c:375 tools/sss_usermod.c:419 tools/sss_usermod.c:428
-msgid "Out of memory\n"
-msgstr ""
-
-#: tools/sss_groupdel.c:202
+#: tools/sss_groupdel.c:109
 msgid "Specify group to delete\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:222 tools/sss_groupmod.c:282 tools/sss_groupmod.c:422
-#: tools/sss_userdel.c:222 tools/sss_useradd.c:485 tools/sss_groupadd.c:220
-#: tools/sss_usermod.c:304 tools/sss_usermod.c:320 tools/sss_usermod.c:487
-msgid "Cannot get domain info\n"
+#: tools/sss_groupdel.c:119 tools/sss_groupmod.c:145 tools/sss_userdel.c:119
+#: tools/sss_useradd.c:216 tools/sss_groupadd.c:121 tools/sss_usermod.c:160
+msgid "Error initializing the tools\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:227 tools/sss_groupmod.c:427 tools/sss_groupadd.c:225
-#, c-format
-msgid "Selected domain %s conflicts with selected GID %llu\n"
+#: tools/sss_groupdel.c:127 tools/sss_groupmod.c:152 tools/sss_userdel.c:127
+#: tools/sss_useradd.c:224 tools/sss_groupadd.c:129 tools/sss_usermod.c:168
+msgid "Invalid domain specified in FQDN\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:244 tools/sss_groupmod.c:444
-msgid "Cannot delete group from domain using the legacy tools\n"
+#: tools/sss_groupdel.c:140 tools/sss_groupmod.c:192 tools/sss_groupadd.c:138
+msgid "The selected GID is outside the allowed range\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:251 tools/sss_groupmod.c:449 tools/sss_groupadd.c:247
-msgid "The selected GID is outside all domain ranges\n"
-msgstr ""
-
-#: tools/sss_groupdel.c:257 tools/sss_groupmod.c:455 tools/sss_userdel.c:257
-#: tools/sss_useradd.c:518 tools/sss_usermod.c:521
-msgid "Unsupported domain type\n"
-msgstr ""
-
-#: tools/sss_groupdel.c:263 tools/sss_groupmod.c:461 tools/sss_userdel.c:263
-#: tools/sss_useradd.c:524 tools/sss_groupadd.c:259 tools/sss_usermod.c:527
-msgid "Error looking up domain\n"
-msgstr ""
-
-#: tools/sss_groupdel.c:272
+#: tools/sss_groupdel.c:149
 msgid "Transaction error. Could not remove group.\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:293 tools/sss_userdel.c:293
-msgid "No such user\n"
+#: tools/sss_groupdel.c:164
+msgid "No such group\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:297
+#: tools/sss_groupdel.c:168
 msgid "Internal error. Could not remove group.\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:274
-msgid "Group nesting is not supported in this domain\n"
-msgstr ""
-
-#: tools/sss_groupmod.c:289 tools/sss_usermod.c:327
-msgid "Changing gid only allowed inside the same domain\n"
-msgstr ""
-
-#: tools/sss_groupmod.c:322
+#: tools/sss_groupmod.c:79
 msgid "Groups to add this group to"
 msgstr ""
 
-#: tools/sss_groupmod.c:324
+#: tools/sss_groupmod.c:81
 msgid "Groups to remove this group from"
 msgstr ""
 
-#: tools/sss_groupmod.c:326 tools/sss_groupadd.c:152
+#: tools/sss_groupmod.c:83 tools/sss_groupadd.c:78
 msgid "The GID of the group"
 msgstr ""
 
-#: tools/sss_groupmod.c:401
+#: tools/sss_groupmod.c:133
 msgid "Specify group to modify\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:469 tools/sss_groupmod.c:492
+#: tools/sss_groupmod.c:163 tools/sss_groupmod.c:179 tools/sss_useradd.c:233
+#: tools/sss_usermod.c:183 tools/sss_usermod.c:199
+msgid "Internal error while parsing parameters\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:170 tools/sss_groupmod.c:186
+msgid "Member groups must be in the same domain as parent group\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:200 tools/sss_groupmod.c:223
 msgid "Transaction error. Could not modify group.\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:484
+#: tools/sss_groupmod.c:215
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:488
+#: tools/sss_groupmod.c:219
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 
-#: tools/sss_userdel.c:203
+#: tools/sss_userdel.c:109
 msgid "Specify user to delete\n"
 msgstr ""
 
-#: tools/sss_userdel.c:227 tools/sss_useradd.c:490 tools/sss_usermod.c:492
-#, c-format
-msgid "Selected domain %s conflicts with selected UID %llu\n"
+#: tools/sss_userdel.c:139 tools/sss_useradd.c:270 tools/sss_usermod.c:174
+msgid "The selected UID is outside the allowed range\n"
 msgstr ""
 
-#: tools/sss_userdel.c:244 tools/sss_usermod.c:510
-msgid "Cannot delete user from domain using the legacy tools\n"
-msgstr ""
-
-#: tools/sss_userdel.c:251 tools/sss_useradd.c:512 tools/sss_usermod.c:515
-msgid "The selected UID is outside all domain ranges\n"
-msgstr ""
-
-#: tools/sss_userdel.c:272
+#: tools/sss_userdel.c:148
 msgid "Transaction error. Could not remove user.\n"
 msgstr ""
 
-#: tools/sss_userdel.c:297
+#: tools/sss_userdel.c:163
+msgid "No such user\n"
+msgstr ""
+
+#: tools/sss_userdel.c:167
 msgid "Internal error. Could not remove user.\n"
 msgstr ""
 
-#: tools/tools_util.h:29
+#: tools/tools_util.c:246
+msgid "Out of memory\n"
+msgstr ""
+
+#: tools/tools_util.h:35
 #, c-format
 msgid "%s must be run as root\n"
 msgstr ""
 
-#: tools/sss_useradd.c:337 tools/sss_usermod.c:375
+#: tools/sss_useradd.c:158 tools/sss_usermod.c:82
 msgid "The UID of the user"
 msgstr ""
 
-#: tools/sss_useradd.c:338
+#: tools/sss_useradd.c:159
 msgid "The GID or group name of the user"
 msgstr ""
 
-#: tools/sss_useradd.c:339 tools/sss_usermod.c:377
+#: tools/sss_useradd.c:160 tools/sss_usermod.c:84
 msgid "The comment string"
 msgstr ""
 
-#: tools/sss_useradd.c:340 tools/sss_usermod.c:378
+#: tools/sss_useradd.c:161 tools/sss_usermod.c:85
 msgid "Home directory"
 msgstr ""
 
-#: tools/sss_useradd.c:341 tools/sss_usermod.c:379
+#: tools/sss_useradd.c:162 tools/sss_usermod.c:86
 msgid "Login shell"
 msgstr ""
 
-#: tools/sss_useradd.c:342
+#: tools/sss_useradd.c:163
 msgid "Groups"
 msgstr ""
 
-#: tools/sss_useradd.c:410
+#: tools/sss_useradd.c:206
 msgid "Specify user to add\n"
 msgstr ""
 
-#: tools/sss_useradd.c:425
+#: tools/sss_useradd.c:240 tools/sss_usermod.c:190 tools/sss_usermod.c:206
+msgid "Groups must be in the same domain as user\n"
+msgstr ""
+
+#: tools/sss_useradd.c:249
 msgid "Cannot get group information for the user\n"
 msgstr ""
 
-#: tools/sss_useradd.c:507
-msgid "Cannot add user to domain using the legacy tools\n"
+#: tools/sss_useradd.c:263
+msgid "Cannot set default values\n"
 msgstr ""
 
-#: tools/sss_useradd.c:533 tools/sss_usermod.c:595 tools/sss_usermod.c:619
+#: tools/sss_useradd.c:279 tools/sss_usermod.c:221 tools/sss_usermod.c:243
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
 
-#: tools/sss_useradd.c:547
+#: tools/sss_useradd.c:293
 msgid "A user with the same name or UID already exists\n"
 msgstr ""
 
-#: tools/sss_useradd.c:553
+#: tools/sss_useradd.c:299
 msgid "Transaction error. Could not add user.\n"
 msgstr ""
 
-#: tools/sss_groupadd.c:185
-msgid "Out of memory.\n"
-msgstr ""
-
-#: tools/sss_groupadd.c:205
+#: tools/sss_groupadd.c:111
 msgid "Specify group to add\n"
 msgstr ""
 
-#: tools/sss_groupadd.c:242
-msgid "Cannot add group to domain using the legacy tools\n"
-msgstr ""
-
-#: tools/sss_groupadd.c:253
-msgid "Unsupported domain type"
-msgstr ""
-
-#: tools/sss_groupadd.c:268 tools/sss_groupadd.c:287
+#: tools/sss_groupadd.c:147 tools/sss_groupadd.c:166
 msgid "Transaction error. Could not add group.\n"
 msgstr ""
 
-#: tools/sss_groupadd.c:282
-msgid "A group with the same name or UID already exists\n"
+#: tools/sss_groupadd.c:161
+msgid "A group with the same name or GID already exists\n"
 msgstr ""
 
-#: tools/sss_usermod.c:311
-msgid "Changing uid only allowed inside the same domain\n"
-msgstr ""
-
-#: tools/sss_usermod.c:376
+#: tools/sss_usermod.c:83
 msgid "The GID of the user"
 msgstr ""
 
-#: tools/sss_usermod.c:380
+#: tools/sss_usermod.c:87
 msgid "Groups to add this user to"
 msgstr ""
 
-#: tools/sss_usermod.c:381
+#: tools/sss_usermod.c:88
 msgid "Groups to remove this user from"
 msgstr ""
 
-#: tools/sss_usermod.c:382
+#: tools/sss_usermod.c:89
 msgid "Lock the account"
 msgstr ""
 
-#: tools/sss_usermod.c:383
+#: tools/sss_usermod.c:90
 msgid "Unlock the account"
 msgstr ""
 
-#: tools/sss_usermod.c:469
+#: tools/sss_usermod.c:150
 msgid "Specify user to modify\n"
 msgstr ""
 
-#: tools/sss_usermod.c:611
+#: tools/sss_usermod.c:235
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 
-#: tools/sss_usermod.c:615
+#: tools/sss_usermod.c:239
 msgid "Could not modify user - check if username is correct\n"
 msgstr ""
