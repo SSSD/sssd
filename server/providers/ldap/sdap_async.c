@@ -298,7 +298,7 @@ static void sdap_process_message(struct tevent_context *ev,
 
 static void sdap_unlock_next_reply(struct sdap_op *op)
 {
-    struct timeval no_timeout = {0, 0};
+    struct timeval tv;
     struct tevent_timer *te;
     struct sdap_msg *next_reply;
 
@@ -311,7 +311,16 @@ static void sdap_unlock_next_reply(struct sdap_op *op)
 
     /* if there are still replies to parse, queue a new operation */
     if (op->list) {
-        te = tevent_add_timer(op->ev, op, no_timeout,
+        /* use a very small timeout, so that fd operations have a chance to be
+         * served while processing a long reply */
+        tv = tevent_timeval_current();
+
+        /* wait 5 microsecond */
+        tv.tv_usec += 5;
+        tv.tv_sec += tv.tv_usec / 1000000;
+        tv.tv_usec = tv.tv_usec % 1000000;
+
+        te = tevent_add_timer(op->ev, op, tv,
                               sdap_process_next_reply, op);
         if (!te) {
             DEBUG(1, ("Failed to add critical timer for next reply!\n"));
