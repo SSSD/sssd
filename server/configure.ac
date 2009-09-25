@@ -14,6 +14,8 @@ AC_DEFUN([SMB_ENABLE], [echo -n ""])
 AC_INIT([sss_daemon],
         m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
         [sssd-devel@lists.fedorahosted.org])
+CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
+
 AC_CONFIG_SRCDIR([conf_macros.m4])
 AC_CONFIG_AUX_DIR([build])
 
