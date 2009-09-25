@@ -49,7 +49,9 @@ struct sdap_gen_opts default_basic_opts[] = {
     { "ldap_offline_timeout", SDAP_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_enumeration_refresh_timeout", SDAP_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ldap_stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER }
+    { "ldap_stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER },
+    { "ldap_tls_cacert", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_tls_cacertdir", SDAP_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_id_map rfc2307_user_map[] = {
@@ -543,3 +545,59 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
     return EOK;
 }
 
+errno_t setup_tls_config(struct sdap_gen_opts *basic_opts)
+{
+    int ret;
+    int ldap_opt_x_tls_require_cert;
+    const char *tls_opt;
+    tls_opt = sdap_go_get_string(basic_opts, SDAP_TLS_REQCERT);
+    if (tls_opt) {
+        if (strcasecmp(tls_opt, "never") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;
+        }
+        else if (strcasecmp(tls_opt, "allow") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_ALLOW;
+        }
+        else if (strcasecmp(tls_opt, "try") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_TRY;
+        }
+        else if (strcasecmp(tls_opt, "demand") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
+        }
+        else if (strcasecmp(tls_opt, "hard") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
+        }
+        else {
+            DEBUG(1, ("Unknown value for tls_reqcert.\n"));
+            return EINVAL;
+        }
+        /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option,
+         * because the SSL/TLS context is initialized from this value. */
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT,
+                              &ldap_opt_x_tls_require_cert);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            return EIO;
+        }
+    }
+
+    tls_opt = sdap_go_get_string(basic_opts, SDAP_TLS_CACERT);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            return EIO;
+        }
+    }
+
+    tls_opt = sdap_go_get_string(basic_opts, SDAP_TLS_CACERTDIR);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_set_option failed: %s\n", ldap_err2string(ret)));
+            return EIO;
+        }
+    }
+
+    return EOK;
+}

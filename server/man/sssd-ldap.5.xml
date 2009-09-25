@@ -35,6 +35,13 @@
         <para>
             There can be more than one LDAP domain configured with SSSD.
         </para>
+        <para>
+            If you want to authenticate against an LDAP server TLS/SSL is
+            required. <command>sssd</command> <emphasis>does not</emphasis>
+            support authentication over an unencrypted channel. If the LDAP
+            server is used only as an identify provider, an encrypted channel
+            is not needed.
+        </para>
     </refsect1>
 
     <refsect1 id='file-format'>
@@ -438,6 +445,42 @@
                         <para>
                             <emphasis>hard</emphasis> = Same as
                             <quote>demand</quote>
+                        </para>
+                        <para>
+                            Default: hard
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_tls_cacert (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the file that contains certificates for
+                            all of the Certificate Authorities
+                            <command>sssd</command> will recognize.
+                        </para>
+                        <para>
+                            Default: use OpenLDAP defaults, typically in
+                            /etc/openldap/ldap.conf
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_tls_cacertdir (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies  the  path of a directory that contains
+                            Certificate Authority certificates in separate
+                            individual files. Typically the file names need to
+                            be the hash of the certificate followed by '.0'.
+                            If available <command>cacertdir_rehash</command>
+                            can be used to create the correct names.
+                        </para>
+                        <para>
+                            Default: use OpenLDAP defaults, typically in
+                            /etc/openldap/ldap.conf
                         </para>
                     </listitem>
                 </varlistentry>

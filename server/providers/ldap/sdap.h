@@ -88,6 +88,8 @@ enum sdap_basic_opt {
     SDAP_FORCE_UPPER_CASE_REALM,
     SDAP_ENUM_REFRESH_TIMEOUT,
     SDAP_STALE_TIME,
+    SDAP_TLS_CACERT,
+    SDAP_TLS_CACERTDIR,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
@@ -207,3 +209,5 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
 
 int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
                     struct sdap_msg *sm, char **_dn);
+
+errno_t setup_tls_config(struct sdap_gen_opts *basic_opts);
