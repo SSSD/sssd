@@ -88,7 +88,6 @@ struct krb5_ctx {
 
     char *kdcip;
     char *realm;
-    bool try_simple_upn;
     char *changepw_principle;
     char *ccache_dir;
     char *ccname_template;
