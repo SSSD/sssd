@@ -95,24 +95,17 @@ static bool connected(struct sdap_id_ctx *ctx)
 struct sdap_id_connect_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
-    bool use_start_tls;
-    char *defaultBindDn;
-    char *defaultAuthtokType;
-    struct sdap_blob defaultAuthtok;
 
     struct sdap_handle *sh;
 };
 
 static void sdap_id_connect_done(struct tevent_req *subreq);
+static void sdap_id_kinit_done(struct tevent_req *subreq);
 static void sdap_id_bind_done(struct tevent_req *subreq);
 
 static struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
                                                struct tevent_context *ev,
-                                               struct sdap_id_ctx *ctx,
-                                               bool use_start_tls,
-                                               char *defaultBindDn,
-                                               char *defaultAuthtokType,
-                                               struct sdap_blob defaultAuthtok)
+                                               struct sdap_id_ctx *ctx)
 {
     struct tevent_req *req, *subreq;
     struct sdap_id_connect_state *state;
@@ -122,12 +115,9 @@ static struct tevent_req *sdap_id_connect_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->use_start_tls = use_start_tls;
-    state->defaultBindDn = defaultBindDn;
-    state->defaultAuthtokType = defaultAuthtokType;
-    state->defaultAuthtok = defaultAuthtok;
 
-    subreq = sdap_connect_send(state, ev, ctx->opts, use_start_tls);
+    subreq = sdap_connect_send(state, ev, ctx->opts,
+                               sdap_go_get_bool(ctx->opts->basic, SDAP_ID_TLS));
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -143,6 +133,7 @@ static void sdap_id_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_id_connect_state *state = tevent_req_data(req,
                                                 struct sdap_id_connect_state);
+    const char *sasl_mech;
     int ret;
 
     ret = sdap_connect_recv(subreq, state, &state->sh);
@@ -152,14 +143,81 @@ static void sdap_id_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    /* TODO: use authentication (SASL/GSSAPI) when necessary */
-    subreq = sdap_auth_send(state, state->ev, state->sh, state->defaultBindDn,
-                            state->defaultAuthtokType, state->defaultAuthtok);
+    sasl_mech = sdap_go_get_string(state->ctx->opts->basic, SDAP_SASL_MECH);
+    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+        if (sdap_go_get_bool(state->ctx->opts->basic, SDAP_KRB5_KINIT)) {
+            subreq = sdap_kinit_send(state, state->ev, state->sh,
+                                sdap_go_get_string(state->ctx->opts->basic,
+                                                           SDAP_KRB5_KEYTAB),
+                                sdap_go_get_string(state->ctx->opts->basic,
+                                                           SDAP_SASL_AUTHID),
+                                sdap_go_get_string(state->ctx->opts->basic,
+                                                           SDAP_KRB5_REALM));
+            if (!subreq) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            tevent_req_set_callback(subreq, sdap_id_kinit_done, req);
+            return;
+        }
+    }
+
+    subreq = sdap_auth_send(state,
+                            state->ev,
+                            state->sh,
+                            sasl_mech,
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                                        SDAP_SASL_AUTHID),
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                                    SDAP_DEFAULT_BIND_DN),
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                               SDAP_DEFAULT_AUTHTOK_TYPE),
+                            sdap_go_get_blob(state->ctx->opts->basic,
+                                                    SDAP_DEFAULT_AUTHTOK));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
+    tevent_req_set_callback(subreq, sdap_id_bind_done, req);
+}
 
+static void sdap_id_kinit_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_id_connect_state *state = tevent_req_data(req,
+                                                struct sdap_id_connect_state);
+    enum sdap_result result;
+    int ret;
+
+    ret = sdap_kinit_recv(subreq, &result);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    if (result != SDAP_AUTH_SUCCESS) {
+        tevent_req_error(req, EACCES);
+        return;
+    }
+
+    subreq = sdap_auth_send(state,
+                            state->ev,
+                            state->sh,
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                                          SDAP_SASL_MECH),
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                                        SDAP_SASL_AUTHID),
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                                    SDAP_DEFAULT_BIND_DN),
+                            sdap_go_get_string(state->ctx->opts->basic,
+                                               SDAP_DEFAULT_AUTHTOK_TYPE),
+                            sdap_go_get_blob(state->ctx->opts->basic,
+                                                    SDAP_DEFAULT_AUTHTOK));
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
     tevent_req_set_callback(subreq, sdap_id_bind_done, req);
 }
 
@@ -267,13 +325,7 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false,
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_BIND_DN),
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                             sdap_go_get_blob(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK));
+        subreq = sdap_id_connect_send(state, ev, ctx);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -436,13 +488,7 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false,
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_BIND_DN),
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                             sdap_go_get_blob(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK));
+        subreq = sdap_id_connect_send(state, ev, ctx);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -579,13 +625,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false,
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_BIND_DN),
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                             sdap_go_get_blob(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK));
+        subreq = sdap_id_connect_send(state, ev, ctx);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -1039,13 +1079,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false,
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_BIND_DN),
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                             sdap_go_get_blob(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK));
+        subreq = sdap_id_connect_send(state, ev, ctx);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -1192,13 +1226,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_id_connect_send(state, ev, ctx, false,
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_BIND_DN),
-                             sdap_go_get_string(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                             sdap_go_get_blob(ctx->opts->basic,
-                                                SDAP_DEFAULT_AUTHTOK));
+        subreq = sdap_id_connect_send(state, ev, ctx);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;

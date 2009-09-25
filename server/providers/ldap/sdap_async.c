@@ -19,6 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <ctype.h>
+#include <sasl/sasl.h>
+#include <krb5/krb5.h>
 
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async.h"
@@ -767,6 +769,362 @@ static int simple_bind_recv(struct tevent_req *req, int *ldaperr)
     return EOK;
 }
 
+/* ==SASL-Bind============================================================ */
+
+struct sasl_bind_state {
+    struct tevent_context *ev;
+    struct sdap_handle *sh;
+
+    const char *sasl_mech;
+    const char *sasl_user;
+    struct berval *sasl_cred;
+
+    int result;
+};
+
+static int sdap_sasl_interact(LDAP *ld, unsigned flags,
+                              void *defaults, void *interact);
+
+static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_handle *sh,
+                                         const char *sasl_mech,
+                                         const char *sasl_user,
+                                         struct berval *sasl_cred)
+{
+    struct tevent_req *req;
+    struct sasl_bind_state *state;
+    int ret = EOK;
+
+    req = tevent_req_create(memctx, &state, struct sasl_bind_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->sh = sh;
+    state->sasl_mech = sasl_mech;
+    state->sasl_user = sasl_user;
+    state->sasl_cred = sasl_cred;
+
+    DEBUG(4, ("Executing sasl bind mech: %s, user: %s\n",
+              sasl_mech, sasl_user));
+
+    /* FIXME: Warning, this is a sync call!
+     * No async variant exist in openldap libraries yet */
+
+    ret = ldap_sasl_interactive_bind_s(state->sh->ldap, NULL,
+                                       sasl_mech, NULL, NULL,
+                                       LDAP_SASL_QUIET,
+                                       (*sdap_sasl_interact), state);
+    state->result = ret;
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(1, ("ldap_sasl_bind failed (%d)[%s]\n",
+                  ret, ldap_err2string(ret)));
+        goto fail;
+    }
+
+    if (!sh->connected) {
+        sh->connected = true;
+        ret = sdap_install_ldap_callbacks(sh, ev);
+        if (ret) goto fail;
+    }
+
+    tevent_req_post(req, ev);
+    return req;
+
+fail:
+    if (ret == LDAP_SERVER_DOWN) {
+        tevent_req_error(req, ETIMEDOUT);
+    } else {
+        tevent_req_error(req, EIO);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static int sdap_sasl_interact(LDAP *ld, unsigned flags,
+                              void *defaults, void *interact)
+{
+    struct sasl_bind_state *state = talloc_get_type(defaults,
+                                                    struct sasl_bind_state);
+    sasl_interact_t *in = (sasl_interact_t *)interact;
+
+    if (!ld) return LDAP_PARAM_ERROR;
+
+    while (in->id != SASL_CB_LIST_END) {
+
+        switch (in->id) {
+        case SASL_CB_GETREALM:
+        case SASL_CB_AUTHNAME:
+        case SASL_CB_PASS:
+            if (in->defresult) {
+                in->result = in->defresult;
+            } else {
+                in->result = "";
+            }
+            in->len = strlen(in->result);
+            break;
+        case SASL_CB_USER:
+            if (state->sasl_user) {
+                in->result = state->sasl_user;
+            } else if (in->defresult) {
+                in->result = in->defresult;
+            } else {
+                in->result = "";
+            }
+            in->len = strlen(in->result);
+            break;
+        case SASL_CB_NOECHOPROMPT:
+        case SASL_CB_ECHOPROMPT:
+            goto fail;
+        }
+
+        in++;
+    }
+
+    return LDAP_SUCCESS;
+
+fail:
+    return LDAP_UNAVAILABLE;
+}
+
+static int sasl_bind_recv(struct tevent_req *req, int *ldaperr)
+{
+    struct sasl_bind_state *state = tevent_req_data(req,
+                                            struct sasl_bind_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (tstate != TEVENT_REQ_IN_PROGRESS) {
+            *ldaperr = LDAP_OTHER;
+            if (err) return err;
+            return EIO;
+        }
+    }
+
+    *ldaperr = state->result;
+    return EOK;
+}
+
+/* ==Perform-Kinit-given-keytab-and-principal============================= */
+
+static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
+                                  const char *realm_str,
+                                  const char *princ_str,
+                                  const char *keytab_name)
+{
+    char *ccname;
+    char *realm_name = NULL;
+    char *full_princ = NULL;
+    krb5_context context = NULL;
+    krb5_keytab keytab = NULL;
+    krb5_ccache ccache = NULL;
+    krb5_principal kprinc;
+    krb5_creds my_creds;
+    krb5_get_init_creds_opt options;
+    krb5_error_code krberr;
+    int ret;
+
+    krberr = krb5_init_context(&context);
+    if (krberr) {
+        DEBUG(2, ("Failed to init kerberos context\n"));
+        return EFAULT;
+    }
+
+    if (!realm_str) {
+        krberr = krb5_get_default_realm(context, &realm_name);
+        if (krberr) {
+            DEBUG(2, ("Failed to get default realm name: %s\n",
+                      krb5_get_error_message(context, krberr)));
+            ret = EFAULT;
+            goto done;
+        }
+    } else {
+        realm_name = talloc_strdup(memctx, realm_str);
+        if (!realm_name) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (princ_str) {
+        if (!strchr(princ_str, '@')) {
+            full_princ = talloc_asprintf(memctx, "%s@%s",
+                                         princ_str, realm_name);
+        } else {
+            full_princ = talloc_strdup(memctx, princ_str);
+        }
+    } else {
+        char hostname[512];
+
+        ret = gethostname(hostname, 511);
+        if (ret == -1) {
+            ret = errno;
+            goto done;
+        }
+        hostname[511] = '\0';
+
+        full_princ = talloc_asprintf(memctx, "host/%s@%s",
+                                     hostname, realm_name);
+    }
+    if (!full_princ) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(1, ("Principal name is: [%s]\n", full_princ));
+
+    krberr = krb5_parse_name(context, full_princ, &kprinc);
+    if (krberr) {
+        DEBUG(2, ("Unable to build principal: %s\n",
+                  krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (keytab_name) {
+        krberr = krb5_kt_resolve(context, keytab_name, &keytab);
+    } else {
+        krberr = krb5_kt_default(context, &keytab);
+    }
+    if (krberr) {
+        DEBUG(2, ("Failed to read keytab file: %s\n",
+                  krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    ccname = talloc_asprintf(memctx, "FILE:%s/ccache_%s", DB_PATH, realm_name);
+    if (!ccname) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = setenv("KRB5CCNAME", ccname, 1);
+    if (ret == -1) {
+        DEBUG(2, ("Unable to set env. variable KRB5CCNAME!\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    krberr = krb5_cc_resolve(context, ccname, &ccache);
+    if (krberr) {
+        DEBUG(2, ("Failed to set cache name: %s\n",
+                  krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    memset(&my_creds, 0, sizeof(my_creds));
+    memset(&options, 0, sizeof(options));
+
+    krb5_get_init_creds_opt_set_address_list(&options, NULL);
+    krb5_get_init_creds_opt_set_forwardable(&options, 0);
+    krb5_get_init_creds_opt_set_proxiable(&options, 0);
+    /* set a very short lifetime, we don't keep the ticket around */
+    krb5_get_init_creds_opt_set_tkt_life(&options, 300);
+
+    krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
+                                        keytab, 0, NULL, &options);
+
+    if (krberr) {
+        DEBUG(2, ("Failed to init credentials: %s\n",
+                  krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    krberr = krb5_cc_initialize(context, ccache, kprinc);
+    if (krberr) {
+        DEBUG(2, ("Failed to init ccache: %s\n",
+                  krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    krberr = krb5_cc_store_cred(context, ccache, &my_creds);
+    if (krberr) {
+        DEBUG(2, ("Failed to store creds: %s\n",
+                  krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (keytab) krb5_kt_close(context, keytab);
+    if (context) krb5_free_context(context);
+    return ret;
+}
+
+struct sdap_kinit_state {
+    int result;
+};
+
+/* TODO: make it really async */
+struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_handle *sh,
+                                   const char *keytab,
+                                   const char *principal,
+                                   const char *realm)
+{
+    struct tevent_req *req;
+    struct sdap_kinit_state *state;
+    int ret;
+
+    DEBUG(6, ("Attempting kinit (%s, %s, %s)\n", keytab, principal, realm));
+
+    req = tevent_req_create(memctx, &state, struct sdap_kinit_state);
+    if (!req) return NULL;
+
+    state->result = SDAP_AUTH_FAILED;
+
+    if (keytab) {
+        ret = setenv("KRB5_KTNAME", keytab, 1);
+        if (ret == -1) {
+            DEBUG(2, ("Failed to set KRB5_KTNAME to %s\n", keytab));
+            ret = EFAULT;
+            goto fail;
+        }
+    }
+
+    ret = sdap_krb5_get_tgt_sync(state, realm, principal, keytab);
+    if (ret == EOK) {
+        state->result = SDAP_AUTH_SUCCESS;
+    } else {
+        goto fail;
+    }
+
+    tevent_req_post(req, ev);
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result)
+{
+    struct sdap_kinit_state *state = tevent_req_data(req,
+                                                struct sdap_kinit_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (tstate != TEVENT_REQ_IN_PROGRESS) {
+            *result = SDAP_ERROR;
+            if (err) return err;
+            return EIO;
+        }
+    }
+
+    *result = state->result;
+    return EOK;
+}
+
+
 /* ==Authenticaticate-User-by-DN========================================== */
 
 struct sdap_auth_state {
@@ -774,13 +1132,17 @@ struct sdap_auth_state {
     struct berval pw;
 
     int result;
+    bool is_sasl;
 };
 
 static void sdap_auth_done(struct tevent_req *subreq);
 
+/* TODO: handle sasl_cred */
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_handle *sh,
+                                  const char *sasl_mech,
+                                  const char *sasl_user,
                                   const char *user_dn,
                                   const char *authtok_type,
                                   struct sdap_blob authtok)
@@ -800,10 +1162,20 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
     state->pw.bv_val = (char *)authtok.data;
     state->pw.bv_len = authtok.length;
 
-    subreq = simple_bind_send(state, ev, sh, user_dn, &state->pw);
-    if (!subreq) {
-        tevent_req_error(req, EFAULT);
-        return tevent_req_post(req, ev);
+    if (sasl_mech) {
+        state->is_sasl = true;
+        subreq = sasl_bind_send(state, ev, sh, sasl_mech, sasl_user, NULL);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return tevent_req_post(req, ev);
+        }
+    } else {
+        state->is_sasl = false;
+        subreq = simple_bind_send(state, ev, sh, user_dn, &state->pw);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return tevent_req_post(req, ev);
+        }
     }
 
     tevent_req_set_callback(subreq, sdap_auth_done, req);
@@ -818,11 +1190,16 @@ static void sdap_auth_done(struct tevent_req *subreq)
                                                  struct sdap_auth_state);
     int ret;
 
-    ret = simple_bind_recv(subreq, &state->result);
+    if (state->is_sasl) {
+        ret = sasl_bind_recv(subreq, &state->result);
+    } else {
+        ret = simple_bind_recv(subreq, &state->result);
+    }
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
+
     tevent_req_done(req);
 }
 

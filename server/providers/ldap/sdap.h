@@ -90,6 +90,12 @@ enum sdap_basic_opt {
     SDAP_STALE_TIME,
     SDAP_TLS_CACERT,
     SDAP_TLS_CACERTDIR,
+    SDAP_ID_TLS,
+    SDAP_SASL_MECH,
+    SDAP_SASL_AUTHID,
+    SDAP_KRB5_KEYTAB,
+    SDAP_KRB5_KINIT,
+    SDAP_KRB5_REALM,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

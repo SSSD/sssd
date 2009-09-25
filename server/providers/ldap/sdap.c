@@ -51,7 +51,14 @@ struct sdap_gen_opts default_basic_opts[] = {
     { "ldap_enumeration_refresh_timeout", SDAP_NUMBER, { .number = 300 }, NULL_NUMBER },
     { "ldap_stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER },
     { "ldap_tls_cacert", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_tls_cacertdir", SDAP_STRING, NULL_STRING, NULL_STRING }
+    { "ldap_tls_cacertdir", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_id_use_start_tls", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_sasl_mech", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sasl_authid", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_krb5_keytab", SDAP_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_krb5_init_creds", SDAP_BOOL, BOOL_TRUE, BOOL_TRUE },
+    /* use the same parm name as the krb5 module so we set it only once */
+    { "krb5_realm", SDAP_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_id_map rfc2307_user_map[] = {

@@ -54,9 +54,19 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 int sdap_get_groups_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, char **timestamp);
 
+struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_handle *sh,
+                                   const char *keytab,
+                                   const char *principal,
+                                   const char *realm);
+int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result);
+
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
                                   struct sdap_handle *sh,
+                                  const char *sasl_mech,
+                                  const char *sasl_user,
                                   const char *user_dn,
                                   const char *authtok_type,
                                   struct sdap_blob authtok);

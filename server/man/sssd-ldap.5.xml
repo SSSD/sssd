@@ -485,6 +485,85 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_id_use_start_tls (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies that the id_provider connection must also
+                            use tls to protect the channel.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sasl_mech (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the sasl mechanism to use.
+                            Currently only GSSAPI is tested and supported.
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_sasl_authid (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the sasl authorization id to use.
+                            When GSSAPI is used, this represents the kerberos
+                            principal used for authentication to the directory.
+                        </para>
+                        <para>
+                            Default: host/machine.fqdn@REALM
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_krb5_keytab (string)</term>
+                    <listitem>
+                        <para>
+                            Specify keytab to use when using SASL/GSSAPI.
+                        </para>
+                        <para>
+                            Default: System keytab, normally /etc/krb5.keytab
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_krb5_init_creds (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies that the id_provider should init
+                            kerberos credentials (TGT).
+                            This action is perfromed only if SASL is used and
+                            the mechanism selected is GSSAPI.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_realm (string)</term>
+                    <listitem>
+                        <para>
+                            Specify the kerberos REALM (for SASL/GSSAPI auth).
+                        </para>
+                        <para>
+                            Default: System defaults, see /etc/krb5.conf
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
