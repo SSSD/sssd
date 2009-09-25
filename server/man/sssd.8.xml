@@ -56,6 +56,18 @@
             </varlistentry>
             <varlistentry>
                 <term>
+                    <option>-f</option>,<option>--debug-to-files</option>
+                </term>
+                <listitem>
+                    <para>
+                        Send the debug output to files instead of stderr. By default, the
+                        log files are stored in <filename>/var/log/sssd</filename> and
+                        there are separate log files for every SSSD service and domain.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
                     <option>-D</option>,<option>--daemon</option>
                 </term>
                 <listitem>

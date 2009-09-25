@@ -938,11 +938,13 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     }
 
     if (!svc->command) {
-        svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d%s",
+        svc->command = talloc_asprintf(svc, "%s/sssd_%s -d %d%s%s",
                                        SSSD_LIBEXEC_PATH,
                                        svc->name, debug_level,
                                        (debug_timestamps?
-                                              " --debug-timestamps":""));
+                                              " --debug-timestamps":""),
+                                       (debug_to_file ?
+                                              " --debug-to-files":""));
         if (!svc->command) {
             talloc_free(svc);
             return ENOMEM;
@@ -1053,9 +1055,10 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     /* if there are no custom commands, build a default one */
     if (!svc->command) {
         svc->command = talloc_asprintf(svc,
-                            "%s/sssd_be -d %d%s --domain %s",
+                            "%s/sssd_be -d %d%s%s --domain %s",
                             SSSD_LIBEXEC_PATH, debug_level,
                             (debug_timestamps?" --debug-timestamps":""),
+                            (debug_to_file?" --debug-to-files":""),
                             svc->name);
         if (!svc->command) {
             talloc_free(svc);
@@ -2426,6 +2429,15 @@ int main(int argc, const char *argv[])
 
     /* we want a pid file check */
     flags |= FLAGS_PID_FILE;
+
+    /* Open before server_setup() does to have logging
+     * during configuration checking */
+    if (debug_to_file) {
+        ret = open_debug_file();
+        if (ret) {
+            return 7;
+        }
+    }
 
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, &monitor);

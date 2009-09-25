@@ -20,7 +20,7 @@ pluginpath = @pluginpath@
 pidpath = @pidpath@
 pipepath = @pipepath@
 initdir = @initdir@
-shadow_utils_path = @shadow_utils_path@
+logpath = @logpath@
 
 AM_CFLAGS =
 if WANT_AUX_INFO
@@ -555,7 +555,7 @@ installsssddirs::
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(initdir) \
-    $(DESTDIR)$(shadow_utils_path)
+    $(DESTDIR)$(logpath)
 
 install-exec-hook: installsssddirs
 

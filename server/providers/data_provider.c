@@ -992,7 +992,9 @@ int main(int argc, const char *argv[])
 
 	poptFreeContext(pc);
 
-    /* set up things like debug , signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc... */
+    debug_log_file = "sssd_dp";
+
     ret = server_setup("sssd[dp]", 0, CONFDB_DP_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 

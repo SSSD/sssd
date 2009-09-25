@@ -298,6 +298,7 @@ int server_setup(const char *name, int flags,
     char *conf_db;
     int ret = EOK;
     bool dt;
+    bool dl;
 
     debug_prg_name = strdup(name);
     if (!debug_prg_name) {
@@ -352,7 +353,6 @@ int server_setup(const char *name, int flags,
         DEBUG(0,("Out of memory, aborting!\n"));
         return ENOMEM;
     }
-    DEBUG(3, ("CONFDB: %s\n", conf_db));
 
     ret = confdb_init(ctx, &ctx->confdb_ctx, conf_db);
     if (ret != EOK) {
@@ -381,6 +381,30 @@ int server_setup(const char *name, int flags,
         return ret;
     }
     if (dt) debug_timestamps = 1;
+
+    /* same for debug to file */
+    dl = (debug_to_file != 0);
+    ret = confdb_get_bool(ctx->confdb_ctx, ctx, conf_entry,
+                          CONFDB_SERVICE_DEBUG_TO_FILES,
+                          dl, &dl);
+    if (ret != EOK) {
+        DEBUG(0, ("Error reading from confdb (%d) [%s]\n",
+                  ret, strerror(ret)));
+        return ret;
+    }
+    if (dl) debug_to_file = 1;
+
+    /* open log file if told so */
+    if (debug_to_file) {
+        ret = open_debug_file();
+        if (ret != EOK) {
+            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
+                    ret, strerror(ret)));
+            return ret;
+        }
+    }
+
+    DEBUG(3, ("CONFDB: %s\n", conf_db));
 
     if (flags & FLAGS_INTERACTIVE) {
         /* terminate when stdin goes away */

@@ -24,11 +24,18 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "util/util.h"
 
 const char *debug_prg_name = "sssd";
 int debug_level = 0;
 int debug_timestamps = 0;
+
+int debug_to_file = 0;
+const char *debug_log_file = "sssd";
+FILE *debug_file = NULL;
 
 void debug_fn(const char *format, ...)
 {
@@ -47,7 +54,8 @@ void debug_fn(const char *format, ...)
     va_end(ap);
 
     /*write(state.fd, s, strlen(s));*/
-    fprintf(stderr, s);
+    fprintf(debug_file ? debug_file : stderr, s);
+    fflush(debug_file ? debug_file : stderr);
     free(s);
 }
 
@@ -89,4 +97,31 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         }
     }
     free(message);
+}
+
+int open_debug_file()
+{
+    FILE *f = NULL;
+    char *logpath;
+    mode_t old_umask;
+    int ret;
+
+    ret = asprintf(&logpath, "%s/%s.log", LOG_PATH, debug_log_file);
+    if (ret == -1) {
+        return ENOMEM;
+    }
+
+    if (debug_file) fclose(debug_file);
+
+    old_umask = umask(0177);
+    f = fopen(logpath, "a");
+    if (f == NULL) {
+        free(logpath);
+        return EIO;
+    }
+    umask(old_umask);
+
+    debug_file = f;
+    free(logpath);
+    return EOK;
 }

@@ -947,7 +947,11 @@ int main(int argc, const char *argv[])
 
     poptFreeContext(pc);
 
+
     /* set up things like debug , signals, daemonization, etc... */
+    debug_log_file = talloc_asprintf(NULL, "sssd_%s", be_domain);
+    if (!debug_log_file) return 2;
+
     srv_name = talloc_asprintf(NULL, "sssd[be[%s]]", be_domain);
     if (!srv_name) return 2;
 

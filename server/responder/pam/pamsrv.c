@@ -190,7 +190,9 @@ int main(int argc, const char *argv[])
 
 	poptFreeContext(pc);
 
-    /* set up things like debug , signals, daemonization, etc... */
+    /* set up things like debug, signals, daemonization, etc... */
+    debug_log_file = "sssd_pam";
+
     ret = server_setup("sssd[pam]", 0, CONFDB_PAM_CONF_ENTRY, &main_ctx);
     if (ret != EOK) return 2;
 

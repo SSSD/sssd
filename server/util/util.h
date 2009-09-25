@@ -43,11 +43,15 @@ typedef int errno_t;
 extern const char *debug_prg_name;
 extern int debug_level;
 extern int debug_timestamps;
+extern int debug_to_file;
+extern const char *debug_log_file;
 void debug_fn(const char *format, ...);
 
 #define SSSD_DEBUG_OPTS \
 		{"debug-level",	'd', POPT_ARG_INT, &debug_level, 0, \
 		 "Debug level", NULL}, \
+                {"debug-to-files", 'f', POPT_ARG_NONE, &debug_to_file, 0, \
+                 "Send the debug output to files instead of stderr", NULL }, \
 		{"debug-timestamps", 0, POPT_ARG_NONE, &debug_timestamps, 0, \
 		 "Add debug timestamps", NULL},
 
@@ -133,6 +137,7 @@ void debug_fn(const char *format, ...);
 /* From debug.c */
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
+int open_debug_file(void);
 
 /* from server.c */
 struct main_context {

@@ -128,6 +128,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(700,root,root) %dir %{dbpath}
 %attr(755,root,root) %dir %{pipepath}
 %attr(700,root,root) %dir %{pipepath}/private
+%attr(750,root,root) %dir %{_var}/log/%{name}
 %dir %{_sysconfdir}/sssd
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %{_mandir}/man5/sssd.conf.5*

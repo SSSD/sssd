@@ -49,6 +49,23 @@ AC_DEFUN([WITH_PID_PATH],
     AC_DEFINE_UNQUOTED(PID_PATH, "$config_pidpath", [Where to store pid files for the SSSD])
   ])
 
+AC_DEFUN([WITH_LOG_PATH],
+  [ AC_ARG_WITH([log-path],
+                [AC_HELP_STRING([--with-log-path=PATH],
+                                [Where to store log files for the SSSD [/var/log/sssd]]
+                               )
+                ]
+               )
+    config_logpath="\"VARDIR\"/log/sssd"
+    logpath="${localstatedir}/log/sssd"
+    if test x"$with_log_path" != x; then
+        config_logpath=$with_log_path
+        logpath=$with_log_path
+    fi
+    AC_SUBST(logpath)
+    AC_DEFINE_UNQUOTED(LOG_PATH, "$config_logpath", [Where to store log files for the SSSD])
+  ])
+
 AC_DEFUN([WITH_PIPE_PATH],
   [ AC_ARG_WITH([pipe-path],
                 [AC_HELP_STRING([--with-pipe-path=PATH],
