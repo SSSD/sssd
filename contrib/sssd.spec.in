@@ -154,8 +154,10 @@ rm -rf $RPM_BUILD_ROOT
 %post
 /sbin/ldconfig
 /sbin/chkconfig --add %{servicename}
-# a one-time upgrade from confdb v1 to v2
-python %{_libexecdir}/%{servicename}/upgrade_config.py
+if [ $1 -ge 2 ] ; then
+# a one-time upgrade from confdb v1 to v2, only if upgrading
+    python %{_libexecdir}/%{servicename}/upgrade_config.py
+fi
 
 %preun
 if [ $1 = 0 ]; then
