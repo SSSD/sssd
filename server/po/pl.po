@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-09-25 13:56-0400\n"
-"PO-Revision-Date: 2009-09-16 17:20+0200\n"
+"PO-Revision-Date: 2009-09-26 12:28+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
 "MIME-Version: 1.0\n"
@@ -25,7 +25,7 @@ msgstr "Błąd podczas ustawiania lokalizacji\n"
 
 #: tools/sss_groupdel.c:109
 msgid "Specify group to delete\n"
-msgstr "Podaj grupę do usunięcia\n"
+msgstr "Proszę podać grupę do usunięcia\n"
 
 #: tools/sss_groupdel.c:119 tools/sss_groupmod.c:145 tools/sss_userdel.c:119
 #: tools/sss_useradd.c:216 tools/sss_groupadd.c:121 tools/sss_usermod.c:160
@@ -35,21 +35,19 @@ msgstr "Błąd podczas inicjowania narzędzi\n"
 #: tools/sss_groupdel.c:127 tools/sss_groupmod.c:152 tools/sss_userdel.c:127
 #: tools/sss_useradd.c:224 tools/sss_groupadd.c:129 tools/sss_usermod.c:168
 msgid "Invalid domain specified in FQDN\n"
-msgstr ""
+msgstr "Podano nieprawidłową domenę w FQDN\n"
 
 #: tools/sss_groupdel.c:140 tools/sss_groupmod.c:192 tools/sss_groupadd.c:138
-#, fuzzy
 msgid "The selected GID is outside the allowed range\n"
-msgstr "Wybrany GID jest spoza wszystkich zakresów domeny\n"
+msgstr "Wybrany GID jest spoza dozwolonego zakresu\n"
 
 #: tools/sss_groupdel.c:149
 msgid "Transaction error. Could not remove group.\n"
 msgstr "Błąd transakcji. Nie można usunąć grupy.\n"
 
 #: tools/sss_groupdel.c:164
-#, fuzzy
 msgid "No such group\n"
-msgstr "Nie ma takiego użytkownika\n"
+msgstr "Nie ma takiej grupy\n"
 
 #: tools/sss_groupdel.c:168
 msgid "Internal error. Could not remove group.\n"
@@ -69,17 +67,16 @@ msgstr "GID grupy"
 
 #: tools/sss_groupmod.c:133
 msgid "Specify group to modify\n"
-msgstr "Podaj grupę do zmodyfikowania\n"
+msgstr "Proszę podać grupę do zmodyfikowania\n"
 
 #: tools/sss_groupmod.c:163 tools/sss_groupmod.c:179 tools/sss_useradd.c:233
 #: tools/sss_usermod.c:183 tools/sss_usermod.c:199
-#, fuzzy
 msgid "Internal error while parsing parameters\n"
-msgstr "Wewnętrzny błąd. Nie można usunąć użytkownika.\n"
+msgstr "Wewnętrzny błąd podczas przetwarzania parametrów\n"
 
 #: tools/sss_groupmod.c:170 tools/sss_groupmod.c:186
 msgid "Member groups must be in the same domain as parent group\n"
-msgstr ""
+msgstr "Członkowie grupy muszą być w tej samej domenie co grupa nadrzędna\n"
 
 #: tools/sss_groupmod.c:200 tools/sss_groupmod.c:223
 msgid "Transaction error. Could not modify group.\n"
@@ -88,22 +85,22 @@ msgstr "Błąd transakcji. Nie można zmodyfikować grupy.\n"
 #: tools/sss_groupmod.c:215
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
-"Nie można zmodyfikować grupy - sprawdź, czy nazwy członków grupy są "
+"Nie można zmodyfikować grupy - proszę sprawdzić, czy nazwy członków grupy są "
 "poprawne\n"
 
 #: tools/sss_groupmod.c:219
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
-"Nie można zmodyfikować grupy - sprawdź, czy nazwa grupy jest poprawna\n"
+"Nie można zmodyfikować grupy - proszę sprawdzić, czy nazwa grupy jest "
+"poprawna\n"
 
 #: tools/sss_userdel.c:109
 msgid "Specify user to delete\n"
-msgstr "Podaj użytkownika do usunięcia\n"
+msgstr "Proszę podać użytkownika do usunięcia\n"
 
 #: tools/sss_userdel.c:139 tools/sss_useradd.c:270 tools/sss_usermod.c:174
-#, fuzzy
 msgid "The selected UID is outside the allowed range\n"
-msgstr "Wybrany UID jest spoza wszystkich zakresów domeny\n"
+msgstr "Wybrany UID jest spoza dozwolonego zakresu\n"
 
 #: tools/sss_userdel.c:148
 msgid "Transaction error. Could not remove user.\n"
@@ -140,7 +137,7 @@ msgstr "Ciąg komentarza"
 
 #: tools/sss_useradd.c:161 tools/sss_usermod.c:85
 msgid "Home directory"
-msgstr "Folder domowy"
+msgstr "Katalog domowy"
 
 #: tools/sss_useradd.c:162 tools/sss_usermod.c:86
 msgid "Login shell"
@@ -152,11 +149,11 @@ msgstr "Grupy"
 
 #: tools/sss_useradd.c:206
 msgid "Specify user to add\n"
-msgstr "Podaj użytkownika do dodania\n"
+msgstr "Proszę podać użytkownika do dodania\n"
 
 #: tools/sss_useradd.c:240 tools/sss_usermod.c:190 tools/sss_usermod.c:206
 msgid "Groups must be in the same domain as user\n"
-msgstr ""
+msgstr "Grupy muszą być w tej samej domenie co użytkownik\n"
 
 #: tools/sss_useradd.c:249
 msgid "Cannot get group information for the user\n"
@@ -164,7 +161,7 @@ msgstr "Nie można uzyskać informacji o grupie dla użytkownika\n"
 
 #: tools/sss_useradd.c:263
 msgid "Cannot set default values\n"
-msgstr ""
+msgstr "Nie można ustawić domyślnych wartości\n"
 
 #: tools/sss_useradd.c:279 tools/sss_usermod.c:221 tools/sss_usermod.c:243
 msgid "Transaction error. Could not modify user.\n"
@@ -180,16 +177,15 @@ msgstr "Błąd transakcji. Nie można dodać użytkownika.\n"
 
 #: tools/sss_groupadd.c:111
 msgid "Specify group to add\n"
-msgstr "Podaj grupę do dodania\n"
+msgstr "Proszę podać grupę do dodania\n"
 
 #: tools/sss_groupadd.c:147 tools/sss_groupadd.c:166
 msgid "Transaction error. Could not add group.\n"
 msgstr "Błąd transakcji. Nie można dodać grupy.\n"
 
 #: tools/sss_groupadd.c:161
-#, fuzzy
 msgid "A group with the same name or GID already exists\n"
-msgstr "Grupa o tej samej nazwie lub UID już istnieje\n"
+msgstr "Grupa o tej samej nazwie lub GID już istnieje\n"
 
 #: tools/sss_usermod.c:83
 msgid "The GID of the user"
@@ -205,67 +201,24 @@ msgstr "Grupy, z których usunąć tego użytkownika"
 
 #: tools/sss_usermod.c:89
 msgid "Lock the account"
-msgstr "Zablokuj konto"
+msgstr "Zablokowanie konta"
 
 #: tools/sss_usermod.c:90
 msgid "Unlock the account"
-msgstr "Odblokuj konto"
+msgstr "Odblokowanie konta"
 
 #: tools/sss_usermod.c:150
 msgid "Specify user to modify\n"
-msgstr "Podaj użytkownika do zmodyfikowania\n"
+msgstr "Proszę podać użytkownika do zmodyfikowania\n"
 
 #: tools/sss_usermod.c:235
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
-"Nie można zmodyfikować użytkownika - sprawdź, czy nazwy grup są poprawne\n"
+"Nie można zmodyfikować użytkownika - proszę sprawdzić, czy nazwy grup są "
+"poprawne\n"
 
 #: tools/sss_usermod.c:239
 msgid "Could not modify user - check if username is correct\n"
 msgstr ""
-"Nie można zmodyfikować użytkownika - sprawdź, czy nazwa użytkownika jest "
-"poprawna\n"
-
-#~ msgid "Cannot get domain info\n"
-#~ msgstr "Nie można uzyskać informacji o domenie\n"
-
-#~ msgid "Selected domain %s conflicts with selected GID %llu\n"
-#~ msgstr "Wybrana domena %s jest w konflikcie z wybranym GID %llu\n"
-
-#~ msgid "Cannot delete group from domain using the legacy tools\n"
-#~ msgstr "Nie można usunąć grupy z domeny używając przestarzałych narzędzi\n"
-
-#~ msgid "Unsupported domain type\n"
-#~ msgstr "Nieobsługiwany typ domeny\n"
-
-#~ msgid "Error looking up domain\n"
-#~ msgstr "Błąd podczas wyszukiwania domeny\n"
-
-#~ msgid "Group nesting is not supported in this domain\n"
-#~ msgstr "Zagnieżdżanie grupy nie jest obsługiwane w tej domenie\n"
-
-#~ msgid "Changing gid only allowed inside the same domain\n"
-#~ msgstr "Zmienianie GOD jest dozwolone tylko w tej samej domenie\n"
-
-#~ msgid "Selected domain %s conflicts with selected UID %llu\n"
-#~ msgstr "Wybrana domena %s jest w konflikcie z wybranym UID %llu\n"
-
-#~ msgid "Cannot delete user from domain using the legacy tools\n"
-#~ msgstr ""
-#~ "Nie można usunąć użytkownika z domeny używając przestarzałych narzędzi\n"
-
-#~ msgid "Cannot add user to domain using the legacy tools\n"
-#~ msgstr ""
-#~ "Nie można dodać użytkownika do domeny używając przestarzałych narzędzi\n"
-
-#~ msgid "Out of memory.\n"
-#~ msgstr "Brak pamięci.\n"
-
-#~ msgid "Cannot add group to domain using the legacy tools\n"
-#~ msgstr "Nie można dodać grupy do domeny używając przestarzałych narzędzi\n"
-
-#~ msgid "Unsupported domain type"
-#~ msgstr "Nieobsługiwany typ domeny"
-
-#~ msgid "Changing uid only allowed inside the same domain\n"
-#~ msgstr "Zmienianie UID jest dozwolone tylko w tej samej domenie\n"
+"Nie można zmodyfikować użytkownika - proszę sprawdzić, czy nazwa użytkownika "
+"jest poprawna\n"
