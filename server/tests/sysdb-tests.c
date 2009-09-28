@@ -90,7 +90,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     val[0] = "LOCAL";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domains", "domains", val);
+                           "config/sssd", "domains", val);
     if (ret != EOK) {
         fail("Could not initialize domains placeholder");
         talloc_free(test_ctx);
@@ -99,7 +99,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     val[0] = "local";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domains/LOCAL", "provider", val);
+                           "config/domain/LOCAL", "id_provider", val);
     if (ret != EOK) {
         fail("Could not initialize provider");
         talloc_free(test_ctx);
@@ -108,16 +108,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
     val[0] = "TRUE";
     ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domains/LOCAL", "magicPrivateGroups", val);
-    if (ret != EOK) {
-        fail("Could not initialize LOCAL domain");
-        talloc_free(test_ctx);
-        return ret;
-    }
-
-    val[0] = "TRUE";
-    ret = confdb_add_param(test_ctx->confdb, true,
-                           "config/domains/LOCAL", "enumerate", val);
+                           "config/domain/LOCAL", "enumerate", val);
     if (ret != EOK) {
         fail("Could not initialize LOCAL domain");
         talloc_free(test_ctx);
