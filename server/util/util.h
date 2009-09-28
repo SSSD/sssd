@@ -193,4 +193,8 @@ int sss_parse_name(TALLOC_CTX *memctx,
 /* from backup-file.c */
 int backup_file(const char *src, int dbglvl);
 
+/* from check_and_open.c */
+errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
+                               const gid_t gid, const mode_t mode);
+
 #endif /* __SSSD_UTIL_H__ */

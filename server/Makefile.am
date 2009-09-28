@@ -65,7 +65,8 @@ if HAVE_CHECK
         sysdb-tests \
         strtonum-tests \
         resolv-tests \
-        krb5-utils-tests
+        krb5-utils-tests \
+        check_and_open-tests
 endif
 
 check_PROGRAMS = \
@@ -176,6 +177,7 @@ SSSD_UTIL_OBJ = \
     util/usertools.c \
     util/backup_file.c \
     util/strtonum.c \
+    util/check_and_open.c \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \
@@ -392,6 +394,15 @@ krb5_utils_tests_CFLAGS = \
 krb5_utils_tests_LDADD = \
     $(CHECK_LIBS) \
     $(TALLOC_LIBS)
+
+check_and_open_tests_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
+    tests/check_and_open-tests.c \
+    util/check_and_open.c
+check_and_open_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+check_and_open_tests_LDADD = \
+    $(CHECK_LIBS)
 endif
 
 stress_tests_SOURCES = \

@@ -270,6 +270,7 @@ error:
 int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 {
     int ret, i;
+    int fd = -1;
     struct collection_item *sssd_config = NULL;
     struct collection_item *error_list = NULL;
     struct collection_item *item = NULL;
@@ -284,16 +285,29 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    /* ok, first of all stat conf file */
-    ret = stat(config_file, &cstat);
+    ret = check_and_open_readonly(config_file, &fd, 0, 0, (S_IRUSR|S_IWUSR));
+    if (ret != EOK) {
+        DEBUG(1, ("Permission check on config file failed.\n"));
+        talloc_zfree(tmp_ctx);
+        return EIO;
+    }
+
+    /* Determine if the conf file has changed since we last updated
+     * the confdb
+     */
+    ret = fstat(fd, &cstat);
     if (ret != 0) {
         DEBUG(0, ("Unable to stat config file [%s]! (%d [%s])\n",
                   config_file, errno, strerror(errno)));
+        close(fd);
+        talloc_zfree(tmp_ctx);
         return errno;
     }
     ret = snprintf(timestr, 21, "%llu", (long long unsigned)cstat.st_mtime);
     if (ret <= 0 || ret >= 21) {
         DEBUG(0, ("Failed to convert time_t to string ??\n"));
+        close(fd);
+        talloc_zfree(tmp_ctx);
         return errno ? errno: EFAULT;
     }
 
@@ -304,6 +318,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
         /* now check if we lastUpdate and last file modification change differ*/
         if (strcmp(lasttimestr, timestr) == 0) {
             /* not changed, get out, nothing more to do */
+            close(fd);
+            talloc_zfree(tmp_ctx);
             return EOK;
         }
     }
@@ -312,7 +328,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = ldb_transaction_start(cdb->ldb);
     if (ret != LDB_SUCCESS) {
         DEBUG(0, ("Failed to start a transaction for updating the configuration\n"));
-        talloc_free(tmp_ctx);
+        talloc_zfree(tmp_ctx);
+        close(fd);
         return sysdb_error_to_errno(ret);
     }
 
@@ -320,12 +337,14 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     ret = confdb_purge(cdb);
     if (ret != EOK) {
         DEBUG(0, ("Could not purge existing configuration\n"));
+        close(fd);
         goto done;
     }
 
     /* Read the configuration into a collection */
-    ret = config_from_file("sssd", config_file, &sssd_config,
-                           INI_STOP_ON_ANY, &error_list);
+    ret = config_from_fd("sssd", fd, config_file, &sssd_config,
+                         INI_STOP_ON_ANY, &error_list);
+    close(fd);
     if (ret != EOK) {
         DEBUG(0, ("Parse error reading configuration file [%s]\n",
                   config_file));
@@ -399,6 +418,6 @@ done:
     ret == EOK ?
             ldb_transaction_commit(cdb->ldb) :
             ldb_transaction_cancel(cdb->ldb);
-    talloc_free(tmp_ctx);
+    talloc_zfree(tmp_ctx);
     return ret;
 }
