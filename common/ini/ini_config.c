@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <locale.h>
+#include <fcntl.h>
 #include "config.h"
 /* For error text */
 #include <libintl.h>
@@ -74,6 +75,17 @@
 
 #define INI_ERROR       "errors"
 #define INI_ERROR_NAME  "errname"
+
+/* Internally used functions */
+static int config_with_lines(const char *application,
+                             FILE *config_file,
+                             const char *config_source,
+                             struct collection_item **ini_config,
+                             int error_level,
+                             struct collection_item **error_list,
+                             struct collection_item **lines);
+
+
 
 /* Different error string functions can be passed as callbacks */
 typedef const char * (*error_fn)(int error);
@@ -153,13 +165,13 @@ int read_line(FILE *file,
 /***************************************************************************/
 /* Function to read single ini file and pupulate
  * the provided collection with subcollcetions from the file */
-static int ini_to_collection(const char *filename,
+static int ini_to_collection(FILE *file,
+                             const char *config_filename,
                              struct collection_item *ini_config,
                              int error_level,
                              struct collection_item **error_list,
                              struct collection_item **lines)
 {
-    FILE *file;
     int error;
     int status;
     int section_count = 0;
@@ -176,12 +188,9 @@ static int ini_to_collection(const char *filename,
 
     TRACE_FLOW_STRING("ini_to_collection", "Entry");
 
-    /* Open file for reading */
-    file = fopen(filename, "r");
     if (file == NULL) {
-        error = errno;
-        TRACE_ERROR_NUMBER("Failed to open file - but this is OK", error);
-        return ENOENT;
+        TRACE_ERROR_NUMBER("No file handle", EINVAL);
+        return EINVAL;
     }
 
     /* Open the collection of errors */
@@ -194,7 +203,7 @@ static int ini_to_collection(const char *filename,
             return error;
         }
         /* Add file name as the first item */
-        error = col_add_str_property(*error_list, NULL, INI_ERROR_NAME, filename, 0);
+        error = col_add_str_property(*error_list, NULL, INI_ERROR_NAME, config_filename, 0);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to and name to collection", error);
             fclose(file);
@@ -423,9 +432,10 @@ void free_ini_config_lines(struct collection_item *lines)
     TRACE_FLOW_STRING("free_ini_config_lines", "Exit");
 }
 
+
 /* Read configuration information from a file */
 int config_from_file(const char *application,
-                     const char *config_file,
+                     const char *config_filename,
                      struct collection_item **ini_config,
                      int error_level,
                      struct collection_item **error_list)
@@ -434,7 +444,7 @@ int config_from_file(const char *application,
 
     TRACE_FLOW_STRING("config_from_file", "Entry");
     error = config_from_file_with_lines(application,
-                                        config_file,
+                                        config_filename,
                                         ini_config,
                                         error_level,
                                         error_list,
@@ -443,15 +453,96 @@ int config_from_file(const char *application,
     return error;
 }
 
+/* Read configuration information from a file descriptor */
+int config_from_fd(const char *application,
+                   int fd,
+                   const char *config_source,
+                   struct collection_item **ini_config,
+                   int error_level,
+                   struct collection_item **error_list)
+{
+    int error;
+
+    TRACE_FLOW_STRING("config_from_fd", "Entry");
+    error = config_from_fd_with_lines(application, fd, config_source,
+                                      ini_config, error_level,
+                                      error_list, NULL);
+    TRACE_FLOW_NUMBER("config_from_fd. Returns", error);
+    return error;
+}
+
 /* Function to read the ini file and have a collection
  * of which item appers on which line
  */
 int config_from_file_with_lines(const char *application,
-                                const char *config_file,
+                                const char *config_filename,
                                 struct collection_item **ini_config,
                                 int error_level,
                                 struct collection_item **error_list,
                                 struct collection_item **lines)
+{
+    int error = EOK;
+    FILE *config_file = NULL;
+
+    TRACE_FLOW_STRING("config_from_file_with_lines", "Entry");
+
+    config_file = fopen(config_filename, "r");
+    if(!config_file) {
+        error = errno;
+        TRACE_ERROR_NUMBER("Failed to open file", error);
+        return error;
+    }
+
+    error = config_with_lines(application, config_file,
+                              config_filename, ini_config,
+                              error_level, error_list,
+                              lines);
+    TRACE_FLOW_NUMBER("config_from_file_with_lines. Returns", error);
+    return error;
+}
+
+/* Function to read the ini file and have a collection
+ * of which item appers on which line
+ */
+int config_from_fd_with_lines(const char *application,
+                              int fd,
+                              const char *config_source,
+                              struct collection_item **ini_config,
+                              int error_level,
+                              struct collection_item **error_list,
+                              struct collection_item **lines)
+{
+    int error = EOK;
+    FILE *config_file;
+
+    TRACE_FLOW_STRING("config_from_fd_with_lines", "Entry");
+
+    config_file = fdopen(fd, "r");
+    if (!config_file) {
+        error = errno;
+        TRACE_ERROR_NUMBER("Failed to dup file", error);
+        return error;
+    }
+
+    error = config_with_lines(application, config_file,
+                              config_source, ini_config,
+                              error_level, error_list,
+                              lines);
+    TRACE_FLOW_NUMBER("config_from_fd_with_lines. Returns", error);
+
+    return error;
+}
+
+/* Low level function that prepares the collection
+ * and calls parser.
+ */
+static int config_with_lines(const char *application,
+                             FILE *config_file,
+                             const char *config_source,
+                             struct collection_item **ini_config,
+                             int error_level,
+                             struct collection_item **error_list,
+                             struct collection_item **lines)
 {
     int error;
     int created = 0;
@@ -511,8 +602,9 @@ int config_from_file_with_lines(const char *application,
     }
 
     /* Do the actual work */
-    error = ini_to_collection(config_file, *ini_config,
-                              error_level, error_list, lines);
+    error = ini_to_collection(config_file, config_source,
+                              *ini_config, error_level,
+                              error_list, lines);
     /* In case of error when we created collection - delete it */
     if (error && created) {
         col_destroy_collection(*ini_config);
@@ -527,6 +619,39 @@ int config_from_file_with_lines(const char *application,
     TRACE_FLOW_NUMBER("config_from_file. Returns", error);
     return error;
 }
+
+/* Special wrapper around the inernal parser
+ * to open the file first.
+ * Used in conf_for_app function.
+ */
+static int ini_to_col_from_file(const char *config_filename,
+                                struct collection_item *ini_config,
+                                int error_level,
+                                struct collection_item **error_list,
+                                struct collection_item **lines)
+{
+    int error = EOK;
+    FILE *config_file = NULL;
+
+    TRACE_FLOW_STRING("ini_to_col_from_file", "Entry");
+
+    config_file = fopen(config_filename, "r");
+    if(!config_file) {
+        error = errno;
+        TRACE_ERROR_NUMBER("ini_to_col_from_file. Returns", error);
+        return ENOENT;
+    }
+
+    error = ini_to_collection(config_file,
+                              config_filename,
+                              ini_config,
+                              error_level,
+                              error_list,
+                              lines);
+    TRACE_FLOW_NUMBER("ini_to_col_from_file. Returns", error);
+    return error;
+}
+
 
 /* Read default config file and then overwrite it with a specific one
  * from the directory */
@@ -605,8 +730,8 @@ int config_for_app(const char *application,
     /* Read master file */
     if (config_file != NULL) {
         TRACE_INFO_STRING("Reading master file:", config_file);
-        error = ini_to_collection(config_file, *ini_config,
-                                  error_level, pass_common, NULL);
+        error = ini_to_col_from_file(config_file, *ini_config,
+                                     error_level, pass_common, NULL);
         tried++;
         /* ENOENT and EOK are Ok */
         if (error) {
@@ -624,7 +749,7 @@ int config_for_app(const char *application,
         }
         /* Add error results if any to the overarching error collection */
         if ((pass_common != NULL) && (*pass_common != NULL)) {
-            TRACE_INFO_STRING("Process erros resulting from file:", config_file);
+            TRACE_INFO_STRING("Process errors resulting from file:", config_file);
             error = col_add_collection_to_collection(*error_set, NULL, NULL,
                                                      *pass_common,
                                                      COL_ADD_MODE_EMBED);
@@ -663,10 +788,9 @@ int config_for_app(const char *application,
 
         sprintf(file_name, "%s%s%s.conf", config_dir, SLASH, application);
         TRACE_INFO_STRING("Opening file:", file_name);
-
-        /* Read master file */
-        error = ini_to_collection(file_name, *ini_config,
-                                  error_level, pass_specific, NULL);
+        /* Read specific file */
+        error = ini_to_col_from_file(file_name, *ini_config,
+                                     error_level, pass_specific, NULL);
         tried++;
         free(file_name);
         /* ENOENT and EOK are Ok */

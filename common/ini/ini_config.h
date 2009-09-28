@@ -97,22 +97,41 @@ const char *validation_error_str(int parsing_error);
 
 /* Read configuration information from a file */
 int config_from_file(const char *application,               /* Name of the application - will be used as name of the collection */
-                     const char *config_file,               /* Name of the config file - if NULL the collection will be empty */
+                     const char *config_filename,           /* Name of the config file - if NULL the collection will be empty */
                      struct collection_item **ini_config,   /* If *ini_config is NULL a new ini object will be allocated, */
                                                             /* otherwise the one that is pointed to will be updated. */
                      int error_level,                       /* Error level - break for errors, warnings or best effort (don't break) */
                      struct collection_item **error_list);  /* List of errors for a file */
 
+/* Read configuration information from a file descriptor */
+int config_from_fd(const char *application,              /* Name of the application - will be used as name of the collection */
+                   int fd,                               /* Previously opened file descriptor for the config file */
+                   const char *config_source,            /* Name of the file being parsed, for use when printing the error list */
+                   struct collection_item **ini_config,  /* If *ini_config is NULL a new ini object will be allocated*/
+                   int error_level,                      /* Error level - break for errors, warnings or best effort (don't break) */
+                   struct collection_item **error_list); /* List of errors for a file */
+
 
 /* Read configuration information from a file with extra collection of line numbers */
 int config_from_file_with_lines(
                      const char *application,               /* Name of the application - will be used as name of the collection */
-                     const char *config_file,               /* Name of the config file - if NULL the collection will be empty */
+                     const char *config_filename,           /* Name of the config file - if NULL the collection will be empty */
                      struct collection_item **ini_config,   /* If *ini_config is NULL a new ini object will be allocated, */
                                                             /* otherwise the one that is pointed to will be updated. */
                      int error_level,                       /* Error level - break for errors, warnings or best effort (don't break) */
                      struct collection_item **error_list,   /* List of errors for a file */
                      struct collection_item **lines);       /* Collection of pairs where key is the key and value is line number */
+
+/* Read configuration information from a file descriptor with extra collection of line numbers */
+int config_from_fd_with_lines(
+                   const char *application,               /* Name of the application - will be used as name of the collection */
+                   int fd,                                /* Previously opened file descriptor for the config file */
+                   const char *config_source,             /* Name of the file being parsed, for use when printing the error list */
+                   struct collection_item **ini_config,   /* If *ini_config is NULL a new ini object will be allocated, */
+                                                          /* otherwise the one that is pointed to will be updated. */
+                   int error_level,                       /* Error level - break for errors, warnings or best effort (don't break) */
+                   struct collection_item **error_list,   /* List of errors for a file */
+                   struct collection_item **lines);       /* Collection of pairs where key is the key and value is line number */
 
 
 /* Read default config file and then overwrite it with a specific one from the directory */

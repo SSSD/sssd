@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 #define TRACE_HOME
 #include "ini_config.h"
 #include "collection.h"
@@ -112,6 +113,78 @@ int single_file(void)
     error = config_from_file_with_lines("test", "./ini.conf",
                                         &ini_config, INI_STOP_ON_NONE,
                                         &error_set, &lines);
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+        return error;
+    }
+
+    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(lines, COL_TRAVERSE_DEFAULT);
+
+    printf("\n\n----------------------\n");
+    /* Output parsing errors (if any) */
+    print_file_parsing_errors(stdout, error_set);
+    printf("----------------------\n\n\n");
+
+
+    free_ini_config(ini_config);
+    free_ini_config_errors(error_set);
+    free_ini_config_lines(lines);
+
+    return 0;
+}
+
+int single_fd(void)
+{
+    int error;
+    struct collection_item *ini_config = NULL;
+    struct collection_item *error_set = NULL;
+    struct collection_item *lines = NULL;
+
+    int fd = open("./ini.conf", O_RDONLY);
+    if (fd < 0) {
+        error = errno;
+        printf("Attempt to read configuration returned error: %d\n", error);
+        return error;
+    }
+
+    error = config_from_fd("test", fd, "./ini.conf", &ini_config,
+                           INI_STOP_ON_NONE, &error_set);
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+        return error;
+    }
+
+    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+    col_print_collection(ini_config);
+    col_print_collection(error_set);
+
+    printf("\n\n----------------------\n");
+    /* Output parsing errors (if any) */
+    print_file_parsing_errors(stdout, error_set);
+    printf("----------------------\n\n\n");
+
+
+    free_ini_config(ini_config);
+    free_ini_config_errors(error_set);
+    close(fd);
+
+    ini_config = NULL;
+    error_set = NULL;
+
+    printf("TEST WITH LINES\n");
+
+    fd = open("./ini.conf", O_RDONLY);
+    if (fd < 0) {
+        error = errno;
+        printf("Attempt to read configuration returned error: %d\n", error);
+        return error;
+    }
+    error = config_from_fd_with_lines("test", fd,
+                                      "./ini.conf",
+                                      &ini_config,
+                                      INI_STOP_ON_NONE,
+                                      &error_set, &lines);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n",error);
         return error;
@@ -828,6 +901,7 @@ int main(int argc, char *argv[])
 
     if ((error = basic_test()) ||
         (error = single_file()) ||
+        (error = single_fd()) ||
         (error = real_test(NULL)) ||
          /* This should result in merged configuration */
         (error = real_test("./ini.conf")) ||
