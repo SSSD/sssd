@@ -22,11 +22,15 @@
 
 #include "collection.h"
 
-/* Possible predefined elements of the event */
-#define E_TIMESTAMP "__stamp__"     /* string - the value is the format for strftime()
+/* Possible predefined elements of the event.
+ * First letter R means that it is a property
+ * resolvable at the logging time.
+ */
+
+#define E_TIMESTAMP "R_stamp__"     /* string - the value is the format for strftime()
                                      * default is standard format for current locale.  */
-#define E_UTCTIME   "__time__"      /* int - UTC time as unix time in seconds since 1970 */
-#define E_OFFSET    "__loco__"      /* int - local time displacement */
+#define E_UTCTIME   "R_time__"      /* int - UTC time as unix time in seconds since 1970 */
+#define E_OFFSET    "R_loco__"      /* int - local time displacement */
 #define E_PID       "__pid__"       /* int - Process ID of the current process */
 #define E_APPNAME   "__appnm__"     /* string - Name of the current application */
 #define E_HOSTNAME  "__host__"      /* string - Name of the current host */
@@ -44,11 +48,11 @@
  * The token %(server) will be replaced by value
  * in the attribute "server" in the event.
  */
-#define E_MESSAGE   "__message__"
+#define E_MESSAGE   "R_message__"
 
 
-/* Standard prefix for internal attributes */
-#define E_PREFIX        "__"
+/* Standard prefix for internal resolvable attributes */
+#define E_PREFIX        "R_"
 #define E_PREFIX_LEN    2
 
 /* Base argument in the template creation function is a bit mask.

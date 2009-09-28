@@ -24,6 +24,7 @@
 #include <stdarg.h>
 
 #include "collection.h"
+#include "elapi_basic.h"
 #include "elapi_async.h"
 #include "elapi_sink.h"
 
@@ -178,8 +179,8 @@ struct elapi_sink_ctx {
  * needed to resolve the event.
  */
 struct elapi_resolve_data {
-    /* Reference to the event */
-    struct collection_item *event;
+    /* Reference to the message item inside event */
+    struct collection_item *message;
     /* Reference back to dispatcher */
     struct elapi_dispatcher *handle;
     /* Time related data */
@@ -320,6 +321,12 @@ int elapi_tgt_mklist(struct elapi_dispatcher *handle);
 int elapi_resolve_event(struct collection_item **final_event,
                         struct collection_item *event,
                         struct elapi_dispatcher *handle);
+
+/* Function to place the event items into a formatted string */
+int elapi_sprintf(struct elapi_data_out *out_data,
+                  const char *format_str,
+                  struct collection_item *event);
+
 
 /* Send ELAPI config errors into a file */
 void elapi_dump_ini_err(struct collection_item *error_list);

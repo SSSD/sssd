@@ -76,7 +76,7 @@ int simple_event_test(void)
     printf("Simple test START:\n");
 
     error = elapi_set_default_template(
-        E_BASE_DEFV1 | E_BASE_HOSTEXT,
+        E_BASE_DEFV1 | E_BASE_HOSTEXT /* FIXME Ticket #207 */,
         "%n( bin )", bin, 8,
         " %sb( logical1 )", "false",
         "%sb( logical2   )", "YES",
@@ -385,6 +385,34 @@ int complex_event_test(void)
     }
 
     error = elapi_dsp_msg(E_TARGET_DEBUG, dispatcher, NULL, "a", "b", "c", "d", E_EOARG);
+    if (error) {
+        elapi_destroy_event_template(template);
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    error = elapi_dsp_msg(E_TARGET_DEBUG,
+                          dispatcher,
+                          template,
+                          E_MESSAGE,
+                          "date = %(R_stamp__), pid = %(__pid__), "
+                          "hostname = %(__host__), %(__halias__), "
+                          "ip = %(__ip__), [%(__iplist__);%(!__iplist__);%(__iplist__)]"  ,
+                          E_EOARG);
+    if (error) {
+        elapi_destroy_event_template(template);
+        printf("Failed to log event! %d\n", error);
+        return error;
+    }
+
+    error = elapi_dsp_msg(E_TARGET_DEBUG,
+                          dispatcher,
+                          template,
+                          E_MESSAGE,
+                          "date = %(R_stamp__), pid = %(__pid__), "
+                          "hostname = %(__host__), %(__halias__), "
+                          "ip = %(__ip__), [%(__iplist__);%(__iplist__);%(__iplist__)]"  ,
+                          E_EOARG);
     if (error) {
         elapi_destroy_event_template(template);
         printf("Failed to log event! %d\n", error);

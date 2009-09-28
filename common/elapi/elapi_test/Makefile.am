@@ -32,6 +32,7 @@ libelapi_test_la_SOURCES = \
     ../elapi_basic.h \
     ../elapi_resolve.c \
     ../elapi_async.c \
+    ../elapi_subst.c \
     ../elapi_event.h \
     ../elapi_priv.h \
     ../elapi_sink.h \

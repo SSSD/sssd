@@ -40,7 +40,7 @@ static unsigned file_csv_data_len(struct file_csv_cfg *cfg,
 {
     int serialized_len = 0;
 
-    TRACE_FLOW_STRING("col_get_data_len", "Entry point");
+    TRACE_FLOW_STRING("file_csv_data_len", "Entry point");
 
     switch (type) {
     case COL_TYPE_INTEGER:
@@ -75,7 +75,7 @@ static unsigned file_csv_data_len(struct file_csv_cfg *cfg,
 
     if (cfg->csvqualifier) serialized_len += 2;
 
-    TRACE_FLOW_STRING("col_get_data_len","Exit point");
+    TRACE_FLOW_STRING("file_csv_data_len", "Exit point");
     return (uint32_t)serialized_len;
 }
 
@@ -249,7 +249,7 @@ int file_serialize_csv(struct elapi_data_out *out_data,
      */
     out_data->buffer[out_data->length] = '\0';
 
-    TRACE_INFO_STRING("Data: ", out_data->buffer);
+    TRACE_INFO_STRING("Data: ", (char *)out_data->buffer);
 
     TRACE_FLOW_STRING("file_serialize_csv.", "Exit");
     return error;

@@ -23,17 +23,17 @@
 
 #include "elapi_priv.h"
 #include "elapi_event.h"
-/* #include "elapi_subst.h" */
+#include "elapi_basic.h"
 #include "trace.h"
 #include "config.h"
 
 /*****************************************/
 /* Individual callbacks are defined here */
 /*****************************************/
-/* Timestamp resoltion callback */
-int elapi_timestamp_cb(struct elapi_resolve_data *resolver,
-                       struct collection_item *item,
-                       int *skip)
+/* Timestamp resolution callback */
+static int elapi_timestamp_cb(struct elapi_resolve_data *resolver,
+                              struct collection_item *item,
+                              int *skip)
 {
     int error = EOK;
     char timestamp[TIME_ARRAY_SIZE + 1];
@@ -58,9 +58,9 @@ int elapi_timestamp_cb(struct elapi_resolve_data *resolver,
 }
 
 /* UTC time resolution callback */
-int elapi_utctime_cb(struct elapi_resolve_data *resolver,
-                       struct collection_item *item,
-                       int *skip)
+static int elapi_utctime_cb(struct elapi_resolve_data *resolver,
+                            struct collection_item *item,
+                            int *skip)
 {
     int error = EOK;
 
@@ -76,9 +76,9 @@ int elapi_utctime_cb(struct elapi_resolve_data *resolver,
 }
 
 /* Offset resolution callback */
-int elapi_offset_cb(struct elapi_resolve_data *resolver,
-                       struct collection_item *item,
-                       int *skip)
+static int elapi_offset_cb(struct elapi_resolve_data *resolver,
+                           struct collection_item *item,
+                           int *skip)
 {
     int error = EOK;
 
@@ -93,43 +93,21 @@ int elapi_offset_cb(struct elapi_resolve_data *resolver,
     return error;
 }
 
-
 /* Message resolution callback */
-int elapi_message_cb(struct elapi_resolve_data *resolver,
-                       struct collection_item *item,
-                       int *skip)
+static int elapi_message_cb(struct elapi_resolve_data *resolver,
+                            struct collection_item *item,
+                            int *skip)
 {
-    int error = EOK;
-    /* int length; */
-    /* char *result; */
 
     TRACE_FLOW_STRING("elapi_message_cb", "Entry");
 
-    /* FIXME: Resolve message here */
-    /* Function is not yet implemented ...
-    error = elapi_sprintf(&result,
-                          &length,
-                          (const char *)col_get_item_data(item),
-                          resolver->event);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to build message", error);
-        return error;
-    }
+    /* Save pointer to message item */
+    resolver->message = item;
 
-    error = col_modify_str_item(item,
-                                NULL,
-                                result;
-                                length + 1);
-    free(result);
-    if (error) {
-        TRACE_ERROR_NUMBER("Failed to modify message item", error);
-        return error;
-    }
-    */
-
-    TRACE_FLOW_NUMBER("elapi_message_cb. Exit. Returning", error);
-    return error;
+    TRACE_FLOW_NUMBER("elapi_message_cb.", "Exit");
+    return EOK;
 }
+
 
 
 /*****************************************/
@@ -171,6 +149,8 @@ static int elapi_resolve_item(struct collection_item *item,
         TRACE_FLOW_STRING("elapi_resolve_item. Skipping resoltion.", "Exit");
         return EOK;
     }
+
+    TRACE_FLOW_STRING("Item to resolve: ", col_get_item_property(item, NULL));
 
     /* This is an internal field that might need resolution */
     resolver = (struct elapi_resolve_data *)ext_data;
@@ -224,6 +204,53 @@ static int elapi_resolve_item(struct collection_item *item,
     return error;
 }
 
+/* Message resolution function */
+int elapi_resolve_message(struct collection_item *item,
+                          struct collection_item *event)
+{
+    int error = EOK;
+    struct elapi_data_out *serialized;
+
+    TRACE_FLOW_STRING("elapi_resolve_message", "Entry");
+
+    /* I prefer to allocate it rather than do it on stack.
+     * The main reason is that I would have to memset
+     * the struct to init it.
+     * So why not just use the interface we already have.
+     */
+    error = elapi_alloc_serialized_data(&serialized);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to allocate serialized data", error);
+        return error;
+    }
+
+    /* Call string substitution */
+    error = elapi_sprintf(serialized,
+                          (const char *)col_get_item_data(item),
+                          event);
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to build message", error);
+        elapi_free_serialized_data(serialized);
+        return error;
+    }
+
+    /* Put the resolved value into the item */
+    error = col_modify_str_item(item,
+                                NULL,
+                                (char *)serialized->buffer,
+                                serialized->length + 1);
+
+    /* Clean data regardless of the result */
+    elapi_free_serialized_data(serialized);
+
+    if (error) {
+        TRACE_ERROR_NUMBER("Failed to modify message item", error);
+        return error;
+    }
+
+    TRACE_FLOW_NUMBER("elapi_resolve_message. Exit. Returning", error);
+    return error;
+}
 
 /* Resolve event */
 int elapi_resolve_event(struct collection_item **final_event,
@@ -238,8 +265,8 @@ int elapi_resolve_event(struct collection_item **final_event,
 
     TRACE_FLOW_STRING("elapi_create_event_ctx", "Entry");
 
-    /* Prepeare the resolver */
-    resolver.event = event;
+    /* Prepare the resolver */
+    resolver.message = NULL;
     resolver.handle = handle;
     /* Get seconds */
     resolver.tm = time(NULL);
@@ -267,6 +294,22 @@ int elapi_resolve_event(struct collection_item **final_event,
         return error;
     }
 
+    if (resolver.message) {
+        /* Now resolve message. We need to do it last since
+         * we do not know the order of the properties
+         * and message can be referencing properties
+         * that are later than message in the list
+         * and have not been resolved yet.
+         */
+        error = elapi_resolve_message(resolver.message,
+                                      new_event);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to resolve the event", error);
+            col_destroy_collection(new_event);
+            return error;
+        }
+    }
+
     *final_event = new_event;
 
     TRACE_FLOW_STRING("elapi_create_event_ctx", "Exit");
@@ -279,7 +322,7 @@ int elapi_init_resolve_list(struct collection_iterator **list)
     int error = EOK;
     struct elapi_resolve_list *current;
     struct collection_item *col = NULL;
-    struct collection_iterator *iterator;
+    struct collection_iterator *iterator = NULL;
     struct elapi_rslv_item_data *bin_data;
 
     TRACE_FLOW_STRING("elapi_init_resolve_list", "Entry");
