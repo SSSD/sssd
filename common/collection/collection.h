@@ -498,8 +498,12 @@ uint64_t col_get_item_hash(struct collection_item *ci);
  * algorithm. Populates "length" with length
  * of the string not counting 0.
  * Length argument can be NULL.
+ * If sub_len is greater than zero
+ * this value is used to count how many characters
+ * from string should be included into hash
+ * calculation.
  */
-uint64_t col_make_hash(const char *string, int *length);
+uint64_t col_make_hash(const char *string, int sub_len, int *length);
 
 /* Compare two items.
  * The second item is evaluated against the first.
@@ -745,7 +749,8 @@ int col_get_item_depth(struct collection_iterator *iterator, int *depth);
 /* Pins down the iterator to loop around current point */
 void col_pin_iterator(struct collection_iterator *iterator);
 
-/* FIXME - Do we need to be able to rewind iterator? */
+/* Rewinds iterator to the beginning */
+void col_rewind_iterator(struct collection_iterator *iterator);
 
 /* Set collection class */
 int col_set_collection_class(struct collection_item *item, /* Collection */

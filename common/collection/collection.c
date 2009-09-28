@@ -241,7 +241,7 @@ int col_allocate_item(struct collection_item **ci, const char *property,
         return ENOMEM;
     }
 
-    item->phash = col_make_hash(property, &(item->property_len));
+    item->phash = col_make_hash(property, 0, &(item->property_len));
     TRACE_INFO_NUMBER("Item hash", item->phash);
     TRACE_INFO_NUMBER("Item property length", item->property_len);
     TRACE_INFO_NUMBER("Item property strlen", strlen(item->property));
@@ -2866,7 +2866,7 @@ int col_modify_item(struct collection_item *item,
         }
 
         /* Update property length and hash if we rename the property */
-        item->phash = col_make_hash(property, &(item->property_len));
+        item->phash = col_make_hash(property, 0, &(item->property_len));
         TRACE_INFO_NUMBER("Item hash", item->phash);
         TRACE_INFO_NUMBER("Item property length", item->property_len);
         TRACE_INFO_NUMBER("Item property strlen", strlen(item->property));
@@ -3016,7 +3016,7 @@ uint64_t col_get_item_hash(struct collection_item *ci)
  * of the string not counting 0.
  * Length argument can be NULL.
  */
-uint64_t col_make_hash(const char *string, int *length)
+uint64_t col_make_hash(const char *string, int sub_len, int *length)
 {
     uint64_t hash = 0;
     int str_len = 0;
@@ -3026,6 +3026,10 @@ uint64_t col_make_hash(const char *string, int *length)
     if (string) {
         hash = FNV1a_base;
         while (string[str_len] != 0) {
+
+            /* Check if we need to stop */
+            if ((sub_len > 0) && (str_len == sub_len)) break;
+
             hash = hash ^ toupper(string[str_len]);
             hash *= FNV1a_prime;
             str_len++;

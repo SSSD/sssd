@@ -594,6 +594,8 @@ int iterator_test(void)
     int idepth = 0;
     int len = 0;
     int i;
+    uint64_t hash1, hash2;
+    int rwnd = 0;
 
     printf("\n\n==== ITERATOR TEST ====\n\n");
 
@@ -785,9 +787,33 @@ int iterator_test(void)
             printf("Item length: %d\n", len);
 
             len = 0;
+            hash1 = col_make_hash("new_name", 0, &len);
             printf("String name: %s\n", "new_name");
-            printf("String hash: %lu\n", (unsigned long int)col_make_hash("new_name", &len));
+            printf("String hash: %lu\n", (unsigned long int)hash1);
             printf("String length: %d\n", len);
+
+            len = 0;
+            hash2 = col_make_hash("new_name_suffix", 8, &len);
+            printf("String name: %.*s\n", len, "new_name_suffix");
+            printf("String hash: %lu\n", (unsigned long int)hash2);
+            printf("String length: %d\n", len);
+            if (hash1 != hash2) {
+                printf("Hash calculation failed\n");
+                col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
+                return EINVAL;
+            }
+
+            hash2 = col_make_hash("new_name", 8, &len);
+            printf("String name: %.*s\n", len, "new_name");
+            printf("String hash: %lu\n", (unsigned long int)hash2);
+            printf("String length: %d\n", len);
+            if (hash1 != hash2) {
+                printf("Hash calculation failed\n");
+                col_unbind_iterator(iterator);
+                col_destroy_collection(peer);
+                return EINVAL;
+            }
 
         }
     }
@@ -823,6 +849,13 @@ int iterator_test(void)
         col_get_item_depth(iterator, &depth);
         printf("%*s", depth * 4, "");
         col_debug_item(item);
+
+        if ((strcmp(col_get_item_property(item, NULL), "queue") == 0) &&
+            (rwnd == 0)) {
+            printf("Rewinding iterator...\n");
+            col_rewind_iterator(iterator);
+            rwnd++;
+        }
 
     }
     while(1);

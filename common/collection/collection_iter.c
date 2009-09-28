@@ -382,8 +382,13 @@ void col_pin_iterator(struct collection_iterator *iterator)
 {
     TRACE_FLOW_STRING("col_iterator_add_pin", "Entry");
 
-    while ((iterator->stack[iterator->stack_depth - 1] == NULL) &&
-            (iterator->stack_depth)) {
+    if ((!iterator) || (!iterator->stack)) {
+        TRACE_FLOW_STRING("Invalid itertor", "Ingoring");
+        return;
+    }
+
+    while ((iterator->stack_depth) &&
+           (iterator->stack[iterator->stack_depth - 1] == NULL)) {
         iterator->stack_depth--;
     }
 
@@ -398,4 +403,25 @@ void col_pin_iterator(struct collection_iterator *iterator)
     iterator->can_break = 0;
 
     TRACE_FLOW_STRING("col_iterator_add_pin", "Exit");
+}
+
+
+/* Rewinds iterator to the beginning */
+void col_rewind_iterator(struct collection_iterator *iterator)
+{
+    TRACE_FLOW_STRING("col_rewind_iterator", "Entry");
+
+    if ((!iterator) || (!iterator->stack)) {
+        TRACE_FLOW_STRING("Invalid itertor", "Ingoring");
+        return;
+    }
+
+    iterator->pin = iterator->top;
+    iterator->stack[0] = iterator->top;
+    iterator->stack_depth = 1;
+    iterator->item_level = 0;
+    iterator->pin_level = 0;
+    iterator->can_break = 0;
+
+    TRACE_FLOW_STRING("col_rewind_iterator", "Exit");
 }
