@@ -20,6 +20,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
 import shutil
 import traceback
@@ -90,6 +91,9 @@ class SSSDConfigFile(object):
     def _backup_file(self):
         " Copy the file we operate on to a backup location "
         shutil.copy(self.file_name, self.file_name+".bak")
+
+        # make sure we don't leak data, force permissions on the backup
+        os.chmod(self.file_name+".bak", 0600)
 
     def _migrate_if_exists(self, to_section, to_option, from_section, from_option):
         """
@@ -281,8 +285,12 @@ class SSSDConfigFile(object):
         # Migrate domains
         self._migrate_domains()
 
-        # all done, write the file
+        # all done, open the file for writing
         of = open(out_file_name, "wb")
+
+        # make sure it has the right permissions too
+        os.chmod(out_file_name, 0600)
+
         self._new_config.write(of)
 
 def parse_options():
@@ -336,6 +344,9 @@ def main():
     if config.get_version() != 1:
         print >>sys.stderr, "Can only upgrade from v1 to v2, file %s looks like version %d" % (options.filename, config.get_version())
         return 1
+
+    # make sure we keep strict settings when creating new files
+    os.umask(0077)
 
     try:
         config.upgrade_v2(options.outfile, options.backup)
