@@ -30,7 +30,7 @@
 #define APPNAME             "elapi_ut"
 #define ELAPI_CONFIG_FILE   "elapi_ut.conf"
 
-typedef (*test_fn)(void);
+typedef int (*test_fn)(void);
 
 int elapi_init_test(void)
 {
@@ -443,7 +443,14 @@ int main(int argc, char *argv[])
     int i = 0;
 
     printf("Start\n");
-    while (t = tests[i++]) {
+    /* I added second pair of parentheses in the while below
+     * becuase of the following warning I got:
+     * warning: suggest parentheses around assignment used as truth value
+     *
+     * There was a suggestion in general to add less parentheses...
+     * well it seems that compiler wants this one.
+     */
+    while ((t = tests[i++])) {
         error = t();
         if (error) {
             printf("Failed!\n");
