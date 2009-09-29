@@ -7,7 +7,7 @@ function config()
 }
 
 SAVED_PWD=$PWD
-version=$(grep "^AC_INIT" configure.ac | grep -E -o \[[0-9.]+\] | tr -d [])
+version=`head -n1 VERSION`
 tag=$(echo ${version} | tr "." "_")
 
 trap "cd $SAVED_PWD; rm -rf sssd-${version} sssd-${version}.tar" EXIT
