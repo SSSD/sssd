@@ -2645,26 +2645,28 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     gctx = nctx->gctx;
 
-retry:
-    if (gctx->cur >= gctx->num) goto none;
+    do {
+        if (gctx->cur >= gctx->num) goto none;
 
-    gdom = &gctx->doms[gctx->cur];
-
-    n = gdom->res->count - gdom->cur;
-    if (n == 0 && (gctx->cur+1 < gctx->num)) {
-        gctx->cur++;
         gdom = &gctx->doms[gctx->cur];
+
         n = gdom->res->count - gdom->cur;
-    }
+        if (n == 0 && (gctx->cur+1 < gctx->num)) {
+            gctx->cur++;
+            gdom = &gctx->doms[gctx->cur];
+            n = gdom->res->count - gdom->cur;
+        }
 
-    if (!n) goto none;
+        if (!n) goto none;
 
-    msgs = &(gdom->res->msgs[gdom->cur]);
+        msgs = &(gdom->res->msgs[gdom->cur]);
 
-    ret = fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, num, &n);
-    if (ret == ENOENT) goto retry;
+        ret = fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, num, &n);
 
-    gdom->cur += n;
+        gdom->cur += n;
+
+    } while(ret == ENOENT);
+
     return ret;
 
 none:
