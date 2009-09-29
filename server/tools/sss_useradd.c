@@ -30,6 +30,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+#include "tools/sss_sync_ops.h"
 #include "util/sssd-i18n.h"
 
 /* Default settings for user attributes */
@@ -107,42 +108,6 @@ done:
     return ret;
 }
 
-static void add_user_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct tools_ctx *tctx = tevent_req_callback_data(req,
-                                                struct tools_ctx);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* useradd */
-    ret = useradd(tctx, tctx->ev,
-                  tctx->sysdb, tctx->handle, tctx->octx);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, tools_transaction_done, tctx);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(tctx->handle);
-    tctx->transaction_done = true;
-    tctx->error = ret;
-}
-
 int main(int argc, const char **argv)
 {
     uid_t pc_uid = 0;
@@ -164,7 +129,6 @@ int main(int argc, const char **argv)
         POPT_TABLEEND
     };
     poptContext pc = NULL;
-    struct tevent_req *req;
     struct tools_ctx *tctx = NULL;
     char *groups = NULL;
     int ret;
@@ -272,30 +236,33 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        goto done;
+    }
+
     /* useradd */
-    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Transaction error. Could not modify user.\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    tevent_req_set_callback(req, add_user_transaction, tctx);
+    ret = useradd(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
-    while (!tctx->transaction_done) {
-        tevent_loop_once(tctx->ev);
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        goto done;
     }
 
+    end_transaction(tctx);
+
+done:
     if (tctx->error) {
-        ret = tctx->error;
-        switch (ret) {
+        switch (tctx->error) {
             case EEXIST:
                 ERROR("A user with the same name or UID already exists\n");
                 break;
 
             default:
                 DEBUG(1, ("sysdb operation failed (%d)[%s]\n",
-                          ret, strerror(ret)));
+                          tctx->error, strerror(tctx->error)));
                 ERROR("Transaction error. Could not add user.\n");
                 break;
         }

@@ -23,7 +23,6 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
-
 #include "tools/sss_sync_ops.h"
 
 /* Default settings for user attributes */
@@ -1466,5 +1465,84 @@ static void groupmod_done(struct tevent_req *req)
 
     res->done = true;
     res->error = ret;
+}
+
+/*
+ * Synchronous transaction functions
+ */
+static void start_transaction_done(struct tevent_req *req);
+
+void start_transaction(struct tools_ctx *tctx)
+{
+    struct tevent_req *req;
+
+    /* make sure handle is NULL, as it is the spy to check if the transaction
+     * has been started */
+    tctx->handle = NULL;
+    tctx->error = 0;
+
+    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
+    if (!req) {
+        DEBUG(1, ("Could not start transaction\n"));
+        tctx->error = ENOMEM;
+        return;
+    }
+    tevent_req_set_callback(req, start_transaction_done, tctx);
+
+    /* loop to obtain a transaction */
+    while (!tctx->handle && !tctx->error) {
+        tevent_loop_once(tctx->ev);
+    }
+}
+
+static void start_transaction_done(struct tevent_req *req)
+{
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                struct tools_ctx);
+    int ret;
+
+    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
+    if (ret) {
+        tctx->error = ret;
+    }
+    if (!tctx->handle) {
+        tctx->error = EIO;
+    }
+    talloc_zfree(req);
+}
+
+static void end_transaction_done(struct tevent_req *req);
+
+void end_transaction(struct tools_ctx *tctx)
+{
+    struct tevent_req *req;
+
+    tctx->error = 0;
+
+    req = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
+    if (!req) {
+        /* free transaction and signal error */
+        tctx->error = ENOMEM;
+        return;
+    }
+    tevent_req_set_callback(req, end_transaction_done, tctx);
+
+    /* loop to obtain a transaction */
+    while (!tctx->transaction_done && !tctx->error) {
+        tevent_loop_once(tctx->ev);
+    }
+}
+
+static void end_transaction_done(struct tevent_req *req)
+{
+    struct tools_ctx *tctx = tevent_req_callback_data(req,
+                                                      struct tools_ctx);
+    int ret;
+
+    ret = sysdb_transaction_commit_recv(req);
+
+    tctx->transaction_done = true;
+    tctx->error = ret;
+    talloc_zfree(req);
 }
 

@@ -28,18 +28,12 @@
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
+#include "tools/sss_sync_ops.h"
 
-static int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
+static int setup_db(struct tools_ctx *ctx)
 {
     char *confdb_path;
-    struct tools_ctx *ctx;
     int ret;
-
-    ctx = talloc_zero(mem_ctx, struct tools_ctx);
-    if (ctx == NULL) {
-        DEBUG(1, ("Could not allocate memory for tools context\n"));
-        return ENOMEM;
-    }
 
     /* Create the event context */
     ctx->ev = tevent_context_init(ctx);
@@ -79,7 +73,6 @@ static int setup_db(TALLOC_CTX *mem_ctx, struct tools_ctx **tools_ctx)
     }
 
     talloc_free(confdb_path);
-    *tools_ctx = ctx;
     return EOK;
 }
 
@@ -238,18 +231,15 @@ int init_sss_tools(struct tools_ctx **_tctx)
 {
     int ret;
     struct tools_ctx *tctx;
-    struct ops_ctx *octx;
 
-    octx = talloc_zero(NULL, struct ops_ctx);
-    if (octx == NULL) {
-        DEBUG(1, ("Could not allocate memory for data context\n"));
-        ERROR("Out of memory\n");
-        ret = ENOMEM;
-        goto fini;
+    tctx = talloc_zero(NULL, struct tools_ctx);
+    if (tctx == NULL) {
+        DEBUG(1, ("Could not allocate memory for tools context\n"));
+        return ENOMEM;
     }
 
     /* Connect to the database */
-    ret = setup_db(octx, &tctx);
+    ret = setup_db(tctx);
     if (ret != EOK) {
         DEBUG(1, ("Could not set up database\n"));
         goto fini;
@@ -261,24 +251,20 @@ int init_sss_tools(struct tools_ctx **_tctx)
         goto fini;
     }
 
-    octx->domain = tctx->local;
-    tctx->octx = octx;
+    tctx->octx = talloc_zero(tctx, struct ops_ctx);
+    if (!tctx->octx) {
+        DEBUG(1, ("Could not allocate memory for data context\n"));
+        ERROR("Out of memory\n");
+        ret = ENOMEM;
+        goto fini;
+    }
+    tctx->octx->domain = tctx->local;
 
     *_tctx = tctx;
     ret = EOK;
+
 fini:
+    if (ret != EOK) talloc_free(tctx);
     return ret;
-}
-
-/*
- * Common transaction finish
- */
-void tools_transaction_done(struct tevent_req *req)
-{
-    struct tools_ctx *tctx = tevent_req_callback_data(req,
-                                                      struct tools_ctx);
-
-    tctx->error = sysdb_transaction_commit_recv(req);
-    tctx->transaction_done = true;
 }
 

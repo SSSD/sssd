@@ -21,6 +21,7 @@
 #ifndef __SSS_OPS_H__
 #define __SSS_OPS_H__
 
+#include "tools/tools_util.h"
 #include <stdbool.h>
 
 #define DO_LOCK     1
@@ -81,6 +82,9 @@ int groupmod(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct sysdb_handle *handle,
             struct ops_ctx *data);
+
+void start_transaction(struct tools_ctx *tctx);
+void end_transaction(struct tools_ctx *tctx);
 
 #endif /* __SSS_OPS_H__ */
 

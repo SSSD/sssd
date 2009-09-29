@@ -30,42 +30,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
-
-static void mod_group_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct tools_ctx *tctx = tevent_req_callback_data(req,
-                                                struct tools_ctx);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* groupmod */
-    ret = groupmod(tctx, tctx->ev,
-                  tctx->sysdb, tctx->handle, tctx->octx);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, tools_transaction_done, tctx);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(tctx->handle);
-    tctx->transaction_done = true;
-    tctx->error = ret;
-}
+#include "tools/sss_sync_ops.h"
 
 int main(int argc, const char **argv)
 {
@@ -88,7 +53,6 @@ int main(int argc, const char **argv)
     char *addgroups = NULL, *rmgroups = NULL;
     int ret;
     const char *pc_groupname = NULL;
-    struct tevent_req *req;
 
     debug_prg_name = argv[0];
 
@@ -194,19 +158,24 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction (%d)[%s]\n", ret, strerror(ret)));
-        ERROR("Transaction error. Could not modify group.\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-    tevent_req_set_callback(req, mod_group_transaction, tctx);
-
-    while (!tctx->transaction_done) {
-        tevent_loop_once(tctx->ev);
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        goto done;
     }
 
+    /* groupmod */
+    ret = groupmod(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
+
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        goto done;
+    }
+
+    end_transaction(tctx);
+
+done:
     if (tctx->error) {
         ret = tctx->error;
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));

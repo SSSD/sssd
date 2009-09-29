@@ -26,7 +26,6 @@
 #include <popt.h>
 
 #include "util/sssd-i18n.h"
-#include "tools/sss_sync_ops.h"
 
 #define CHECK_ROOT(val, prg_name) do { \
     val = getuid(); \
@@ -49,7 +48,7 @@ struct tools_ctx {
     struct ops_ctx *octx;
 
     struct sysdb_handle *handle;
-    int transaction_done;
+    bool transaction_done;
     int error;
 };
 
@@ -72,7 +71,5 @@ int parse_groups(TALLOC_CTX *mem_ctx,
 
 int parse_group_name_domain(struct tools_ctx *tctx,
                             char **groups);
-
-void tools_transaction_done(struct tevent_req *req);
 
 #endif  /* __TOOLS_UTIL_H__ */
