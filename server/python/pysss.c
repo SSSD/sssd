@@ -114,37 +114,38 @@ static void PyErr_SetSssError(int ret)
 /*
  * Common init of all methods
  */
-struct ops_ctx *init_ctx(PySssLocalObject *self)
+struct tools_ctx *init_ctx(TALLOC_CTX *mem_ctx,
+                           PySssLocalObject *self)
 {
-    struct ops_ctx *ops = NULL;
+    struct ops_ctx *octx = NULL;
+    struct tools_ctx *tctx = NULL;
 
-    ops = talloc_zero(self->mem_ctx, struct ops_ctx);
-    if (ops == NULL) {
-        PyErr_NoMemory();
+    tctx = talloc_zero(self->mem_ctx, struct tools_ctx);
+    if (tctx == NULL) {
         return NULL;
     }
 
-    ops->domain = self->local;
-    return ops;
-}
+    tctx->ev = self->ev;
+    tctx->confdb = self->confdb;
+    tctx->sysdb = self->sysdb;
+    tctx->local = self->local;
+    /* tctx->nctx is NULL here, which is OK since we don't parse domains
+     * in the python bindings (yet?) */
 
-/*
- * Common transaction finish
- */
-static void req_done(struct tevent_req *req)
-{
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                   struct py_sss_transaction);
+    octx = talloc_zero(tctx, struct ops_ctx);
+    if (octx == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    octx->domain = self->local;
 
-    trs->error = sysdb_transaction_commit_recv(req);
-    trs->transaction_done = true;
+    tctx->octx = octx;
+    return tctx;
 }
 
 /*
  * Add a user
  */
-static void py_sss_useradd_transaction(struct tevent_req *req);
-
 PyDoc_STRVAR(py_sss_useradd__doc__,
     "Add a user named ``username``.\n\n"
     ":param username: name of the user\n\n"
@@ -162,9 +163,7 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
                                 PyObject *args,
                                 PyObject *kwds)
 {
-    struct ops_ctx *ops = NULL;
-    struct py_sss_transaction *trs = NULL;
-    struct tevent_req *req;
+    struct tools_ctx *tctx = NULL;
     unsigned long uid = 0;
     unsigned long gid = 0;
     const char *gecos = NULL;
@@ -190,101 +189,69 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
         goto fail;
     }
 
-    ops = init_ctx(self);
-    if (!ops) {
+    tctx = init_ctx(self->mem_ctx, self);
+    if (!tctx) {
+        PyErr_NoMemory();
         return NULL;
     }
 
     if (py_groups != Py_None) {
-        ops->addgroups = PyList_AsStringList(self->mem_ctx, py_groups, "groups");
-        if (!ops->addgroups) {
+        tctx->octx->addgroups = PyList_AsStringList(tctx, py_groups, "groups");
+        if (!tctx->octx->addgroups) {
+            PyErr_NoMemory();
             return NULL;
         }
     }
 
-    ops->name = username;
-    ops->uid = uid;
+    tctx->octx->name = username;
+    tctx->octx->uid = uid;
 
     /* fill in defaults */
-    ret = useradd_defaults(self->mem_ctx,
+    ret = useradd_defaults(tctx,
                            self->confdb,
-                           ops, gecos,
+                           tctx->octx, gecos,
                            home, shell);
     if (ret != EOK) {
         PyErr_SetSssError(ret);
         goto fail;
     }
 
-    /* add the user within a sysdb transaction */
-    trs = talloc_zero(self->mem_ctx, struct py_sss_transaction);
-    if (!trs) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-    trs->self = self;
-    trs->ops = ops;
-
-    req = sysdb_transaction_send(self->mem_ctx, self->ev, self->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction"));
-        PyErr_NoMemory();
+    /* Add the user within a transaction */
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        PyErr_SetSssError(tctx->error);
         goto fail;
     }
-    tevent_req_set_callback(req, py_sss_useradd_transaction, trs);
 
-    TRANSACTION_WAIT(trs, ret);
+    /* useradd */
+    ret = useradd(tctx, self->ev,
+                  self->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    end_transaction(tctx);
+    if (tctx->error) {
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    talloc_zfree(tctx);
     return NULL;
-}
-
-static void py_sss_useradd_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                    struct py_sss_transaction);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, trs, &trs->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* useradd */
-    ret = useradd(trs->self->mem_ctx, trs->self->ev,
-                  trs->self->sysdb, trs->handle, trs->ops);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(trs->self->mem_ctx, trs->self->ev, trs->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, req_done, trs);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(trs->handle);
-    trs->transaction_done = true;
-    trs->error = ret;
 }
 
 /*
  * Delete a user
  */
-static void py_sss_userdel_transaction(struct tevent_req *);
-
 PyDoc_STRVAR(py_sss_userdel__doc__,
     "Remove the user named ``username``.\n\n"
     ":param username: Name of user being removed\n");
@@ -293,9 +260,7 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
                                 PyObject *args,
                                 PyObject *kwds)
 {
-    struct ops_ctx *ops = NULL;
-    struct tevent_req *req;
-    struct py_sss_transaction *trs = NULL;
+    struct tools_ctx *tctx = NULL;
     char *username = NULL;
     int ret;
 
@@ -303,83 +268,49 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
         goto fail;
     }
 
-    ops = init_ctx(self);
-    if (!ops) {
-        return NULL;
-    }
-
-    ops->name = username;
-
-    /* delete the user within a sysdb transaction */
-    trs = talloc_zero(self->mem_ctx, struct py_sss_transaction);
-    if (!trs) {
+    tctx = init_ctx(self->mem_ctx, self);
+    if (!tctx) {
         PyErr_NoMemory();
         return NULL;
     }
-    trs->self = self;
-    trs->ops = ops;
 
-    req = sysdb_transaction_send(self->mem_ctx, self->ev, self->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction"));
-        PyErr_NoMemory();
+    tctx->octx->name = username;
+
+    /* Delete the user within a transaction */
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        PyErr_SetSssError(tctx->error);
         goto fail;
     }
-    tevent_req_set_callback(req, py_sss_userdel_transaction, trs);
 
-    TRANSACTION_WAIT(trs, ret);
+    ret = userdel(tctx, self->ev,
+                  self->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    end_transaction(tctx);
+    if (tctx->error) {
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    talloc_zfree(tctx);
     return NULL;
-}
-
-static void py_sss_userdel_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                    struct py_sss_transaction);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, trs, &trs->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* userdel */
-    ret = userdel(trs->self->mem_ctx, trs->self->ev,
-                  trs->self->sysdb, trs->handle, trs->ops);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(trs->self->mem_ctx, trs->self->ev, trs->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, req_done, trs);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(trs->handle);
-    trs->transaction_done = true;
-    trs->error = ret;
 }
 
 /*
  * Modify a user
  */
-static void py_sss_usermod_transaction(struct tevent_req *);
-
 PyDoc_STRVAR(py_sss_usermod__doc__,
     "Modify a user.\n\n"
     ":param username: Name of user being modified\n\n"
@@ -398,9 +329,7 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
                                 PyObject *args,
                                 PyObject *kwds)
 {
-    struct ops_ctx *ops = NULL;
-    struct tevent_req *req;
-    struct py_sss_transaction *trs = NULL;
+    struct tools_ctx *tctx = NULL;
     int ret;
     PyObject *py_addgroups = Py_None;
     PyObject *py_rmgroups = Py_None;
@@ -432,8 +361,9 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
         goto fail;
     }
 
-    ops = init_ctx(self);
-    if (!ops) {
+    tctx = init_ctx(self->mem_ctx, self);
+    if (!tctx) {
+        PyErr_NoMemory();
         return NULL;
     }
 
@@ -444,100 +374,67 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
     }
 
     if (py_addgroups != Py_None) {
-        ops->addgroups = PyList_AsStringList(self->mem_ctx,
-                                             py_addgroups,
-                                             "addgroups");
-        if (!ops->addgroups) {
+        tctx->octx->addgroups = PyList_AsStringList(tctx,
+                                                    py_addgroups,
+                                                    "addgroups");
+        if (!tctx->octx->addgroups) {
             return NULL;
         }
     }
 
     if (py_rmgroups != Py_None) {
-        ops->rmgroups = PyList_AsStringList(self->mem_ctx,
-                                            py_rmgroups,
-                                            "rmgroups");
-        if (!ops->rmgroups) {
+        tctx->octx->rmgroups = PyList_AsStringList(tctx,
+                                                   py_rmgroups,
+                                                   "rmgroups");
+        if (!tctx->octx->rmgroups) {
             return NULL;
         }
     }
 
-    ops->name  = username;
-    ops->uid   = uid;
-    ops->gid   = gid;
-    ops->gecos = gecos;
-    ops->home  = home;
-    ops->shell = shell;
-    ops->lock  = lock;
+    tctx->octx->name  = username;
+    tctx->octx->uid   = uid;
+    tctx->octx->gid   = gid;
+    tctx->octx->gecos = gecos;
+    tctx->octx->home  = home;
+    tctx->octx->shell = shell;
+    tctx->octx->lock  = lock;
 
-    /* modify the user within a sysdb transaction */
-    trs = talloc_zero(self->mem_ctx, struct py_sss_transaction);
-    if (!trs) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-    trs->self = self;
-    trs->ops = ops;
-
-    req = sysdb_transaction_send(self->mem_ctx, self->ev, self->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction"));
-        PyErr_NoMemory();
+    /* Modify the user within a transaction */
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        PyErr_SetSssError(tctx->error);
         goto fail;
     }
-    tevent_req_set_callback(req, py_sss_usermod_transaction, trs);
 
-    TRANSACTION_WAIT(trs, ret);
+    /* usermod */
+    ret = usermod(tctx, self->ev,
+                  self->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    end_transaction(tctx);
+    if (tctx->error) {
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    talloc_zfree(tctx);
     return NULL;
-}
-
-static void py_sss_usermod_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                    struct py_sss_transaction);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, trs, &trs->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-    /* usermod */
-    ret = usermod(trs->self->mem_ctx, trs->self->ev,
-                  trs->self->sysdb, trs->handle, trs->ops);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(trs->self->mem_ctx, trs->self->ev, trs->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, req_done, trs);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(trs->handle);
-    trs->transaction_done = true;
-    trs->error = ret;
 }
 
 /*
  * Add a group
  */
-static void py_sss_groupadd_transaction(struct tevent_req *);
-
 PyDoc_STRVAR(py_sss_groupadd__doc__,
     "Add a group.\n\n"
     ":param groupname: Name of group being added\n\n"
@@ -549,9 +446,7 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
                                  PyObject *args,
                                  PyObject *kwds)
 {
-    struct ops_ctx *ops = NULL;
-    struct tevent_req *req;
-    struct py_sss_transaction *trs = NULL;
+    struct tools_ctx *tctx = NULL;
     char *groupname;
     unsigned long gid = 0;
     int ret;
@@ -565,84 +460,51 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
         goto fail;
     }
 
-    ops = init_ctx(self);
-    if (!ops) {
-        return NULL;
-    }
-
-    ops->name  = groupname;
-    ops->gid = gid;
-
-    /* add the group within a sysdb transaction */
-    trs = talloc_zero(self->mem_ctx, struct py_sss_transaction);
-    if (!trs) {
+    tctx = init_ctx(self->mem_ctx, self);
+    if (!tctx) {
         PyErr_NoMemory();
         return NULL;
     }
-    trs->self = self;
-    trs->ops = ops;
 
-    req = sysdb_transaction_send(self->mem_ctx, self->ev, self->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction"));
-        PyErr_NoMemory();
+    tctx->octx->name = groupname;
+    tctx->octx->gid = gid;
+
+    /* Add the group within a transaction */
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        PyErr_SetSssError(tctx->error);
         goto fail;
     }
-    tevent_req_set_callback(req, py_sss_groupadd_transaction, trs);
 
-    TRANSACTION_WAIT(trs, ret);
+    /* groupadd */
+    ret = groupadd(tctx, self->ev,
+                   self->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    end_transaction(tctx);
+    if (tctx->error) {
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    talloc_zfree(tctx);
     return NULL;
-}
-
-static void py_sss_groupadd_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                    struct py_sss_transaction);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, trs, &trs->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* groupadd */
-    ret = groupadd(trs->self->mem_ctx, trs->self->ev,
-                          trs->self->sysdb, trs->handle, trs->ops);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(trs->self->mem_ctx, trs->self->ev, trs->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, req_done, trs);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(trs->handle);
-    trs->transaction_done = true;
-    trs->error = ret;
 }
 
 /*
  * Delete a group
  */
-static void py_sss_groupdel_transaction(struct tevent_req *req);
-
 PyDoc_STRVAR(py_sss_groupdel__doc__,
     "Remove a group.\n\n"
     ":param groupname: Name of group being removed\n");
@@ -651,9 +513,7 @@ static PyObject *py_sss_groupdel(PySssLocalObject *self,
                                 PyObject *args,
                                 PyObject *kwds)
 {
-    struct ops_ctx *ops = NULL;
-    struct tevent_req *req;
-    struct py_sss_transaction *trs = NULL;
+    struct tools_ctx *tctx = NULL;
     char *groupname = NULL;
     int ret;
 
@@ -661,83 +521,50 @@ static PyObject *py_sss_groupdel(PySssLocalObject *self,
         goto fail;
     }
 
-    ops = init_ctx(self);
-    if (!ops) {
-        return NULL;
-    }
-
-    ops->name  = groupname;
-
-    /* delete the group within a sysdb transaction */
-    trs = talloc_zero(self->mem_ctx, struct py_sss_transaction);
-    if (!trs) {
+    tctx = init_ctx(self->mem_ctx, self);
+    if (!tctx) {
         PyErr_NoMemory();
         return NULL;
     }
-    trs->self = self;
-    trs->ops = ops;
 
-    req = sysdb_transaction_send(self->mem_ctx, self->ev, self->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction"));
-        PyErr_NoMemory();
+    tctx->octx->name = groupname;
+
+    /* Remove the group within a transaction */
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        PyErr_SetSssError(tctx->error);
         goto fail;
     }
-    tevent_req_set_callback(req, py_sss_groupdel_transaction, trs);
 
-    TRANSACTION_WAIT(trs, ret);
+    /* groupdel */
+    ret = groupdel(tctx, self->ev,
+                   self->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    end_transaction(tctx);
+    if (tctx->error) {
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    talloc_zfree(tctx);
     return NULL;
-}
-
-static void py_sss_groupdel_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                    struct py_sss_transaction);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, trs, &trs->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* groupdel */
-    ret = groupdel(trs->self->mem_ctx, trs->self->ev,
-                          trs->self->sysdb, trs->handle, trs->ops);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(trs->self->mem_ctx, trs->self->ev, trs->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, req_done, trs);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(trs->handle);
-    trs->transaction_done = true;
-    trs->error = ret;
 }
 
 /*
  * Modify a group
  */
-static void py_sss_groupmod_transaction(struct tevent_req *);
-
 PyDoc_STRVAR(py_sss_groupmod__doc__,
 "Modify a group.\n\n"
 ":param groupname: Name of group being modified\n\n"
@@ -751,9 +578,7 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
                                 PyObject *args,
                                 PyObject *kwds)
 {
-    struct ops_ctx *ops = NULL;
-    struct tevent_req *req;
-    struct py_sss_transaction *trs = NULL;
+    struct tools_ctx *tctx = NULL;
     int ret;
     PyObject *py_addgroups = Py_None;
     PyObject *py_rmgroups = Py_None;
@@ -774,97 +599,66 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
         goto fail;
     }
 
-    ops = init_ctx(self);
-    if (!ops) {
+    tctx = init_ctx(self->mem_ctx, self);
+    if (!tctx) {
+        PyErr_NoMemory();
         return NULL;
     }
 
     if (py_addgroups != Py_None) {
-        ops->addgroups = PyList_AsStringList(self->mem_ctx,
+        tctx->octx->addgroups = PyList_AsStringList(tctx,
                                              py_addgroups,
                                              "addgroups");
-        if (!ops->addgroups) {
+        if (!tctx->octx->addgroups) {
             return NULL;
         }
     }
 
     if (py_rmgroups != Py_None) {
-        ops->rmgroups = PyList_AsStringList(self->mem_ctx,
+        tctx->octx->rmgroups = PyList_AsStringList(tctx,
                                             py_rmgroups,
                                             "rmgroups");
-        if (!ops->rmgroups) {
+        if (!tctx->octx->rmgroups) {
             return NULL;
         }
     }
 
-    ops->name  = groupname;
-    ops->gid = gid;
+    tctx->octx->name = groupname;
+    tctx->octx->gid = gid;
 
-    /* modify the group within a sysdb transaction */
-    trs = talloc_zero(self->mem_ctx, struct py_sss_transaction);
-    if (!trs) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-    trs->self = self;
-    trs->ops = ops;
-
-    req = sysdb_transaction_send(self->mem_ctx, self->ev, self->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction"));
-        PyErr_NoMemory();
+    /* Modify the group within a transaction */
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        PyErr_SetSssError(tctx->error);
         goto fail;
     }
-    tevent_req_set_callback(req, py_sss_groupmod_transaction, trs);
 
-    TRANSACTION_WAIT(trs, ret);
+    /* groupmod */
+    ret = groupmod(tctx, self->ev,
+                   self->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        tctx->error = ret;
 
+        /* cancel transaction */
+        talloc_zfree(tctx->handle);
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
 
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    end_transaction(tctx);
+    if (tctx->error) {
+        PyErr_SetSssError(tctx->error);
+        goto fail;
+    }
+
+    talloc_zfree(tctx);
     Py_RETURN_NONE;
 
 fail:
-    talloc_zfree(ops);
-    talloc_zfree(trs);
+    talloc_zfree(tctx);
     return NULL;
 }
 
-static void py_sss_groupmod_transaction(struct tevent_req *req)
-{
-    int ret;
-    struct py_sss_transaction *trs = tevent_req_callback_data(req,
-                                                    struct py_sss_transaction);
-    struct tevent_req *subreq;
-
-    ret = sysdb_transaction_recv(req, trs, &trs->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(req);
-
-    /* groupmod */
-    ret = groupmod(trs->self->mem_ctx, trs->self->ev,
-                          trs->self->sysdb, trs->handle, trs->ops);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_commit_send(trs->self->mem_ctx, trs->self->ev, trs->handle);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, req_done, trs);
-    return;
-
-fail:
-    /* free transaction and signal error */
-    talloc_zfree(trs->handle);
-    trs->transaction_done = true;
-    trs->error = ret;
-}
 
 /*** python plumbing begins here ***/
 
