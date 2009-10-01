@@ -1530,7 +1530,10 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
 
     /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_users_done, req, 600, &state->op);
+                      sdap_get_users_done, req,
+                      sdap_go_get_int(state->opts->basic,
+                                      SDAP_NETWORK_TIMEOUT),
+                      &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
         tevent_req_error(req, ret);
@@ -1754,7 +1757,10 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
 
     /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_groups_done, req, 600, &state->op);
+                      sdap_get_groups_done, req,
+                      sdap_go_get_int(state->opts->basic,
+                                      SDAP_NETWORK_TIMEOUT),
+                      &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
         tevent_req_error(req, ret);
@@ -2086,7 +2092,10 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
 
     /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_initgr_done, req, 600, &state->op);
+                      sdap_get_initgr_done, req,
+                      sdap_go_get_int(state->opts->basic,
+                                      SDAP_NETWORK_TIMEOUT),
+                      &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
         tevent_req_error(req, ret);
