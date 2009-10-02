@@ -51,7 +51,6 @@ sbin_PROGRAMS = \
 sssdlibexec_PROGRAMS = \
     sssd_nss \
     sssd_pam \
-    sssd_dp \
     sssd_be \
     krb5_child \
     $(sssd_pk) \
@@ -250,7 +249,6 @@ dist_noinst_HEADERS = \
     confdb/confdb_private.h \
     confdb/confdb_setup.h \
     providers/data_provider.h \
-    providers/dp_interfaces.h \
     providers/dp_backend.h \
     providers/providers.h \
     providers/krb5/krb5_auth.h \
@@ -293,12 +291,6 @@ sssd_pam_SOURCES = \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
     $(SSSD_LIBS)
-
-sssd_dp_SOURCES = \
-    providers/data_provider.c\
-    $(SSSD_UTIL_OBJ)
-
-sssd_dp_LDADD = $(SSSD_LIBS)
 
 sssd_be_SOURCES = \
     providers/data_provider_be.c \

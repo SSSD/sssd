@@ -287,8 +287,7 @@ done:
     dbus_message_unref(reply);
 }
 
-int dp_common_send_id(struct sbus_connection *conn,
-                      uint16_t cli_type, uint16_t version,
+int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
                       const char *name, const char *domain)
 {
     DBusPendingCall *pending_reply;
@@ -300,19 +299,18 @@ int dp_common_send_id(struct sbus_connection *conn,
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
-                                       DP_SRV_PATH,
-                                       DP_SRV_INTERFACE,
-                                       DP_SRV_METHOD_REGISTER);
+                                       DP_PATH,
+                                       DP_INTERFACE,
+                                       DP_METHOD_REGISTER);
     if (msg == NULL) {
         DEBUG(0, ("Out of memory?!\n"));
         return ENOMEM;
     }
 
-    DEBUG(4, ("Sending ID to DP: (%d,%d,%s,%s)\n",
-              cli_type, version, name, domain));
+    DEBUG(4, ("Sending ID to DP: (%d,%s,%s)\n",
+              version, name, domain));
 
     ret = dbus_message_append_args(msg,
-                                   DBUS_TYPE_UINT16, &cli_type,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_STRING, &name,
                                    DBUS_TYPE_STRING, &domain,

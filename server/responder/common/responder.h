@@ -55,6 +55,18 @@ struct cli_protocol_version {
     const char *description;
 };
 
+struct be_conn {
+    struct be_conn *next;
+    struct be_conn *prev;
+
+    const char *cli_name;
+    struct sss_domain_info *domain;
+
+    char *sbus_address;
+    struct sbus_interface *intf;
+    struct sbus_connection *conn;
+};
+
 struct resp_ctx {
     struct tevent_context *ev;
     struct tevent_fd *lfde;
@@ -66,7 +78,7 @@ struct resp_ctx {
     const char *priv_sock_name;
 
     struct sbus_connection *mon_conn;
-    struct sbus_connection *dp_conn;
+    struct be_conn *be_conns;
 
     struct sss_domain_info *domains;
     struct sysdb_ctx_list *db_list;
@@ -107,14 +119,16 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *svc_name,
                      uint16_t svc_version,
                      struct sbus_interface *monitor_intf,
-                     uint16_t cli_type, uint16_t cli_version,
-                     const char *cli_name, const char *cli_domain,
+                     const char *cli_name,
                      struct sbus_interface *dp_intf,
                      struct resp_ctx **responder_ctx);
 
 int sss_parse_name(TALLOC_CTX *memctx,
                    struct sss_names_ctx *snctx,
                    const char *orig, char **domain, char **name);
+
+int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
+                           struct be_conn **_conn);
 
 /* responder_cmd.c */
 int sss_cmd_execute(struct cli_ctx *cctx, struct sss_cmd_table *sss_cmds);

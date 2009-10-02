@@ -25,15 +25,16 @@
 #include "confdb/confdb.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/data_provider.h"
-#include "providers/dp_interfaces.h"
 
-int dp_get_sbus_address(TALLOC_CTX *mem_ctx, char **address)
+int dp_get_sbus_address(TALLOC_CTX *mem_ctx,
+                        char **address, const char *domain_name)
 {
     char *default_address;
 
     *address = NULL;
-    default_address = talloc_asprintf(mem_ctx, "unix:path=%s/%s",
-                                      PIPE_PATH, DATA_PROVIDER_PIPE);
+    default_address = talloc_asprintf(mem_ctx, "unix:path=%s/%s_%s",
+                                      PIPE_PATH, DATA_PROVIDER_PIPE,
+                                      domain_name);
     if (default_address == NULL) {
         return ENOMEM;
     }

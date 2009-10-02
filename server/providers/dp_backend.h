@@ -65,6 +65,13 @@ struct be_offline_status {
     bool offline;
 };
 
+struct be_client {
+    struct be_ctx *bectx;
+    struct sbus_connection *conn;
+    struct tevent_timer *timeout;
+    bool initialized;
+};
+
 struct be_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
@@ -76,7 +83,10 @@ struct be_ctx {
     struct be_offline_status offstat;
 
     struct sbus_connection *mon_conn;
-    struct sbus_connection *dp_conn;
+    struct sbus_connection *sbus_srv;
+
+    struct be_client *nss_cli;
+    struct be_client *pam_cli;
 
     struct loaded_be loaded_be[BET_MAX];
     struct bet_info bet_info[BET_MAX];
@@ -89,6 +99,7 @@ struct bet_ops {
 };
 
 struct be_req {
+    struct be_client *becli;
     struct be_ctx *be_ctx;
     void *req_data;
 

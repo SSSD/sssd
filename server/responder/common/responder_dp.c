@@ -417,25 +417,27 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
     dbus_bool_t dbret;
     struct sss_dp_callback *cb;
     struct sss_dp_req *sdp_req;
-
     const char *attrs = "core";
+    struct be_conn *be_conn;
+    int ret;
 
     /* double check dp_ctx has actually been initialized.
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!rctx->dp_conn) {
-        DEBUG(1, ("The Data Provider connection is not available yet!"
-                  " This maybe a bug, it shouldn't happen!\n"));
+    ret = sss_dp_get_domain_conn(rctx, domain, &be_conn);
+    if (ret != EOK) {
+        DEBUG(1, ("The Data Provider connection for %s is not available!"
+                  " This maybe a bug, it shouldn't happen!\n", domain));
         return EIO;
     }
-    dbus_conn = sbus_get_connection(rctx->dp_conn);
+    dbus_conn = sbus_get_connection(be_conn->conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
-                                       DP_CLI_PATH,
-                                       DP_CLI_INTERFACE,
-                                       DP_SRV_METHOD_GETACCTINFO);
+                                       DP_PATH,
+                                       DP_INTERFACE,
+                                       DP_METHOD_GETACCTINFO);
     if (msg == NULL) {
         DEBUG(0,("Out of memory?!\n"));
         return ENOMEM;
@@ -445,7 +447,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
               domain, be_type, attrs, filter));
 
     dbret = dbus_message_append_args(msg,
-                                     DBUS_TYPE_STRING, &domain,
                                      DBUS_TYPE_UINT32, &be_type,
                                      DBUS_TYPE_STRING, &attrs,
                                      DBUS_TYPE_STRING, &filter,

@@ -318,31 +318,40 @@ static int sss_monitor_init(struct resp_ctx *rctx,
 
 static int sss_dp_init(struct resp_ctx *rctx,
                        struct sbus_interface *intf,
-                       uint16_t cli_type, uint16_t cli_version,
-                       const char *cli_name, const char *cli_domain)
+                       const char *cli_name,
+                       struct sss_domain_info *domain)
 {
-    char *sbus_address;
+    struct be_conn *be_conn;
     int ret;
 
+    be_conn = talloc_zero(rctx, struct be_conn);
+    if (!be_conn) return ENOMEM;
+
+    be_conn->cli_name = cli_name;
+    be_conn->domain = domain;
+    be_conn->intf = intf;
+
     /* Set up SBUS connection to the monitor */
-    ret = dp_get_sbus_address(rctx, &sbus_address);
+    ret = dp_get_sbus_address(be_conn, &be_conn->sbus_address, domain->name);
     if (ret != EOK) {
         DEBUG(0, ("Could not locate DP address.\n"));
         return ret;
     }
-
-    ret = sbus_client_init(rctx, rctx->ev, sbus_address,
-                           intf, &rctx->dp_conn,
+    ret = sbus_client_init(rctx, rctx->ev,
+                           be_conn->sbus_address,
+                           intf, &be_conn->conn,
                            NULL, NULL);
     if (ret != EOK) {
         DEBUG(0, ("Failed to connect to monitor services.\n"));
         return ret;
     }
 
+    DLIST_ADD_END(rctx->be_conns, be_conn, struct be_conn *);
+
     /* Identify ourselves to the DP */
-    ret = dp_common_send_id(rctx->dp_conn,
-                            cli_type, cli_version,
-                            cli_name, cli_domain);
+    ret = dp_common_send_id(be_conn->conn,
+                            DATA_PROVIDER_VERSION,
+                            cli_name, domain->name);
     if (ret != EOK) {
         DEBUG(0, ("Failed to identify to the DP!\n"));
         return ret;
@@ -489,12 +498,12 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                      const char *svc_name,
                      uint16_t svc_version,
                      struct sbus_interface *monitor_intf,
-                     uint16_t cli_type, uint16_t cli_version,
-                     const char *cli_name, const char *cli_domain,
+                     const char *cli_name,
                      struct sbus_interface *dp_intf,
                      struct resp_ctx **responder_ctx)
 {
     struct resp_ctx *rctx;
+    struct sss_domain_info *dom;
     int ret;
 
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
@@ -521,16 +530,18 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sss_dp_init(rctx, dp_intf,
-                      cli_type, cli_version,
-                      cli_name, cli_domain);
-    if (ret != EOK) {
-        DEBUG(0, ("fatal error setting up backend connector\n"));
-        return ret;
-    }
-    else if (!rctx->dp_conn) {
-        DEBUG(0, ("Data Provider is not yet available. Retrying.\n"));
-        return EIO;
+    for (dom = rctx->domains; dom; dom = dom->next) {
+
+        /* skip local domain, it doesn't have a backend */
+        if (strcasecmp(dom->provider, "local") == 0) {
+            continue;
+        }
+
+        ret = sss_dp_init(rctx, dp_intf, cli_name, dom);
+        if (ret != EOK) {
+            DEBUG(0, ("fatal error setting up backend connector\n"));
+            return ret;
+        }
     }
 
     ret = sysdb_init(rctx, ev, cdb, NULL, false, &rctx->db_list);
@@ -555,6 +566,24 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
     DEBUG(1, ("Responder Initialization complete\n"));
 
     *responder_ctx = rctx;
+    return EOK;
+}
+
+int sss_dp_get_domain_conn(struct resp_ctx *rctx, const char *domain,
+                           struct be_conn **_conn)
+{
+    struct be_conn *iter;
+
+    if (!rctx->be_conns) return ENOENT;
+
+    for (iter = rctx->be_conns; iter; iter = iter->next) {
+        if (strcasecmp(domain, iter->domain->name) == 0) break;
+    }
+
+    if (!iter) return ENOENT;
+
+    *_conn = iter;
+
     return EOK;
 }
 

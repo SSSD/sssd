@@ -82,26 +82,30 @@ done:
 int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
 {
     struct pam_data *pd = preq->pd;
+    struct be_conn *be_conn;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     DBusConnection *dbus_conn;
     dbus_bool_t ret;
+    int res;
 
     /* double check dp_ctx has actually been initialized.
      * in some pathological cases it may happen that nss starts up before
      * dp connection code is actually able to establish a connection.
      */
-    if (!preq->cctx->rctx->dp_conn) {
-        DEBUG(1, ("The Data Provider connection is not available yet!"
-                  " This maybe a bug, it shouldn't happen!\n"));
+    res = sss_dp_get_domain_conn(preq->cctx->rctx,
+                                 preq->domain->name, &be_conn);
+    if (res != EOK) {
+        DEBUG(1, ("The Data Provider connection for %s is not available!"
+                  " This maybe a bug, it shouldn't happen!\n", preq->domain));
         return EIO;
     }
-    dbus_conn = sbus_get_connection(preq->cctx->rctx->dp_conn);
+    dbus_conn = sbus_get_connection(be_conn->conn);
 
     msg = dbus_message_new_method_call(NULL,
-                                       DP_CLI_PATH,
-                                       DP_CLI_INTERFACE,
-                                       DP_SRV_METHOD_PAMHANDLER);
+                                       DP_PATH,
+                                       DP_INTERFACE,
+                                       DP_METHOD_PAMHANDLER);
     if (msg == NULL) {
         DEBUG(0,("Out of memory?!\n"));
         return ENOMEM;

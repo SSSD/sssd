@@ -229,8 +229,8 @@ static struct sbus_method nss_dp_methods[] = {
 };
 
 struct sbus_interface nss_dp_interface = {
-    DP_CLI_INTERFACE,
-    DP_CLI_PATH,
+    DP_INTERFACE,
+    DP_PATH,
     SBUS_DEFAULT_VTABLE,
     nss_dp_methods,
     NULL
@@ -240,7 +240,7 @@ struct sbus_interface nss_dp_interface = {
 static void nss_dp_reconnect_init(struct sbus_connection *conn,
                                   int status, void *pvt)
 {
-    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
+    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
     int ret;
 
     /* Did we reconnect successfully? */
@@ -248,18 +248,19 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
         DEBUG(1, ("Reconnected to the Data Provider.\n"));
 
         /* Identify ourselves to the data provider */
-        ret = dp_common_send_id(conn,
-                                DP_CLI_FRONTEND,
+        ret = dp_common_send_id(be_conn->conn,
                                 DATA_PROVIDER_VERSION,
-                                "NSS", "");
+                                "NSS", be_conn->domain->name);
         /* all fine */
         if (ret == EOK) return;
     }
 
     /* Failed to reconnect */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
-    /* Kill the backend and let the monitor restart it */
-    nss_shutdown(rctx);
+    DEBUG(0, ("Could not reconnect to %s provider.\n",
+              be_conn->domain->name));
+
+    /* FIXME: kill the frontend and let the monitor restart it ? */
+    /* nss_shutdown(rctx); */
 }
 
 int nss_process_init(TALLOC_CTX *mem_ctx,
@@ -267,6 +268,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                      struct confdb_ctx *cdb)
 {
     struct sss_cmd_table *nss_cmds;
+    struct be_conn *iter;
     struct nss_ctx *nctx;
     int ret, max_retries;
 
@@ -291,10 +293,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
                            NSS_SBUS_SERVICE_NAME,
                            NSS_SBUS_SERVICE_VERSION,
                            &monitor_nss_interface,
-                           DP_CLI_FRONTEND,
-                           DATA_PROVIDER_VERSION,
-                           "NSS", "",
-                           &nss_dp_interface,
+                           "NSS", &nss_dp_interface,
                            &nctx->rctx);
     if (ret != EOK) {
         return ret;
@@ -317,9 +316,10 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(nctx->rctx->dp_conn,
-                        max_retries,
-                        nss_dp_reconnect_init, nctx->rctx);
+    for (iter = nctx->rctx->be_conns; iter; iter = iter->next) {
+        sbus_reconnect_init(iter->conn, max_retries,
+                            nss_dp_reconnect_init, iter);
+    }
 
     DEBUG(1, ("NSS Initialization complete\n"));
 

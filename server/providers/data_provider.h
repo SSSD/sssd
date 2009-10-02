@@ -34,7 +34,6 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
-#include "providers/dp_interfaces.h"
 #include "../sss_client/sss_cli.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
@@ -47,24 +46,17 @@
 #define MOD_OFFLINE 0x0000
 #define MOD_ONLINE  0x0001
 
-#define DP_CLI_INTERFACE "org.freedesktop.sssd.dataprovider"
-#define DP_CLI_PATH "/org/freedesktop/sssd/dataprovider"
+#define DP_INTERFACE "org.freedesktop.sssd.dataprovider"
+#define DP_PATH "/org/freedesktop/sssd/dataprovider"
 
-#define DP_CLI_BACKEND 0x0001
-#define DP_CLI_FRONTEND 0x0002
-#define DP_CLI_TYPE_MASK 0x0003
+#define BE_PROVIDE_ACC_INFO (1<<8)
+#define BE_PROVIDE_PAM (1<<9)
+#define BE_PROVIDE_POLICY (1<<10)
 
-#define DP_CLI_PROVIDE_ACC_INFO (1<<8)
-#define DP_CLI_PROVIDE_PAM (1<<9)
-#define DP_CLI_PROVIDE_POLICY (1<<10)
-
-#define DP_CLI_METHOD_ONLINE "getOnline"
-#define DP_CLI_METHOD_GETACCTINFO "getAccountInfo"
-#define DP_CLI_METHOD_PAMHANDLER "pamHandler"
-
-#define DP_SRV_METHOD_REGISTER "RegisterService"
-#define DP_SRV_METHOD_GETACCTINFO "getAccountInfo"
-#define DP_SRV_METHOD_PAMHANDLER "pamHandler"
+#define DP_METHOD_REGISTER "RegisterService"
+#define DP_METHOD_ONLINE "getOnline"
+#define DP_METHOD_GETACCTINFO "getAccountInfo"
+#define DP_METHOD_PAMHANDLER "pamHandler"
 
 #define DP_ERR_OK 0
 #define DP_ERR_OFFLINE 1
@@ -138,12 +130,12 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
                             DBusError *dbus_error);
 
-int dp_common_send_id(struct sbus_connection *conn,
-                      uint16_t cli_type, uint16_t version,
+int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
                       const char *name, const char *domain);
 
 /* from dp_sbus.c */
-int dp_get_sbus_address(TALLOC_CTX *mem_ctx, char **address);
+int dp_get_sbus_address(TALLOC_CTX *mem_ctx,
+                        char **address, const char *domain_name);
 
 
 #endif /* __DATA_PROVIDER_ */

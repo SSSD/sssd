@@ -57,20 +57,22 @@ struct sbus_interface monitor_be_interface = {
     NULL
 };
 
+static int client_registration(DBusMessage *message, struct sbus_connection *conn);
 static int be_check_online(DBusMessage *message, struct sbus_connection *conn);
 static int be_get_account_info(DBusMessage *message, struct sbus_connection *conn);
 static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method be_methods[] = {
-    { DP_CLI_METHOD_ONLINE, be_check_online },
-    { DP_CLI_METHOD_GETACCTINFO, be_get_account_info },
-    { DP_CLI_METHOD_PAMHANDLER, be_pam_handler },
+    { DP_METHOD_REGISTER, client_registration },
+    { DP_METHOD_ONLINE, be_check_online },
+    { DP_METHOD_GETACCTINFO, be_get_account_info },
+    { DP_METHOD_PAMHANDLER, be_pam_handler },
     { NULL, NULL }
 };
 
 struct sbus_interface be_interface = {
-    DP_CLI_INTERFACE,
-    DP_CLI_PATH,
+    DP_INTERFACE,
+    DP_PATH,
     SBUS_DEFAULT_VTABLE,
     be_methods,
     NULL
@@ -154,7 +156,7 @@ void be_mark_offline(struct be_ctx *ctx)
 
 static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
 {
-    struct be_ctx *ctx;
+    struct be_client *becli;
     DBusMessage *reply;
     DBusConnection *dbus_conn;
     dbus_bool_t dbret;
@@ -166,13 +168,13 @@ static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
 
     user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
-    ctx = talloc_get_type(user_data, struct be_ctx);
-    if (!ctx) return EINVAL;
+    becli = talloc_get_type(user_data, struct be_client);
+    if (!becli) return EINVAL;
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
 
-    if (be_is_offline(ctx)) {
+    if (be_is_offline(becli->bectx)) {
         online = MOD_OFFLINE;
     } else {
         online = MOD_ONLINE;
@@ -189,7 +191,7 @@ static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
         return EIO;
     }
 
-    dbus_conn = sbus_get_connection(ctx->dp_conn);
+    dbus_conn = sbus_get_connection(becli->conn);
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -229,7 +231,7 @@ static void acctinfo_callback(struct be_req *req, int status,
         return;
     }
 
-    dbus_conn = sbus_get_connection(req->be_ctx->dp_conn);
+    dbus_conn = sbus_get_connection(req->becli->conn);
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -244,7 +246,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 {
     struct be_acct_req *req;
     struct be_req *be_req;
-    struct be_ctx *ctx;
+    struct be_client *becli;
     DBusMessage *reply;
     DBusError dbus_error;
     dbus_bool_t dbret;
@@ -262,8 +264,8 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 
     user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
-    ctx = talloc_get_type(user_data, struct be_ctx);
-    if (!ctx) return EINVAL;
+    becli = talloc_get_type(user_data, struct be_client);
+    if (!becli) return EINVAL;
 
     dbus_error_init(&dbus_error);
 
@@ -321,14 +323,15 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     }
 
     /* process request */
-    be_req = talloc(ctx, struct be_req);
+    be_req = talloc(becli, struct be_req);
     if (!be_req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;
         err_msg = "Out of memory";
         goto done;
     }
-    be_req->be_ctx = ctx;
+    be_req->becli = becli;
+    be_req->be_ctx = becli->bectx;
     be_req->fn = acctinfo_callback;
     be_req->pvt = reply;
 
@@ -346,7 +349,9 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 
     be_req->req_data = req;
 
-    ret = be_file_request(ctx, ctx->bet_info[BET_ID].bet_ops->handler, be_req);
+    ret = be_file_request(becli->bectx,
+                          becli->bectx->bet_info[BET_ID].bet_ops->handler,
+                          be_req);
     if (ret != EOK) {
         err_maj = DP_ERR_FATAL;
         err_min = ret;
@@ -395,7 +400,7 @@ static void be_pam_handler_callback(struct be_req *req, int status,
         return;
     }
 
-    dbus_conn = sbus_get_connection(req->be_ctx->dp_conn);
+    dbus_conn = sbus_get_connection(req->becli->conn);
     dbus_connection_send(dbus_conn, reply, NULL);
     dbus_message_unref(reply);
 
@@ -408,7 +413,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 {
     DBusError dbus_error;
     DBusMessage *reply;
-    struct be_ctx *ctx;
+    struct be_client *becli;
     dbus_bool_t ret;
     void *user_data;
     struct pam_data *pd = NULL;
@@ -418,8 +423,8 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 
     user_data = sbus_conn_get_private_data(conn);
     if (!user_data) return EINVAL;
-    ctx = talloc_get_type(user_data, struct be_ctx);
-    if (!ctx) return EINVAL;
+    becli = talloc_get_type(user_data, struct be_client);
+    if (!becli) return EINVAL;
 
     reply = dbus_message_new_method_return(message);
     if (!reply) {
@@ -428,7 +433,18 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         return ENOMEM;
     }
 
-    pd = talloc_zero(ctx, struct pam_data);
+    be_req = talloc_zero(becli, struct be_req);
+    if (!be_req) {
+        DEBUG(7, ("talloc_zero failed.\n"));
+        goto done;
+    }
+
+    be_req->becli = becli;
+    be_req->be_ctx = becli->bectx;
+    be_req->fn = be_pam_handler_callback;
+    be_req->pvt = reply;
+
+    pd = talloc_zero(be_req, struct pam_data);
     if (!pd) return ENOMEM;
 
     dbus_error_init(&dbus_error);
@@ -461,23 +477,16 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     }
 
     /* return an error if corresponding backend target is configured */
-    if (!ctx->bet_info[target].bet_ops) {
+    if (!becli->bectx->bet_info[target].bet_ops) {
         DEBUG(7, ("Undefined backend target.\n"));
         goto done;
     }
 
-    be_req = talloc_zero(ctx, struct be_req);
-    if (!be_req) {
-        DEBUG(7, ("talloc_zero failed.\n"));
-        goto done;
-    }
-
-    be_req->be_ctx = ctx;
-    be_req->fn = be_pam_handler_callback;
-    be_req->pvt = reply;
     be_req->req_data = pd;
 
-    ret = be_file_request(ctx, ctx->bet_info[target].bet_ops->handler, be_req);
+    ret = be_file_request(becli->bectx,
+                          becli->bectx->bet_info[target].bet_ops->handler,
+                          be_req);
     if (ret != EOK) {
         DEBUG(7, ("be_file_request failed.\n"));
         goto done;
@@ -488,18 +497,191 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
 done:
     talloc_free(be_req);
 
-    DEBUG(4, ("Sending result [%d][%s]\n", pam_status, ctx->domain->name));
+    DEBUG(4, ("Sending result [%d][%s]\n",
+              pam_status, becli->bectx->domain->name));
     ret = dbus_message_append_args(reply,
                                    DBUS_TYPE_UINT32, &pam_status,
-                                   DBUS_TYPE_STRING, &ctx->domain->name,
+                                   DBUS_TYPE_STRING, &becli->bectx->domain->name,
                                    DBUS_TYPE_INVALID);
-    if (!ret) return EIO;
+    if (!ret) {
+        return EIO;
+    }
 
     /* send reply back immediately */
     sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
 
-    talloc_free(pd);
+    return EOK;
+}
+
+static int be_client_destructor(void *ctx)
+{
+    struct be_client *becli = talloc_get_type(ctx, struct be_client);
+    if (becli->bectx) {
+        if (becli->bectx->nss_cli == becli) {
+            DEBUG(4, ("Removed NSS client\n"));
+            becli->bectx->nss_cli = NULL;
+        } else if (becli->bectx->pam_cli == becli) {
+            DEBUG(4, ("Removed PAM client\n"));
+            becli->bectx->pam_cli = NULL;
+        } else {
+            DEBUG(2, ("Unknown client removed ...\n"));
+        }
+    }
+    return 0;
+}
+
+static int client_registration(DBusMessage *message,
+                               struct sbus_connection *conn)
+{
+    dbus_uint16_t version = DATA_PROVIDER_VERSION;
+    struct be_client *becli;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    dbus_uint16_t cli_ver;
+    char *cli_name;
+    char *cli_domain;
+    dbus_bool_t dbret;
+    void *data;
+
+    data = sbus_conn_get_private_data(conn);
+    becli = talloc_get_type(data, struct be_client);
+    if (!becli) {
+        DEBUG(0, ("Connection holds no valid init data\n"));
+        return EINVAL;
+    }
+
+    /* First thing, cancel the timeout */
+    DEBUG(4, ("Cancel DP ID timeout [%p]\n", becli->timeout));
+    talloc_zfree(becli->timeout);
+
+    dbus_error_init(&dbus_error);
+
+    dbret = dbus_message_get_args(message, &dbus_error,
+                                  DBUS_TYPE_UINT16, &cli_ver,
+                                  DBUS_TYPE_STRING, &cli_name,
+                                  DBUS_TYPE_STRING, &cli_domain,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(1, ("Failed to parse message, killing connection\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        sbus_disconnect(conn);
+        /* FIXME: should we just talloc_zfree(conn) ? */
+        return EIO;
+    }
+
+    if (strcasecmp(cli_name, "NSS") == 0) {
+        becli->bectx->nss_cli = becli;
+    } else if (strcasecmp(cli_name, "PAM") == 0) {
+        becli->bectx->pam_cli = becli;
+    } else {
+        DEBUG(1, ("Unknown client! [%s]\n", cli_name));
+    }
+    talloc_set_destructor((TALLOC_CTX *)becli, be_client_destructor);
+
+    DEBUG(4, ("Added Frontend client [%s]\n", cli_name));
+
+    /* reply that all is ok */
+    reply = dbus_message_new_method_return(message);
+    if (!reply) {
+        DEBUG(0, ("Dbus Out of memory!\n"));
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT16, &version,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(0, ("Failed to build dbus reply\n"));
+        dbus_message_unref(reply);
+        sbus_disconnect(conn);
+        return EIO;
+    }
+
+    /* send reply back */
+    sbus_conn_send_reply(conn, reply);
+    dbus_message_unref(reply);
+
+    becli->initialized = true;
+    return EOK;
+}
+
+static void init_timeout(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval t, void *ptr)
+{
+    struct be_client *becli;
+
+    DEBUG(2, ("Client timed out before Identification [%p]!\n", te));
+
+    becli = talloc_get_type(ptr, struct be_client);
+
+    sbus_disconnect(becli->conn);
+    talloc_zfree(becli);
+}
+
+static int be_client_init(struct sbus_connection *conn, void *data)
+{
+    struct be_ctx *bectx;
+    struct be_client *becli;
+    struct timeval tv;
+
+    bectx = talloc_get_type(data, struct be_ctx);
+
+    /* hang off this memory to the connection so that when the connection
+     * is freed we can potentially call a destructor */
+
+    becli = talloc(conn, struct be_client);
+    if (!becli) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_zfree(conn);
+        return ENOMEM;
+    }
+    becli->bectx = bectx;
+    becli->conn = conn;
+    becli->initialized = false;
+
+    /* 5 seconds should be plenty */
+    tv = tevent_timeval_current_ofs(5, 0);
+
+    becli->timeout = tevent_add_timer(bectx->ev, becli,
+                                      tv, init_timeout, becli);
+    if (!becli->timeout) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_zfree(conn);
+        return ENOMEM;
+    }
+    DEBUG(4, ("Set-up Backend ID timeout [%p]\n", becli->timeout));
+
+    /* Attach the client context to the connection context, so that it is
+     * always available when we need to manage the connection. */
+    sbus_conn_set_private_data(conn, becli);
+
+    return EOK;
+}
+
+/* be_srv_init
+ * set up per-domain sbus channel */
+static int be_srv_init(struct be_ctx *ctx)
+{
+    char *sbus_address;
+    int ret;
+
+    /* Set up SBUS connection to the monitor */
+    ret = dp_get_sbus_address(ctx, &sbus_address, ctx->domain->name);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not get sbus backend address.\n"));
+        return ret;
+    }
+
+    ret = sbus_new_server(ctx, ctx->ev, sbus_address,
+                          &be_interface, &ctx->sbus_srv,
+                          be_client_init, ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not set up sbus server.\n"));
+        return ret;
+    }
+
     return EOK;
 }
 
@@ -535,160 +717,6 @@ static int mon_cli_init(struct be_ctx *ctx)
     }
 
     return EOK;
-}
-
-static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void *pvt);
-
-/* be_cli_init
- * sbus channel to the data provider daemon */
-static int be_cli_init(struct be_ctx *ctx)
-{
-    int ret, max_retries;
-    char *sbus_address;
-
-    /* Set up SBUS connection to the monitor */
-    ret = dp_get_sbus_address(ctx, &sbus_address);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not locate monitor address.\n"));
-        return ret;
-    }
-
-    ret = sbus_client_init(ctx, ctx->ev, sbus_address,
-                           &be_interface, &ctx->dp_conn,
-                           NULL, ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to connect to monitor services.\n"));
-        return ret;
-    }
-
-    /* Identify ourselves to the data provider */
-    ret = dp_common_send_id(ctx->dp_conn,
-                            DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
-                            "", ctx->domain->name);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to identify to the data provider!\n"));
-        return ret;
-    }
-
-    /* Enable automatic reconnection to the Data Provider */
-    ret = confdb_get_int(ctx->cdb, ctx, CONFDB_DP_CONF_ENTRY,
-                         CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
-    if (ret != EOK) {
-        DEBUG(0, ("Failed to set up automatic reconnection\n"));
-        return ret;
-    }
-
-    sbus_reconnect_init(ctx->dp_conn, max_retries,
-                        be_cli_reconnect_init, ctx);
-
-    return EOK;
-}
-
-static int be_finalize(struct be_ctx *ctx);
-static void be_shutdown(struct be_req *req, int status, const char *errstr);
-
-static void be_cli_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
-{
-    int ret;
-    struct be_ctx *be_ctx = talloc_get_type(pvt, struct be_ctx);
-
-    /* Did we reconnect successfully? */
-    if (status == SBUS_RECONNECT_SUCCESS) {
-        DEBUG(1, ("Reconnected to the Data Provider.\n"));
-
-        /* Identify ourselves to the data provider */
-        ret = dp_common_send_id(be_ctx->dp_conn,
-                                DP_CLI_BACKEND, DATA_PROVIDER_VERSION,
-                                "", be_ctx->domain->name);
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to send id to the data provider!\n"));
-        } else {
-            return;
-        }
-    }
-
-    /* Handle failure */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
-
-    /* Kill the backend and let the monitor restart it */
-    ret = be_finalize(be_ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Finalizing back-end failed with error [%d] [%s]\n",
-                  ret, strerror(ret)));
-        be_shutdown(NULL, ret, NULL);
-    }
-}
-
-static void be_shutdown(struct be_req *req, int status, const char *errstr)
-{
-    /* Nothing left to do but exit() */
-    if (status == EOK)
-        exit(0);
-
-    /* Something went wrong in finalize */
-    DEBUG(0, ("Finalizing auth module failed with error [%d] [%s]\n",
-              status, errstr ? : strerror(status)));
-
-    exit(1);
-}
-
-static void be_id_shutdown(struct be_req *req, int status, const char *errstr)
-{
-    struct be_req *shutdown_req;
-    struct be_ctx *ctx;
-    int ret;
-
-    if (status != EOK) {
-        /* Something went wrong in finalize */
-        DEBUG(0, ("Finalizing auth module failed with error [%d] [%s]\n",
-                  status, errstr ? : strerror(status)));
-    }
-
-    ctx = req->be_ctx;
-
-    /* Now shutdown the id module too */
-    shutdown_req = talloc_zero(ctx, struct be_req);
-    if (!shutdown_req) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    shutdown_req->be_ctx = ctx;
-    shutdown_req->fn = be_id_shutdown;
-
-    shutdown_req->pvt = ctx->bet_info[BET_ID].pvt_bet_data;
-
-    ret = be_file_request(ctx, ctx->bet_info[BET_ID].bet_ops->finalize, shutdown_req);
-    if (ret == EOK)
-        return;
-
-fail:
-    /* If we got here, we couldn't shut down cleanly. */
-    be_shutdown(NULL, ret, NULL);
-}
-
-static int be_finalize(struct be_ctx *ctx)
-{
-    struct be_req *shutdown_req;
-    int ret;
-
-    shutdown_req = talloc_zero(ctx, struct be_req);
-    if (!shutdown_req) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    shutdown_req->be_ctx = ctx;
-    shutdown_req->fn = be_id_shutdown;
-    shutdown_req->pvt = ctx->bet_info[BET_AUTH].pvt_bet_data;
-
-    ret = be_file_request(ctx, ctx->bet_info[BET_AUTH].bet_ops->finalize, shutdown_req);
-    if (ret == EOK) return EOK;
-
-fail:
-    /* If we got here, we couldn't shut down cleanly. */
-    DEBUG(0, ("ERROR: could not shut down cleanly.\n"));
-    return ret;
 }
 
 static void be_target_access_permit(struct be_req *be_req)
@@ -854,7 +882,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = be_cli_init(ctx);
+    ret = be_srv_init(ctx);
     if (ret != EOK) {
         DEBUG(0, ("fatal error setting up server bus\n"));
         return ret;

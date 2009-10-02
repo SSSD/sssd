@@ -88,8 +88,8 @@ static struct sbus_method pam_dp_methods[] = {
 };
 
 struct sbus_interface pam_dp_interface = {
-    DP_CLI_INTERFACE,
-    DP_CLI_PATH,
+    DP_INTERFACE,
+    DP_PATH,
     SBUS_DEFAULT_VTABLE,
     pam_dp_methods,
     NULL
@@ -98,7 +98,7 @@ struct sbus_interface pam_dp_interface = {
 
 static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void *pvt)
 {
-    struct resp_ctx *rctx = talloc_get_type(pvt, struct resp_ctx);
+    struct be_conn *be_conn = talloc_get_type(pvt, struct be_conn);
     int ret;
 
     /* Did we reconnect successfully? */
@@ -106,18 +106,19 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
         DEBUG(1, ("Reconnected to the Data Provider.\n"));
 
         /* Identify ourselves to the data provider */
-        ret = dp_common_send_id(conn,
-                                DP_CLI_FRONTEND,
+        ret = dp_common_send_id(be_conn->conn,
                                 DATA_PROVIDER_VERSION,
-                                "PAM", "");
+                                "PAM", be_conn->domain->name);
         /* all fine */
         if (ret == EOK) return;
     }
 
     /* Handle failure */
-    DEBUG(0, ("Could not reconnect to data provider.\n"));
-    /* Kill the backend and let the monitor restart it */
-    pam_shutdown(rctx);
+    DEBUG(0, ("Could not reconnect to %s provider.\n",
+              be_conn->domain->name));
+
+    /* FIXME: kill the frontend and let the monitor restart it ? */
+    /* pam_shutdown(rctx); */
 }
 
 static int pam_process_init(TALLOC_CTX *mem_ctx,
@@ -125,6 +126,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct confdb_ctx *cdb)
 {
     struct sss_cmd_table *pam_cmds;
+    struct be_conn *iter;
     struct resp_ctx *rctx;
     int ret, max_retries;
 
@@ -137,10 +139,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            PAM_SBUS_SERVICE_NAME,
                            PAM_SBUS_SERVICE_VERSION,
                            &monitor_pam_interface,
-                           DP_CLI_FRONTEND,
-                           DATA_PROVIDER_VERSION,
-                           "PAM", "",
-                           &pam_dp_interface,
+                           "PAM", &pam_dp_interface,
                            &rctx);
     if (ret != EOK) {
         return ret;
@@ -157,8 +156,10 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    sbus_reconnect_init(rctx->dp_conn, max_retries,
-                        pam_dp_reconnect_init, rctx);
+    for (iter = rctx->be_conns; iter; iter = iter->next) {
+        sbus_reconnect_init(iter->conn, max_retries,
+                            pam_dp_reconnect_init, iter);
+    }
 
     return EOK;
 }

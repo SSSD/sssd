@@ -117,6 +117,7 @@ struct mt_ctx {
     struct config_file_ctx *file_ctx;
     int inotify_fd;
     int service_id_timeout;
+    bool check_children;
 };
 
 static int start_service(struct mt_svc *mt_svc, bool startup);
@@ -487,6 +488,10 @@ static void global_checks_handler(struct tevent_context *ev,
     int status;
     pid_t pid;
 
+    if (!ctx->check_children) {
+        goto done;
+    }
+
     errno = 0;
     pid = waitpid(0, &status, WNOHANG);
     if (pid == 0) {
@@ -785,33 +790,6 @@ static int check_domain_ranges(struct sss_domain_info *domains)
     return EOK;
 }
 
-static int append_data_provider(struct mt_ctx *ctx)
-{
-    int i;
-    char **new_services;
-
-    for (i = 0; ctx->services[i]; i++) {
-        if (strcasecmp(ctx->services[i], "dp") == 0) {
-            return EOK;
-        }
-    }
-
-    new_services = talloc_realloc(ctx, ctx->services, char *, i+2);
-    if (new_services == NULL) {
-        return ENOMEM;
-    }
-    ctx->services = new_services;
-
-    ctx->services[i] = talloc_asprintf(ctx, "dp");
-    if (ctx->services[i] == NULL) {
-        return ENOMEM;
-    }
-    ctx->services[i+1] = NULL;
-    DEBUG(4, ("Added mandatory service Data Provider\n"));
-
-    return EOK;
-}
-
 static int check_local_domain_unique(struct sss_domain_info *domains)
 {
     uint8_t count = 0;
@@ -863,11 +841,6 @@ int get_monitor_config(struct mt_ctx *ctx)
     if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
         return EINVAL;
-    }
-    ret = append_data_provider(ctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not add Data Provider to the list of services!\n"));
-        return ret;
     }
 
     ctx->domain_ctx = talloc_new(ctx);
@@ -2273,13 +2246,18 @@ static int start_service(struct mt_svc *svc, bool startup)
 
     DEBUG(4,("Queueing service %s for startup\n", svc->name));
 
-    /* at startup we need to start the data provider service before all others
-     * to avoid races where a service that need dp starts before it is ready
-     * to accept connections on its dbus. So if startup is true delay by 1
-     * second any process that is not the data provider */
+    /* at startup we need to start the data providers before the responders
+     * to avoid races where a service starts before sbus pipes are ready
+     * to accept connections. So if startup is true delay by 2 seconds any
+     * process that is not a data provider */
 
-    if (startup && strcasecmp(svc->name, "dp")) {
-        tv = tevent_timeval_current_ofs(1, 0);
+    /* FIXME: use stat to check the pipes are available instead and rescheduleif
+     * not */
+
+    if (startup &&
+        ((strcasecmp(svc->name, "nss") == 0) ||
+         (strcasecmp(svc->name, "pam") == 0))) {
+        tv = tevent_timeval_current_ofs(2, 0);
     } else {
         tv = tevent_timeval_current();
     }
@@ -2336,6 +2314,7 @@ static void service_startup_handler(struct tevent_context *ev,
         }
 
         /* Parent */
+        mt_svc->mt_ctx->check_children = true;
         mt_svc->failed_pongs = 0;
         DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
         talloc_set_destructor((TALLOC_CTX *)mt_svc, delist_service);
