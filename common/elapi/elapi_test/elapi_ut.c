@@ -50,20 +50,20 @@ int elapi_init_test(void)
     return 0;
 }
 
-int elapi_get_default_template_test(void)
+int elapi_get_default_tplt_test(void)
 {
-    struct collection_item *template;
+    struct collection_item *tpl;
     int error = 0;
 
-    printf("elapi_get_default_template_test test START:\n");
+    printf("elapi_get_default_tplt_test test START:\n");
 
-    error = elapi_get_default_template(&template);
+    error = elapi_get_default_tplt(&tpl);
     if (error) {
-        printf("elapi_get_default_template failed: %d", error);
+        printf("elapi_get_default_tplt failed: %d", error);
         return error;
     }
 
-    printf("elapi_get_default_template test success!\n");
+    printf("elapi_get_default_tplt test success!\n");
     return 0;
 }
 
@@ -75,7 +75,7 @@ int simple_event_test(void)
 
     printf("Simple test START:\n");
 
-    error = elapi_set_default_template(
+    error = elapi_set_default_tplt(
         E_BASE_DEFV1 | E_BASE_HOSTEXT /* FIXME Ticket #207 */,
         "%n( bin )", bin, 8,
         " %sb( logical1 )", "false",
@@ -165,7 +165,7 @@ int simple_event_test(void)
 int complex_event_test(void)
 {
     int error = 0;
-    struct collection_item *template = NULL;
+    struct collection_item *tpl = NULL;
     struct collection_item *event = NULL, *event_copy = NULL;
     char bin[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
     struct collection_item *col = NULL;
@@ -173,8 +173,8 @@ int complex_event_test(void)
 
     printf("Complex test START:\n");
 
-    error = elapi_create_event_template(
-        &template,
+    error = elapi_create_event_tplt(
+        &tpl,
         E_BASE_DEFV1 | E_BASE_HOSTEXT,
         "%lu(long_unsigned_number)", 123456789,
         "%s(just_string)", "string",
@@ -193,7 +193,7 @@ int complex_event_test(void)
 
     error = elapi_create_event(
         &event,
-        template,
+        tpl,
         NULL,
         0,
         " %db(evt_logical)", 0,
@@ -204,11 +204,11 @@ int complex_event_test(void)
 
     if (error) {
         printf("Failed to set create template %d\n", error);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         return error;
     }
 
-    col_debug_collection(template, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(tpl, COL_TRAVERSE_DEFAULT);
     col_debug_collection(event, COL_TRAVERSE_DEFAULT);
 
     error = elapi_log(E_TARGET_DEBUG, event);
@@ -221,10 +221,10 @@ int complex_event_test(void)
     }
 
 
-    elapi_destroy_event_template(template);
+    elapi_destroy_event_tplt(tpl);
 
-    error = elapi_create_event_template(
-        &template,
+    error = elapi_create_event_tplt(
+        &tpl,
         E_BASE_DEFV1 | E_BASE_HOSTEXT,
         "%n( bin )", bin, 8,
         " %sb( logical1 )", "false",
@@ -247,14 +247,14 @@ int complex_event_test(void)
         /* We are forcing overwrite with different type */
         (error = col_add_int_property(col, NULL, "unsigned_number", 1)) ||
         (error = col_add_long_property(col, NULL, "bin", 100000000L))) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to add property. Error %d\n", error);
         return error;
     }
 
     error = elapi_create_event(
         &event,
-        template,
+        tpl,
         col,
         COL_ADD_MODE_FLAT,
         E_MESSAGE,
@@ -264,14 +264,14 @@ int complex_event_test(void)
 
     if (error) {
         printf("Failed to set create template %d\n", error);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         col_destroy_collection(col);
         return error;
     }
 
     col_destroy_collection(col);
 
-    col_debug_collection(template, COL_TRAVERSE_DEFAULT);
+    col_debug_collection(tpl, COL_TRAVERSE_DEFAULT);
 
     printf("\nPRINTING EVENT\n\n");
     printf("\nPRINTING EVENT, removed message added bin\n\n");
@@ -282,7 +282,7 @@ int complex_event_test(void)
         /* We are forsing overwrite with different type */
         (error = col_add_int_property(col, NULL, "zzz", 1)) ||
         (error = col_add_long_property(col, NULL, "zzz2", 100000000L))) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to add property. Error %d\n", error);
         elapi_destroy_event(event);
         return error;
@@ -299,7 +299,7 @@ int complex_event_test(void)
     if (error) {
         printf("Failed to set create template %d\n", error);
         elapi_destroy_event(event);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         col_destroy_collection(col);
         return error;
     }
@@ -314,7 +314,7 @@ int complex_event_test(void)
         /* We are forsing overwrite with different type */
         (error = col_add_int_property(col, NULL, "zzz", 1)) ||
         (error = col_add_long_property(col, NULL, "zzz2", 100000000L))) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to add property. Error %d\n", error);
         elapi_destroy_event(event);
         return error;
@@ -329,7 +329,7 @@ int complex_event_test(void)
     if (error) {
         printf("Failed to set create template %d\n", error);
         elapi_destroy_event(event);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         col_destroy_collection(col);
         return error;
     }
@@ -343,7 +343,7 @@ int complex_event_test(void)
     if (error) {
         printf("Failed to set create template %d\n", error);
         elapi_destroy_event(event);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         return error;
     }
 
@@ -351,7 +351,7 @@ int complex_event_test(void)
     if (error) {
         elapi_destroy_event(event);
         elapi_destroy_event(event_copy);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to create dispatcher %d\n", error);
         return error;
     }
@@ -362,7 +362,7 @@ int complex_event_test(void)
 
     if (error) {
         elapi_destroy_event(event_copy);
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to log event! %d\n", error);
         return error;
     }
@@ -372,54 +372,54 @@ int complex_event_test(void)
     elapi_destroy_event(event_copy);
 
     if (error) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to log event! %d\n", error);
         return error;
     }
 
-    error = elapi_dsp_msg(E_TARGET_DEBUG, dispatcher, template, "a", "b", "c", "d", E_EOARG);
+    error = elapi_dsp_msg(E_TARGET_DEBUG, dispatcher, tpl, "a", "b", "c", "d", E_EOARG);
     if (error) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to log event! %d\n", error);
         return error;
     }
 
     error = elapi_dsp_msg(E_TARGET_DEBUG, dispatcher, NULL, "a", "b", "c", "d", E_EOARG);
     if (error) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to log event! %d\n", error);
         return error;
     }
 
     error = elapi_dsp_msg(E_TARGET_DEBUG,
                           dispatcher,
-                          template,
+                          tpl,
                           E_MESSAGE,
                           "date = %(R_stamp__), pid = %(__pid__), "
                           "hostname = %(__host__), %(__halias__), "
                           "ip = %(__ip__), [%(__iplist__);%(!__iplist__);%(__iplist__)]"  ,
                           E_EOARG);
     if (error) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to log event! %d\n", error);
         return error;
     }
 
     error = elapi_dsp_msg(E_TARGET_DEBUG,
                           dispatcher,
-                          template,
+                          tpl,
                           E_MESSAGE,
                           "date = %(R_stamp__), pid = %(__pid__), "
                           "hostname = %(__host__), %(__halias__), "
                           "ip = %(__ip__), [%(__iplist__);%(__iplist__);%(__iplist__)]"  ,
                           E_EOARG);
     if (error) {
-        elapi_destroy_event_template(template);
+        elapi_destroy_event_tplt(tpl);
         printf("Failed to log event! %d\n", error);
         return error;
     }
 
-    elapi_destroy_event_template(template);
+    elapi_destroy_event_tplt(tpl);
 
     elapi_print_dispatcher(dispatcher);
 
@@ -435,7 +435,7 @@ int main(int argc, char *argv[])
 {
     int error = 0;
     test_fn tests[] = { elapi_init_test,
-                        elapi_get_default_template_test,
+                        elapi_get_default_tplt_test,
                         simple_event_test,
                         complex_event_test,
                         NULL };

@@ -38,7 +38,7 @@
 #define COL_CLASS_ELAPI_RES_ITEM    COL_CLASS_ELAPI_BASE + 5
 
 /* Names for the collections */
-#define E_TEMPLATE_NAME "template"
+#define E_TEMPLATE_NAME "tplt"
 #define E_EVENT_NAME "event"
 
 /* Constants used in INI file and in
@@ -110,7 +110,7 @@ struct elapi_dispatcher {
     /* Items to resolve */
     struct collection_iterator *resolve_list;
     /* Default event template */
-    struct collection_item *default_template;
+    struct collection_item *default_tpl;
     /* Async processing related data */
     struct elapi_async_ctx *async_ctx;
 };
@@ -236,14 +236,14 @@ int elapi_init_resolve_list(struct collection_iterator **list);
 
 /* Function to create event using arg list */
 int elapi_create_event_with_vargs(struct collection_item **event,
-                                  struct collection_item *template,
+                                  struct collection_item *tpl,
                                   struct collection_item *collection,
                                   int mode, va_list args);
 
 /* Function to create event template using arg list */
-int elapi_create_event_template_with_vargs(struct collection_item **template,
-                                           unsigned base,
-                                           va_list args);
+int elapi_create_event_tplt_with_vargs(struct collection_item **tpl,
+                                       unsigned base,
+                                       va_list args);
 
 /* Sink handler function */
 int elapi_sink_cb(const char *sink,

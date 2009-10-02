@@ -128,11 +128,11 @@
  * The list of key value pairs MUST be terminated by special
  * argument E_EOARG.
  */
-int elapi_create_event_template(struct collection_item **template,
-                                unsigned base, ...);
+int elapi_create_event_tplt(struct collection_item **tpl,
+                            unsigned base, ...);
 
 /* Function to destroy event template */
-void elapi_destroy_event_template(struct collection_item *template);
+void elapi_destroy_event_tplt(struct collection_item *tpl);
 
 /***************************************************************************/
 /* Creates a new event using template (must be provided)
@@ -143,7 +143,7 @@ void elapi_destroy_event_template(struct collection_item *template);
  * See example for details about format specification.
  */
 int elapi_create_event(struct collection_item **event,
-                       struct collection_item *template,
+                       struct collection_item *tpl,
                        struct collection_item *collection,
                        int mode, ...);
 
@@ -163,10 +163,10 @@ void elapi_destroy_event(struct collection_item *event);
 /* TREAD UNSAFE ELAPI EVENT API - for simple use cases                     */
 /***************************************************************************/
 /* Initializes default internal template */
-int elapi_set_default_template(unsigned base, ...);
+int elapi_set_default_tplt(unsigned base, ...);
 
 /* Retrieve default template */
-int elapi_get_default_template(struct collection_item **template);
+int elapi_get_default_tplt(struct collection_item **tpl);
 
 
 /* This function will use internal default template.

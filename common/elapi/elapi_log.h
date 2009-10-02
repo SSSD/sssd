@@ -82,7 +82,7 @@ int elapi_dsp_log(uint32_t target,
 /* Function to log raw key value pairs without creating an event */
 int elapi_dsp_msg(uint32_t target,
                   struct elapi_dispatcher *dispatcher,
-                  struct collection_item *template,
+                  struct collection_item *tpl,
                   ...);
 
 /********** Advanced dispatcher management functions **********/
@@ -137,7 +137,7 @@ int elapi_init(const char *appname, const char *config_path);
 
 /* Log key value pairs  */
 int elapi_msg(uint32_t target,
-              struct collection_item *template, ...);
+              struct collection_item *tpl, ...);
 
 /* Log event  */
 int elapi_log(uint32_t target,

@@ -777,90 +777,90 @@ static int process_arg_list(struct collection_item *col,
 
 /*****************************************************************************/
 /* Create event template */
-int elapi_create_event_template_with_vargs(struct collection_item **template,
-                                           unsigned base,
-                                           va_list args)
+int elapi_create_event_tplt_with_vargs(struct collection_item **tpl,
+                                       unsigned base,
+                                       va_list args)
 {
     int error = EOK;
-    struct collection_item *tpl = NULL;
+    struct collection_item *new_tpl = NULL;
 
-    TRACE_FLOW_STRING("elapi_create_event_template_with_vargs", "Entry");
+    TRACE_FLOW_STRING("elapi_create_event_tplt_with_vargs", "Entry");
 
-    if (template == NULL ) {
+    if (tpl == NULL ) {
         TRACE_ERROR_STRING("Template storage must be provided", "");
         return EINVAL;
     }
 
-    *template = NULL;
+    *tpl = NULL;
 
     /* Create collection */
-    error = col_create_collection(&tpl, E_TEMPLATE_NAME, COL_CLASS_ELAPI_TEMPLATE);
+    error = col_create_collection(&new_tpl, E_TEMPLATE_NAME, COL_CLASS_ELAPI_TEMPLATE);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to create collection. Error", error);
         return error;
     }
 
     /* Add elements using base mask */
-    error = add_base_elements(tpl, base);
+    error = add_base_elements(new_tpl, base);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to add base elements. Error", error);
-        col_destroy_collection(tpl);
+        col_destroy_collection(new_tpl);
         return error;
     }
 
     /* Process variable argument list */
-    error = process_arg_list(tpl, args);
+    error = process_arg_list(new_tpl, args);
 
     if (error) {
         TRACE_ERROR_NUMBER("Failed to process argument list. Error", error);
-        col_destroy_collection(tpl);
+        col_destroy_collection(new_tpl);
         return error;
     }
 
-    *template = tpl;
+    *tpl = new_tpl;
 
-    TRACE_FLOW_STRING("elapi_create_event_template_with_vargs", "Exit");
+    TRACE_FLOW_STRING("elapi_create_event_tplt_with_vargs", "Exit");
     return error;
 }
 
 
 /* Create event template */
-int elapi_create_event_template(struct collection_item **template,
-                                unsigned base, ...)
+int elapi_create_event_tplt(struct collection_item **tpl,
+                            unsigned base, ...)
 {
     int error = EOK;
     va_list args;
 
-    TRACE_FLOW_STRING("elapi_create_event_template", "Entry");
+    TRACE_FLOW_STRING("elapi_create_event_tplt", "Entry");
 
     /* Process varible arguments */
     va_start(args, base);
 
     /* Create template using arguments  */
-    error = elapi_create_event_template_with_vargs(template,
-                                                   base,
-                                                   args);
+    error = elapi_create_event_tplt_with_vargs(tpl,
+                                               base,
+                                               args);
 
     va_end(args);
 
-    TRACE_FLOW_STRING("elapi_create_event_template", "Exit");
+    TRACE_FLOW_STRING("elapi_create_event_tplt", "Exit");
     return error;
 }
 
 /* Function to destroy event template */
-void elapi_destroy_event_template(struct collection_item *template)
+void elapi_destroy_event_tplt(struct collection_item *tpl)
 {
-    TRACE_FLOW_STRING("elapi_destroy_event_template", "Entry");
+    TRACE_FLOW_STRING("elapi_destroy_event_tplt", "Entry");
 
-    col_destroy_collection(template);
+    col_destroy_collection(tpl);
 
-    TRACE_FLOW_STRING("elapi_destroy_event_template", "Exit");
+    TRACE_FLOW_STRING("elapi_destroy_event_tplt", "Exit");
 }
 
 
 /* Create event from template, colection and arguments */
 int elapi_create_event_with_vargs(struct collection_item **event,
-                                  struct collection_item *template,
+                                  struct collection_item *tpl,
                                   struct collection_item *collection,
                                   int mode, va_list args)
 {
@@ -887,9 +887,9 @@ int elapi_create_event_with_vargs(struct collection_item **event,
 
     /* Add elements from the template */
     /* Check for template */
-    if (template != NULL) {
+    if (tpl != NULL) {
         error = col_add_collection_to_collection(evt, NULL, NULL,
-                                                 (struct collection_item *)template,
+                                                 (struct collection_item *)tpl,
                                                  COL_ADD_MODE_FLAT);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to add elements from the template. Error", error);
@@ -934,7 +934,7 @@ int elapi_create_event_with_vargs(struct collection_item **event,
 
 /* Create event a wrapper around a function with arg list */
 int elapi_create_event(struct collection_item **event,
-                       struct collection_item *template,
+                       struct collection_item *tpl,
                        struct collection_item *collection,
                        int mode, ...)
 {
@@ -946,7 +946,7 @@ int elapi_create_event(struct collection_item **event,
     va_start(args, mode);
 
     error = elapi_create_event_with_vargs(event,
-                                          template,
+                                          tpl,
                                           collection,
                                           mode,
                                           args);

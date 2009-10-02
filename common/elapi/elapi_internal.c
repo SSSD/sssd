@@ -728,7 +728,7 @@ void elapi_print_dispatcher(struct elapi_dispatcher *handle)
     printf("\n\nConfig collection:\n\n");
     if (handle->ini_config) col_debug_collection(handle->ini_config, COL_TRAVERSE_DEFAULT);
     printf("\nDefault template:\n\n");
-    if (handle->default_template) col_debug_collection(handle->default_template, COL_TRAVERSE_DEFAULT);
+    if (handle->default_tpl) col_debug_collection(handle->default_tpl, COL_TRAVERSE_DEFAULT);
 
     printf("\n\nDeep target inspection:\n\n");
     if (handle->target_list) {

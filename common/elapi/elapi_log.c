@@ -55,7 +55,7 @@ static int elapi_close_registered = 0;
 /* Internal function to log message using args */
 static int elapi_dsp_msg_with_vargs(uint32_t target,
                                     struct elapi_dispatcher *dispatcher,
-                                    struct collection_item *template,
+                                    struct collection_item *tpl,
                                     va_list args)
 {
 	int error = EOK;
@@ -70,7 +70,7 @@ static int elapi_dsp_msg_with_vargs(uint32_t target,
 
     /* Create event */
     error = elapi_create_event_with_vargs(&event,
-                                          template,
+                                          tpl,
                                           NULL,
                                           0,
                                           args);
@@ -395,7 +395,7 @@ void elapi_destroy_dispatcher(struct elapi_dispatcher *dispatcher)
 
     if (dispatcher) {
         TRACE_INFO_STRING("Deleting template if any...", "");
-        col_destroy_collection(dispatcher->default_template);
+        col_destroy_collection(dispatcher->default_tpl);
 
         if (dispatcher->target_list) {
             TRACE_INFO_STRING("Closing target list.", "");
@@ -479,13 +479,13 @@ int elapi_dsp_log(uint32_t target,
 }
 
 /* Initializes default internal template */
-int elapi_set_default_template(unsigned base, ...)
+int elapi_set_default_tplt(unsigned base, ...)
 {
     int error = EOK;
     struct collection_item *tpl = NULL;
     va_list args;
 
-    TRACE_FLOW_STRING("elapi_set_default_template", "Entry");
+    TRACE_FLOW_STRING("elapi_set_default_tplt", "Entry");
 
     if (global_dispatcher == NULL) {
         error = elapi_init(NULL, NULL);
@@ -496,16 +496,16 @@ int elapi_set_default_template(unsigned base, ...)
     }
 
     /* Clean previous instance of the default template */
-    elapi_destroy_event_template(global_dispatcher->default_template);
-    global_dispatcher->default_template = NULL;
+    elapi_destroy_event_tplt(global_dispatcher->default_tpl);
+    global_dispatcher->default_tpl = NULL;
 
     /* Process varible arguments */
     va_start(args, base);
 
     /* Create template out of base and args */
-    error = elapi_create_event_template_with_vargs(&tpl,
-                                                   base,
-                                                   args);
+    error = elapi_create_event_tplt_with_vargs(&tpl,
+                                               base,
+                                               args);
     va_end(args);
 
     if (error) {
@@ -513,32 +513,32 @@ int elapi_set_default_template(unsigned base, ...)
         return error;
     }
 
-    global_dispatcher->default_template = tpl;
+    global_dispatcher->default_tpl = tpl;
 
-    TRACE_FLOW_STRING("elapi_set_default_template", "Exit");
+    TRACE_FLOW_STRING("elapi_set_default_tplt", "Exit");
     return error;
 }
 
 /* There is one default template associated with the dispatcher */
-int elapi_get_default_template(struct collection_item **template)
+int elapi_get_default_tplt(struct collection_item **tpl)
 {
     int error = EOK;
 
-    TRACE_FLOW_STRING("elapi_get_default_template", "Entry");
+    TRACE_FLOW_STRING("elapi_get_default_tplt", "Entry");
 
     if ((global_dispatcher == NULL) ||
-        (global_dispatcher->default_template == NULL)) {
+        (global_dispatcher->default_tpl == NULL)) {
         TRACE_INFO_STRING("Default template does not exit", "");
 
-        error = elapi_set_default_template(E_BASE_DEFV1, E_EOARG);
+        error = elapi_set_default_tplt(E_BASE_DEFV1, E_EOARG);
         if (error) {
             TRACE_ERROR_NUMBER("Set default template returned error", error);
             return error;
         }
     }
 
-    *template = global_dispatcher->default_template;
-    TRACE_FLOW_NUMBER("elapi_get_default_template. Exit returning", error);
+    *tpl = global_dispatcher->default_tpl;
+    TRACE_FLOW_NUMBER("elapi_get_default_tplt. Exit returning", error);
     return error;
 }
 
@@ -547,7 +547,7 @@ int elapi_get_default_template(struct collection_item **template)
 /* Function to log raw key value pairs without creating an event */
 int elapi_dsp_msg(uint32_t target,
                   struct elapi_dispatcher *dispatcher,
-                  struct collection_item *template,
+                  struct collection_item *tpl,
                   ...)
 {
     int error = EOK;
@@ -555,9 +555,9 @@ int elapi_dsp_msg(uint32_t target,
 
     TRACE_FLOW_STRING("elapi_dsp_msg", "Entry");
 
-    va_start(args, template);
+    va_start(args, tpl);
 
-    error = elapi_dsp_msg_with_vargs(target, dispatcher, template, args);
+    error = elapi_dsp_msg_with_vargs(target, dispatcher, tpl, args);
 
     va_end(args);
 
@@ -620,7 +620,7 @@ int elapi_create_simple_event(struct collection_item **event, ...)
     int error = EOK;
     struct collection_item *evt = NULL;
     va_list args;
-    struct collection_item *template = NULL;
+    struct collection_item *tpl = NULL;
 
     TRACE_FLOW_STRING("elapi_create_simple_event", "Entry");
 
@@ -633,7 +633,7 @@ int elapi_create_simple_event(struct collection_item **event, ...)
     *event = NULL;
 
     /* Get default template */
-    error = elapi_get_default_template(&template);
+    error = elapi_get_default_tplt(&tpl);
     if (error) {
         TRACE_ERROR_NUMBER("Failed to get default template. Error", error);
         return error;
@@ -643,7 +643,7 @@ int elapi_create_simple_event(struct collection_item **event, ...)
 
     /* Create event */
     error = elapi_create_event_with_vargs(&evt,
-                                          template,
+                                          tpl,
                                           NULL,
                                           0,
                                           args);
@@ -663,29 +663,29 @@ int elapi_create_simple_event(struct collection_item **event, ...)
 }
 
 /* Log key value pairs  */
-int elapi_msg(uint32_t target, struct collection_item *template, ...)
+int elapi_msg(uint32_t target, struct collection_item *tpl, ...)
 {
     int error = EOK;
     va_list args;
-    struct collection_item *use_template;
+    struct collection_item *use_tpl;
 
     TRACE_FLOW_STRING("elapi_msg", "Entry");
 
-    if (!template) {
+    if (!tpl) {
         /* Get default template */
-        error = elapi_get_default_template(&use_template);
+        error = elapi_get_default_tplt(&use_tpl);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to get default template. Error", error);
             return error;
         }
     }
-    else use_template = template;
+    else use_tpl = tpl;
 
-    va_start(args, template);
+    va_start(args, tpl);
 
     error = elapi_dsp_msg_with_vargs(target,
                                      global_dispatcher,
-                                     use_template,
+                                     use_tpl,
                                      args);
 
     va_end(args);
