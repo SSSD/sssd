@@ -651,6 +651,111 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
     return;
 }
 
+static int get_authtok_for_authentication(pam_handle_t *pamh,
+                                          struct pam_items *pi,
+                                          uint32_t flags)
+{
+    int ret;
+
+    if (flags & FLAGS_USE_FIRST_PASS) {
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_authtok = strdup(pi->pamstack_authtok);
+        if (pi->pam_authtok == NULL) {
+            D(("option use_first_pass set, but no password found"));
+            return PAM_BUF_ERR;
+        }
+        pi->pam_authtok_size = strlen(pi->pam_authtok);
+    } else {
+        ret = prompt_password(pamh, pi);
+        if (ret != PAM_SUCCESS) {
+            D(("failed to get password from user"));
+            return ret;
+        }
+
+        if (flags & FLAGS_FORWARD_PASS) {
+            ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_authtok);
+            if (ret != PAM_SUCCESS) {
+                D(("Failed to set PAM_AUTHTOK [%s], "
+                   "authtok may not be available for other modules",
+                   pam_strerror(pamh,ret)));
+            }
+        }
+    }
+
+    return PAM_SUCCESS;
+}
+
+static int get_authtok_for_password_change(pam_handle_t *pamh,
+                                           struct pam_items *pi,
+                                           uint32_t flags,
+                                           int pam_flags)
+{
+    int ret;
+
+    /* we query for the old password during PAM_PRELIM_CHECK to make
+     * pam_sss work e.g. with pam_cracklib */
+    if (pam_flags & PAM_PRELIM_CHECK) {
+        if (getuid() != 0 && !(flags & FLAGS_USE_FIRST_PASS)) {
+            ret = prompt_password(pamh, pi);
+            if (ret != PAM_SUCCESS) {
+                D(("failed to get password from user"));
+                return ret;
+            }
+
+            ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi->pam_authtok);
+            if (ret != PAM_SUCCESS) {
+                D(("Failed to set PAM_OLDAUTHTOK [%s], "
+                   "oldauthtok may not be available",
+                   pam_strerror(pamh,ret)));
+                   return ret;
+            }
+        }
+
+        return PAM_SUCCESS;
+    }
+
+    if (getuid() != 0) {
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
+        if (pi->pam_authtok == NULL) {
+            D(("no password found for chauthtok"));
+            return PAM_BUF_ERR;
+        }
+        pi->pam_authtok_size = strlen(pi->pam_authtok);
+    } else {
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+        pi->pam_authtok = NULL;
+        pi->pam_authtok_size = 0;
+    }
+
+    if (flags & FLAGS_USE_AUTHTOK) {
+        pi->pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_newauthtok =  strdup(pi->pamstack_authtok);
+        if (pi->pam_newauthtok == NULL) {
+            D(("option use_authtok set, but no new password found"));
+            return PAM_BUF_ERR;
+        }
+        pi->pam_newauthtok_size = strlen(pi->pam_newauthtok);
+    } else {
+        ret = prompt_new_password(pamh, pi);
+        if (ret != PAM_SUCCESS) {
+            D(("failed to get new password from user"));
+            return ret;
+        }
+
+        if (flags & FLAGS_FORWARD_PASS) {
+            ret = pam_set_item(pamh, PAM_AUTHTOK, pi->pam_newauthtok);
+            if (ret != PAM_SUCCESS) {
+                D(("Failed to set PAM_AUTHTOK [%s], "
+                   "oldauthtok may not be available",
+                   pam_strerror(pamh,ret)));
+            }
+        }
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                    int pam_flags, int argc, const char **argv)
 {
@@ -673,82 +778,23 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     switch(task) {
         case SSS_PAM_AUTHENTICATE:
-            if (flags & FLAGS_USE_FIRST_PASS) {
-                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-                pi.pam_authtok = strdup(pi.pamstack_authtok);
-                if (pi.pam_authtok == NULL) {
-                    D(("option use_first_pass set, but no password found"));
-                    return PAM_BUF_ERR;
-                }
-                pi.pam_authtok_size = strlen(pi.pam_authtok);
-            } else {
-                prompt_password(pamh, &pi);
-
-                if (flags & FLAGS_FORWARD_PASS) {
-                    ret = pam_set_item(pamh, PAM_AUTHTOK, pi.pam_authtok);
-                    if (ret != PAM_SUCCESS) {
-                        D(("Failed to set PAM_AUTHTOK [%s], "
-                           "authtok may not be available for other modules",
-                           pam_strerror(pamh,ret)));
-                    }
-                }
+            ret = get_authtok_for_authentication(pamh, &pi, flags);
+            if (ret != PAM_SUCCESS) {
+                D(("failed to get authentication token: %s",
+                   pam_strerror(pamh, ret)));
+                return ret;
             }
-
             break;
         case SSS_PAM_CHAUTHTOK:
-            /* we query for the old password during PAM_PRELIM_CHECK to make
-             * pam_sss work e.g. with pam_cracklib */
+            ret = get_authtok_for_password_change(pamh, &pi, flags, pam_flags);
+            if (ret != PAM_SUCCESS) {
+                D(("failed to get tokens for password change: %s",
+                   pam_strerror(pamh, ret)));
+                return ret;
+            }
             if (pam_flags & PAM_PRELIM_CHECK) {
-                if (getuid() != 0 && !(flags & FLAGS_USE_FIRST_PASS)) {
-                    prompt_password(pamh, &pi);
-
-                    ret = pam_set_item(pamh, PAM_OLDAUTHTOK, pi.pam_authtok);
-                    if (ret != PAM_SUCCESS) {
-                        D(("Failed to set PAM_OLDAUTHTOK [%s], "
-                           "oldauthtok may not be available",
-                           pam_strerror(pamh,ret)));
-                           return ret;
-                    }
-                }
-
-                return PAM_SUCCESS;
+                return ret;
             }
-
-            if (getuid() != 0) {
-                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-                pi.pam_authtok = strdup(pi.pamstack_oldauthtok);
-                if (pi.pam_authtok == NULL) {
-                    D(("no password found for chauthtok"));
-                    return PAM_BUF_ERR;
-                }
-                pi.pam_authtok_size = strlen(pi.pam_authtok);
-            } else {
-                pi.pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-                pi.pam_authtok = NULL;
-                pi.pam_authtok_size = 0;
-            }
-
-            if (flags & FLAGS_USE_AUTHTOK) {
-                pi.pam_newauthtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-                pi.pam_newauthtok =  strdup(pi.pamstack_authtok);
-                if (pi.pam_newauthtok == NULL) {
-                    D(("option use_authtok set, but no new password found"));
-                    return PAM_BUF_ERR;
-                }
-                pi.pam_newauthtok_size = strlen(pi.pam_newauthtok);
-            } else {
-                prompt_new_password(pamh, &pi);
-
-                if (flags & FLAGS_FORWARD_PASS) {
-                    ret = pam_set_item(pamh, PAM_AUTHTOK, pi.pam_newauthtok);
-                    if (ret != PAM_SUCCESS) {
-                        D(("Failed to set PAM_AUTHTOK [%s], "
-                           "oldauthtok may not be available",
-                           pam_strerror(pamh,ret)));
-                    }
-                }
-            }
-
             break;
         case SSS_PAM_ACCT_MGMT:
         case SSS_PAM_SETCRED:
