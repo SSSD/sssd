@@ -44,6 +44,7 @@
 } while(0)
 
 struct sync_op_res {
+    struct ops_ctx *data;
     int error;
     bool done;
 };
@@ -1138,6 +1139,10 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
 
     if (homedir) {
         data->home = talloc_strdup(data, homedir);
+        if (data->home == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     } else {
         ret = confdb_get_string(confdb, mem_ctx,
                                 conf_path, CONFDB_LOCAL_DEFAULT_BASEDIR,
@@ -1544,5 +1549,201 @@ static void end_transaction_done(struct tevent_req *req)
     tctx->transaction_done = true;
     tctx->error = ret;
     talloc_zfree(req);
+}
+
+/*
+ * getpwnam, getgrnam and friends
+ */
+static void sss_getpwnam_done(void *ptr, int status,
+                              struct ldb_result *lrs);
+
+int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct sysdb_ctx *sysdb,
+                        const char *name,
+                        struct sss_domain_info *domain,
+                        struct ops_ctx **out)
+{
+    int ret;
+    struct sync_op_res *res = NULL;
+
+    res = talloc_zero(mem_ctx, struct sync_op_res);
+    if (!res) {
+        return ENOMEM;
+    }
+
+    if (out == NULL) {
+        DEBUG(1, ("NULL passed for storage pointer\n"));
+        return EINVAL;
+    }
+    res->data = *out;
+
+    ret = sysdb_getpwnam(mem_ctx,
+                         sysdb,
+                         domain,
+                         name,
+                         sss_getpwnam_done,
+                         res);
+
+    SYNC_LOOP(res, ret);
+
+    return ret;
+}
+
+static void sss_getpwnam_done(void *ptr, int status,
+                              struct ldb_result *lrs)
+{
+    struct sync_op_res *res = talloc_get_type(ptr, struct sync_op_res );
+    const char *str;
+
+    res->done = true;
+
+    if (status != LDB_SUCCESS) {
+        res->error = status;
+        return;
+    }
+
+    switch (lrs->count) {
+        case 0:
+            DEBUG(1, ("No result for sysdb_getpwnam call\n"));
+            res->error = ENOENT;
+            break;
+
+        case 1:
+            res->error = EOK;
+            /* fill ops_ctx */
+            res->data->uid = ldb_msg_find_attr_as_uint64(lrs->msgs[0],
+                                                         SYSDB_UIDNUM, 0);
+
+            res->data->gid = ldb_msg_find_attr_as_uint64(lrs->msgs[0],
+                                                         SYSDB_GIDNUM, 0);
+
+            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
+                                              SYSDB_NAME, NULL);
+            res->data->name = talloc_strdup(res, str);
+            if (res->data->name == NULL) {
+                res->error = ENOMEM;
+                return;
+            }
+
+            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
+                                              SYSDB_GECOS, NULL);
+            res->data->gecos = talloc_strdup(res, str);
+            if (res->data->gecos == NULL) {
+                res->error = ENOMEM;
+                return;
+            }
+
+            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
+                                              SYSDB_HOMEDIR, NULL);
+            res->data->home = talloc_strdup(res, str);
+            if (res->data->home == NULL) {
+                res->error = ENOMEM;
+                return;
+            }
+
+            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
+                                              SYSDB_SHELL, NULL);
+            res->data->shell = talloc_strdup(res, str);
+            if (res->data->shell == NULL) {
+                res->error = ENOMEM;
+                return;
+            }
+
+            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
+                                              SYSDB_DISABLED, NULL);
+            if (str == NULL) {
+                res->data->lock = DO_UNLOCK;
+            } else {
+                if (strcasecmp(str, "true") == 0) {
+                    res->data->lock = DO_LOCK;
+                } else if (strcasecmp(str, "false") == 0) {
+                    res->data->lock = DO_UNLOCK;
+                } else { /* Invalid value */
+                    DEBUG(2, ("Invalid value for %s attribute: %s\n",
+                              SYSDB_DISABLED, str ? str : "NULL"));
+                    res->error = EIO;
+                    return;
+                }
+            }
+            break;
+
+        default:
+            DEBUG(1, ("More than one result for sysdb_getpwnam call\n"));
+            res->error = EIO;
+            break;
+    }
+}
+
+static void sss_getgrnam_done(void *ptr, int status,
+                              struct ldb_result *lrs);
+
+int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
+                        struct tevent_context *ev,
+                        struct sysdb_ctx *sysdb,
+                        const char *name,
+                        struct sss_domain_info *domain,
+                        struct ops_ctx **out)
+{
+    int ret;
+    struct sync_op_res *res = NULL;
+
+    res = talloc_zero(mem_ctx, struct sync_op_res);
+    if (!res) {
+        return ENOMEM;
+    }
+
+    if (out == NULL) {
+        DEBUG(1, ("NULL passed for storage pointer\n"));
+        return EINVAL;
+    }
+    res->data = *out;
+
+    ret = sysdb_getgrnam(mem_ctx,
+                         sysdb,
+                         domain,
+                         name,
+                         sss_getgrnam_done,
+                         res);
+
+    SYNC_LOOP(res, ret);
+
+    return ret;
+}
+
+static void sss_getgrnam_done(void *ptr, int status,
+                              struct ldb_result *lrs)
+{
+    struct sync_op_res *res = talloc_get_type(ptr, struct sync_op_res );
+    const char *str;
+
+    res->done = true;
+
+    if (status != LDB_SUCCESS) {
+        res->error = status;
+        return;
+    }
+
+    switch (lrs->count) {
+        case 0:
+            DEBUG(1, ("No result for sysdb_getgrnam call\n"));
+            res->error = ENOENT;
+            break;
+
+            /* sysdb_getgrnam also returns members */
+        default:
+            res->error = EOK;
+            /* fill ops_ctx */
+            res->data->gid = ldb_msg_find_attr_as_uint64(lrs->msgs[0],
+                                                         SYSDB_GIDNUM, 0);
+            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
+                                              SYSDB_NAME, NULL);
+            res->data->name = talloc_strdup(res, str);
+            if (res->data->name == NULL) {
+                res->error = ENOMEM;
+                return;
+            }
+            break;
+    }
 }
 

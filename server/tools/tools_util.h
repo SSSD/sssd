@@ -72,4 +72,8 @@ int parse_groups(TALLOC_CTX *mem_ctx,
 int parse_group_name_domain(struct tools_ctx *tctx,
                             char **groups);
 
+int check_group_names(struct tools_ctx *tctx,
+                      char **grouplist,
+                      char **badgroup);
+
 #endif  /* __TOOLS_UTIL_H__ */

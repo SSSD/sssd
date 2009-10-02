@@ -125,6 +125,10 @@ done:
     if (tctx->error) {
         ret = tctx->error;
         switch (ret) {
+            case ERANGE:
+                ERROR("Could not allocate ID for the group - domain full?\n");
+                break;
+
             case EEXIST:
                 ERROR("A group with the same name or GID already exists\n");
                 break;

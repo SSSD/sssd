@@ -53,6 +53,7 @@ int main(int argc, const char **argv)
     char *addgroups = NULL, *rmgroups = NULL;
     int ret;
     const char *pc_groupname = NULL;
+    char *badgroup = NULL;
 
     debug_prg_name = argv[0];
 
@@ -117,6 +118,17 @@ int main(int argc, const char **argv)
         ret = EXIT_FAILURE;
         goto fini;
     }
+    /* check the username to be able to give sensible error message */
+    ret = sysdb_getgrnam_sync(tctx, tctx->ev, tctx->sysdb,
+                              tctx->octx->name, tctx->local,
+                              &tctx->octx);
+    if (ret != EOK) {
+        ERROR("Cannot find group in local domain, "
+              "modifying groups is allowed only in local domain\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
 
     tctx->octx->gid = pc_gid;
 
@@ -125,6 +137,7 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to add the group to\n"));
             ERROR("Internal error while parsing parameters\n");
+            ret = EXIT_FAILURE;
             goto fini;
         }
 
@@ -132,6 +145,16 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse FQDN groups to add the group to\n"));
             ERROR("Member groups must be in the same domain as parent group\n");
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+
+        /* Check group names in the LOCAL domain */
+        ret = check_group_names(tctx, tctx->octx->addgroups, &badgroup);
+        if (ret != EOK) {
+            ERROR("Cannot find group %s in local domain, "
+                  "only groups in local domain are allowed\n", badgroup);
+            ret = EXIT_FAILURE;
             goto fini;
         }
     }
@@ -141,6 +164,7 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to remove the group from\n"));
             ERROR("Internal error while parsing parameters\n");
+            ret = EXIT_FAILURE;
             goto fini;
         }
 
@@ -148,6 +172,16 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse FQDN groups to remove the group from\n"));
             ERROR("Member groups must be in the same domain as parent group\n");
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+
+        /* Check group names in the LOCAL domain */
+        ret = check_group_names(tctx, tctx->octx->rmgroups, &badgroup);
+        if (ret != EOK) {
+            ERROR("Cannot find group %s in local domain, "
+                  "only groups in local domain are allowed\n", badgroup);
+            ret = EXIT_FAILURE;
             goto fini;
         }
     }

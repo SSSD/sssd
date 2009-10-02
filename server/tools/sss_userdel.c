@@ -23,8 +23,6 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
-#include <pwd.h>
-#include <unistd.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
@@ -35,7 +33,6 @@ int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     struct tools_ctx *tctx = NULL;
-    struct passwd *pwd_info;
     const char *pc_username = NULL;
 
     int pc_debug = 0;
@@ -93,18 +90,6 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    /* arguments processed, go on to actual work */
-    pwd_info = getpwnam(tctx->octx->name);
-    if (pwd_info) {
-        tctx->octx->uid = pwd_info->pw_uid;
-    }
-
-    if (id_in_range(tctx->octx->uid, tctx->octx->domain) != EOK) {
-        ERROR("The selected UID is outside the allowed range\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     start_transaction(tctx);
     if (tctx->error != EOK) {
         goto done;
@@ -128,7 +113,8 @@ done:
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
-                ERROR("No such user\n");
+                ERROR("No such user in local domain. "
+                      "Removing users only allowed in local domain.\n");
                 break;
 
             default:

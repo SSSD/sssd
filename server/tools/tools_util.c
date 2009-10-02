@@ -191,6 +191,37 @@ int parse_name_domain(struct tools_ctx *tctx,
     return EOK;
 }
 
+int check_group_names(struct tools_ctx *tctx,
+                      char **grouplist,
+                      char **badgroup)
+{
+    int ret;
+    int i;
+    struct ops_ctx *groupinfo;
+
+    groupinfo = talloc_zero(tctx, struct ops_ctx);
+    if (!groupinfo) {
+        return ENOMEM;
+    }
+
+    for (i=0; grouplist[i]; ++i) {
+        ret = sysdb_getgrnam_sync(tctx,
+                                  tctx->ev,
+                                  tctx->sysdb,
+                                  grouplist[i],
+                                  tctx->local,
+                                  &groupinfo);
+        if (ret) {
+            DEBUG(6, ("Cannot find group %s, ret: %d\n", grouplist[i], ret));
+            break;
+        }
+    }
+
+    talloc_zfree(groupinfo);
+    *badgroup = grouplist[i];
+    return ret;
+}
+
 int id_in_range(uint32_t id,
                 struct sss_domain_info *dom)
 {

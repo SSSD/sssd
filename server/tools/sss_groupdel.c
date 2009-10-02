@@ -23,8 +23,6 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
-#include <grp.h>
-#include <unistd.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
@@ -35,7 +33,6 @@ int main(int argc, const char **argv)
 {
     int ret = EXIT_SUCCESS;
     int pc_debug = 0;
-    struct group *grp_info;
     const char *pc_groupname = NULL;
     struct tools_ctx *tctx = NULL;
 
@@ -93,19 +90,6 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    /* arguments processed, go on to actual work */
-    grp_info = getgrnam(tctx->octx->name);
-    if (grp_info) {
-        tctx->octx->gid = grp_info->gr_gid;
-    }
-
-    /* arguments processed, go on to actual work */
-    if (id_in_range(tctx->octx->uid, tctx->octx->domain) != EOK) {
-        ERROR("The selected GID is outside the allowed range\n");
-        ret = EXIT_FAILURE;
-        goto fini;
-    }
-
     start_transaction(tctx);
     if (tctx->error != EOK) {
         goto done;
@@ -129,7 +113,8 @@ done:
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
-                ERROR("No such group\n");
+                ERROR("No such group in local domain. "
+                      "Removing groups only allowed in local domain.\n");
                 break;
 
             default:

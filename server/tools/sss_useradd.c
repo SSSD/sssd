@@ -131,6 +131,7 @@ int main(int argc, const char **argv)
     poptContext pc = NULL;
     struct tools_ctx *tctx = NULL;
     char *groups = NULL;
+    char *badgroup = NULL;
     int ret;
 
     debug_prg_name = argv[0];
@@ -195,6 +196,7 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse groups to add the user to\n"));
             ERROR("Internal error while parsing parameters\n");
+            ret = EXIT_FAILURE;
             goto fini;
         }
 
@@ -202,6 +204,15 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             DEBUG(1, ("Cannot parse FQDN groups to add the user to\n"));
             ERROR("Groups must be in the same domain as user\n");
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+
+        /* Check group names in the LOCAL domain */
+        ret = check_group_names(tctx, tctx->octx->addgroups, &badgroup);
+        if (ret != EOK) {
+            ERROR("Cannot find group %s in local domain\n", badgroup);
+            ret = EXIT_FAILURE;
             goto fini;
         }
     }
@@ -256,8 +267,12 @@ int main(int argc, const char **argv)
 done:
     if (tctx->error) {
         switch (tctx->error) {
+            case ERANGE:
+                ERROR("Could not allocate ID for the user - domain full?\n");
+                break;
+
             case EEXIST:
-                ERROR("A user with the same name or UID already exists\n");
+                ERROR("A user or group with the same name or ID already exists\n");
                 break;
 
             default:
