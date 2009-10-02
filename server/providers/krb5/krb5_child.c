@@ -359,14 +359,37 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     }
 
     kerr = get_and_save_tgt(kr, pass_str);
+
+    /* If the password is expired the KDC will always return
+       KRB5KDC_ERR_KEY_EXP regardless if the supplied password is correct or
+       not. In general the password can still be used to get a changepw ticket.
+       So we validate the password by trying to get a changepw ticket. */ 
+    if (kerr == KRB5KDC_ERR_KEY_EXP) {
+        kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
+                                            pass_str, NULL, NULL, 0,
+                                            kr->krb5_ctx->changepw_principle,
+                                            kr->options);
+        krb5_free_cred_contents(kr->ctx, kr->creds);
+        if (kerr == 0) {
+            kerr = KRB5KDC_ERR_KEY_EXP;
+        }
+    }
+
     memset(pass_str, 0, kr->pd->authtok_size);
     talloc_zfree(pass_str);
     memset(kr->pd->authtok, 0, kr->pd->authtok_size);
 
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
-        if (kerr == KRB5_KDC_UNREACH) {
-            pam_status = PAM_AUTHINFO_UNAVAIL;
+        switch (kerr) {
+            case KRB5_KDC_UNREACH:
+                    pam_status = PAM_AUTHINFO_UNAVAIL;
+                    break;
+            case KRB5KDC_ERR_KEY_EXP:
+                    pam_status = PAM_AUTHTOK_EXPIRED;
+                    break;
+            default:
+                    pam_status = PAM_SYSTEM_ERR;
         }
     }
 
