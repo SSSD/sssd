@@ -397,7 +397,7 @@ int complex_event_test(void)
                           E_MESSAGE,
                           "date = %(R_stamp__), pid = %(__pid__), "
                           "hostname = %(__host__), %(__halias__), "
-                          "ip = %(__ip__), [%(__iplist__);%(!__iplist__);%(__iplist__)]"  ,
+                          "ip = %(__ip__), [%(__iplist__); %(!__iplist__); %(__iplist__)]"  ,
                           E_EOARG);
     if (error) {
         elapi_destroy_event_tplt(tpl);
@@ -411,7 +411,7 @@ int complex_event_test(void)
                           E_MESSAGE,
                           "date = %(R_stamp__), pid = %(__pid__), "
                           "hostname = %(__host__), %(__halias__), "
-                          "ip = %(__ip__), [%(__iplist__);%(__iplist__);%(__iplist__)]"  ,
+                          "ip = %(__ip__), [%(__iplist__); %(__iplist__); %(__iplist__)]"  ,
                           E_EOARG);
     if (error) {
         elapi_destroy_event_tplt(tpl);
@@ -429,6 +429,101 @@ int complex_event_test(void)
 }
 
 
+int template_test(void)
+{
+    int error = 0;
+    struct collection_item *event;
+
+    printf("Template test START:\n");
+
+    error = elapi_set_default_tplt(
+        E_HAVE_HOSTNAME,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to set default template! %d\n", error);
+        return error;
+    }
+
+    error = elapi_create_simple_event(
+        &event,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to create simple event! %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    elapi_destroy_event(event);
+
+    error = elapi_set_default_tplt(
+        E_HAVE_HOSTALIAS,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to set default template! %d\n", error);
+        return error;
+    }
+
+    error = elapi_create_simple_event(
+        &event,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to create simple event! %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    elapi_destroy_event(event);
+
+    error = elapi_set_default_tplt(
+        E_HAVE_HOSTIP,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to set default template! %d\n", error);
+        return error;
+    }
+
+    error = elapi_create_simple_event(
+        &event,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to create simple event! %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    elapi_destroy_event(event);
+
+    error = elapi_set_default_tplt(
+        E_HAVE_HOSTIPS,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to set default template! %d\n", error);
+        return error;
+    }
+
+    error = elapi_create_simple_event(
+        &event,
+        E_EOARG);
+
+    if (error) {
+        printf("Failed to create simple event! %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    elapi_destroy_event(event);
+
+    return EOK;
+}
+
+
 /* Main function of the unit test */
 
 int main(int argc, char *argv[])
@@ -438,18 +533,13 @@ int main(int argc, char *argv[])
                         elapi_get_default_tplt_test,
                         simple_event_test,
                         complex_event_test,
+                        template_test,
                         NULL };
     test_fn t;
     int i = 0;
 
     printf("Start\n");
-    /* I added second pair of parentheses in the while below
-     * becuase of the following warning I got:
-     * warning: suggest parentheses around assignment used as truth value
-     *
-     * There was a suggestion in general to add less parentheses...
-     * well it seems that compiler wants this one.
-     */
+
     while ((t = tests[i++])) {
         error = t();
         if (error) {

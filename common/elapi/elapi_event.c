@@ -73,6 +73,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
     int family;
     int set_hostname = 0;
     int set_ip = 0;
+    int used_this_ip = 0;
 
     TRACE_FLOW_STRING("add_host_identity", "Entry");
 
@@ -98,6 +99,8 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
         while (ifa != NULL) {
 
             TRACE_FLOW_STRING("Top of the loop", "");
+
+            used_this_ip = 0;
 
             if (!ifa->ifa_addr) {
                 ifa = ifa->ifa_next;
@@ -136,6 +139,8 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                                            0,
                                            NI_NUMERICHOST /* Gets address as string */);
 
+                TRACE_INFO_STRING("Resolved host:", host);
+                TRACE_INFO_STRING("Resolved address:", address);
                 /* If we have not set host name set it */
                 if(!set_hostname) {
 
@@ -149,7 +154,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                         hnm = hostname;
                     }
                     else {
-                        /* We we able to get a host name ? */
+                        /* Were we able to get a host name ? */
                         if (gai_ret_host == EOK) {
                             TRACE_INFO_STRING("getnameinfo returned:", host);
                             hnm = host;
@@ -200,6 +205,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                             return error;
                         }
                         set_ip = 1;
+                        used_this_ip = 1;
                     }
                 }
 
@@ -231,13 +237,15 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                 }
 
                 /* If we got then main IP and we are told to deal with opther IPs */
-                if ((set_ip) && (base & E_HAVE_HOSTIPS)) {
+                if ((set_ip) && (base & E_HAVE_HOSTIPS) && (!used_this_ip)) {
 
-                    /* Do we have a host meaningful host name? */
+                    TRACE_INFO_STRING("Considering address:", address);
+
+                    /* Do we have a host meaningful IP */
                     if ((gai_ret_addr != EOK) ||
                         ((gai_ret_addr == EOK) &&
                          ((strcasecmp(address, LOCALADDRESS) == 0 ) ||
-                          (strcasecmp(address, LOCALADDRESSV6) == 0 )))) haddr = address;
+                          (strcasecmp(address, LOCALADDRESSV6) == 0 )))) haddr = NULL;
                     else haddr = address;
 
                     if (haddr) {
