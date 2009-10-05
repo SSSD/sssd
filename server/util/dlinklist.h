@@ -110,4 +110,7 @@ do { \
 		} \
 } while (0)
 
+#define DLIST_FOR_EACH(p, list) \
+	for ((p) = (list); (p) != NULL; (p) = (p)->next)
+
 #endif /* _DLINKLIST_H */
