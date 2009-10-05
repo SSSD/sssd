@@ -63,7 +63,6 @@ struct svc_spy;
 struct mt_svc {
     struct mt_svc *prev;
     struct mt_svc *next;
-
     struct sbus_connection *conn;
     struct svc_spy *conn_spy;
 
@@ -76,6 +75,8 @@ struct mt_svc {
     pid_t pid;
 
     int ping_time;
+
+    bool svc_started;
 
     int restarts;
     time_t last_restart;
@@ -118,9 +119,10 @@ struct mt_ctx {
     int inotify_fd;
     int service_id_timeout;
     bool check_children;
+    bool services_started;
 };
 
-static int start_service(struct mt_svc *mt_svc, bool startup);
+static int start_service(struct mt_svc *mt_svc);
 
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
@@ -137,8 +139,10 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
 static int get_provider_config(struct mt_ctx *ctx, const char *name,
                               struct mt_svc **svc_cfg);
-static int add_new_service(struct mt_ctx *ctx, const char *name, bool startup);
-static int add_new_provider(struct mt_ctx *ctx, const char *name, bool startup);
+static int add_new_service(struct mt_ctx *ctx, const char *name);
+static int add_new_provider(struct mt_ctx *ctx, const char *name);
+
+static int mark_service_as_started(struct mt_svc *svc);
 
 static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
                                  const char *filename);
@@ -241,12 +245,9 @@ static int client_registration(DBusMessage *message,
     /* Fill in svc structure with connection data */
     svc->conn = mini->conn;
 
-    /* we need to attach a spy to the connection structure so that if some code
-     * frees it we can zero it out in the service structure. Otherwise we may
-     * try to access or even free, freed memory. */
-    ret = add_svc_conn_spy(svc);
+    ret = mark_service_as_started(svc);
     if (ret) {
-        DEBUG(0, ("Failed to attch spy\n"));
+        DEBUG(1, ("Failed to mark service [%s]!\n", svc_name));
         goto done;
     }
 
@@ -285,6 +286,9 @@ static int svc_destructor(void *mem)
         return 0;
     }
 
+    /* always try to delist service */
+    DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
+
     /* svc is beeing freed, neutralize the spy */
     if (svc->conn_spy) {
         talloc_set_destructor((TALLOC_CTX *)svc->conn_spy, NULL);
@@ -316,6 +320,93 @@ static int add_svc_conn_spy(struct mt_svc *svc)
     spy->svc = svc;
     talloc_set_destructor((TALLOC_CTX *)spy, svc_spy_destructor);
     svc->conn_spy = spy;
+
+    return EOK;
+}
+
+static int mark_service_as_started(struct mt_svc *svc)
+{
+    struct mt_ctx *ctx = svc->mt_ctx;
+    struct mt_svc *iter;
+    int ret;
+    int i;
+
+    DEBUG(5, ("Marking %s as started.\n", svc->name));
+    svc->svc_started = true;
+
+    /* we need to attach a spy to the connection structure so that if some code
+     * frees it we can zero it out in the service structure. Otherwise we may
+     * try to access or even free, freed memory. */
+    ret = add_svc_conn_spy(svc);
+    if (ret) {
+        DEBUG(0, ("Failed to attch spy\n"));
+        goto done;
+    }
+
+    if (!ctx->services_started) {
+
+        /* check if all providers are up */
+        for (iter = ctx->svc_list; iter; iter = iter->next) {
+            if (iter->provider && !iter->svc_started) {
+                DEBUG(5, ("Still waiting on %s provider.", iter->name));
+                break;
+            }
+        }
+
+        if (iter) {
+            /* there are still unstarted providers */
+            goto done;
+        }
+
+        ctx->services_started = true;
+
+        DEBUG(4, ("Now starting services!\n"));
+        /* then start all services */
+        for (i = 0; ctx->services[i]; i++) {
+            add_new_service(ctx, ctx->services[i]);
+        }
+    }
+
+done:
+    return ret;
+}
+
+static void services_startup_timeout(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval t, void *ptr)
+{
+    struct mt_ctx *ctx = talloc_get_type(ptr, struct mt_ctx);
+    int i;
+
+    DEBUG(6, ("Handling timeout\n"));
+
+    if (!ctx->services_started) {
+
+        DEBUG(1, ("Providers did not start in time, "
+                  "forcing services startup!\n"));
+
+        ctx->services_started = true;
+
+        DEBUG(4, ("Now starting services!\n"));
+        /* then start all services */
+        for (i = 0; ctx->services[i]; i++) {
+            add_new_service(ctx, ctx->services[i]);
+        }
+    }
+}
+
+static int add_services_startup_timeout(struct mt_ctx *ctx)
+{
+    struct tevent_timer *to;
+    struct timeval tv;
+
+    /* 5 seconds should be plenty */
+    tv = tevent_timeval_current_ofs(5, 0);
+    to = tevent_add_timer(ctx->ev, ctx, tv, services_startup_timeout, ctx);
+    if (!to) {
+        DEBUG(0,("Out of memory?!\n"));
+        return ENOMEM;
+    }
 
     return EOK;
 }
@@ -379,7 +470,7 @@ static void svc_try_restart(struct mt_svc *svc, time_t now)
      */
     talloc_free(svc->ping_ev);
 
-    ret = start_service(svc, false);
+    ret = start_service(svc);
     if (ret != EOK) {
         DEBUG(0,("Failed to restart service '%s'\n", svc->name));
         talloc_free(svc);
@@ -939,14 +1030,14 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     return EOK;
 }
 
-static int add_new_service(struct mt_ctx *ctx, const char *name, bool startup)
+static int add_new_service(struct mt_ctx *ctx, const char *name)
 {
     int ret;
     struct mt_svc *svc;
 
     ret = get_service_config(ctx, name, &svc);
 
-    ret = start_service(svc, startup);
+    ret = start_service(svc);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
@@ -1043,7 +1134,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
     return EOK;
 }
 
-static int add_new_provider(struct mt_ctx *ctx, const char *name, bool startup)
+static int add_new_provider(struct mt_ctx *ctx, const char *name)
 {
     int ret;
     struct mt_svc *svc;
@@ -1055,7 +1146,17 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name, bool startup)
         return ret;
     }
 
-    ret = start_service(svc, startup);
+    if (strcasecmp(svc->provider, "local") == 0) {
+        /* The LOCAL provider requires no back-end currently
+         * We'll add it to the service list, but we don't need
+         * to poll it.
+         */
+        svc->svc_started = true;
+        DLIST_ADD(ctx->svc_list, svc);
+        return ENOENT;
+    }
+
+    ret = start_service(svc);
     if (ret != EOK) {
         DEBUG(0,("Failed to start service '%s'\n", svc->name));
         talloc_free(svc);
@@ -1135,7 +1236,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
 
         if (ctx->services[j] == NULL) {
             /* New service added */
-            add_new_service(ctx, new_config->services[i], false);
+            add_new_service(ctx, new_config->services[i]);
         }
         else {
             /* Service already enabled, check for changes */
@@ -1220,7 +1321,7 @@ static int update_monitor_config(struct mt_ctx *ctx)
 
         if (dom == NULL) {
             /* New provider added */
-            add_new_provider(ctx, new_dom->name, false);
+            add_new_provider(ctx, new_dom->name);
         }
         else {
             /* Provider is already in the list.
@@ -1849,8 +1950,9 @@ int monitor_process_init(struct mt_ctx *ctx,
     TALLOC_CTX *tmp_ctx;
     struct sysdb_ctx_list *db_list;
     struct tevent_signal *tes;
-    int ret, i;
     struct sss_domain_info *dom;
+    int num_providers;
+    int ret;
 
 #if 0
     This feature is incomplete and can leave the SSSD in a bad state if the
@@ -1893,14 +1995,34 @@ int monitor_process_init(struct mt_ctx *ctx,
         return ret;
     }
 
-    /* then start all services */
-    for (i = 0; ctx->services[i]; i++) {
-        add_new_service(ctx, ctx->services[i], true);
+    /* start providers */
+    num_providers = 0;
+    for (dom = ctx->domains; dom; dom = dom->next) {
+        ret = add_new_provider(ctx, dom->name);
+        if (ret != EOK && ret != ENOENT) {
+            return ret;
+        }
+        if (ret != ENOENT) {
+            num_providers++;
+        }
     }
 
-    /* now start the data providers */
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        add_new_provider(ctx, dom->name, true);
+    if (num_providers > 0) {
+        /* now set the services stratup timeout *
+         * (responders will be started automatically when all
+         *  providers are up and running or when the tomeout
+         *  expires) */
+        ret = add_services_startup_timeout(ctx);
+        if (ret != EOK) {
+            return ret;
+        }
+    } else {
+        int i;
+        /* No providers start services immediately
+         * Normally this means only LOCAL is configured */
+        for (i = 0; ctx->services[i]; i++) {
+            add_new_service(ctx, ctx->services[i]);
+        }
     }
 
     /* now start checking for global events */
@@ -2239,7 +2361,7 @@ static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr);
 
-static int start_service(struct mt_svc *svc, bool startup)
+static int start_service(struct mt_svc *svc)
 {
     struct tevent_timer *te;
     struct timeval tv;
@@ -2251,16 +2373,7 @@ static int start_service(struct mt_svc *svc, bool startup)
      * to accept connections. So if startup is true delay by 2 seconds any
      * process that is not a data provider */
 
-    /* FIXME: use stat to check the pipes are available instead and rescheduleif
-     * not */
-
-    if (startup &&
-        ((strcasecmp(svc->name, "nss") == 0) ||
-         (strcasecmp(svc->name, "pam") == 0))) {
-        tv = tevent_timeval_current_ofs(2, 0);
-    } else {
-        tv = tevent_timeval_current();
-    }
+    tv = tevent_timeval_current();
 
     /* Add a timed event to start up the service.
      * We have to do this in order to avoid a race
@@ -2277,13 +2390,6 @@ static int start_service(struct mt_svc *svc, bool startup)
     return EOK;
 }
 
-static int delist_service(void *ptr) {
-    struct mt_svc *svc =
-        talloc_get_type(ptr, struct mt_svc);
-    DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
-    return 0;
-}
-
 static void service_startup_handler(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval t, void *ptr)
@@ -2293,16 +2399,6 @@ static void service_startup_handler(struct tevent_context *ev,
 
     mt_svc = talloc_get_type(ptr, struct mt_svc);
     if (mt_svc == NULL) {
-        return;
-    }
-
-    if (mt_svc->provider && strcasecmp(mt_svc->provider, "local") == 0) {
-        /* The LOCAL provider requires no back-end currently
-         * We'll add it to the service list, but we don't need
-         * to poll it.
-         */
-        DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
-        talloc_set_destructor((TALLOC_CTX *)mt_svc, delist_service);
         return;
     }
 
@@ -2317,7 +2413,6 @@ static void service_startup_handler(struct tevent_context *ev,
         mt_svc->mt_ctx->check_children = true;
         mt_svc->failed_pongs = 0;
         DLIST_ADD(mt_svc->mt_ctx->svc_list, mt_svc);
-        talloc_set_destructor((TALLOC_CTX *)mt_svc, delist_service);
         set_tasks_checker(mt_svc);
 
         return;
