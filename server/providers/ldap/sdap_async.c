@@ -1966,7 +1966,7 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_users_done, req,
                       sdap_go_get_int(state->opts->basic,
-                                      SDAP_NETWORK_TIMEOUT),
+                                      SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
@@ -2193,7 +2193,7 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_groups_done, req,
                       sdap_go_get_int(state->opts->basic,
-                                      SDAP_NETWORK_TIMEOUT),
+                                      SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
@@ -2528,7 +2528,7 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_initgr_done, req,
                       sdap_go_get_int(state->opts->basic,
-                                      SDAP_NETWORK_TIMEOUT),
+                                      SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret) {
         DEBUG(1, ("Failed to set up operation!\n"));
