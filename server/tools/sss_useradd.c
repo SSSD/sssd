@@ -32,15 +32,6 @@
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
 
-/* Default settings for user attributes */
-#define CONFDB_DFL_SECTION "config/user_defaults"
-
-#define DFL_SHELL_ATTR     "defaultShell"
-#define DFL_BASEDIR_ATTR   "baseDirectory"
-
-#define DFL_SHELL_VAL      "/bin/bash"
-#define DFL_BASEDIR_VAL    "/home"
-
 static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
 {
     struct tools_ctx *tctx = talloc_get_type(ptr, struct tools_ctx);
@@ -115,7 +106,9 @@ int main(int argc, const char **argv)
     const char *pc_home = NULL;
     char *pc_shell = NULL;
     int pc_debug = 0;
+    int pc_create_home = 0;
     const char *pc_username = NULL;
+    const char *pc_skeldir = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
@@ -125,6 +118,9 @@ int main(int argc, const char **argv)
         { "home",  'h', POPT_ARG_STRING, &pc_home, 0, _("Home directory"), NULL },
         { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, _("Login shell"), NULL },
         { "groups", 'G', POPT_ARG_STRING, NULL, 'G', _("Groups"), NULL },
+        { "create-home", 'm', POPT_ARG_NONE, NULL, 'm', _("Create user's directory if it does not exist"), NULL },
+        { "no-create-home", 'M', POPT_ARG_NONE, NULL, 'M', _("Never create user's directory, overrides config"), NULL },
+        { "skel", 'k', POPT_ARG_STRING, &pc_skeldir, 0, _("Specify an alternative skeleton directory") },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -147,12 +143,18 @@ int main(int argc, const char **argv)
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
     while ((ret = poptGetNextOpt(pc)) > 0) {
-        if (ret == 'G') {
-            groups = poptGetOptArg(pc);
-            if (!groups) {
-                ret = -1;
+        switch (ret) {
+            case 'G':
+                groups = poptGetOptArg(pc);
+                if (!groups) goto fini;
+
+            case 'm':
+                pc_create_home = DO_CREATE_HOME;
                 break;
-            }
+
+            case 'M':
+                pc_create_home = DO_NOT_CREATE_HOME;
+                break;
         }
     }
 
@@ -232,7 +234,8 @@ int main(int argc, const char **argv)
      * Fills in defaults for ops_ctx user did not specify.
      */
     ret = useradd_defaults(tctx, tctx->confdb, tctx->octx,
-                           pc_gecos, pc_home, pc_shell);
+                           pc_gecos, pc_home, pc_shell,
+                           pc_create_home, pc_skeldir);
     if (ret != EOK) {
         ERROR("Cannot set default values\n");
         ret = EXIT_FAILURE;
@@ -262,6 +265,54 @@ int main(int argc, const char **argv)
     }
 
     end_transaction(tctx);
+
+    /* Create user's home directory and/or mail spool */
+    if (tctx->octx->create_homedir) {
+        /* We need to know the UID and GID of the user, if
+         * sysdb did assign it automatically, do a lookup */
+        if (tctx->octx->uid == 0 || tctx->octx->gid == 0) {
+            ret = sysdb_getpwnam_sync(tctx,
+                                      tctx->ev,
+                                      tctx->sysdb,
+                                      tctx->octx->name,
+                                      tctx->local,
+                                      &tctx->octx);
+            if (ret != EOK) {
+                ERROR("Cannot get info about the user\n");
+                ret = EXIT_FAILURE;
+                goto fini;
+            }
+        }
+
+        ret = create_homedir(tctx,
+                             tctx->octx->skeldir,
+                             tctx->octx->home,
+                             tctx->octx->name,
+                             tctx->octx->uid,
+                             tctx->octx->gid,
+                             tctx->octx->umask);
+        if (ret == EEXIST) {
+            ERROR("User's home directory already exists, not copying "
+                  "data from skeldir\n");
+        } else if (ret != EOK) {
+            ERROR("Cannot create user's home directory: %s\n", strerror(ret));
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+
+        ret = create_mail_spool(tctx,
+                                tctx->octx->name,
+                                tctx->octx->maildir,
+                                tctx->octx->uid,
+                                tctx->octx->gid);
+        if (ret != EOK) {
+            ERROR("Cannot create user's mail spool: %s\n", strerror(ret));
+            DEBUG(1, ("Cannot create user's mail spool: [%d][%s].\n",
+                        ret, strerror(ret)));
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+    }
 
 done:
     if (tctx->error) {

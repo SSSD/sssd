@@ -115,6 +115,51 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-m</option>,<option>--create-home</option>
+                </term>
+                <listitem>
+                    <para>
+                        Create the user's home directory if it does not
+                        exist. The files and directories contained in the
+                        skeleton directory (which can be defined with the
+                        -k option or in the config file) will be copied
+                        to the home directory.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-M</option>,<option>--no-create-home</option>
+                </term>
+                <listitem>
+                    <para>
+                        Do not create the user's home directory. Overrides
+                        configuration settings.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-k</option>,<option>--skel</option>
+                    <replaceable>SKELDIR</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        The skeleton directory, which contains files
+                        and directories to be copied in the user's home
+                        directory, when the home directory is
+                        created by <command>sss_useradd</command>.
+                    </para>
+                    <para>
+                        This option is only valid if the <option>-m</option>
+                        (or <option>--create-home</option>) option is
+                        specified, or creation of home directories is set to TRUE
+                        in the configuration.
+                    </para>
+                </listitem>
+            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
     </refsect1>

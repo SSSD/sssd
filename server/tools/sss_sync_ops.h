@@ -27,6 +27,13 @@
 #define DO_LOCK     1
 #define DO_UNLOCK   2
 
+/* 0 = not set, pick default */
+#define DO_CREATE_HOME       1
+#define DO_NOT_CREATE_HOME   2
+#define DO_REMOVE_HOME       1
+#define DO_NOT_REMOVE_HOME   2
+#define DO_FORCE_REMOVAL     1
+
 struct ops_ctx {
     struct sss_domain_info *domain;
 
@@ -38,6 +45,12 @@ struct ops_ctx {
     char *shell;
     int   lock;
 
+    bool  create_homedir;
+    bool  remove_homedir;
+    mode_t umask;
+    char *skeldir;
+    char *maildir;
+
     char **addgroups;
     char **rmgroups;
 };
@@ -48,7 +61,15 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
                      struct ops_ctx *data,
                      const char *gecos,
                      const char *homedir,
-                     const char *shell);
+                     const char *shell,
+                     int create_home,
+                     const char *skeldir);
+
+/* default values for remove operations */
+int userdel_defaults(TALLOC_CTX *mem_ctx,
+                     struct confdb_ctx *confdb,
+                     struct ops_ctx *data,
+                     int remove_home);
 
 /* synchronous operations */
 int useradd(TALLOC_CTX *mem_ctx,

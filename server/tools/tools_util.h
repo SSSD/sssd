@@ -76,4 +76,23 @@ int check_group_names(struct tools_ctx *tctx,
                       char **grouplist,
                       char **badgroup);
 
+int create_homedir(TALLOC_CTX *mem_ctx,
+                   const char *skeldir,
+                   const char *homedir,
+                   const char *username,
+                   uid_t uid,
+                   gid_t gid,
+                   mode_t default_umask);
+
+int create_mail_spool(TALLOC_CTX *mem_ctx,
+                      const char *username,
+                      const char *maildir,
+                      uid_t uid, gid_t gid);
+
+int remove_homedir(TALLOC_CTX *mem_ctx,
+                   const char *homedir,
+                   const char *maildir,
+                   const char *username,
+                   uid_t uid, bool force);
+
 #endif  /* __TOOLS_UTIL_H__ */

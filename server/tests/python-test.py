@@ -20,6 +20,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+import os
+import tempfile
+import shutil
 import unittest
 import commands
 import errno
@@ -120,8 +123,14 @@ class LocalTest(unittest.TestCase):
     def add_user(self, username):
         self._run_and_check("sss_useradd %s" % (username))
 
+    def add_user_not_home(self, username):
+        self._run_and_check("sss_useradd -M %s" % (username))
+
     def remove_user(self, username):
         self._run_and_check("sss_userdel %s" % (username))
+
+    def remove_user_not_home(self, username):
+        self._run_and_check("sss_userdel -R %s" % (username))
 
 class SanityTest(unittest.TestCase):
     def testInstantiate(self):
@@ -139,18 +148,51 @@ class UseraddTest(LocalTest):
         self.username = "testUseradd"
         self.local.useradd(self.username)
         self.validate_user(self.username)
+        # check home directory was created with default name
+        self.assertEquals(os.access("/home/%s" % self.username, os.F_OK), True)
 
     def testUseraddWithParams(self):
         "Test adding a local user with modified parameters"
         self.username = "testUseraddWithParams"
         self.local.useradd(self.username,
                            gecos="foo bar",
-                           homedir="/people/foobar",
+                           homedir="/home/foobar",
                            shell="/bin/zsh")
         self.validate_user(self.username,
                            gecos="foo bar",
-                           homeDirectory="/people/foobar",
+                           homeDirectory="/home/foobar",
                            loginShell="/bin/zsh")
+        # check home directory was created with nondefault name
+        self.assertEquals(os.access("/home/foobar", os.F_OK), True)
+
+    def testUseraddNoHomedir(self):
+        "Test adding a local user without creating his home dir"
+        self.username = "testUseraddNoHomedir"
+        self.local.useradd(self.username, create_home = False)
+        self.validate_user(self.username)
+        # check home directory was not created
+        self.assertEquals(os.access("/home/%s" % self.username, os.F_OK), False)
+        self.local.userdel(self.username, remove = False)
+        self.username = None # fool tearDown into not removing the user
+
+    def testUseraddAlternateSkeldir(self):
+        "Test adding a local user and init his homedir from a custom location"
+        self.username = "testUseraddAlternateSkeldir"
+
+        skeldir = tempfile.mkdtemp()
+        fd, path = tempfile.mkstemp(dir=skeldir)
+        fdo = os.fdopen(fd)
+        fdo.flush()
+        fdo.close
+        self.assertEquals(os.access(path, os.F_OK), True)
+        filename = os.path.basename(path)
+
+        try:
+            self.local.useradd(self.username, skel = skeldir)
+            self.validate_user(self.username)
+            self.assertEquals(os.access("/home/%s/%s"%(self.username,filename), os.F_OK), True)
+        finally:
+            shutil.rmtree(skeldir)
 
     def testUseraddToGroups(self):
         "Test adding a local user with group membership"
@@ -208,9 +250,21 @@ class UseraddTestNegative(LocalTest):
 class UserdelTest(LocalTest):
     def testUserdel(self):
         self.add_user("testUserdel")
+        self.assertEquals(os.access("/home/testUserdel", os.F_OK), True)
         self.validate_user("testUserdel")
         self.local.userdel("testUserdel")
         self.validate_no_user("testUserdel")
+        self.assertEquals(os.access("/home/testUserdel", os.F_OK), False)
+
+    def testUserdelNotHomedir(self):
+        self.add_user("testUserdel")
+        self.assertEquals(os.access("/home/testUserdel", os.F_OK), True)
+        self.validate_user("testUserdel")
+        self.local.userdel("testUserdel", remove=False)
+        self.validate_no_user("testUserdel")
+        self.assertEquals(os.access("/home/testUserdel", os.F_OK), True)
+        shutil.rmtree("/home/testUserdel")
+        os.remove("/var/mail/testUserdel")
 
     def testUserdelNegative(self):
         self.validate_no_user("testUserdelNegative")
@@ -225,20 +279,20 @@ class UsermodTest(LocalTest):
     def setUp(self):
         self.local = pysss.local()
         self.username = "UsermodTest"
-        self.add_user(self.username)
+        self.add_user_not_home(self.username)
 
     def tearDown(self):
-        self.remove_user(self.username)
+        self.remove_user_not_home(self.username)
 
     def testUsermod(self):
         "Test modifying user attributes"
         self.local.usermod(self.username,
                            gecos="foo bar",
-                           homedir="/people/foobar",
+                           homedir="/home/foobar",
                            shell="/bin/zsh")
         self.validate_user(self.username,
                            gecos="foo bar",
-                           homeDirectory="/people/foobar",
+                           homeDirectory="/home/foobar",
                            loginShell="/bin/zsh")
 
     def testUsermodUID(self):

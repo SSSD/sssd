@@ -40,6 +40,42 @@
         <title>OPTIONS</title>
         <variablelist remap='IP'>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+            <varlistentry>
+                <term>
+                    <option>-r</option>,<option>--remove</option>
+                </term>
+                <listitem>
+                    <para>
+                        Files in the user's home directory will be
+                        removed along with the home directory itself and
+                        the user's mail spool. Overrides the configuration.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-R</option>,<option>--no-remove</option>
+                </term>
+                <listitem>
+                    <para>
+                        Files in the user's home directory will NOT be
+                        removed along with the home directory itself and
+                        the user's mail spool. Overrides the configuration.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-f</option>,<option>--force</option>
+                </term>
+                <listitem>
+                    <para>
+                        This option forces <command>sss_userdel</command>
+                        to remove the user's home directory and mail spool,
+                        even if they are not owned by the specified user.
+                    </para>
+                </listitem>
+            </varlistentry>
         </variablelist>
     </refsect1>
 

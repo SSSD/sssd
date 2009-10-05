@@ -23,6 +23,14 @@
 #include <tevent.h>
 #include <popt.h>
 #include <errno.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
+#include "config.h"
+#ifdef HAVE_SELINUX
+#include <selinux/selinux.h>
+#endif
 
 #include "util/util.h"
 #include "confdb/confdb.h"
@@ -291,6 +299,221 @@ int init_sss_tools(struct tools_ctx **_tctx)
 
 fini:
     if (ret != EOK) talloc_free(tctx);
+    return ret;
+}
+
+/*
+ * Check is path is owned by uid
+ * returns  0 - owns
+ *         -1 - does not own
+ *         >0 - an error occured, error code
+ */
+static int is_owner(uid_t uid, const char *path)
+{
+    struct stat statres;
+    int ret;
+
+    ret = stat(path, &statres);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot stat %s: [%d][%s]\n", path, ret, strerror(ret)));
+        return ret;
+    }
+
+    if (statres.st_uid == uid) {
+        return EOK;
+    }
+    return -1;
+}
+
+static int remove_mail_spool(TALLOC_CTX *mem_ctx,
+                             const char *maildir,
+                             const char *username,
+                             uid_t uid,
+                             bool force)
+{
+    int ret;
+    char *spool_file;
+
+    spool_file = talloc_asprintf(mem_ctx, "%s/%s", maildir, username);
+    if (spool_file == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (force == false) {
+        /* Check the owner of the mail spool */
+        ret = is_owner(uid, spool_file);
+        switch (ret) {
+            case 0:
+                break;
+            case -1:
+                DEBUG(3, ("%s not owned by %d, not removing\n",
+                          spool_file, uid));
+                ret = EACCES;
+                /* FALLTHROUGH */
+            default:
+                goto fail;
+        }
+    }
+
+    ret = unlink(spool_file);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot remove() the spool file %s: [%d][%s]\n",
+                   spool_file, ret, strerror(ret)));
+        goto fail;
+    }
+
+fail:
+    talloc_free(spool_file);
+    return ret;
+}
+
+int remove_homedir(TALLOC_CTX *mem_ctx,
+                   const char *homedir,
+                   const char *maildir,
+                   const char *username,
+                   uid_t uid, bool force)
+{
+    int ret;
+
+    ret = remove_mail_spool(mem_ctx, maildir, username, uid, force);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot remove user's mail spool\n"));
+        /* Should this be fatal? I don't think so. Maybe convert to ERROR? */
+    }
+
+    if (force == false && is_owner(uid, homedir) == -1) {
+        DEBUG(1, ("Not removing home dir - not owned by user\n"));
+        return EPERM;
+    }
+
+    /* Remove the tree */
+    ret = remove_tree(homedir);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot remove homedir %s: %d\n",
+                  homedir, ret));
+        return ret;
+    }
+
+    return EOK;
+}
+
+/* The reason for not putting this into create_homedir
+ * is better granularity when it comes to reporting error
+ * messages and tracebacks in pysss
+ */
+int create_mail_spool(TALLOC_CTX *mem_ctx,
+                      const char *username,
+                      const char *maildir,
+                      uid_t uid, gid_t gid)
+{
+    char *spool_file = NULL;
+    int fd;
+    int ret;
+
+    spool_file = talloc_asprintf(mem_ctx, "%s/%s", maildir, username);
+    if (spool_file == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    selinux_file_context(spool_file);
+
+    fd = open(spool_file, O_CREAT | O_WRONLY | O_EXCL, 0);
+    if (fd < 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot open() the spool file: [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    ret = fchmod(fd, 0600);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot fchmod() the spool file: [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    ret = fchown(fd, uid, gid);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot fchown() the spool file: [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    ret = fsync(fd);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot fsync() the spool file: [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    ret = close(fd);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot close() the spool file: [%d][%s]\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+fail:
+    reset_selinux_file_context();
+    talloc_free(spool_file);
+    return ret;
+}
+
+int create_homedir(TALLOC_CTX *mem_ctx,
+                   const char *skeldir,
+                   const char *homedir,
+                   const char *username,
+                   uid_t uid,
+                   gid_t gid,
+                   mode_t default_umask)
+{
+    int ret;
+
+    selinux_file_context(homedir);
+
+    ret = mkdir(homedir, 0);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot create user's home directory: [%d][%s].\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = chown(homedir, uid, gid);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot chown user's home directory: [%d][%s].\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = chmod(homedir, 0777 & ~default_umask);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(1, ("Cannot chmod user's home directory: [%d][%s].\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    reset_selinux_file_context();
+
+    ret = copy_tree(skeldir, homedir, uid, gid);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot populate user's home directory: [%d][%s].\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+done:
+    reset_selinux_file_context();
     return ret;
 }
 

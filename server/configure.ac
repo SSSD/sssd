@@ -52,6 +52,7 @@ WITH_MANPAGES
 WITH_XML_CATALOG
 WITH_KRB5_PLUGIN_PATH
 WITH_PYTHON_BINDINGS
+WITH_SELINUX
 
 m4_include([external/pkg.m4])
 m4_include([external/libpopt.m4])
@@ -67,6 +68,7 @@ m4_include([external/libcares.m4])
 m4_include([external/docbook.m4])
 m4_include([external/sizes.m4])
 m4_include([external/python.m4])
+m4_include([external/selinux.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
@@ -99,6 +101,10 @@ if test x$HAVE_PYTHON_BINDINGS != x; then
     AM_CHECK_PYTHON_HEADERS([],
                             AC_MSG_ERROR([Could not find python headers]))
     AM_PYTHON_CONFIG
+fi
+
+if test x$HAVE_SELINUX != x; then
+    AM_CHECK_SELINUX
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])

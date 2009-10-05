@@ -205,4 +205,14 @@ int backup_file(const char *src, int dbglvl);
 errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
                                const gid_t gid, const mode_t mode);
 
+/* from files.c */
+int remove_tree(const char *root);
+
+int copy_tree(const char *src_root,
+              const char *dst_root,
+              uid_t uid, gid_t gid);
+
+int selinux_file_context(const char *dst_name);
+int reset_selinux_file_context(void);
+
 #endif /* __SSSD_UTIL_H__ */

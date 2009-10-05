@@ -89,6 +89,11 @@
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"
 #define CONFDB_LOCAL_DEFAULT_BASEDIR "base_directory"
+#define CONFDB_LOCAL_CREATE_HOMEDIR  "create_homedir"
+#define CONFDB_LOCAL_REMOVE_HOMEDIR  "remove_homedir"
+#define CONFDB_LOCAL_UMASK           "homedir_umask"
+#define CONFDB_LOCAL_SKEL_DIR        "skel_dir"
+#define CONFDB_LOCAL_MAIL_DIR        "mail_dir"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"

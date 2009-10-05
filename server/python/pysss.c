@@ -149,13 +149,15 @@ struct tools_ctx *init_ctx(TALLOC_CTX *mem_ctx,
 PyDoc_STRVAR(py_sss_useradd__doc__,
     "Add a user named ``username``.\n\n"
     ":param username: name of the user\n\n"
-    ":param kwargs: Keyword arguments ro customize the operation\n\n"
+    ":param kwargs: Keyword arguments that customize the operation\n\n"
     "* useradd can be customized further with keyword arguments:\n"
     "    * ``uid``: The UID of the user\n"
     "    * ``gid``: The GID of the user\n"
     "    * ``gecos``: The comment string\n"
     "    * ``homedir``: Home directory\n"
     "    * ``shell``: Login shell\n"
+    "    * ``skel``: Specify an alternative skeleton directory\n"
+    "    * ``create_home``: (bool) Force creation of home directory on or off\n"
     "    * ``groups``: List of groups the user is member of\n");
 
 
@@ -169,15 +171,19 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
     const char *gecos = NULL;
     const char *home = NULL;
     const char *shell = NULL;
+    const char *skel = NULL;
     char *username = NULL;
     int ret;
     const char * const kwlist[] = { "username", "uid", "gid", "gecos",
-                                    "homedir", "shell", "groups", NULL };
+                                    "homedir", "shell", "skel",
+                                    "create_home", "groups", NULL };
     PyObject *py_groups = Py_None;
+    PyObject *py_create_home = Py_None;
+    int create_home = 0;
 
     /* parse arguments */
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-                                     discard_const_p(char, "s|kksssO!"),
+                                     discard_const_p(char, "s|kkssssO!O!"),
                                      discard_const_p(char *, kwlist),
                                      &username,
                                      &uid,
@@ -185,6 +191,9 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
                                      &gecos,
                                      &home,
                                      &shell,
+                                     &skel,
+                                     &PyBool_Type,
+                                     &py_create_home,
                                      &PyList_Type,
                                      &py_groups)) {
         goto fail;
@@ -204,6 +213,14 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
         }
     }
 
+    /* user-wise the parameter is only bool - do or don't,
+     * however we must have a third state - undecided, pick default */
+    if (py_create_home == Py_True) {
+        create_home = DO_CREATE_HOME;
+    } else if (py_create_home == Py_False) {
+        create_home = DO_NOT_CREATE_HOME;
+    }
+
     tctx->octx->name = username;
     tctx->octx->uid = uid;
 
@@ -211,7 +228,9 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
     ret = useradd_defaults(tctx,
                            self->confdb,
                            tctx->octx, gecos,
-                           home, shell);
+                           home, shell,
+                           create_home,
+                           skel);
     if (ret != EOK) {
         PyErr_SetSssError(ret);
         goto fail;
@@ -242,6 +261,43 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
         goto fail;
     }
 
+    /* Create user's home directory and/or mail spool */
+    if (tctx->octx->create_homedir) {
+        /* We need to know the UID and GID of the user, if
+         * sysdb did assign it automatically, do a lookup */
+        if (tctx->octx->uid == 0 || tctx->octx->gid == 0) {
+            ret = sysdb_getpwnam_sync(tctx,
+                                      tctx->ev,
+                                      tctx->sysdb,
+                                      tctx->octx->name,
+                                      tctx->local,
+                                      &tctx->octx);
+            if (ret != EOK) {
+                PyErr_SetSssError(ret);
+                goto fail;
+            }
+        }
+
+        ret = create_homedir(tctx,
+                             tctx->octx->skeldir,
+                             tctx->octx->home,
+                             tctx->octx->name,
+                             tctx->octx->uid,
+                             tctx->octx->gid,
+                             tctx->octx->umask);
+        if (ret != EOK) {
+            PyErr_SetSssError(ret);
+            goto fail;
+        }
+
+        /* failure here should not be fatal */
+        create_mail_spool(tctx,
+                          tctx->octx->name,
+                          tctx->octx->maildir,
+                          tctx->octx->uid,
+                          tctx->octx->gid);
+    }
+
     talloc_zfree(tctx);
     Py_RETURN_NONE;
 
@@ -255,7 +311,11 @@ fail:
  */
 PyDoc_STRVAR(py_sss_userdel__doc__,
     "Remove the user named ``username``.\n\n"
-    ":param username: Name of user being removed\n");
+    ":param username: Name of user being removed\n"
+    ":param kwargs: Keyword arguments that customize the operation\n\n"
+    "* userdel can be customized further with keyword arguments:\n"
+    "    * ``force``: (bool) Force removal of files not owned by the user\n"
+    "    * ``remove``: (bool) Toggle removing home directory and mail spool\n");
 
 static PyObject *py_sss_userdel(PySssLocalObject *self,
                                 PyObject *args,
@@ -264,8 +324,19 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
     struct tools_ctx *tctx = NULL;
     char *username = NULL;
     int ret;
+    PyObject *py_remove = Py_None;
+    int remove_home = 0;
+    PyObject *py_force = Py_None;
+    const char * const kwlist[] = { "username", "remove", "force", NULL };
 
-    if(!PyArg_ParseTuple(args, discard_const_p(char, "s"), &username)) {
+    if(!PyArg_ParseTupleAndKeywords(args, kwds,
+                                    discard_const_p(char, "s|O!O!"),
+                                    discard_const_p(char *, kwlist),
+                                    &username,
+                                    &PyBool_Type,
+                                    &py_remove,
+                                    &PyBool_Type,
+                                    &py_force)) {
         goto fail;
     }
 
@@ -276,6 +347,37 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
     }
 
     tctx->octx->name = username;
+
+    if (py_remove == Py_True) {
+        remove_home = DO_REMOVE_HOME;
+    } else if (py_remove == Py_False) {
+        remove_home = DO_NOT_REMOVE_HOME;
+    }
+
+    /*
+     * Fills in defaults for ops_ctx user did not specify.
+     */
+    ret = userdel_defaults(tctx,
+                           tctx->confdb,
+                           tctx->octx,
+                           remove_home);
+    if (ret != EOK) {
+        PyErr_SetSssError(ret);
+        goto fail;
+    }
+
+    if (tctx->octx->remove_homedir) {
+        ret = sysdb_getpwnam_sync(tctx,
+                                  tctx->ev,
+                                  tctx->sysdb,
+                                  tctx->octx->name,
+                                  tctx->local,
+                                  &tctx->octx);
+        if (ret != EOK) {
+            PyErr_SetSssError(ret);
+            goto fail;
+        }
+    }
 
     /* Delete the user within a transaction */
     start_transaction(tctx);
@@ -301,6 +403,19 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
         goto fail;
     }
 
+    if (tctx->octx->remove_homedir) {
+        ret = remove_homedir(tctx,
+                             tctx->octx->home,
+                             tctx->octx->maildir,
+                             tctx->octx->name,
+                             tctx->octx->uid,
+                             (py_force == Py_True));
+        if (ret != EOK) {
+            PyErr_SetSssError(ret);
+            goto fail;
+        }
+    }
+
     talloc_zfree(tctx);
     Py_RETURN_NONE;
 
@@ -315,7 +430,7 @@ fail:
 PyDoc_STRVAR(py_sss_usermod__doc__,
     "Modify a user.\n\n"
     ":param username: Name of user being modified\n\n"
-    ":param kwargs: Keyword arguments ro customize the operation\n\n"
+    ":param kwargs: Keyword arguments that customize the operation\n\n"
     "* usermod can be customized further with keyword arguments:\n"
     "    * ``uid``: The UID of the user\n"
     "    * ``gid``: The GID of the user\n"
@@ -754,7 +869,7 @@ static PyMethodDef sss_local_methods[] = {
       METH_KEYWORDS, py_sss_useradd__doc__
     },
     { "userdel", (PyCFunction) py_sss_userdel,
-      METH_VARARGS, py_sss_userdel__doc__
+      METH_KEYWORDS, py_sss_userdel__doc__
     },
     { "usermod", (PyCFunction) py_sss_usermod,
       METH_KEYWORDS, py_sss_usermod__doc__

@@ -67,7 +67,8 @@ if HAVE_CHECK
         strtonum-tests \
         resolv-tests \
         krb5-utils-tests \
-        check_and_open-tests
+        check_and_open-tests \
+        files-tests
 endif
 
 check_PROGRAMS = \
@@ -150,7 +151,6 @@ AM_CPPFLAGS = -Wall \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
     -DSSSD_LIBEXEC_PATH=\"$(sssdlibexecdir)\" \
-    -DSHADOW_UTILS_PATH=\"$(shadow_utils_path)\" \
     -DSSSD_INTROSPECT_PATH=\"$(dbusinstropectdir)\" \
     -DSSSD_CONF_DIR=\"$(sssdconfdir)\" \
     -DSSS_NSS_SOCKET_NAME=\"$(pipepath)/nss\" \
@@ -183,6 +183,7 @@ SSSD_UTIL_OBJ = \
     util/backup_file.c \
     util/strtonum.c \
     util/check_and_open.c \
+    util/files.c \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \
@@ -231,6 +232,13 @@ PYTHON_BINDINGS_LIBS = \
     $(PCRE_LIBS) \
     $(NSS_LIBS) \
     libsss_crypt.la
+
+TOOLS_LIBS = \
+    $(SSSD_LIBS)
+
+if BUILD_SELINUX
+    TOOLS_LIBS += $(SELINUX_LIBS)
+endif
 
 dist_noinst_HEADERS = \
     monitor/monitor.h \
@@ -327,42 +335,42 @@ sss_useradd_SOURCES = \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_useradd_LDADD = \
-    $(SSSD_LIBS)
+    $(TOOLS_LIBS)
 
 sss_userdel_SOURCES = \
     tools/sss_userdel.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_userdel_LDADD = \
-    $(SSSD_LIBS)
+    $(TOOLS_LIBS)
 
 sss_groupadd_SOURCES = \
     tools/sss_groupadd.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupadd_LDADD = \
-    $(SSSD_LIBS)
+    $(TOOLS_LIBS)
 
 sss_groupdel_SOURCES = \
     tools/sss_groupdel.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupdel_LDADD = \
-    $(SSSD_LIBS)
+    $(TOOLS_LIBS)
 
 sss_usermod_SOURCES = \
     tools/sss_usermod.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_usermod_LDADD = \
-    $(SSSD_LIBS)
+    $(TOOLS_LIBS)
 
 sss_groupmod_SOURCES = \
     tools/sss_groupmod.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_groupmod_LDADD = \
-    $(SSSD_LIBS)
+    $(TOOLS_LIBS)
 
 #################
 # Feature Tests #
@@ -407,6 +415,24 @@ check_and_open_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 check_and_open_tests_LDADD = \
     $(CHECK_LIBS)
+
+FILES_TESTS_LIBS = \
+    $(CHECK_LIBS) \
+    $(POPT_LIBS) \
+    $(TALLOC_LIBS)
+if BUILD_SELINUX
+    FILES_TESTS_LIBS += $(SELINUX_LIBS)
+endif
+
+files_tests_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
+    tests/files-tests.c \
+    util/check_and_open.c \
+    util/files.c
+files_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+files_tests_LDADD = \
+    $(FILES_TESTS_LIBS)
 endif
 
 stress_tests_SOURCES = \

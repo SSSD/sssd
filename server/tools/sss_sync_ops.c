@@ -20,6 +20,7 @@
 
 #include <tevent.h>
 #include <talloc.h>
+#include <sys/types.h>
 
 #include "util/util.h"
 #include "db/sysdb.h"
@@ -28,6 +29,12 @@
 /* Default settings for user attributes */
 #define DFL_SHELL_VAL      "/bin/bash"
 #define DFL_BASEDIR_VAL    "/home"
+#define DFL_CREATE_HOMEDIR "TRUE"
+#define DFL_REMOVE_HOMEDIR "TRUE"
+#define DFL_UMASK          077
+#define DFL_SKEL_DIR       "/etc/skel"
+#define DFL_MAIL_DIR       "/var/spool/mail"
+
 
 #define VAR_CHECK(var, val, attr, msg) do { \
         if (var != (val)) { \
@@ -1111,6 +1118,47 @@ static int group_mod_recv(struct tevent_req *req)
     return sync_ops_recv(req);
 }
 
+int userdel_defaults(TALLOC_CTX *mem_ctx,
+                     struct confdb_ctx *confdb,
+                     struct ops_ctx *data,
+                     int remove_home)
+{
+    int ret;
+    char *conf_path;
+    bool dfl_remove_home;
+
+    conf_path = talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL, data->domain->name);
+    if (!conf_path) {
+        return ENOMEM;
+    }
+
+    /* remove homedir on user creation? */
+    if (!remove_home) {
+        ret = confdb_get_bool(confdb, mem_ctx,
+                             conf_path, CONFDB_LOCAL_REMOVE_HOMEDIR,
+                             DFL_REMOVE_HOMEDIR, &dfl_remove_home);
+        if (ret != EOK) {
+            goto done;
+        }
+        data->remove_homedir = dfl_remove_home;
+    } else {
+        data->remove_homedir = (remove_home == DO_REMOVE_HOME);
+    }
+
+    /* a directory to remove mail spools from */
+    ret = confdb_get_string(confdb, mem_ctx,
+            conf_path, CONFDB_LOCAL_MAIL_DIR,
+            DFL_MAIL_DIR, &data->maildir);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(conf_path);
+    return ret;
+}
+
 /*
  * Default values for add operations
  */
@@ -1119,11 +1167,12 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
                      struct ops_ctx *data,
                      const char *gecos,
                      const char *homedir,
-                     const char *shell)
+                     const char *shell,
+                     int create_home,
+                     const char *skeldir)
 {
     int ret;
     char *basedir = NULL;
-    char *dfl_shell = NULL;
     char *conf_path = NULL;
 
     conf_path = talloc_asprintf(mem_ctx, CONFDB_DOMAIN_PATH_TMPL, data->domain->name);
@@ -1131,18 +1180,17 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    /* gecos */
     data->gecos = talloc_strdup(mem_ctx, gecos ? gecos : data->name);
     if (!data->gecos) {
         ret = ENOMEM;
         goto done;
     }
+    DEBUG(7, ("Gecos: %s\n", data->gecos));
 
+    /* homedir */
     if (homedir) {
         data->home = talloc_strdup(data, homedir);
-        if (data->home == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     } else {
         ret = confdb_get_string(confdb, mem_ctx,
                                 conf_path, CONFDB_LOCAL_DEFAULT_BASEDIR,
@@ -1151,34 +1199,80 @@ int useradd_defaults(TALLOC_CTX *mem_ctx,
             goto done;
         }
         data->home = talloc_asprintf(mem_ctx, "%s/%s", basedir, data->name);
-        if (!data->home) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
     if (!data->home) {
         ret = ENOMEM;
         goto done;
     }
+    DEBUG(7, ("Homedir: %s\n", data->home));
 
+    /* default shell */
     if (!shell) {
         ret = confdb_get_string(confdb, mem_ctx,
                                 conf_path, CONFDB_LOCAL_DEFAULT_SHELL,
-                                DFL_SHELL_VAL, &dfl_shell);
+                                DFL_SHELL_VAL, &data->shell);
         if (ret != EOK) {
             goto done;
         }
-        shell = dfl_shell;
+    } else {
+        data->shell = talloc_strdup(mem_ctx, shell);
+        if (!data->shell) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
-    data->shell = talloc_strdup(mem_ctx, shell);
-    if (!data->shell) {
-        ret = ENOMEM;
+    DEBUG(7, ("Shell: %s\n", data->shell));
+
+    /* create homedir on user creation? */
+    if (!create_home) {
+        ret = confdb_get_bool(confdb, mem_ctx,
+                             conf_path, CONFDB_LOCAL_CREATE_HOMEDIR,
+                             DFL_CREATE_HOMEDIR, &data->create_homedir);
+        if (ret != EOK) {
+            goto done;
+        }
+    } else {
+        data->create_homedir = (create_home == DO_CREATE_HOME);
+    }
+    DEBUG(7, ("Auto create homedir: %s\n", data->create_homedir?"True":"False"));
+
+    /* umask to create homedirs */
+    ret = confdb_get_int(confdb, mem_ctx,
+                         conf_path, CONFDB_LOCAL_UMASK,
+                         DFL_UMASK, (int *) &data->umask);
+    if (ret != EOK) {
         goto done;
     }
+    DEBUG(7, ("Umask: %o\n", data->umask));
+
+    /* a directory to create mail spools in */
+    ret = confdb_get_string(confdb, mem_ctx,
+            conf_path, CONFDB_LOCAL_MAIL_DIR,
+            DFL_MAIL_DIR, &data->maildir);
+    if (ret != EOK) {
+        goto done;
+    }
+    DEBUG(7, ("Mail dir: %s\n", data->maildir));
+
+    /* skeleton dir */
+    if (!skeldir) {
+        ret = confdb_get_string(confdb, mem_ctx,
+                                conf_path, CONFDB_LOCAL_SKEL_DIR,
+                                DFL_SKEL_DIR, &data->skeldir);
+        if (ret != EOK) {
+            goto done;
+        }
+    } else {
+        data->skeldir = talloc_strdup(mem_ctx, skeldir);
+        if (!data->skeldir) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    DEBUG(7, ("Skeleton dir: %s\n", data->skeldir));
 
     ret = EOK;
 done:
-    talloc_free(dfl_shell);
     talloc_free(basedir);
     talloc_free(conf_path);
     return ret;

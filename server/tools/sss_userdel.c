@@ -36,11 +36,16 @@ int main(int argc, const char **argv)
     const char *pc_username = NULL;
 
     int pc_debug = 0;
+    int pc_remove = 0;
+    int pc_force = 0;
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
                     0, _("The debug level to run with"), NULL },
+        { "remove", 'r', POPT_ARG_NONE, NULL, 'r', _("Remove home directory and mail spool"), NULL },
+        { "no-remove", 'R', POPT_ARG_NONE, NULL, 'R', _("Do not remove home directory and mail spool"), NULL },
+        { "force", 'f', POPT_ARG_NONE, NULL, 'f', _("Force removal of files not owned by the user"), NULL },
         POPT_TABLEEND
     };
 
@@ -57,13 +62,29 @@ int main(int argc, const char **argv)
     /* parse parameters */
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "USERNAME");
-    if ((ret = poptGetNextOpt(pc)) < -1) {
+    while ((ret = poptGetNextOpt(pc)) > 0) {
+        switch (ret) {
+            case 'r':
+                pc_remove = DO_REMOVE_HOME;
+                break;
+
+            case 'R':
+                pc_remove = DO_NOT_REMOVE_HOME;
+                break;
+
+            case 'f':
+                pc_force = DO_FORCE_REMOVAL;
+                break;
+        }
+    }
+
+    debug_level = pc_debug;
+
+    if (ret != -1) {
         usage(pc, poptStrerror(ret));
         ret = EXIT_FAILURE;
         goto fini;
     }
-
-    debug_level = pc_debug;
 
     pc_username = poptGetArg(pc);
     if (pc_username == NULL) {
@@ -90,6 +111,29 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    /*
+     * Fills in defaults for ops_ctx user did not specify.
+     */
+    ret = userdel_defaults(tctx, tctx->confdb, tctx->octx, pc_remove);
+    if (ret != EOK) {
+        ERROR("Cannot set default values\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    if (tctx->octx->remove_homedir) {
+        ret = sysdb_getpwnam_sync(tctx,
+                                  tctx->ev,
+                                  tctx->sysdb,
+                                  tctx->octx->name,
+                                  tctx->local,
+                                  &tctx->octx);
+        if (ret != EOK) {
+            /* Error message will be printed in the switch */
+            goto done;
+        }
+    }
+
     start_transaction(tctx);
     if (tctx->error != EOK) {
         goto done;
@@ -107,9 +151,25 @@ int main(int argc, const char **argv)
 
     end_transaction(tctx);
 
+    if (tctx->octx->remove_homedir) {
+        ret = remove_homedir(tctx,
+                             tctx->octx->home,
+                             tctx->octx->maildir,
+                             tctx->octx->name,
+                             tctx->octx->uid,
+                             pc_force);
+        if (ret == EPERM) {
+            ERROR("Not removing home dir - not owned by user\n");
+        } else if (ret != EOK) {
+            ERROR("Cannot remove homedir: %s\n", strerror(ret));
+            ret = EXIT_FAILURE;
+            goto fini;
+        }
+    }
+
+    ret = tctx->error;
 done:
-    if (tctx->error) {
-        ret = tctx->error;
+    if (ret) {
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:

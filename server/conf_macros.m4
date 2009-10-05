@@ -171,3 +171,20 @@ AC_DEFUN([WITH_PYTHON_BINDINGS],
     AM_CONDITIONAL([BUILD_PYTHON_BINDINGS], [test x"$with_python_bindings" = xyes])
   ])
 
+AC_DEFUN([WITH_SELINUX],
+  [ AC_ARG_WITH([selinux],
+                [AC_HELP_STRING([--with-selinux],
+                                [Whether to build with SELinux support [yes]]
+                               )
+                ],
+                [],
+                with_selinux=yes
+               )
+    if test x"$with_selinux" == xyes; then
+        HAVE_SELINUX=1
+        AC_SUBST(HAVE_SELINUX)
+        AC_DEFINE_UNQUOTED(HAVE_SELINUX, 1, [Build with SELinux support])
+    fi
+    AM_CONDITIONAL([BUILD_SELINUX], [test x"$with_selinux" = xyes])
+  ])
+
