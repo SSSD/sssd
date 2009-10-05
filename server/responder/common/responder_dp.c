@@ -35,17 +35,22 @@ struct sss_dp_req;
 struct sss_dp_callback {
     struct sss_dp_callback *prev;
     struct sss_dp_callback *next;
-    sss_dp_callback_t callback;
+
     struct sss_dp_req *sdp_req;
+
+    sss_dp_callback_t callback;
     void *callback_ctx;
 };
 
 struct sss_dp_req {
     struct tevent_context *ev;
-    struct sss_dp_callback *cb_list;
     DBusPendingCall *pending_reply;
 
     char *key;
+
+    struct tevent_timer *tev;
+    struct sss_dp_callback *cb_list;
+
     dbus_uint16_t err_maj;
     dbus_uint32_t err_min;
     char *err_msg;
@@ -63,18 +68,61 @@ static int sss_dp_callback_destructor(void *ptr)
 static int sss_dp_req_destructor(void *ptr)
 {
     struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
+    struct sss_dp_callback *cb, *next;
     hash_key_t key;
 
-    /* No callbacks to invoke. Destroy the hash entry */
+    /* Destroy any timer if present */
+    if (sdp_req->tev) {
+        talloc_zfree(sdp_req->tev);
+    }
+
+    /* Cancel Dbus pending reply if still pending */
+    if (sdp_req->pending_reply) {
+        dbus_pending_call_cancel(sdp_req->pending_reply);
+        sdp_req->pending_reply = NULL;
+    }
+
+    /* Destroy the hash entry */
     key.type = HASH_KEY_STRING;
     key.str = sdp_req->key;
     int hret = hash_delete(dp_requests, &key);
     if (hret != HASH_SUCCESS) {
-        DEBUG(0, ("Could not clear entry from request queue\n"));
         /* This should never happen */
-        return EIO;
+        DEBUG(0, ("Could not clear entry from request queue\n"));
     }
-    return EOK;
+
+    /* Free any remaining callback */
+    if (sdp_req->err_maj == DP_ERR_OK) {
+        sdp_req->err_maj = DP_ERR_FATAL;
+        sdp_req->err_min = EIO;
+        sdp_req->err_msg = discard_const_p(char, "Internal Error");
+    }
+
+    cb = sdp_req->cb_list;
+    while (cb) {
+        cb->callback(sdp_req->err_maj,
+                     sdp_req->err_min,
+                     sdp_req->err_msg,
+                     cb->callback_ctx);
+        next = cb->next;
+        talloc_free(cb);
+        cb = next;
+    }
+
+    return 0;
+}
+
+static void sdp_req_timeout(struct tevent_context *ev,
+                            struct tevent_timer *te,
+                            struct timeval t, void *ptr)
+{
+    struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
+
+    sdp_req->err_maj = DP_ERR_FATAL;
+    sdp_req->err_min = ETIMEDOUT;
+    sdp_req->err_msg = discard_const_p(char, "Timed out");
+
+    talloc_free(sdp_req);
 }
 
 static int sss_dp_get_reply(DBusPendingCall *pending,
@@ -86,31 +134,33 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
                                    struct tevent_timer *te,
                                    struct timeval t, void *ptr)
 {
-    struct sss_dp_req *sdp_req;
+    struct sss_dp_req *sdp_req = talloc_get_type(ptr, struct sss_dp_req);
     struct sss_dp_callback *cb;
     struct timeval tv;
     struct tevent_timer *tev;
 
-    sdp_req = talloc_get_type(ptr, struct sss_dp_req);
-    if (!sdp_req) {
-        /* We didn't receive an sss_dp_req? */
-        return;
-    }
+    /* eventually free the original request timeout */
+    talloc_zfree(sdp_req->tev);
 
     cb = sdp_req->cb_list;
+    /* Remove the callback from the list, the caller may free it, within the
+     * callback. */
+    talloc_set_destructor((TALLOC_CTX *)cb, NULL);
+    DLIST_REMOVE(sdp_req->cb_list, cb);
+
     cb->callback(sdp_req->err_maj,
                  sdp_req->err_min,
                  sdp_req->err_msg,
                  cb->callback_ctx);
 
-    /* Free the callback memory and remove it from the list */
-    talloc_zfree(cb);
-
     /* Call the next callback if needed */
     if (sdp_req->cb_list != NULL) {
         tv = tevent_timeval_current();
-        tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
-                              sss_dp_invoke_callback, sdp_req);
+        /* don't allocate on sdp_req, cause you can't free a timer event from
+         * within the handler, so if you try to free sdp_req later from within
+         * the handler, the free may fail */
+        tev = tevent_add_timer(sdp_req->ev, NULL, tv,
+                               sss_dp_invoke_callback, sdp_req);
         if (!te) {
             /* Out of memory or other serious error */
             goto done;
@@ -119,7 +169,7 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
         return;
     }
 
-    /* No more callbacks to invoke. Destroy the hash entry */
+    /* No more callbacks to invoke. Destroy the request */
 done:
     talloc_zfree(sdp_req);
 }
@@ -133,6 +183,9 @@ static void sss_dp_send_acct_callback(DBusPendingCall *pending, void *ptr)
     struct tevent_timer *te;
 
     sdp_req = talloc_get_type(ptr, struct sss_dp_req);
+
+    /* prevent trying to cancel a reply that we already received */
+    sdp_req->pending_reply = NULL;
 
     ret = sss_dp_get_reply(pending,
                            &sdp_req->err_maj,
@@ -199,6 +252,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
     hash_key_t key;
     hash_value_t value;
     TALLOC_CTX *tmp_ctx;
+    struct timeval tv;
     struct sss_dp_req *sdp_req;
     struct sss_dp_callback *cb;
 
@@ -265,6 +319,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
          * Add an additional callback if needed and return
          */
         DEBUG(2, ("Identical request in progress\n"));
+
         if (callback) {
             /* We have a new request asking for a callback */
             sdp_req = talloc_get_type(value.ptr, struct sss_dp_req);
@@ -287,8 +342,9 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
             DLIST_ADD_END(sdp_req->cb_list, cb, struct sss_dp_callback *);
             talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
         }
+
         ret = EOK;
-        goto done;
+        break;
 
     case HASH_ERROR_KEY_NOT_FOUND:
         /* No such request in progress
@@ -298,30 +354,47 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
                                           be_type, filter, timeout,
                                           callback, callback_ctx,
                                           &sdp_req);
-        if (ret == EOK) {
-            value.type = HASH_VALUE_PTR;
-            value.ptr = sdp_req;
-            hret = hash_enter(dp_requests, &key, &value);
-            if (hret != HASH_SUCCESS) {
-                DEBUG(0, ("Could not store request query (%s)",
-                          hash_error_string(hret)));
-                ret = EIO;
-                goto done;
-            }
-
-            sdp_req->key = talloc_strdup(sdp_req, key.str);
-            talloc_set_destructor((TALLOC_CTX *)sdp_req, sss_dp_req_destructor);
+        if (ret != EOK) {
+            goto done;
         }
+
+        value.type = HASH_VALUE_PTR;
+        value.ptr = sdp_req;
+        hret = hash_enter(dp_requests, &key, &value);
+        if (hret != HASH_SUCCESS) {
+            DEBUG(0, ("Could not store request query (%s)",
+                      hash_error_string(hret)));
+            talloc_zfree(sdp_req);
+            ret = EIO;
+            goto done;
+        }
+
+        sdp_req->key = talloc_strdup(sdp_req, key.str);
+
+        /* don't allocate on sdp_req, cause you can't free a timer
+         * event from within the handler, so if you try to free
+         * sdp_req later from within the handler, the free may fail */
+        tv = tevent_timeval_current_ofs(timeout, 0);
+        sdp_req->tev = tevent_add_timer(sdp_req->ev, NULL, tv,
+                                        sdp_req_timeout, sdp_req);
+        if (!sdp_req->tev) {
+            DEBUG(0, ("Out of Memory!?"));
+            talloc_zfree(sdp_req);
+            ret = ENOMEM;
+            goto done;
+        }
+
+        talloc_set_destructor((TALLOC_CTX *)sdp_req, sss_dp_req_destructor);
+
+        ret = EOK;
         break;
 
     default:
         DEBUG(0,("Could not query request list (%s)\n",
                   hash_error_string(hret)));
+        talloc_zfree(sdp_req);
         ret = EIO;
-        goto done;
     }
-
-    ret = EOK;
 
 done:
     talloc_zfree(tmp_ctx);
@@ -395,13 +468,13 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
         return EIO;
     }
 
-    sdp_req = talloc_zero(NULL, struct sss_dp_req);
+    sdp_req = talloc_zero(rctx, struct sss_dp_req);
     if (!sdp_req) {
         dbus_message_unref(msg);
         return ENOMEM;
     }
-
     sdp_req->ev = rctx->ev;
+    sdp_req->pending_reply = pending_reply;
 
     if (callback) {
         cb = talloc_zero(memctx, struct sss_dp_callback);
