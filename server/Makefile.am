@@ -68,7 +68,8 @@ if HAVE_CHECK
         resolv-tests \
         krb5-utils-tests \
         check_and_open-tests \
-        files-tests
+        files-tests \
+        refcount-tests
 endif
 
 check_PROGRAMS = \
@@ -185,6 +186,7 @@ SSSD_UTIL_OBJ = \
     util/backup_file.c \
     util/strtonum.c \
     util/check_and_open.c \
+    util/refcount.c \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \
@@ -258,6 +260,7 @@ dist_noinst_HEADERS = \
     util/strtonum.h \
     util/sss_ldap.h \
     util/sss_krb5.h \
+    util/refcount.h \
     config.h \
     monitor/monitor.h \
     monitor/monitor_interfaces.h \
@@ -464,6 +467,17 @@ resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS)
+
+refcount_tests_SOURCES = \
+    tests/refcount-tests.c \
+    tests/common.c \
+    $(CHECK_OBJ) \
+    $(SSSD_UTIL_OBJ)
+refcount_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+refcount_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
 endif
 
 stress_tests_SOURCES = \
