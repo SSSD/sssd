@@ -30,6 +30,8 @@
 
 #include "util/util.h"
 
+#define SUFFIX ".symlink"
+
 char filename[] = "check_and_open-tests-XXXXXX";
 uid_t uid;
 gid_t gid;
@@ -71,6 +73,32 @@ START_TEST(test_wrong_filename)
     ret = check_and_open_readonly("/bla/bla/bla", &fd, uid, gid, mode);
     fail_unless(ret == ENOENT,
                 "check_and_open_readonly succeeded on non-existing file");
+    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
+}
+END_TEST
+
+START_TEST(test_symlink)
+{
+    int ret;
+    char *newpath;
+    size_t newpath_length;
+
+    newpath_length = strlen(filename) + strlen(SUFFIX) + 1;
+    newpath = malloc((newpath_length) * sizeof(char));
+    fail_unless(newpath != NULL, "malloc failed");
+
+    ret = snprintf(newpath, newpath_length, "%s%s", filename, SUFFIX);
+    fail_unless(ret == newpath_length - 1,
+                "snprintf failed: expected [%d] got [%d]", newpath_length -1,
+                                                           ret);
+
+    ret = symlink(filename, newpath);
+    fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(ret));
+
+    ret = check_and_open_readonly(newpath, &fd, uid, gid, mode);
+    unlink(newpath);
+    fail_unless(ret == EINVAL,
+                "check_and_open_readonly succeeded on symlink");
     fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
@@ -161,6 +189,7 @@ Suite *check_and_open_suite (void)
                                teardown_check_and_open);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_filename);
     tcase_add_test (tc_check_and_open_readonly, test_not_regular_file);
+    tcase_add_test (tc_check_and_open_readonly, test_symlink);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_uid);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_gid);
     tcase_add_test (tc_check_and_open_readonly, test_wrong_permission);

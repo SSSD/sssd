@@ -47,6 +47,11 @@
             <replaceable>description</replaceable> parameter. Its function
             is only as a label for the section.
         </para>
+
+        <para>
+            <filename>sssd.conf</filename> must be a regular file, owned by
+            root and only root may read from or write to the file.
+        </para>
     </refsect1>
 
     <refsect1 id='special-sections'>
