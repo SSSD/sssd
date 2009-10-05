@@ -158,6 +158,21 @@ static size_t add_string_item(enum pam_item_type type, const char *str,
     return rp;
 }
 
+static void overwrite_and_free_authtoks(struct pam_items *pi)
+{
+    if (pi->pam_authtok != NULL) {
+        _pam_overwrite_n((void *)pi->pam_authtok, pi->pam_authtok_size);
+        free((void *)pi->pam_authtok);
+        pi->pam_authtok = NULL;
+    }
+
+    if (pi->pam_newauthtok != NULL) {
+        _pam_overwrite_n((void *)pi->pam_newauthtok,  pi->pam_newauthtok_size);
+        free((void *)pi->pam_newauthtok);
+        pi->pam_newauthtok = NULL;
+    }
+}
+
 static int pack_message_v3(struct pam_items *pi, size_t *size,
                            uint8_t **buffer) {
     int len;
@@ -210,16 +225,10 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
 
     rp += add_authtok_item(PAM_ITEM_AUTHTOK, pi->pam_authtok_type,
                            pi->pam_authtok, pi->pam_authtok_size, &buf[rp]);
-    _pam_overwrite_n((void *)pi->pam_authtok, pi->pam_authtok_size);
-    free((void *)pi->pam_authtok);
-    pi->pam_authtok = NULL;
 
     rp += add_authtok_item(PAM_ITEM_NEWAUTHTOK, pi->pam_newauthtok_type,
                            pi->pam_newauthtok, pi->pam_newauthtok_size,
                            &buf[rp]);
-    _pam_overwrite_n((void *)pi->pam_newauthtok,  pi->pam_newauthtok_size);
-    free((void *)pi->pam_newauthtok);
-    pi->pam_newauthtok = NULL;
 
     ((uint32_t *)(&buf[rp]))[0] = END_OF_PAM_REQUEST;
     rp += sizeof(uint32_t);
@@ -806,7 +815,31 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             return PAM_SYSTEM_ERR;
     }
 
-    return send_and_receive(pamh, &pi, task);
+    ret = send_and_receive(pamh, &pi, task);
+
+    if (ret == PAM_AUTHTOK_EXPIRED && task == SSS_PAM_AUTHENTICATE) {
+        D(("Authtoken expired, trying to change it"));
+        ret = do_pam_conversation(pamh, PAM_ERROR_MSG,
+                                  _("Password has expired."), NULL, NULL);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+            return PAM_SYSTEM_ERR;
+        }
+
+        pi.pamstack_oldauthtok = pi.pam_authtok;
+        ret = get_authtok_for_password_change(pamh, &pi, flags, pam_flags);
+        if (ret != PAM_SUCCESS) {
+            D(("failed to get tokens for password change: %s",
+               pam_strerror(pamh, ret)));
+            return ret;
+        }
+
+        ret = send_and_receive(pamh, &pi, SSS_PAM_CHAUTHTOK);
+    }
+
+    overwrite_and_free_authtoks(&pi);
+
+    return ret;
 }
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc,
