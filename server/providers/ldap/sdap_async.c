@@ -390,9 +390,6 @@ static void sdap_op_timeout(struct tevent_req *req)
 
     /* signal the caller that we have a timeout */
     op->callback(op, NULL, ETIMEDOUT, op->data);
-
-    /* send back to the server an abandon (see destructor) and free the op */
-    talloc_free(op);
 }
 
 static int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
