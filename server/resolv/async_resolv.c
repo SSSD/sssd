@@ -255,6 +255,64 @@ done:
     return ret;
 }
 
+struct hostent *
+resolv_copy_hostent(TALLOC_CTX *mem_ctx, struct hostent *src)
+{
+    struct hostent *ret;
+    int len;
+    int i;
+
+    ret = talloc_zero(mem_ctx, struct hostent);
+    if (ret == NULL) {
+        return NULL;
+    }
+
+    if (src->h_name != NULL) {
+        ret->h_name = talloc_strdup(ret, src->h_name);
+        if (ret->h_name == NULL) {
+            goto fail;
+        }
+    }
+    if (src->h_aliases != NULL) {
+        for (len = 0; src->h_aliases[len] != NULL; len++);
+        ret->h_aliases = talloc_size(ret, sizeof(char *) * (len + 1));
+        if (ret->h_aliases == NULL) {
+            goto fail;
+        }
+        for (i = 0; i < len; i++) {
+            ret->h_aliases[i] = talloc_strdup(ret->h_aliases, src->h_aliases[i]);
+            if (ret->h_aliases[i] == NULL) {
+                goto fail;
+            }
+        }
+        ret->h_aliases[len] = NULL;
+    }
+    ret->h_addrtype = src->h_addrtype;
+    ret->h_length = src->h_length;
+    if (src->h_addr_list != NULL) {
+        for (len = 0; src->h_addr_list[len] != NULL; len++);
+        ret->h_addr_list = talloc_size(ret, sizeof(char *) * (len + 1));
+        if (ret->h_addr_list == NULL) {
+            goto fail;
+        }
+        for (i = 0; i < len; i++) {
+            ret->h_addr_list[i] = talloc_memdup(ret->h_addr_list,
+                                                src->h_addr_list[i],
+                                                ret->h_length);
+            if (ret->h_addr_list[i] == NULL) {
+                goto fail;
+            }
+        }
+        ret->h_addr_list[len] = NULL;
+    }
+
+    return ret;
+
+fail:
+    talloc_free(ret);
+    return NULL;
+}
+
 /*******************************************************************
  * Get host by name.                                               *
  *******************************************************************/
@@ -266,7 +324,7 @@ struct gethostbyname_state {
     int family;
     /* These are returned by ares. The hostent struct will be freed
      * when the user callback returns. */
-    const struct hostent *hostent;
+    struct hostent *hostent;
     int status;
     int timeouts;
 };
@@ -301,7 +359,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     /* We need to have a wrapper around ares_gethostbyname(), because
      * ares_gethostbyname() can in some cases call it's callback immediately.
      * This would not let our caller to set a callback for req. */
-    subreq = tevent_wakeup_send(mem_ctx, ev, tv);
+    subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
         DEBUG(1, ("Failed to add critical timer to run next operation!\n"));
         talloc_zfree(req);
@@ -318,7 +376,15 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
     struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
 
-    state->hostent = hostent;
+    if (hostent != NULL) {
+        state->hostent = resolv_copy_hostent(req, hostent);
+        if (state->hostent == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    } else {
+        state->hostent = NULL;
+    }
     state->status = status;
     state->timeouts = timeouts;
 
@@ -329,8 +395,9 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
 }
 
 int
-resolv_gethostbyname_recv(struct tevent_req *req, int *status, int *timeouts,
-                          struct hostent const **hostent)
+resolv_gethostbyname_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
+                          int *status, int *timeouts,
+                          struct hostent **hostent)
 {
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
     enum tevent_req_state tstate;
@@ -343,7 +410,9 @@ resolv_gethostbyname_recv(struct tevent_req *req, int *status, int *timeouts,
     if (timeouts)
         *timeouts = state->timeouts;
     if (hostent)
-        *hostent = state->hostent;
+        *hostent = talloc_steal(mem_ctx, state->hostent);
+    else
+        talloc_free(hostent);
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         return -1;
@@ -373,6 +442,48 @@ ares_gethostbyname_wakeup(struct tevent_req *subreq)
 
     ares_gethostbyname(state->resolv_ctx->channel, state->name,
                        state->family, resolv_gethostbyname_done, req);
+}
+
+/*
+ * A simple helper function that will take an array of struct srv_reply that
+ * was allocated by malloc() in c-ares and copies it using talloc. The old one
+ * is freed and the talloc one is put into 'reply_list' instead.
+ */
+static int
+rewrite_talloc_srv_reply(TALLOC_CTX *mem_ctx, struct srv_reply **reply_list,
+                         int num_replies)
+{
+    int i;
+    struct srv_reply *new_list;
+    struct srv_reply *old_list = *reply_list;
+
+    new_list = talloc_array(mem_ctx, struct srv_reply, num_replies);
+    if (new_list == NULL) {
+        return ENOMEM;
+    }
+
+    /* Copy the new_list array. */
+    for (i = 0; i < num_replies; i++) {
+        new_list[i].weight = old_list[i].weight;
+        new_list[i].priority = old_list[i].priority;
+        new_list[i].port = old_list[i].port;
+        new_list[i].host = talloc_strdup(new_list, old_list[i].host);
+        if (new_list[i].host == NULL) {
+            talloc_free(new_list);
+            return ENOMEM;
+        }
+    }
+
+    /* Free the old one (uses malloc). */
+    for (i = 0; i < num_replies; i++) {
+        free(old_list[i].host);
+    }
+    free(old_list);
+
+    /* And now put our own new_list in place. */
+    *reply_list = new_list;
+
+    return EOK;
 }
 
 /*******************************************************************
@@ -418,7 +529,7 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->status = 0;
     state->timeouts = 0;
 
-    subreq = tevent_wakeup_send(mem_ctx, ev, tv);
+    subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
         DEBUG(1, ("Failed to add critical timer to run next operation!\n"));
         talloc_zfree(req);
@@ -443,24 +554,36 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
 
     if (status != ARES_SUCCESS) {
         tevent_req_error(req, return_code(status));
-        return;
+        ret = return_code(status);
+        goto fail;
     }
 
     ret = ares_parse_srv_reply(abuf, alen, &reply_list, &num_replies);
     if (status != ARES_SUCCESS) {
         DEBUG(2, ("SRV record parsing failed: %d: %s\n", ret, ares_strerror(ret)));
-        tevent_req_error(req, return_code(ret));
-        return;
+        ret = return_code(ret);
+        goto fail;
+    }
+    ret = rewrite_talloc_srv_reply(req, &reply_list, num_replies);
+    if (ret != EOK) {
+        goto fail;
     }
     state->reply_list = reply_list;
     state->num_replies = num_replies;
 
     tevent_req_done(req);
+    return;
+
+fail:
+    state->reply_list = NULL;
+    state->num_replies = 0;
+    tevent_req_error(req, ret);
 }
 
 int
-resolv_getsrv_recv(struct tevent_req *req, int *status, int *timeouts,
-                   struct srv_reply const **reply_list, int *num_replies)
+resolv_getsrv_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
+                   int *timeouts, struct srv_reply **reply_list,
+                   int *num_replies)
 {
     struct getsrv_state *state = tevent_req_data(req, struct getsrv_state);
     enum tevent_req_state tstate;
@@ -471,7 +594,9 @@ resolv_getsrv_recv(struct tevent_req *req, int *status, int *timeouts,
     if (timeouts)
         *timeouts = state->timeouts;
     if (reply_list)
-        *reply_list = state->reply_list;
+        *reply_list = talloc_steal(mem_ctx, state->reply_list);
+    else
+        talloc_free(state->reply_list);
     if (num_replies)
         *num_replies = state->num_replies;
 
@@ -502,6 +627,47 @@ ares_getsrv_wakeup(struct tevent_req *subreq)
 
     ares_query(state->resolv_ctx->channel, state->query,
                ns_c_in, ns_t_srv, resolv_getsrv_done, req);
+}
+
+/*
+ * A simple helper function that will take an array of struct txt_reply that
+ * was allocated by malloc() in c-ares and copies it using talloc. The old one
+ * is freed and the talloc one is put into 'reply_list' instead.
+ */
+static int
+rewrite_talloc_txt_reply(TALLOC_CTX *mem_ctx, struct txt_reply **reply_list,
+                         int num_replies)
+{
+    int i;
+    struct txt_reply *new_list;
+    struct txt_reply *old_list = *reply_list;
+
+    new_list = talloc_array(mem_ctx, struct txt_reply, num_replies);
+    if (new_list == NULL) {
+        return ENOMEM;
+    }
+
+    /* Copy the new_list array. */
+    for (i = 0; i < num_replies; i++) {
+        new_list[i].length = old_list[i].length;
+        new_list[i].txt = talloc_memdup(new_list, old_list[i].txt,
+                                        old_list[i].length);
+        if (new_list[i].txt == NULL) {
+            talloc_free(new_list);
+            return ENOMEM;
+        }
+    }
+
+    /* Free the old one (uses malloc). */
+    for (i = 0; i < num_replies; i++) {
+        free(old_list[i].txt);
+    }
+    free(old_list);
+
+    /* And now put our own new_list in place. */
+    *reply_list = new_list;
+
+    return EOK;
 }
 
 /*******************************************************************
@@ -548,7 +714,7 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->timeouts = 0;
 
 
-    subreq = tevent_wakeup_send(mem_ctx, ev, tv);
+    subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
         DEBUG(1, ("Failed to add critical timer to run next operation!\n"));
         talloc_zfree(req);
@@ -572,25 +738,36 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     state->timeouts = timeouts;
 
     if (status != ARES_SUCCESS) {
-        tevent_req_error(req, return_code(status));
-        return;
+        ret = return_code(status);
+        goto fail;
     }
 
     ret = ares_parse_txt_reply(abuf, alen, &reply_list, &num_replies);
     if (status != ARES_SUCCESS) {
         DEBUG(2, ("TXT record parsing failed: %d: %s\n", ret, ares_strerror(ret)));
-        tevent_req_error(req, return_code(ret));
-        return;
+        ret = return_code(ret);
+        goto fail;
+    }
+    ret = rewrite_talloc_txt_reply(req, &reply_list, num_replies);
+    if (ret != EOK) {
+        goto fail;
     }
     state->reply_list = reply_list;
     state->num_replies = num_replies;
 
     tevent_req_done(req);
+    return;
+
+fail:
+    state->reply_list = NULL;
+    state->num_replies = 0;
+    tevent_req_error(req, ret);
 }
 
 int
-resolv_gettxt_recv(struct tevent_req *req, int *status, int *timeouts,
-                   struct txt_reply const **reply_list, int *num_replies)
+resolv_gettxt_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
+                   int *timeouts, struct txt_reply **reply_list,
+                   int *num_replies)
 {
     struct gettxt_state *state = tevent_req_data(req, struct gettxt_state);
     enum tevent_req_state tstate;
@@ -601,7 +778,9 @@ resolv_gettxt_recv(struct tevent_req *req, int *status, int *timeouts,
     if (timeouts)
         *timeouts = state->timeouts;
     if (reply_list)
-        *reply_list = state->reply_list;
+        *reply_list = talloc_steal(mem_ctx, state->reply_list);
+    else
+        talloc_free(state->reply_list);
     if (num_replies)
         *num_replies = state->num_replies;
 

@@ -51,6 +51,9 @@ int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 
 const char *resolv_strerror(int ares_code);
 
+struct hostent *resolv_copy_hostent(TALLOC_CTX *mem_ctx,
+                                    struct hostent *src);
+
 /** Get host by name **/
 struct tevent_req *resolv_gethostbyname_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
@@ -58,10 +61,11 @@ struct tevent_req *resolv_gethostbyname_send(TALLOC_CTX *mem_ctx,
                                             const char *name,
                                             int family);
 
-int resolv_gethostbyname_recv(struct tevent_req *req,
+int resolv_gethostbyname_recv(TALLOC_CTX *mem_ctx,
+                              struct tevent_req *req,
                               int *status,
                               int *timeouts,
-                              struct hostent const **hostent);
+                              struct hostent **hostent);
 
 /** Get SRV record **/
 struct tevent_req *resolv_getsrv_send(TALLOC_CTX *mem_ctx,
@@ -69,10 +73,11 @@ struct tevent_req *resolv_getsrv_send(TALLOC_CTX *mem_ctx,
                                       struct resolv_ctx *ctx,
                                       const char *query);
 
-int resolv_getsrv_recv(struct tevent_req *req,
+int resolv_getsrv_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
                        int *status,
                        int *timeouts,
-                       struct srv_reply const **reply_list,
+                       struct srv_reply **reply_list,
                        int *num_replies);
 
 /** Get TXT record **/
@@ -81,10 +86,11 @@ struct tevent_req *resolv_gettxt_send(TALLOC_CTX *mem_ctx,
                                       struct resolv_ctx *ctx,
                                       const char *query);
 
-int resolv_gettxt_recv(struct tevent_req *req,
+int resolv_gettxt_recv(TALLOC_CTX *mem_ctx,
+                       struct tevent_req *req,
                        int *status,
                        int *timeouts,
-                       struct txt_reply const **reply_list,
+                       struct txt_reply **reply_list,
                        int *num_replies);
 
 #endif /* __ASYNC_RESOLV_H__ */
