@@ -589,7 +589,7 @@ static int get_grp_callback(struct ldb_request *req,
     switch (rep->type) {
     case LDB_REPLY_ENTRY:
 
-        if (sctx->domain->mpg) {
+        if (sctx->ctx->mpg) {
             ret = mpg_convert(rep->message);
             if (ret != EOK) {
                 request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
@@ -682,7 +682,7 @@ static void grp_search(struct tevent_req *treq)
         return request_error(sctx, ret);
     }
 
-    if (sctx->domain->mpg) {
+    if (sctx->ctx->mpg) {
         base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
                                  SYSDB_DOM_BASE, sctx->domain->name);
     } else {
@@ -726,7 +726,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (domain->mpg) {
+    if (ctx->mpg) {
         sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_MPG_FILTER, name);
     } else {
         sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_FILTER, name);
@@ -765,7 +765,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    if (domain->mpg) {
+    if (ctx->mpg) {
         sctx->expression = talloc_asprintf(sctx,
                                            SYSDB_GRGID_MPG_FILTER,
                                            (unsigned long int)gid);
@@ -809,7 +809,7 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
 
     sctx->enumeration = true;
 
-    if (domain->mpg) {
+    if (ctx->mpg) {
         sctx->expression = SYSDB_GRENT_MPG_FILTER;
     } else {
         sctx->expression = SYSDB_GRENT_FILTER;

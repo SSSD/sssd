@@ -835,18 +835,6 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         DEBUG(1, ("No enumeration for [%s]!\n", domain->name));
     }
 
-    /* Determine if this is domain uses MPG */
-    ret = get_entry_as_bool(res->msgs[0], &domain->mpg, CONFDB_DOMAIN_MPG, 0);
-    if(ret != EOK) {
-        DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_MPG));
-        goto done;
-    }
-
-    /* The local provider always uses MPG, so override it */
-    if (strcasecmp(domain->provider, "local") == 0) {
-        domain->mpg = true;
-    }
-
     /* Determine if user/group names will be Fully Qualified
      * in NSS interfaces */
     ret = get_entry_as_bool(res->msgs[0], &domain->fqnames, CONFDB_DOMAIN_FQ, 0);

@@ -1731,7 +1731,7 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
     state->shell = shell;
     state->attrs = attrs;
 
-    if (domain->mpg) {
+    if (handle->ctx->mpg) {
         if (gid != 0) {
             DEBUG(0, ("Cannot add user with arbitrary GID in MPG domain!\n"));
             ERROR_OUT(ret, EINVAL, fail);
@@ -1753,7 +1753,7 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
         ERROR_OUT(ret, ERANGE, fail);
     }
 
-    if (domain->mpg) {
+    if (handle->ctx->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
@@ -1956,7 +1956,7 @@ static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
-        if (state->domain->mpg) {
+        if (state->handle->ctx->mpg) {
             ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_GIDNUM, id);
             if (ret) {
                 DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
@@ -2173,7 +2173,7 @@ struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
         ERROR_OUT(ret, ERANGE, fail);
     }
 
-    if (domain->mpg) {
+    if (handle->ctx->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
@@ -2665,7 +2665,7 @@ static void sysdb_store_user_check(struct tevent_req *subreq)
         }
     }
 
-    if (state->uid && !state->gid && state->domain->mpg) {
+    if (state->uid && !state->gid && state->handle->ctx->mpg) {
         ret = sysdb_attrs_add_uint32(state->attrs, SYSDB_GIDNUM, state->uid);
         if (ret) {
             DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));

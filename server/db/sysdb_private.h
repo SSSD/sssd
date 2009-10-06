@@ -72,6 +72,7 @@ struct sysdb_ctx {
     struct tevent_context *ev;
 
     struct sss_domain_info *domain;
+    bool mpg;
 
     struct ldb_context *ldb;
     char *ldb_file;

@@ -364,47 +364,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>magic_private_groups (bool)</term>
-                    <listitem>
-                        <para>
-                            By using the Magic Private Groups option, you
-                            are imposing two limitations to the ID space
-                            and name space:
-                        </para>
-                        <para>
-                            1. Users and groups in the domain share a common
-                            name space. There can never be an explicit group
-                            with the same name as a user
-                        </para>
-                        <para>
-                            2. Users and groups share a common ID
-                            space, there can never be an explicit group with
-                            a same ID as a user
-                        </para>
-                        <para>
-                            Using Magic Private groups bring the benefit of
-                            better Windows Interoperability (in Windows,
-                            the ID and name spaces are unique) and also
-                            avoids creating a group for every user,
-                            thus cluttering the group space. Also, for
-                            NSS calls, every user is actually returned
-                            as user's private group without having to
-                            explicitly create the group, thus having the
-                            same effect as User Private Groups
-                        </para>
-                        <para>
-                            Default: FALSE*
-                        </para>
-                        <para>
-                            *Magic Private Groups are always enabled when
-                            provider=local and this setting does not
-                            affect that in any way. For other providers,
-                            Magic Private Groups default to FALSE
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>enumerate (bool)</term>
                     <listitem>
                         <para>
