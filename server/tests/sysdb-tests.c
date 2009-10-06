@@ -32,6 +32,14 @@
 
 #define TESTS_PATH "tests_sysdb"
 
+#define TEST_ATTR_NAME "test_attr_name"
+#define TEST_ATTR_VALUE "test_attr_value"
+#define TEST_ATTR_UPDATE_VALUE "test_attr_update_value"
+#define TEST_ATTR_ADD_NAME "test_attr_add_name"
+#define TEST_ATTR_ADD_VALUE "test_attr_add_value"
+#define CUSTOM_TEST_CONTAINER "custom_test_container"
+#define CUSTOM_TEST_OBJECT "custom_test_object"
+
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
@@ -150,6 +158,8 @@ struct test_data {
 
     struct sysdb_attrs *attrs;
     const char *attrval;  /* testing sysdb_get_user_attr */
+    const char **attrlist;
+    struct ldb_message *msg;
 };
 
 static int test_loop(struct test_data *data)
@@ -818,6 +828,131 @@ static void test_remove_group_member_done(struct tevent_req *subreq)
     int ret = sysdb_remove_group_member_recv(subreq);
 
     test_return(data, ret);
+}
+
+static void test_store_custom_done(struct tevent_req *subreq);
+
+static void test_store_custom(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_transaction_recv(subreq, data, &data->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_store_custom_send(data, data->ev, data->handle,
+                                 data->ctx->domain, CUSTOM_TEST_OBJECT,
+                                 CUSTOM_TEST_CONTAINER, data->attrs);
+    if (!subreq) {
+        return test_return(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, test_store_custom_done, data);
+}
+
+static void test_store_custom_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_store_custom_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
+static void test_search_custom_by_name_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_search_custom_recv(subreq, data, &data->msg);
+    talloc_zfree(subreq);
+
+    fail_unless(data->msg->num_elements == 1,
+                "Wrong number of results, expected [1] got [%d]",
+                data->msg->num_elements);
+    fail_unless(strcmp(data->msg->elements[0].name, TEST_ATTR_NAME) == 0,
+                "Wrong attribute name");
+    fail_unless(data->msg->elements[0].num_values == 1,
+                "Wrong number of attribute values");
+    fail_unless(strncmp((const char *)data->msg->elements[0].values[0].data,
+                TEST_ATTR_VALUE, data->msg->elements[0].values[0].length) == 0,
+                "Wrong attribute value");
+
+    data->finished = true;
+    return;
+}
+
+static void test_search_custom_update_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+    struct ldb_message_element *el;
+
+    ret = sysdb_search_custom_recv(subreq, data, &data->msg);
+    talloc_zfree(subreq);
+
+    fail_unless(data->msg->num_elements == 2,
+                "Wrong number of results, expected [1] got [%d]",
+                data->msg->num_elements);
+
+    el = ldb_msg_find_element(data->msg, TEST_ATTR_NAME);
+    fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_NAME);
+    fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
+                "of attribute values for [%s]", el->num_values, TEST_ATTR_NAME);
+    fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_UPDATE_VALUE,
+                el->values[0].length) == 0,
+                "Wrong attribute value");
+
+    el = ldb_msg_find_element(data->msg, TEST_ATTR_ADD_NAME);
+    fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_ADD_NAME);
+    fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
+                "of attribute values for [%s]", el->num_values, TEST_ATTR_ADD_NAME);
+    fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_ADD_VALUE,
+                el->values[0].length) == 0,
+                "Wrong attribute value");
+
+    data->finished = true;
+    return;
+}
+
+static void test_delete_custom_done(struct tevent_req *subreq);
+
+static void test_delete_custom(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+
+    ret = sysdb_transaction_recv(subreq, data, &data->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+
+    subreq = sysdb_delete_custom_send(data, data->ev, data->handle,
+                                       data->ctx->domain, CUSTOM_TEST_OBJECT,
+                                       CUSTOM_TEST_CONTAINER);
+    if (!subreq) {
+        return test_return(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, test_delete_custom_done, data);
+}
+
+static void test_delete_custom_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_delete_custom_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
 }
 
 START_TEST (test_sysdb_store_user)
@@ -1619,6 +1754,231 @@ START_TEST (test_sysdb_remove_nonexistent_group)
 }
 END_TEST
 
+START_TEST (test_sysdb_store_custom)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrs = sysdb_new_attrs(test_ctx);
+    if (ret != EOK) {
+        fail("Could not create attribute list");
+        return;
+    }
+
+    ret = sysdb_attrs_add_string(data->attrs,
+                                 TEST_ATTR_NAME,
+                                 TEST_ATTR_VALUE);
+    if (ret != EOK) {
+        fail("Could not add attribute");
+        return;
+    }
+
+    subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_store_custom, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not add custom object");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_search_custom_by_name)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    fail_unless(data != NULL, "talloc_zero failed");
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrlist = talloc_array(test_ctx, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed");
+    data->attrlist[0] = TEST_ATTR_NAME;
+    data->attrlist[1] = NULL;
+
+    subreq = sysdb_search_custom_by_name_send(data, data->ev,
+                                               data->ctx->sysdb, NULL,
+                                               data->ctx->domain,
+                                               CUSTOM_TEST_OBJECT,
+                                               CUSTOM_TEST_CONTAINER,
+                                               data->attrlist);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_search_custom_by_name_done, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not search custom object");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_update_custom)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrs = sysdb_new_attrs(test_ctx);
+    if (ret != EOK) {
+        fail("Could not create attribute list");
+        return;
+    }
+
+    ret = sysdb_attrs_add_string(data->attrs,
+                                 TEST_ATTR_NAME,
+                                 TEST_ATTR_UPDATE_VALUE);
+    if (ret != EOK) {
+        fail("Could not add attribute");
+        return;
+    }
+
+    ret = sysdb_attrs_add_string(data->attrs,
+                                 TEST_ATTR_ADD_NAME,
+                                 TEST_ATTR_ADD_VALUE);
+    if (ret != EOK) {
+        fail("Could not add attribute");
+        return;
+    }
+
+    subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_store_custom, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not add custom object");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_search_custom_update)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    fail_unless(data != NULL, "talloc_zero failed");
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrlist = talloc_array(test_ctx, const char *, 3);
+    fail_unless(data->attrlist != NULL, "talloc_array failed");
+    data->attrlist[0] = TEST_ATTR_NAME;
+    data->attrlist[1] = TEST_ATTR_ADD_NAME;
+    data->attrlist[2] = NULL;
+
+    subreq = sysdb_search_custom_by_name_send(data, data->ev,
+                                               data->ctx->sysdb, NULL,
+                                               data->ctx->domain,
+                                               CUSTOM_TEST_OBJECT,
+                                               CUSTOM_TEST_CONTAINER,
+                                               data->attrlist);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_search_custom_update_done, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not search custom object");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_delete_custom)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+
+    subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_delete_custom, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not delete custom object");
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -1695,6 +2055,13 @@ Suite *create_sysdb_suite(void)
 
     /* test the ignore_not_found parameter for groups */
     tcase_add_test(tc_sysdb, test_sysdb_remove_nonexistent_group);
+
+    /* test custom operations */
+    tcase_add_test(tc_sysdb, test_sysdb_store_custom);
+    tcase_add_test(tc_sysdb, test_sysdb_search_custom_by_name);
+    tcase_add_test(tc_sysdb, test_sysdb_update_custom);
+    tcase_add_test(tc_sysdb, test_sysdb_search_custom_update);
+    tcase_add_test(tc_sysdb, test_sysdb_delete_custom);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);

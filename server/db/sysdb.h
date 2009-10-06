@@ -33,6 +33,7 @@
 #define SYSDB_DOM_BASE "cn=%s,cn=sysdb"
 #define SYSDB_TMPL_USER_BASE "cn=users,cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_GROUP_BASE "cn=groups,cn=%s,"SYSDB_BASE
+#define SYSDB_TMPL_CUSTOM_BASE "cn=custom,cn=%s,"SYSDB_BASE
 
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
@@ -132,6 +133,7 @@
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
 #define SYSDB_TMPL_GROUP SYSDB_NAME"=%s,"SYSDB_TMPL_GROUP_BASE
+#define SYSDB_TMPL_CUSTOM SYSDB_NAME"=%s,cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 
 #define SYSDB_MOD_ADD LDB_FLAG_MOD_ADD
 #define SYSDB_MOD_DEL LDB_FLAG_MOD_DELETE
@@ -176,6 +178,11 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain, const char *name);
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
                                const char *domain);
+struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
+                                const char *domain, const char *object_name,
+                                const char *subtree_name);
+
+
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
 struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle);
@@ -515,4 +522,32 @@ struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
                                              const char *password);
 int sysdb_cache_password_recv(struct tevent_req *req);
 
+struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sysdb_handle *handle,
+                                         struct sss_domain_info *domain,
+                                         const char *object_name,
+                                         const char *subtree_name,
+                                         struct sysdb_attrs *attrs);
+int sysdb_store_custom_recv(struct tevent_req *req);
+
+struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
+                                                    struct tevent_context *ev,
+                                                    struct sysdb_ctx *sysdb,
+                                                    struct sysdb_handle *handle,
+                                                    struct sss_domain_info *domain,
+                                                    const char *object_name,
+                                                    const char *subtree_name,
+                                                    const char **attrs);
+int sysdb_search_custom_recv(struct tevent_req *req,
+                              TALLOC_CTX *mem_ctx,
+                              struct ldb_message **msg);
+
+struct tevent_req *sysdb_delete_custom_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *object_name,
+                                             const char *subtree_name);
+int sysdb_delete_custom_recv(struct tevent_req *req);
 #endif /* __SYS_DB_H__ */

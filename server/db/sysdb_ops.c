@@ -3305,3 +3305,526 @@ int sysdb_cache_password_recv(struct tevent_req *req)
     return sysdb_op_default_recv(req);
 }
 
+/* = sysdb_check_handle ================== */
+struct sysdb_check_handle_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+};
+
+static void sysdb_check_handle_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_check_handle_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sysdb_handle *handle)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sysdb_check_handle_state *state;
+
+    if (sysdb == NULL && handle == NULL) {
+        DEBUG(1, ("Sysdb context not available.\n"));
+        return NULL;
+    }
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_check_handle_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+
+    if (handle != NULL) {
+        state->handle = talloc_memdup(state, handle, sizeof(struct sysdb_handle));
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    state->handle = NULL;
+
+    subreq = sysdb_operation_send(state, state->ev, sysdb);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_operation_send failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        tevent_req_post(req, ev);
+        return req;
+    }
+    tevent_req_set_callback(subreq, sysdb_check_handle_done, req);
+
+    return req;
+}
+
+static void sysdb_check_handle_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_check_handle_state *state = tevent_req_data(req,
+                                             struct sysdb_check_handle_state);
+    int ret;
+
+    ret = sysdb_operation_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+int sysdb_check_handle_recv(struct tevent_req *req, TALLOC_CTX *memctx,
+                            struct sysdb_handle **handle)
+{
+    struct sysdb_check_handle_state *state = tevent_req_data(req,
+                                             struct sysdb_check_handle_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    *handle = talloc_move(memctx, &state->handle);
+
+    return EOK;
+
+}
+
+/* =Custom Search================== */
+struct sysdb_search_custom_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+
+    struct ldb_dn *basedn;
+    const char **attrs;
+    const char *filter;
+    int scope;
+
+    struct ldb_message *msg;
+};
+
+static void sysdb_search_custom_check_handle_done(struct tevent_req *subreq);
+static void sysdb_search_custom_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
+                                                    struct tevent_context *ev,
+                                                    struct sysdb_ctx *sysdb,
+                                                    struct sysdb_handle *handle,
+                                                    struct sss_domain_info *domain,
+                                                    const char *object_name,
+                                                    const char *subtree_name,
+                                                    const char **attrs)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_search_custom_state *state;
+    int ret;
+
+    if (sysdb == NULL && handle == NULL) return NULL;
+
+    if (object_name == NULL || subtree_name == NULL) return NULL;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_search_custom_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->handle = handle;
+    state->attrs = attrs;
+    state->filter = NULL;
+    state->scope = LDB_SCOPE_BASE;
+    state->msg = NULL;
+
+    if (sysdb == NULL) {
+        sysdb = handle->ctx;
+    }
+    state->basedn = sysdb_custom_dn(sysdb, state, domain->name, object_name,
+                                     subtree_name);
+    if (state->basedn == NULL) {
+        DEBUG(1, ("sysdb_custom_dn failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    if (!ldb_dn_validate(state->basedn)) {
+        DEBUG(1, ("Failed to create DN.\n"));
+        ret = EINVAL;
+        goto fail;
+    }
+
+    subreq = sysdb_check_handle_send(state, state->ev, sysdb, state->handle);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_custom_check_handle_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sysdb_search_custom_check_handle_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_search_custom_state *state = tevent_req_data(req,
+                                            struct sysdb_search_custom_state);
+    int ret;
+
+    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_search_entry_send(state, state->ev, state->handle,
+                                     state->basedn, state->scope,
+                                     state->filter, state->attrs);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_search_entry_send failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_custom_done, req);
+    return;
+}
+
+static void sysdb_search_custom_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_search_custom_state *state = tevent_req_data(req,
+                                            struct sysdb_search_custom_state);
+    int ret;
+
+    ret = sysdb_search_entry_recv(subreq, state, &state->msg);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_search_custom_recv(struct tevent_req *req,
+                              TALLOC_CTX *mem_ctx,
+                              struct ldb_message **msg)
+{
+    struct sysdb_search_custom_state *state = tevent_req_data(req,
+                                              struct sysdb_search_custom_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    *msg = talloc_move(mem_ctx, &state->msg);
+
+    return EOK;
+}
+
+
+/* =Custom Store (replaces-existing-data)================== */
+
+struct sysdb_store_custom_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sss_domain_info *domain;
+
+    const char *object_name;
+    const char *subtree_name;
+    struct ldb_dn *dn;
+    struct sysdb_attrs *attrs;
+    struct ldb_message *msg;
+};
+
+static void sysdb_store_custom_check_done(struct tevent_req *subreq);
+static void sysdb_store_custom_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sysdb_handle *handle,
+                                         struct sss_domain_info *domain,
+                                         const char *object_name,
+                                         const char *subtree_name,
+                                         struct sysdb_attrs *attrs)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_store_custom_state *state;
+    int ret;
+    const char **search_attrs;
+
+    if (object_name == NULL || subtree_name == NULL) return NULL;
+
+    if (handle == NULL) {
+        DEBUG(1, ("Sysdb context not available.\n"));
+        return NULL;
+    }
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_store_custom_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->object_name = object_name;
+    state->subtree_name = subtree_name;
+    state->attrs = attrs;
+    state->msg = NULL;
+    state->dn = sysdb_custom_dn(handle->ctx, state, domain->name, object_name,
+                                 subtree_name);
+    if (state->dn == NULL) {
+        DEBUG(1, ("sysdb_custom_dn failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    search_attrs = talloc_array(state, const char *, 2);
+    if (search_attrs == NULL) {
+        DEBUG(1, ("talloc_array failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    search_attrs[0] = "*";
+    search_attrs[1] = NULL;
+
+    subreq = sysdb_search_custom_by_name_send(state, state->ev, NULL,
+                                              state->handle,
+                                              state->domain,
+                                              state->object_name,
+                                              state->subtree_name,
+                                              search_attrs);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_search_custom_by_name_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sysdb_store_custom_check_done, req);
+
+    return req;
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sysdb_store_custom_check_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_store_custom_state *state = tevent_req_data(req,
+                                            struct sysdb_store_custom_state);
+    int ret;
+    int i;
+    struct ldb_message *resp;
+    struct ldb_message *msg;
+    struct ldb_request *ldbreq;
+    struct ldb_message_element *el;
+    bool add_object = false;
+
+    ret = sysdb_search_custom_recv(subreq, state, &resp);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (ret == ENOENT) {
+       add_object = true;
+    }
+
+    msg = ldb_msg_new(state);
+    if (msg == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    msg->dn = state->dn;
+
+    msg->elements = talloc_array(msg, struct ldb_message_element,
+                                 state->attrs->num);
+    if (!msg->elements) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    for (i = 0; i < state->attrs->num; i++) {
+        msg->elements[i] = state->attrs->a[i];
+        if (add_object) {
+            msg->elements[i].flags = LDB_FLAG_MOD_ADD;
+        } else {
+            el = ldb_msg_find_element(resp, state->attrs->a[i].name);
+            if (el == NULL) {
+                msg->elements[i].flags = LDB_FLAG_MOD_ADD;
+            } else {
+                msg->elements[i].flags = LDB_FLAG_MOD_REPLACE;
+            }
+        }
+    }
+    msg->num_elements = state->attrs->num;
+
+    if (add_object) {
+        ret = ldb_build_add_req(&ldbreq, state->handle->ctx->ldb, state, msg,
+                                NULL, NULL, NULL, NULL);
+    } else {
+        ret = ldb_build_mod_req(&ldbreq, state->handle->ctx->ldb, state, msg,
+                                NULL, NULL, NULL, NULL);
+    }
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to build request: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret,
+                  ldb_errstring(state->handle->ctx->ldb)));
+        tevent_req_error(req, sysdb_error_to_errno(ret));
+        return;
+    }
+
+    subreq = sldb_request_send(state, state->ev, state->handle->ctx->ldb,
+                               ldbreq);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_store_custom_done, req);
+    return;
+}
+
+static void sysdb_store_custom_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sysdb_op_default_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+int sysdb_store_custom_recv(struct tevent_req *req)
+{
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    return EOK;
+}
+
+/* = Custom Delete======================================= */
+
+struct sysdb_delete_custom_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sss_domain_info *domain;
+
+    const char *object_name;
+    const char *subtree_name;
+    struct ldb_dn *dn;
+};
+static void sysdb_delete_custom_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_delete_custom_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *object_name,
+                                             const char *subtree_name)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_delete_custom_state *state;
+    int ret;
+
+    if (object_name == NULL || subtree_name == NULL) return NULL;
+
+    if (handle == NULL) {
+        DEBUG(1, ("Sysdb context not available.\n"));
+        return NULL;
+    }
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_store_custom_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->object_name = object_name;
+    state->subtree_name = subtree_name;
+    state->dn = sysdb_custom_dn(handle->ctx, state, domain->name, object_name,
+                                 subtree_name);
+    if (state->dn == NULL) {
+        DEBUG(1, ("sysdb_custom_dn failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    subreq = sysdb_delete_entry_send(state, state->ev, state->handle,
+                                     state->dn, true);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_delete_entry_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_custom_done, req);
+
+    return req;
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sysdb_delete_custom_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sysdb_delete_entry_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+}
+
+int sysdb_delete_custom_recv(struct tevent_req *req)
+{
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        return err;
+    }
+
+    return EOK;
+}
