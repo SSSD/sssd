@@ -32,7 +32,6 @@
 #include "dhash.h"
 #include "sbus/sssd_dbus.h"
 #include "../sss_client/sss_cli.h"
-#include "util/btreemap.h"
 
 extern hash_table_t *dp_requests;
 

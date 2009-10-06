@@ -35,7 +35,6 @@
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "util/btreemap.h"
 #include "responder/common/responder.h"
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"

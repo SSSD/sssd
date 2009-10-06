@@ -27,7 +27,6 @@
 #include "tevent.h"
 #include "ldb.h"
 #include "ldb_errors.h"
-#include "util/btreemap.h"
 #include "config.h"
 
 #define CONFDB_FILE "config.ldb"

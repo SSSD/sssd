@@ -170,7 +170,6 @@ SSSD_UTIL_OBJ = \
     sbus/sssd_dbus_common.c \
     sbus/sssd_dbus_connection.c \
     sbus/sssd_dbus_server.c \
-    util/btreemap.c \
     util/memory.c \
     util/server.c \
     util/signal.c \
@@ -229,7 +228,6 @@ PYTHON_BINDINGS_LIBS = \
 
 dist_noinst_HEADERS = \
     monitor/monitor.h \
-    util/btreemap.h \
     util/nss_sha512crypt.h \
     util/dlinklist.h \
     util/sssd-i18n.h \

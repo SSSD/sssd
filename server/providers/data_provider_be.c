@@ -40,7 +40,6 @@
 #include "db/sysdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "util/btreemap.h"
 #include "providers/dp_backend.h"
 #include "monitor/monitor_interfaces.h"
 

@@ -26,7 +26,6 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "confdb/confdb_private.h"
-#include "util/btreemap.h"
 #include "util/strtonum.h"
 #include "db/sysdb.h"
 

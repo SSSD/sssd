@@ -36,7 +36,6 @@
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
-#include "util/btreemap.h"
 #include "data_provider.h"
 #include "dp_interfaces.h"
 #include "monitor/monitor_interfaces.h"
