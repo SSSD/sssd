@@ -29,6 +29,7 @@
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "providers/dp_backend.h"
+#include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
 struct sdap_id_ctx {
@@ -1168,7 +1169,7 @@ int sssm_ldap_init(struct be_ctx *bectx,
 
     ctx->be = bectx;
 
-    ret = sdap_get_options(ctx, bectx->cdb, bectx->conf_path, &ctx->opts);
+    ret = ldap_get_options(ctx, bectx->cdb, bectx->conf_path, &ctx->opts);
     if (ret != EOK) goto done;
 
     ret = setup_tls_config(ctx->opts->basic);

@@ -24,200 +24,46 @@
 #include "confdb/confdb.h"
 #include "providers/ldap/sdap.h"
 
-#define NULL_STRING { .string = NULL }
-#define NULL_BLOB { .blob = { NULL, 0 } }
-#define NULL_NUMBER { .number = 0 }
-#define BOOL_FALSE { .boolean = false }
-#define BOOL_TRUE { .boolean = true }
-
-struct dp_option default_basic_opts[] = {
-    { "ldap_uri", DP_OPT_STRING, { "ldap://localhost" }, NULL_STRING },
-    { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
-    { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
-    { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "ldap_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ldap_tls_reqcert", DP_OPT_STRING, { "hard" }, NULL_STRING },
-    { "ldap_user_search_base", DP_OPT_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
-    { "ldap_user_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
-    { "ldap_user_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_group_search_base", DP_OPT_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
-    { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
-    { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
-    { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ldap_stale_time", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
-    { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_sasl_mech", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    /* use the same parm name as the krb5 module so we set it only once */
-    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING }
-};
-
-struct sdap_id_map rfc2307_user_map[] = {
-    { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
-    { "ldap_user_name", "uid", SYSDB_NAME, NULL },
-    { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
-    { "ldap_user_uid_number", "uidNumber", SYSDB_UIDNUM, NULL },
-    { "ldap_user_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "ldap_user_gecos", "gecos", SYSDB_GECOS, NULL },
-    { "ldap_user_home_directory", "homeDirectory", SYSDB_HOMEDIR, NULL },
-    { "ldap_user_shell", "loginShell", SYSDB_SHELL, NULL },
-    { "ldap_user_principal", "krbPrincipalName", SYSDB_UPN, NULL },
-    { "ldap_user_fullname", "cn", SYSDB_FULLNAME, NULL },
-    { "ldap_user_member_of", NULL, SYSDB_MEMBEROF, NULL },
-    { "ldap_user_uuid", NULL, SYSDB_UUID, NULL },
-    { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
-};
-
-struct sdap_id_map rfc2307_group_map[] = {
-    { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
-    { "ldap_group_name", "cn", SYSDB_NAME, NULL },
-    { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
-    { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "ldap_group_member", "memberuid", SYSDB_MEMBER, NULL },
-    { "ldap_group_uuid", NULL, SYSDB_UUID, NULL },
-    { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
-};
-
-struct sdap_id_map rfc2307bis_user_map[] = {
-    { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
-    { "ldap_user_name", "uid", SYSDB_NAME, NULL },
-    { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
-    { "ldap_user_uid_number", "uidNumber", SYSDB_UIDNUM, NULL },
-    { "ldap_user_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "ldap_user_gecos", "gecos", SYSDB_GECOS, NULL },
-    { "ldap_user_home_directory", "homeDirectory", SYSDB_HOMEDIR, NULL },
-    { "ldap_user_shell", "loginShell", SYSDB_SHELL, NULL },
-    { "ldap_user_principal", "krbPrincipalName", SYSDB_UPN, NULL },
-    { "ldap_user_fullname", "cn", SYSDB_FULLNAME, NULL },
-    { "ldap_user_member_of", "memberOf", SYSDB_MEMBEROF, NULL },
-    /* FIXME: this is 389ds specific */
-    { "ldap_user_uuid", "nsUniqueId", SYSDB_UUID, NULL },
-    { "ldap_user_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
-};
-
-struct sdap_id_map rfc2307bis_group_map[] = {
-    { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
-    { "ldap_group_name", "cn", SYSDB_NAME, NULL },
-    { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
-    { "ldap_group_gid_number", "gidNumber", SYSDB_GIDNUM, NULL },
-    { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
-    /* FIXME: this is 389ds specific */
-    { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
-    { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
-};
-
 /* =Retrieve-Options====================================================== */
 
-int sdap_get_options(TALLOC_CTX *memctx,
-                     struct confdb_ctx *cdb,
-                     const char *conf_path,
-                     struct sdap_options **_opts)
+int sdap_get_map(TALLOC_CTX *memctx,
+                 struct confdb_ctx *cdb,
+                 const char *conf_path,
+                 struct sdap_id_map *def_map,
+                 int num_entries,
+                 struct sdap_id_map **_map)
 {
-    struct sdap_id_map *default_user_map;
-    struct sdap_id_map *default_group_map;
-    struct sdap_options *opts;
-    char *schema;
+    struct sdap_id_map *map;
     int i, ret;
 
-    opts = talloc_zero(memctx, struct sdap_options);
-    if (!opts) return ENOMEM;
-
-    ret = dp_get_options(opts, cdb, conf_path,
-                         default_basic_opts,
-                         SDAP_OPTS_BASIC,
-                         &opts->basic);
-    if (ret != EOK) {
-        goto done;
+    map = talloc_array(memctx, struct sdap_id_map, num_entries);
+    if (!map) {
+        return ENOMEM;
     }
 
-    /* schema type */
-    schema = dp_opt_get_string(opts->basic, SDAP_SCHEMA);
-    if (strcasecmp(schema, "rfc2307") == 0) {
-        opts->schema_type = SDAP_SCHEMA_RFC2307;
-        default_user_map = rfc2307_user_map;
-        default_group_map = rfc2307_group_map;
-    } else
-    if (strcasecmp(schema, "rfc2307bis") == 0) {
-        opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
-        default_user_map = rfc2307bis_user_map;
-        default_group_map = rfc2307bis_group_map;
-    } else {
-        DEBUG(0, ("Unrecognized schema type: %s\n", schema));
-        ret = EINVAL;
-        goto done;
-    }
+    for (i = 0; i < num_entries; i++) {
 
-    opts->user_map = talloc_array(opts, struct sdap_id_map, SDAP_OPTS_USER);
-    if (!opts->user_map) {
-        ret = ENOMEM;
-        goto done;
-    }
+        map[i].opt_name = def_map[i].opt_name;
+        map[i].def_name = def_map[i].def_name;
+        map[i].sys_name = def_map[i].sys_name;
 
-    for (i = 0; i < SDAP_OPTS_USER; i++) {
-
-        opts->user_map[i].opt_name = default_user_map[i].opt_name;
-        opts->user_map[i].def_name = default_user_map[i].def_name;
-        opts->user_map[i].sys_name = default_user_map[i].sys_name;
-
-        ret = confdb_get_string(cdb, opts, conf_path,
-                                opts->user_map[i].opt_name,
-                                opts->user_map[i].def_name,
-                                &opts->user_map[i].name);
-        if (ret != EOK ||
-            (opts->user_map[i].def_name && !opts->user_map[i].name)) {
-            DEBUG(0, ("Failed to retrieve a value (%s)\n",
-                      opts->user_map[i].opt_name));
-            if (ret != EOK) ret = EINVAL;
-            goto done;
+        ret = confdb_get_string(cdb, map, conf_path,
+                                map[i].opt_name,
+                                map[i].def_name,
+                                &map[i].name);
+        if ((ret != EOK) || (map[i].def_name && !map[i].name)) {
+            DEBUG(0, ("Failed to retrieve value for %s\n", map[i].opt_name));
+            if (ret != EOK) {
+                talloc_zfree(map);
+                return EINVAL;
+            }
         }
 
-        DEBUG(5, ("Option %s has value %s\n",
-                  opts->user_map[i].opt_name, opts->user_map[i].name));
+        DEBUG(5, ("Option %s has value %s\n", map[i].opt_name, map[i].name));
     }
 
-    opts->group_map = talloc_array(opts, struct sdap_id_map, SDAP_OPTS_GROUP);
-    if (!opts->group_map) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    for (i = 0; i < SDAP_OPTS_GROUP; i++) {
-
-        opts->group_map[i].opt_name = default_group_map[i].opt_name;
-        opts->group_map[i].def_name = default_group_map[i].def_name;
-        opts->group_map[i].sys_name = default_group_map[i].sys_name;
-
-        ret = confdb_get_string(cdb, opts, conf_path,
-                                opts->group_map[i].opt_name,
-                                opts->group_map[i].def_name,
-                                &opts->group_map[i].name);
-        if (ret != EOK ||
-            (opts->group_map[i].def_name && !opts->group_map[i].name)) {
-            DEBUG(0, ("Failed to retrieve a value (%s)\n",
-                      opts->group_map[i].opt_name));
-            if (ret != EOK) ret = EINVAL;
-            goto done;
-        }
-
-        DEBUG(5, ("Option %s has value %s\n",
-                  opts->group_map[i].opt_name, opts->group_map[i].name));
-    }
-
-    ret = EOK;
-    *_opts = opts;
-
-done:
-    if (ret != EOK) talloc_zfree(opts);
-    return ret;
+    *_map = map;
+    return EOK;
 }
 
 /* =Parse-msg============================================================= */

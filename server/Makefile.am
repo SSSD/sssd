@@ -260,6 +260,7 @@ dist_noinst_HEADERS = \
     providers/providers.h \
     providers/krb5/krb5_auth.h \
     providers/krb5/krb5_utils.h \
+    providers/ldap/ldap_common.h \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
     tools/tools_util.h \
@@ -428,6 +429,7 @@ endif
 libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_auth.c \
+    providers/ldap/ldap_common.c \
     providers/ldap/sdap_async.c \
     providers/ldap/sdap.c \
     util/sss_ldap.c

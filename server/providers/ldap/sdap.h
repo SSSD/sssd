@@ -19,6 +19,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _SDAP_H_
+#define _SDAP_H_
+
 #include "providers/dp_backend.h"
 #include <ldap.h>
 #include "util/sss_ldap.h"
@@ -159,10 +162,12 @@ struct sdap_options {
     struct ldb_dn *groups_base;
 };
 
-int sdap_get_options(TALLOC_CTX *memctx,
-                     struct confdb_ctx *cdb,
-                     const char *conf_path,
-                     struct sdap_options **_opts);
+int sdap_get_map(TALLOC_CTX *memctx,
+                 struct confdb_ctx *cdb,
+                 const char *conf_path,
+                 struct sdap_id_map *def_map,
+                 int num_entries,
+                 struct sdap_id_map **_map);
 
 int sdap_parse_user(TALLOC_CTX *memctx, struct sdap_options *opts,
                     struct sdap_handle *sh, struct sdap_msg *sm,
@@ -176,3 +181,5 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
                     struct sdap_msg *sm, char **_dn);
 
 errno_t setup_tls_config(struct dp_option *basic_opts);
+
+#endif /* _SDAP_H_ */
