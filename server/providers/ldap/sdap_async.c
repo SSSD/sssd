@@ -28,6 +28,8 @@
 
 #define REALM_SEPARATOR '@'
 
+#define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
+
 static void make_realm_upper_case(const char *upn)
 {
     char *c;
@@ -658,6 +660,7 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     int ret = EOK;
     int msgid;
     int ldap_err;
+    LDAPControl *request_controls[2];
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -673,10 +676,19 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->user_dn = user_dn;
     state->pw = pw;
 
+    ret = ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST, 0, NULL, 0,
+                              &request_controls[0]);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(1, ("ldap_control_create failed.\n"));
+        goto fail;
+    }
+    request_controls[1] = NULL;
+
     DEBUG(4, ("Executing simple bind as: %s\n", state->user_dn));
 
     ret = ldap_sasl_bind(state->sh->ldap, state->user_dn, LDAP_SASL_SIMPLE,
-                         state->pw, NULL, NULL, &msgid);
+                         state->pw, request_controls, NULL, &msgid);
+    ldap_control_free(request_controls[0]);
     if (ret == -1 || msgid == -1) {
         ret = ldap_get_option(state->sh->ldap,
                               LDAP_OPT_RESULT_CODE, &ldap_err);
@@ -727,6 +739,11 @@ static void simple_bind_done(struct sdap_op *op,
                                             struct simple_bind_state);
     char *errmsg;
     int ret;
+    LDAPControl **response_controls;
+    int c;
+    ber_int_t pp_grace;
+    ber_int_t pp_expire;
+    LDAPPasswordPolicyError pp_error;
 
     if (error) {
         tevent_req_error(req, error);
@@ -736,17 +753,57 @@ static void simple_bind_done(struct sdap_op *op,
     state->reply = talloc_steal(state, reply);
 
     ret = ldap_parse_result(state->sh->ldap, state->reply->msg,
-                            &state->result, NULL, &errmsg, NULL, NULL, 0);
+                            &state->result, NULL, &errmsg, NULL,
+                            &response_controls, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto done;
+    }
+
+    if (response_controls == NULL) {
+        DEBUG(5, ("Server returned no controls.\n"));
+    } else {
+        for (c = 0; response_controls[c] != NULL; c++) {
+            DEBUG(9, ("Server returned control [%s].\n",
+                      response_controls[c]->ldctl_oid));
+            if (strcmp(response_controls[c]->ldctl_oid,
+                       LDAP_CONTROL_PASSWORDPOLICYRESPONSE) == 0) {
+                ret = ldap_parse_passwordpolicy_control(state->sh->ldap,
+                                                        response_controls[c],
+                                                        &pp_expire, &pp_grace,
+                                                        &pp_error);
+                if (ret != LDAP_SUCCESS) {
+                    DEBUG(1, ("ldap_parse_passwordpolicy_control failed.\n"));
+                    ret = EIO;
+                    goto done;
+                }
+
+                DEBUG(7, ("Password Policy Response: expire [%d] grace [%d] "
+                          "error [%s].\n", pp_expire, pp_grace,
+                          ldap_passwordpolicy_err2txt(pp_error)));
+
+                if (state->result == LDAP_SUCCESS &&
+                    (pp_error == PP_changeAfterReset || pp_grace > 0)) {
+                    DEBUG(4, ("User must set a new password.\n"));
+                    state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
+                }
+            }
+        }
     }
 
     DEBUG(3, ("Bind result: %s(%d), %s\n",
               ldap_err2string(state->result), state->result, errmsg));
 
-    tevent_req_done(req);
+    ret = LDAP_SUCCESS;
+done:
+    ldap_controls_free(response_controls);
+
+    if (ret == LDAP_SUCCESS) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
 }
 
 static int simple_bind_recv(struct tevent_req *req, int *ldaperr)
@@ -1217,6 +1274,9 @@ int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result)
             break;
         case LDAP_INVALID_CREDENTIALS:
             *result = SDAP_AUTH_FAILED;
+            break;
+        case LDAP_X_SSSD_PASSWORD_EXPIRED:
+            *result = SDAP_AUTH_PW_EXPIRED;
             break;
         default:
             *result = SDAP_ERROR;
@@ -2605,6 +2665,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     BerElement *ber = NULL;
     struct berval *bv = NULL;
     int msgid;
+    LDAPControl *request_controls[2];
 
     req = tevent_req_create(memctx, &state,
                             struct sdap_exop_modify_passwd_state);
@@ -2638,11 +2699,20 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
+    ret = ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST, 0, NULL, 0,
+                              &request_controls[0]);
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(1, ("ldap_control_create failed.\n"));
+        goto fail;
+    }
+    request_controls[1] = NULL;
+
     DEBUG(4, ("Executing extended operation\n"));
 
     ret = ldap_extended_operation(state->sh->ldap, LDAP_EXOP_MODIFY_PASSWD,
-                                  bv, NULL, NULL, &msgid);
+                                  bv, request_controls, NULL, &msgid);
     ber_bvfree(bv);
+    ldap_control_free(request_controls[0]);
     if (ret == -1 || msgid == -1) {
         DEBUG(1, ("ldap_extended_operation failed\n"));
         goto fail;
@@ -2674,6 +2744,11 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
                                          struct sdap_exop_modify_passwd_state);
     char *errmsg;
     int ret;
+    LDAPControl **response_controls = NULL;
+    int c;
+    ber_int_t pp_grace;
+    ber_int_t pp_expire;
+    LDAPPasswordPolicyError pp_error;
 
     if (error) {
         tevent_req_error(req, error);
@@ -2681,17 +2756,51 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     }
 
     ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                            &state->result, NULL, &errmsg, NULL, NULL, 0);
+                            &state->result, NULL, &errmsg, NULL,
+                            &response_controls, 0);
     if (ret != LDAP_SUCCESS) {
         DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto done;
+    }
+
+    if (response_controls == NULL) {
+        DEBUG(5, ("Server returned no controls.\n"));
+    } else {
+        for (c = 0; response_controls[c] != NULL; c++) {
+            DEBUG(9, ("Server returned control [%s].\n",
+                      response_controls[c]->ldctl_oid));
+            if (strcmp(response_controls[c]->ldctl_oid,
+                       LDAP_CONTROL_PASSWORDPOLICYRESPONSE) == 0) {
+                ret = ldap_parse_passwordpolicy_control(state->sh->ldap,
+                                                        response_controls[c],
+                                                        &pp_expire, &pp_grace,
+                                                        &pp_error);
+                if (ret != LDAP_SUCCESS) {
+                    DEBUG(1, ("ldap_parse_passwordpolicy_control failed.\n"));
+                    ret = EIO;
+                    goto done;
+                }
+
+                DEBUG(7, ("Password Policy Response: expire [%d] grace [%d] "
+                          "error [%s].\n", pp_expire, pp_grace,
+                          ldap_passwordpolicy_err2txt(pp_error)));
+            }
+        }
     }
 
     DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
               ldap_err2string(state->result), state->result, errmsg));
 
-    tevent_req_done(req);
+    ret = LDAP_SUCCESS;
+done:
+    ldap_controls_free(response_controls);
+
+    if (ret == LDAP_SUCCESS) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
 }
 
 int sdap_exop_modify_passwd_recv(struct tevent_req *req,

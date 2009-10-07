@@ -404,6 +404,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
 
     switch (result) {
     case SDAP_AUTH_SUCCESS:
+    case SDAP_AUTH_PW_EXPIRED:
         DEBUG(7, ("user [%s] successfully authenticated.\n", state->dn));
         subreq = sdap_exop_modify_passwd_send(state,
                                               state->breq->be_ctx->ev,
@@ -540,6 +541,9 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         break;
     case SDAP_UNAVAIL:
         state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        break;
+    case SDAP_AUTH_PW_EXPIRED:
+        state->pd->pam_status = PAM_AUTHTOK_EXPIRED;
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;

@@ -66,7 +66,8 @@ enum sdap_result {
     SDAP_RETRY,
     SDAP_ERROR,
     SDAP_AUTH_SUCCESS,
-    SDAP_AUTH_FAILED
+    SDAP_AUTH_FAILED,
+    SDAP_AUTH_PW_EXPIRED
 };
 
 enum sdap_basic_opt {
