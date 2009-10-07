@@ -54,3 +54,18 @@ AC_DEFUN([WITH_APP_NAME_SIZE],
     fi
     AC_SUBST(appnamesize)
   ])
+
+AC_DEFUN([WITH_COMPAT],
+  [ AC_ARG_ENABLE([compat],
+                  [AC_HELP_STRING([--enable-compat],
+                                  [use platform compatibility code])
+                  ],
+                  ,
+                  [AC_CHECK_FUNC([getifaddrs],
+                                 AC_DEFINE([HAVE_GETIFADDRS], [1],
+                                           [Define if platform has getifaddrs()])
+                                 )
+                  ]
+                 )
+
+  ])

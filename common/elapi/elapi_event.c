@@ -31,10 +31,10 @@
 #include <ctype.h>      /* for isspace() */
 #include <stdarg.h>     /* for va_arg() */
 #include <string.h>     /* for strndup() */
-#include <ifaddrs.h>    /* for getifaddrs() */
 
 #include "elapi_priv.h"
 #include "elapi_event.h"
+#include "elapi_net.h"
 #include "trace.h"
 #include "config.h"
 
@@ -69,7 +69,9 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
     char host[NI_MAXHOST];
     char address[NI_MAXHOST];
     char *hnm, *haddr;
-    struct ifaddrs *ifaddr, *ifa;
+    ELAPI_ADDRLIST ifaddr;
+    ELAPI_ADDRITEM ifa;
+    struct sockaddr *addr;
     int family;
     int set_hostname = 0;
     int set_ip = 0;
@@ -88,26 +90,27 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
     /* If we are not asked for ip then say we already have it */
     if (!(base & E_HAVE_HOSTIP)) set_ip = 1;
 
-    if (getifaddrs(&ifaddr) == EOK) {
+    if (ELAPI_GET_ADDRLIST(&ifaddr) == EOK) {
 
         TRACE_FLOW_STRING("getifaddrs", "Ok");
 
         /* Walk through linked list, maintaining head pointer so we
             can free list later */
+        ELAPI_GET_FIRST_ADDR_ITEM(ifaddr, ifa);
 
-        ifa = ifaddr;
         while (ifa != NULL) {
 
             TRACE_FLOW_STRING("Top of the loop", "");
 
             used_this_ip = 0;
 
-            if (!ifa->ifa_addr) {
-                ifa = ifa->ifa_next;
+            ELAPI_GET_ADDR(ifa, addr);
+            if (!addr) {
+                ELAPI_GET_NEXT_ADDR_ITEM(ifaddr, ifa);
                 continue;
             }
 
-            family = ifa->ifa_addr->sa_family;
+            family = addr->sa_family;
 
             TRACE_FLOW_NUMBER("Family", family);
 
@@ -121,7 +124,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                  * We will trust it here and not clear memory using memset.
                  */
 
-                gai_ret_host = getnameinfo(ifa->ifa_addr,
+                gai_ret_host = getnameinfo(addr,
                                            (family == AF_INET) ? sizeof(struct sockaddr_in) :
                                                                  sizeof(struct sockaddr_in6),
                                            host,
@@ -130,7 +133,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                                            0,
                                            0 /* Gets host name */);
 
-                gai_ret_addr = getnameinfo(ifa->ifa_addr,
+                gai_ret_addr = getnameinfo(addr,
                                            (family == AF_INET) ? sizeof(struct sockaddr_in) :
                                                                  sizeof(struct sockaddr_in6),
                                            address,
@@ -173,7 +176,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                         error = col_add_str_property(tpl, NULL, E_HOSTNAME, hnm, 0);
                         if (error) {
                             TRACE_ERROR_NUMBER("Failed to add host name. Error", error);
-                            freeifaddrs(ifaddr);
+                            ELAPI_ADDR_LIST_CLEANUP(ifaddr);
                             return error;
                         }
                         /* Done with the name */
@@ -201,7 +204,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                         error = col_add_str_property(tpl, NULL, E_HOSTIP, haddr, 0);
                         if (error) {
                             TRACE_ERROR_NUMBER("Failed to add host name. Error", error);
-                            freeifaddrs(ifaddr);
+                            ELAPI_ADDR_LIST_CLEANUP(ifaddr);
                             return error;
                         }
                         set_ip = 1;
@@ -230,7 +233,7 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                         error = col_add_str_property(tpl, NULL, E_HOSTALIAS, hnm, 0);
                         if (error) {
                             TRACE_ERROR_NUMBER("Failed to add host name. Error", error);
-                            freeifaddrs(ifaddr);
+                            ELAPI_ADDR_LIST_CLEANUP(ifaddr);
                             return error;
                         }
                     }
@@ -253,18 +256,18 @@ static int add_host_identity(struct collection_item *tpl, unsigned base)
                         error = col_add_str_property(tpl, NULL, E_HOSTIPS, haddr, 0);
                         if (error) {
                             TRACE_ERROR_NUMBER("Failed to add host name. Error", error);
-                            freeifaddrs(ifaddr);
+                            ELAPI_ADDR_LIST_CLEANUP(ifaddr);
                             return error;
                         }
                     }
                 }
             }
-            TRACE_INFO_NUMBER("Moving to next", ifa->ifa_next);
-            ifa = ifa->ifa_next;
+            TRACE_INFO_STRING("Moved to next", "");
+            ELAPI_GET_NEXT_ADDR_ITEM(ifaddr, ifa);
             TRACE_INFO_NUMBER("Moved to", ifa);
         }
 
-        freeifaddrs(ifaddr);
+        ELAPI_ADDR_LIST_CLEANUP(ifaddr);
     }
 
     /* Make sure that we really have the name after all */

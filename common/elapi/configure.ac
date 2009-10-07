@@ -14,6 +14,7 @@ AM_SILENT_RULES
 
 AC_CONFIG_HEADERS([config.h])
 
+
 # Enable trace build
 AC_ARG_ENABLE([trace],
               [AS_HELP_STRING([--enable-trace[=LEVEL]],[build with low level tracing enabled])],
@@ -21,12 +22,14 @@ AC_ARG_ENABLE([trace],
               [trace_level="0"])
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
+
 m4_include(conf_macros.m4)
 
 WITH_CONFIG_DIR
 WITH_CONFIG_APP_DIR
 WITH_APP_NAME
 WITH_APP_NAME_SIZE
+WITH_COMPAT
 
 m4_include(def_macros.m4)
 

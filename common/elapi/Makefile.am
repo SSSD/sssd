@@ -55,13 +55,17 @@ libelapi_la_SOURCES = \
     elapi_resolve.c \
     elapi_async.c \
     elapi_subst.c \
+    elapi_ioctl.c \
     elapi_event.h \
     elapi_priv.h \
     elapi_sink.h \
     elapi_log.h \
     elapi_async.h \
+    elapi_net.h \
+    elapi_ioctl.h \
     elapi_fd.h \
     elapi_tm.h \
+    elapi_defines.h \
     elapi.h
 
 libelapi_la_LIBADD = libprovider.la libelapibasic.la

@@ -1,7 +1,7 @@
 /*
     ELAPI
 
-    Basic output buffer manipulation routines.
+    Global defines for ELAPI
 
     Copyright (C) Dmitri Pal <dpal@redhat.com> 2009
 
@@ -17,29 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ELAPI_BASIC_H
-#define ELAPI_BASIC_H
+#ifndef ELAPI_DEFINES_H
+#define ELAPI_DEFINES_H
 
-#include <stdint.h>
-#include "elapi_defines.h"
-
-/* Generic data structure for the data output */
-struct elapi_data_out {
-    unsigned char *buffer;
-    uint32_t size;
-    uint32_t length;
-    uint32_t written;
-};
-
-/* Function to free serialized data */
-void elapi_free_serialized_data(struct elapi_data_out *out_data);
-
-/* Allocate data structure */
-int elapi_alloc_serialized_data(struct elapi_data_out **out_data);
-
-/* Function to add memory to the output buffer */
-int elapi_grow_data(struct elapi_data_out *out_data,
-                    uint32_t len,
-                    uint32_t block);
+#ifndef EOK
+#define EOK 0
+#endif
 
 #endif
