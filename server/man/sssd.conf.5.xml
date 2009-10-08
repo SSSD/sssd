@@ -512,6 +512,36 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>chpass_provider (string)</term>
+                    <listitem>
+                        <para>
+                            The provider which should handle change password
+                            operations for the domain.
+                            Supported change password providers are:
+                        </para>
+                        <para>
+                            <quote>ldap</quote> to change a password stored
+                            in a LDAP server.  See
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring LDAP.
+                        </para>
+                        <para>
+                            <quote>krb5</quote>  to change the Kerberos
+                            password. See
+                            <citerefentry>
+                                <refentrytitle>sssd-krb5</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring Kerberos.
+                        </para>
+                        <para>
+                            <quote>proxy</quote> for relaying password changes
+                            to some other PAM target.
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 
