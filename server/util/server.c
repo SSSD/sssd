@@ -29,7 +29,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include "util/util.h"
-#include "util/sssd-i18n.h"
 #include "ldb.h"
 #include "confdb/confdb.h"
 

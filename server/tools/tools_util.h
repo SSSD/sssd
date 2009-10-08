@@ -25,7 +25,7 @@
 
 #include <popt.h>
 
-#include "util/sssd-i18n.h"
+#include "util/util.h"
 
 #define CHECK_ROOT(val, prg_name) do { \
     val = getuid(); \

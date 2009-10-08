@@ -31,7 +31,6 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
-#include "util/sssd-i18n.h"
 
 /* Default settings for user attributes */
 #define CONFDB_DFL_SECTION "config/user_defaults"

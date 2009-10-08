@@ -27,18 +27,24 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <libintl.h>
 #include <limits.h>
+#include <locale.h>
 #include <time.h>
 #include <pcre.h>
+
 #include "config.h"
-#include "talloc.h"
-#include "tevent.h"
-#include "ldb.h"
+
+#include <talloc.h>
+#include <tevent.h>
+#include <ldb.h>
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
 typedef int errno_t;
 #endif
+
+#define _(STRING) gettext (STRING)
 
 extern const char *debug_prg_name;
 extern int debug_level;

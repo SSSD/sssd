@@ -52,7 +52,6 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "monitor/monitor_interfaces.h"
-#include "util/sssd-i18n.h"
 
 /* ping time cannot be less then once every few seconds or the
  * monitor will get crazy hammering children with messages */

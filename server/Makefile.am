@@ -236,7 +236,6 @@ dist_noinst_HEADERS = \
     monitor/monitor.h \
     util/nss_sha512crypt.h \
     util/dlinklist.h \
-    util/sssd-i18n.h \
     util/util.h \
     util/strtonum.h \
     util/sss_ldap.h \
