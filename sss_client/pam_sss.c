@@ -32,6 +32,7 @@
 #include <security/pam_modules.h>
 #include <security/pam_misc.h>
 #include <security/pam_ext.h>
+#include <security/pam_modutil.h>
 #include "sss_pam_macros.h"
 
 #include "sss_cli.h"
@@ -64,6 +65,7 @@ struct pam_items {
     int pam_newauthtok_type;
     size_t pam_newauthtok_size;
     pid_t cli_pid;
+    const char *login_name;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -501,6 +503,9 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
 
     pi->cli_pid = getpid();
 
+    pi->login_name = pam_modutil_getlogin(pamh);
+    if (pi->login_name == NULL) pi->login_name="";
+
     return PAM_SUCCESS;
 }
 
@@ -566,8 +571,15 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
         goto done;
     }
     logger(pamh, (pam_status == PAM_SUCCESS ? LOG_INFO : LOG_NOTICE),
-           "received for user %s: %d (%s)", pi->pam_user, pam_status,
-           pam_strerror(pamh,pam_status));
+           "authentication %s; logname=%s uid=%d euid=%d tty=%s ruser=%s "
+           "rhost=%s user=%s",
+           pam_status == PAM_SUCCESS ? "success" : "failure",
+           pi->login_name, getuid(), geteuid(), pi->pam_tty, pi->pam_ruser,
+           pi->pam_rhost, pi->pam_user);
+    if (pam_status != PAM_SUCCESS) {
+           logger(pamh, LOG_NOTICE, "received for user %s: %d (%s)",
+                  pi->pam_user, pam_status, pam_strerror(pamh,pam_status));
+    }
 
 done:
     if (buf != NULL ) {
