@@ -483,7 +483,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
     /* Initialize LDAP handler */
     lret = ldap_initialize(&state->sh->ldap,
-                           sdap_go_get_string(opts->basic, SDAP_URI));
+                           dp_opt_get_string(opts->basic, SDAP_URI));
     if (lret != LDAP_SUCCESS) {
         DEBUG(1, ("ldap_initialize failed: %s\n", ldap_err2string(ret)));
         goto fail;
@@ -498,22 +498,22 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
 
     /* Set Network Timeout */
-    tv.tv_sec = sdap_go_get_int(opts->basic, SDAP_NETWORK_TIMEOUT);
+    tv.tv_sec = dp_opt_get_int(opts->basic, SDAP_NETWORK_TIMEOUT);
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_NETWORK_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set network timeout to %d\n",
-                  sdap_go_get_int(opts->basic, SDAP_NETWORK_TIMEOUT)));
+                  dp_opt_get_int(opts->basic, SDAP_NETWORK_TIMEOUT)));
         goto fail;
     }
 
     /* Set Default Timeout */
-    tv.tv_sec = sdap_go_get_int(opts->basic, SDAP_OPT_TIMEOUT);
+    tv.tv_sec = dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT);
     tv.tv_usec = 0;
     lret = ldap_set_option(state->sh->ldap, LDAP_OPT_TIMEOUT, &tv);
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set default timeout to %d\n",
-                  sdap_go_get_int(opts->basic, SDAP_OPT_TIMEOUT)));
+                  dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT)));
         goto fail;
     }
 
@@ -1199,7 +1199,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_user,
                                   const char *user_dn,
                                   const char *authtok_type,
-                                  struct sdap_blob authtok)
+                                  struct dp_opt_blob authtok)
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
@@ -1466,7 +1466,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
             ret = ENOMEM;
             goto fail;
         }
-        if (sdap_go_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
+        if (dp_opt_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
             make_realm_upper_case(upn);
         }
         DEBUG(7, ("Adding user principle [%s] to attributes of [%s].\n",
@@ -1680,11 +1680,11 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         if (!opts->users_base) {
             opts->users_base = ldb_dn_new_fmt(opts,
                                     sysdb_handle_get_ldb(state->handle), "%s",
-                                    sdap_go_get_string(opts->basic,
+                                    dp_opt_get_string(opts->basic,
                                                       SDAP_USER_SEARCH_BASE));
             if (!opts->users_base) {
                 DEBUG(1, ("Unable to get casefold Users Base DN from [%s]\n",
-                          sdap_go_get_string(opts->basic,
+                          dp_opt_get_string(opts->basic,
                                              SDAP_USER_SEARCH_BASE)));
                 DEBUG(1, ("Out of memory?!\n"));
                 ret = ENOMEM;
@@ -1694,11 +1694,11 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         if (!opts->groups_base) {
             opts->groups_base = ldb_dn_new_fmt(state->handle,
                                     sysdb_handle_get_ldb(state->handle), "%s",
-                                    sdap_go_get_string(opts->basic,
+                                    dp_opt_get_string(opts->basic,
                                                       SDAP_GROUP_SEARCH_BASE));
             if (!opts->users_base) {
                 DEBUG(1, ("Unable to get casefold Users Base DN from [%s]\n",
-                          sdap_go_get_string(opts->basic,
+                          dp_opt_get_string(opts->basic,
                                              SDAP_GROUP_SEARCH_BASE)));
                 DEBUG(1, ("Out of memory?!\n"));
                 ret = ENOMEM;
@@ -1950,7 +1950,7 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
     DEBUG(5, ("calling ldap_search_ext with [%s].\n", state->filter));
 
     lret = ldap_search_ext(state->sh->ldap,
-                           sdap_go_get_string(state->opts->basic,
+                           dp_opt_get_string(state->opts->basic,
                                               SDAP_USER_SEARCH_BASE),
                            LDAP_SCOPE_SUBTREE, state->filter,
                            discard_const(state->attrs),
@@ -1965,7 +1965,7 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
     /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_users_done, req,
-                      sdap_go_get_int(state->opts->basic,
+                      dp_opt_get_int(state->opts->basic,
                                       SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret) {
@@ -2177,7 +2177,7 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
     }
 
     lret = ldap_search_ext(state->sh->ldap,
-                           sdap_go_get_string(state->opts->basic,
+                           dp_opt_get_string(state->opts->basic,
                                               SDAP_GROUP_SEARCH_BASE),
                            LDAP_SCOPE_SUBTREE, state->filter,
                            discard_const(state->attrs),
@@ -2192,7 +2192,7 @@ static void sdap_get_groups_transaction(struct tevent_req *subreq)
     /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_groups_done, req,
-                      sdap_go_get_int(state->opts->basic,
+                      dp_opt_get_int(state->opts->basic,
                                       SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret) {
@@ -2511,7 +2511,7 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
     DEBUG(5, ("calling ldap_search_ext with filter:[%s].\n", state->filter));
 
     lret = ldap_search_ext(state->sh->ldap,
-                           sdap_go_get_string(state->opts->basic,
+                           dp_opt_get_string(state->opts->basic,
                                               SDAP_GROUP_SEARCH_BASE),
                            LDAP_SCOPE_SUBTREE, state->filter,
                            discard_const(state->grp_attrs),
@@ -2527,7 +2527,7 @@ static void sdap_get_initgr_transaction(struct tevent_req *subreq)
     /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_initgr_done, req,
-                      sdap_go_get_int(state->opts->basic,
+                      dp_opt_get_int(state->opts->basic,
                                       SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret) {
@@ -2851,7 +2851,7 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
     state->opts = opts;
 
     subreq = sdap_connect_send(state, ev, opts,
-                               sdap_go_get_bool(opts->basic, SDAP_ID_TLS));
+                               dp_opt_get_bool(opts->basic, SDAP_ID_TLS));
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -2877,15 +2877,15 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    sasl_mech = sdap_go_get_string(state->opts->basic, SDAP_SASL_MECH);
+    sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
     if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
-        if (sdap_go_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
+        if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
             subreq = sdap_kinit_send(state, state->ev, state->sh,
-                                sdap_go_get_string(state->opts->basic,
+                                dp_opt_get_string(state->opts->basic,
                                                            SDAP_KRB5_KEYTAB),
-                                sdap_go_get_string(state->opts->basic,
+                                dp_opt_get_string(state->opts->basic,
                                                            SDAP_SASL_AUTHID),
-                                sdap_go_get_string(state->opts->basic,
+                                dp_opt_get_string(state->opts->basic,
                                                            SDAP_KRB5_REALM));
             if (!subreq) {
                 tevent_req_error(req, ENOMEM);
@@ -2900,13 +2900,13 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
                             state->ev,
                             state->sh,
                             sasl_mech,
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                         SDAP_SASL_AUTHID),
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                     SDAP_DEFAULT_BIND_DN),
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                            sdap_go_get_blob(state->opts->basic,
+                            dp_opt_get_blob(state->opts->basic,
                                                     SDAP_DEFAULT_AUTHTOK));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -2938,15 +2938,15 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
     subreq = sdap_auth_send(state,
                             state->ev,
                             state->sh,
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                           SDAP_SASL_MECH),
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                         SDAP_SASL_AUTHID),
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                     SDAP_DEFAULT_BIND_DN),
-                            sdap_go_get_string(state->opts->basic,
+                            dp_opt_get_string(state->opts->basic,
                                                SDAP_DEFAULT_AUTHTOK_TYPE),
-                            sdap_go_get_blob(state->opts->basic,
+                            dp_opt_get_blob(state->opts->basic,
                                                     SDAP_DEFAULT_AUTHTOK));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);

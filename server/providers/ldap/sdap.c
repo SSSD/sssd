@@ -30,35 +30,35 @@
 #define BOOL_FALSE { .boolean = false }
 #define BOOL_TRUE { .boolean = true }
 
-struct sdap_gen_opts default_basic_opts[] = {
-    { "ldap_uri", SDAP_STRING, { "ldap://localhost" }, NULL_STRING },
-    { "ldap_default_bind_dn", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_default_authtok_type", SDAP_STRING, NULL_STRING, NULL_STRING},
-    { "ldap_default_authtok", SDAP_BLOB, NULL_BLOB, NULL_BLOB },
-    { "ldap_search_timeout", SDAP_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "ldap_network_timeout", SDAP_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ldap_opt_timeout", SDAP_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ldap_tls_reqcert", SDAP_STRING, { "hard" }, NULL_STRING },
-    { "ldap_user_search_base", SDAP_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
-    { "ldap_user_search_scope", SDAP_STRING, { "sub" }, NULL_STRING },
-    { "ldap_user_search_filter", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_group_search_base", SDAP_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
-    { "ldap_group_search_scope", SDAP_STRING, { "sub" }, NULL_STRING },
-    { "ldap_group_search_filter", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_schema", SDAP_STRING, { "rfc2307" }, NULL_STRING },
-    { "ldap_offline_timeout", SDAP_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "ldap_force_upper_case_realm", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_enumeration_refresh_timeout", SDAP_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ldap_stale_time", SDAP_NUMBER, { .number = 1800 }, NULL_NUMBER },
-    { "ldap_tls_cacert", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_tls_cacertdir", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_id_use_start_tls", SDAP_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "ldap_sasl_mech", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_sasl_authid", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_krb5_keytab", SDAP_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_krb5_init_creds", SDAP_BOOL, BOOL_TRUE, BOOL_TRUE },
+struct dp_option default_basic_opts[] = {
+    { "ldap_uri", DP_OPT_STRING, { "ldap://localhost" }, NULL_STRING },
+    { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
+    { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
+    { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "ldap_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
+    { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
+    { "ldap_tls_reqcert", DP_OPT_STRING, { "hard" }, NULL_STRING },
+    { "ldap_user_search_base", DP_OPT_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
+    { "ldap_user_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
+    { "ldap_user_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_group_search_base", DP_OPT_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
+    { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
+    { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
+    { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_stale_time", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
+    { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_sasl_mech", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_sasl_authid", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
-    { "krb5_realm", SDAP_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_id_map rfc2307_user_map[] = {
@@ -131,97 +131,16 @@ int sdap_get_options(TALLOC_CTX *memctx,
     opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
 
-    opts->basic = talloc_array(opts, struct sdap_gen_opts, SDAP_OPTS_BASIC);
-    if (!opts) return ENOMEM;
-
-    opts->user_map = talloc_array(opts, struct sdap_id_map, SDAP_OPTS_USER);
-    if (!opts) return ENOMEM;
-
-    opts->group_map = talloc_array(opts, struct sdap_id_map, SDAP_OPTS_GROUP);
-    if (!opts) return ENOMEM;
-
-    for (i = 0; i < SDAP_OPTS_BASIC; i++) {
-        char *tmp;
-
-        opts->basic[i].opt_name = default_basic_opts[i].opt_name;
-        opts->basic[i].type = default_basic_opts[i].type;
-        opts->basic[i].def_val = default_basic_opts[i].def_val;
-        ret = EOK;
-
-        switch (default_basic_opts[i].type) {
-        case SDAP_STRING:
-            ret = confdb_get_string(cdb, opts, conf_path,
-                                    opts->basic[i].opt_name,
-                                    opts->basic[i].def_val.cstring,
-                                    &opts->basic[i].val.string);
-            if (ret != EOK ||
-                ((opts->basic[i].def_val.string != NULL) &&
-                 (opts->basic[i].val.string == NULL))) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts->basic[i].opt_name));
-                if (ret == EOK) ret = EINVAL;
-                goto done;
-            }
-            DEBUG(6, ("Option %s has value %s\n",
-                  opts->basic[i].opt_name, opts->basic[i].val.cstring));
-            break;
-
-        case SDAP_BLOB:
-            ret = confdb_get_string(cdb, opts, conf_path,
-                                    opts->basic[i].opt_name,
-                                    NULL, &tmp);
-            if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts->basic[i].opt_name));
-                goto done;
-            }
-
-            if (tmp) {
-                opts->basic[i].val.blob.data = (uint8_t *)tmp;
-                opts->basic[i].val.blob.length = strlen(tmp);
-            } else {
-                opts->basic[i].val.blob.data = NULL;
-                opts->basic[i].val.blob.length = 0;
-            }
-
-            DEBUG(6, ("Option %s has %s value\n",
-                      opts->basic[i].opt_name,
-                      opts->basic[i].val.blob.length?"a":"no"));
-            break;
-
-        case SDAP_NUMBER:
-            ret = confdb_get_int(cdb, opts, conf_path,
-                                 opts->basic[i].opt_name,
-                                 opts->basic[i].def_val.number,
-                                 &opts->basic[i].val.number);
-            if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts->basic[i].opt_name));
-                goto done;
-            }
-            DEBUG(6, ("Option %s has value %d\n",
-                  opts->basic[i].opt_name, opts->basic[i].val.number));
-            break;
-
-        case SDAP_BOOL:
-            ret = confdb_get_bool(cdb, opts, conf_path,
-                                  opts->basic[i].opt_name,
-                                  opts->basic[i].def_val.boolean,
-                                  &opts->basic[i].val.boolean);
-            if (ret != EOK) {
-                DEBUG(0, ("Failed to retrieve value for option (%s)\n",
-                          opts->basic[i].opt_name));
-                goto done;
-            }
-            DEBUG(6, ("Option %s is %s\n",
-                      opts->basic[i].opt_name,
-                      opts->basic[i].val.boolean?"TRUE":"FALSE"));
-            break;
-        }
+    ret = dp_get_options(opts, cdb, conf_path,
+                         default_basic_opts,
+                         SDAP_OPTS_BASIC,
+                         &opts->basic);
+    if (ret != EOK) {
+        goto done;
     }
 
     /* schema type */
-    schema = sdap_go_get_string(opts->basic, SDAP_SCHEMA);
+    schema = dp_opt_get_string(opts->basic, SDAP_SCHEMA);
     if (strcasecmp(schema, "rfc2307") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307;
         default_user_map = rfc2307_user_map;
@@ -234,6 +153,12 @@ int sdap_get_options(TALLOC_CTX *memctx,
     } else {
         DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;
+        goto done;
+    }
+
+    opts->user_map = talloc_array(opts, struct sdap_id_map, SDAP_OPTS_USER);
+    if (!opts->user_map) {
+        ret = ENOMEM;
         goto done;
     }
 
@@ -257,6 +182,12 @@ int sdap_get_options(TALLOC_CTX *memctx,
 
         DEBUG(5, ("Option %s has value %s\n",
                   opts->user_map[i].opt_name, opts->user_map[i].name));
+    }
+
+    opts->group_map = talloc_array(opts, struct sdap_id_map, SDAP_OPTS_GROUP);
+    if (!opts->group_map) {
+        ret = ENOMEM;
+        goto done;
     }
 
     for (i = 0; i < SDAP_OPTS_GROUP; i++) {
@@ -288,90 +219,6 @@ done:
     if (ret != EOK) talloc_zfree(opts);
     return ret;
 }
-
-/* =Basic-Option-Helpers================================================== */
-
-static const char *sdap_type_to_string(enum sdap_type type)
-{
-    switch (type) {
-    case SDAP_STRING:
-        return "String";
-    case SDAP_BLOB:
-        return "Blob";
-    case SDAP_NUMBER:
-        return "Number";
-    case SDAP_BOOL:
-        return "Boolean";
-    }
-    return NULL;
-}
-
-const char *_sdap_go_get_cstring(struct sdap_gen_opts *opts,
-                                 int id, const char *location)
-{
-    if (opts[id].type != SDAP_STRING) {
-        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
-                  " but value is of type '%s'!\n",
-                  location, opts[id].opt_name,
-                  sdap_type_to_string(opts[id].type)));
-        return NULL;
-    }
-    return opts[id].val.cstring;
-}
-
-char *_sdap_go_get_string(struct sdap_gen_opts *opts,
-                          int id, const char *location)
-{
-    if (opts[id].type != SDAP_STRING) {
-        DEBUG(0, ("[%s] Requested type 'String' for option '%s'"
-                  " but value is of type '%s'!\n",
-                  location, opts[id].opt_name,
-                  sdap_type_to_string(opts[id].type)));
-        return NULL;
-    }
-    return opts[id].val.string;
-}
-
-struct sdap_blob _sdap_go_get_blob(struct sdap_gen_opts *opts,
-                                   int id, const char *location)
-{
-    struct sdap_blob null_blob = { NULL, 0 };
-    if (opts[id].type != SDAP_BLOB) {
-        DEBUG(0, ("[%s] Requested type 'Blob' for option '%s'"
-                  " but value is of type '%s'!\n",
-                  location, opts[id].opt_name,
-                  sdap_type_to_string(opts[id].type)));
-        return null_blob;
-    }
-    return opts[id].val.blob;
-}
-
-int _sdap_go_get_int(struct sdap_gen_opts *opts,
-                     int id, const char *location)
-{
-    if (opts[id].type != SDAP_NUMBER) {
-        DEBUG(0, ("[%s] Requested type 'Number' for option '%s'"
-                  " but value is of type '%s'!\n",
-                  location, opts[id].opt_name,
-                  sdap_type_to_string(opts[id].type)));
-        return 0;
-    }
-    return opts[id].val.number;
-}
-
-bool _sdap_go_get_bool(struct sdap_gen_opts *opts,
-                       int id, const char *location)
-{
-    if (opts[id].type != SDAP_BOOL) {
-        DEBUG(0, ("[%s] Requested type 'Boolean' for option '%s'"
-                  " but value is of type '%s'!\n",
-                  location, opts[id].opt_name,
-                  sdap_type_to_string(opts[id].type)));
-        return false;
-    }
-    return opts[id].val.boolean;
-}
-
 
 /* =Parse-msg============================================================= */
 
@@ -552,12 +399,12 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
     return EOK;
 }
 
-errno_t setup_tls_config(struct sdap_gen_opts *basic_opts)
+errno_t setup_tls_config(struct dp_option *basic_opts)
 {
     int ret;
     int ldap_opt_x_tls_require_cert;
     const char *tls_opt;
-    tls_opt = sdap_go_get_string(basic_opts, SDAP_TLS_REQCERT);
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_REQCERT);
     if (tls_opt) {
         if (strcasecmp(tls_opt, "never") == 0) {
             ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;
@@ -588,7 +435,7 @@ errno_t setup_tls_config(struct sdap_gen_opts *basic_opts)
         }
     }
 
-    tls_opt = sdap_go_get_string(basic_opts, SDAP_TLS_CACERT);
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CACERT);
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {
@@ -597,7 +444,7 @@ errno_t setup_tls_config(struct sdap_gen_opts *basic_opts)
         }
     }
 
-    tls_opt = sdap_go_get_string(basic_opts, SDAP_TLS_CACERTDIR);
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CACERTDIR);
     if (tls_opt) {
         ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
         if (ret != LDAP_OPT_SUCCESS) {

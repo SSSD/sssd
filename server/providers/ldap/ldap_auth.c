@@ -126,8 +126,8 @@ static void get_user_dn_done(void *pvt, int err, struct ldb_result *res)
             dn = talloc_asprintf(state, "%s=%s,%s",
                         state->ctx->opts->user_map[SDAP_AT_USER_NAME].name,
                         state->name,
-                        sdap_go_get_string(state->ctx->opts->basic,
-                                           SDAP_USER_SEARCH_BASE));
+                        dp_opt_get_string(state->ctx->opts->basic,
+                                          SDAP_USER_SEARCH_BASE));
             if (!dn) {
                 tevent_req_error(req, ENOMEM);
                 break;
@@ -174,7 +174,7 @@ struct auth_state {
     struct tevent_context *ev;
     struct sdap_auth_ctx *ctx;
     const char *username;
-    struct sdap_blob password;
+    struct dp_opt_blob password;
 
     struct sdap_handle *sh;
 
@@ -190,7 +190,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
                                     struct tevent_context *ev,
                                     struct sdap_auth_ctx *ctx,
                                     const char *username,
-                                    struct sdap_blob password)
+                                    struct dp_opt_blob password)
 {
     struct tevent_req *req, *subreq;
     struct auth_state *state;
@@ -335,7 +335,7 @@ static void sdap_pam_chpass_send(struct be_req *breq)
     struct sdap_auth_ctx *ctx;
     struct tevent_req *subreq;
     struct pam_data *pd;
-    struct sdap_blob authtok;
+    struct dp_opt_blob authtok;
 
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                           struct sdap_auth_ctx);
@@ -460,7 +460,7 @@ struct sdap_pam_auth_state {
     struct be_req *breq;
     struct pam_data *pd;
     const char *username;
-    struct sdap_blob password;
+    struct dp_opt_blob password;
 };
 
 static void sdap_pam_auth_done(struct tevent_req *req);
@@ -475,7 +475,8 @@ static void sdap_pam_auth_send(struct be_req *breq)
     struct tevent_req *subreq;
     struct pam_data *pd;
 
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct sdap_auth_ctx);
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+                          struct sdap_auth_ctx);
     pd = talloc_get_type(breq->req_data, struct pam_data);
 
     if (be_is_offline(ctx->be)) {

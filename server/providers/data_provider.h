@@ -138,4 +138,62 @@ int dp_get_sbus_address(TALLOC_CTX *mem_ctx,
                         char **address, const char *domain_name);
 
 
+/* Helpers */
+
+#define NULL_STRING { .string = NULL }
+#define NULL_BLOB { .blob = { NULL, 0 } }
+#define NULL_NUMBER { .number = 0 }
+#define BOOL_FALSE { .boolean = false }
+#define BOOL_TRUE { .boolean = true }
+
+enum dp_opt_type {
+    DP_OPT_STRING,
+    DP_OPT_BLOB,
+    DP_OPT_NUMBER,
+    DP_OPT_BOOL
+};
+
+struct dp_opt_blob {
+    uint8_t *data;
+    size_t length;
+};
+
+union dp_opt_value {
+    const char *cstring;
+    char *string;
+    struct dp_opt_blob blob;
+    int number;
+    bool boolean;
+};
+
+struct dp_option {
+    const char *opt_name;
+    enum dp_opt_type type;
+    union dp_opt_value def_val;
+    union dp_opt_value val;
+};
+
+int dp_get_options(TALLOC_CTX *memctx,
+                   struct confdb_ctx *cdb,
+                   const char *conf_path,
+                   struct dp_option *def_opts,
+                   int num_opts,
+                   struct dp_option **_opts);
+
+const char *_dp_opt_get_cstring(struct dp_option *opts,
+                                    int id, const char *location);
+char *_dp_opt_get_string(struct dp_option *opts,
+                                    int id, const char *location);
+struct dp_opt_blob _dp_opt_get_blob(struct dp_option *opts,
+                                    int id, const char *location);
+int _dp_opt_get_int(struct dp_option *opts,
+                                    int id, const char *location);
+bool _dp_opt_get_bool(struct dp_option *opts,
+                                    int id, const char *location);
+#define dp_opt_get_cstring(o, i) _dp_opt_get_cstring(o, i, __FUNCTION__)
+#define dp_opt_get_string(o, i) _dp_opt_get_string(o, i, __FUNCTION__)
+#define dp_opt_get_blob(o, i) _dp_opt_get_blob(o, i, __FUNCTION__)
+#define dp_opt_get_int(o, i) _dp_opt_get_int(o, i, __FUNCTION__)
+#define dp_opt_get_bool(o, i) _dp_opt_get_bool(o, i, __FUNCTION__)
+
 #endif /* __DATA_PROVIDER_ */

@@ -301,6 +301,7 @@ sssd_pam_LDADD = \
 
 sssd_be_SOURCES = \
     providers/data_provider_be.c \
+    providers/data_provider_opts.c \
     $(SSSD_UTIL_OBJ)
 sssd_be_LDADD = $(SSSD_LIBS)
 sssd_be_LDFLAGS = \

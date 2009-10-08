@@ -691,7 +691,7 @@ static void ldap_id_enumerate(struct tevent_context *ev,
     /* if enumeration takes so long, either we try to enumerate too
      * frequently, or something went seriously wrong */
     tv = tevent_timeval_current();
-    ert = sdap_go_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    ert = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
     tv = tevent_timeval_add(&tv, ert, 0);
     timeout = tevent_add_timer(ctx->be->ev, req, tv,
                                ldap_id_enumerate_timeout, req);
@@ -707,7 +707,7 @@ static void ldap_id_enumerate_timeout(struct tevent_context *ev,
                                                        struct sdap_id_ctx);
     int ert;
 
-    ert = sdap_go_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    ert = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
     DEBUG(1, ("Enumeration timed out! Timeout too small? (%ds)!\n", ert));
     ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
 
@@ -739,7 +739,7 @@ static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
     struct tevent_timer *enum_task;
     int ert;
 
-    ert = sdap_go_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    ert = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
     tv = tevent_timeval_add(&tv, ert, 0);
     enum_task = tevent_add_timer(ctx->be->ev, ctx, tv, ldap_id_enumerate, ctx);
     if (!enum_task) {

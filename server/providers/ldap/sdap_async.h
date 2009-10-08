@@ -69,7 +69,7 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   const char *sasl_user,
                                   const char *user_dn,
                                   const char *authtok_type,
-                                  struct sdap_blob authtok);
+                                  struct dp_opt_blob authtok);
 int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result);
 
 struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,

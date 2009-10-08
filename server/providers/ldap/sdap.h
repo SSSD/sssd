@@ -19,8 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "confdb/confdb.h"
-#include "db/sysdb.h"
+#include "providers/dp_backend.h"
+#include <ldap.h>
 #include "util/sss_ldap.h"
 
 struct sdap_msg {
@@ -136,33 +136,6 @@ enum sdap_group_opt {
     SDAP_OPTS_GROUP /* attrs counter */
 };
 
-enum sdap_type {
-    SDAP_STRING,
-    SDAP_BLOB,
-    SDAP_NUMBER,
-    SDAP_BOOL
-};
-
-struct sdap_blob {
-    uint8_t *data;
-    size_t length;
-};
-
-union sdap_value {
-    const char *cstring;
-    char *string;
-    struct sdap_blob blob;
-    int number;
-    bool boolean;
-};
-
-struct sdap_gen_opts {
-    const char *opt_name;
-    enum sdap_type type;
-    union sdap_value def_val;
-    union sdap_value val;
-};
-
 struct sdap_id_map {
     const char *opt_name;
     const char *def_name;
@@ -171,7 +144,7 @@ struct sdap_id_map {
 };
 
 struct sdap_options {
-    struct sdap_gen_opts *basic;
+    struct dp_option *basic;
     struct sdap_id_map *user_map;
     struct sdap_id_map *group_map;
 
@@ -191,22 +164,6 @@ int sdap_get_options(TALLOC_CTX *memctx,
                      const char *conf_path,
                      struct sdap_options **_opts);
 
-const char *_sdap_go_get_cstring(struct sdap_gen_opts *opts,
-                                 int id, const char *location);
-char *_sdap_go_get_string(struct sdap_gen_opts *opts,
-                          int id, const char *location);
-struct sdap_blob _sdap_go_get_blob(struct sdap_gen_opts *opts,
-                                   int id, const char *location);
-int _sdap_go_get_int(struct sdap_gen_opts *opts,
-                     int id, const char *location);
-bool _sdap_go_get_bool(struct sdap_gen_opts *opts,
-                       int id, const char *location);
-#define sdap_go_get_cstring(o, i) _sdap_go_get_cstring(o, i, __FUNCTION__)
-#define sdap_go_get_string(o, i) _sdap_go_get_string(o, i, __FUNCTION__)
-#define sdap_go_get_blob(o, i) _sdap_go_get_blob(o, i, __FUNCTION__)
-#define sdap_go_get_int(o, i) _sdap_go_get_int(o, i, __FUNCTION__)
-#define sdap_go_get_bool(o, i) _sdap_go_get_bool(o, i, __FUNCTION__)
-
 int sdap_parse_user(TALLOC_CTX *memctx, struct sdap_options *opts,
                     struct sdap_handle *sh, struct sdap_msg *sm,
                     struct sysdb_attrs **_attrs, char **_dn);
@@ -218,4 +175,4 @@ int sdap_parse_group(TALLOC_CTX *memctx, struct sdap_options *opts,
 int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
                     struct sdap_msg *sm, char **_dn);
 
-errno_t setup_tls_config(struct sdap_gen_opts *basic_opts);
+errno_t setup_tls_config(struct dp_option *basic_opts);
