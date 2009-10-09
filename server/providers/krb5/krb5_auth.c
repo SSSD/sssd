@@ -141,6 +141,26 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     return EOK;
 }
 
+static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req) {
+    struct pam_data *pd;
+
+    pd = talloc_get_type(be_req->req_data, struct pam_data);
+
+    switch (pd->cmd) {
+        case SSS_PAM_AUTHENTICATE:
+            return talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+                                       struct krb5_ctx);
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            return talloc_get_type(be_req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+                                       struct krb5_ctx);
+            break;
+        default:
+            DEBUG(1, ("Unsupported PAM task.\n"));
+            return NULL;
+    }
+}
+
 static void fd_nonblocking(int fd) {
     int flags;
 
@@ -236,8 +256,12 @@ static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req,
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
-    krb5_ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
-                               struct krb5_ctx);
+    krb5_ctx = get_krb5_ctx(req);
+    if (krb5_ctx == NULL) {
+        DEBUG(1, ("Kerberos context not available.\n"));
+        err = EINVAL;
+        goto failed;
+    }
 
     kr = talloc_zero(req, struct krb5child_req);
     if (kr == NULL) {
@@ -629,8 +653,13 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
     const char *homedir = NULL;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
-    krb5_ctx = talloc_get_type(be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
-                               struct krb5_ctx);
+    krb5_ctx = get_krb5_ctx(be_req);
+    if (krb5_ctx == NULL) {
+        DEBUG(1, ("Kerberos context not available.\n"));
+        err = EINVAL;
+        goto failed;
+    }
+
 
     if (err != LDB_SUCCESS) {
         DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
