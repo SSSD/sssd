@@ -735,18 +735,19 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
         return PAM_SUCCESS;
     }
 
-    if (getuid() != 0) {
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
-        pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
-        if (pi->pam_authtok == NULL) {
+    if (pi->pamstack_oldauthtok == NULL) {
+        if (getuid() != 0) {
             D(("no password found for chauthtok"));
             return PAM_BUF_ERR;
+        } else {
+            pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
+            pi->pam_authtok = NULL;
+            pi->pam_authtok_size = 0;
         }
-        pi->pam_authtok_size = strlen(pi->pam_authtok);
     } else {
-        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_EMPTY;
-        pi->pam_authtok = NULL;
-        pi->pam_authtok_size = 0;
+        pi->pam_authtok = strdup(pi->pamstack_oldauthtok);
+        pi->pam_authtok_type = SSS_AUTHTOK_TYPE_PASSWORD;
+        pi->pam_authtok_size = strlen(pi->pam_authtok);
     }
 
     if (flags & FLAGS_USE_AUTHTOK) {
