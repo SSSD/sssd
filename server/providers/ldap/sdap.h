@@ -62,6 +62,19 @@ struct sdap_handle {
     struct sdap_op *ops;
 };
 
+#define SYSDB_SHADOWPW_LASTCHANGE "shadowLastChange"
+#define SYSDB_SHADOWPW_MIN "shadowMin"
+#define SYSDB_SHADOWPW_MAX "shadowMax"
+#define SYSDB_SHADOWPW_WARNING "shadowWarning"
+#define SYSDB_SHADOWPW_INACTIVE "shadowInactive"
+#define SYSDB_SHADOWPW_EXPIRE "shadowExpire"
+#define SYSDB_SHADOWPW_FLAG "shadowFlag"
+
+#define SYSDB_KRBPW_LASTCHANGE "krbLastPwdChange"
+#define SYSDB_KRBPW_EXPIRATION "krbPasswordExpiration"
+
+#define SYSDB_PWD_ATTRIBUTE "pwdAttribute"
+
 enum sdap_result {
     SDAP_SUCCESS,
     SDAP_NOT_FOUND,
@@ -70,7 +83,8 @@ enum sdap_result {
     SDAP_ERROR,
     SDAP_AUTH_SUCCESS,
     SDAP_AUTH_FAILED,
-    SDAP_AUTH_PW_EXPIRED
+    SDAP_AUTH_PW_EXPIRED,
+    SDAP_ACCT_EXPIRED
 };
 
 enum sdap_basic_opt {
@@ -121,9 +135,21 @@ enum sdap_user_opt {
     SDAP_AT_USER_MEMBEROF,
     SDAP_AT_USER_UUID,
     SDAP_AT_USER_MODSTAMP,
+    SDAP_AT_SP_LSTCHG,
+    SDAP_AT_SP_MIN,
+    SDAP_AT_SP_MAX,
+    SDAP_AT_SP_WARN,
+    SDAP_AT_SP_INACT,
+    SDAP_AT_SP_EXPIRE,
+    SDAP_AT_SP_FLAG,
+    SDAP_AT_KP_LASTCHANGE,
+    SDAP_AT_KP_EXPIRATION,
+    SDAP_AT_PWD_ATTRIBUTE,
 
     SDAP_OPTS_USER /* attrs counter */
 };
+
+#define SDAP_FIRST_EXTRA_USER_AT SDAP_AT_SP_LSTCHG
 
 /* the objectclass must be the first attribute.
  * Functions depend on this */

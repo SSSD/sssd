@@ -1281,6 +1281,7 @@ int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result)
         default:
             *result = SDAP_ERROR;
     }
+
     return EOK;
 }
 
@@ -1326,6 +1327,8 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     gid_t gid;
     struct sysdb_attrs *user_attrs;
     char *upn = NULL;
+    int i;
+    char *val = NULL;
 
     req = tevent_req_create(memctx, &state, struct sdap_save_user_state);
     if (!req) return NULL;
@@ -1474,6 +1477,28 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {
             goto fail;
+        }
+    }
+
+    for (i = SDAP_FIRST_EXTRA_USER_AT; i < SDAP_OPTS_USER; i++) {
+        ret = sysdb_attrs_get_el(state->attrs, opts->user_map[i].sys_name, &el);
+        if (ret) {
+            goto fail;
+        }
+        if (el->num_values > 0) {
+            DEBUG(9, ("Adding [%s]=[%s] to user attributes.\n",
+                      opts->user_map[i].sys_name,
+                      (const char*) el->values[0].data));
+            val = talloc_strdup(user_attrs, (const char*) el->values[0].data);
+            if (val == NULL) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            ret = sysdb_attrs_add_string(user_attrs,
+                                         opts->user_map[i].sys_name, val);
+            if (ret) {
+                goto fail;
+            }
         }
     }
 
