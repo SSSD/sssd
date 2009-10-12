@@ -11,6 +11,7 @@ if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugindir = @krb5pluginpath@
 endif
 sssdconfdir = $(sysconfdir)/sssd
+sssdapiplugindir = $(sssdconfdir)/sssd.api.d
 dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 localedir = @localedir@
@@ -99,6 +100,10 @@ if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
     pysss.la
 endif
+
+dist_noinst_SCRIPTS = \
+    config/setup.py \
+    config/SSSDConfig.py
 
 ###############################
 # Global compilation settings #
@@ -540,6 +545,14 @@ SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 dist_init_SCRIPTS = \
     sysv/sssd
 
+dist_sssdconf_DATA = \
+    config/etc/sssd.api.conf
+dist_sssdapiplugin_DATA = \
+    config/etc/sssd.api.d/sssd-krb5.conf \
+    config/etc/sssd.api.d/sssd-ldap.conf \
+    config/etc/sssd.api.d/sssd-local.conf \
+    config/etc/sssd.api.d/sssd-proxy.conf
+
 installsssddirs::
 	mkdir -p \
     $(DESTDIR)$(includedir) \
@@ -561,6 +574,14 @@ installsssddirs::
     $(DESTDIR)$(logpath)
 
 install-exec-hook: installsssddirs
+	if [ "$(DESTDIR)" = "" ]; then \
+		cd $(srcdir)/config; $(PYTHON) setup.py install; \
+	else \
+		cd $(srcdir)/config; $(PYTHON) setup.py install --root=$(DESTDIR); \
+	fi
+
+clean-local:
+	cd $(srcdir)/config; $(PYTHON) setup.py clean --all
 
 CLEANFILES = *.X */*.X */*/*.X
 
