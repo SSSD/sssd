@@ -557,30 +557,17 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr)
 {
     struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
-    struct ldb_result *res = NULL;
     struct sysdb_ctx *sysdb;
     int ret;
 
-    if ((err_maj != DP_ERR_OK) && (err_maj != DP_ERR_OFFLINE)) {
+    if (err_maj) {
         DEBUG(2, ("Unable to get information from Data Provider\n"
                   "Error: %u, %u, %s\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-        ret = EFAULT;
-        goto done;
     }
 
-    if (err_maj == DP_ERR_OFFLINE) {
-         if (preq->data) res = talloc_get_type(preq->data, struct ldb_result);
-         if (!res) res = talloc_zero(preq, struct ldb_result);
-         if (!res) {
-            ret = EFAULT;
-            goto done;
-        }
-
-        pam_check_user_callback(preq, LDB_SUCCESS, res);
-        return;
-    }
-
+    /* always try to see if we have the user in cache even if the provider
+     * returned an error */
     ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
                                   preq->domain, &sysdb);
     if (ret != EOK) {
