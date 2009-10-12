@@ -2018,6 +2018,9 @@ int monitor_process_init(struct mt_ctx *ctx,
         }
     } else {
         int i;
+
+        ctx->services_started = true;
+
         /* No providers start services immediately
          * Normally this means only LOCAL is configured */
         for (i = 0; ctx->services[i]; i++) {
