@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <popt.h>
 
 #include <security/pam_modules.h>
 
@@ -641,7 +642,7 @@ failed:
     return kerr;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, const char *argv[])
 {
     uint8_t *buf = NULL;
     int ret;
@@ -649,10 +650,49 @@ int main(int argc, char *argv[])
     struct pam_data *pd = NULL;
     struct krb5_req *kr = NULL;
     char *ccname;
+    int opt;
+    poptContext pc;
+    int debug_fd = -1;
 
-    debug_prg_name = argv[0];
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
+        {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
+         "Debug level", NULL},
+        {"debug-timestamps", 0, POPT_ARG_NONE, &debug_timestamps, 0,
+         "Add debug timestamps", NULL},
+        {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
+         "Add debug timestamps", NULL},
+        POPT_TABLEEND
+    };
+
+
+    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    while((opt = poptGetNextOpt(pc)) != -1) {
+        switch(opt) {
+        default:
+        fprintf(stderr, "\nInvalid option %s: %s\n\n",
+                  poptBadOption(pc, 0), poptStrerror(opt));
+            poptPrintUsage(pc, stderr, 0);
+            _exit(-1);
+        }
+    }
+
+    poptFreeContext(pc);
 
     pd = talloc(NULL, struct pam_data);
+    if (pd == NULL) {
+        DEBUG(1, ("malloc failed.\n"));
+        _exit(-1);
+    }
+
+    debug_prg_name = talloc_asprintf(pd, "[sssd[krb5_child[%d]]]", getpid());
+
+    if (debug_fd != -1) {
+        ret = set_debug_file_from_fd(debug_fd);
+        if (ret != EOK) {
+            DEBUG(1, ("set_debug_file_from_fd failed.\n"));
+        }
+    }
 
     buf = talloc_size(pd, sizeof(uint8_t)*IN_BUF_SIZE);
     if (buf == NULL) {

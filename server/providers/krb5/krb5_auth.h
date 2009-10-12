@@ -92,6 +92,7 @@ struct krb5_ctx {
     char *ccache_dir;
     char *ccname_template;
     int auth_timeout;
+    int child_debug_fd;
 };
 
 #endif /* __KRB5_AUTH_H__ */

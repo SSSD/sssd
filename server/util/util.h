@@ -46,6 +46,7 @@ extern int debug_timestamps;
 extern int debug_to_file;
 extern const char *debug_log_file;
 void debug_fn(const char *format, ...);
+errno_t set_debug_file_from_fd(const int fd);
 
 #define SSSD_DEBUG_OPTS \
 		{"debug-level",	'd', POPT_ARG_INT, &debug_level, 0, \
@@ -137,6 +138,7 @@ void debug_fn(const char *format, ...);
 /* From debug.c */
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
+int open_debug_file_ex(const char *filename, FILE **filep);
 int open_debug_file(void);
 
 /* from server.c */

@@ -37,6 +37,22 @@ int debug_to_file = 0;
 const char *debug_log_file = "sssd";
 FILE *debug_file = NULL;
 
+
+errno_t set_debug_file_from_fd(const int fd)
+{
+    FILE *dummy;
+
+    dummy = fdopen(fd, "a");
+    if (dummy == NULL) {
+        DEBUG(1, ("fdopen failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    debug_file = dummy;
+
+    return EOK;
+}
+
 void debug_fn(const char *format, ...)
 {
     va_list ap;
@@ -99,19 +115,26 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
     free(message);
 }
 
-int open_debug_file()
+int open_debug_file_ex(const char *filename, FILE **filep)
 {
     FILE *f = NULL;
     char *logpath;
+    const char *log_file;
     mode_t old_umask;
     int ret;
 
-    ret = asprintf(&logpath, "%s/%s.log", LOG_PATH, debug_log_file);
+    if (filename == NULL) {
+        log_file = debug_log_file;
+    } else {
+        log_file = filename;
+    }
+
+    ret = asprintf(&logpath, "%s/%s.log", LOG_PATH, log_file);
     if (ret == -1) {
         return ENOMEM;
     }
 
-    if (debug_file) fclose(debug_file);
+    if (debug_file && !filep) fclose(debug_file);
 
     old_umask = umask(0177);
     f = fopen(logpath, "a");
@@ -121,7 +144,16 @@ int open_debug_file()
     }
     umask(old_umask);
 
-    debug_file = f;
+    if (filep == NULL) {
+        debug_file = f;
+    } else {
+        *filep = f;
+    }
     free(logpath);
     return EOK;
+}
+
+int open_debug_file(void)
+{
+    return open_debug_file_ex(NULL, NULL);
 }

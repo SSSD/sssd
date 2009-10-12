@@ -471,9 +471,11 @@ krb5_child_SOURCES = \
     providers/krb5/krb5_child.c
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
     $(KRB5_CFLAGS)
 krb5_child_LDADD = \
     $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
     $(KRB5_LIBS)
 
 memberof_la_SOURCES = \

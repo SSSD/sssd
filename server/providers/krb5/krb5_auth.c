@@ -327,6 +327,76 @@ static void wait_for_child_handler(struct tevent_context *ev,
     return;
 }
 
+static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
+                                  struct krb5child_req *kr,
+                                  char ***_argv)
+{
+    uint_t argc = 3; /* program name, debug_level and NULL */
+    char ** argv;
+    errno_t ret = EINVAL;
+
+    /* Save the current state in case an interrupt changes it */
+    bool child_debug_to_file = debug_to_file;
+    bool child_debug_timestamps = debug_timestamps;
+
+    if (child_debug_to_file) argc++;
+    if (child_debug_timestamps) argc++;
+
+    /* program name, debug_level,
+     * debug_to_file, debug_timestamps
+     * and NULL */
+    argv  = talloc_array(mem_ctx, char *, argc);
+    if (argv == NULL) {
+        DEBUG(1, ("talloc_array failed.\n"));
+        return ENOMEM;
+    }
+
+    argv[--argc] = NULL;
+
+    argv[--argc] = talloc_asprintf(argv, "--debug-level=%d",
+                              debug_level);
+    if (argv[argc] == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (child_debug_to_file) {
+        argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
+                                  kr->krb5_ctx->child_debug_fd);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    if (child_debug_timestamps) {
+        argv[--argc] = talloc_strdup(argv, "--debug-timestamps");
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    argv[--argc] = talloc_strdup(argv, KRB5_CHILD);
+    if (argv[argc] == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (argc != 0) {
+        ret = EINVAL;
+        goto fail;
+    }
+
+    *_argv = argv;
+
+    return EOK;
+
+fail:
+    talloc_free(argv);
+    return ret;
+}
+
 static errno_t fork_child(struct krb5child_req *kr)
 {
     int pipefd_to_child[2];
@@ -334,6 +404,7 @@ static errno_t fork_child(struct krb5child_req *kr)
     pid_t pid;
     int ret;
     errno_t err;
+    char **argv;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -383,10 +454,16 @@ static errno_t fork_child(struct krb5child_req *kr)
             return err;
         }
 
-        ret = execl(KRB5_CHILD, KRB5_CHILD, NULL);
+        ret = prepare_child_argv(kr, kr, &argv);
+        if (ret != EOK) {
+            DEBUG(1, ("prepare_child_argv.\n"));
+            return ret;
+        }
+
+        ret = execv(KRB5_CHILD, argv);
         if (ret == -1) {
             err = errno;
-            DEBUG(1, ("execl failed [%d][%s].\n", errno, strerror(errno)));
+            DEBUG(1, ("execv failed [%d][%s].\n", errno, strerror(errno)));
             return err;
         }
     } else if (pid > 0) { /* parent */
@@ -912,6 +989,8 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     int ret;
     struct tevent_signal *sige;
     struct stat stat_buf;
+    unsigned v;
+    FILE *debug_filep;
 
     ctx = talloc_zero(bectx, struct krb5_ctx);
     if (!ctx) {
@@ -1015,6 +1094,24 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         goto fail;
     }
 
+    if (debug_to_file != 0) {
+        ret = open_debug_file_ex("krb5_child", &debug_filep);
+        if (ret != EOK) {
+            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
+                    ret, strerror(ret)));
+            goto fail;
+        }
+
+        ctx->child_debug_fd = fileno(debug_filep);
+        if (ctx->child_debug_fd == -1) {
+            DEBUG(0, ("fileno failed [%d][%s]\n", errno, strerror(errno)));
+            ret = errno;
+            goto fail;
+        }
+
+        v = fcntl(ctx->child_debug_fd, F_GETFD, 0);
+        fcntl(ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
+    }
 
     *ops = &krb5_auth_ops;
     *pvt_auth_data = ctx;
