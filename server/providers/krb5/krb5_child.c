@@ -419,49 +419,71 @@ sendresponse:
     return EOK;
 }
 
+uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx, const uint8_t *src, size_t len)
+{
+    uint8_t *str;
+
+    str = talloc_size(mem_ctx, len + 1);
+    if (str == NULL) {
+        DEBUG(1, ("talloc_size failed.\n"));
+        return NULL;
+    }
+    memcpy(str, src, len);
+    str[len] = '\0';
+
+    return str;
+}
+
 static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
                              char **ccname)
 {
     size_t p = 0;
     uint32_t *len;
-    uint8_t *str;
 
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
     len = ((uint32_t *)(buf+p));
     pd->cmd = *len;
     p += sizeof(uint32_t);
 
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
     len = ((uint32_t *)(buf+p));
     p += sizeof(uint32_t);
-    str = talloc_memdup(pd, buf+p, sizeof(char) * (*len + 1));
-    if (str == NULL) return ENOMEM;
-    str[*len] = '\0';
-    pd->upn = (char *) str;
+
+    if ((p + *len ) > size) return EINVAL;
+    pd->upn = (char *) copy_buffer_and_add_zero(pd, buf+p,
+                                                sizeof(char) * (*len));
+    if (pd->upn == NULL) return ENOMEM;
     p += *len;
 
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
     len = ((uint32_t *)(buf+p));
     p += sizeof(uint32_t);
-    str = talloc_memdup(pd, buf+p, sizeof(char) * (*len + 1));
-    if (str == NULL) return ENOMEM;
-    str[*len] = '\0';
-    *ccname = (char *) str;
+
+    if ((p + *len ) > size) return EINVAL;
+    *ccname = (char *) copy_buffer_and_add_zero(pd, buf+p,
+                                                sizeof(char) * (*len));
+    if (*ccname == NULL) return ENOMEM;
     p += *len;
 
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
     len = ((uint32_t *)(buf+p));
     p += sizeof(uint32_t);
-    str = talloc_memdup(pd, buf+p, sizeof(char) * (*len + 1));
-    if (str == NULL) return ENOMEM;
-    str[*len] = '\0';
-    pd->authtok = str;
+
+    if ((p + *len) > size) return EINVAL;
+    pd->authtok = copy_buffer_and_add_zero(pd, buf+p, sizeof(char) * (*len));
+    if (pd->authtok == NULL) return ENOMEM;
     pd->authtok_size = *len + 1;
     p += *len;
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+        if ((p + sizeof(uint32_t)) > size) return EINVAL;
         len = ((uint32_t *)(buf+p));
         p += sizeof(uint32_t);
-        str = talloc_memdup(pd, buf+p, sizeof(char) * (*len + 1));
-        if (str == NULL) return ENOMEM;
-        str[*len] = '\0';
-        pd->newauthtok = str;
+
+        if ((p + *len) > size) return EINVAL;
+        pd->newauthtok = copy_buffer_and_add_zero(pd, buf+p,
+                                                  sizeof(char) * (*len));
+        if (pd->newauthtok == NULL) return ENOMEM;
         pd->newauthtok_size = *len + 1;
         p += *len;
     } else {
@@ -659,7 +681,7 @@ int main(int argc, char *argv[])
     }
     close(STDIN_FILENO);
 
-    ret = unpack_buffer(buf, ret, pd, &ccname);
+    ret = unpack_buffer(buf, len, pd, &ccname);
     if (ret != EOK) {
         DEBUG(1, ("unpack_buffer failed.\n"));
         goto fail;
