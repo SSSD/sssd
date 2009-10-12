@@ -1,0 +1,78 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: sssd
+# Required-Start: $remote_fs $time
+# Should-Start: $syslog
+# Should-Stop: $syslog
+# Required-Stop: $remote_fs
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 4 6
+# Short-Description: System Security Services Daemon
+# Description: Provides a set of daemons to manage access to remote directories
+#              and authentication mechanisms. It provides an NSS and PAM
+#              interface toward the system and a pluggable backend system to
+#              connect to multiple different account sources. It is also the
+#              basis to provide client auditing and policy services for projects
+#              like FreeIPA.
+### END INIT INFO
+
+RETVAL=0
+prog="sssd"
+
+# Source function library.
+. /etc/rc.status
+rc_reset
+
+SSSD=/usr/sbin/sssd
+PID_FILE=/var/run/sssd.pid
+
+case "$1" in
+    start)
+        echo -n "Starting $prog "
+        /sbin/startproc $SSSD -D 2>/dev/null
+        rc_status -v
+        ;;
+
+    stop)
+        echo -n "Shutting down $prog "
+        /sbin/killproc -p $PID_FILE $SSSD -TERM
+        rc_status -v
+        ;;
+
+    restart)
+        $0 stop
+        $0 start
+        rc_status
+        ;;
+
+    reload)
+        echo -n "Reload service $prog "
+        killproc $SSSD -HUP
+        rc_status -v
+        ;;
+
+    force-reload)
+        $0 reload
+        ;;
+
+    status)
+        echo -n "Checking for service $prog"
+        /sbin/checkproc $SSSD
+        rc_status -v
+        ;;
+
+    condrestart|try-restart)
+        $0 status
+        if test $? = 0; then
+            $0 restart
+        else
+            rc_reset    # Not running is not a failure.
+        fi
+        rc_status
+        ;;
+    *)
+    echo "Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
+    exit 1
+esac
+rc_exit
+
