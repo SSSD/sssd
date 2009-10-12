@@ -424,9 +424,11 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/sdap.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(LDAP_CFLAGS)
+    $(LDAP_CFLAGS) \
+    $(KRB5_CFLAGS)
 libsss_ldap_la_LIBADD = \
-    $(OPENLDAP_LIBS)
+    $(OPENLDAP_LIBS) \
+    $(KRB5_LIBS)
 libsss_ldap_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
