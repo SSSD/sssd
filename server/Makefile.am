@@ -29,7 +29,8 @@ if WANT_AUX_INFO
 endif
 if HAVE_GCC
     AM_CFLAGS += -Wall -Wshadow -Wstrict-prototypes -Wpointer-arith \
-                 -Wcast-qual -Wcast-align -Wwrite-strings
+                 -Wcast-qual -Wcast-align -Wwrite-strings \
+                 -Werror-implicit-function-declaration
 endif
 
 REPLACE_CFLAGS = \
