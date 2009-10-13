@@ -156,6 +156,7 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %files client
+%defattr(-,root,root,-)
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_mandir}/man8/pam_sss.8*
