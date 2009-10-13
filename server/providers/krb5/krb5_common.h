@@ -28,14 +28,10 @@
 
 #include "config.h"
 #include <stdbool.h>
-#ifdef HAVE_KRB5_KRB5_H
-#include <krb5/krb5.h>
-#else
-#include <krb5.h>
-#endif
 
 #include "providers/dp_backend.h"
 #include "util/util.h"
+#include "util/sss_krb5.h"
 
 #define SSSD_KRB5_KDC "SSSD_KRB5_KDC"
 #define SSSD_KRB5_REALM "SSSD_KRB5_REALM"

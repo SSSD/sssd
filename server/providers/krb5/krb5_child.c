@@ -90,19 +90,13 @@ struct krb5_req {
     char *ccname;
 };
 
-#ifdef HAVE_KRB5_GET_ERROR_MESSAGE
 static krb5_context krb5_error_ctx;
 static const char *__krb5_error_msg;
 #define KRB5_DEBUG(level, krb5_error) do { \
-    __krb5_error_msg = krb5_get_error_message(krb5_error_ctx, krb5_error); \
+    __krb5_error_msg = sss_krb5_get_error_message(krb5_error_ctx, krb5_error); \
     DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
-    krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
+    sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
 } while(0);
-#else
-#define KRB5_DEBUG(level, krb5_error) do { \
-    DEBUG(level, ("%d: kerberos error [%d]\n", __LINE__, krb5_error)); \
-} while(0);
-#endif
 
 struct response {
     size_t max_size;
@@ -181,20 +175,14 @@ static struct response *prepare_response_message(struct krb5_req *kr,
         ret = pack_response_packet(resp, PAM_SUCCESS, PAM_ENV_ITEM, msg);
         talloc_zfree(msg);
     } else {
-#ifdef HAVE_KRB5_GET_ERROR_MESSAGE
-        krb5_msg = krb5_get_error_message(krb5_error_ctx, kerr);
+        krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
         if (krb5_msg == NULL) {
-            DEBUG(1, ("krb5_get_error_message failed.\n"));
+            DEBUG(1, ("sss_krb5_get_error_message failed.\n"));
             return NULL;
         }
 
         ret = pack_response_packet(resp, pam_status, PAM_USER_INFO, krb5_msg);
-        krb5_free_error_message(krb5_error_ctx, krb5_msg);
-#else
-        msg = talloc_asprintf(kr, "Kerberos error [%d]", kerr);
-        ret = pack_response_packet(resp, pam_status, PAM_USER_INFO, msg);
-        talloc_zfree(msg);
-#endif
+        sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
     }
 
     if (ret != EOK) {
@@ -536,11 +524,7 @@ static int krb5_cleanup(void *ptr)
     if (kr == NULL) return EOK;
 
     if (kr->options != NULL) {
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_ALLOC
-        krb5_get_init_creds_opt_free(kr->ctx, kr->options);
-#else
-        free(kr->options);
-#endif
+        sss_krb5_get_init_creds_opt_free(kr->ctx, kr->options);
     }
 
     if (kr->creds != NULL) {
@@ -639,21 +623,11 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
         goto failed;
     }
 
-#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_ALLOC
-    kerr = krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
+    kerr = sss_krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto failed;
     }
-#else
-    kr->options = calloc(1, sizeof(krb5_get_init_creds_opt));
-    if (kr->options == NULL) {
-        DEBUG(1, ("calloc failed.\n"));
-        kerr = ENOMEM;
-        goto failed;
-    }
-    krb5_get_init_creds_opt_init(&kr->options);
-#endif
 
 /* TODO: set options, e.g.
  *  krb5_get_init_creds_opt_set_tkt_life

@@ -247,6 +247,7 @@ dist_noinst_HEADERS = \
     util/util.h \
     util/strtonum.h \
     util/sss_ldap.h \
+    util/sss_krb5.h \
     config.h \
     monitor/monitor.h \
     monitor/monitor_interfaces.h \
@@ -469,7 +470,8 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_common.c \
     providers/ldap/sdap_async.c \
     providers/ldap/sdap.c \
-    util/sss_ldap.c
+    util/sss_ldap.c \
+    util/sss_krb5.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
@@ -514,6 +516,7 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/sdap_async.c \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
+    util/sss_krb5.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_common.c \
     providers/krb5/krb5_auth.c
@@ -530,7 +533,8 @@ libsss_ipa_la_LDFLAGS = \
 
 krb5_child_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
-    providers/krb5/krb5_child.c
+    providers/krb5/krb5_child.c \
+    util/sss_krb5.c
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
     $(POPT_CFLAGS) \

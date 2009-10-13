@@ -20,11 +20,11 @@
 */
 #include <ctype.h>
 #include <sasl/sasl.h>
-#include <krb5/krb5.h>
 
 #include "db/sysdb.h"
 #include "providers/ldap/sdap_async.h"
 #include "util/util.h"
+#include "util/sss_krb5.h"
 
 #define REALM_SEPARATOR '@'
 
@@ -991,7 +991,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
         krberr = krb5_get_default_realm(context, &realm_name);
         if (krberr) {
             DEBUG(2, ("Failed to get default realm name: %s\n",
-                      krb5_get_error_message(context, krberr)));
+                      sss_krb5_get_error_message(context, krberr)));
             ret = EFAULT;
             goto done;
         }
@@ -1032,7 +1032,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
     krberr = krb5_parse_name(context, full_princ, &kprinc);
     if (krberr) {
         DEBUG(2, ("Unable to build principal: %s\n",
-                  krb5_get_error_message(context, krberr)));
+                  sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }
@@ -1044,7 +1044,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
     }
     if (krberr) {
         DEBUG(2, ("Failed to read keytab file: %s\n",
-                  krb5_get_error_message(context, krberr)));
+                  sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }
@@ -1065,7 +1065,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
     krberr = krb5_cc_resolve(context, ccname, &ccache);
     if (krberr) {
         DEBUG(2, ("Failed to set cache name: %s\n",
-                  krb5_get_error_message(context, krberr)));
+                  sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }
@@ -1084,7 +1084,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
 
     if (krberr) {
         DEBUG(2, ("Failed to init credentials: %s\n",
-                  krb5_get_error_message(context, krberr)));
+                  sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }
@@ -1092,7 +1092,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
     krberr = krb5_cc_initialize(context, ccache, kprinc);
     if (krberr) {
         DEBUG(2, ("Failed to init ccache: %s\n",
-                  krb5_get_error_message(context, krberr)));
+                  sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }
@@ -1100,7 +1100,7 @@ static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
     krberr = krb5_cc_store_cred(context, ccache, &my_creds);
     if (krberr) {
         DEBUG(2, ("Failed to store creds: %s\n",
-                  krb5_get_error_message(context, krberr)));
+                  sss_krb5_get_error_message(context, krberr)));
         ret = EFAULT;
         goto done;
     }

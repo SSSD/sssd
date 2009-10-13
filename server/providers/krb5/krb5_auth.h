@@ -26,6 +26,7 @@
 #ifndef __KRB5_AUTH_H__
 #define __KRB5_AUTH_H__
 
+#include "util/sss_krb5.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
 
