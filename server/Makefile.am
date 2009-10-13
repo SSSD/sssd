@@ -578,9 +578,9 @@ installsssddirs::
 
 install-exec-hook: installsssddirs
 	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(srcdir)/config; $(PYTHON) setup.py install; \
+		cd $(srcdir)/config; $(PYTHON) setup.py install --prefix=$(PYTHON_PREFIX); \
 	else \
-		cd $(srcdir)/config; $(PYTHON) setup.py install --root=$(DESTDIR); \
+		cd $(srcdir)/config; $(PYTHON) setup.py install  --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR); \
 	fi
 
 clean-local:
