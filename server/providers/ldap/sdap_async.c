@@ -676,10 +676,10 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->user_dn = user_dn;
     state->pw = pw;
 
-    ret = ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST, 0, NULL, 0,
-                              &request_controls[0]);
+    ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                                  0, NULL, 0, &request_controls[0]);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_control_create failed.\n"));
+        DEBUG(1, ("sss_ldap_control_create failed.\n"));
         goto fail;
     }
     request_controls[1] = NULL;
@@ -2699,10 +2699,10 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    ret = ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST, 0, NULL, 0,
-                              &request_controls[0]);
+    ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                                  0, NULL, 0, &request_controls[0]);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_control_create failed.\n"));
+        DEBUG(1, ("sss_ldap_control_create failed.\n"));
         goto fail;
     }
     request_controls[1] = NULL;

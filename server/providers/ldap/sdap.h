@@ -21,7 +21,7 @@
 
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
-#include <ldap.h>
+#include "util/sss_ldap.h"
 
 struct sdap_msg {
     struct sdap_msg *next;

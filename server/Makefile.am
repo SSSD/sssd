@@ -238,6 +238,7 @@ dist_noinst_HEADERS = \
     util/sssd-i18n.h \
     util/util.h \
     util/strtonum.h \
+    util/sss_ldap.h \
     config.h \
     monitor/monitor.h \
     monitor/monitor_interfaces.h \
@@ -427,7 +428,8 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_auth.c \
     providers/ldap/sdap_async.c \
-    providers/ldap/sdap.c
+    providers/ldap/sdap.c \
+    util/sss_ldap.c
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \

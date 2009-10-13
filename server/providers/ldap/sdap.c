@@ -20,7 +20,6 @@
 */
 
 #define LDAP_DEPRECATED 1
-#include <ldap.h>
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "providers/ldap/sdap.h"
