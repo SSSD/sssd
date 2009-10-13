@@ -47,13 +47,13 @@ char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid)
 
 int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names_ctx **out)
 {
-    struct sss_names_ctx *ctx = NULL;
+    struct sss_names_ctx *ctx;
     const char *errstr;
     int errval;
     int errpos;
     int ret;
 
-    ctx = talloc_zero(ctx, struct sss_names_ctx);
+    ctx = talloc_zero(mem_ctx, struct sss_names_ctx);
     if (!ctx) return ENOMEM;
 
     ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
