@@ -58,6 +58,7 @@ struct bet_info {
     enum bet_type bet_type;
     struct bet_ops *bet_ops;
     void *pvt_bet_data;
+    char *mod_name;
 };
 
 struct be_offline_status {

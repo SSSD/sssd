@@ -499,6 +499,13 @@
                             <quote>proxy</quote> for relaying password changes
                             to some other PAM target.
                         </para>
+                        <para>
+                            <quote>none</quote> disallows password changes explicitly.
+                        </para>
+                        <para>
+                            Default: <quote>auth_provider</quote> is used if it
+                            is set and can handle change password request.
+                        </para>
                     </listitem>
                 </varlistentry>
             </variablelist>
