@@ -2823,3 +2823,175 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req,
 
     return EOK;
 }
+
+/* ==Client connect============================================ */
+
+struct sdap_cli_connect_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+
+    struct sdap_handle *sh;
+};
+
+static void sdap_cli_connect_done(struct tevent_req *subreq);
+static void sdap_cli_kinit_done(struct tevent_req *subreq);
+static void sdap_cli_bind_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts)
+{
+    struct tevent_req *req, *subreq;
+    struct sdap_cli_connect_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_cli_connect_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+
+    subreq = sdap_connect_send(state, ev, opts,
+                               sdap_go_get_bool(opts->basic, SDAP_ID_TLS));
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_cli_connect_done, req);
+
+    return req;
+}
+
+static void sdap_cli_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                                struct sdap_cli_connect_state);
+    const char *sasl_mech;
+    int ret;
+
+    ret = sdap_connect_recv(subreq, state, &state->sh);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sasl_mech = sdap_go_get_string(state->opts->basic, SDAP_SASL_MECH);
+    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+        if (sdap_go_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
+            subreq = sdap_kinit_send(state, state->ev, state->sh,
+                                sdap_go_get_string(state->opts->basic,
+                                                           SDAP_KRB5_KEYTAB),
+                                sdap_go_get_string(state->opts->basic,
+                                                           SDAP_SASL_AUTHID),
+                                sdap_go_get_string(state->opts->basic,
+                                                           SDAP_KRB5_REALM));
+            if (!subreq) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            tevent_req_set_callback(subreq, sdap_cli_kinit_done, req);
+            return;
+        }
+    }
+
+    subreq = sdap_auth_send(state,
+                            state->ev,
+                            state->sh,
+                            sasl_mech,
+                            sdap_go_get_string(state->opts->basic,
+                                                        SDAP_SASL_AUTHID),
+                            sdap_go_get_string(state->opts->basic,
+                                                    SDAP_DEFAULT_BIND_DN),
+                            sdap_go_get_string(state->opts->basic,
+                                               SDAP_DEFAULT_AUTHTOK_TYPE),
+                            sdap_go_get_blob(state->opts->basic,
+                                                    SDAP_DEFAULT_AUTHTOK));
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_cli_bind_done, req);
+}
+
+static void sdap_cli_kinit_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                                struct sdap_cli_connect_state);
+    enum sdap_result result;
+    int ret;
+
+    ret = sdap_kinit_recv(subreq, &result);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    if (result != SDAP_AUTH_SUCCESS) {
+        tevent_req_error(req, EACCES);
+        return;
+    }
+
+    subreq = sdap_auth_send(state,
+                            state->ev,
+                            state->sh,
+                            sdap_go_get_string(state->opts->basic,
+                                                          SDAP_SASL_MECH),
+                            sdap_go_get_string(state->opts->basic,
+                                                        SDAP_SASL_AUTHID),
+                            sdap_go_get_string(state->opts->basic,
+                                                    SDAP_DEFAULT_BIND_DN),
+                            sdap_go_get_string(state->opts->basic,
+                                               SDAP_DEFAULT_AUTHTOK_TYPE),
+                            sdap_go_get_blob(state->opts->basic,
+                                                    SDAP_DEFAULT_AUTHTOK));
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_cli_bind_done, req);
+}
+
+static void sdap_cli_bind_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    enum sdap_result result;
+    int ret;
+
+    ret = sdap_auth_recv(subreq, &result);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+    if (result != SDAP_AUTH_SUCCESS) {
+        tevent_req_error(req, EACCES);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sdap_cli_connect_recv(struct tevent_req *req, TALLOC_CTX *memctx,
+                          struct sdap_handle **gsh)
+{
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                                struct sdap_cli_connect_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (err) return err;
+        return EIO;
+    }
+
+    *gsh = talloc_steal(memctx, state->sh);
+    if (!*gsh) {
+        return ENOMEM;
+    }
+    return EOK;
+}
