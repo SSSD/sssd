@@ -328,7 +328,7 @@ struct sdap_pam_chpass_state {
 
 static void sdap_auth4chpass_done(struct tevent_req *req);
 static void sdap_pam_chpass_done(struct tevent_req *req);
-static void sdap_pam_auth_reply(struct be_req *breq, int result);
+static void sdap_pam_auth_reply(struct be_req *breq, int dp_err, int result);
 
 static void sdap_pam_chpass_send(struct be_req *breq)
 {
@@ -337,6 +337,7 @@ static void sdap_pam_chpass_send(struct be_req *breq)
     struct tevent_req *subreq;
     struct pam_data *pd;
     struct dp_opt_blob authtok;
+    int dp_err = DP_ERR_FATAL;
 
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                           struct sdap_auth_ctx);
@@ -345,6 +346,7 @@ static void sdap_pam_chpass_send(struct be_req *breq)
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
         pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        dp_err = DP_ERR_OFFLINE;
         goto done;
     }
 
@@ -383,8 +385,9 @@ static void sdap_pam_chpass_send(struct be_req *breq)
 
     tevent_req_set_callback(subreq, sdap_auth4chpass_done, state);
     return;
+
 done:
-    sdap_pam_auth_reply(breq, pd->pam_status);
+    sdap_pam_auth_reply(breq, dp_err, pd->pam_status);
 }
 
 static void sdap_auth4chpass_done(struct tevent_req *req)
@@ -393,6 +396,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                     tevent_req_callback_data(req, struct sdap_pam_chpass_state);
     struct tevent_req *subreq;
     enum sdap_result result;
+    int dp_err = DP_ERR_FATAL;
     int ret;
 
     ret = auth_recv(req, &result, state, &state->sh, &state->dn);
@@ -421,13 +425,13 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
 
         tevent_req_set_callback(subreq, sdap_pam_chpass_done, state);
         return;
-        break;
+
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
 done:
-    sdap_pam_auth_reply(state->breq, state->pd->pam_status);
+    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
 }
 
 static void sdap_pam_chpass_done(struct tevent_req *req)
@@ -435,6 +439,7 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
     struct sdap_pam_chpass_state *state =
                     tevent_req_callback_data(req, struct sdap_pam_chpass_state);
     enum sdap_result result;
+    int dp_err = DP_ERR_FATAL;
     int ret;
 
     ret = sdap_exop_modify_passwd_recv(req, &result);
@@ -447,13 +452,14 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
     switch (result) {
     case SDAP_SUCCESS:
         state->pd->pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
 done:
-    sdap_pam_auth_reply(state->breq, state->pd->pam_status);
+    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
 }
 /* ==Perform-User-Authentication-and-Password-Caching===================== */
 
@@ -466,7 +472,6 @@ struct sdap_pam_auth_state {
 
 static void sdap_pam_auth_done(struct tevent_req *req);
 static void sdap_password_cache_done(struct tevent_req *req);
-static void sdap_pam_auth_reply(struct be_req *breq, int result);
 
 /* FIXME: convert caller to tevent_req too ?*/
 static void sdap_pam_auth_send(struct be_req *breq)
@@ -475,6 +480,7 @@ static void sdap_pam_auth_send(struct be_req *breq)
     struct sdap_auth_ctx *ctx;
     struct tevent_req *subreq;
     struct pam_data *pd;
+    int dp_err = DP_ERR_FATAL;
 
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                           struct sdap_auth_ctx);
@@ -483,6 +489,7 @@ static void sdap_pam_auth_send(struct be_req *breq)
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
         pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        dp_err = DP_ERR_OFFLINE;
         goto done;
     }
 
@@ -513,10 +520,11 @@ static void sdap_pam_auth_send(struct be_req *breq)
 
     default:
         pd->pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
     }
 
 done:
-    sdap_pam_auth_reply(breq, pd->pam_status);
+    sdap_pam_auth_reply(breq, dp_err, pd->pam_status);
 }
 
 static void sdap_pam_auth_done(struct tevent_req *req)
@@ -525,12 +533,14 @@ static void sdap_pam_auth_done(struct tevent_req *req)
                     tevent_req_callback_data(req, struct sdap_pam_auth_state);
     struct tevent_req *subreq;
     enum sdap_result result;
+    int dp_err = DP_ERR_OK;
     int ret;
 
     ret = auth_recv(req, &result, NULL, NULL, NULL);
     talloc_zfree(req);
     if (ret) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
+        dp_err = DP_ERR_FATAL;
         goto done;
     }
 
@@ -549,10 +559,12 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
+        dp_err = DP_ERR_FATAL;
     }
 
     if (result == SDAP_UNAVAIL) {
         be_mark_offline(state->breq->be_ctx);
+        dp_err = DP_ERR_OFFLINE;
         goto done;
     }
 
@@ -562,6 +574,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         char *password = talloc_strndup(state, (char *)
                                         state->password.data,
                                         state->password.length);
+        /* password caching failures are not fatal errors */
         if (!password) {
             DEBUG(2, ("Failed to cache password for %s\n", state->username));
             goto done;
@@ -586,7 +599,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     }
 
 done:
-    sdap_pam_auth_reply(state->breq, state->pd->pam_status);
+    sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
 }
 
 static void sdap_password_cache_done(struct tevent_req *subreq)
@@ -604,14 +617,12 @@ static void sdap_password_cache_done(struct tevent_req *subreq)
         DEBUG(4, ("Password successfully cached for %s\n", state->username));
     }
 
-    sdap_pam_auth_reply(state->breq, state->pd->pam_status);
+    sdap_pam_auth_reply(state->breq, DP_ERR_OK, state->pd->pam_status);
 }
 
-static void sdap_pam_auth_reply(struct be_req *req, int result)
+static void sdap_pam_auth_reply(struct be_req *req, int dp_err, int result)
 {
-    const char *errstr = NULL;
-    if (result) errstr = "Operation failed";
-    req->fn(req, result, errstr);
+    req->fn(req, dp_err, result, NULL);
 }
 
 /* ==Module-Initialization-and-Dispose==================================== */
@@ -619,7 +630,7 @@ static void sdap_pam_auth_reply(struct be_req *req, int result)
 static void sdap_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
-    req->fn(req, EOK, NULL);
+    req->fn(req, DP_ERR_OK, EOK, NULL);
 }
 
 struct bet_ops sdap_auth_ops = {

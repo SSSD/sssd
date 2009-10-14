@@ -177,6 +177,8 @@ static void fd_nonblocking(int fd) {
     return;
 }
 
+static void krb_reply(struct be_req *req, int dp_err, int result);
+
 static void krb5_child_timeout(struct tevent_context *ev,
                                struct tevent_timer *te,
                                struct timeval tv, void *pvt)
@@ -202,7 +204,7 @@ static void krb5_child_timeout(struct tevent_context *ev,
     pd->pam_status = PAM_AUTHINFO_UNAVAIL;
     be_mark_offline(be_req->be_ctx);
 
-    be_req->fn(be_req, pd->pam_status, NULL);
+    krb_reply(be_req, DP_ERR_OFFLINE, pd->pam_status);
 }
 
 static errno_t activate_child_timeout_handler(struct krb5child_req *kr)
@@ -597,22 +599,25 @@ static void krb5_pam_handler_cache_done(struct tevent_req *treq);
 
 static void krb5_pam_handler(struct be_req *be_req)
 {
-    int ret;
     struct pam_data *pd;
-    int pam_status=PAM_SYSTEM_ERR;
     const char **attrs;
+    int pam_status = PAM_SYSTEM_ERR;
+    int dp_err = DP_ERR_FATAL;
+    int ret;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
     if (be_is_offline(be_req->be_ctx)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
         pam_status = PAM_AUTHINFO_UNAVAIL;
+        dp_err = DP_ERR_OFFLINE;
         goto done;
     }
 
     if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_PAM_CHAUTHTOK) {
         DEBUG(4, ("krb5 does not handles pam task %d.\n", pd->cmd));
         pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
         goto done;
     }
 
@@ -638,7 +643,7 @@ static void krb5_pam_handler(struct be_req *be_req)
 done:
     pd->pam_status = pam_status;
 
-    be_req->fn(be_req, pam_status, NULL);
+    krb_reply(be_req, dp_err, pd->pam_status);
 }
 
 static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
@@ -722,8 +727,7 @@ failed:
     talloc_free(kr);
 
     pd->pam_status = pam_status;
-
-    be_req->fn(be_req, pam_status, NULL);
+    krb_reply(be_req, DP_ERR_FATAL, pd->pam_status);
 }
 
 static void krb5_pam_handler_done(struct tevent_req *req)
@@ -744,6 +748,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     struct tevent_req *subreq = NULL;
     char *password = NULL;
     char *env = NULL;
+    int dp_err = DP_ERR_FATAL;
 
     pd->pam_status = PAM_SYSTEM_ERR;
     talloc_free(kr);
@@ -778,26 +783,26 @@ static void krb5_pam_handler_done(struct tevent_req *req)
         goto done;
     }
 
-    ret=pam_add_response(pd, *msg_type, *msg_len, &buf[p]);
+    ret = pam_add_response(pd, *msg_type, *msg_len, &buf[p]);
     if (ret != EOK) {
         DEBUG(1, ("pam_add_response failed.\n"));
         goto done;
     }
 
-    pd->pam_status = *msg_status;
-
-    if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
+    if (*msg_status == PAM_AUTHINFO_UNAVAIL) {
         be_mark_offline(be_req->be_ctx);
+        pd->pam_status = *msg_status;
+        dp_err = DP_ERR_OFFLINE;
         goto done;
     }
 
-    if (pd->pam_status == PAM_SUCCESS && pd->cmd == SSS_PAM_AUTHENTICATE) {
+    if (*msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_AUTHENTICATE) {
         env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_REALM, krb5_ctx->realm);
         if (env == NULL) {
             DEBUG(1, ("talloc_asprintf failed.\n"));
             goto done;
         }
-        ret=pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
+        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
             goto done;
@@ -808,12 +813,15 @@ static void krb5_pam_handler_done(struct tevent_req *req)
             DEBUG(1, ("talloc_asprintf failed.\n"));
             goto done;
         }
-        ret=pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
+        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
             goto done;
         }
     }
+
+    pd->pam_status = *msg_status;
+    dp_err = DP_ERR_OK;
 
     if (pd->pam_status == PAM_SUCCESS &&
         be_req->be_ctx->domain->cache_credentials == TRUE) {
@@ -853,11 +861,11 @@ static void krb5_pam_handler_done(struct tevent_req *req)
             goto done;
         }
         tevent_req_set_callback(subreq, krb5_pam_handler_cache_done, be_req);
-
         return;
     }
+
 done:
-    be_req->fn(be_req, pd->pam_status, NULL);
+    krb_reply(be_req, dp_err, pd->pam_status);
 }
 
 static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
@@ -875,8 +883,14 @@ static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
                   ret, strerror(ret)));
     }
 
-    be_req->fn(be_req, PAM_SUCCESS, NULL);
+    krb_reply(be_req, DP_ERR_OK, PAM_SUCCESS);
 }
+
+static void krb_reply(struct be_req *req, int dp_err, int result)
+{
+    req->fn(req, dp_err, result, NULL);
+}
+
 
 struct bet_ops krb5_auth_ops = {
     .handler = krb5_pam_handler,

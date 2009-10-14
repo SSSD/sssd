@@ -203,9 +203,40 @@ static int be_check_online(DBusMessage *message, struct sbus_connection *conn)
     return EOK;
 }
 
+static char *dp_err_to_string(TALLOC_CTX *memctx, int dp_err_type, int errnum)
+{
+    switch (dp_err_type) {
+    case DP_ERR_OK:
+        return talloc_strdup(memctx, "Success");
+        break;
+
+    case DP_ERR_OFFLINE:
+        return talloc_asprintf(memctx,
+                               "Provider is Offline (%s)",
+                               strerror(errnum));
+        break;
+
+    case DP_ERR_TIMEOUT:
+        return talloc_asprintf(memctx,
+                               "Request timed out (%s)",
+                               strerror(errnum));
+        break;
+
+    case DP_ERR_FATAL:
+    default:
+        return talloc_asprintf(memctx,
+                               "Internal Error (%s)",
+                               strerror(errnum));
+        break;
+    }
+
+    return NULL;
+}
 
 
-static void acctinfo_callback(struct be_req *req, int status,
+static void acctinfo_callback(struct be_req *req,
+                              int dp_err_type,
+                              int errnum,
                               const char *errstr)
 {
     DBusMessage *reply;
@@ -213,12 +244,18 @@ static void acctinfo_callback(struct be_req *req, int status,
     dbus_bool_t dbret;
     dbus_uint16_t err_maj = 0;
     dbus_uint32_t err_min = 0;
-    const char *err_msg = "Success";
+    const char *err_msg = NULL;
 
-    if (status != EOK) {
-        err_maj = DP_ERR_FATAL;
-        err_min = status;
+    err_maj = dp_err_type;
+    err_min = errnum;
+    if (errstr) {
         err_msg = errstr;
+    } else {
+        err_msg = dp_err_to_string(req, dp_err_type, errnum);
+    }
+    if (!err_msg) {
+        DEBUG(1, ("Failed to set err_msg, Out of memory?\n"));
+        err_msg = "OOM";
     }
 
     reply = (DBusMessage *)req->pvt;
@@ -385,12 +422,19 @@ done:
     return EOK;
 }
 
-static void be_pam_handler_callback(struct be_req *req, int status,
-                                const char *errstr) {
+static void be_pam_handler_callback(struct be_req *req,
+                                    int dp_err_type,
+                                    int errnum,
+                                    const char *errstr)
+{
     struct pam_data *pd;
     DBusMessage *reply;
     DBusConnection *dbus_conn;
     dbus_bool_t dbret;
+
+    DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
+              dp_err_type, errnum, errstr?errstr:"<NULL>",
+              dp_err_to_string(req, dp_err_type, 0)));
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
@@ -743,7 +787,7 @@ static void be_target_access_permit(struct be_req *be_req)
     DEBUG(9, ("be_target_access_permit called, returning PAM_SUCCESS.\n"));
 
     pd->pam_status = PAM_SUCCESS;
-    be_req->fn(be_req, PAM_SUCCESS, NULL);
+    be_req->fn(be_req, DP_ERR_OK, PAM_SUCCESS, NULL);
 }
 
 static struct bet_ops be_target_access_permit_ops = {

@@ -115,7 +115,7 @@ failed:
 }
 
 static void proxy_pam_handler_cache_done(struct tevent_req *treq);
-static void proxy_reply(struct be_req *req,
+static void proxy_reply(struct be_req *req, int dp_err,
                         int error, const char *errstr);
 
 static void proxy_pam_handler(struct be_req *req) {
@@ -218,7 +218,7 @@ static void proxy_pam_handler(struct be_req *req) {
         password = talloc_size(req, auth_data->authtok_size + 1);
         if (!password) {
             /* password caching failures are not fatal errors */
-            return proxy_reply(req, EOK, NULL);
+            return proxy_reply(req, DP_ERR_OK, EOK, NULL);
         }
         memcpy(password, auth_data->authtok, auth_data->authtok_size);
         password[auth_data->authtok_size] = '\0';
@@ -230,12 +230,12 @@ static void proxy_pam_handler(struct be_req *req) {
                                            pd->user, password);
         if (!subreq) {
             /* password caching failures are not fatal errors */
-            return proxy_reply(req, EOK, NULL);
+            return proxy_reply(req, DP_ERR_OK, EOK, NULL);
         }
         tevent_req_set_callback(subreq, proxy_pam_handler_cache_done, req);
     }
 
-    proxy_reply(req, EOK, NULL);
+    proxy_reply(req, DP_ERR_OK, EOK, NULL);
 }
 
 static void proxy_pam_handler_cache_done(struct tevent_req *subreq)
@@ -253,13 +253,13 @@ static void proxy_pam_handler_cache_done(struct tevent_req *subreq)
                   ret, strerror(ret)));
     }
 
-    return proxy_reply(req, EOK, NULL);
+    return proxy_reply(req, DP_ERR_OK, EOK, NULL);
 }
 
-static void proxy_reply(struct be_req *req, int error, const char *errstr)
+static void proxy_reply(struct be_req *req, int dp_err,
+                        int error, const char *errstr)
 {
-    if (error && !errstr) errstr = "Operation failed";
-    return req->fn(req, error, errstr);
+    return req->fn(req, dp_err, error, errstr);
 }
 
 /* =Common-proxy-tevent_req-utils=========================================*/
@@ -2003,12 +2003,12 @@ static void proxy_get_account_info(struct be_req *breq)
     domain = breq->be_ctx->domain;
 
     if (be_is_offline(breq->be_ctx)) {
-        return proxy_reply(breq, EAGAIN, "Offline");
+        return proxy_reply(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
     /* for now we support only core attrs */
     if (ar->attr_type != BE_ATTR_CORE) {
-        return proxy_reply(breq, EINVAL, "Invalid attr type");
+        return proxy_reply(breq, DP_ERR_FATAL, EINVAL, "Invalid attr type");
     }
 
     switch (ar->entry_type) {
@@ -2019,7 +2019,8 @@ static void proxy_get_account_info(struct be_req *breq)
                 subreq = enum_users_send(breq, ev, ctx,
                                          sysdb, domain);
                 if (!subreq) {
-                    return proxy_reply(breq, ENOMEM, "Out of memory");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       ENOMEM, "Out of memory");
                 }
                 tevent_req_set_callback(subreq,
                                proxy_get_account_info_done, breq);
@@ -2029,7 +2030,8 @@ static void proxy_get_account_info(struct be_req *breq)
                                           sysdb, domain,
                                           ar->filter_value);
                 if (!subreq) {
-                    return proxy_reply(breq, ENOMEM, "Out of memory");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       ENOMEM, "Out of memory");
                 }
                 tevent_req_set_callback(subreq,
                                proxy_get_account_info_done, breq);
@@ -2039,18 +2041,21 @@ static void proxy_get_account_info(struct be_req *breq)
 
         case BE_FILTER_IDNUM:
             if (strchr(ar->filter_value, '*')) {
-                return proxy_reply(breq, EINVAL, "Invalid attr type");
+                return proxy_reply(breq, DP_ERR_FATAL,
+                                   EINVAL, "Invalid attr type");
             } else {
                 char *endptr;
                 errno = 0;
                 uid = (uid_t)strtol(ar->filter_value, &endptr, 0);
                 if (errno || *endptr || (ar->filter_value == endptr)) {
-                    return proxy_reply(breq, EINVAL, "Invalid attr type");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       EINVAL, "Invalid attr type");
                 }
                 subreq = get_pw_uid_send(breq, ev, ctx,
                                          sysdb, domain, uid);
                 if (!subreq) {
-                    return proxy_reply(breq, ENOMEM, "Out of memory");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       ENOMEM, "Out of memory");
                 }
                 tevent_req_set_callback(subreq,
                                proxy_get_account_info_done, breq);
@@ -2058,7 +2063,8 @@ static void proxy_get_account_info(struct be_req *breq)
             }
             break;
         default:
-            return proxy_reply(breq, EINVAL, "Invalid filter type");
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               EINVAL, "Invalid filter type");
         }
         break;
 
@@ -2069,7 +2075,8 @@ static void proxy_get_account_info(struct be_req *breq)
                 subreq = enum_groups_send(breq, ev, ctx,
                                           sysdb, domain);
                 if (!subreq) {
-                    return proxy_reply(breq, ENOMEM, "Out of memory");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       ENOMEM, "Out of memory");
                 }
                 tevent_req_set_callback(subreq,
                                proxy_get_account_info_done, breq);
@@ -2079,7 +2086,8 @@ static void proxy_get_account_info(struct be_req *breq)
                                           sysdb, domain,
                                           ar->filter_value);
                 if (!subreq) {
-                    return proxy_reply(breq, ENOMEM, "Out of memory");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       ENOMEM, "Out of memory");
                 }
                 tevent_req_set_callback(subreq,
                                proxy_get_account_info_done, breq);
@@ -2088,18 +2096,21 @@ static void proxy_get_account_info(struct be_req *breq)
             break;
         case BE_FILTER_IDNUM:
             if (strchr(ar->filter_value, '*')) {
-                return proxy_reply(breq, EINVAL, "Invalid attr type");
+                return proxy_reply(breq, DP_ERR_FATAL,
+                                   EINVAL, "Invalid attr type");
             } else {
                 char *endptr;
                 errno = 0;
                 gid = (gid_t)strtol(ar->filter_value, &endptr, 0);
                 if (errno || *endptr || (ar->filter_value == endptr)) {
-                    return proxy_reply(breq, EINVAL, "Invalid attr type");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       EINVAL, "Invalid attr type");
                 }
                 subreq = get_gr_gid_send(breq, ev, ctx,
                                          sysdb, domain, gid);
                 if (!subreq) {
-                    return proxy_reply(breq, ENOMEM, "Out of memory");
+                    return proxy_reply(breq, DP_ERR_FATAL,
+                                       ENOMEM, "Out of memory");
                 }
                 tevent_req_set_callback(subreq,
                                proxy_get_account_info_done, breq);
@@ -2107,24 +2118,29 @@ static void proxy_get_account_info(struct be_req *breq)
             }
             break;
         default:
-            return proxy_reply(breq, EINVAL, "Invalid filter type");
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               EINVAL, "Invalid filter type");
         }
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (ar->filter_type != BE_FILTER_NAME) {
-            return proxy_reply(breq, EINVAL, "Invalid filter type");
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               EINVAL, "Invalid filter type");
         }
         if (strchr(ar->filter_value, '*')) {
-            return proxy_reply(breq, EINVAL, "Invalid filter value");
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               EINVAL, "Invalid filter value");
         }
         if (ctx->ops.initgroups_dyn == NULL) {
-            return proxy_reply(breq, ENODEV, "Initgroups call not supported");
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               ENODEV, "Initgroups call not supported");
         }
         subreq = get_initgr_send(breq, ev, ctx, sysdb,
                                  domain, ar->filter_value);
         if (!subreq) {
-            return proxy_reply(breq, ENOMEM, "Out of memory");
+            return proxy_reply(breq, DP_ERR_FATAL,
+                               ENOMEM, "Out of memory");
         }
         tevent_req_set_callback(subreq,
                        proxy_get_account_info_done, breq);
@@ -2134,7 +2150,8 @@ static void proxy_get_account_info(struct be_req *breq)
         break;
     }
 
-    return proxy_reply(breq, EINVAL, "Invalid request type");
+    return proxy_reply(breq, DP_ERR_FATAL,
+                       EINVAL, "Invalid request type");
 }
 
 static void proxy_get_account_info_done(struct tevent_req *subreq)
@@ -2149,20 +2166,22 @@ static void proxy_get_account_info_done(struct tevent_req *subreq)
             DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
             be_mark_offline(breq->be_ctx);
         }
+        proxy_reply(breq, DP_ERR_FATAL, ret, NULL);
+        return;
     }
-    proxy_reply(breq, ret, NULL);
+    proxy_reply(breq, DP_ERR_OK, EOK, NULL);
 }
 
 static void proxy_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
-    req->fn(req, EOK, NULL);
+    req->fn(req, DP_ERR_OK, EOK, NULL);
 }
 
 static void proxy_auth_shutdown(struct be_req *req)
 {
     talloc_free(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data);
-    req->fn(req, EOK, NULL);
+    req->fn(req, DP_ERR_OK, EOK, NULL);
 }
 
 struct bet_ops proxy_id_ops = {

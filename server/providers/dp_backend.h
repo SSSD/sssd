@@ -32,7 +32,7 @@ struct be_req;
 typedef int (*bet_init_fn_t)(TALLOC_CTX *, struct bet_ops **, void **);
 typedef void (*be_shutdown_fn)(void *);
 typedef void (*be_req_fn_t)(struct be_req *);
-typedef void (*be_async_callback_t)(struct be_req *, int, const char *);
+typedef void (*be_async_callback_t)(struct be_req *, int, int, const char *);
 
 enum bet_type {
     BET_NULL = 0,

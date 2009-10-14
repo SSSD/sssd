@@ -47,9 +47,10 @@ struct sdap_id_ctx {
     char *max_group_timestamp;
 };
 
-static void sdap_req_done(struct be_req *req, int ret, const char *err)
+static void sdap_req_done(struct be_req *req, int dp_err,
+                          int error, const char *errstr)
 {
-    return req->fn(req, ret, err);
+    return req->fn(req, dp_err, error, errstr);
 }
 
 static int build_attrs_from_map(TALLOC_CTX *memctx,
@@ -235,6 +236,7 @@ static void users_get_done(struct tevent_req *req)
     struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
     uint64_t err;
+    int dp_err = DP_ERR_OK;
     const char *error = NULL;
     int ret = EOK;
 
@@ -244,16 +246,18 @@ static void users_get_done(struct tevent_req *req)
     }
 
     if (ret) {
+        dp_err = DP_ERR_FATAL;
         error = "Enum Users Failed";
 
         if (ret == ETIMEDOUT) {
+            dp_err = DP_ERR_TIMEOUT;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             be_mark_offline(ctx->be);
         }
     }
 
-    return sdap_req_done(breq, ret, error);
+    sdap_req_done(breq, dp_err, ret, error);
 }
 
 /* =Groups-Related-Functions-(by-name,by-uid)============================= */
@@ -398,6 +402,7 @@ static void groups_get_done(struct tevent_req *req)
     struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
     uint64_t err;
+    int dp_err = DP_ERR_OK;
     const char *error = NULL;
     int ret = EOK;
 
@@ -406,16 +411,18 @@ static void groups_get_done(struct tevent_req *req)
     }
 
     if (ret) {
+        dp_err = DP_ERR_FATAL;
         error = "Enum Groups Failed";
 
         if (ret == ETIMEDOUT) {
+            dp_err = DP_ERR_TIMEOUT;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             be_mark_offline(ctx->be);
         }
     }
 
-    return sdap_req_done(breq, ret, error);
+    return sdap_req_done(breq, dp_err, ret, error);
 }
 
 /* =Get-Groups-for-User================================================== */
@@ -535,6 +542,7 @@ static void groups_by_user_done(struct tevent_req *req)
     struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
     uint64_t err;
+    int dp_err = DP_ERR_OK;
     const char *error = NULL;
     int ret = EOK;
 
@@ -543,16 +551,18 @@ static void groups_by_user_done(struct tevent_req *req)
     }
 
     if (ret) {
+        dp_err = DP_ERR_FATAL;
         error = "Init Groups Failed";
 
         if (ret == ETIMEDOUT) {
+            dp_err = DP_ERR_TIMEOUT;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             be_mark_offline(ctx->be);
         }
     }
 
-    return sdap_req_done(breq, ret, error);
+    return sdap_req_done(breq, dp_err, ret, error);
 }
 
 
@@ -572,7 +582,7 @@ static void sdap_get_account_info(struct be_req *breq)
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
 
     if (be_is_offline(ctx->be)) {
-        return sdap_req_done(breq, EAGAIN, "Offline");
+        return sdap_req_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
@@ -582,7 +592,7 @@ static void sdap_get_account_info(struct be_req *breq)
 
         /* skip enumerations on demand */
         if (strcmp(ar->filter_value, "*") == 0) {
-            return sdap_req_done(breq, EOK, "Success");
+            return sdap_req_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
         req = users_get_send(breq, breq->be_ctx->ev, ctx,
@@ -590,7 +600,7 @@ static void sdap_get_account_info(struct be_req *breq)
                              ar->filter_type,
                              ar->attr_type);
         if (!req) {
-            return sdap_req_done(breq, ENOMEM, "Out of memory");
+            return sdap_req_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
 
         tevent_req_set_callback(req, users_get_done, breq);
@@ -600,7 +610,7 @@ static void sdap_get_account_info(struct be_req *breq)
     case BE_REQ_GROUP: /* group */
 
         if (strcmp(ar->filter_value, "*") == 0) {
-            return sdap_req_done(breq, EOK, "Success");
+            return sdap_req_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
         /* skip enumerations on demand */
@@ -609,7 +619,7 @@ static void sdap_get_account_info(struct be_req *breq)
                               ar->filter_type,
                               ar->attr_type);
         if (!req) {
-            return sdap_req_done(breq, ENOMEM, "Out of memory");
+            return sdap_req_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
 
         tevent_req_set_callback(req, groups_get_done, breq);
@@ -646,7 +656,7 @@ static void sdap_get_account_info(struct be_req *breq)
         err = "Invalid request type";
     }
 
-    if (ret != EOK) return sdap_req_done(breq, ret, err);
+    if (ret != EOK) return sdap_req_done(breq, DP_ERR_FATAL, ret, err);
 }
 
 
@@ -1148,7 +1158,7 @@ static void enum_groups_op_done(struct tevent_req *subreq)
 static void sdap_shutdown(struct be_req *req)
 {
     /* TODO: Clean up any internal data */
-    sdap_req_done(req, EOK, NULL);
+    sdap_req_done(req, DP_ERR_OK, EOK, NULL);
 }
 
 struct bet_ops sdap_id_ops = {
