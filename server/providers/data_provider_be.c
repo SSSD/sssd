@@ -43,6 +43,8 @@
 #include "providers/dp_backend.h"
 #include "monitor/monitor_interfaces.h"
 
+#define MSG_TARGET_NO_CONFIGURED "sssd_be: The requested target is not configured"
+
 struct sbus_method monitor_be_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
@@ -418,7 +420,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     void *user_data;
     struct pam_data *pd = NULL;
     struct be_req *be_req = NULL;
-    uint32_t pam_status = PAM_SYSTEM_ERR;
     enum bet_type target = BET_NULL;
 
     user_data = sbus_conn_get_private_data(conn);
@@ -429,7 +430,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     reply = dbus_message_new_method_return(message);
     if (!reply) {
         DEBUG(1, ("dbus_message_new_method_return failed, cannot send reply.\n"));
-        talloc_free(pd);
         return ENOMEM;
     }
 
@@ -445,14 +445,24 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->pvt = reply;
 
     pd = talloc_zero(be_req, struct pam_data);
-    if (!pd) return ENOMEM;
+    if (!pd) {
+        talloc_free(be_req);
+        return ENOMEM;
+    }
+
+    pd->pam_status = PAM_SYSTEM_ERR;
+    pd->domain = talloc_strdup(pd, becli->bectx->domain->name);
+    if (pd->domain == NULL) {
+        talloc_free(be_req);
+        return ENOMEM;
+    }
 
     dbus_error_init(&dbus_error);
 
     ret = dp_unpack_pam_request(message, pd, &dbus_error);
     if (!ret) {
         DEBUG(1,("Failed, to parse message!\n"));
-        talloc_free(pd);
+        talloc_free(be_req);
         return EIO;
     }
 
@@ -471,14 +481,21 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
             break;
         default:
             DEBUG(7, ("Unsupported PAM command [%d].\n", pd->cmd));
-            pam_status = PAM_SUCCESS;
+            pd->pam_status = PAM_SUCCESS;
             ret = EOK;
             goto done;
     }
 
-    /* return an error if corresponding backend target is configured */
+    /* return an error if corresponding backend target is not configured */
     if (!becli->bectx->bet_info[target].bet_ops) {
         DEBUG(7, ("Undefined backend target.\n"));
+        pd->pam_status = PAM_MODULE_UNKNOWN;
+        ret = pam_add_response(pd, PAM_USER_INFO,
+                               sizeof(MSG_TARGET_NO_CONFIGURED),
+                               (const uint8_t *) MSG_TARGET_NO_CONFIGURED);
+        if (ret != EOK) {
+            DEBUG(1, ("pam_add_response failed.\n"));
+        }
         goto done;
     }
 
@@ -495,21 +512,22 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     return EOK;
 
 done:
-    talloc_free(be_req);
 
     DEBUG(4, ("Sending result [%d][%s]\n",
-              pam_status, becli->bectx->domain->name));
-    ret = dbus_message_append_args(reply,
-                                   DBUS_TYPE_UINT32, &pam_status,
-                                   DBUS_TYPE_STRING, &becli->bectx->domain->name,
-                                   DBUS_TYPE_INVALID);
+              pd->pam_status, pd->domain));
+
+    ret = dp_pack_pam_response(reply, pd);
     if (!ret) {
+        DEBUG(1, ("Failed to generate dbus reply\n"));
+        talloc_free(be_req);
         return EIO;
     }
 
     /* send reply back immediately */
     sbus_conn_send_reply(conn, reply);
     dbus_message_unref(reply);
+
+    talloc_free(be_req);
 
     return EOK;
 }
