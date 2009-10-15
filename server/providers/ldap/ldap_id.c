@@ -32,27 +32,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
-struct sdap_id_ctx {
-    struct be_ctx *be;
-
-    struct sdap_options *opts;
-
-    /* global sdap handler */
-    struct sdap_handle *gsh;
-
-    /* enumeration loop timer */
-    struct timeval last_run;
-
-    char *max_user_timestamp;
-    char *max_group_timestamp;
-};
-
-static void sdap_req_done(struct be_req *req, int dp_err,
-                          int error, const char *errstr)
-{
-    return req->fn(req, dp_err, error, errstr);
-}
-
 static int build_attrs_from_map(TALLOC_CTX *memctx,
                                 struct sdap_id_map *map,
                                 size_t size,
@@ -257,7 +236,7 @@ static void users_get_done(struct tevent_req *req)
         }
     }
 
-    sdap_req_done(breq, dp_err, ret, error);
+    sdap_handler_done(breq, dp_err, ret, error);
 }
 
 /* =Groups-Related-Functions-(by-name,by-uid)============================= */
@@ -422,7 +401,7 @@ static void groups_get_done(struct tevent_req *req)
         }
     }
 
-    return sdap_req_done(breq, dp_err, ret, error);
+    return sdap_handler_done(breq, dp_err, ret, error);
 }
 
 /* =Get-Groups-for-User================================================== */
@@ -562,7 +541,7 @@ static void groups_by_user_done(struct tevent_req *req)
         }
     }
 
-    return sdap_req_done(breq, dp_err, ret, error);
+    return sdap_handler_done(breq, dp_err, ret, error);
 }
 
 
@@ -570,8 +549,8 @@ static void groups_by_user_done(struct tevent_req *req)
 /* =Get-Account-Info-Call================================================= */
 
 /* FIXME: embed this function in sssd_be and only call out
- * specific functions from modules */
-static void sdap_get_account_info(struct be_req *breq)
+ * specific functions from modules ? */
+void sdap_account_info_handler(struct be_req *breq)
 {
     struct sdap_id_ctx *ctx;
     struct be_acct_req *ar;
@@ -582,7 +561,7 @@ static void sdap_get_account_info(struct be_req *breq)
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct sdap_id_ctx);
 
     if (be_is_offline(ctx->be)) {
-        return sdap_req_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
+        return sdap_handler_done(breq, DP_ERR_OFFLINE, EAGAIN, "Offline");
     }
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
@@ -592,7 +571,7 @@ static void sdap_get_account_info(struct be_req *breq)
 
         /* skip enumerations on demand */
         if (strcmp(ar->filter_value, "*") == 0) {
-            return sdap_req_done(breq, DP_ERR_OK, EOK, "Success");
+            return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
         req = users_get_send(breq, breq->be_ctx->ev, ctx,
@@ -600,7 +579,7 @@ static void sdap_get_account_info(struct be_req *breq)
                              ar->filter_type,
                              ar->attr_type);
         if (!req) {
-            return sdap_req_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
+            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
 
         tevent_req_set_callback(req, users_get_done, breq);
@@ -610,7 +589,7 @@ static void sdap_get_account_info(struct be_req *breq)
     case BE_REQ_GROUP: /* group */
 
         if (strcmp(ar->filter_value, "*") == 0) {
-            return sdap_req_done(breq, DP_ERR_OK, EOK, "Success");
+            return sdap_handler_done(breq, DP_ERR_OK, EOK, "Success");
         }
 
         /* skip enumerations on demand */
@@ -619,7 +598,7 @@ static void sdap_get_account_info(struct be_req *breq)
                               ar->filter_type,
                               ar->attr_type);
         if (!req) {
-            return sdap_req_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
+            return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
 
         tevent_req_set_callback(req, groups_get_done, breq);
@@ -656,7 +635,7 @@ static void sdap_get_account_info(struct be_req *breq)
         err = "Invalid request type";
     }
 
-    if (ret != EOK) return sdap_req_done(breq, DP_ERR_FATAL, ret, err);
+    if (ret != EOK) return sdap_handler_done(breq, DP_ERR_FATAL, ret, err);
 }
 
 
@@ -1151,63 +1130,23 @@ static void enum_groups_op_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-
-
-/* ==Initialization-Functions============================================= */
-
-static void sdap_shutdown(struct be_req *req)
-{
-    /* TODO: Clean up any internal data */
-    sdap_req_done(req, DP_ERR_OK, EOK, NULL);
-}
-
-struct bet_ops sdap_id_ops = {
-    .handler = sdap_get_account_info,
-    .finalize = sdap_shutdown
-};
-
-int sssm_ldap_init(struct be_ctx *bectx,
-                   struct bet_ops **ops,
-                   void **pvt_data)
+int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
     struct tevent_timer *enum_task;
-    struct sdap_id_ctx *ctx;
-    int ret;
-
-    ctx = talloc_zero(bectx, struct sdap_id_ctx);
-    if (!ctx) return ENOMEM;
-
-    ctx->be = bectx;
-
-    ret = ldap_get_options(ctx, bectx->cdb, bectx->conf_path, &ctx->opts);
-    if (ret != EOK) goto done;
-
-    ret = setup_tls_config(ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(1, ("setup_tls_config failed [%d][%s].\n", ret, strerror(ret)));
-        goto done;
-    }
+    int ret = EOK;
 
     /* set up enumeration task */
     if (ctx->be->domain->enumerate) {
         /* run the first immediately */
         ctx->last_run = tevent_timeval_current();
         enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
-                                 ldap_id_enumerate, ctx);
+                                     ldap_id_enumerate, ctx);
         if (!enum_task) {
             DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
             ret = EFAULT;
-            goto done;
         }
     }
 
-    *ops = &sdap_id_ops;
-    *pvt_data = ctx;
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(ctx);
-    }
     return ret;
 }
+

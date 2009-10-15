@@ -194,3 +194,9 @@ done:
     return ret;
 }
 
+void sdap_handler_done(struct be_req *req, int dp_err,
+                       int error, const char *errstr)
+{
+    return req->fn(req, dp_err, error, errstr);
+}
+

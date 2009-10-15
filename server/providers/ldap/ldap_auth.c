@@ -40,7 +40,6 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
-#include "providers/dp_backend.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
@@ -49,11 +48,6 @@ enum pwexpire {
     PWEXPIRE_LDAP_PASSWORD_POLICY,
     PWEXPIRE_KERBEROS,
     PWEXPIRE_SHADOW
-};
-
-struct sdap_auth_ctx {
-    struct be_ctx *be;
-    struct sdap_options *opts;
 };
 
 static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
@@ -581,7 +575,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req);
 static void sdap_pam_chpass_done(struct tevent_req *req);
 static void sdap_pam_auth_reply(struct be_req *breq, int dp_err, int result);
 
-static void sdap_pam_chpass_send(struct be_req *breq)
+void sdap_pam_chpass_handler(struct be_req *breq)
 {
     struct sdap_pam_chpass_state *state;
     struct sdap_auth_ctx *ctx;
@@ -771,8 +765,7 @@ struct sdap_pam_auth_state {
 static void sdap_pam_auth_done(struct tevent_req *req);
 static void sdap_password_cache_done(struct tevent_req *req);
 
-/* FIXME: convert caller to tevent_req too ?*/
-static void sdap_pam_auth_send(struct be_req *breq)
+void sdap_pam_auth_handler(struct be_req *breq)
 {
     struct sdap_pam_auth_state *state;
     struct sdap_auth_ctx *ctx;
@@ -956,63 +949,3 @@ static void sdap_pam_auth_reply(struct be_req *req, int dp_err, int result)
     req->fn(req, dp_err, result, NULL);
 }
 
-/* ==Module-Initialization-and-Dispose==================================== */
-
-static void sdap_shutdown(struct be_req *req)
-{
-    /* TODO: Clean up any internal data */
-    req->fn(req, DP_ERR_OK, EOK, NULL);
-}
-
-struct bet_ops sdap_auth_ops = {
-    .handler = sdap_pam_auth_send,
-    .finalize = sdap_shutdown
-};
-
-struct bet_ops sdap_chpass_ops = {
-    .handler = sdap_pam_chpass_send,
-    .finalize = sdap_shutdown
-};
-
-int sssm_ldap_auth_init(struct be_ctx *bectx,
-                        struct bet_ops **ops,
-                        void **pvt_data)
-{
-    struct sdap_auth_ctx *ctx;
-    int ret;
-
-    ctx = talloc(bectx, struct sdap_auth_ctx);
-    if (!ctx) return ENOMEM;
-
-    ctx->be = bectx;
-
-    ret = ldap_get_options(ctx, bectx->cdb, bectx->conf_path,
-                              &ctx->opts);
-    if (ret != EOK) goto done;
-
-    ret = setup_tls_config(ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(1, ("setup_tls_config failed [%d][%s].\n", ret, strerror(ret)));
-        goto done;
-    }
-
-    *ops = &sdap_auth_ops;
-    *pvt_data = ctx;
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(ctx);
-    }
-    return ret;
-}
-
-int sssm_ldap_chpass_init(struct be_ctx *bectx,
-                          struct bet_ops **ops,
-                          void **pvt_data)
-{
-    int ret;
-    ret = sssm_ldap_auth_init(bectx, ops, pvt_data);
-    *ops = &sdap_chpass_ops;
-    return ret;
-}

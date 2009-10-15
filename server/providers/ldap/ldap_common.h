@@ -22,8 +22,45 @@
 #ifndef _LDAP_COMMON_H_
 #define _LDAP_COMMON_H_
 
+#include "providers/dp_backend.h"
 #include "providers/ldap/sdap.h"
 
+struct sdap_id_ctx {
+    struct be_ctx *be;
+
+    struct sdap_options *opts;
+
+    /* global sdap handler */
+    struct sdap_handle *gsh;
+
+    /* enumeration loop timer */
+    struct timeval last_run;
+
+    char *max_user_timestamp;
+    char *max_group_timestamp;
+};
+
+struct sdap_auth_ctx {
+    struct be_ctx *be;
+    struct sdap_options *opts;
+};
+
+/* id */
+void sdap_account_info_handler(struct be_req *breq);
+int sdap_id_setup_tasks(struct sdap_id_ctx *ctx);
+
+/* auth */
+void sdap_pam_auth_handler(struct be_req *breq);
+
+/* chpass */
+void sdap_pam_chpass_handler(struct be_req *breq);
+
+
+
+void sdap_handler_done(struct be_req *req, int dp_err,
+                       int error, const char *errstr);
+
+/* options parser */
 int ldap_get_options(TALLOC_CTX *memctx,
                      struct confdb_ctx *cdb,
                      const char *conf_path,

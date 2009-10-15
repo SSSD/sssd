@@ -429,6 +429,7 @@ endif
 libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_auth.c \
+    providers/ldap/ldap_init.c \
     providers/ldap/ldap_common.c \
     providers/ldap/sdap_async.c \
     providers/ldap/sdap.c \
