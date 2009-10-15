@@ -216,14 +216,6 @@ done:
     return ret;
 }
 
-static void nss_shutdown(struct resp_ctx *rctx)
-{
-    /* TODO: Do clean-up here */
-
-    /* Nothing left to do but exit() */
-    exit(0);
-}
-
 static struct sbus_method nss_dp_methods[] = {
     { NULL, NULL }
 };

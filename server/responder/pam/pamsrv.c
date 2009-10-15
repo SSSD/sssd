@@ -63,8 +63,6 @@ struct sbus_interface monitor_pam_interface = {
     NULL
 };
 
-static void pam_shutdown(struct resp_ctx *ctx);
-
 static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
     /* Monitor calls this function when we need to reload
      * our configuration information. Perform whatever steps
@@ -73,14 +71,6 @@ static int service_reload(DBusMessage *message, struct sbus_connection *conn) {
 
     /* Send an empty reply to acknowledge receipt */
     return monitor_common_pong(message, conn);
-}
-
-static void pam_shutdown(struct resp_ctx *rctx)
-{
-    /* TODO: Do clean-up here */
-
-    /* Nothing left to do but exit() */
-    exit(0);
 }
 
 static struct sbus_method pam_dp_methods[] = {
