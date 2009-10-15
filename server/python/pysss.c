@@ -176,7 +176,8 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
     PyObject *py_groups = Py_None;
 
     /* parse arguments */
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|kksssO!",
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+                                     discard_const_p(char, "s|kksssO!"),
                                      discard_const_p(char *, kwlist),
                                      &username,
                                      &uid,
@@ -264,7 +265,7 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
     char *username = NULL;
     int ret;
 
-    if(!PyArg_ParseTuple(args, "s", &username)) {
+    if(!PyArg_ParseTuple(args, discard_const_p(char, "s"), &username)) {
         goto fail;
     }
 
@@ -345,7 +346,8 @@ static PyObject *py_sss_usermod(PySssLocalObject *self,
                                     "addgroups", "rmgroups", NULL };
 
     /* parse arguments */
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|kkksssO!O!",
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+                                     discard_const_p(char, "s|kkksssO!O!"),
                                      discard_const_p(char *, kwlist),
                                      &username,
                                      &uid,
@@ -453,7 +455,8 @@ static PyObject *py_sss_groupadd(PySssLocalObject *self,
     const char * const kwlist[] = { "groupname", "gid", NULL };
 
     /* parse arguments */
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|k",
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+                                     discard_const_p(char, "s|k"),
                                      discard_const_p(char *, kwlist),
                                      &groupname,
                                      &gid)) {
@@ -517,7 +520,7 @@ static PyObject *py_sss_groupdel(PySssLocalObject *self,
     char *groupname = NULL;
     int ret;
 
-    if(!PyArg_ParseTuple(args, "s", &groupname)) {
+    if(!PyArg_ParseTuple(args, discard_const_p(char, "s"), &groupname)) {
         goto fail;
     }
 
@@ -588,7 +591,8 @@ static PyObject *py_sss_groupmod(PySssLocalObject *self,
                                     "rmgroups", NULL };
 
     /* parse arguments */
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|kO!O!",
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+                                     discard_const_p(char, "s|kO!O!"),
                                      discard_const_p(char *, kwlist),
                                      &groupname,
                                      &gid,
@@ -808,11 +812,11 @@ initpysss(void)
     if (PyType_Ready(&pysss_local_type) < 0)
         return;
 
-    m = Py_InitModule("pysss", module_methods);
+    m = Py_InitModule(discard_const_p(char, "pysss"), module_methods);
     if (m == NULL)
         return;
 
     Py_INCREF(&pysss_local_type);
-    PyModule_AddObject(m, "local", (PyObject *)&pysss_local_type);
+    PyModule_AddObject(m, discard_const_p(char, "local"), (PyObject *)&pysss_local_type);
 }
 
