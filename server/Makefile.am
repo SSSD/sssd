@@ -80,7 +80,8 @@ TESTS = \
 sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
     libsss_krb5.la \
-    libsss_proxy.la
+    libsss_proxy.la \
+    libsss_ipa.la
 
 ldblib_LTLIBRARIES = \
     memberof.la
@@ -465,6 +466,27 @@ libsss_krb5_la_CFLAGS = \
 libsss_krb5_la_LIBADD = \
     $(KRB5_LIBS)
 libsss_krb5_la_LDFLAGS = \
+    -version-info 1:0:0 \
+    -module
+
+libsss_ipa_la_SOURCES = \
+	providers/ipa/ipa_init.c \
+    providers/ldap/ldap_id.c \
+    providers/ldap/ldap_auth.c \
+    providers/ldap/ldap_common.c \
+    providers/ldap/sdap_async.c \
+    providers/ldap/sdap.c \
+    util/sss_ldap.c \
+    providers/krb5/krb5_utils.c \
+    providers/krb5/krb5_auth.c
+libsss_ipa_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(LDAP_CFLAGS) \
+    $(KRB5_CFLAGS)
+libsss_ipa_la_LIBADD = \
+    $(OPENLDAP_LIBS) \
+    $(KRB5_LIBS)
+libsss_ipa_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
 
