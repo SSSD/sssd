@@ -46,6 +46,7 @@
 #define MSG_TARGET_NO_CONFIGURED "sssd_be: The requested target is not configured"
 
 #define ACCESS_PERMIT "permit"
+#define ACCESS_DENY "deny"
 #define NO_PROVIDER "none"
 
 struct sbus_method monitor_be_methods[] = {
@@ -799,6 +800,21 @@ static struct bet_ops be_target_access_permit_ops = {
     .finalize = NULL
 };
 
+static void be_target_access_deny(struct be_req *be_req)
+{
+    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
+    DEBUG(9, ("be_target_access_deny called, returning PAM_PERM_DENIED.\n"));
+
+    pd->pam_status = PAM_PERM_DENIED;
+    be_req->fn(be_req, DP_ERR_OK, PAM_PERM_DENIED, NULL);
+}
+
+static struct bet_ops be_target_access_deny_ops = {
+    .check_online = NULL,
+    .handler = be_target_access_deny,
+    .finalize = NULL
+};
+
 static int load_backend_module(struct be_ctx *ctx,
                                enum bet_type bet_type,
                                struct bet_info *bet_info,
@@ -853,13 +869,23 @@ static int load_backend_module(struct be_ctx *ctx,
         goto done;
     }
 
-    if (strcmp(mod_name, ACCESS_PERMIT) == 0) {
-        (*bet_info).bet_ops = &be_target_access_permit_ops;
-        (*bet_info).pvt_bet_data = NULL;
-        (*bet_info).mod_name = talloc_strdup(ctx, ACCESS_PERMIT);
+    if (bet_type == BET_ACCESS) {
+        if (strcmp(mod_name, ACCESS_PERMIT) == 0) {
+            (*bet_info).bet_ops = &be_target_access_permit_ops;
+            (*bet_info).pvt_bet_data = NULL;
+            (*bet_info).mod_name = talloc_strdup(ctx, ACCESS_PERMIT);
 
-        ret = EOK;
-        goto done;
+            ret = EOK;
+            goto done;
+        }
+        if (strcmp(mod_name, ACCESS_DENY) == 0) {
+            (*bet_info).bet_ops = &be_target_access_deny_ops;
+            (*bet_info).pvt_bet_data = NULL;
+            (*bet_info).mod_name = talloc_strdup(ctx, ACCESS_DENY);
+
+            ret = EOK;
+            goto done;
+        }
     }
 
     mod_init_fn_name = talloc_asprintf(tmp_ctx,
@@ -997,7 +1023,8 @@ int be_process_init(TALLOC_CTX *mem_ctx,
               ctx->bet_info[BET_ID].mod_name));
 
     ret = load_backend_module(ctx, BET_AUTH,
-                              &ctx->bet_info[BET_AUTH], NULL);
+                              &ctx->bet_info[BET_AUTH],
+                              ctx->bet_info[BET_ID].mod_name);
     if (ret != EOK) {
         if (ret != ENOENT) {
             DEBUG(0, ("fatal error initializing data providers\n"));
@@ -1011,14 +1038,22 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     }
 
     ret = load_backend_module(ctx, BET_ACCESS,
-                              &ctx->bet_info[BET_ACCESS], ACCESS_PERMIT);
+                              &ctx->bet_info[BET_ACCESS],
+                              ctx->bet_info[BET_ID].mod_name);
     if (ret != EOK) {
-        DEBUG(0, ("No ACCESS backend target available.\n"));
-        return ret;
-    } else {
-        DEBUG(9, ("ACCESS backend target successfully loaded "
-                  "from provider [%s].\n", ctx->bet_info[BET_ACCESS].mod_name));
+        if (ret != ENOENT) {
+            DEBUG(0, ("No ACCESS backend target available.\n"));
+            return ret;
+        }
+        ret = load_backend_module(ctx, BET_ACCESS,
+                                  &ctx->bet_info[BET_ACCESS], ACCESS_PERMIT);
+        if (ret != EOK) {
+            DEBUG(0, ("Failed to set ACCESS backend to default (permit).\n"));
+            return ret;
+        }
     }
+    DEBUG(9, ("ACCESS backend target successfully loaded "
+              "from provider [%s].\n", ctx->bet_info[BET_ACCESS].mod_name));
 
     ret = load_backend_module(ctx, BET_CHPASS,
                               &ctx->bet_info[BET_CHPASS],
