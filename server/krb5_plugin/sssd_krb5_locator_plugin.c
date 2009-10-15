@@ -31,7 +31,7 @@
 
 #include <krb5/locate_plugin.h>
 
-#include "providers/krb5/krb5_auth.h"
+#include "providers/krb5/krb5_common.h"
 
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define DEBUG_KEY "[sssd_krb5_locator] "

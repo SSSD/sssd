@@ -26,23 +26,12 @@
 #ifndef __KRB5_AUTH_H__
 #define __KRB5_AUTH_H__
 
-#include "config.h"
-
-#include <stdbool.h>
-
-#ifdef HAVE_KRB5_KRB5_H
-#include <krb5/krb5.h>
-#else
-#include <krb5.h>
-#endif
+#include "providers/dp_backend.h"
+#include "providers/krb5/krb5_common.h"
 
 #define MAX_CHILD_MSG_SIZE 255
 #define CCACHE_ENV_NAME "KRB5CCNAME"
-
 #define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
-#define SSSD_KRB5_KDC "SSSD_KRB5_KDC"
-#define SSSD_KRB5_REALM "SSSD_KRB5_REALM"
-
 
 typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
 
@@ -94,5 +83,11 @@ struct krb5_ctx {
     int auth_timeout;
     int child_debug_fd;
 };
+
+void krb5_pam_handler(struct be_req *be_req);
+
+void krb5_child_sig_handler(struct tevent_context *ev,
+                            struct tevent_signal *sige, int signum,
+                            int count, void *__siginfo, void *pvt);
 
 #endif /* __KRB5_AUTH_H__ */
