@@ -144,8 +144,11 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name);
 
 static int mark_service_as_started(struct mt_svc *svc);
 
+#if 0
 static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
                                  const char *filename);
+#endif
+
 static int update_monitor_config(struct mt_ctx *ctx);
 static int monitor_cleanup(void);
 
@@ -755,6 +758,10 @@ done:
     dbus_message_unref(reply);
 }
 
+#if 0
+This function should be re-enabled once live configuration updates
+are working properly.
+
 static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
                                  const char *filename)
 {
@@ -772,6 +779,7 @@ static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
     /* Update the monitor's configuration and signal children */
     return update_monitor_config(file_ctx->mt_ctx);
 }
+#endif
 
 static int service_signal_dns_reload(struct mt_svc *svc);
 static int monitor_update_resolv(struct config_file_ctx *file_ctx,
