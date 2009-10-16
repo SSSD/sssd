@@ -260,6 +260,7 @@ dist_noinst_HEADERS = \
     providers/dp_backend.h \
     providers/providers.h \
     providers/krb5/krb5_auth.h \
+    providers/krb5/krb5_common.h \
     providers/krb5/krb5_utils.h \
     providers/ldap/ldap_common.h \
     providers/ldap/sdap.h \
