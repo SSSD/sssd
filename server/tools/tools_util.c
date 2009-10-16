@@ -39,13 +39,11 @@ static int setup_db(struct tools_ctx *ctx)
     ctx->ev = tevent_context_init(ctx);
     if (ctx->ev == NULL) {
         DEBUG(1, ("Could not create event context\n"));
-        talloc_free(ctx);
         return EIO;
     }
 
     confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
-        talloc_free(ctx);
         return ENOMEM;
     }
 
@@ -53,14 +51,12 @@ static int setup_db(struct tools_ctx *ctx)
     ret = confdb_init(ctx, &ctx->confdb, confdb_path);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the confdb\n"));
-        talloc_free(ctx);
         return ret;
     }
 
     ret = confdb_get_domain(ctx->confdb, "local", &ctx->local);
     if (ret != EOK) {
         DEBUG(1, ("Could not get 'local' domain\n"));
-        talloc_free(ctx);
         return ret;
     }
 
@@ -68,7 +64,6 @@ static int setup_db(struct tools_ctx *ctx)
     ret = sysdb_domain_init(ctx, ctx->ev, ctx->local, DB_PATH, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the sysdb\n"));
-        talloc_free(ctx);
         return ret;
     }
 
