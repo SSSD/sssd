@@ -810,6 +810,39 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    if (strcasecmp(domain->provider, "local") == 0) {
+        /* If this is the local provider, we need to ensure that
+         * no other provider was specified for other types, since
+         * the local provider cannot load them.
+         */
+        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                          CONFDB_DOMAIN_AUTH_PROVIDER,
+                                          NULL);
+        if (tmp && strcasecmp(tmp, "local") != 0) {
+            DEBUG(0, ("Local ID provider does not support [%s] as an AUTH provider.\n", tmp));
+            ret = EINVAL;
+            goto done;
+        }
+
+        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                          CONFDB_DOMAIN_ACCESS_PROVIDER,
+                                          NULL);
+        if (tmp && strcasecmp(tmp, "local") != 0) {
+            DEBUG(0, ("Local ID provider does not support [%s] as an ACCESS provider.\n", tmp));
+            ret = EINVAL;
+            goto done;
+        }
+
+        tmp = ldb_msg_find_attr_as_string(res->msgs[0],
+                                          CONFDB_DOMAIN_CHPASS_PROVIDER,
+                                          NULL);
+        if (tmp && strcasecmp(tmp, "local") != 0) {
+            DEBUG(0, ("Local ID provider does not support [%s] as a CHPASS provider.\n", tmp));
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
     domain->timeout = ldb_msg_find_attr_as_int(res->msgs[0],
                                                CONFDB_DOMAIN_TIMEOUT, 0);
 
