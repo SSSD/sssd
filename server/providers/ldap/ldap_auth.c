@@ -524,12 +524,13 @@ static void auth_bind_user_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int auth_recv(struct tevent_req *req, enum sdap_result *result,
-                     TALLOC_CTX *memctx, struct sdap_handle **sh, char **dn,
-                     enum pwexpire *pw_expire_type, void **pw_expire_data)
+int auth_recv(struct tevent_req *req,
+              TALLOC_CTX *memctx,
+              struct sdap_handle **sh,
+              enum sdap_result *result, char **dn,
+              enum pwexpire *pw_expire_type, void **pw_expire_data)
 {
-    struct auth_state *state = tevent_req_data(req,
-                                                    struct auth_state);
+    struct auth_state *state = tevent_req_data(req, struct auth_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
@@ -646,7 +647,8 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     int dp_err = DP_ERR_FATAL;
     int ret;
 
-    ret = auth_recv(req, &result, state, &state->sh, &state->dn,
+    ret = auth_recv(req, state, &state->sh,
+                    &result, &state->dn,
                     &pw_expire_type, &pw_expire_data);
     talloc_zfree(req);
     if (ret) {
@@ -829,8 +831,9 @@ static void sdap_pam_auth_done(struct tevent_req *req)
     int dp_err = DP_ERR_OK;
     int ret;
 
-    ret = auth_recv(req, &result, state, NULL, NULL, &pw_expire_type,
-                    &pw_expire_data);
+    ret = auth_recv(req, state, NULL,
+                    &result, NULL,
+                    &pw_expire_type, &pw_expire_data);
     talloc_zfree(req);
     if (ret) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
