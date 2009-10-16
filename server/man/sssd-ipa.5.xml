@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-ipa</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-ipa</refname>
+        <refpurpose>the configuration file for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the IPA Provider
+            for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, please refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page
+        </para>
+        <para>
+            The IPA provider is a backend useful to connect to an IPA server.
+            (see freeipa.org for information about IPa servers).
+            It requires that the machine has been joined to the IPA domain,
+            and configuration is almost entirely self discovered and obtained
+            directly from the server.
+        </para>
+
+    </refsect1>
+
+    <refsect1 id='file-format'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>
+            for details on the configuration of a SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>ipa_domain (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the name of the IPA domain.
+                            This is optional, if not provided the configuration
+                            domain name is used.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_server (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the IPA server.
+                            If autodiscovery is enabled this is optional.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_hostname (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Maybe set on some machine where the
+                            hostname(5) does not reflect the fully qualified
+                            name used in the IPA domain to identify this host.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_ccachedir (string)</term>
+                    <listitem>
+                        <para>
+                            Directory to store credential caches.
+                        </para>
+                        <para>
+                            Default: /tmp
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_search_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout (in seconds) after which
+                            a search against the ipa server is forcibly
+                            terminated.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_network_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout (in seconds) after which
+                            the
+                            <citerefentry>
+                                <refentrytitle>poll</refentrytitle>
+                                <manvolnum>2</manvolnum>
+                            </citerefentry>/<citerefentry>
+                                <refentrytitle>select</refentrytitle>
+                                <manvolnum>2</manvolnum>
+                            </citerefentry>
+                            following a non-search operation against the ipa
+                            server is forcibly terminated.
+                        </para>
+                        <para>
+                            Default: 6
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_offline_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the "black-out" time before any new
+                            network operation is attempted after the ipa
+                            provider has turned into offline operation mode.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+            </variablelist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and example.com is one of the domains in the
+            <replaceable>[sssd]</replaceable> section. This examples shows only
+            the ipa provider specific options.
+        </para>
+        <para>
+<programlisting>
+    [domain/example.com]
+    id_provider = ipa
+    ipa_server = ipaserver.example.com
+    ipa_hostname = myhost.example.com
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>
+        </para>
+    </refsect1>
+</refentry>
+</reference>

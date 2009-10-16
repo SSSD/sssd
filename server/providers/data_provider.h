@@ -180,6 +180,11 @@ int dp_get_options(TALLOC_CTX *memctx,
                    int num_opts,
                    struct dp_option **_opts);
 
+int dp_copy_options(TALLOC_CTX *memctx,
+                    struct dp_option *src_opts,
+                    int num_opts,
+                    struct dp_option **_opts);
+
 const char *_dp_opt_get_cstring(struct dp_option *opts,
                                     int id, const char *location);
 char *_dp_opt_get_string(struct dp_option *opts,
@@ -195,5 +200,18 @@ bool _dp_opt_get_bool(struct dp_option *opts,
 #define dp_opt_get_blob(o, i) _dp_opt_get_blob(o, i, __FUNCTION__)
 #define dp_opt_get_int(o, i) _dp_opt_get_int(o, i, __FUNCTION__)
 #define dp_opt_get_bool(o, i) _dp_opt_get_bool(o, i, __FUNCTION__)
+
+int _dp_opt_set_string(struct dp_option *opts, int id,
+                       const char *s, const char *location);
+int _dp_opt_set_blob(struct dp_option *opts, int id,
+                     struct dp_opt_blob b, const char *location);
+int _dp_opt_set_int(struct dp_option *opts, int id,
+                    int i, const char *location);
+int _dp_opt_set_bool(struct dp_option *opts, int id,
+                     bool b, const char *location);
+#define dp_opt_set_string(o, i, v) _dp_opt_set_string(o, i, v, __FUNCTION__)
+#define dp_opt_set_blob(o, i, v) _dp_opt_set_blob(o, i, v, __FUNCTION__)
+#define dp_opt_set_int(o, i, v) _dp_opt_set_int(o, i, v, __FUNCTION__)
+#define dp_opt_set_bool(o, i, v) _dp_opt_set_bool(o, i, v, __FUNCTION__)
 
 #endif /* __DATA_PROVIDER_ */

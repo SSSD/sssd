@@ -265,6 +265,7 @@ dist_noinst_HEADERS = \
     providers/ldap/ldap_common.h \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
+    providers/ipa/ipa_common.h \
     tools/tools_util.h \
     tools/sss_sync_ops.h \
     resolv/async_resolv.h \
@@ -472,6 +473,7 @@ libsss_krb5_la_LDFLAGS = \
 
 libsss_ipa_la_SOURCES = \
 	providers/ipa/ipa_init.c \
+	providers/ipa/ipa_common.c \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_auth.c \
     providers/ldap/ldap_common.c \
@@ -552,7 +554,7 @@ XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
 		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
 		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5 \
-		man/sssd_krb5_locator_plugin.8
+		man/sssd-ipa.5 man/sssd_krb5_locator_plugin.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:

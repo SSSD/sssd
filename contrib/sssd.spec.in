@@ -142,6 +142,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(700,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
 %config %{_sysconfdir}/sssd/sssd.api.d/
 %{_mandir}/man5/sssd.conf.5*
+%{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*
 %{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man8/sssd.8*

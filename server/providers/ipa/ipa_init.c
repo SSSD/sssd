@@ -25,8 +25,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include "providers/ldap/ldap_common.h"
+#include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
+
+struct ipa_options *ipa_options = NULL;
 
 /* Id Handler */
 struct bet_ops ipa_id_ops = {
@@ -51,13 +53,24 @@ int sssm_ipa_init(struct be_ctx *bectx,
     struct sdap_id_ctx *ctx;
     int ret;
 
-    ctx = talloc_zero(bectx, struct sdap_id_ctx);
-    if (!ctx) return ENOMEM;
+    if (!ipa_options) {
+        ipa_get_options(bectx, bectx->cdb,
+                        bectx->conf_path,
+                        bectx->domain, &ipa_options);
+    }
+    if (!ipa_options) {
+        return ENOMEM;
+    }
 
+    ctx = talloc_zero(bectx, struct sdap_id_ctx);
+    if (!ctx) {
+        return ENOMEM;
+    }
     ctx->be = bectx;
 
-    ret = ldap_get_options(ctx, bectx->cdb,
-                           bectx->conf_path, &ctx->opts);
+    ret = ipa_get_id_options(ctx, bectx->cdb,
+                             bectx->conf_path,
+                             ipa_options, &ctx->opts);
     if (ret != EOK) {
         goto done;
     }
