@@ -44,9 +44,11 @@ extern unsigned trace_level;
 #define TRACE_STRING(level, msg, str) \
     do { \
         if (level & trace_level) { \
-            printf("[DEBUG] %23s (%4d) %s %s\n", \
-                   __FILE__, __LINE__, (msg != NULL) ? msg : "MISSING MESSAGE", \
-                                       (str != NULL) ? str : "(null)"); \
+            printf("[DEBUG] %40s (%4d) %s%s %s\n", \
+                   __FILE__, __LINE__, \
+                   (level == TRACE_ERROR) ? "ERROR-> " : "", \
+                   (msg != NULL) ? msg : "MISSING MESSAGE", \
+                   (str != NULL) ? str : "(null)"); \
         } \
     } while(0)
 
@@ -54,9 +56,11 @@ extern unsigned trace_level;
 #define TRACE_NUMBER(level, msg, num) \
     do { \
         if (level & trace_level) { \
-            printf("[DEBUG] %23s (%4d) %s %lu\n", \
-                   __FILE__, __LINE__, (msg != NULL) ? msg : "MISSING MESSAGE", \
-                                       (unsigned long int)(num)); \
+            printf("[DEBUG] %40s (%4d) %s%s %lu\n", \
+                   __FILE__, __LINE__, \
+                   (level == TRACE_ERROR) ? "ERROR-> " : "", \
+                   (msg != NULL) ? msg : "MISSING MESSAGE", \
+                   (unsigned long int)(num)); \
         } \
     } while(0)
 
@@ -64,9 +68,11 @@ extern unsigned trace_level;
 #define TRACE_DOUBLE(level, msg, num) \
     do { \
         if (level & trace_level) { \
-            printf("[DEBUG] %23s (%4d) %s %e\n", \
-                   __FILE__, __LINE__, (msg != NULL) ? msg : "MISSING MESSAGE", \
-                                       (double)(num)); \
+            printf("[DEBUG] %40s (%4d) %s%s %e\n", \
+                   __FILE__, __LINE__, \
+                   (level == TRACE_ERROR) ? "ERROR-> " : "", \
+                   (msg != NULL) ? msg : "MISSING MESSAGE", \
+                   (double)(num)); \
         } \
     } while(0)
 
