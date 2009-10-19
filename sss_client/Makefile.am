@@ -35,7 +35,7 @@ libnss_sss_la_SOURCES = \
     sss_cli.h
 libnss_sss_la_LDFLAGS = \
     -module \
-    -avoid-version \
+    -version-info 2:0:0 \
     -Wl,--version-script,$(srcdir)/sss_nss.exports
 
 pam_sss_la_SOURCES = \
@@ -63,7 +63,9 @@ dist_noinst_DATA = \
     m4
 
 install-data-hook:
-	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
+	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \
+       $(DESTDIR)/$(nsslibdir)/libnss_sss.so
+	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2.0.0 $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
 
 ############
 # MANPAGES #

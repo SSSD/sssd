@@ -183,6 +183,10 @@ if [ $1 -ge 1 ] ; then
     /sbin/service %{servicename} condrestart 2>&1 > /dev/null
 fi
 
+%post client -p /sbin/ldconfig
+
+%postun client -p /sbin/ldconfig
+
 %changelog
 * Mon Sep 28 2009 Sumit Bose <sbose@redhat.com> - 0.6.0-0
 - New upstream release 0.6.0
