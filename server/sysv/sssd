@@ -15,6 +15,7 @@
 # Should-Start: $syslog
 # Should-Stop: $null
 # Required-Stop: $null
+# Default-Stop: 0 1 6
 # Short-Description: System Security Services Daemon
 # Description: Provides a set of daemons to manage access to remote directories
 #              and authentication mechanisms. It provides an NSS and PAM
