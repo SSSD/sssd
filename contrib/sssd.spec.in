@@ -87,6 +87,10 @@ rm -rf $RPM_BUILD_ROOT
 
 make install DESTDIR=$RPM_BUILD_ROOT
 
+# Prepare language files
+/usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sss_daemon
+/usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sss_client
+
 # Copy default sssd.conf file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
 install -m600 server/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.conf
@@ -113,7 +117,7 @@ fi
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files -f locator.filelist
+%files -f locator.filelist -f sss_daemon.lang
 %defattr(-,root,root,-)
 %doc COPYING
 %{_initrddir}/%{name}
@@ -148,14 +152,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_userdel.8*
 %{_mandir}/man8/sss_usermod.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
-%{_datadir}/locale/*/LC_MESSAGES/sss_client.mo
-%{_datadir}/locale/*/LC_MESSAGES/sss_daemon.mo
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
 %{?fedora:%{python_sitelib}/*.egg-info}
 
 
-%files client
+%files client -f sss_client.lang
 %defattr(-,root,root,-)
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
@@ -182,6 +184,9 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %changelog
+* Mon Sep 28 2009 Sumit Bose <sbose@redhat.com> - 0.6.0-0
+- New upstream release 0.6.0
+
 * Fri Sep 25 2009 Simo Sorce <ssorce@redhat.com> - 0.5.0-1
 - Split package into server and clients components
 - Convert to new config file format
