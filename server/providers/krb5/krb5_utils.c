@@ -35,6 +35,12 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
     char *p;
     char *n;
     char *result = NULL;
+    const char *dummy;
+
+    if (template == NULL) {
+        DEBUG(1, ("Missing template.\n"));
+        return NULL;
+    }
 
     copy = talloc_strdup(mem_ctx, template);
     if (copy == NULL) {
@@ -78,7 +84,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 break;
             case 'p':
                 if (kr->pd->upn == NULL) {
-                    DEBUG(1, ("Cannot expand user principal name template "
+                    DEBUG(1, ("Cannot expand user principle name template "
                               "because upn is empty.\n"));
                     return NULL;
                 }
@@ -88,13 +94,12 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 result = talloc_asprintf_append(result, "%s%%", p);
                 break;
             case 'r':
-                if (kr->krb5_ctx->realm == NULL) {
-                    DEBUG(1, ("Cannot expand realm template "
-                              "because value is not available.\n"));
+                dummy = dp_opt_get_string(kr->krb5_ctx->opts, KRB5_REALM);
+                if (dummy == NULL) {
+                    DEBUG(1, ("Missing kerberos realm.\n"));
                     return NULL;
                 }
-                result = talloc_asprintf_append(result, "%s%s", p,
-                                                kr->krb5_ctx->realm);
+                result = talloc_asprintf_append(result, "%s%s", p, dummy);
                 break;
             case 'h':
                 if (kr->homedir == NULL) {
@@ -105,13 +110,12 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 result = talloc_asprintf_append(result, "%s%s", p, kr->homedir);
                 break;
             case 'd':
-                if (kr->krb5_ctx->ccache_dir == NULL) {
-                    DEBUG(1, ("Cannot expand ccache directory template "
-                              "because value is not available.\n"));
+                dummy = dp_opt_get_string(kr->krb5_ctx->opts, KRB5_CCACHEDIR);
+                if (dummy == NULL) {
+                    DEBUG(1, ("Missing credential cache directory.\n"));
                     return NULL;
                 }
-                result = talloc_asprintf_append(result, "%s%s", p,
-                                                kr->krb5_ctx->ccache_dir);
+                result = talloc_asprintf_append(result, "%s%s", p, dummy);
                 break;
             case 'P':
                 if (kr->pd->cli_pid == 0) {

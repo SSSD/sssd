@@ -36,6 +36,41 @@
 
 #define IN_BUF_SIZE 512
 
+struct krb5_child_ctx {
+    /* opts taken from kinit */
+    /* in seconds */
+    krb5_deltat starttime;
+    krb5_deltat lifetime;
+    krb5_deltat rlife;
+
+    int forwardable;
+    int proxiable;
+    int addresses;
+
+    int not_forwardable;
+    int not_proxiable;
+    int no_addresses;
+
+    int verbose;
+
+    char* principal_name;
+    char* service_name;
+    char* keytab_name;
+    char* k5_cache_name;
+    char* k4_cache_name;
+
+    action_type action;
+
+    char *kdcip;
+    char *realm;
+    char *changepw_principle;
+    char *ccache_dir;
+    char *ccname_template;
+    int auth_timeout;
+
+    int child_debug_fd;
+};
+
 struct krb5_req {
     krb5_context ctx;
     krb5_ccache cc;
@@ -49,7 +84,7 @@ struct krb5_req {
 
     struct be_req *req;
     struct pam_data *pd;
-    struct krb5_ctx *krb5_ctx;
+    struct krb5_child_ctx *krb5_ctx;
     errno_t (*child_req)(int fd, struct krb5_req *kr);
 
     char *ccname;
@@ -522,7 +557,7 @@ static int krb5_cleanup(void *ptr)
         krb5_free_context(kr->ctx);
 
     if (kr->krb5_ctx != NULL) {
-        memset(kr->krb5_ctx, 0, sizeof(struct krb5_ctx));
+        memset(kr->krb5_ctx, 0, sizeof(struct krb5_child_ctx));
     }
     memset(kr, 0, sizeof(struct krb5_req));
 
@@ -543,7 +578,7 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
     }
     talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
-    kr->krb5_ctx = talloc_zero(kr, struct krb5_ctx);
+    kr->krb5_ctx = talloc_zero(kr, struct krb5_child_ctx);
     if (kr->krb5_ctx == NULL) {
         DEBUG(1, ("talloc failed.\n"));
         kerr = ENOMEM;

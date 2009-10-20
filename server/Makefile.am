@@ -388,14 +388,16 @@ strtonum_tests_LDADD = \
     $(CHECK_LIBS)
 
 krb5_utils_tests_SOURCES = \
-    $(SSSD_DEBUG_OBJ) \
     tests/krb5_utils-tests.c \
-    providers/krb5/krb5_utils.c
+    providers/krb5/krb5_utils.c \
+    providers/krb5/krb5_common.c \
+    providers/data_provider_opts.c \
+    $(SSSD_UTIL_OBJ)
 krb5_utils_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 krb5_utils_tests_LDADD = \
-    $(CHECK_LIBS) \
-    $(TALLOC_LIBS)
+    $(SSSD_LIBS)\
+    $(CHECK_LIBS)
 
 check_and_open_tests_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
@@ -462,6 +464,7 @@ libsss_proxy_la_LDFLAGS = \
 libsss_krb5_la_SOURCES = \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_auth.c \
+    providers/krb5/krb5_common.c \
     providers/krb5/krb5_init.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \

@@ -34,7 +34,27 @@
 #include <krb5.h>
 #endif
 
+#include "providers/dp_backend.h"
+#include "util/util.h"
+
 #define SSSD_KRB5_KDC "SSSD_KRB5_KDC"
 #define SSSD_KRB5_REALM "SSSD_KRB5_REALM"
+#define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
 
+enum krb5_opts {
+    KRB5_KDC = 0,
+    KRB5_REALM,
+    KRB5_CCACHEDIR,
+    KRB5_CCNAME_TMPL,
+    KRB5_CHANGEPW_PRINC,
+    KRB5_AUTH_TIMEOUT,
+
+    KRB5_OPTS
+};
+
+errno_t check_and_export_options(struct dp_option *opts,
+                                 struct sss_domain_info *dom);
+
+errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
+                         const char *conf_path, struct dp_option **_opts);
 #endif /* __KRB5_COMMON_H__ */

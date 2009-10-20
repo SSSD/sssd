@@ -210,7 +210,10 @@ static errno_t activate_child_timeout_handler(struct krb5child_req *kr)
     struct timeval tv;
 
     tv = tevent_timeval_current();
-    tv = tevent_timeval_add(&tv, kr->krb5_ctx->auth_timeout, 0);
+    tv = tevent_timeval_add(&tv,
+                            dp_opt_get_int(kr->krb5_ctx->opts,
+                                           KRB5_AUTH_TIMEOUT),
+                            0);
     kr->timeout_handler = tevent_add_timer(kr->req->be_ctx->ev, kr, tv,
                                            krb5_child_timeout, kr);
     if (kr->timeout_handler == NULL) {
@@ -278,7 +281,10 @@ static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req,
     kr->krb5_ctx = krb5_ctx;
     kr->homedir = homedir;
 
-    kr->ccname = expand_ccname_template(kr, kr, krb5_ctx->ccname_template);
+    kr->ccname = expand_ccname_template(kr, kr,
+                                        dp_opt_get_cstring(krb5_ctx->opts,
+                                                           KRB5_CCNAME_TMPL)
+                                        );
     if (kr->ccname == NULL) {
         DEBUG(1, ("expand_ccname_template failed.\n"));
         err = EINVAL;
@@ -736,6 +742,7 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
     struct pam_data *pd;
     int pam_status=PAM_SYSTEM_ERR;
     const char *homedir = NULL;
+    const char *dummy;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
     krb5_ctx = get_krb5_ctx(be_req);
@@ -760,9 +767,9 @@ static void get_user_upn_done(void *pvt, int err, struct ldb_result *res)
         pd->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
         if (pd->upn == NULL) {
             /* NOTE: this is a hack, works only in some environments */
-            if (krb5_ctx->realm != NULL) {
-                pd->upn = talloc_asprintf(be_req, "%s@%s", pd->user,
-                                      krb5_ctx->realm);
+            dummy = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+            if (dummy != NULL) {
+                pd->upn = talloc_asprintf(be_req, "%s@%s", pd->user, dummy);
                 if (pd->upn == NULL) {
                     DEBUG(1, ("failed to build simple upn.\n"));
                 }
@@ -829,6 +836,7 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     char *password = NULL;
     char *env = NULL;
     int dp_err = DP_ERR_FATAL;
+    const char *dummy;
 
     pd->pam_status = PAM_SYSTEM_ERR;
     talloc_free(kr);
@@ -877,26 +885,34 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     }
 
     if (*msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_AUTHENTICATE) {
-        env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_REALM, krb5_ctx->realm);
-        if (env == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
-            goto done;
-        }
-        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
-        if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
-            goto done;
+        dummy = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+        if (dummy != NULL) {
+            env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_REALM, dummy);
+            if (env == NULL) {
+                DEBUG(1, ("talloc_asprintf failed.\n"));
+                goto done;
+            }
+            ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1,
+                                   (uint8_t *) env);
+            if (ret != EOK) {
+                DEBUG(1, ("pam_add_response failed.\n"));
+                goto done;
+            }
         }
 
-        env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_KDC, krb5_ctx->kdcip);
-        if (env == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
-            goto done;
-        }
-        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1, (uint8_t *) env);
-        if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
-            goto done;
+        dummy = dp_opt_get_cstring(krb5_ctx->opts, KRB5_KDC);
+        if (dummy != NULL) {
+            env = talloc_asprintf(pd, "%s=%s", SSSD_KRB5_KDC, dummy);
+            if (env == NULL) {
+                DEBUG(1, ("talloc_asprintf failed.\n"));
+                goto done;
+            }
+            ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1,
+                                   (uint8_t *) env);
+            if (ret != EOK) {
+                DEBUG(1, ("pam_add_response failed.\n"));
+                goto done;
+            }
         }
     }
 

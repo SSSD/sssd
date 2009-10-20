@@ -74,13 +74,7 @@ struct krb5_ctx {
     char* k4_cache_name;
 
     action_type action;
-
-    char *kdcip;
-    char *realm;
-    char *changepw_principle;
-    char *ccache_dir;
-    char *ccname_template;
-    int auth_timeout;
+    struct dp_option *opts;
     int child_debug_fd;
 };
 

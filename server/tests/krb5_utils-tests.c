@@ -38,11 +38,16 @@
 #define CCACHE_DIR "/var/tmp"
 #define PID "4321"
 
+extern struct dp_option default_krb5_opts[];
+
 TALLOC_CTX *tmp_ctx = NULL;
 struct krb5child_req *kr;
 
 void setup_talloc_context(void)
 {
+    int ret;
+    int i;
+
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
     fail_unless(tmp_ctx == NULL, "Talloc context already initialized.");
@@ -63,8 +68,17 @@ void setup_talloc_context(void)
     pd->upn = PRINCIPLE_NAME;
     pd->cli_pid = atoi(PID);
 
-    krb5_ctx->realm = REALM;
-    krb5_ctx->ccache_dir = CCACHE_DIR;
+    krb5_ctx->opts = talloc_zero_array(tmp_ctx, struct dp_option, KRB5_OPTS);
+    fail_unless(krb5_ctx->opts != NULL, "Cannot created options.");
+    for (i = 0; i < KRB5_OPTS; i++) {
+        krb5_ctx->opts[i].opt_name = default_krb5_opts[i].opt_name;
+        krb5_ctx->opts[i].type = default_krb5_opts[i].type;
+        krb5_ctx->opts[i].def_val = default_krb5_opts[i].def_val;
+    }
+    ret = dp_opt_set_string(krb5_ctx->opts, KRB5_REALM, REALM);
+    fail_unless(ret == EOK, "Failed to set Realm");
+    ret = dp_opt_set_string(krb5_ctx->opts, KRB5_CCACHEDIR, CCACHE_DIR);
+    fail_unless(ret == EOK, "Failed to set Ccache dir");
 
     kr->homedir = HOME_DIRECTORY;
 
