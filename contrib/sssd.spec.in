@@ -108,16 +108,17 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
     $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
 
-touch locator.filelist
 if test -e $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 then
-    echo %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so > locator.filelist
+    # Apppend this file to the sss_daemon.lang
+    # Older versions of rpmbuild can only handle one -f option
+    echo %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so >> sss_daemon.lang
 fi
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files -f locator.filelist -f sss_daemon.lang
+%files -f sss_daemon.lang
 %defattr(-,root,root,-)
 %doc COPYING
 %{_initrddir}/%{name}
