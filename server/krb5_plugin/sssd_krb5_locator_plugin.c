@@ -35,7 +35,7 @@
 
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define DEBUG_KEY "[sssd_krb5_locator] "
-#define DEBUG(body) do { \
+#define PLUGIN_DEBUG(body) do { \
     if (ctx->debug) { \
         debug_fn body; \
     } \
@@ -82,7 +82,7 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         ctx->debug = false;
     } else {
         ctx->debug = true;
-        DEBUG(("sssd_krb5_locator_init called\n"));
+        PLUGIN_DEBUG(("sssd_krb5_locator_init called\n"));
     }
 
     dummy = getenv(SSSD_KRB5_REALM);
@@ -95,9 +95,11 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
 
     ret = getaddrinfo(dummy, "kerberos", NULL, &ctx->sssd_kdc_addrinfo);
     if (ret != 0) {
-        DEBUG(("getaddrinfo failed [%d][%s].\n", ret, gai_strerror(ret)));
+        PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
+                                                        gai_strerror(ret)));
         if (ret == EAI_SYSTEM) {
-            DEBUG(("getaddrinfo failed [%d][%s].\n", errno, strerror(errno)));
+            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
+                                                            strerror(errno)));
         }
         goto failed;
     }
@@ -122,7 +124,7 @@ void sssd_krb5_locator_close(void *private_data)
     if (private_data == NULL) return;
 
     ctx = (struct sssd_ctx *) private_data;
-    DEBUG(("sssd_krb5_locator_close called\n"));
+    PLUGIN_DEBUG(("sssd_krb5_locator_close called\n"));
 
     freeaddrinfo(ctx->sssd_kdc_addrinfo);
     free(ctx->sssd_realm);
@@ -148,9 +150,9 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
 
-    DEBUG(("sssd_realm[%s] requested realm[%s] family[%d] socktype[%d] "
-          "locate_service[%d]\n", ctx->sssd_realm, realm, family, socktype,
-          svc));
+    PLUGIN_DEBUG(("sssd_realm[%s] requested realm[%s] family[%d] socktype[%d] "
+                  "locate_service[%d]\n", ctx->sssd_realm, realm, family,
+                                          socktype, svc));
 
     switch (svc) {
         case locate_service_kdc:
@@ -188,25 +190,27 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         ret = getnameinfo(ai->ai_addr, ai->ai_addrlen, hostip, NI_MAXHOST,
                           NULL, 0, NI_NUMERICHOST);
         if (ret != 0) {
-            DEBUG(("getnameinfo failed [%d][%s].\n", ret, gai_strerror(ret)));
+            PLUGIN_DEBUG(("getnameinfo failed [%d][%s].\n", ret,
+                          gai_strerror(ret)));
             if (ret == EAI_SYSTEM) {
-                DEBUG(("getnameinfo failed [%d][%s].\n", errno, strerror(errno)));
+                PLUGIN_DEBUG(("getnameinfo failed [%d][%s].\n", errno,
+                              strerror(errno)));
             }
         }
-        DEBUG(("addr[%s] family[%d] socktype[%d] - ", hostip, ai->ai_family,
-                                                      ai->ai_socktype));
+        PLUGIN_DEBUG(("addr[%s] family[%d] socktype[%d] - ", hostip,
+                      ai->ai_family, ai->ai_socktype));
 
         if ((family == AF_UNSPEC || ai->ai_family == family) &&
             ai->ai_socktype == socktype) {
 
             ret = cbfunc(cbdata, socktype, ai->ai_addr);
             if (ret != 0) {
-                DEBUG(("\ncbfunc failed\n"));
+                PLUGIN_DEBUG(("\ncbfunc failed\n"));
             } else {
-                DEBUG(("used\n"));
+                PLUGIN_DEBUG(("used\n"));
             }
         } else {
-            DEBUG((" NOT used\n"));
+            PLUGIN_DEBUG((" NOT used\n"));
         }
     }
 
