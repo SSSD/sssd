@@ -104,6 +104,15 @@ struct sdap_id_map ipa_group_map[] = {
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
+struct dp_option ipa_def_krb5_opts[] = {
+    { "krb5_kdcip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_ccachedir", DP_OPT_STRING, { "/tmp" }, NULL_STRING },
+    { "krb5_ccname_tmpl", DP_OPT_STRING, { "FILE:%d/krb5cc_%U_XXXXXX" }, NULL_STRING},
+    { "krb5_changepw_princ", DP_OPT_STRING, { "kadmin/changepw" }, NULL_STRING },
+    { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
+};
+
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
 {
     const char *s;
@@ -317,3 +326,73 @@ done:
     return ret;
 }
 
+/* the following preprocessor code is used to keep track of
+ * the options in the krb5 module, so that if they change and ipa
+ * is not updated correspondingly this will trigger a build error */
+#if KRB5_OPTS > 6
+#error There are krb5 options not accounted for
+#endif
+
+int ipa_get_auth_options(TALLOC_CTX *memctx,
+                         struct confdb_ctx *cdb,
+                         const char *conf_path,
+                         struct ipa_options *ipa_opts,
+                         struct dp_option **_opts)
+{
+    int ret;
+    int i;
+    TALLOC_CTX *tmpctx;
+    struct dp_option *opts;
+    char *value;
+
+    tmpctx = talloc_new(memctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    opts = talloc_zero(memctx, struct dp_option);
+    if (opts == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = dp_copy_options(ipa_opts, ipa_def_krb5_opts,
+                          KRB5_OPTS, &opts);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    value = dp_opt_get_string(ipa_opts->basic, IPA_SERVER);
+    if (!value) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = dp_opt_set_string(opts, KRB5_KDC, value);
+    if (ret != EOK) {
+        goto done;
+    }
+
+
+    value = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
+    if (!value) {
+        ret = ENOMEM;
+        goto done;
+    }
+    for (i = 0; value[i]; i++) {
+        value[i] = toupper(value[i]);
+    }
+    ret = dp_opt_set_string(opts, KRB5_REALM, value);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *_opts = opts;
+    ret = EOK;
+
+done:
+    talloc_zfree(tmpctx);
+    if (ret != EOK) {
+        talloc_zfree(opts);
+    }
+    return ret;
+}

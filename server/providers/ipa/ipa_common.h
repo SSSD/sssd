@@ -25,6 +25,7 @@
 #include "util/util.h"
 #include "confdb/confdb.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/krb5/krb5_common.h"
 
 enum ipa_basic_opt {
     IPA_DOMAIN = 0,
@@ -57,5 +58,11 @@ int ipa_get_id_options(TALLOC_CTX *memctx,
                        const char *conf_path,
                        struct ipa_options *ipa_opts,
                        struct sdap_options **_opts);
+
+int ipa_get_auth_options(TALLOC_CTX *memctx,
+                         struct confdb_ctx *cdb,
+                         const char *conf_path,
+                         struct ipa_options *ipa_opts,
+                         struct dp_option **_opts);
 
 #endif /* _IPA_COMMON_H_ */

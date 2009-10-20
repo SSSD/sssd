@@ -485,6 +485,7 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
     providers/krb5/krb5_utils.c \
+    providers/krb5/krb5_common.c \
     providers/krb5/krb5_auth.c
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
