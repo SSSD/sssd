@@ -113,6 +113,7 @@ pyexec_LTLIBRARIES = \
 endif
 
 dist_noinst_SCRIPTS = \
+    $(EXTRA_SCRIPTS) \
     config/setup.py \
     config/ipachangeconf.py \
     config/SSSDConfig.py
@@ -750,8 +751,15 @@ SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 # Installation Extras #
 #######################
 
-dist_init_SCRIPTS = \
-    sysv/sssd
+dist_init_SCRIPTS =
+if HAVE_SUSE
+    dist_init_SCRIPTS += \
+        sysv/SUSE/sssd
+else
+    dist_init_SCRIPTS += \
+        sysv/sssd
+endif
+
 
 dist_sssdconf_DATA = \
     config/etc/sssd.api.conf
