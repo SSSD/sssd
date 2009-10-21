@@ -270,7 +270,8 @@ dist_noinst_HEADERS = \
     tools/sss_sync_ops.h \
     resolv/async_resolv.h \
     resolv/ares/ares_parse_srv_reply.h \
-    resolv/ares/ares_parse_txt_reply.h
+    resolv/ares/ares_parse_txt_reply.h \
+    tests/common.h
 
 
 ####################
