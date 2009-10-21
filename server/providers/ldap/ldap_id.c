@@ -219,7 +219,6 @@ static void users_get_done(struct tevent_req *req)
     const char *error = NULL;
     int ret = EOK;
 
-
     if (tevent_req_is_error(req, &tstate, &err)) {
         ret = err;
     }
@@ -230,6 +229,8 @@ static void users_get_done(struct tevent_req *req)
 
         if (ret == ETIMEDOUT) {
             dp_err = DP_ERR_TIMEOUT;
+        }
+        if (ret == ETIMEDOUT || ret == EFAULT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             be_mark_offline(ctx->be);
@@ -395,6 +396,8 @@ static void groups_get_done(struct tevent_req *req)
 
         if (ret == ETIMEDOUT) {
             dp_err = DP_ERR_TIMEOUT;
+        }
+        if (ret == ETIMEDOUT || ret == EFAULT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             be_mark_offline(ctx->be);
@@ -535,6 +538,8 @@ static void groups_by_user_done(struct tevent_req *req)
 
         if (ret == ETIMEDOUT) {
             dp_err = DP_ERR_TIMEOUT;
+        }
+        if (ret == ETIMEDOUT || ret == EFAULT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             be_mark_offline(ctx->be);
@@ -804,9 +809,7 @@ fail:
         DEBUG(9, ("User enumeration failed with: (%d)[%s]\n",
                   (int)err, strerror(err)));
 
-        if (err == ETIMEDOUT) {
-            be_mark_offline(state->ctx->be);
-        }
+        be_mark_offline(state->ctx->be);
     }
 
     DEBUG(1, ("Failed to enumerate users, retrying later!\n"));
@@ -831,10 +834,8 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
     return;
 
 fail:
-    if (err == ETIMEDOUT) {
-        be_mark_offline(state->ctx->be);
-    }
-
+    /* always go offline on failures */
+    be_mark_offline(state->ctx->be);
     DEBUG(1, ("Failed to enumerate groups, retrying later!\n"));
     tevent_req_done(req);
 }
@@ -1137,8 +1138,9 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
 
     /* set up enumeration task */
     if (ctx->be->domain->enumerate) {
-        /* run the first immediately */
-        ctx->last_run = tevent_timeval_current();
+        /* run the first one in a couple of seconds so that we have time to
+         * finish initializations first*/
+        ctx->last_run = tevent_timeval_current_ofs(2, 0);
         enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
                                      ldap_id_enumerate, ctx);
         if (!enum_task) {
