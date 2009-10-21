@@ -43,7 +43,6 @@ struct krb5child_req *kr;
 
 void setup_talloc_context(void)
 {
-    int ret;
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
     fail_unless(tmp_ctx == NULL, "Talloc context already initialized.");

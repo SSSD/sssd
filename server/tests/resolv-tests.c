@@ -25,21 +25,31 @@
 
 #include <stdlib.h>
 #include <check.h>
+#include <string.h>
 #include <talloc.h>
 #include <tevent.h>
 #include <popt.h>
 #include <arpa/inet.h>
 
+#include "tests/common.h"
 #include "util/util.h"
 
 /* Interface under test */
 #include "resolv/async_resolv.h"
 
-int use_net_test;
+static int use_net_test;
+static char *txt_host;
+static char *srv_host;
 
 struct resolv_test_ctx {
     struct tevent_context *ev;
     struct resolv_ctx *resolv;
+
+    enum {
+        TESTING_HOSTNAME,
+        TESTING_TXT,
+        TESTING_SRV,
+    } tested_function;
 
     int error;
     bool done;
@@ -53,18 +63,17 @@ static int setup_resolv_test(struct resolv_test_ctx **ctx)
     test_ctx = talloc_zero(NULL, struct resolv_test_ctx);
     if (test_ctx == NULL) {
         fail("Could not allocate memory for test context");
-        talloc_free(test_ctx);
         return ENOMEM;
     }
 
-    test_ctx->ev = tevent_context_init(NULL);
+    test_ctx->ev = tevent_context_init(test_ctx);
     if (test_ctx->ev == NULL) {
         fail("Could not init tevent context");
         talloc_free(test_ctx);
         return EFAULT;
     }
 
-    ret = resolv_init(NULL, test_ctx->ev, &test_ctx->resolv);
+    ret = resolv_init(test_ctx, test_ctx->ev, &test_ctx->resolv);
     if (ret != EOK) {
         fail("Could not init resolv context");
         talloc_free(test_ctx);
@@ -83,35 +92,75 @@ static int test_loop(struct resolv_test_ctx *data)
     return data->error;
 }
 
+START_TEST(test_copy_hostent)
+{
+    void *ctx;
+    struct hostent *new_he;
+
+    char name[] = "foo.example.com";
+    char alias_1[] = "bar.example.com";
+    char alias_2[] = "baz.example.com";
+    char *aliases[] = { alias_1, alias_2, NULL };
+    char addr_1[] = { 1, 2, 3, 4 };
+    char addr_2[] = { 4, 3, 2, 1 };
+    char *addr_list[] = { addr_1, addr_2, NULL };
+    struct hostent he = {
+            name, aliases, 123 /* Whatever. */,
+            sizeof(addr_1), addr_list
+    };
+
+    ctx = talloc_new(NULL);
+    fail_if(ctx == NULL);
+
+    check_leaks_push(ctx);
+    new_he = resolv_copy_hostent(ctx, &he);
+    fail_if(new_he == NULL);
+    fail_if(strcmp(new_he->h_name, name));
+    fail_if(strcmp(new_he->h_aliases[0], alias_1));
+    fail_if(strcmp(new_he->h_aliases[1], alias_2));
+    fail_if(new_he->h_aliases[2] != NULL);
+    fail_if(new_he->h_addrtype != 123);
+    fail_if(new_he->h_length != sizeof(addr_1));
+    fail_if(memcmp(new_he->h_addr_list[0], addr_1, sizeof(addr_1)));
+    fail_if(memcmp(new_he->h_addr_list[1], addr_2, sizeof(addr_1)));
+    fail_if(new_he->h_addr_list[2] != NULL);
+
+    talloc_free(new_he);
+    check_leaks_pop(ctx);
+}
+END_TEST
+
 static void test_localhost(struct tevent_req *req)
 {
-     int recv_status;
-     int status;
-     const struct hostent *hostent;
-     int i;
-     struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
-                                                                 struct resolv_test_ctx);
+    int recv_status;
+    int status;
+    struct hostent *hostent;
+    int i;
+    struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
+                                                                struct resolv_test_ctx);
 
-     test_ctx->done = true;
+    test_ctx->done = true;
 
-     recv_status = resolv_gethostbyname_recv(req, &status, NULL, &hostent);
-     if (recv_status != EOK) {
-         DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
-         test_ctx->error = recv_status;
-         return;
-     }
-     DEBUG(7, ("resolv_gethostbyname_recv status: %d\n", status));
+    recv_status = resolv_gethostbyname_recv(test_ctx, req, &status, NULL, &hostent);
+    talloc_zfree(req);
+    if (recv_status != EOK) {
+        DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
+        test_ctx->error = recv_status;
+        return;
+    }
+    DEBUG(7, ("resolv_gethostbyname_recv status: %d\n", status));
 
-     test_ctx->error = ENOENT;
-     for (i = 0; hostent->h_addr_list[i]; i++) {
-         char addr_buf[256];
-         inet_ntop(hostent->h_addrtype, hostent->h_addr_list[i], addr_buf, sizeof(addr_buf));
+    test_ctx->error = ENOENT;
+    for (i = 0; hostent->h_addr_list[i]; i++) {
+        char addr_buf[256];
+        inet_ntop(hostent->h_addrtype, hostent->h_addr_list[i], addr_buf, sizeof(addr_buf));
 
-         /* test that localhost resolves to 127.0.0.1 or ::1 */
-         if (strcmp(addr_buf, "127.0.0.1") == 0 || strcmp(addr_buf, "::1") == 0) {
-             test_ctx->error = EOK;
-         }
-     }
+        /* test that localhost resolves to 127.0.0.1 or ::1 */
+        if (strcmp(addr_buf, "127.0.0.1") == 0 || strcmp(addr_buf, "::1") == 0) {
+            test_ctx->error = EOK;
+        }
+    }
+    talloc_free(hostent);
 }
 
 START_TEST(test_resolv_localhost)
@@ -127,7 +176,8 @@ START_TEST(test_resolv_localhost)
         return;
     }
 
-    req = resolv_gethostbyname_send(test_ctx->ev, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
+    check_leaks_push(test_ctx);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -138,6 +188,7 @@ START_TEST(test_resolv_localhost)
         ret = test_loop(test_ctx);
     }
 
+    check_leaks_pop(test_ctx);
     fail_unless(ret == EOK);
 
     talloc_zfree(test_ctx);
@@ -148,13 +199,14 @@ static void test_negative(struct tevent_req *req)
 {
      int recv_status;
      int status;
-     const struct hostent *hostent;
+     struct hostent *hostent;
      struct resolv_test_ctx *test_ctx;
 
      test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
      test_ctx->done = true;
 
-     recv_status = resolv_gethostbyname_recv(req, &status, NULL, &hostent);
+     recv_status = resolv_gethostbyname_recv(test_ctx, req, &status, NULL, &hostent);
+     talloc_zfree(req);
      if (recv_status == EOK) {
          DEBUG(7, ("resolv_gethostbyname_recv succeeded in a negative test"));
          return;
@@ -177,7 +229,8 @@ START_TEST(test_resolv_negative)
         return;
     }
 
-    req = resolv_gethostbyname_send(test_ctx->ev, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
+    check_leaks_push(test_ctx);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -188,6 +241,8 @@ START_TEST(test_resolv_negative)
         ret = test_loop(test_ctx);
     }
 
+    check_leaks_pop(test_ctx);
+
     fail_unless(ret != EOK);
     fail_unless(test_ctx->error == ARES_ENOTFOUND);
     talloc_zfree(test_ctx);
@@ -196,23 +251,60 @@ END_TEST
 
 static void test_internet(struct tevent_req *req)
 {
-     int recv_status;
-     int status;
-     const struct hostent *hostent;
-     struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
-                                                                 struct resolv_test_ctx);
+    int i;
+    int recv_status;
+    int status;
+    struct resolv_test_ctx *test_ctx;
+    void *tmp_ctx;
+    struct hostent *hostent = NULL;
+    struct txt_reply *txt_replies = NULL;
+    struct srv_reply *srv_replies = NULL;
+    int count;
 
-     test_ctx->done = true;
+    test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
 
-     recv_status = resolv_gethostbyname_recv(req, &status, NULL, &hostent);
-     if (recv_status != EOK) {
-         DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
-         test_ctx->error = recv_status;
-         return;
-     }
-     DEBUG(7, ("resolv_gethostbyname_recv status: %d\n", status));
+    test_ctx->done = true;
 
-     test_ctx->error = (hostent->h_length == 0) ? ENOENT : EOK;
+    tmp_ctx = talloc_new(test_ctx);
+    check_leaks_push(tmp_ctx);
+
+    switch (test_ctx->tested_function) {
+    case TESTING_HOSTNAME:
+        recv_status = resolv_gethostbyname_recv(tmp_ctx, req, &status, NULL,
+                                                &hostent);
+        test_ctx->error = (hostent->h_length == 0) ? ENOENT : EOK;
+        break;
+    case TESTING_TXT:
+        recv_status = resolv_gettxt_recv(tmp_ctx, req, &status, NULL,
+                                         &txt_replies, &count);
+        test_ctx->error = (count == 0) ? ENOENT : EOK;
+        for (i = 0; i < count; i++) {
+            DEBUG(2, ("TXT Record: %s\n", txt_replies[i].txt));
+        }
+        break;
+    case TESTING_SRV:
+        recv_status = resolv_getsrv_recv(tmp_ctx, req, &status, NULL,
+                                         &srv_replies, &count);
+        test_ctx->error = (count == 0) ? ENOENT : EOK;
+        for (i = 0; i < count; i++) {
+            DEBUG(2, ("SRV Record: %d %d %d %s\n", srv_replies[i].weight,
+                      srv_replies[i].priority, srv_replies[i].port,
+                      srv_replies[i].host));
+        }
+        break;
+    }
+    talloc_zfree(req);
+    fail_if(recv_status != EOK, "The recv function failed: %d", recv_status);
+    DEBUG(7, ("recv status: %d\n", status));
+
+    if (hostent != NULL) {
+        talloc_free(hostent);
+    } else if (txt_replies != NULL) {
+        talloc_free(txt_replies);
+    } else if (srv_replies != NULL) {
+        talloc_free(srv_replies);
+    }
+    check_leaks_pop(tmp_ctx);
 }
 
 START_TEST(test_resolv_internet)
@@ -227,8 +319,10 @@ START_TEST(test_resolv_internet)
         fail("Could not set up test");
         return;
     }
+    test_ctx->tested_function = TESTING_HOSTNAME;
 
-    req = resolv_gethostbyname_send(test_ctx->ev, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
+    check_leaks_push(test_ctx);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -240,6 +334,57 @@ START_TEST(test_resolv_internet)
     }
 
     fail_unless(ret == EOK);
+    check_leaks_pop(test_ctx);
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
+START_TEST(test_resolv_internet_txt)
+{
+    int ret;
+    struct tevent_req *req;
+    struct resolv_test_ctx *test_ctx;
+
+    ret = setup_resolv_test(&test_ctx);
+    fail_if(ret != EOK, "Could not set up test");
+    test_ctx->tested_function = TESTING_TXT;
+
+    check_leaks_push(test_ctx);
+
+    req = resolv_gettxt_send(test_ctx, test_ctx->ev, test_ctx->resolv, txt_host);
+    fail_if(req == NULL, "Function resolv_gettxt_send failed");
+
+    tevent_req_set_callback(req, test_internet, test_ctx);
+    ret = test_loop(test_ctx);
+    fail_unless(ret == EOK);
+
+    check_leaks_pop(test_ctx);
+
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
+START_TEST(test_resolv_internet_srv)
+{
+    int ret;
+    struct tevent_req *req;
+    struct resolv_test_ctx *test_ctx;
+
+    ret = setup_resolv_test(&test_ctx);
+    fail_if(ret != EOK, "Could not set up test");
+    test_ctx->tested_function = TESTING_SRV;
+
+    check_leaks_push(test_ctx);
+
+    req = resolv_getsrv_send(test_ctx, test_ctx->ev, test_ctx->resolv, srv_host);
+    fail_if(req == NULL, "Function resolv_getsrv_send failed");
+
+    tevent_req_set_callback(req, test_internet, test_ctx);
+    ret = test_loop(test_ctx);
+    fail_unless(ret == EOK);
+
+    check_leaks_pop(test_ctx);
+
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -284,7 +429,7 @@ START_TEST(test_resolv_free_context)
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
-        return;
+        goto done;
     }
 
     gettimeofday(&free_tv, NULL);
@@ -296,18 +441,19 @@ START_TEST(test_resolv_free_context)
     free_timer = tevent_add_timer(test_ctx->ev, test_ctx, free_tv, resolv_free_context, test_ctx->resolv);
     if (free_timer == NULL) {
         fail("Error calling tevent_add_timer");
-        return;
+        goto done;
     }
 
     terminate_timer = tevent_add_timer(test_ctx->ev, test_ctx, terminate_tv, resolv_free_done, test_ctx);
     if (terminate_timer == NULL) {
         fail("Error calling tevent_add_timer");
-        return;
+        goto done;
     }
 
     ret = test_loop(test_ctx);
     fail_unless(ret == EOK);
 
+done:
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -337,11 +483,12 @@ START_TEST(test_resolv_free_req)
         return;
     }
 
+    check_leaks_push(test_ctx);
     req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname, AF_INET);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
-        return;
+        goto done;
     }
 
     gettimeofday(&free_tv, NULL);
@@ -353,18 +500,20 @@ START_TEST(test_resolv_free_req)
     free_timer = tevent_add_timer(test_ctx->ev, test_ctx, free_tv, resolv_free_req, req);
     if (free_timer == NULL) {
         fail("Error calling tevent_add_timer");
-        return;
+        goto done;
     }
 
     terminate_timer = tevent_add_timer(test_ctx->ev, test_ctx, terminate_tv, resolv_free_done, test_ctx);
     if (terminate_timer == NULL) {
         fail("Error calling tevent_add_timer");
-        return;
+        goto done;
     }
 
     ret = test_loop(test_ctx);
+    check_leaks_pop(test_ctx);
     fail_unless(ret == EOK);
 
+done:
     talloc_zfree(test_ctx);
 }
 END_TEST
@@ -375,11 +524,19 @@ Suite *create_resolv_suite(void)
 
     TCase *tc_resolv = tcase_create("RESOLV Tests");
 
+    tcase_add_checked_fixture(tc_resolv, leak_check_setup, leak_check_teardown);
     /* Do some testing */
+    tcase_add_test(tc_resolv, test_copy_hostent);
     tcase_add_test(tc_resolv, test_resolv_localhost);
     tcase_add_test(tc_resolv, test_resolv_negative);
     if (use_net_test) {
         tcase_add_test(tc_resolv, test_resolv_internet);
+        if (txt_host != NULL) {
+            tcase_add_test(tc_resolv, test_resolv_internet_txt);
+        }
+        if (srv_host != NULL) {
+            tcase_add_test(tc_resolv, test_resolv_internet_srv);
+        }
     }
     tcase_add_test(tc_resolv, test_resolv_free_context);
     tcase_add_test(tc_resolv, test_resolv_free_req);
@@ -397,12 +554,14 @@ int main(int argc, const char *argv[])
     int failure_count;
     Suite *resolv_suite;
     SRunner *sr;
-    int debug;
+    int debug = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug-level", 'd', POPT_ARG_INT, &debug, 0, "Set debug level", NULL },
         { "use-net-test", 'n', POPT_ARG_NONE, 0, 'n', "Run tests that need an active internet connection", NULL },
+        { "txt-host", 't', POPT_ARG_STRING, 0, 't', "Specify the host used for TXT record testing", NULL },
+        { "srv-host", 's', POPT_ARG_STRING, 0, 's', "Specify the host used for SRV record testing", NULL },
         POPT_TABLEEND
     };
 
@@ -412,7 +571,12 @@ int main(int argc, const char *argv[])
         case 'n':
             use_net_test = 1;
             break;
-
+        case 't':
+            txt_host = poptGetOptArg(pc);
+            break;
+        case 's':
+            srv_host = poptGetOptArg(pc);
+            break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
                     poptBadOption(pc, 0), poptStrerror(opt));

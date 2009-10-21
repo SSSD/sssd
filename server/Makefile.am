@@ -417,6 +417,7 @@ stress_tests_LDADD = \
 if HAVE_CHECK
 resolv_tests_SOURCES = \
     tests/resolv-tests.c \
+    tests/common.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESOLV_OBJ)
 resolv_tests_CFLAGS = \
