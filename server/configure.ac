@@ -55,6 +55,7 @@ WITH_KRB5_PLUGIN_PATH
 WITH_PYTHON_BINDINGS
 WITH_SELINUX
 
+m4_include([external/platform.m4])
 m4_include([external/pkg.m4])
 m4_include([external/libpopt.m4])
 m4_include([external/libtalloc.m4])
