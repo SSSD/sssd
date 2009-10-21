@@ -204,10 +204,13 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
             'config_file_version',
             'services',
             'domains',
+            'timeout',
             'sbus_timeout',
             're_expression',
             'full_name_format',
             'debug_level',
+            'debug_timestamps',
+            'debug_to_files',
             'command',
             'reconnection_retries']
 
@@ -313,9 +316,6 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         control_list = [
             'config_file_version',
             'services',
-            'sbus_timeout',
-            're_expression',
-            'full_name_format',
             'debug_level',
             'reconnection_retries']
 
@@ -413,9 +413,11 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'min_id',
             'max_id',
             'timeout',
+            'command',
             'magic_private_groups',
             'enumerate',
             'cache_credentials',
+            'store_legacy_passwords',
             'use_fully_qualified_names',
             'id_provider',
             'auth_provider',
@@ -526,13 +528,23 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         control_provider_dict = {
+            'local': ('id', 'auth', 'access', 'chpass'),
+            'ldap': ('id', 'auth', 'chpass'),
             'krb5': ('auth', 'access', 'chpass'),
-            'local': ('auth', 'chpass', 'access', 'id'),
-            'ldap': ('id', 'auth')}
+            'proxy': ('id', 'auth')}
 
         providers = domain.list_providers()
 
-        self.assertEqual(providers, control_provider_dict)
+        # Ensure that all of the expected defaults are there
+        for provider in control_provider_dict.keys():
+            for ptype in control_provider_dict[provider]:
+                self.assertTrue(providers.has_key(provider))
+                self.assertTrue(ptype in providers[provider])
+
+        for provider in providers.keys():
+            for ptype in providers[provider]:
+                self.assertTrue(control_provider_dict.has_key(provider))
+                self.assertTrue(ptype in control_provider_dict[provider])
 
     def testListProviderOptions(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
@@ -620,9 +632,11 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'min_id',
             'max_id',
             'timeout',
+            'command',
             'magic_private_groups',
             'enumerate',
             'cache_credentials',
+            'store_legacy_passwords',
             'use_fully_qualified_names',
             'id_provider',
             'auth_provider',
@@ -943,9 +957,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         control_list = [
             'config_file_version',
             'services',
-            'sbus_timeout',
-            're_expression',
-            'full_name_format',
             'debug_level',
             'reconnection_retries']
         for option in control_list:
