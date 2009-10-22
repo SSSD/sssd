@@ -111,17 +111,30 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
     /* pam_shutdown(rctx); */
 }
 
+static errno_t pam_get_config(struct pam_ctx *pctx,
+                              struct resp_ctx *rctx,
+                              struct confdb_ctx *cdb)
+{
+    int ret = EOK;
+    return ret;
+}
+
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb)
 {
     struct sss_cmd_table *pam_cmds;
     struct be_conn *iter;
-    struct resp_ctx *rctx;
+    struct pam_ctx *pctx;
     int ret, max_retries;
 
+    pctx = talloc_zero(mem_ctx, struct pam_ctx);
+    if (!pctx) {
+        return ENOMEM;
+    }
+
     pam_cmds = get_pam_cmds();
-    ret = sss_process_init(mem_ctx, ev, cdb,
+    ret = sss_process_init(pctx, ev, cdb,
                            pam_cmds,
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
@@ -130,23 +143,26 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            PAM_SBUS_SERVICE_VERSION,
                            &monitor_pam_interface,
                            "PAM", &pam_dp_interface,
-                           &rctx);
+                           &pctx->rctx);
     if (ret != EOK) {
         return ret;
     }
+
+    pctx->rctx->pvt_ctx = pctx;
+    ret = pam_get_config(pctx, pctx->rctx, pctx->rctx->cdb);
 
     /* Enable automatic reconnection to the Data Provider */
 
     /* FIXME: "retries" is too generic, either get it from a global config
      * or specify these retries are about the sbus connections to DP */
-    ret = confdb_get_int(rctx->cdb, rctx, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(pctx->rctx->cdb, pctx->rctx, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
         return ret;
     }
 
-    for (iter = rctx->be_conns; iter; iter = iter->next) {
+    for (iter = pctx->rctx->be_conns; iter; iter = iter->next) {
         sbus_reconnect_init(iter->conn, max_retries,
                             pam_dp_reconnect_init, iter);
     }

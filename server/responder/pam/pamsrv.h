@@ -31,6 +31,10 @@ struct pam_auth_req;
 
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
 
+struct pam_ctx {
+    struct resp_ctx *rctx;
+};
+
 struct pam_auth_req {
     struct cli_ctx *cctx;
     struct sss_domain_info *domain;
