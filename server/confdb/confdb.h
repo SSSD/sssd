@@ -64,6 +64,7 @@
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"
+#define CONFDB_PAM_CRED_TIMEOUT "offline_credentials_expiration"
 
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"

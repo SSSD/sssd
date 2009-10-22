@@ -61,17 +61,21 @@ static void pam_cache_auth_callback(void *pvt, int ldb_status,
                                     struct ldb_result *res)
 {
     struct pam_auth_req *preq;
+    struct pam_ctx *pctx;
     struct pam_data *pd;
     const char *userhash;
     char *comphash;
     char *password = NULL;
     int i, ret;
+    uint64_t lastLogin = 0;
 
     preq = talloc_get_type(pvt, struct pam_auth_req);
     pd = preq->pd;
 
+    pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
     if (ldb_status != LDB_SUCCESS) {
-        DEBUG(4, ("User info retireval failed! (%d [%s])\n",
+        DEBUG(4, ("User info retrieval failed! (%d [%s])\n",
                   ldb_status, sysdb_error_to_errno(ldb_status)));
 
         ret = PAM_SYSTEM_ERR;
@@ -86,9 +90,20 @@ static void pam_cache_auth_callback(void *pvt, int ldb_status,
     }
 
     if (res->count != 1) {
-        DEBUG(4, ("Too manyt results for user [%s@%s].\n",
+        DEBUG(4, ("Too many results for user [%s@%s].\n",
                   pd->user, preq->domain->name));
         ret = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    /* Check offline_auth_cache_timeout */
+    lastLogin = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                            SYSDB_LAST_ONLINE_AUTH,
+                                            0);
+    if (pctx->cred_expiration &&
+        lastLogin + (pctx->cred_expiration * 86400) < time(NULL)) {
+        DEBUG(4, ("Cached user entry is too old."));
+        ret = PAM_AUTHINFO_UNAVAIL;
         goto done;
     }
 
@@ -139,6 +154,7 @@ int pam_cache_auth(struct pam_auth_req *preq)
                                   SYSDB_CACHEDPWD,
                                   SYSDB_DISABLED,
                                   SYSDB_LAST_LOGIN,
+                                  SYSDB_LAST_ONLINE_AUTH,
                                   "lastCachedPasswordChange",
                                   "accountExpires",
                                   "failedLoginAttempts",

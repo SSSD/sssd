@@ -32,6 +32,7 @@ struct pam_auth_req;
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
 
 struct pam_ctx {
+    int cred_expiration;
     struct resp_ctx *rctx;
 };
 

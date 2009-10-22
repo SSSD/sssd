@@ -30,6 +30,20 @@
 #include "responder/pam/pamsrv.h"
 #include "db/sysdb.h"
 
+struct last_login_request {
+    struct tevent_context *ev;
+    struct sysdb_ctx *dbctx;
+    struct sysdb_attrs *mod_attrs;
+    struct sysdb_handle *handle;
+
+    struct ldb_result *res;
+    int error;
+
+    struct pam_auth_req *preq;
+};
+
+static void pam_reply(struct pam_auth_req *preq);
+
 static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_t *body, size_t blen, size_t *c) {
     size_t data_size;
 
@@ -266,7 +280,146 @@ static int pam_parse_in_data(struct sss_names_ctx *snctx,
     return EOK;
 }
 
-static void pam_reply(struct pam_auth_req *preq);
+static void prepare_reply(struct last_login_request *llreq)
+{
+    struct pam_data *pd;
+
+    pd = llreq->preq->pd;
+
+    if (llreq->error != EOK && pd->pam_status == PAM_SUCCESS)
+        pd->pam_status = PAM_SYSTEM_ERR;
+
+    llreq->preq->callback(llreq->preq);
+}
+
+static void set_user_last_login_done(struct tevent_req *req)
+{
+    struct last_login_request *llreq =
+        tevent_req_callback_data(req,
+                                 struct last_login_request);
+    int ret;
+
+    ret = sysdb_transaction_commit_recv(req);
+    if(ret != EOK) {
+        DEBUG(2, ("set_last_login failed.\n"));
+        llreq->error = ret;
+    }
+
+    llreq->preq->pd->last_auth_saved = true;
+
+    prepare_reply(llreq);
+}
+
+static void set_user_last_login_req_done(struct tevent_req *subreq);
+static void set_user_last_login_req(struct tevent_req *req)
+{
+    struct last_login_request *llreq =
+        tevent_req_callback_data(req,
+                                 struct last_login_request);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, llreq, &llreq->handle);
+    if (ret != EOK) {
+        llreq->error = ret;
+        return prepare_reply(llreq);
+    }
+
+    subreq = sysdb_set_user_attr_send(llreq, llreq->ev, llreq->handle,
+                                      llreq->preq->domain,
+                                      llreq->preq->pd->user,
+                                      llreq->mod_attrs, SYSDB_MOD_REP);
+    if (!subreq) {
+        /* Cancel transaction */
+        talloc_zfree(llreq->handle);
+        llreq->error = EIO;
+        return prepare_reply(llreq);
+    }
+    tevent_req_set_callback(subreq, set_user_last_login_req_done, llreq);
+}
+
+static void set_user_last_login_req_done(struct tevent_req *subreq)
+{
+    struct last_login_request *llreq =
+        tevent_req_callback_data(subreq,
+                                 struct last_login_request);
+    struct tevent_req *req;
+    int ret;
+
+    ret = sysdb_set_user_attr_recv(subreq);
+    talloc_zfree(subreq);
+
+    DEBUG(4, ("set_user_attr_callback, status [%d][%s]\n", ret, strerror(ret)));
+
+    if (ret) {
+        llreq->error = ret;
+        goto fail;
+    }
+
+    req = sysdb_transaction_commit_send(llreq, llreq->ev, llreq->handle);
+    if (!req) {
+        llreq->error = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(req, set_user_last_login_done, llreq);
+
+fail:
+    DEBUG(2, ("set_last_login failed.\n"));
+
+    /* cancel transaction */
+    talloc_zfree(llreq->handle);
+
+    prepare_reply(llreq);
+}
+
+static errno_t set_last_login(struct pam_auth_req *preq)
+{
+    struct last_login_request *llreq;
+    struct tevent_req *req;
+    errno_t ret;
+
+    llreq = talloc_zero(preq, struct last_login_request);
+    if (!llreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    llreq->ev = preq->cctx->ev;
+    llreq->preq = preq;
+
+    llreq->mod_attrs = sysdb_new_attrs(llreq);
+    if (!llreq->mod_attrs) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_attrs_add_long(llreq->mod_attrs, SYSDB_LAST_ONLINE_AUTH,
+                               (long)time(NULL));
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                  preq->domain, &llreq->dbctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        goto fail;
+    }
+
+    req = sysdb_transaction_send(llreq, llreq->ev, llreq->dbctx);
+    if (!req) {
+        DEBUG(1, ("Unable to acquire sysdb transaction lock\n"));
+        ret = EIO;
+        goto fail;
+    }
+
+    tevent_req_set_callback(req, set_user_last_login_req, llreq);
+    return EOK;
+
+fail:
+    talloc_free(llreq);
+    return ret;
+}
+
 static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
                             struct timeval tv, void *pvt)
 {
@@ -346,6 +499,22 @@ static void pam_reply(struct pam_auth_req *preq)
         if (te == NULL) {
             DEBUG(1, ("Failed to add event pam_reply_delay.\n"));
             err = ENOMEM;
+            goto done;
+        }
+
+        return;
+    }
+
+    /* If this was a successful login, save the lastLogin time */
+    if (preq->domain->cache_credentials &&
+        pd->cmd == SSS_PAM_AUTHENTICATE &&
+        pd->pam_status == PAM_SUCCESS &&
+        !pd->offline_auth &&
+        !pd->last_auth_saved &&
+        NEED_CHECK_PROVIDER(preq->domain->provider)) {
+        ret = set_last_login(preq);
+        if (ret != EOK) {
+            err = ret;
             goto done;
         }
 

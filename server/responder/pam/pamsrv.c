@@ -116,6 +116,9 @@ static errno_t pam_get_config(struct pam_ctx *pctx,
                               struct confdb_ctx *cdb)
 {
     int ret = EOK;
+    ret = confdb_get_int(cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_CRED_TIMEOUT, 0,
+                         &pctx->cred_expiration);
     return ret;
 }
 

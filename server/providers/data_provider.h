@@ -109,6 +109,7 @@ struct pam_data {
     struct response_data *resp_list;
 
     bool offline_auth;
+    bool last_auth_saved;
     int priv;
     uid_t pw_uid;
     gid_t gr_gid;

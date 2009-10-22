@@ -61,6 +61,7 @@
 #define SYSDB_KEYBOARD "keyboard"
 #define SYSDB_SESSION "session"
 #define SYSDB_LAST_LOGIN "lastLogin"
+#define SYSDB_LAST_ONLINE_AUTH "lastOnlineAuth"
 #define SYSDB_USERPIC "userPicture"
 
 #define SYSDB_LAST_UPDATE "lastUpdate"

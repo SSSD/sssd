@@ -327,6 +327,27 @@
                 </varlistentry>
             </variablelist>
         </refsect2>
+        <refsect2 id='PAM'>
+            <title>PAM configuration options</title>
+            <para>
+                These options can be used to configure the
+                Pluggable Authentication Module (PAM) service.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>offline_credentials_expiration (integer)</term>
+                    <listitem>
+                        <para>
+                            If the authentication provider is offline, how
+                            long should we allow cached logins (in days).
+                        </para>
+                        <para>
+                            Default: 0 (No limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </refsect2>
     </refsect1>
 
     <refsect1 id='domain-sections'>
