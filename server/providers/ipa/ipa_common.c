@@ -297,6 +297,9 @@ int ipa_get_id_options(TALLOC_CTX *memctx,
         goto done;
     }
 
+    /* fix schema to IPAv1 for now */
+    ipa_opts->id->schema_type = SDAP_SCHEMA_IPA_V1;
+
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
                        ipa_user_map,
