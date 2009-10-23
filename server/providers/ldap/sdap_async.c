@@ -1648,6 +1648,22 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    ret = sysdb_attrs_get_el(state->attrs, SYSDB_ORIG_DN, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original DN is not available for [%s].\n", state->name));
+    } else {
+        DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
+                  el->values[0].data, state->name));
+        ret = sysdb_attrs_add_string(group_attrs, SYSDB_ORIG_DN,
+                                     (const char *) el->values[0].data);
+        if (ret) {
+            goto fail;
+        }
+    }
+
     ret = sysdb_attrs_get_el(state->attrs,
                       opts->group_map[SDAP_AT_GROUP_MODSTAMP].sys_name, &el);
     if (ret) {
