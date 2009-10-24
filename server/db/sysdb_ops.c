@@ -2865,7 +2865,7 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
                                      state->member_users[i],
                                      state->domain->name);
             if (!member) {
-                DEBUG(6, ("Error: Out of memory\n"));
+                DEBUG(4, ("Error: Out of memory\n"));
                 tevent_req_error(req, ENOMEM);
                 return;
             }
@@ -2875,7 +2875,7 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
             ret = sysdb_attrs_steal_string(state->attrs,
                                            SYSDB_MEMBER, member);
             if (ret) {
-                DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+                DEBUG(4, ("Error: %d (%s)\n", ret, strerror(ret)));
                 tevent_req_error(req, ret);
                 return;
             }
@@ -2885,10 +2885,10 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
             char *member;
 
             member = talloc_asprintf(state, SYSDB_TMPL_GROUP,
-                                     state->member_users[i],
+                                     state->member_groups[i],
                                      state->domain->name);
             if (!member) {
-                DEBUG(6, ("Error: Out of memory\n"));
+                DEBUG(4, ("Error: Out of memory\n"));
                 tevent_req_error(req, ENOMEM);
                 return;
             }
@@ -2898,7 +2898,7 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
             ret = sysdb_attrs_steal_string(state->attrs,
                                            SYSDB_MEMBER, member);
             if (ret) {
-                DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+                DEBUG(4, ("Error: %d (%s)\n", ret, strerror(ret)));
                 tevent_req_error(req, ret);
                 return;
             }
