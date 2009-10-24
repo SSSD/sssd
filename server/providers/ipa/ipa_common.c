@@ -300,6 +300,32 @@ int ipa_get_id_options(TALLOC_CTX *memctx,
     /* fix schema to IPAv1 for now */
     ipa_opts->id->schema_type = SDAP_SCHEMA_IPA_V1;
 
+    /* copy over timeouts */
+    ret = dp_opt_set_int(ipa_opts->id->basic,
+                         SDAP_SEARCH_TIMEOUT,
+                         dp_opt_get_int(ipa_opts->basic,
+                                        IPA_SEARCH_TIMEOUT));
+    ret = dp_opt_set_int(ipa_opts->id->basic,
+                         SDAP_NETWORK_TIMEOUT,
+                         dp_opt_get_int(ipa_opts->basic,
+                                        IPA_NETWORK_TIMEOUT));
+    ret = dp_opt_set_int(ipa_opts->id->basic,
+                         SDAP_OPT_TIMEOUT,
+                         dp_opt_get_int(ipa_opts->basic,
+                                        IPA_OPT_TIMEOUT));
+    ret = dp_opt_set_int(ipa_opts->id->basic,
+                         SDAP_OFFLINE_TIMEOUT,
+                         dp_opt_get_int(ipa_opts->basic,
+                                        IPA_OFFLINE_TIMEOUT));
+    ret = dp_opt_set_int(ipa_opts->id->basic,
+                         SDAP_ENUM_REFRESH_TIMEOUT,
+                         dp_opt_get_int(ipa_opts->basic,
+                                        IPA_ENUM_REFRESH_TIMEOUT));
+    ret = dp_opt_set_int(ipa_opts->id->basic,
+                         SDAP_STALE_TIME,
+                         dp_opt_get_int(ipa_opts->basic,
+                                        IPA_STALE_TIME));
+
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
                        ipa_user_map,
