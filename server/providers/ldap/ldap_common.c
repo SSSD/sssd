@@ -162,6 +162,16 @@ int ldap_get_options(TALLOC_CTX *memctx,
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
+    } else
+    if (strcasecmp(schema, "IPA") == 0) {
+        opts->schema_type = SDAP_SCHEMA_IPA_V1;
+        default_user_map = rfc2307bis_user_map;
+        default_group_map = rfc2307bis_group_map;
+    } else
+    if (strcasecmp(schema, "AD") == 0) {
+        opts->schema_type = SDAP_SCHEMA_AD;
+        default_user_map = rfc2307bis_user_map;
+        default_group_map = rfc2307bis_group_map;
     } else {
         DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;

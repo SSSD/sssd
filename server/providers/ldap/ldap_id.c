@@ -836,7 +836,8 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
 fail:
     /* always go offline on failures */
     be_mark_offline(state->ctx->be);
-    DEBUG(1, ("Failed to enumerate groups, retrying later!\n"));
+    DEBUG(1, ("Failed to enumerate groups (%d [%s]), retrying later!\n",
+              (int)err, strerror(err)));
     tevent_req_done(req);
 }
 

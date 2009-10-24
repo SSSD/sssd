@@ -181,7 +181,8 @@ struct sdap_options {
     enum schema_type {
         SDAP_SCHEMA_RFC2307 = 1,    /* memberUid = uid */
         SDAP_SCHEMA_RFC2307BIS = 2, /* member = dn */
-        SDAP_SCHEMA_IPA_V1 = 3      /* member/memberof with unrolling */
+        SDAP_SCHEMA_IPA_V1 = 3,     /* member/memberof */
+        SDAP_SCHEMA_AD = 4          /* AD's member/memberof */
     } schema_type;
 
     struct ldb_dn *users_base;
