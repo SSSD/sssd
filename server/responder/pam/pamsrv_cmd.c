@@ -798,10 +798,9 @@ static void pam_check_user_callback(void *ptr, int status,
     struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
-    uint64_t lastUpdate;
+    uint64_t cacheExpire;
     bool call_provider = false;
     time_t timeout;
-    time_t cache_timeout;
     int ret;
 
     if (status != LDB_SUCCESS) {
@@ -819,11 +818,9 @@ static void pam_check_user_callback(void *ptr, int status,
             break;
 
         case 1:
-            cache_timeout = 30; /* FIXME: read from conf */
-
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + cache_timeout < time(NULL)) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                      SYSDB_CACHE_EXPIRE, 0);
+            if (cacheExpire < time(NULL)) {
                 call_provider = true;
             }
             break;

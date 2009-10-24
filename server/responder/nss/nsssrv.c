@@ -92,11 +92,6 @@ static int nss_get_config(struct nss_ctx *nctx,
     if (ret != EOK) goto done;
 
     ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_CACHE_TIMEOUT, 600,
-                         &nctx->cache_timeout);
-    if (ret != EOK) goto done;
-
-    ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
                          &nctx->neg_timeout);
     if (ret != EOK) goto done;
@@ -111,11 +106,6 @@ static int nss_get_config(struct nss_ctx *nctx,
                          CONFDB_NSS_ENTRY_CACHE_NOWAIT_TIMEOUT, 0,
                          &nctx->cache_refresh_timeout);
     if (ret != EOK) goto done;
-    if (nctx->cache_refresh_timeout >= nctx->cache_timeout) {
-        DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout exceeds"
-                 "EntryCacheTimeout. Disabling feature.\n"));
-        nctx->cache_refresh_timeout = 0;
-    }
     if (nctx->cache_refresh_timeout < 0) {
         DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout is"
                  "invalid. Disabling feature.\n"));

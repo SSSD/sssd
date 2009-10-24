@@ -1509,7 +1509,9 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     subreq = sysdb_store_user_send(state, state->ev, state->handle,
                                    state->dom, state->name, pwd,
                                    uid, gid, gecos, homedir, shell,
-                                   user_attrs);
+                                   user_attrs,
+                                   dp_opt_get_int(opts->basic,
+                                                  SDAP_ENTRY_CACHE_TIMEOUT));
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -1933,7 +1935,9 @@ static struct tevent_req *sdap_set_grpmem_send(TALLOC_CTX *memctx,
 
     subreq = sysdb_store_group_send(memctx, ev, handle, dom,
                                     gm->name, 0,
-                                    member_users, member_groups, NULL);
+                                    member_users, member_groups, NULL,
+                                    dp_opt_get_int(opts->basic,
+                                                   SDAP_ENTRY_CACHE_TIMEOUT));
 
     /* steal members on subreq,
      * so they are freed when the request is finished */
@@ -2132,7 +2136,9 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
                                     state->handle, state->dom,
                                     state->name, gid,
                                     member_users, member_groups,
-                                    group_attrs);
+                                    group_attrs,
+                                    dp_opt_get_int(opts->basic,
+                                                   SDAP_ENTRY_CACHE_TIMEOUT));
     if (!subreq) {
         ret = ENOMEM;
         goto fail;

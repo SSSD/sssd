@@ -257,19 +257,6 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>entry_cache_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            How long should nss_sss cache positive cache hits
-                            (that is, queries for valid database entries) before
-                            asking the backend again
-                        </para>
-                        <para>
-                            Default: 600
-                        </para>
-                    </listitem>
-                </varlistentry>
-                <varlistentry>
                     <term>entry_cache_nowait_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -398,6 +385,18 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>entry_cache_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            How long should nss_sss consider entries valid
+                            before asking the backend again
+                        </para>
+                        <para>
+                            Default: 600
+                        </para>
+                    </listitem>
+                </varlistentry>
                 <varlistentry>
                     <term>cache_credentials (bool)</term>
                     <listitem>

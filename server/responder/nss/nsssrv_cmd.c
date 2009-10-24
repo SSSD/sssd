@@ -281,6 +281,7 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
     int refresh_timeout;
     time_t now;
     uint64_t lastUpdate;
+    uint64_t cacheExpire;
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     bool call_provider = false;
@@ -297,13 +298,14 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
         } else if ((req_type == SSS_DP_GROUP) ||
                    ((req_type == SSS_DP_USER) && (res->count == 1))) {
 
-            timeout = nctx->cache_timeout;
             refresh_timeout = nctx->cache_refresh_timeout;
             now = time(NULL);
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < now) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                      SYSDB_CACHE_EXPIRE, 0);
+            if (cacheExpire < now) {
                 /* This is a cache miss. We need to get the updated user
                  * information before returning it.
                  */
@@ -2906,7 +2908,7 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     int timeout;
-    uint64_t lastUpdate;
+    uint64_t cacheExpire;
     uint8_t *body;
     size_t blen;
     bool call_provider = false;
@@ -2932,11 +2934,9 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
             break;
 
         case 1:
-            timeout = nctx->cache_timeout;
-
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            if (lastUpdate + timeout < time(NULL)) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                      SYSDB_CACHE_EXPIRE, 0);
+            if (cacheExpire < time(NULL)) {
                 call_provider = true;
             }
             break;

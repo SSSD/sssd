@@ -65,6 +65,7 @@
 #define SYSDB_USERPIC "userPicture"
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
+#define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
 
 #define SYSDB_CACHEDPWD "cachedPassword"
 
@@ -99,7 +100,7 @@
 #define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
                         SYSDB_GIDNUM, SYSDB_GECOS, \
                         SYSDB_HOMEDIR, SYSDB_SHELL, \
-                        SYSDB_LAST_UPDATE, \
+                        SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
                         "objectClass", \
                         NULL}
 #define SYSDB_USER_ATTRS {SYSDB_DEFAULTGROUP, \
@@ -112,23 +113,24 @@
                           SYSDB_SESSION, \
                           SYSDB_LAST_LOGIN, \
                           SYSDB_USERPIC, \
-                          SYSDB_LAST_UPDATE, \
+                          SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
                           NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
-                           SYSDB_LAST_UPDATE, \
+                           SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
                            "objectClass", \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
-                          SYSDB_LAST_UPDATE, \
+                          SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
                           "objectClass", \
                           NULL}
 #define SYSDB_GRENT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, \
-                           SYSDB_LAST_UPDATE, \
+                           SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
                            "objectClass", \
                            NULL}
 
 #define SYSDB_INITGR_ATTR SYSDB_MEMBEROF
-#define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, SYSDB_LAST_UPDATE, \
+#define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, \
+                            SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
                             "objectClass", \
                             NULL}
 
@@ -479,7 +481,8 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                          const char *gecos,
                                          const char *homedir,
                                          const char *shell,
-                                         struct sysdb_attrs *attrs);
+                                         struct sysdb_attrs *attrs,
+                                         uint64_t cache_timeout);
 int sysdb_store_user_recv(struct tevent_req *req);
 
 struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
@@ -490,7 +493,8 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           gid_t gid,
                                           const char **member_users,
                                           const char **member_groups,
-                                          struct sysdb_attrs *attrs);
+                                          struct sysdb_attrs *attrs,
+                                          uint64_t cache_timeout);
 int sysdb_store_group_recv(struct tevent_req *req);
 
 struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,

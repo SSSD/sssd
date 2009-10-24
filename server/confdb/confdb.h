@@ -55,7 +55,6 @@
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"
 #define CONFDB_NSS_ENUM_CACHE_TIMEOUT "enum_cache_timeout"
-#define CONFDB_NSS_ENTRY_CACHE_TIMEOUT "entry_cache_timeout"
 #define CONFDB_NSS_ENTRY_CACHE_NOWAIT_TIMEOUT "entry_cache_nowait_timeout"
 #define CONFDB_NSS_ENTRY_NEG_TIMEOUT "entry_negative_timeout"
 #define CONFDB_NSS_FILTER_USERS_IN_GROUPS "filter_users_in_groups"
@@ -86,6 +85,7 @@
 #define CONFDB_DOMAIN_LEGACY_PASS "store_legacy_passwords"
 #define CONFDB_DOMAIN_MPG "magic_private_groups"
 #define CONFDB_DOMAIN_FQ "use_fully_qualified_names"
+#define CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT "entry_cache_timeout"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"

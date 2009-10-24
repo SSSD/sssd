@@ -267,7 +267,7 @@ static void test_store_user(struct tevent_req *req)
                                   data->uid, 0,
                                   gecos, homedir,
                                   data->shell ? data->shell : "/bin/bash",
-                                  NULL);
+                                  NULL, -1);
     if (!subreq) {
         test_return(data, ENOMEM);
         return;
@@ -472,7 +472,7 @@ static void test_store_group(struct tevent_req *req)
 
     subreq = sysdb_store_group_send(data, data->ev, data->handle,
                                     data->ctx->domain, data->groupname,
-                                    data->gid, NULL, NULL, NULL);
+                                    data->gid, NULL, NULL, NULL, -1);
     if (!subreq) {
         test_return(data, ret);
     }

@@ -2548,6 +2548,8 @@ struct sysdb_store_user_state {
     const char *homedir;
     const char *shell;
     struct sysdb_attrs *attrs;
+
+    uint64_t cache_timeout;
 };
 
 static void sysdb_store_user_check(struct tevent_req *subreq);
@@ -2564,7 +2566,8 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                          const char *gecos,
                                          const char *homedir,
                                          const char *shell,
-                                         struct sysdb_attrs *attrs)
+                                         struct sysdb_attrs *attrs,
+                                         uint64_t cache_timeout)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_store_user_state *state;
@@ -2583,6 +2586,7 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
     state->homedir = homedir;
     state->shell = shell;
     state->attrs = attrs;
+    state->cache_timeout = cache_timeout;
 
     if (pwd && (domain->legacy_passwords || !*pwd)) {
         ret = sysdb_attrs_add_string(state->attrs, SYSDB_PWD, pwd);
@@ -2612,6 +2616,7 @@ static void sysdb_store_user_check(struct tevent_req *subreq)
     struct sysdb_store_user_state *state = tevent_req_data(req,
                                                struct sysdb_store_user_state);
     struct ldb_message *msg;
+    time_t now = time(NULL);
     int ret;
 
     ret = sysdb_search_user_recv(subreq, state, &msg);
@@ -2702,7 +2707,15 @@ static void sysdb_store_user_check(struct tevent_req *subreq)
         }
     }
 
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, time(NULL));
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
+                                               now + state->cache_timeout);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
@@ -2775,6 +2788,8 @@ struct sysdb_store_group_state {
     const char **member_groups;
 
     struct sysdb_attrs *attrs;
+
+    uint64_t cache_timeout;
 };
 
 static void sysdb_store_group_check(struct tevent_req *subreq);
@@ -2789,7 +2804,8 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           gid_t gid,
                                           const char **member_users,
                                           const char **member_groups,
-                                          struct sysdb_attrs *attrs)
+                                          struct sysdb_attrs *attrs,
+                                          uint64_t cache_timeout)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_store_group_state *state;
@@ -2808,6 +2824,7 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
     state->member_users = member_users;
     state->member_groups = member_groups;
     state->attrs = attrs;
+    state->cache_timeout = cache_timeout;
 
     subreq = sysdb_search_group_by_name_send(state, ev, NULL, handle,
                                              domain, name, src_attrs);
@@ -2832,6 +2849,7 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
     struct sysdb_store_group_state *state = tevent_req_data(req,
                                                struct sysdb_store_group_state);
     struct ldb_message *msg;
+    time_t now = time(NULL);
     bool new_group = false;
     int ret, i;
 
@@ -2906,7 +2924,7 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
     }
 
     if (new_group) {
-        /* groups doesn't exist, turn into adding a group */
+        /* group doesn't exist, turn into adding a group */
         subreq = sysdb_add_group_send(state, state->ev, state->handle,
                                       state->domain, state->name,
                                       state->gid, state->attrs);
@@ -2940,7 +2958,15 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
         }
     }
 
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, time(NULL));
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
+                                               now + state->cache_timeout);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);

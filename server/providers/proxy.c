@@ -58,6 +58,7 @@ struct proxy_nss_ops {
 
 struct proxy_ctx {
     struct be_ctx *be;
+    int entry_cache_timeout;
     struct proxy_nss_ops ops;
 };
 
@@ -415,7 +416,8 @@ static void get_pw_name_process(struct tevent_req *subreq)
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell, NULL);
+                                       state->pwd->pw_shell,
+                                       NULL, ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -607,7 +609,8 @@ static void get_pw_uid_process(struct tevent_req *subreq)
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell, NULL);
+                                       state->pwd->pw_shell,
+                                       NULL, ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -829,7 +832,8 @@ again:
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell, NULL);
+                                       state->pwd->pw_shell,
+                                       NULL, ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1000,7 +1004,8 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        members, NULL, NULL);
+                                        members, NULL, NULL,
+                                        ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1214,7 +1219,8 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        members, NULL, NULL);
+                                        members, NULL, NULL,
+                                        ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1442,7 +1448,8 @@ again:
                                        state->domain,
                                        state->grp->gr_name,
                                        state->grp->gr_gid,
-                                       members, NULL, NULL);
+                                       members, NULL, NULL,
+                                       ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1582,7 +1589,8 @@ static void get_initgr_process(struct tevent_req *subreq)
                                        state->pwd->pw_gid,
                                        state->pwd->pw_gecos,
                                        state->pwd->pw_dir,
-                                       state->pwd->pw_shell, NULL);
+                                       state->pwd->pw_shell,
+                                       NULL, ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1893,7 +1901,8 @@ again:
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
                                         (const char **)state->grp->gr_mem,
-                                        NULL, NULL);
+                                        NULL, NULL,
+                                        ctx->entry_cache_timeout);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -2232,6 +2241,11 @@ int sssm_proxy_init(struct be_ctx *bectx,
         return ENOMEM;
     }
     ctx->be = bectx;
+
+    ret = confdb_get_int(bectx->cdb, ctx, bectx->conf_path,
+                         CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT, 600,
+                         &ctx->entry_cache_timeout);
+    if (ret != EOK) goto done;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                             CONFDB_PROXY_LIBNAME, NULL, &libname);

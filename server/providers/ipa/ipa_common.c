@@ -34,7 +34,7 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ipa_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ipa_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ipa_stale_time", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
+    { "entry_cache_timeout", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
 };
 
 struct dp_option ipa_def_ldap_opts[] = {
@@ -56,7 +56,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "ldap_stale_time", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
+    { "entry_cache_timeout", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
     { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_id_use_start_tls", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -322,9 +322,9 @@ int ipa_get_id_options(TALLOC_CTX *memctx,
                          dp_opt_get_int(ipa_opts->basic,
                                         IPA_ENUM_REFRESH_TIMEOUT));
     ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_STALE_TIME,
+                         SDAP_ENTRY_CACHE_TIMEOUT,
                          dp_opt_get_int(ipa_opts->basic,
-                                        IPA_STALE_TIME));
+                                        IPA_ENTRY_CACHE_TIMEOUT));
 
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,

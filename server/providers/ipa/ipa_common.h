@@ -36,7 +36,7 @@ enum ipa_basic_opt {
     IPA_OPT_TIMEOUT,
     IPA_OFFLINE_TIMEOUT,
     IPA_ENUM_REFRESH_TIMEOUT,
-    IPA_STALE_TIME,
+    IPA_ENTRY_CACHE_TIMEOUT,
 
     IPA_OPTS_BASIC /* opts counter */
 };

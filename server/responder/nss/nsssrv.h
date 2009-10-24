@@ -47,7 +47,6 @@ struct nss_ctx {
     int neg_timeout;
     struct nss_nc_ctx *ncache;
 
-    int cache_timeout;
     int cache_refresh_timeout;
 
     int enum_cache_timeout;
