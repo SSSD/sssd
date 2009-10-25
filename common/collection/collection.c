@@ -1171,7 +1171,9 @@ static void col_delete_collection(struct collection_item *ci)
         return;
     }
 
-    TRACE_INFO_STRING("Real work to do","");
+    TRACE_INFO_STRING("Real work to do", "");
+    TRACE_INFO_STRING("Property", ci->property);
+    TRACE_INFO_NUMBER("Next item", ci->next);
 
     col_delete_collection(ci->next);
 
@@ -2247,8 +2249,11 @@ void col_destroy_collection(struct collection_item *ci)
         return;
     }
 
+    TRACE_INFO_STRING("Name:", ci->property);
+
     /* Collection can be referenced by other collection */
     header = (struct collection_header *)(ci->data);
+    TRACE_INFO_NUMBER("Reference count:", header->reference_count);
     if (header->reference_count > 1) {
         TRACE_INFO_STRING("Dereferencing a referenced collection.", "");
         header->reference_count--;
@@ -2376,29 +2381,35 @@ int col_get_collection_reference(struct collection_item *ci,
 
     if ((ci == NULL) ||
         (ci->type != COL_TYPE_COLLECTION) ||
-        (acceptor == NULL) ||
-        (collection_to_find == NULL)) {
+        (acceptor == NULL)) {
         TRACE_ERROR_NUMBER("Invalid parameter - returning error",EINVAL);
         return EINVAL;
     }
 
-    /* Find a sub collection */
-    TRACE_INFO_STRING("We are given subcollection name - search it:",
-                      collection_to_find);
-    error = col_find_item_and_do(ci, collection_to_find,
-                                 COL_TYPE_COLLECTIONREF,
-                                 COL_TRAVERSE_DEFAULT,
-                                 col_get_subcollection,
-                                 (void *)(&subcollection),
-                                 COLLECTION_ACTION_FIND);
-    if (error) {
-        TRACE_ERROR_NUMBER("Search failed returning error", error);
-        return error;
-    }
+    if (collection_to_find) {
+        /* Find a sub collection */
+        TRACE_INFO_STRING("We are given subcollection name - search it:",
+                          collection_to_find);
+        error = col_find_item_and_do(ci, collection_to_find,
+                                     COL_TYPE_COLLECTIONREF,
+                                     COL_TRAVERSE_DEFAULT,
+                                     col_get_subcollection,
+                                     (void *)(&subcollection),
+                                     COLLECTION_ACTION_FIND);
+        if (error) {
+            TRACE_ERROR_NUMBER("Search failed returning error", error);
+            return error;
+        }
 
-    if (subcollection == NULL) {
-        TRACE_ERROR_STRING("Search for subcollection returned NULL pointer", "");
-        return ENOENT;
+        if (subcollection == NULL) {
+            TRACE_ERROR_STRING("Search for subcollection returned NULL pointer", "");
+            return ENOENT;
+        }
+    }
+    else {
+        /* Create reference to the same collection */
+        TRACE_INFO_STRING("Creating reference to the top level collection.", "");
+        subcollection = ci;
     }
 
     header = (struct collection_header *)subcollection->data;
