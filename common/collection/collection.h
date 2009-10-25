@@ -686,8 +686,10 @@ int col_is_item_in_collection(struct collection_item *ci,   /* Collection to fin
                               int *found);                  /* Boolean that turns to nonzero if the match is found */
 
 
-/* Get collection - get a pointer to a collection included into another collection */
-/* Delete extracted collection after use to decrease reference count. */
+/* Get collection - get a pointer to a collection included into another collection.
+ * If the collection_to_find is NULL function reterns a reference to the top level collection.
+ * Delete extracted collection after use to decrease reference count.
+ */
 int col_get_collection_reference(struct collection_item *ci,          /* High level collection */
                                  struct collection_item **acceptor,   /* The pointer that will accept extracted handle */
                                  const char *collection_to_find);     /* Name to of the collection */

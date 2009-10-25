@@ -33,6 +33,7 @@ int ref_collection_test(void)
 {
     struct collection_item *peer = NULL;
     struct collection_item *socket = NULL;
+    struct collection_item *socket2 = NULL;
     char binary_dump[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
     int error = EOK;
@@ -98,7 +99,19 @@ int ref_collection_test(void)
     col_destroy_collection(peer);
 
     col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
+
+    error = col_get_collection_reference(socket, &socket2, NULL);
+    if (error) {
+        col_destroy_collection(socket);
+        printf("Failed to extract collection. Error %d\n", error);
+        return error;
+    }
+
+    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
     col_destroy_collection(socket);
+    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
+    col_destroy_collection(socket2);
+
     TRACE_FLOW_NUMBER("ref_collection_test. Returning", error);
 
     printf("\n\nEND OF REF TEST!!!.\n\n\n");
