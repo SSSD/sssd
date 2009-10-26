@@ -40,6 +40,9 @@
 #define CUSTOM_TEST_CONTAINER "custom_test_container"
 #define CUSTOM_TEST_OBJECT "custom_test_object"
 
+#define ASQ_TEST_USER "testuser27010"
+#define ASQ_TEST_USER_UID 27010
+
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
@@ -953,6 +956,14 @@ static void test_delete_custom_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     return test_return(data, ret);
+}
+
+static void test_asq_search_done(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+
+    data->finished = true;
+    return;
 }
 
 START_TEST (test_sysdb_store_user)
@@ -1979,6 +1990,117 @@ START_TEST (test_sysdb_delete_custom)
 }
 END_TEST
 
+START_TEST (test_sysdb_prepare_asq_test_user)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
+    data->uid = ASQ_TEST_USER_UID;
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_add_group_member, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not modify group %s", data->groupname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_asq_search)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    struct ldb_dn *user_dn;
+    int ret;
+    size_t msgs_count;
+    struct ldb_message **msgs;
+    int i;
+    char *gid_str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed");
+
+    data->attrlist[0] = "gidNumber";
+    data->attrlist[1] = NULL;
+
+    user_dn = sysdb_user_dn(data->ctx->sysdb, data, "LOCAL", ASQ_TEST_USER);
+    fail_unless(user_dn != NULL, "sysdb_user_dn failed");
+
+    req = sysdb_asq_search_send(data, data->ev, test_ctx->sysdb, NULL,
+                                test_ctx->domain, user_dn, NULL, "memberof",
+                                data->attrlist);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_asq_search_done, data);
+
+        ret = test_loop(data);
+
+        ret = sysdb_asq_search_recv(req, data, &msgs_count, &msgs);
+        talloc_zfree(req);
+        fail_unless(ret == EOK, "sysdb_asq_search_send failed");
+
+        fail_unless(msgs_count == 10, "wrong number of results, "
+                                      "found [%d] expected [10]", msgs_count);
+
+        for (i = 0; i < msgs_count; i++) {
+            fail_unless(msgs[i]->num_elements == 1, "wrong number of elements, "
+                                         "found [%d] expected [1]",
+                                         msgs[i]->num_elements);
+
+            fail_unless(msgs[i]->elements[0].num_values == 1,
+                        "wrong number of values, found [%d] expected [1]",
+                        msgs[i]->elements[0].num_values);
+
+            gid_str = talloc_asprintf(data, "%d", 28010 + i);
+            fail_unless(gid_str != NULL, "talloc_asprintf failed.");
+            fail_unless(strncmp(gid_str,
+                                (const char *) msgs[i]->elements[0].values[0].data,
+                                msgs[i]->elements[0].values[0].length)  == 0,
+                                "wrong value, found [%.*s] expected [%s]",
+                                msgs[i]->elements[0].values[0].length,
+                                msgs[i]->elements[0].values[0].data, gid_str);
+        }
+    }
+
+    fail_if(ret != EOK, "Failed to send ASQ search request.\n");
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2040,6 +2162,10 @@ Suite *create_sysdb_suite(void)
 
     /* Add some members to the groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_group_member, 28010, 28020);
+
+    /* ASQ search test */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_prepare_asq_test_user, 28011, 28020);
+    tcase_add_test(tc_sysdb, test_sysdb_asq_search);
 
     /* Remove the members from the groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_group_member, 28010, 28020);

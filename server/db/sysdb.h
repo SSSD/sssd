@@ -555,4 +555,16 @@ struct tevent_req *sysdb_delete_custom_send(TALLOC_CTX *mem_ctx,
                                              const char *object_name,
                                              const char *subtree_name);
 int sysdb_delete_custom_recv(struct tevent_req *req);
+
+struct tevent_req *sysdb_asq_search_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sysdb_ctx *sysdb,
+                                         struct sysdb_handle *handle,
+                                         struct sss_domain_info *domain,
+                                         struct ldb_dn *base_dn,
+                                         const char *expression,
+                                         const char *asq_attribute,
+                                         const char **attrs);
+int sysdb_asq_search_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                          size_t *msgs_count, struct ldb_message ***msgs);
 #endif /* __SYS_DB_H__ */
