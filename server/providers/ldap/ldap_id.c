@@ -73,6 +73,17 @@ static bool connected(struct sdap_id_ctx *ctx)
     return false;
 }
 
+static void mark_offline(struct sdap_id_ctx *ctx)
+{
+    if (ctx->gsh) {
+        /* make sure we mark the connection as gone when we go offline so that
+         * we do not try to reuse a bad connection by mistale later */
+        talloc_zfree(ctx->gsh);
+    }
+
+    be_mark_offline(ctx->be);
+}
+
 /* =Users-Related-Functions-(by-name,by-uid)============================== */
 
 struct users_get_state {
@@ -233,7 +244,7 @@ static void users_get_done(struct tevent_req *req)
         if (ret == ETIMEDOUT || ret == EFAULT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
-            be_mark_offline(ctx->be);
+            mark_offline(ctx);
         }
     }
 
@@ -400,7 +411,7 @@ static void groups_get_done(struct tevent_req *req)
         if (ret == ETIMEDOUT || ret == EFAULT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
-            be_mark_offline(ctx->be);
+            mark_offline(ctx);
         }
     }
 
@@ -542,7 +553,7 @@ static void groups_by_user_done(struct tevent_req *req)
         if (ret == ETIMEDOUT || ret == EFAULT) {
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
-            be_mark_offline(ctx->be);
+            mark_offline(ctx);
         }
     }
 
@@ -809,7 +820,7 @@ fail:
         DEBUG(9, ("User enumeration failed with: (%d)[%s]\n",
                   (int)err, strerror(err)));
 
-        be_mark_offline(state->ctx->be);
+        mark_offline(state->ctx);
     }
 
     DEBUG(1, ("Failed to enumerate users, retrying later!\n"));
@@ -835,7 +846,7 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
 
 fail:
     /* always go offline on failures */
-    be_mark_offline(state->ctx->be);
+    mark_offline(state->ctx);
     DEBUG(1, ("Failed to enumerate groups (%d [%s]), retrying later!\n",
               (int)err, strerror(err)));
     tevent_req_done(req);
