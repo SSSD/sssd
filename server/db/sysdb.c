@@ -471,7 +471,7 @@ int sysdb_transaction_commit_recv(struct tevent_req *req)
 
     /* finally free handle
      * this will also trigger the next transaction in the queue if any */
-    talloc_free(state->handle);
+    talloc_zfree(state->handle);
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         return err;
@@ -1227,7 +1227,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ret = EIO;
         goto done;
     }
-    talloc_free(msg);
+    talloc_zfree(msg);
 
     /* == create Users tree == */
 
@@ -1255,7 +1255,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ret = EIO;
         goto done;
     }
-    talloc_free(msg);
+    talloc_zfree(msg);
 
     /* == create Groups tree == */
 
@@ -1283,7 +1283,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         ret = EIO;
         goto done;
     }
-    talloc_free(msg);
+    talloc_zfree(msg);
 
     ret = EOK;
 
