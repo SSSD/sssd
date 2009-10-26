@@ -25,6 +25,7 @@ import sys
 import shutil
 import traceback
 from ConfigParser import RawConfigParser
+from ConfigParser import NoOptionError
 from optparse import OptionParser
 
 class SSSDConfigParser(RawConfigParser):
@@ -211,10 +212,18 @@ class SSSDConfigFile(object):
         self._migrate_kw(new_domsec, old_domsec, ldap_kw)
         self._migrate_kw(new_domsec, old_domsec, krb5_kw)
 
-        # if domain was local, update with parameters from [user_defaults]
-        if self._new_config.get(new_domsec, 'id_provider') == 'local':
-            self._migrate_kw(new_domsec, 'user_defaults', user_defaults_kw)
+        # configuration files before 0.5.0 did not enforce provider= in local domains
+        # it did special-case by domain name (LOCAL)
+        try:
+            prv = self._new_config.get(new_domsec, 'id_provider')
+        except NoOptionError:
+            if old_domsec == 'domains/LOCAL':
+                prv = 'local'
+                self._new_config.set(new_domsec, 'id_provider', prv)
 
+        # if domain was local, update with parameters from [user_defaults]
+        if prv == 'local':
+            self._migrate_kw(new_domsec, 'user_defaults', user_defaults_kw)
 
     def _migrate_domains(self):
         for domain in [ s.replace('domains/','') for s in self._config.sections() if s.startswith("domains/") ]:
