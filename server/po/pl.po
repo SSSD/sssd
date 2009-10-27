@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-10-23 14:32-0400\n"
-"PO-Revision-Date: 2009-09-26 12:28+0200\n"
+"PO-Revision-Date: 2009-10-23 22:20+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
 "MIME-Version: 1.0\n"
@@ -42,6 +42,8 @@ msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr ""
+"Nie ma takiej grupy w lokalnej domenie. Usuwanie grup jest dozwolone tylko w "
+"lokalnej domenie.\n"
 
 #: tools/sss_groupdel.c:121
 msgid "Internal error. Could not remove group.\n"
@@ -68,6 +70,8 @@ msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
 msgstr ""
+"Nie można odnaleźć grupy w lokalnej domenie, modyfikowanie grup jest "
+"dozwolone tylko w lokalnej domenie\n"
 
 #: tools/sss_groupmod.c:139 tools/sss_groupmod.c:166 tools/sss_useradd.c:199
 #: tools/sss_usermod.c:158 tools/sss_usermod.c:185
@@ -85,6 +89,8 @@ msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"Nie można odnaleźć grupy %s w lokalnej domenie, tylko grupy w lokalnej "
+"domenie są dozwolone\n"
 
 #: tools/sss_groupmod.c:190 tools/sss_groupadd.c:102
 msgid "The selected GID is outside the allowed range\n"
@@ -108,15 +114,15 @@ msgstr "Błąd transakcji. Nie można zmodyfikować grupy.\n"
 
 #: tools/sss_userdel.c:46
 msgid "Remove home directory and mail spool"
-msgstr ""
+msgstr "Usuwa katalog domowy i bufor poczty"
 
 #: tools/sss_userdel.c:47
 msgid "Do not remove home directory and mail spool"
-msgstr ""
+msgstr "Nie usuwa katalogu domowego i bufora poczty"
 
 #: tools/sss_userdel.c:48
 msgid "Force removal of files not owned by the user"
-msgstr ""
+msgstr "Wymusza usunięcie plików, których właścicielem nie jest użytkownik"
 
 #: tools/sss_userdel.c:91
 msgid "Specify user to delete\n"
@@ -129,16 +135,19 @@ msgstr "Nie można ustawić domyślnych wartości\n"
 #: tools/sss_userdel.c:162
 msgid "Not removing home dir - not owned by user\n"
 msgstr ""
+"Katalog domowy nie zostanie usunięty - użytkownik nie jest właścicielem\n"
 
 #: tools/sss_userdel.c:164
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr ""
+msgstr "Nie można usunąć katalogu domowego: %s\n"
 
 #: tools/sss_userdel.c:176
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
+"Nie ma takiego użytkownika w lokalnej domenie. Usuwanie użytkowników jest "
+"dozwolone tylko w lokalnej domenie.\n"
 
 #: tools/sss_userdel.c:181
 msgid "Internal error. Could not remove user.\n"
@@ -179,15 +188,15 @@ msgstr "Grupy"
 
 #: tools/sss_useradd.c:121
 msgid "Create user's directory if it does not exist"
-msgstr ""
+msgstr "Utworzy katalog użytkownika, jeśli nie istnieje"
 
 #: tools/sss_useradd.c:122
 msgid "Never create user's directory, overrides config"
-msgstr ""
+msgstr "Nigdy nie tworzy katalogu użytkownika, zastępuje konfigurację"
 
 #: tools/sss_useradd.c:123
 msgid "Specify an alternative skeleton directory"
-msgstr ""
+msgstr "Proszę podać alternatywny katalog szkieletu"
 
 #: tools/sss_useradd.c:172
 msgid "Specify user to add\n"
@@ -200,7 +209,7 @@ msgstr "Grupy muszą być w tej samej domenie co użytkownik\n"
 #: tools/sss_useradd.c:215
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr ""
+msgstr "Nie można odnaleźć grupy %s w lokalnej domenie\n"
 
 #: tools/sss_useradd.c:225
 msgid "Cannot get group information for the user\n"
@@ -211,32 +220,34 @@ msgid "The selected UID is outside the allowed range\n"
 msgstr "Wybrany UID jest spoza dozwolonego zakresu\n"
 
 #: tools/sss_useradd.c:281
-#, fuzzy
 msgid "Cannot get info about the user\n"
-msgstr "Nie można uzyskać informacji o grupie dla użytkownika\n"
+msgstr "Nie można uzyskać informacji o użytkowniku\n"
 
 #: tools/sss_useradd.c:295
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
+"Katalog domowy użytkownika już istnieje, dane z katalogu szkieletu nie "
+"zostaną skopiowane\n"
 
 #: tools/sss_useradd.c:298
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr ""
+msgstr "Nie można utworzyć katalogu domowego użytkownika: %s\n"
 
 #: tools/sss_useradd.c:309
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr ""
+msgstr "Nie można utworzyć buforu poczty użytkownika: %s\n"
 
 #: tools/sss_useradd.c:321
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr ""
+"Nie można przydzielić identyfikatora użytkownikowi - czy domena jest pełna?\n"
 
 #: tools/sss_useradd.c:325
-#, fuzzy
 msgid "A user or group with the same name or ID already exists\n"
-msgstr "Grupa o tej samej nazwie lub GID już istnieje\n"
+msgstr ""
+"Użytkownik lub grupa o tej samej nazwie lub identyfikatorze już istnieje\n"
 
 #: tools/sss_useradd.c:331
 msgid "Transaction error. Could not add user.\n"
@@ -248,7 +259,7 @@ msgstr "Proszę podać grupę do dodania\n"
 
 #: tools/sss_groupadd.c:129
 msgid "Could not allocate ID for the group - domain full?\n"
-msgstr ""
+msgstr "Nie można przydzielić identyfikatora grupie - czy domena jest pełna?\n"
 
 #: tools/sss_groupadd.c:133
 msgid "A group with the same name or GID already exists\n"
@@ -287,6 +298,8 @@ msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
 msgstr ""
+"Nie można odnaleźć użytkownika w lokalnej domenie, modyfikowanie "
+"użytkowników jest dozwolone tylko w lokalnej domenie\n"
 
 #: tools/sss_usermod.c:237
 msgid "Could not modify user - check if group names are correct\n"
@@ -295,27 +308,11 @@ msgstr ""
 "poprawne\n"
 
 #: tools/sss_usermod.c:241
-#, fuzzy
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
-"Nie można zmodyfikować użytkownika - proszę sprawdzić, czy nazwa użytkownika "
-"jest poprawna\n"
+"Nie można zmodyfikować użytkownika - czy użytkownik jest już członkiem "
+"grup?\n"
 
 #: tools/sss_usermod.c:245
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Błąd transakcji. Nie można zmodyfikować użytkownika.\n"
-
-#~ msgid "Transaction error. Could not remove group.\n"
-#~ msgstr "Błąd transakcji. Nie można usunąć grupy.\n"
-
-#~ msgid "No such group\n"
-#~ msgstr "Nie ma takiej grupy\n"
-
-#~ msgid "Transaction error. Could not remove user.\n"
-#~ msgstr "Błąd transakcji. Nie można usunąć użytkownika.\n"
-
-#~ msgid "No such user\n"
-#~ msgstr "Nie ma takiego użytkownika\n"
-
-#~ msgid "A user with the same name or UID already exists\n"
-#~ msgstr "Użytkownik o tej samej nazwie lub UID już istnieje\n"
