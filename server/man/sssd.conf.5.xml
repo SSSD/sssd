@@ -73,15 +73,10 @@
                         <listitem>
                             <para>
                                 Comma separated list of services that are
-                                started when sssd itself starts. Since Data
-                                Provider (<quote>dp</quote>) is a required
-                                service, it will be started even if omitted.
+                                started when sssd itself starts.
                             </para>
                             <para>
-                                Default: dp
-                            </para>
-                            <para>
-                                Supported services: dp, nss, pam
+                                Supported services: nss, pam
                             </para>
                         </listitem>
                     </varlistentry>
@@ -711,7 +706,7 @@
 <programlisting>
 [sssd]
 domains = LOCAL
-services = nss, dp, pam
+services = nss, pam
 config_file_version = 2
 sbus_timeout = 30
 
@@ -720,8 +715,6 @@ filter_groups = root
 filter_users = root
 
 [pam]
-
-[dp]
 
 [domain/LOCAL]
 id_provider = local
