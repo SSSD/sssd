@@ -24,6 +24,7 @@ import os
 import sys
 import shutil
 import traceback
+import copy
 from ConfigParser import RawConfigParser
 from ConfigParser import NoOptionError
 from optparse import OptionParser
@@ -230,6 +231,42 @@ class SSSDConfigFile(object):
             domain = domain.strip()
             self._migrate_domain(domain)
 
+    def _remove_dp(self):
+        # If data provider is in the list of active services, remove it
+        if self._new_config.has_option('sssd', 'services'):
+            services = [ srv.strip() for srv in self._new_config.get('sssd', 'services').split(',') ]
+            if 'dp' in services:
+                services.remove('dp')
+
+        self._new_config.set('sssd', 'services', ", ".join([srv for srv in services]))
+
+        # also remove the [dp] section
+        self._new_config.remove_section('dp')
+
+    def _do_v2_changes(self):
+        # the changes themselves
+        self._remove_dp()
+
+    def v2_changes(self, out_file_name, backup=True):
+        """
+        Check for needed changes in V2 format and write the result into
+        ``out_file_name```.
+        """
+        # basically a wrapper around _do_v2_changes
+        self._new_config = copy.deepcopy(self._config)
+
+        if backup:
+            self._backup_file()
+
+        self._do_v2_changes()
+
+        # all done, open the file for writing
+        of = open(out_file_name, "wb")
+
+        # make sure it has the right permissions too
+        os.chmod(out_file_name, 0600)
+        self._new_config.write(of)
+
     def upgrade_v2(self, out_file_name, backup=True):
         """
         Upgrade the config file to V2 format and write the result into
@@ -283,16 +320,11 @@ class SSSDConfigFile(object):
         self._migrate_kw('pam', 'services', service_kw)
         self._migrate_kw('pam', 'services/pam', pam_kw)
 
-        # [dp] - Data provider
-        self._new_config.add_section('dp')
-        provider_kw = {'sbus_timeout'  : 'sbusTimeout',
-                      }
-        provider_kw.update(service_kw)
-        self._migrate_kw('dp', 'services', service_kw)
-        self._migrate_kw('dp', 'services/dp', provider_kw)
-
         # Migrate domains
         self._migrate_domains()
+
+        # Perform neccessary changes
+        self._do_v2_changes()
 
         # all done, open the file for writing
         of = open(out_file_name, "wb")
@@ -345,23 +377,26 @@ def main():
         print >>sys.stderr, "Cannot parse config file %s" % options.filename
         return 1
 
-    if config.get_version() == 2:
-        #Config file is already at the correct version. No upgrade needed
-        print >>sys.stderr, "Config file is v2. No upgrade required."
-        return 0
-
-    if config.get_version() != 1:
-        print >>sys.stderr, "Can only upgrade from v1 to v2, file %s looks like version %d" % (options.filename, config.get_version())
-        return 1
-
     # make sure we keep strict settings when creating new files
     os.umask(0077)
 
-    try:
-        config.upgrade_v2(options.outfile, options.backup)
-    except Exception, e:
-        print "ERROR: %s" % e
-        verbose(traceback.format_exc(), options.verbose)
+    version = config.get_version()
+    if version == 2:
+        try:
+            config.v2_changes(options.outfile, options.backup)
+        except Exception, e:
+            print "ERROR: %s" % e
+            verbose(traceback.format_exc(), options.verbose)
+            return 1
+    elif version == 1:
+        try:
+            config.upgrade_v2(options.outfile, options.backup)
+        except Exception, e:
+            print "ERROR: %s" % e
+            verbose(traceback.format_exc(), options.verbose)
+            return 1
+    else:
+        print >>sys.stderr, "Can only upgrade from v1 to v2, file %s looks like version %d" % (options.filename, config.get_version())
         return 1
 
     return 0
