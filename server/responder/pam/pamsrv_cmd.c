@@ -376,7 +376,7 @@ static void set_last_login_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     int ret;
 
-    ret = sysdb_transaction_commit_recv(req);
+    ret = sysdb_transaction_commit_recv(subreq);
     if (ret != EOK) {
         DEBUG(2, ("set_last_login failed.\n"));
         tevent_req_error(req, ret);
