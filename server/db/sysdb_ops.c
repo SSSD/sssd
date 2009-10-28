@@ -203,6 +203,8 @@ struct sysdb_op_state {
     bool ignore_not_found;
 
     struct ldb_reply *ldbreply;
+    size_t msgs_count;
+    struct ldb_message **msgs;
 };
 
 static void sysdb_op_default_done(struct tevent_req *subreq)
@@ -322,6 +324,8 @@ struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,
     state->handle = handle;
     state->ignore_not_found = false;
     state->ldbreply = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
 
     ret = ldb_build_search_req(&ldbreq, handle->ctx->ldb, state,
                                base_dn, scope, filter, attrs,
@@ -354,6 +358,7 @@ static void sysdb_search_entry_done(struct tevent_req *subreq)
     struct sysdb_op_state *state = tevent_req_data(req,
                                                   struct sysdb_op_state);
     struct ldb_reply *ldbreply;
+    struct ldb_message **dummy;
     int ret;
 
     ret = sldb_request_recv(subreq, state, &ldbreply);
@@ -365,27 +370,32 @@ static void sysdb_search_entry_done(struct tevent_req *subreq)
 
     switch (ldbreply->type) {
     case LDB_REPLY_ENTRY:
-        if (state->ldbreply) {
-            DEBUG(1, ("More than one reply for a base search ?! "
-                      "DB seems corrupted, aborting."));
-            tevent_req_error(req, EFAULT);
+        dummy = talloc_realloc(state, state->msgs,
+                                     struct ldb_message *,
+                                     state->msgs_count + 2);
+        if (dummy == NULL) {
+            tevent_req_error(req, ENOMEM);
             return;
         }
+        state->msgs = dummy;
 
-        /* save the entry so that it can be retrieved by the caller */
-        state->ldbreply = ldbreply;
+        state->msgs[state->msgs_count + 1] = NULL;
 
-        /* just return, wait for a LDB_REPLY_DONE entry */
+        state->msgs[state->msgs_count] = talloc_steal(state->msgs,
+                                                      ldbreply->message);
+        state->msgs_count++;
+
+        talloc_zfree(ldbreply);
         return;
 
     case LDB_REPLY_DONE:
-        if (!state->ldbreply) {
-            talloc_zfree(ldbreply);
+        talloc_zfree(subreq);
+        talloc_zfree(ldbreply);
+        if (state->msgs_count == 0) {
             DEBUG(6, ("Error: Entry not Found!\n"));
             tevent_req_error(req, ENOENT);
             return;
         }
-        talloc_zfree(ldbreply);
         return tevent_req_done(req);
 
     default:
@@ -399,7 +409,8 @@ static void sysdb_search_entry_done(struct tevent_req *subreq)
 
 int sysdb_search_entry_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
-                            struct ldb_message **msg)
+                            size_t *msgs_count,
+                            struct ldb_message ***msgs)
 {
     struct sysdb_op_state *state = tevent_req_data(req,
                                                    struct sysdb_op_state);
@@ -410,7 +421,8 @@ int sysdb_search_entry_recv(struct tevent_req *req,
         return err;
     }
 
-    *msg = talloc_move(mem_ctx, &state->ldbreply->message);
+    *msgs_count = state->msgs_count;
+    *msgs = talloc_move(mem_ctx, &state->msgs);
 
     return EOK;
 }
@@ -427,7 +439,8 @@ struct sysdb_search_user_state {
     const char *filter;
     int scope;
 
-    struct ldb_message *msg;
+    size_t msgs_count;
+    struct ldb_message **msgs;
 };
 
 static void sysdb_search_user_cont(struct tevent_req *subreq);
@@ -453,7 +466,8 @@ struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->msg = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
 
     state->attrs = attrs ? attrs : def_attrs;
     state->filter = NULL;
@@ -512,7 +526,8 @@ struct tevent_req *sysdb_search_user_by_uid_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->msg = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
     state->attrs = attrs ? attrs : def_attrs;
 
     if (!sysdb) sysdb = handle->ctx;
@@ -592,7 +607,8 @@ static void sysdb_search_user_done(struct tevent_req *subreq)
                                             struct sysdb_search_user_state);
     int ret;
 
-    ret = sysdb_search_entry_recv(subreq, state, &state->msg);
+    ret = sysdb_search_entry_recv(subreq, state, &state->msgs_count,
+                                  &state->msgs);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -615,7 +631,12 @@ int sysdb_search_user_recv(struct tevent_req *req,
         return err;
     }
 
-    *msg = talloc_move(mem_ctx, &state->msg);
+    if (state->msgs_count > 1) {
+        DEBUG(1, ("More than one result found.\n"));
+        return EFAULT;
+    }
+
+    *msg = talloc_move(mem_ctx, &state->msgs[0]);
 
     return EOK;
 }
@@ -718,7 +739,8 @@ struct sysdb_search_group_state {
     const char *filter;
     int scope;
 
-    struct ldb_message *msg;
+    size_t msgs_count;
+    struct ldb_message **msgs;
 };
 
 static void sysdb_search_group_cont(struct tevent_req *subreq);
@@ -744,7 +766,8 @@ struct tevent_req *sysdb_search_group_by_name_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->msg = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
 
     state->attrs = attrs ? attrs : def_attrs;
     state->filter = NULL;
@@ -803,7 +826,8 @@ struct tevent_req *sysdb_search_group_by_gid_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->msg = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
     state->attrs = attrs ? attrs : def_attrs;
 
     if (!sysdb) sysdb = handle->ctx;
@@ -883,7 +907,8 @@ static void sysdb_search_group_done(struct tevent_req *subreq)
                                              struct sysdb_search_group_state);
     int ret;
 
-    ret = sysdb_search_entry_recv(subreq, state, &state->msg);
+    ret = sysdb_search_entry_recv(subreq, state, &state->msgs_count,
+                                  &state->msgs);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -906,7 +931,12 @@ int sysdb_search_group_recv(struct tevent_req *req,
         return err;
     }
 
-    *msg = talloc_move(mem_ctx, &state->msg);
+    if (state->msgs_count > 1) {
+        DEBUG(1, ("More than one result found.\n"));
+        return EFAULT;
+    }
+
+    *msg = talloc_move(mem_ctx, &state->msgs[0]);
 
     return EOK;
 }
@@ -3430,7 +3460,8 @@ struct sysdb_search_custom_state {
     const char *filter;
     int scope;
 
-    struct ldb_message *msg;
+    size_t msgs_count;
+    struct ldb_message **msgs;
 };
 
 static void sysdb_search_custom_check_handle_done(struct tevent_req *subreq);
@@ -3464,7 +3495,8 @@ struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
     state->attrs = attrs;
     state->filter = NULL;
     state->scope = LDB_SCOPE_BASE;
-    state->msg = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
 
     if (sysdb == NULL) {
         sysdb = handle->ctx;
@@ -3533,7 +3565,8 @@ static void sysdb_search_custom_done(struct tevent_req *subreq)
                                             struct sysdb_search_custom_state);
     int ret;
 
-    ret = sysdb_search_entry_recv(subreq, state, &state->msg);
+    ret = sysdb_search_entry_recv(subreq, state, &state->msgs_count,
+                                  &state->msgs);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -3556,7 +3589,12 @@ int sysdb_search_custom_recv(struct tevent_req *req,
         return err;
     }
 
-    *msg = talloc_move(mem_ctx, &state->msg);
+    if (state->msgs_count > 1) {
+        DEBUG(1, ("More than one result found.\n"));
+        return EFAULT;
+    }
+
+    *msg = talloc_move(mem_ctx, &state->msgs[0]);
 
     return EOK;
 }

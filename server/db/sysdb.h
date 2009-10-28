@@ -321,7 +321,8 @@ struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,
                                            const char **attrs);
 int sysdb_search_entry_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
-                            struct ldb_message **msg);
+                            size_t *msgs_size,
+                            struct ldb_message ***msgs);
 
 /* Search User (by uid or name) */
 struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,

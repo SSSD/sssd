@@ -163,6 +163,9 @@ struct test_data {
     const char *attrval;  /* testing sysdb_get_user_attr */
     const char **attrlist;
     struct ldb_message *msg;
+
+    size_t msgs_count;
+    struct ldb_message **msgs;
 };
 
 static int test_loop(struct test_data *data)
@@ -963,6 +966,47 @@ static void test_asq_search_done(struct tevent_req *req)
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
 
     data->finished = true;
+    return;
+}
+
+static void test_search_all_users_done(struct tevent_req *subreq);
+static void test_search_all_users(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    struct ldb_dn *base_dn;
+    int ret;
+
+    ret = sysdb_transaction_recv(subreq, data, &data->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    base_dn = ldb_dn_new_fmt(data, data->ctx->sysdb->ldb, SYSDB_TMPL_USER_BASE,
+                             "LOCAL");
+    if (base_dn == NULL) {
+        return test_return(data, ENOMEM);
+    }
+
+    subreq = sysdb_search_entry_send(data, data->ev, data->handle,
+                                     base_dn, LDB_SCOPE_SUBTREE,
+                                     "objectClass=user", data->attrlist);
+    if (!subreq) {
+        return test_return(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, test_search_all_users_done, data);
+}
+
+static void test_search_all_users_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_search_entry_recv(subreq, data, &data->msgs_count, &data->msgs);
+    talloc_zfree(subreq);
+
+    test_return(data, ret);
     return;
 }
 
@@ -2101,6 +2145,71 @@ START_TEST (test_sysdb_asq_search)
 }
 END_TEST
 
+START_TEST (test_sysdb_search_all_users)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+    int i;
+    char *uid_str;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed");
+
+    data->attrlist[0] = "uidNumber";
+    data->attrlist[1] = NULL;
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_search_all_users, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Search failed");
+
+    fail_unless(data->msgs_count == 10,
+                "wrong number of results, found [%d] expected [10]",
+                data->msgs_count);
+
+    for (i = 0; i < data->msgs_count; i++) {
+        fail_unless(data->msgs[i]->num_elements == 1,
+                    "wrong number of elements, found [%d] expected [1]",
+                    data->msgs[i]->num_elements);
+
+        fail_unless(data->msgs[i]->elements[0].num_values == 1,
+                    "wrong number of values, found [%d] expected [1]",
+                    data->msgs[i]->elements[0].num_values);
+
+        uid_str = talloc_asprintf(data, "%d", 27010 + i);
+        fail_unless(uid_str != NULL, "talloc_asprintf failed.");
+        fail_unless(strncmp(uid_str,
+                            (char *) data->msgs[i]->elements[0].values[0].data,
+                            data->msgs[i]->elements[0].values[0].length)  == 0,
+                            "wrong value, found [%.*s] expected [%s]",
+                            data->msgs[i]->elements[0].values[0].length,
+                            data->msgs[i]->elements[0].values[0].data, uid_str);
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2166,6 +2275,9 @@ Suite *create_sysdb_suite(void)
     /* ASQ search test */
     tcase_add_loop_test(tc_sysdb, test_sysdb_prepare_asq_test_user, 28011, 28020);
     tcase_add_test(tc_sysdb, test_sysdb_asq_search);
+
+    /* Test search with more than one result */
+    tcase_add_test(tc_sysdb, test_sysdb_search_all_users);
 
     /* Remove the members from the groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_group_member, 28010, 28020);
