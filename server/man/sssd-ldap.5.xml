@@ -69,6 +69,16 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            The default base DN to use for
+                            performing LDAP user operations.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_schema (string)</term>
                     <listitem>
                         <para>
@@ -132,8 +142,12 @@
                     <term>ldap_user_search_base (string)</term>
                     <listitem>
                         <para>
-                            The default base DN to use for
-                            performing LDAP user operations.
+                            An optional base DN to restrict user searches
+                            to a specific subtree.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -300,8 +314,12 @@
                     <term>ldap_group_search_base (string)</term>
                     <listitem>
                         <para>
-                            The default base DN to use for
-                            performing LDAP group operations.
+                            An optional base DN to restrict group searches
+                            to a specific subtree.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
                         </para>
                     </listitem>
                 </varlistentry>

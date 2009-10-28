@@ -89,6 +89,7 @@ enum sdap_result {
 
 enum sdap_basic_opt {
     SDAP_URI = 0,
+    SDAP_SEARCH_BASE,
     SDAP_DEFAULT_BIND_DN,
     SDAP_DEFAULT_AUTHTOK_TYPE,
     SDAP_DEFAULT_AUTHTOK,

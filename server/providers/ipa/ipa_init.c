@@ -64,15 +64,16 @@ int sssm_ipa_init(struct be_ctx *bectx,
         return ENOMEM;
     }
 
-    ctx = talloc_zero(bectx, struct sdap_id_ctx);
+    ctx = talloc_zero(ipa_options, struct sdap_id_ctx);
     if (!ctx) {
         return ENOMEM;
     }
     ctx->be = bectx;
+    ipa_options->id_ctx = ctx;
 
-    ret = ipa_get_id_options(ctx, bectx->cdb,
+    ret = ipa_get_id_options(ipa_options, bectx->cdb,
                              bectx->conf_path,
-                             ipa_options, &ctx->opts);
+                             &ctx->opts);
     if (ret != EOK) {
         goto done;
     }
@@ -95,7 +96,7 @@ int sssm_ipa_init(struct be_ctx *bectx,
 
 done:
     if (ret != EOK) {
-        talloc_free(ctx);
+        talloc_zfree(ipa_options->id_ctx);
     }
     return ret;
 }
@@ -104,11 +105,11 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
                        struct bet_ops **ops,
                        void **pvt_data)
 {
-    struct krb5_ctx *ctx = NULL;
-    int ret;
+    struct krb5_ctx *ctx;
     struct tevent_signal *sige;
-    unsigned v;
     FILE *debug_filep;
+    unsigned v;
+    int ret;
 
     if (!ipa_options) {
         ipa_get_options(bectx, bectx->cdb,
@@ -119,14 +120,22 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         return ENOMEM;
     }
 
+    if (ipa_options->auth_ctx) {
+        /* already initialized */
+        *ops = &ipa_auth_ops;
+        *pvt_data = ipa_options->auth_ctx;
+        return EOK;
+    }
+
     ctx = talloc_zero(bectx, struct krb5_ctx);
     if (!ctx) {
         return ENOMEM;
     }
+    ipa_options->auth_ctx = ctx;
 
-    ret = ipa_get_auth_options(ctx, bectx->cdb,
+    ret = ipa_get_auth_options(ipa_options, bectx->cdb,
                                bectx->conf_path,
-                               ipa_options, &ctx->opts);
+                               &ctx->opts);
     if (ret != EOK) {
         goto done;
     }
@@ -170,7 +179,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
 
 done:
     if (ret != EOK) {
-        talloc_free(ctx);
+        talloc_zfree(ipa_options->auth_ctx);
     }
     return ret;
 }

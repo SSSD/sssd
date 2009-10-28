@@ -29,16 +29,11 @@ struct dp_option ipa_basic_opts[] = {
     { "ipa_domain", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_server", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ipa_hostname", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ipa_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "ipa_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ipa_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
-    { "ipa_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
-    { "ipa_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
-    { "entry_cache_timeout", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
 };
 
 struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
@@ -191,14 +186,13 @@ done:
 /* the following preprocessor code is used to keep track of
  * the options in the ldap module, so that if they change and ipa
  * is not updated correspondingly this will trigger a build error */
-#if SDAP_OPTS_BASIC > 27
+#if SDAP_OPTS_BASIC > 28
 #error There are ldap options not accounted for
 #endif
 
-int ipa_get_id_options(TALLOC_CTX *memctx,
+int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
-                       struct ipa_options *ipa_opts,
                        struct sdap_options **_opts)
 {
     TALLOC_CTX *tmpctx;
@@ -209,122 +203,136 @@ int ipa_get_id_options(TALLOC_CTX *memctx,
     int ret;
     int i;
 
-    tmpctx = talloc_new(memctx);
+    tmpctx = talloc_new(ipa_opts);
     if (!tmpctx) {
         return ENOMEM;
     }
 
-    ipa_opts->id = talloc_zero(memctx, struct sdap_options);
+    ipa_opts->id = talloc_zero(ipa_opts, struct sdap_options);
     if (!ipa_opts->id) {
         ret = ENOMEM;
         goto done;
     }
 
-    /* generate sdap options */
-    ret = dp_copy_options(ipa_opts, ipa_def_ldap_opts,
-                          SDAP_OPTS_BASIC, &ipa_opts->id->basic);
+    /* get sdap options */
+    ret = dp_get_options(ipa_opts->id, cdb, conf_path,
+                         ipa_def_ldap_opts,
+                         SDAP_OPTS_BASIC,
+                         &ipa_opts->id->basic);
     if (ret != EOK) {
         goto done;
     }
 
     /* set ldap_uri */
-    value = talloc_asprintf(tmpctx, "ldap://%s",
-                            dp_opt_get_string(ipa_opts->basic, IPA_SERVER));
-    if (!value) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_URI, value);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    ret = domain_to_basedn(tmpctx,
-                           dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
-                           &basedn);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    /* FIXME: get values by querying IPA */
-    /* set ldap_user_search_base */
-    value = talloc_asprintf(tmpctx, "cn=users,cn=accounts,%s", basedn);
-    if (!value) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = dp_opt_set_string(ipa_opts->id->basic,
-                            SDAP_USER_SEARCH_BASE, value);
-    if (ret != EOK) {
-        goto done;
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_URI)) {
+        value = talloc_asprintf(tmpctx, "ldap://%s",
+                                dp_opt_get_string(ipa_opts->basic,
+                                                  IPA_SERVER));
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_URI, value);
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_URI].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic, SDAP_URI)));
     }
 
-    /* set ldap_group_search_base */
-    value = talloc_asprintf(tmpctx, "cn=groups,cn=accounts,%s", basedn);
-    if (!value) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = dp_opt_set_string(ipa_opts->id->basic,
-                            SDAP_GROUP_SEARCH_BASE, value);
-    if (ret != EOK) {
-        goto done;
-    }
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)) {
+        ret = domain_to_basedn(tmpctx,
+                               dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
+                               &basedn);
+        if (ret != EOK) {
+            goto done;
+        }
 
-    /* set the ldap_sasl_authid if the ipa_hostname override was specified */
-    hostname = dp_opt_get_string(ipa_opts->basic, IPA_HOSTNAME);
-    if (hostname) {
-        value = talloc_asprintf(tmpctx, "host/%s", hostname);
+        /* FIXME: get values by querying IPA */
+        /* set search base */
+        value = talloc_asprintf(tmpctx, "cn=accounts,%s", basedn);
         if (!value) {
             ret = ENOMEM;
             goto done;
         }
         ret = dp_opt_set_string(ipa_opts->id->basic,
-                                SDAP_SASL_AUTHID, value);
+                                SDAP_SEARCH_BASE, value);
         if (ret != EOK) {
             goto done;
         }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)));
+    }
+
+    /* set the ldap_sasl_authid if the ipa_hostname override was specified */
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_AUTHID)) {
+        hostname = dp_opt_get_string(ipa_opts->basic, IPA_HOSTNAME);
+        if (hostname) {
+            value = talloc_asprintf(tmpctx, "host/%s", hostname);
+            if (!value) {
+                ret = ENOMEM;
+                goto done;
+            }
+            ret = dp_opt_set_string(ipa_opts->id->basic,
+                                    SDAP_SASL_AUTHID, value);
+            if (ret != EOK) {
+                goto done;
+            }
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_SASL_AUTHID].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic, SDAP_SASL_AUTHID)));
     }
 
     /* set krb realm */
-    realm = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
-    for (i = 0; realm[i]; i++) {
-        realm[i] = toupper(realm[i]);
-    }
-    ret = dp_opt_set_string(ipa_opts->id->basic,
-                            SDAP_KRB5_REALM, realm);
-    if (ret != EOK) {
-        goto done;
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)) {
+        realm = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
+        for (i = 0; realm[i]; i++) {
+            realm[i] = toupper(realm[i]);
+        }
+        ret = dp_opt_set_string(ipa_opts->id->basic,
+                                SDAP_KRB5_REALM, realm);
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_KRB5_REALM].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)));
     }
 
     /* fix schema to IPAv1 for now */
     ipa_opts->id->schema_type = SDAP_SCHEMA_IPA_V1;
 
-    /* copy over timeouts */
-    ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_SEARCH_TIMEOUT,
-                         dp_opt_get_int(ipa_opts->basic,
-                                        IPA_SEARCH_TIMEOUT));
-    ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_NETWORK_TIMEOUT,
-                         dp_opt_get_int(ipa_opts->basic,
-                                        IPA_NETWORK_TIMEOUT));
-    ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_OPT_TIMEOUT,
-                         dp_opt_get_int(ipa_opts->basic,
-                                        IPA_OPT_TIMEOUT));
-    ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_OFFLINE_TIMEOUT,
-                         dp_opt_get_int(ipa_opts->basic,
-                                        IPA_OFFLINE_TIMEOUT));
-    ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_ENUM_REFRESH_TIMEOUT,
-                         dp_opt_get_int(ipa_opts->basic,
-                                        IPA_ENUM_REFRESH_TIMEOUT));
-    ret = dp_opt_set_int(ipa_opts->id->basic,
-                         SDAP_ENTRY_CACHE_TIMEOUT,
-                         dp_opt_get_int(ipa_opts->basic,
-                                        IPA_ENTRY_CACHE_TIMEOUT));
+    /* set user/group search bases if they are not specified */
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_USER_SEARCH_BASE)) {
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_USER_SEARCH_BASE,
+                                dp_opt_get_string(ipa_opts->id->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_USER_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic,
+                                    SDAP_USER_SEARCH_BASE)));
+    }
+
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_GROUP_SEARCH_BASE)) {
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_GROUP_SEARCH_BASE,
+                                dp_opt_get_string(ipa_opts->id->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic,
+                                    SDAP_GROUP_SEARCH_BASE)));
+    }
 
     ret = sdap_get_map(ipa_opts->id,
                        cdb, conf_path,
@@ -362,66 +370,70 @@ done:
 #error There are krb5 options not accounted for
 #endif
 
-int ipa_get_auth_options(TALLOC_CTX *memctx,
+int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct confdb_ctx *cdb,
                          const char *conf_path,
-                         struct ipa_options *ipa_opts,
                          struct dp_option **_opts)
 {
+    char *value;
     int ret;
     int i;
-    TALLOC_CTX *tmpctx;
-    struct dp_option *opts;
-    char *value;
 
-    tmpctx = talloc_new(memctx);
-    if (!tmpctx) {
-        return ENOMEM;
-    }
-
-    opts = talloc_zero(memctx, struct dp_option);
-    if (opts == NULL) {
+    ipa_opts->auth = talloc_zero(ipa_opts, struct dp_option);
+    if (ipa_opts->auth == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = dp_copy_options(ipa_opts, ipa_def_krb5_opts,
-                          KRB5_OPTS, &opts);
+    /* get krb5 options */
+    ret = dp_get_options(ipa_opts, cdb, conf_path,
+                         ipa_def_krb5_opts,
+                         KRB5_OPTS, &ipa_opts->auth);
     if (ret != EOK) {
         goto done;
     }
 
-    value = dp_opt_get_string(ipa_opts->basic, IPA_SERVER);
-    if (!value) {
-        ret = ENOMEM;
-        goto done;
-    }
-    ret = dp_opt_set_string(opts, KRB5_KDC, value);
-    if (ret != EOK) {
-        goto done;
-    }
-
-
-    value = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
-    if (!value) {
-        ret = ENOMEM;
-        goto done;
-    }
-    for (i = 0; value[i]; i++) {
-        value[i] = toupper(value[i]);
-    }
-    ret = dp_opt_set_string(opts, KRB5_REALM, value);
-    if (ret != EOK) {
-        goto done;
+    /* set KDC */
+    if (NULL == dp_opt_get_string(ipa_opts->auth, KRB5_KDC)) {
+        value = dp_opt_get_string(ipa_opts->basic, IPA_SERVER);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+        ret = dp_opt_set_string(ipa_opts->auth, KRB5_KDC, value);
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->auth[KRB5_KDC].opt_name,
+                  dp_opt_get_string(ipa_opts->auth, KRB5_KDC)));
     }
 
-    *_opts = opts;
+    /* set krb realm */
+    if (NULL == dp_opt_get_string(ipa_opts->auth, KRB5_REALM)) {
+        value = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
+        if (!value) {
+            ret = ENOMEM;
+            goto done;
+        }
+        for (i = 0; value[i]; i++) {
+            value[i] = toupper(value[i]);
+        }
+        ret = dp_opt_set_string(ipa_opts->auth, KRB5_REALM, value);
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->auth[KRB5_REALM].opt_name,
+                  dp_opt_get_string(ipa_opts->auth, KRB5_REALM)));
+    }
+
+    *_opts = ipa_opts->auth;
     ret = EOK;
 
 done:
-    talloc_zfree(tmpctx);
     if (ret != EOK) {
-        talloc_zfree(opts);
+        talloc_zfree(ipa_opts->auth);
     }
     return ret;
 }

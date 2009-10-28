@@ -26,6 +26,7 @@
 
 struct dp_option default_basic_opts[] = {
     { "ldap_uri", DP_OPT_STRING, { "ldap://localhost" }, NULL_STRING },
+    { "ldap_search_base", DP_OPT_STRING, { "dc=example,dc=com" }, NULL_STRING },
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
@@ -33,10 +34,10 @@ struct dp_option default_basic_opts[] = {
     { "ldap_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_tls_reqcert", DP_OPT_STRING, { "hard" }, NULL_STRING },
-    { "ldap_user_search_base", DP_OPT_STRING, { "ou=People,dc=example,dc=com" }, NULL_STRING },
+    { "ldap_user_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_user_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_user_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
-    { "ldap_group_search_base", DP_OPT_STRING, { "ou=Group,dc=example,dc=com" }, NULL_STRING },
+    { "ldap_group_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
@@ -149,6 +150,31 @@ int ldap_get_options(TALLOC_CTX *memctx,
                          &opts->basic);
     if (ret != EOK) {
         goto done;
+    }
+
+    /* set user/group search bases if they are not */
+    if (NULL == dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_BASE)) {
+        ret = dp_opt_set_string(opts->basic, SDAP_USER_SEARCH_BASE,
+                                dp_opt_get_string(opts->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  opts->basic[SDAP_USER_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_BASE)));
+    }
+
+    if (NULL == dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_BASE)) {
+        ret = dp_opt_set_string(opts->basic, SDAP_GROUP_SEARCH_BASE,
+                                dp_opt_get_string(opts->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  opts->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_BASE)));
     }
 
     /* schema type */

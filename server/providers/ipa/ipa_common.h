@@ -31,19 +31,20 @@ enum ipa_basic_opt {
     IPA_DOMAIN = 0,
     IPA_SERVER,
     IPA_HOSTNAME,
-    IPA_SEARCH_TIMEOUT,
-    IPA_NETWORK_TIMEOUT,
-    IPA_OPT_TIMEOUT,
-    IPA_OFFLINE_TIMEOUT,
-    IPA_ENUM_REFRESH_TIMEOUT,
-    IPA_ENTRY_CACHE_TIMEOUT,
 
     IPA_OPTS_BASIC /* opts counter */
 };
 
 struct ipa_options {
     struct dp_option *basic;
+
+    /* id provider */
     struct sdap_options *id;
+    struct sdap_id_ctx *id_ctx;
+
+    /* auth and chpass provider */
+    struct dp_option *auth;
+    struct krb5_ctx *auth_ctx;
 };
 
 /* options parsers */
@@ -53,16 +54,14 @@ int ipa_get_options(TALLOC_CTX *memctx,
                     struct sss_domain_info *dom,
                     struct ipa_options **_opts);
 
-int ipa_get_id_options(TALLOC_CTX *memctx,
+int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
-                       struct ipa_options *ipa_opts,
                        struct sdap_options **_opts);
 
-int ipa_get_auth_options(TALLOC_CTX *memctx,
+int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct confdb_ctx *cdb,
                          const char *conf_path,
-                         struct ipa_options *ipa_opts,
                          struct dp_option **_opts);
 
 #endif /* _IPA_COMMON_H_ */

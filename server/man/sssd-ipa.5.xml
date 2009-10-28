@@ -39,7 +39,18 @@
             and configuration is almost entirely self discovered and obtained
             directly from the server.
         </para>
-
+        <para>
+            The IPA provider also accepts the same options used by the
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> identity provider and the
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> authentication provider.
+            But it is not recommended to set these options and it is not necessary.
+        </para>
     </refsect1>
 
     <refsect1 id='file-format'>
@@ -83,68 +94,6 @@
                     </listitem>
                 </varlistentry>
 
-                <varlistentry>
-                    <term>krb5_ccachedir (string)</term>
-                    <listitem>
-                        <para>
-                            Directory to store credential caches.
-                        </para>
-                        <para>
-                            Default: /tmp
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ipa_search_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Specifies the timeout (in seconds) after which
-                            a search against the ipa server is forcibly
-                            terminated.
-                        </para>
-                        <para>
-                            Default: 60
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ipa_network_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Specifies the timeout (in seconds) after which
-                            the
-                            <citerefentry>
-                                <refentrytitle>poll</refentrytitle>
-                                <manvolnum>2</manvolnum>
-                            </citerefentry>/<citerefentry>
-                                <refentrytitle>select</refentrytitle>
-                                <manvolnum>2</manvolnum>
-                            </citerefentry>
-                            following a non-search operation against the ipa
-                            server is forcibly terminated.
-                        </para>
-                        <para>
-                            Default: 6
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>ipa_offline_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            Specifies the "black-out" time before any new
-                            network operation is attempted after the ipa
-                            provider has turned into offline operation mode.
-                        </para>
-                        <para>
-                            Default: 60
-                        </para>
-                    </listitem>
-                </varlistentry>
-
             </variablelist>
         </para>
     </refsect1>
@@ -172,6 +121,12 @@
         <para>
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>
