@@ -144,7 +144,9 @@ int ipa_get_options(TALLOC_CTX *memctx,
     struct ipa_options *opts;
     char *domain;
     char *server;
+    char *ipa_hostname;
     int ret;
+    char hostname[HOST_NAME_MAX + 1];
 
     opts = talloc_zero(memctx, struct ipa_options);
     if (!opts) return ENOMEM;
@@ -172,6 +174,24 @@ int ipa_get_options(TALLOC_CTX *memctx,
         ret = EINVAL;
         goto done;
     }
+
+    ipa_hostname = dp_opt_get_string(opts->basic, IPA_HOSTNAME);
+    if (ipa_hostname == NULL) {
+        ret = gethostname(hostname, HOST_NAME_MAX);
+        if (ret != EOK) {
+            DEBUG(1, ("gethostname failed [%d][%s].\n", errno,
+                      strerror(errno)));
+            ret = errno;
+            goto done;
+        }
+        hostname[HOST_NAME_MAX] = '\0';
+        DEBUG(9, ("Setting ipa_hostname to [%s].\n", hostname));
+        ret = dp_opt_set_string(opts->basic, IPA_HOSTNAME, hostname);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
 
     ret = EOK;
     *_opts = opts;
