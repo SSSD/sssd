@@ -30,8 +30,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         sssd_service = sssdconfig.get_service('sssd')
         service_opts = sssd_service.list_options()
 
-        self.assertTrue('config_file_version' in service_opts.keys())
-        self.assertEquals(sssd_service.get_option('config_file_version'), 2)
 
         self.assertTrue('services' in service_opts.keys())
         service_list = sssd_service.get_option('services')
@@ -58,9 +56,6 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         self.assertTrue('reconnection_retries' in new_options)
         self.assertEquals(new_options['reconnection_retries'][0], int)
-
-        self.assertTrue('config_file_version' in new_options)
-        self.assertEquals(new_options['config_file_version'][0], int)
 
         self.assertTrue('services' in new_options)
         self.assertEquals(new_options['debug_level'][0], int)
@@ -201,7 +196,6 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
 
         options = service.list_options()
         control_list = [
-            'config_file_version',
             'services',
             'domains',
             'timeout',
@@ -229,23 +223,23 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                             'Option [%s] unexpectedly found' %
                             option)
 
-        self.assertTrue(type(options['config_file_version']) == tuple,
+        self.assertTrue(type(options['reconnection_retries']) == tuple,
                         "Option values should be a tuple")
 
-        self.assertTrue(options['config_file_version'][0] == int,
-                        "config_file_version should require an int. " +
+        self.assertTrue(options['reconnection_retries'][0] == int,
+                        "reconnection_retries should require an int. " +
                         "list_options is requiring a %s" %
-                        options['config_file_version'][0])
+                        options['reconnection_retries'][0])
 
-        self.assertTrue(options['config_file_version'][1] == None,
-                        "config_file_version should not require a subtype. " +
+        self.assertTrue(options['reconnection_retries'][1] == None,
+                        "reconnection_retries should not require a subtype. " +
                         "list_options is requiring a %s" %
-                        options['config_file_version'][1])
+                        options['reconnection_retries'][1])
 
-        self.assertTrue(options['config_file_version'][0] == int,
-                        "config_file_version should default to 2. " +
+        self.assertTrue(options['reconnection_retries'][0] == int,
+                        "reconnection_retries should default to 2. " +
                         "list_options specifies %d" %
-                        options['config_file_version'][2])
+                        options['reconnection_retries'][2])
 
         self.assertTrue(type(options['services']) == tuple,
                         "Option values should be a tuple")
@@ -922,6 +916,26 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                                "etc/sssd.api.d")
             sssdconfig.import_config("testconfigs/sssd-invalid.conf")
+        except SSSDConfig.ParsingError:
+            pass
+        else:
+            self.fail("Expected ParsingError")
+
+        # Negative Test - Invalid config file version
+        try:
+            sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                               "etc/sssd.api.d")
+            sssdconfig.import_config("testconfigs/sssd-badversion.conf")
+        except SSSDConfig.ParsingError:
+            pass
+        else:
+            self.fail("Expected ParsingError")
+
+        # Negative Test - No config file version
+        try:
+            sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                               "etc/sssd.api.d")
+            sssdconfig.import_config("testconfigs/sssd-noversion.conf")
         except SSSDConfig.ParsingError:
             pass
         else:

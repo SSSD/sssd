@@ -199,11 +199,19 @@ class SSSDService:
         # Set up the service object with any known defaults
         self.options = {}
 
+        # Include a list of hidden options
+        self.hidden_options = []
+
         # Set up default options for all services
         self.options.update(self.schema.get_defaults('service'))
 
         # Set up default options for this service
         self.options.update(self.schema.get_defaults(self.name))
+
+        # For the [sssd] service, force the config file version
+        if servicename == 'sssd':
+            self.options['config_file_version'] = 2
+            self.hidden_options.append('config_file_version')
 
     def get_name(self):
         return self.name
@@ -228,6 +236,10 @@ class SSSDService:
             option_schema = self.schema.get_option(self.name, optionname)
         elif self.schema.has_option('service', optionname):
             option_schema = self.schema.get_option('service', optionname)
+        elif optionname in self.hidden_options:
+            # Set this option and do not add it to the list of changeable values
+            self.options[optionname] = value
+            return
         else:
             raise NoOptionError('Section [%s] has no option [%s]' % (self.name, optionname))
 
@@ -442,6 +454,7 @@ class SSSDConfig(RawConfigParser):
         self.schema = SSSDConfigSchema(schemafile, schemaplugindir)
         self.configfile = None
         self.initialized = False
+        self.API_VERSION = 2
 
     def import_config(self,configfile=None):
         if self.initialized:
@@ -461,6 +474,14 @@ class SSSDConfig(RawConfigParser):
         fd.close()
         self.configfile = configfile
         self.initialized = True
+
+        try:
+            if int(self.get('sssd', 'config_file_version')) != self.API_VERSION:
+                raise ParsingError("Wrong config_file_version")
+        except:
+            # Either the 'sssd' section or the 'config_file_version' was not
+            # present in the config file
+            raise ParsingError("File contains no config_file_version")
 
     def new_config(self):
         if self.initialized:
