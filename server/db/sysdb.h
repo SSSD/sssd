@@ -190,6 +190,8 @@ struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
 struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle);
 
+int compare_ldb_dn_comp_num(const void *m1, const void *m2);
+
 /* function to start and finish a transaction
  * sysdb_transaction_send() will queue a request for a transaction
  * when it is done it will call the tevent_req callback, which must
@@ -310,6 +312,14 @@ struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
                                            struct ldb_dn *dn,
                                            bool ignore_not_found);
 int sysdb_delete_entry_recv(struct tevent_req *req);
+
+
+struct tevent_req *sysdb_delete_recursive_send(TALLOC_CTX *mem_ctx,
+                                               struct tevent_context *ev,
+                                               struct sysdb_handle *handle,
+                                               struct ldb_dn *dn,
+                                               bool ignore_not_found);
+int sysdb_delete_recursive_recv(struct tevent_req *req);
 
 /* Search Entry */
 struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,

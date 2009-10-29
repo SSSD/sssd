@@ -843,6 +843,7 @@ static void test_store_custom(struct tevent_req *subreq)
     struct test_data *data = tevent_req_callback_data(subreq,
                                                       struct test_data);
     int ret;
+    char *object_name;
 
     ret = sysdb_transaction_recv(subreq, data, &data->handle);
     talloc_zfree(subreq);
@@ -850,8 +851,13 @@ static void test_store_custom(struct tevent_req *subreq)
         return test_return(data, ret);
     }
 
+    object_name = talloc_asprintf(data, "%s_%d", CUSTOM_TEST_OBJECT, data->uid);
+    if (!object_name) {
+        return test_return(data, ENOMEM);
+    }
+
     subreq = sysdb_store_custom_send(data, data->ev, data->handle,
-                                 data->ctx->domain, CUSTOM_TEST_OBJECT,
+                                 data->ctx->domain, object_name,
                                  CUSTOM_TEST_CONTAINER, data->attrs);
     if (!subreq) {
         return test_return(data, ENOMEM);
@@ -877,6 +883,10 @@ static void test_search_custom_by_name_done(struct tevent_req *subreq)
 
     ret = sysdb_search_custom_recv(subreq, data, &data->msg);
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        data->error = ret;
+        goto done;
+    }
 
     fail_unless(data->msg->num_elements == 1,
                 "Wrong number of results, expected [1] got [%d]",
@@ -889,6 +899,7 @@ static void test_search_custom_by_name_done(struct tevent_req *subreq)
                 TEST_ATTR_VALUE, data->msg->elements[0].values[0].length) == 0,
                 "Wrong attribute value");
 
+done:
     data->finished = true;
     return;
 }
@@ -901,6 +912,10 @@ static void test_search_custom_update_done(struct tevent_req *subreq)
 
     ret = sysdb_search_custom_recv(subreq, data, &data->msg);
     talloc_zfree(subreq);
+    if (ret != EOK) {
+        data->error = ret;
+        goto done;
+    }
 
     fail_unless(data->msg->num_elements == 2,
                 "Wrong number of results, expected [1] got [%d]",
@@ -922,6 +937,7 @@ static void test_search_custom_update_done(struct tevent_req *subreq)
                 el->values[0].length) == 0,
                 "Wrong attribute value");
 
+done:
     data->finished = true;
     return;
 }
@@ -1008,6 +1024,46 @@ static void test_search_all_users_done(struct tevent_req *subreq)
 
     test_return(data, ret);
     return;
+}
+
+static void test_delete_recursive_done(struct tevent_req *subreq);
+
+static void test_delete_recursive(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq,
+                                                      struct test_data);
+    int ret;
+    struct ldb_dn *dn;
+
+    ret = sysdb_transaction_recv(subreq, data, &data->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    dn = ldb_dn_new_fmt(data, data->handle->ctx->ldb, SYSDB_DOM_BASE,
+                        "LOCAL");
+    if (!dn) {
+        return test_return(data, ENOMEM);
+    }
+
+    subreq = sysdb_delete_recursive_send(data, data->ev, data->handle, dn,
+                                         false);
+    if (!subreq) {
+        return test_return(data, ENOMEM);
+    }
+    tevent_req_set_callback(subreq, test_delete_recursive_done, data);
+}
+
+static void test_delete_recursive_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_delete_recursive_recv(subreq);
+    talloc_zfree(subreq);
+    fail_unless(ret == EOK, "sysdb_delete_recursive_recv returned [%d]", ret);
+    return test_return(data, ret);
 }
 
 START_TEST (test_sysdb_store_user)
@@ -1826,6 +1882,7 @@ START_TEST (test_sysdb_store_custom)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
+    data->uid = _i;
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
         fail("Could not create attribute list");
@@ -1862,6 +1919,7 @@ START_TEST (test_sysdb_search_custom_by_name)
     struct test_data *data;
     struct tevent_req *subreq;
     int ret;
+    char *object_name;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -1879,10 +1937,13 @@ START_TEST (test_sysdb_search_custom_by_name)
     data->attrlist[0] = TEST_ATTR_NAME;
     data->attrlist[1] = NULL;
 
+    object_name = talloc_asprintf(data, "%s_%d", CUSTOM_TEST_OBJECT, 29010);
+    fail_unless(object_name != NULL, "talloc_asprintf failed");
+
     subreq = sysdb_search_custom_by_name_send(data, data->ev,
                                                data->ctx->sysdb, NULL,
                                                data->ctx->domain,
-                                               CUSTOM_TEST_OBJECT,
+                                               object_name,
                                                CUSTOM_TEST_CONTAINER,
                                                data->attrlist);
     if (!subreq) {
@@ -1917,6 +1978,7 @@ START_TEST (test_sysdb_update_custom)
     data = talloc_zero(test_ctx, struct test_data);
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
+    data->uid = 29010;
     data->attrs = sysdb_new_attrs(test_ctx);
     if (ret != EOK) {
         fail("Could not create attribute list");
@@ -1961,6 +2023,7 @@ START_TEST (test_sysdb_search_custom_update)
     struct test_data *data;
     struct tevent_req *subreq;
     int ret;
+    char *object_name;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -1979,10 +2042,13 @@ START_TEST (test_sysdb_search_custom_update)
     data->attrlist[1] = TEST_ATTR_ADD_NAME;
     data->attrlist[2] = NULL;
 
+    object_name = talloc_asprintf(data, "%s_%d", CUSTOM_TEST_OBJECT, 29010);
+    fail_unless(object_name != NULL, "talloc_asprintf failed");
+
     subreq = sysdb_search_custom_by_name_send(data, data->ev,
                                                data->ctx->sysdb, NULL,
                                                data->ctx->domain,
-                                               CUSTOM_TEST_OBJECT,
+                                               object_name,
                                                CUSTOM_TEST_CONTAINER,
                                                data->attrlist);
     if (!subreq) {
@@ -2210,6 +2276,40 @@ START_TEST (test_sysdb_search_all_users)
 }
 END_TEST
 
+START_TEST (test_sysdb_delete_recursive)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+
+    subreq = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_delete_recursive, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Recursive delete failed");
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2295,11 +2395,14 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_remove_nonexistent_group);
 
     /* test custom operations */
-    tcase_add_test(tc_sysdb, test_sysdb_store_custom);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_store_custom, 29010, 29020);
     tcase_add_test(tc_sysdb, test_sysdb_search_custom_by_name);
     tcase_add_test(tc_sysdb, test_sysdb_update_custom);
     tcase_add_test(tc_sysdb, test_sysdb_search_custom_update);
     tcase_add_test(tc_sysdb, test_sysdb_delete_custom);
+
+    /* test recursive delete */
+    tcase_add_test(tc_sysdb, test_sysdb_delete_recursive);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);

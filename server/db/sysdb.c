@@ -1417,3 +1417,15 @@ int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
     /* definitely not found */
     return ENOENT;
 }
+
+
+int compare_ldb_dn_comp_num(const void *m1, const void *m2)
+{
+    struct ldb_message *msg1 = talloc_get_type(*(void **) discard_const(m1),
+                                               struct ldb_message);
+    struct ldb_message *msg2 = talloc_get_type(*(void **) discard_const(m2),
+                                               struct ldb_message);
+
+    return ldb_dn_get_comp_num(msg2->dn) - ldb_dn_get_comp_num(msg1->dn);
+}
+

@@ -300,6 +300,159 @@ int sysdb_delete_entry_recv(struct tevent_req *req)
 }
 
 
+/* =Remove-Subentries-From-Sysdb=============================================== */
+
+struct sysdb_delete_recursive_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+
+    bool ignore_not_found;
+
+    struct ldb_reply *ldbreply;
+    size_t msgs_count;
+    struct ldb_message **msgs;
+    size_t current_item;
+};
+
+static void sysdb_delete_search_done(struct tevent_req *subreq);
+static void sysdb_delete_recursive_prepare_op(struct tevent_req *req);
+static void sysdb_delete_recursive_op_done(struct tevent_req *req);
+
+struct tevent_req *sysdb_delete_recursive_send(TALLOC_CTX *mem_ctx,
+                                               struct tevent_context *ev,
+                                               struct sysdb_handle *handle,
+                                               struct ldb_dn *dn,
+                                               bool ignore_not_found)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_delete_recursive_state *state;
+    int ret;
+    const char *no_attrs[] = { NULL };
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sysdb_delete_recursive_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->handle = handle;
+    state->ignore_not_found = ignore_not_found;
+    state->ldbreply = NULL;
+    state->msgs_count = 0;
+    state->msgs = NULL;
+    state->current_item = 0;
+
+    subreq = sysdb_search_entry_send(state, ev, handle, dn, LDB_SCOPE_SUBTREE,
+                                     "(distinguishedName=*)", no_attrs);
+
+    if (!subreq) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_search_done, req);
+
+    return req;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sysdb_delete_search_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct sysdb_delete_recursive_state *state = tevent_req_data(req,
+                                           struct sysdb_delete_recursive_state);
+    int ret;
+
+    ret = sysdb_search_entry_recv(subreq, state, &state->msgs_count,
+                                  &state->msgs);
+    talloc_zfree(subreq);
+    if (ret) {
+        if (state->ignore_not_found && ret == ENOENT) {
+            tevent_req_done(req);
+            return;
+        }
+        DEBUG(6, ("Search error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+    DEBUG(9, ("Found [%d] items to delete.\n", state->msgs_count));
+
+    qsort(state->msgs, state->msgs_count, sizeof(struct ldb_message *),
+          compare_ldb_dn_comp_num);
+
+    state->current_item = 0;
+    sysdb_delete_recursive_prepare_op(req);
+}
+
+static void sysdb_delete_recursive_prepare_op(struct tevent_req *req)
+{
+    struct sysdb_delete_recursive_state *state = tevent_req_data(req,
+                                           struct sysdb_delete_recursive_state);
+    struct tevent_req *subreq;
+    int ret;
+    struct ldb_request *ldbreq;
+
+    if (state->current_item < state->msgs_count) {
+        DEBUG(9 ,("Trying to delete [%s].\n",
+                  ldb_dn_canonical_string(state,
+                                        state->msgs[state->current_item]->dn)));
+        ret = ldb_build_del_req(&ldbreq, state->handle->ctx->ldb, state,
+                                state->msgs[state->current_item]->dn, NULL,
+                                NULL, NULL, NULL);
+        if (ret != LDB_SUCCESS) {
+            DEBUG(1, ("LDB Error: %s(%d)\nError Message: [%s]\n",
+                      ldb_strerror(ret), ret,
+                      ldb_errstring(state->handle->ctx->ldb)));
+            ret = sysdb_error_to_errno(ret);
+            goto fail;
+        }
+
+        subreq = sldb_request_send(state, state->ev, state->handle->ctx->ldb,
+                                   ldbreq);
+        if (!subreq) {
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        state->current_item++;
+        tevent_req_set_callback(subreq, sysdb_delete_recursive_op_done, req);
+        return;
+    }
+
+    tevent_req_done(req);
+    return;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    tevent_req_error(req, ret);
+}
+
+static void sysdb_delete_recursive_op_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    int ret;
+
+    ret = sysdb_op_default_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(6, ("Delete error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sysdb_delete_recursive_prepare_op(req);
+}
+
+int sysdb_delete_recursive_recv(struct tevent_req *req)
+{
+    return sysdb_op_default_recv(req);
+}
+
+
 /* =Search-Entry========================================================== */
 
 static void sysdb_search_entry_done(struct tevent_req *subreq);
