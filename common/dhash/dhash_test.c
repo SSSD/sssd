@@ -285,7 +285,7 @@ int main(int argc, char **argv)
 
     /* Get an array of keys in the table, print them out */
     {
-        unsigned long i, count;
+        unsigned long count;
         hash_key_t *keys;
 
         if (verbose) printf("\nhash_keys:\n");
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
 
     /* Get an array of values in the table, print them out */
     {
-        unsigned long i, count;
+        unsigned long count;
         hash_value_t *values;
 
         if (verbose) printf("\nhash_values:\n");
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 
     /* Get an array of items in the table, print them out */
     {
-        unsigned long i, count;
+        unsigned long count;
         hash_entry_t *entries;
 
         if (verbose) printf("\nhash_entries:\n");

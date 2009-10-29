@@ -25,7 +25,7 @@ bool visit_callback(hash_entry_t *entry, void *user_data)
     return true;
 }
 
-struct my_data_t *new_data(int foo, char *bar)
+struct my_data_t *new_data(int foo, const char *bar)
 {
     struct my_data_t *my_data = malloc(sizeof(struct my_data_t));
     my_data->foo = foo;
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
     /* Enter a key named "My Data" and specify it's value as a pointer to my_data */
     key.type = HASH_KEY_STRING;
-    key.str = "My Data";
+    key.str = strdup("My Data");
     value.type = HASH_VALUE_PTR;
     value.ptr = my_data;
 
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 
     /* Lookup the key named "My Data" */
     key.type = HASH_KEY_STRING;
-    key.str = "My Data";
+    key.str = strdup("My Data");
     if ((error = hash_lookup(table, &key, &value)) != HASH_SUCCESS) {
         fprintf(stderr, "cannot find key \"%s\" (%s)\n", key.str, hash_error_string(error));
     }
@@ -91,9 +91,9 @@ int main(int argc, char **argv)
     n_entries = 0;
     iter = new_hash_iter_context(table);
     while ((entry = iter->next(iter)) != NULL) {
-        struct my_data_t *my_data = (struct my_data_t *) entry->value.ptr;
+        struct my_data_t *data = (struct my_data_t *) entry->value.ptr;
 
-        printf("%s = [foo=%d bar=%s]\n", entry->key.str, my_data->foo, my_data->bar);
+        printf("%s = [foo=%d bar=%s]\n", entry->key.str, data->foo, data->bar);
         n_entries++;
     }
     free(iter);
@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 
     /* Remove the entry, deletion callback will be invoked */
     key.type = HASH_KEY_STRING;
-    key.str = "My Data";
+    key.str = strdup("My Data");
     if ((error = hash_delete(table, &key)) != HASH_SUCCESS) {
         fprintf(stderr, "cannot delete from table (%s)\n", hash_error_string(error));
     }
