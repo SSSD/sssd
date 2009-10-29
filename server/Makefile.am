@@ -69,7 +69,8 @@ if HAVE_CHECK
         krb5-utils-tests \
         check_and_open-tests \
         files-tests \
-        refcount-tests
+        refcount-tests \
+        fail_over-tests
 endif
 
 check_PROGRAMS = \
@@ -209,6 +210,9 @@ if BUILD_ARES_PARSE_TXT
     SSSD_RESOLV_OBJ += resolv/ares/ares_parse_txt_reply.c
 endif
 
+SSSD_FAILOVER_OBJ = \
+    providers/fail_over.c \
+    $(SSSD_RESOLV_OBJ)
 
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
@@ -279,6 +283,7 @@ dist_noinst_HEADERS = \
     confdb/confdb_setup.h \
     providers/data_provider.h \
     providers/dp_backend.h \
+    providers/fail_over.h \
     providers/providers.h \
     providers/krb5/krb5_auth.h \
     providers/krb5/krb5_common.h \
@@ -478,6 +483,19 @@ refcount_tests_CFLAGS = \
 refcount_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
+
+fail_over_tests_SOURCES = \
+    tests/fail_over-tests.c \
+    tests/common.c \
+    $(SSSD_FAILOVER_OBJ) \
+    $(CHECK_OBJ) \
+    $(SSSD_UTIL_OBJ)
+fail_over_tests_CFLAGS = \
+    $(CHECK_CFLAGS)
+fail_over_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(CARES_LIBS)
 endif
 
 stress_tests_SOURCES = \
