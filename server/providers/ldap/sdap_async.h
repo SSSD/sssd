@@ -91,20 +91,22 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
 int sdap_exop_modify_passwd_recv(struct tevent_req *req, enum sdap_result *result);
 
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
-                                                struct tevent_context *ev,
-                                                struct sdap_options *opts);
-int sdap_cli_connect_recv(struct tevent_req *req, TALLOC_CTX *memctx,
-                                 struct sdap_handle **gsh);
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sysdb_attrs **rootdse);
+int sdap_cli_connect_recv(struct tevent_req *req,
+                          TALLOC_CTX *memctx,
+                          struct sdap_handle **gsh,
+                          struct sysdb_attrs **rootdse);
 
 struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
-                                       struct tevent_context *ev,
-                                       struct sss_domain_info *dom,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sdap_options *opts,
-                                       struct sdap_handle *sh,
-                                       const char **attrs,
-                                       const char *filter,
-                                       const char *search_base);
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sdap_handle *sh,
+                                         const char *search_base,
+                                         int scope,
+                                         const char *filter,
+                                         const char **attrs);
 int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);

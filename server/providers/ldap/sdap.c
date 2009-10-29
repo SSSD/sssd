@@ -192,9 +192,9 @@ fail:
 }
 
 int sdap_parse_generic_entry(TALLOC_CTX *memctx,
-                                    struct sdap_handle *sh,
-                                    struct sdap_msg *sm,
-                                    struct sysdb_attrs **_attrs)
+                             struct sdap_handle *sh,
+                             struct sdap_msg *sm,
+                             struct sysdb_attrs **_attrs)
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
@@ -386,3 +386,37 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
 
     return EOK;
 }
+
+
+bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
+                                         const char *sasl_mech)
+{
+    struct ldb_message_element *el = NULL;
+    struct ldb_val *val;
+    int i;
+
+    for (i = 0; i < rootdse->num; i++) {
+        if (strcasecmp(rootdse->a[i].name, "supportedSASLMechanisms")) {
+            continue;
+        }
+        el = &rootdse->a[i];
+        break;
+    }
+
+    if (!el) {
+        /* no supported SASL Mechanism at all ? */
+        return false;
+    }
+
+    for (i = 0; i < el->num_values; i++) {
+        val = &el->values[i];
+        if (strncasecmp(sasl_mech, (const char *)val->data, val->length)) {
+            continue;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+

@@ -30,6 +30,9 @@ struct sdap_id_ctx {
 
     struct sdap_options *opts;
 
+    /* what rootDSE returns */
+    struct sysdb_attrs *rootDSE;
+
     /* global sdap handler */
     struct sdap_handle *gsh;
 

@@ -215,4 +215,7 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
 
 errno_t setup_tls_config(struct dp_option *basic_opts);
 
+bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
+                                         const char *sasl_mech);
+
 #endif /* _SDAP_H_ */

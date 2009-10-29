@@ -147,7 +147,7 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -185,9 +185,13 @@ static void users_get_connect_done(struct tevent_req *subreq)
                                                      struct users_get_state);
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_cli_connect_recv(subreq, state->ctx,
+                                &state->ctx->gsh, &state->ctx->rootDSE);
     talloc_zfree(subreq);
     if (ret) {
+        if (ret == ENOTSUP) {
+            DEBUG(0, ("Authentication mechanism not Supported by server"));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -314,7 +318,7 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -352,9 +356,13 @@ static void groups_get_connect_done(struct tevent_req *subreq)
                                                      struct groups_get_state);
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_cli_connect_recv(subreq, state->ctx,
+                                &state->ctx->gsh, &state->ctx->rootDSE);
     talloc_zfree(subreq);
     if (ret) {
+        if (ret == ENOTSUP) {
+            DEBUG(0, ("Authentication mechanism not Supported by server"));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -456,7 +464,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -494,9 +502,13 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                                      struct groups_by_user_state);
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_cli_connect_recv(subreq, state->ctx,
+                                &state->ctx->gsh, &state->ctx->rootDSE);
     talloc_zfree(subreq);
     if (ret) {
+        if (ret == ENOTSUP) {
+            DEBUG(0, ("Authentication mechanism not Supported by server"));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -912,7 +924,7 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -951,9 +963,13 @@ static void enum_users_connect_done(struct tevent_req *subreq)
                                                      struct enum_users_state);
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_cli_connect_recv(subreq, state->ctx,
+                                &state->ctx->gsh, &state->ctx->rootDSE);
     talloc_zfree(subreq);
     if (ret) {
+        if (ret == ENOTSUP) {
+            DEBUG(0, ("Authentication mechanism not Supported by server"));
+        }
         tevent_req_error(req, ret);
         return;
     }
@@ -1059,7 +1075,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -1097,9 +1113,13 @@ static void enum_groups_connect_done(struct tevent_req *subreq)
                                                  struct enum_groups_state);
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state->ctx, &state->ctx->gsh);
+    ret = sdap_cli_connect_recv(subreq, state->ctx,
+                                &state->ctx->gsh, &state->ctx->rootDSE);
     talloc_zfree(subreq);
     if (ret) {
+        if (ret == ENOTSUP) {
+            DEBUG(0, ("Authentication mechanism not Supported by server"));
+        }
         tevent_req_error(req, ret);
         return;
     }

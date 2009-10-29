@@ -2276,7 +2276,6 @@ static void sdap_get_users_transaction(struct tevent_req *subreq)
     }
     DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
 
-    /* FIXME: get timeouts from configuration, for now 10 minutes */
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_users_done, req,
                       dp_opt_get_int(state->opts->basic,
@@ -3233,22 +3232,127 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* ==Fetch-RootDSE============================================= */
+
+struct sdap_get_rootdse_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+
+    struct sysdb_attrs *rootdse;
+};
+
+static void sdap_get_rootdse_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sdap_handle *sh)
+{
+    struct tevent_req *req, *subreq;
+    struct sdap_get_rootdse_state *state;
+
+    DEBUG(9, ("Getting rootdse\n"));
+
+    req = tevent_req_create(memctx, &state, struct sdap_get_rootdse_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+    state->sh = sh;
+    state->rootdse = NULL;
+
+    subreq = sdap_get_generic_send(state, ev, opts, sh,
+                                   "", LDAP_SCOPE_BASE,
+                                   "(objectclass=*)", NULL);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_rootdse_done, req);
+
+    return req;
+}
+
+static void sdap_get_rootdse_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_rootdse_state *state = tevent_req_data(req,
+                                             struct sdap_get_rootdse_state);
+    struct sysdb_attrs **results;
+    size_t num_results;
+    int ret;
+
+    ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (num_results == 0 || !results) {
+        DEBUG(2, ("No RootDSE for server ?!\n"));
+        tevent_req_error(req, ENOENT);
+        return;
+    }
+
+    if (num_results > 1) {
+        DEBUG(2, ("Multiple replies when searching for RootDSE ??\n"));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    state->rootdse = talloc_steal(state, results[0]);
+    talloc_zfree(results);
+
+    DEBUG(9, ("Got rootdse\n"));
+
+    tevent_req_done(req);
+}
+
+static int sdap_get_rootdse_recv(struct tevent_req *req,
+                                 TALLOC_CTX *memctx,
+                                 struct sysdb_attrs **rootdse)
+{
+    struct sdap_get_rootdse_state *state = tevent_req_data(req,
+                                             struct sdap_get_rootdse_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (err) return err;
+        return EIO;
+    }
+
+    *rootdse = talloc_steal(memctx, state->rootdse);
+
+    return EOK;
+}
+
 /* ==Client connect============================================ */
 
 struct sdap_cli_connect_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
 
+    struct sysdb_attrs *rootdse;
+    bool use_rootdse;
     struct sdap_handle *sh;
 };
 
 static void sdap_cli_connect_done(struct tevent_req *subreq);
+static void sdap_cli_rootdse_step(struct tevent_req *req);
+static void sdap_cli_rootdse_done(struct tevent_req *subreq);
+static void sdap_cli_kinit_step(struct tevent_req *req);
 static void sdap_cli_kinit_done(struct tevent_req *subreq);
-static void sdap_cli_bind_done(struct tevent_req *subreq);
+static void sdap_cli_auth_step(struct tevent_req *req);
+static void sdap_cli_auth_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
-                                         struct sdap_options *opts)
+                                         struct sdap_options *opts,
+                                         struct sysdb_attrs **rootdse)
 {
     struct tevent_req *req, *subreq;
     struct sdap_cli_connect_state *state;
@@ -3258,6 +3362,13 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
+    if (rootdse) {
+        state->use_rootdse = true;
+        state->rootdse = *rootdse;
+    } else {
+        state->use_rootdse = false;
+        state->rootdse = NULL;
+    }
 
     subreq = sdap_connect_send(state, ev, opts,
                                dp_opt_get_bool(opts->basic, SDAP_ID_TLS));
@@ -3275,7 +3386,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                                struct sdap_cli_connect_state);
+                                             struct sdap_cli_connect_state);
     const char *sasl_mech;
     int ret;
 
@@ -3286,50 +3397,120 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
         return;
     }
 
+    if (state->use_rootdse && !state->rootdse) {
+        /* fetch the rootDSE this time */
+        sdap_cli_rootdse_step(req);
+        return;
+    }
+
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
-    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
-        if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
-            subreq = sdap_kinit_send(state, state->ev, state->sh,
-                                dp_opt_get_string(state->opts->basic,
-                                                           SDAP_KRB5_KEYTAB),
-                                dp_opt_get_string(state->opts->basic,
-                                                           SDAP_SASL_AUTHID),
-                                dp_opt_get_string(state->opts->basic,
-                                                           SDAP_KRB5_REALM));
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            tevent_req_set_callback(subreq, sdap_cli_kinit_done, req);
+
+    if (state->use_rootdse) {
+        /* check if server claims to support GSSAPI */
+        if (!sdap_rootdse_sasl_mech_is_supported(state->rootdse,
+                                                 sasl_mech)) {
+            tevent_req_error(req, ENOTSUP);
             return;
         }
     }
 
-    subreq = sdap_auth_send(state,
-                            state->ev,
-                            state->sh,
-                            sasl_mech,
-                            dp_opt_get_string(state->opts->basic,
-                                                        SDAP_SASL_AUTHID),
-                            dp_opt_get_string(state->opts->basic,
-                                                    SDAP_DEFAULT_BIND_DN),
-                            dp_opt_get_string(state->opts->basic,
-                                               SDAP_DEFAULT_AUTHTOK_TYPE),
-                            dp_opt_get_blob(state->opts->basic,
-                                                    SDAP_DEFAULT_AUTHTOK));
+    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+        if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
+            sdap_cli_kinit_step(req);
+            return;
+        }
+    }
+
+    sdap_cli_auth_step(req);
+}
+
+static void sdap_cli_rootdse_step(struct tevent_req *req)
+{
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                             struct sdap_cli_connect_state);
+    struct tevent_req *subreq;
+    int ret;
+
+    subreq = sdap_get_rootdse_send(state, state->ev, state->opts, state->sh);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_cli_bind_done, req);
+    tevent_req_set_callback(subreq, sdap_cli_rootdse_done, req);
+
+    if (!state->sh->connected) {
+    /* this rootdse search is performed before we actually do a bind,
+     * so we need to set up the callbacks or we will never get notified
+     * of a reply */
+        state->sh->connected = true;
+        ret = sdap_install_ldap_callbacks(state->sh, state->ev);
+        if (ret) {
+            tevent_req_error(req, ret);
+        }
+    }
+}
+
+static void sdap_cli_rootdse_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                             struct sdap_cli_connect_state);
+    const char *sasl_mech;
+    int ret;
+
+    ret = sdap_get_rootdse_recv(subreq, state, &state->rootdse);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
+
+    if (state->use_rootdse) {
+        /* check if server claims to support GSSAPI */
+        if (!sdap_rootdse_sasl_mech_is_supported(state->rootdse,
+                                                 sasl_mech)) {
+            tevent_req_error(req, ENOTSUP);
+            return;
+        }
+    }
+
+    if (sasl_mech && (strcasecmp(sasl_mech, "GSSAPI") == 0)) {
+        if (dp_opt_get_bool(state->opts->basic, SDAP_KRB5_KINIT)) {
+            sdap_cli_kinit_step(req);
+            return;
+        }
+    }
+
+    sdap_cli_auth_step(req);
+}
+
+static void sdap_cli_kinit_step(struct tevent_req *req)
+{
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                             struct sdap_cli_connect_state);
+    struct tevent_req *subreq;
+
+    subreq = sdap_kinit_send(state, state->ev, state->sh,
+                        dp_opt_get_string(state->opts->basic,
+                                                   SDAP_KRB5_KEYTAB),
+                        dp_opt_get_string(state->opts->basic,
+                                                   SDAP_SASL_AUTHID),
+                        dp_opt_get_string(state->opts->basic,
+                                                   SDAP_KRB5_REALM));
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_cli_kinit_done, req);
 }
 
 static void sdap_cli_kinit_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                                struct sdap_cli_connect_state);
     enum sdap_result result;
     int ret;
 
@@ -3343,6 +3524,15 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
         tevent_req_error(req, EACCES);
         return;
     }
+
+    sdap_cli_auth_step(req);
+}
+
+static void sdap_cli_auth_step(struct tevent_req *req)
+{
+    struct sdap_cli_connect_state *state = tevent_req_data(req,
+                                             struct sdap_cli_connect_state);
+    struct tevent_req *subreq;
 
     subreq = sdap_auth_send(state,
                             state->ev,
@@ -3361,10 +3551,10 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_cli_bind_done, req);
+    tevent_req_set_callback(subreq, sdap_cli_auth_done, req);
 }
 
-static void sdap_cli_bind_done(struct tevent_req *subreq)
+static void sdap_cli_auth_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -3385,11 +3575,13 @@ static void sdap_cli_bind_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int sdap_cli_connect_recv(struct tevent_req *req, TALLOC_CTX *memctx,
-                          struct sdap_handle **gsh)
+int sdap_cli_connect_recv(struct tevent_req *req,
+                          TALLOC_CTX *memctx,
+                          struct sdap_handle **gsh,
+                          struct sysdb_attrs **rootdse)
 {
     struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                                struct sdap_cli_connect_state);
+                                             struct sdap_cli_connect_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
@@ -3398,10 +3590,28 @@ int sdap_cli_connect_recv(struct tevent_req *req, TALLOC_CTX *memctx,
         return EIO;
     }
 
-    *gsh = talloc_steal(memctx, state->sh);
-    if (!*gsh) {
-        return ENOMEM;
+    if (gsh) {
+        *gsh = talloc_steal(memctx, state->sh);
+        if (!*gsh) {
+            return ENOMEM;
+        }
+    } else {
+        talloc_zfree(state->sh);
     }
+
+    if (rootdse) {
+        if (state->use_rootdse) {
+            *rootdse = talloc_steal(memctx, state->rootdse);
+            if (!*rootdse) {
+                return ENOMEM;
+            }
+        } else {
+            *rootdse = NULL;
+        }
+    } else {
+        talloc_zfree(rootdse);
+    }
+
     return EOK;
 }
 
@@ -3411,35 +3621,33 @@ struct sdap_get_generic_state {
     struct tevent_context *ev;
     struct sdap_options *opts;
     struct sdap_handle *sh;
-    struct sss_domain_info *dom;
-    const char **attrs;
-    const char *filter;
     const char *search_base;
-    struct sysdb_attrs **reply;
+    int scope;
+    const char *filter;
+    const char **attrs;
+
+    struct sdap_op *op;
+
     size_t reply_max;
     size_t reply_count;
-
-    struct sysdb_handle *handle;
-    struct sdap_op *op;
+    struct sysdb_attrs **reply;
 };
 
-static errno_t add_to_reply(TALLOC_CTX *memctx,
-                            struct sdap_get_generic_state *state,
+static errno_t add_to_reply(struct sdap_get_generic_state *state,
                             struct sysdb_attrs *msg);
 
 static void sdap_get_generic_done(struct sdap_op *op,
-                                 struct sdap_msg *reply,
-                                 int error, void *pvt);
+                                  struct sdap_msg *reply,
+                                  int error, void *pvt);
 
 struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
-                                       struct tevent_context *ev,
-                                       struct sss_domain_info *dom,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sdap_options *opts,
-                                       struct sdap_handle *sh,
-                                       const char **attrs,
-                                       const char *filter,
-                                       const char *search_base)
+                                         struct tevent_context *ev,
+                                         struct sdap_options *opts,
+                                         struct sdap_handle *sh,
+                                         const char *search_base,
+                                         int scope,
+                                         const char *filter,
+                                         const char **attrs)
 {
     struct tevent_req *req = NULL;
     struct sdap_get_generic_state *state = NULL;
@@ -3452,29 +3660,30 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->opts = opts;
-    state->dom = dom;
     state->sh = sh;
+    state->search_base = search_base;
+    state->scope = scope;
     state->filter = filter;
     state->attrs = attrs;
-    state->search_base = search_base;
-    state->reply = NULL;
+    state->op = NULL;
     state->reply_max = 0;
     state->reply_count = 0;
-    state->op = NULL;
-    state->handle = NULL;
+    state->reply = NULL;
 
     DEBUG(7, ("calling ldap_search_ext with [%s][%s].\n", state->filter,
                                                           state->search_base));
     if (debug_level >= 7) {
         int i;
 
-        for (i = 0; state->attrs[i]; i++) {
-            DEBUG(7, ("Requesting attrs: [%s]\n", state->attrs[i]));
+        if (state->attrs) {
+            for (i = 0; state->attrs[i]; i++) {
+                DEBUG(7, ("Requesting attrs: [%s]\n", state->attrs[i]));
+            }
         }
     }
 
     lret = ldap_search_ext(state->sh->ldap, state->search_base,
-                           LDAP_SCOPE_SUBTREE, state->filter,
+                           state->scope, state->filter,
                            discard_const(state->attrs),
                            false, NULL, NULL, NULL, 0, &msgid);
     if (lret != LDAP_SUCCESS) {
@@ -3486,7 +3695,8 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid,
                       sdap_get_generic_done, req,
-                      dp_opt_get_int(state->opts->basic,SDAP_SEARCH_TIMEOUT),
+                      dp_opt_get_int(state->opts->basic,
+                                     SDAP_SEARCH_TIMEOUT),
                       &state->op);
     if (ret != EOK) {
         DEBUG(1, ("Failed to set up operation!\n"));
@@ -3509,8 +3719,10 @@ static void sdap_get_generic_done(struct sdap_op *op,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_get_generic_state *state = tevent_req_data(req,
                                             struct sdap_get_generic_state);
-    int ret;
     struct sysdb_attrs *attrs;
+    char *errmsg;
+    int result;
+    int ret;
 
     if (error) {
         tevent_req_error(req, error);
@@ -3534,7 +3746,7 @@ static void sdap_get_generic_done(struct sdap_op *op,
             return;
         }
 
-        ret = add_to_reply(state, state, attrs);
+        ret = add_to_reply(state, attrs);
         if (ret != EOK) {
             DEBUG(1, ("add_to_reply failed.\n"));
             tevent_req_error(req, ret);
@@ -3543,18 +3755,46 @@ static void sdap_get_generic_done(struct sdap_op *op,
 
         sdap_unlock_next_reply(state->op);
         break;
+
     case LDAP_RES_SEARCH_RESULT:
+        ret = ldap_parse_result(state->sh->ldap, reply->msg,
+                                &result, NULL, &errmsg, NULL, NULL, 0);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
+            tevent_req_error(req, EIO);
+            return;
+        }
+
+        DEBUG(3, ("Search result: %s(%d), %s\n",
+                  ldap_err2string(result), result, errmsg));
+
         tevent_req_done(req);
         return;
 
-        break;
     default:
         /* what is going on here !? */
         tevent_req_error(req, EIO);
         return;
     }
+}
 
-    return;
+static errno_t add_to_reply(struct sdap_get_generic_state *state,
+                            struct sysdb_attrs *msg)
+{
+    if (state->reply == NULL || state->reply_max == state->reply_count) {
+        state->reply_max += REPLY_REALLOC_INCREMENT;
+        state->reply = talloc_realloc(state, state->reply,
+                                      struct sysdb_attrs *,
+                                      state->reply_max);
+        if (state->reply == NULL) {
+            DEBUG(1, ("talloc_realloc failed.\n"));
+            return ENOMEM;
+        }
+    }
+
+    state->reply[state->reply_count++] = talloc_steal(state->reply, msg);
+
+    return EOK;
 }
 
 int sdap_get_generic_recv(struct tevent_req *req,
@@ -3566,7 +3806,6 @@ int sdap_get_generic_recv(struct tevent_req *req,
                                             struct sdap_get_generic_state);
     enum tevent_req_state tstate;
     uint64_t err;
-    int i;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         if (err) return err;
@@ -3575,31 +3814,7 @@ int sdap_get_generic_recv(struct tevent_req *req,
 
     *reply_count = state->reply_count;
     *reply = talloc_steal(mem_ctx, state->reply);
-    for (i = 0; i < state->reply_count; i++) {
-        talloc_steal(mem_ctx, state->reply[i]);
-    }
 
     return EOK;
 }
 
-static errno_t add_to_reply(TALLOC_CTX *memctx,
-                            struct sdap_get_generic_state *state,
-                            struct sysdb_attrs *msg)
-{
-    struct sysdb_attrs **dummy;
-
-    if (state->reply == NULL || state->reply_max == state->reply_count) {
-        state->reply_max += REPLY_REALLOC_INCREMENT;
-        dummy = talloc_realloc(memctx, state->reply, struct sysdb_attrs *,
-                               state->reply_max);
-        if (dummy == NULL) {
-            DEBUG(1, ("talloc_realloc failed.\n"));
-            return ENOMEM;
-        }
-        state->reply = dummy;
-    }
-
-    state->reply[state->reply_count++] = talloc_steal(state->reply, msg);
-
-    return EOK;
-}
