@@ -63,7 +63,12 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
-struct sdap_id_map ipa_user_map[] = {
+struct sdap_attr_map ipa_attr_map[] = {
+    { "ldap_entry_usn", "entryUSN", SYSDB_USN, NULL },
+    { "ldap_rootdse_last_usn", "lastUSN", SYSDB_HIGH_USN, NULL }
+};
+
+struct sdap_attr_map ipa_user_map[] = {
     { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
     { "ldap_user_name", "uid", SYSDB_NAME, NULL },
     { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
@@ -89,7 +94,7 @@ struct sdap_id_map ipa_user_map[] = {
     { "ldap_pwd_attribute", "pwdAttribute", SYSDB_PWD_ATTRIBUTE, NULL }
 };
 
-struct sdap_id_map ipa_group_map[] = {
+struct sdap_attr_map ipa_group_map[] = {
     { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_name", "cn", SYSDB_NAME, NULL },
     { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
@@ -352,6 +357,14 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                   ipa_opts->id->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(ipa_opts->id->basic,
                                     SDAP_GROUP_SEARCH_BASE)));
+    }
+
+    ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
+                       ipa_attr_map,
+                       SDAP_AT_GENERAL,
+                       &ipa_opts->id->gen_map);
+    if (ret != EOK) {
+        goto done;
     }
 
     ret = sdap_get_map(ipa_opts->id,

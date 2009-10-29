@@ -29,14 +29,14 @@
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
-                 struct sdap_id_map *def_map,
+                 struct sdap_attr_map *def_map,
                  int num_entries,
-                 struct sdap_id_map **_map)
+                 struct sdap_attr_map **_map)
 {
-    struct sdap_id_map *map;
+    struct sdap_attr_map *map;
     int i, ret;
 
-    map = talloc_array(memctx, struct sdap_id_map, num_entries);
+    map = talloc_array(memctx, struct sdap_attr_map, num_entries);
     if (!map) {
         return ENOMEM;
     }
@@ -70,7 +70,7 @@ int sdap_get_map(TALLOC_CTX *memctx,
 
 static int sdap_parse_entry(TALLOC_CTX *memctx,
                             struct sdap_handle *sh, struct sdap_msg *sm,
-                            struct sdap_id_map *map, int attrs_num,
+                            struct sdap_attr_map *map, int attrs_num,
                             struct sysdb_attrs **_attrs, char **_dn)
 {
     struct sysdb_attrs *attrs;

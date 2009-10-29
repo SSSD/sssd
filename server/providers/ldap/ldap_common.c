@@ -56,7 +56,22 @@ struct dp_option default_basic_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
-struct sdap_id_map rfc2307_user_map[] = {
+struct sdap_attr_map generic_attr_map[] = {
+    { "ldap_entry_usn", NULL, SYSDB_USN, NULL },
+    { "ldap_rootdse_last_usn", NULL, SYSDB_USN, NULL }
+};
+
+struct sdap_attr_map gen_ipa_attr_map[] = {
+    { "ldap_entry_usn", "entryUSN", SYSDB_USN, NULL },
+    { "ldap_rootdse_last_usn", "lastUSN", SYSDB_HIGH_USN, NULL }
+};
+
+struct sdap_attr_map gen_ad_attr_map[] = {
+    { "ldap_entry_usn", "uSNChanged", SYSDB_USN, NULL },
+    { "ldap_rootdse_last_usn", "highestCommittedUSN", SYSDB_HIGH_USN, NULL }
+};
+
+struct sdap_attr_map rfc2307_user_map[] = {
     { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
     { "ldap_user_name", "uid", SYSDB_NAME, NULL },
     { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
@@ -82,7 +97,7 @@ struct sdap_id_map rfc2307_user_map[] = {
     { "ldap_pwd_attribute", "pwdAttribute", SYSDB_PWD_ATTRIBUTE, NULL }
 };
 
-struct sdap_id_map rfc2307_group_map[] = {
+struct sdap_attr_map rfc2307_group_map[] = {
     { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_name", "cn", SYSDB_NAME, NULL },
     { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
@@ -92,7 +107,7 @@ struct sdap_id_map rfc2307_group_map[] = {
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
-struct sdap_id_map rfc2307bis_user_map[] = {
+struct sdap_attr_map rfc2307bis_user_map[] = {
     { "ldap_user_object_class", "posixAccount", SYSDB_USER_CLASS, NULL },
     { "ldap_user_name", "uid", SYSDB_NAME, NULL },
     { "ldap_user_pwd", "userPassword", SYSDB_PWD, NULL },
@@ -119,7 +134,7 @@ struct sdap_id_map rfc2307bis_user_map[] = {
     { "ldap_pwd_attribute", "pwdAttribute", SYSDB_PWD_ATTRIBUTE, NULL }
 };
 
-struct sdap_id_map rfc2307bis_group_map[] = {
+struct sdap_attr_map rfc2307bis_group_map[] = {
     { "ldap_group_object_class", "posixGroup", SYSDB_GROUP_CLASS, NULL },
     { "ldap_group_name", "cn", SYSDB_NAME, NULL },
     { "ldap_group_pwd", "userPassword", SYSDB_PWD, NULL },
@@ -135,8 +150,9 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      const char *conf_path,
                      struct sdap_options **_opts)
 {
-    struct sdap_id_map *default_user_map;
-    struct sdap_id_map *default_group_map;
+    struct sdap_attr_map *default_attr_map;
+    struct sdap_attr_map *default_user_map;
+    struct sdap_attr_map *default_group_map;
     struct sdap_options *opts;
     char *schema;
     int ret;
@@ -181,26 +197,38 @@ int ldap_get_options(TALLOC_CTX *memctx,
     schema = dp_opt_get_string(opts->basic, SDAP_SCHEMA);
     if (strcasecmp(schema, "rfc2307") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307;
+        default_attr_map = generic_attr_map;
         default_user_map = rfc2307_user_map;
         default_group_map = rfc2307_group_map;
     } else
     if (strcasecmp(schema, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
+        default_attr_map = generic_attr_map;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
     } else
     if (strcasecmp(schema, "IPA") == 0) {
         opts->schema_type = SDAP_SCHEMA_IPA_V1;
+        default_attr_map = gen_ipa_attr_map;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
     } else
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
+        default_attr_map = gen_ad_attr_map;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
     } else {
         DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;
+        goto done;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_attr_map,
+                       SDAP_AT_GENERAL,
+                       &opts->gen_map);
+    if (ret != EOK) {
         goto done;
     }
 

@@ -33,7 +33,7 @@
 #include "providers/ldap/sdap_async.h"
 
 static int build_attrs_from_map(TALLOC_CTX *memctx,
-                                struct sdap_id_map *map,
+                                struct sdap_attr_map *map,
                                 size_t size,
                                 const char ***_attrs)
 {

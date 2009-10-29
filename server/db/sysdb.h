@@ -75,6 +75,9 @@
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
 
+#define SYSDB_USN "entryUSN"
+#define SYSDB_HIGH_USN "highestUSN"
+
 #define SYSDB_NEXTID_FILTER "("SYSDB_NEXTID"=*)"
 
 #define SYSDB_UC "objectclass="SYSDB_USER_CLASS

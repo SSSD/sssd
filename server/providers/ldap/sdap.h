@@ -120,9 +120,16 @@ enum sdap_basic_opt {
     SDAP_OPTS_BASIC /* opts counter */
 };
 
+enum sdap_gen_attrs {
+    SDAP_AT_ENTRY_USN = 0,
+    SDAP_AT_LAST_USN,
+
+    SDAP_AT_GENERAL /* attrs counter */
+};
+
 /* the objectclass must be the first attribute.
  * Functions depend on this */
-enum sdap_user_opt {
+enum sdap_user_attrs {
     SDAP_OC_USER = 0,
     SDAP_AT_USER_NAME,
     SDAP_AT_USER_PWD,
@@ -154,7 +161,7 @@ enum sdap_user_opt {
 
 /* the objectclass must be the first attribute.
  * Functions depend on this */
-enum sdap_group_opt {
+enum sdap_group_attrs {
     SDAP_OC_GROUP = 0,
     SDAP_AT_GROUP_NAME,
     SDAP_AT_GROUP_PWD,
@@ -166,7 +173,7 @@ enum sdap_group_opt {
     SDAP_OPTS_GROUP /* attrs counter */
 };
 
-struct sdap_id_map {
+struct sdap_attr_map {
     const char *opt_name;
     const char *def_name;
     const char *sys_name;
@@ -175,8 +182,9 @@ struct sdap_id_map {
 
 struct sdap_options {
     struct dp_option *basic;
-    struct sdap_id_map *user_map;
-    struct sdap_id_map *group_map;
+    struct sdap_attr_map *gen_map;
+    struct sdap_attr_map *user_map;
+    struct sdap_attr_map *group_map;
 
     /* supported schema types */
     enum schema_type {
@@ -193,9 +201,9 @@ struct sdap_options {
 int sdap_get_map(TALLOC_CTX *memctx,
                  struct confdb_ctx *cdb,
                  const char *conf_path,
-                 struct sdap_id_map *def_map,
+                 struct sdap_attr_map *def_map,
                  int num_entries,
-                 struct sdap_id_map **_map);
+                 struct sdap_attr_map **_map);
 
 int sdap_parse_user(TALLOC_CTX *memctx, struct sdap_options *opts,
                     struct sdap_handle *sh, struct sdap_msg *sm,
