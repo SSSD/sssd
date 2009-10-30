@@ -380,6 +380,7 @@ sysdb_tests_SOURCES = \
     tests/sysdb-tests.c \
     $(SSSD_UTIL_OBJ)
 sysdb_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
     $(SSSD_LIBS) \
@@ -390,6 +391,7 @@ strtonum_tests_SOURCES = \
     util/debug.c \
     util/strtonum.c
 strtonum_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 strtonum_tests_LDADD = \
     $(SSSD_LIBS) \
@@ -402,6 +404,7 @@ krb5_utils_tests_SOURCES = \
     providers/data_provider_opts.c \
     $(SSSD_UTIL_OBJ)
 krb5_utils_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 krb5_utils_tests_LDADD = \
     $(SSSD_LIBS)\
@@ -412,6 +415,7 @@ check_and_open_tests_SOURCES = \
     tests/check_and_open-tests.c \
     util/check_and_open.c
 check_and_open_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 check_and_open_tests_LDADD = \
     $(CHECK_LIBS)
@@ -430,9 +434,23 @@ files_tests_SOURCES = \
     util/check_and_open.c \
     util/files.c
 files_tests_CFLAGS = \
+    $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 files_tests_LDADD = \
     $(FILES_TESTS_LIBS)
+
+resolv_tests_SOURCES = \
+    tests/resolv-tests.c \
+    tests/common.c \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_RESOLV_OBJ)
+resolv_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+resolv_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    $(CARES_LIBS)
 endif
 
 stress_tests_SOURCES = \
@@ -440,20 +458,6 @@ stress_tests_SOURCES = \
     $(SSSD_UTIL_OBJ)
 stress_tests_LDADD = \
     $(SSSD_LIBS)
-
-if HAVE_CHECK
-resolv_tests_SOURCES = \
-    tests/resolv-tests.c \
-    tests/common.c \
-    $(SSSD_UTIL_OBJ) \
-    $(SSSD_RESOLV_OBJ)
-resolv_tests_CFLAGS = \
-    $(CHECK_CFLAGS)
-resolv_tests_LDADD = \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS) \
-    $(CARES_LIBS)
-endif
 
 ####################
 # Plugin Libraries #
