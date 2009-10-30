@@ -2309,6 +2309,7 @@ Suite *create_sysdb_suite(void)
 
 int main(int argc, const char *argv[]) {
     int opt;
+    int ret;
     poptContext pc;
     int failure_count;
     Suite *sysdb_suite;
@@ -2331,6 +2332,13 @@ int main(int argc, const char *argv[]) {
         }
     }
     poptFreeContext(pc);
+
+    ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);
+    if (ret != EOK && errno != ENOENT) {
+        fprintf(stderr, "Could not delete the test ldb file (%d) (%s)\n",
+                errno, strerror(errno));
+        return EXIT_FAILURE;
+    }
 
     sysdb_suite = create_sysdb_suite();
     sr = srunner_create(sysdb_suite);
