@@ -395,6 +395,8 @@ bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
     struct ldb_val *val;
     int i;
 
+    if (!sasl_mech) return false;
+
     for (i = 0; i < rootdse->num; i++) {
         if (strcasecmp(rootdse->a[i].name, "supportedSASLMechanisms")) {
             continue;

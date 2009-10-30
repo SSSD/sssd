@@ -3405,7 +3405,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
-    if (state->use_rootdse) {
+    if (sasl_mech && state->use_rootdse) {
         /* check if server claims to support GSSAPI */
         if (!sdap_rootdse_sasl_mech_is_supported(state->rootdse,
                                                  sasl_mech)) {
@@ -3468,7 +3468,7 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
-    if (state->use_rootdse) {
+    if (sasl_mech && state->use_rootdse) {
         /* check if server claims to support GSSAPI */
         if (!sdap_rootdse_sasl_mech_is_supported(state->rootdse,
                                                  sasl_mech)) {
