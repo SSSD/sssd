@@ -63,7 +63,7 @@ void setup_talloc_context(void)
     krb5_ctx = talloc_zero(tmp_ctx, struct krb5_ctx);
     fail_unless(pd != NULL, "Cannot create krb5_ctx structure.");
 
-    pd->user = USERNAME;
+    pd->user = discard_const(USERNAME);
     pd->pw_uid = atoi(UID);
     pd->upn = PRINCIPLE_NAME;
     pd->cli_pid = atoi(PID);
@@ -97,8 +97,8 @@ void free_talloc_context(void)
 
 START_TEST(test_multiple_substitutions)
 {
-    char *test_template = BASE"_%u_%U_%u";
-    char *expected = BASE"_"USERNAME"_"UID"_"USERNAME;
+    const char *test_template = BASE"_%u_%U_%u";
+    const char *expected = BASE"_"USERNAME"_"UID"_"USERNAME;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -112,8 +112,8 @@ END_TEST
 
 START_TEST(test_username)
 {
-    char *test_template = BASE"_%u";
-    char *expected = BASE"_"USERNAME;
+    const char *test_template = BASE"_%u";
+    const char *expected = BASE"_"USERNAME;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -127,8 +127,8 @@ END_TEST
 
 START_TEST(test_uid)
 {
-    char *test_template = BASE"_%U";
-    char *expected = BASE"_"UID;
+    const char *test_template = BASE"_%U";
+    const char *expected = BASE"_"UID;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -142,8 +142,8 @@ END_TEST
 
 START_TEST(test_upn)
 {
-    char *test_template = BASE"_%p";
-    char *expected = BASE"_"PRINCIPLE_NAME;
+    const char *test_template = BASE"_%p";
+    const char *expected = BASE"_"PRINCIPLE_NAME;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -157,8 +157,8 @@ END_TEST
 
 START_TEST(test_realm)
 {
-    char *test_template = BASE"_%r";
-    char *expected = BASE"_"REALM;
+    const char *test_template = BASE"_%r";
+    const char *expected = BASE"_"REALM;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -172,8 +172,8 @@ END_TEST
 
 START_TEST(test_home)
 {
-    char *test_template = BASE"_%h";
-    char *expected = BASE"_"HOME_DIRECTORY;
+    const char *test_template = BASE"_%h";
+    const char *expected = BASE"_"HOME_DIRECTORY;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -187,8 +187,8 @@ END_TEST
 
 START_TEST(test_ccache_dir)
 {
-    char *test_template = BASE"_%d";
-    char *expected = BASE"_"CCACHE_DIR;
+    const char *test_template = BASE"_%d";
+    const char *expected = BASE"_"CCACHE_DIR;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -202,8 +202,8 @@ END_TEST
 
 START_TEST(test_pid)
 {
-    char *test_template = BASE"_%P";
-    char *expected = BASE"_"PID;
+    const char *test_template = BASE"_%P";
+    const char *expected = BASE"_"PID;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -217,8 +217,8 @@ END_TEST
 
 START_TEST(test_percent)
 {
-    char *test_template = BASE"_%%";
-    char *expected = BASE"_%";
+    const char *test_template = BASE"_%%";
+    const char *expected = BASE"_%";
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -232,7 +232,7 @@ END_TEST
 
 START_TEST(test_unknow_template)
 {
-    char *test_template = BASE"_%X";
+    const char *test_template = BASE"_%X";
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
@@ -256,7 +256,7 @@ END_TEST
 
 START_TEST(test_no_substitution)
 {
-    char *test_template = BASE;
+    const char *test_template = BASE;
     char *result;
 
     result = expand_ccname_template(tmp_ctx, kr, test_template);
