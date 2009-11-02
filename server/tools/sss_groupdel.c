@@ -90,6 +90,24 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    ret = sysdb_getgrnam_sync(tctx, tctx->ev, tctx->sysdb,
+                              tctx->octx->name, tctx->local,
+                              &tctx->octx);
+    if (ret != EOK) {
+        ERROR("Cannot find group in local domain, "
+              "modifying groups is allowed only in local domain\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
+    if ((tctx->octx->gid < tctx->local->id_min) ||
+        (tctx->local->id_max && tctx->octx->gid > tctx->local->id_max)) {
+        ERROR("Group %s is outside the defined ID range for domain\n",
+              tctx->octx->name);
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
+
     start_transaction(tctx);
     if (tctx->error != EOK) {
         goto done;

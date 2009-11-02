@@ -121,17 +121,23 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    if (tctx->octx->remove_homedir) {
-        ret = sysdb_getpwnam_sync(tctx,
-                                  tctx->ev,
-                                  tctx->sysdb,
-                                  tctx->octx->name,
-                                  tctx->local,
-                                  &tctx->octx);
-        if (ret != EOK) {
-            /* Error message will be printed in the switch */
-            goto done;
-        }
+    ret = sysdb_getpwnam_sync(tctx,
+                              tctx->ev,
+                              tctx->sysdb,
+                              tctx->octx->name,
+                              tctx->local,
+                              &tctx->octx);
+    if (ret != EOK) {
+        /* Error message will be printed in the switch */
+        goto done;
+    }
+
+    if ((tctx->octx->uid < tctx->local->id_min) ||
+        (tctx->local->id_max && tctx->octx->uid > tctx->local->id_max)) {
+        ERROR("User %s is outside the defined ID range for domain\n",
+              tctx->octx->name);
+        ret = EXIT_FAILURE;
+        goto fini;
     }
 
     start_transaction(tctx);
