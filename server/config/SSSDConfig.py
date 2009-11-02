@@ -5,6 +5,7 @@ Created on Sep 18, 2009
 '''
 
 import os
+import gettext
 import exceptions
 from ConfigParser import RawConfigParser, NoSectionError
 
@@ -24,6 +25,123 @@ class DomainNotRecognized(SSSDConfigException): pass
 class NoSuchProviderError(SSSDConfigException): pass
 class NoSuchProviderSubtypeError(SSSDConfigException): pass
 class ProviderSubtypeInUse(SSSDConfigException): pass
+
+PACKAGE = 'sss_daemon'
+LOCALEDIR = '/usr/share/locale'
+
+translation = gettext.translation(PACKAGE, LOCALEDIR, fallback=True)
+_ = translation.ugettext
+
+# TODO: This needs to be made external
+option_strings = {
+    # [service]
+    'debug_level' : _('Set the verbosity of the debug logging'),
+    'debug_timestamps' : _('Include timestamps in debug logs'),
+    'debug_to_files' : _('Write debug messages to logfiles'),
+    'timeout' : _('Ping timeout before restarting service'),
+    'command' : _('Command to start service'),
+    'reconnection_retries' : _('Number of times to attempt connection to Data Providers'),
+
+    # [sssd]
+    'services' : _('SSSD Services to start'),
+    'domains' : _('SSSD Domains to start'),
+    'sbus_timeout' : _('Timeout for messages sent over the SBUS'),
+    're_expression' : _('Regex to parse username and domain'),
+    'full_name_format' : _('Printf-compatible format for displaying fully-qualified names'),
+
+    # [nss]
+    'enum_cache_timeout' : _('Enumeration cache timeout length (seconds)'),
+    'entry_cache_no_wait_timeout' : _('Entry cache background update timeout length (seconds)'),
+    'entry_negative_timeout' : _('Negative cache timeout length (seconds)'),
+    'filter_users' : _('Users that SSSD should explicitly ignore'),
+    'filter_groups' : _('Groups that SSSD should explicitly ignore'),
+    'filter_users_in_groups' : _('Should filtered users appear in groups'),
+
+    # [pam]
+    'offline_credentials_expiration' : _('How long to allow cached logins between online logins (days)'),
+
+    # [provider]
+    'id_provider' : _('Identity provider'),
+    'auth_provider' : _('Authentication provider'),
+    'access_provider' : _('Access control provider'),
+    'chpass_provider' : _('Password change provider'),
+
+    # [domain]
+    'min_id' : _('Minimum user ID'),
+    'max_id' : _('Maximum user ID'),
+    'timeout' : _('Ping timeout before restarting domain'),
+    'enumerate' : _('Enable enumerating all users/groups'),
+    'cache_credentials' : _('Cache credentials for offline login'),
+    'store_legacy_passwords' : _('Store password hashes'),
+    'use_fully_qualified_names' : _('Display users/groups in fully-qualified form'),
+    'entry_cache_timeout' : _('Entry cache timeout length (seconds)'),
+
+    # [provider/ipa]
+    'ipa_domain' : _('IPA domain'),
+    'ipa_server' : _('IPA server address'),
+    'ipa_hostname' : _('IPA client hostname'),
+
+    # [provider/krb5]
+    'krb5_kdcip' : _('Kerberos server address'),
+    'krb5_realm' : _('Kerberos realm'),
+    'krb5_auth_timeout' : _('Authentication timeout'),
+
+    # [provider/krb5/auth]
+    'krb5_ccachedir' : _('Directory to store credential caches'),
+    'krb5_ccname_template' : _("Location of the user's credential cache"),
+
+    # [provider/krb5/chpass]
+    'krb5_changepw_principal' : _('The principal of the change password service'),
+
+    # [provider/ldap]
+    'ldap_uri' : _('ldap_uri, The URI of the LDAP server'),
+    'ldap_search_base' : _('The default base DN'),
+    'ldap_schema' : _('The Schema Type in use on the LDAP server, rfc2307'),
+    'ldap_default_bind_dn' : _('The default bind DN'),
+    'ldap_default_authtok_type' : _('The type of the authentication token of the default bind DN'),
+    'ldap_default_authtok' : _('The authentication token of the default bind DN'),
+    'ldap_network_timeout' : _('Length of time to attempt connection'),
+    'ldap_opt_timeout' : _('Length of time to attempt synchronous LDAP operations'),
+    'ldap_offline_timeout' : _('Length of time between attempts to reconnect while offline'),
+    'ldap_tls_cacert' : _('file that contains CA certificates'),
+    'ldap_tls_reqcert' : _('Require TLS certificate verification'),
+    'ldap_sasl_mech' : _('Specify the sasl mechanism to use'),
+    'ldap_sasl_authid' : _('Specify the sasl authorization id to use'),
+    'krb5_kdcip' : _('Kerberos server address'),
+    'krb5_realm' : _('Kerberos realm'),
+    'ldap_krb5_keytab' : _('Kerberos service keytab'),
+    'ldap_krb5_init_creds' : _('Use Kerberos auth for LDAP connection'),
+
+    # [provider/ldap/id]
+    'ldap_search_timeout' : _('Length of time to wait for a search request'),
+    'ldap_enumeration_refresh_timeout' : _('Length of time between enumeration updates'),
+    'ldap_id_use_start_tls' : _('Require TLS for ID lookups, false'),
+    'ldap_user_search_base' : _('Base DN for user lookups'),
+    'ldap_user_search_scope' : _('Scope of user lookups'),
+    'ldap_user_search_filter' : _('Filter for user lookups'),
+    'ldap_user_object_class' : _('Objectclass for users'),
+    'ldap_user_name' : _('Username attribute'),
+    'ldap_user_uid_number' : _('UID attribute'),
+    'ldap_user_gid_number' : _('Primary GID attribute'),
+    'ldap_user_gecos' : _('GECOS attribute'),
+    'ldap_user_homedir' : _('Home directory attribute'),
+    'ldap_user_shell' : _('Shell attribute'),
+    'ldap_user_uuid' : _('UUID attribute'),
+    'ldap_user_principal' : _('User principal attribute (for Kerberos)'),
+    'ldap_user_fullname' : _('Full Name'),
+    'ldap_user_member_of' : _('memberOf attribute'),
+    'ldap_user_modify_timestamp' : _('Modification time attribute'),
+
+    # [provider/local/id]
+    'default_shell' : _('Default shell, /bin/bash'),
+    'base_directory' : _('Base for home directories'),
+
+    # [provider/proxy/id]
+    'proxy_lib_name' : _('The name of the NSS library to use'),
+
+    # [provider/proxy/auth]
+    'proxy_pam_target' : _('PAM stack to use')
+}
 
 class SSSDConfigSchema(RawConfigParser):
     def __init__(self, schemafile, schemaplugindir):
@@ -74,6 +192,11 @@ class SSSDConfigSchema(RawConfigParser):
             raise NoSectionError
         options = self.options(section)
 
+        # Indexes
+        PRIMARY_TYPE = 0
+        SUBTYPE = 1
+        DEFAULT = 2
+
         # Parse values
         parsed_options = {}
         for option in options:
@@ -81,33 +204,42 @@ class SSSDConfigSchema(RawConfigParser):
             split_option = self._striplist(unparsed_option.split(','))
             optionlen = len(split_option)
 
-            primarytype = self.type_lookup[split_option[0]]
-            subtype = self.type_lookup[split_option[1]]
+            primarytype = self.type_lookup[split_option[PRIMARY_TYPE]]
+            subtype = self.type_lookup[split_option[SUBTYPE]]
+
+            if option_strings.has_key(option):
+                desc = option_strings[option]
+            else:
+                desc = None
 
             if optionlen == 2:
                 # This option has no defaults
                 parsed_options[option] = \
                     (primarytype,
                      subtype,
+                     desc,
                      None)
             elif optionlen == 3:
-                if type(split_option[2]) == primarytype:
+                if type(split_option[DEFAULT]) == primarytype:
                     parsed_options[option] = \
                         (primarytype,
                          subtype,
-                         split_option[2])
+                         desc,
+                         split_option[DEFAULT])
                 elif primarytype == list:
-                    if (type(split_option[2]) == subtype):
+                    if (type(split_option[DEFAULT]) == subtype):
                         parsed_options[option] = \
                             (primarytype,
                              subtype,
-                             [split_option[2]])
+                             desc,
+                             [split_option[DEFAULT]])
                     else:
                         try:
                             parsed_options[option] = \
                                 (primarytype,
                                  subtype,
-                                 [subtype(split_option[2])])
+                                 desc,
+                                 [subtype(split_option[DEFAULT])])
                         except ValueError:
                             raise ParsingError
                 else:
@@ -115,7 +247,8 @@ class SSSDConfigSchema(RawConfigParser):
                         parsed_options[option] = \
                             (primarytype,
                              subtype,
-                             primarytype(split_option[2]))
+                             desc,
+                             primarytype(split_option[DEFAULT]))
                     except ValueError:
                         raise ParsingError
 
@@ -123,7 +256,7 @@ class SSSDConfigSchema(RawConfigParser):
                 if (primarytype != list):
                     raise ParsingError
                 fixed_options = []
-                for x in split_option[2:]:
+                for x in split_option[DEFAULT:]:
                     if type(x) != subtype:
                         try:
                             fixed_options.extend([subtype(x)])
@@ -134,6 +267,7 @@ class SSSDConfigSchema(RawConfigParser):
                 parsed_options[option] = \
                     (primarytype,
                      subtype,
+                     desc,
                      fixed_options)
             else:
                 # Bad config file
@@ -155,9 +289,9 @@ class SSSDConfigSchema(RawConfigParser):
             raise NoSectionError(section)
 
         schema_options = self.get_options(section)
-        defaults = dict([(x,schema_options[x][2])
+        defaults = dict([(x,schema_options[x][3])
                          for x in schema_options.keys()
-                         if schema_options[x][2] != None])
+                         if schema_options[x][3] != None])
 
         return defaults
 

@@ -239,7 +239,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         self.assertTrue(options['reconnection_retries'][0] == int,
                         "reconnection_retries should default to 2. " +
                         "list_options specifies %d" %
-                        options['reconnection_retries'][2])
+                        options['reconnection_retries'][3])
 
         self.assertTrue(type(options['services']) == tuple,
                         "Option values should be a tuple")
@@ -437,12 +437,12 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                         "Option values should be a tuple")
 
         self.assertTrue(options['max_id'][0] == int,
-                        "config_file_version should require an int. " +
+                        "max_id should require an int. " +
                         "list_options is requiring a %s" %
                         options['max_id'][0])
 
         self.assertTrue(options['max_id'][1] == None,
-                        "config_file_version should not require a subtype. " +
+                        "max_id should not require a subtype. " +
                         "list_options is requiring a %s" %
                         options['max_id'][1])
 
