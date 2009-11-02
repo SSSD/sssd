@@ -1,5 +1,6 @@
 # List of source files which contain translatable strings.
 confdb/confdb_setup.c
+config/SSSDConfig.py
 tools/sss_groupdel.c
 tools/sss_groupmod.c
 tools/sss_userdel.c
