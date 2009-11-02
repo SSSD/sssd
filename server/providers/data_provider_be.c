@@ -939,8 +939,6 @@ static int load_backend_module(struct be_ctx *ctx,
     mod_init_fn = (bet_init_fn_t)dlsym(ctx->loaded_be[lb].handle,
                                            mod_init_fn_name);
     if (mod_init_fn == NULL) {
-        DEBUG(0, ("Unable to load init fn %s from module %s, error: %s\n",
-                  mod_init_fn_name, mod_name, dlerror()));
         if (default_mod_name != NULL &&
             strcmp(default_mod_name, mod_name) == 0 ) {
             /* If the default is used and fails we indicate this to the caller
@@ -948,6 +946,8 @@ static int load_backend_module(struct be_ctx *ctx,
              * handle the different types of error conditions. */
             ret = ENOENT;
         } else {
+            DEBUG(0, ("Unable to load init fn %s from module %s, error: %s\n",
+                      mod_init_fn_name, mod_name, dlerror()));
             ret = ELIBBAD;
         }
         goto done;
