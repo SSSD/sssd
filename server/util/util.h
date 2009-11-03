@@ -32,6 +32,7 @@
 #include <locale.h>
 #include <time.h>
 #include <pcre.h>
+#include <sys/types.h>
 
 #include "config.h"
 
