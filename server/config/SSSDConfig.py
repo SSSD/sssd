@@ -317,10 +317,29 @@ class SSSDConfigSchema(RawConfigParser):
 
 class SSSDService:
     '''
-    classdocs
+    Object to manipulate SSSD service options
     '''
 
     def __init__(self, servicename, apischema):
+        """
+        Create a new SSSDService, setting its defaults to those found in the
+        schema. This constructor should not be used directly. Use
+        SSSDConfig.new_service() instead.
+
+        name:
+          The service name
+        apischema:
+          An SSSDConfigSchema? object created by SSSDConfig.__init__()
+
+        === Returns ===
+        The newly-created SSSDService object.
+
+        === Errors ===
+        TypeError:
+          The API schema passed in was unusable or the name was not a string.
+        ServiceNotRecognizedError:
+          The service was not listed in the schema
+        """
         if not isinstance(apischema, SSSDConfigSchema) or type(servicename) != str:
             raise TypeError
 
@@ -348,9 +367,34 @@ class SSSDService:
             self.hidden_options.append('config_file_version')
 
     def get_name(self):
+        """
+        Return the name of the service this object manages.
+
+        === Returns ===
+        The service name
+
+        === Errors ===
+        No errors
+        """
         return self.name
 
     def list_options(self):
+        """
+        List all options that apply to this service
+
+        === Returns ===
+        A dictionary of configurable options. This dictionary is keyed on the
+        option name with a tuple of the variable type, subtype ('None' if the
+        type is not  a collection type), the translated option description, and
+        the default value (or 'None') as the value.
+
+        Example:
+        { 'services' :
+          (list, str, u'SSSD Services to start', ['nss', 'pam']) }
+
+        === Errors ===
+        No Errors
+        """
         options = {}
 
         # Get the list of available options for all services
@@ -363,9 +407,30 @@ class SSSDService:
         return options
 
     def _striplist(self, l):
+        """
+        Remove leading and trailing spaces from all entries in a list
+        """
         return([x.strip() for x in l])
 
     def set_option(self, optionname, value):
+        """
+        Set a service option to the specified value (or values)
+
+        optionname:
+          The option to change
+        value:
+          The value to set. This may be a single value or a list of values. If
+          it is set to None, it resets the option to its default.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NoOptionError:
+          The specified option is not listed in the schema
+        TypeError:
+          The value specified was not of the expected type
+        """
         if self.schema.has_option(self.name, optionname):
             option_schema = self.schema.get_option(self.name, optionname)
         elif self.schema.has_option('service', optionname):
@@ -410,19 +475,71 @@ class SSSDService:
         self.options[optionname] = value
 
     def get_option(self, optionname):
+        """
+        Return the value of a service option
+
+        optionname:
+          The option to get.
+
+        === Returns ===
+        The value for the requested option.
+
+        === Errors ===
+        NoOptionError:
+          The specified option was not listed in the service
+        """
         if optionname in self.options.keys():
             return self.options[optionname]
         raise NoOptionError(optionname)
 
     def get_all_options(self):
+        """
+        Return a dictionary of name/value pairs for this service
+
+        === Returns ===
+        A dictionary of name/value pairs currently in use for this service
+
+        === Errors ===
+        No errors
+        """
         return self.options
 
     def remove_option(self, optionname):
+        """
+        Remove an option from the service. If the option does not exist, it is ignored.
+
+        === Returns ===
+        No return value.
+
+        === Errors ===
+        No errors
+        """
         if self.options.has_key(optionname):
             del self.options[optionname]
 
 class SSSDDomain:
+    """
+    Object to manipulate SSSD domain options
+    """
     def __init__(self, domainname, apischema):
+        """
+        Creates a new, empty SSSDDomain. This domain is inactive by default.
+        This constructor should not be used directly. Use
+        SSSDConfig.new_domain() instead.
+
+        name:
+          The domain name.
+        apischema:
+          An SSSDConfigSchema object created by SSSDConfig.__init__()
+
+        === Returns ===
+        The newly-created SSSDDomain object.
+
+        === Errors ===
+        TypeError:
+          apischema was not an SSSDConfigSchema object or domainname was not
+         a string
+        """
         if not isinstance(apischema, SSSDConfigSchema) or type(domainname) != str:
             raise TypeError
 
@@ -440,12 +557,51 @@ class SSSDDomain:
         self.options.update(self.schema.get_defaults('domain'))
 
     def get_name(self):
+        """
+        Return the name of the domain this object manages.
+
+        === Returns ===
+        The domain name
+
+        === Errors ===
+        No errors
+        """
         return self.name
 
     def set_active(self, active):
+        """
+        Enable or disable this domain
+
+        active:
+          Boolean value. If True, this domain will be added to the active
+          domains list when it is saved. If False, it will be removed from the
+          active domains list when it is saved.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        No errors
+        """
         self.active = bool(active)
 
     def list_options(self):
+        """
+        List options available for the currently-configured providers.
+
+        === Returns ===
+        A dictionary of configurable options. This dictionary is keyed on the
+        option name with a tuple of the variable type, subtype ('None' if the
+        type is not  a collection type), the translated option description, and
+        the default value (or 'None') as the value.
+
+        Example:
+        { 'enumerate' :
+          (bool, None, u'Enable enumerating all users/groups', True) }
+
+        === Errors ===
+        No errors
+        """
         options = {}
         # Get the list of available options for all domains
         options.update(self.schema.get_options('provider'))
@@ -464,6 +620,30 @@ class SSSDDomain:
         return options
 
     def list_provider_options(self, provider, provider_type=None):
+        """
+        If provider_type is specified, list all options applicable to that
+        target, otherwise list all possible options available for a provider.
+
+        type:
+            Provider backend type. (e.g. local, ldap, krb5, etc.)
+        provider_type:
+            Subtype of the backend type. (e.g. id, auth, access, chpass)
+
+        === Returns ===
+
+        A dictionary of configurable options for the specified provider type.
+        This dictionary is keyed on the option name with a tuple of the
+        variable type, subtype ('None' if the type is not  a collection type),
+        the translated option description, and the default value (or 'None')
+        as the value.
+
+        === Errors ===
+
+        NoSuchProviderError:
+            The specified provider is not listed in the schema or plugins
+        NoSuchProviderSubtypeError:
+            The specified provider subtype is not listed in the schema
+        """
         #TODO section checking
 
         options = self.schema.get_options('provider/%s' % provider)
@@ -479,9 +659,40 @@ class SSSDDomain:
         return options
 
     def list_providers(self):
+        """
+        Return a dictionary of providers.
+
+        === Returns ===
+        Returns a dictionary of providers, keyed on the primary type, with the
+        value being a tuple of the subtypes it supports.
+
+        Example:
+        { 'ldap' : ('id', 'auth', 'chpass') }
+
+        === Errors ===
+        No Errors
+        """
         return self.schema.get_providers()
 
     def set_option(self, option, value):
+        """
+        Set a domain option to the specified value (or values)
+
+        option:
+          The option to change.
+        value:
+          The value to set. This may be a single value or a list of values.
+          If it is set to None, it resets the option to its default.
+
+        === Returns ===
+        No return value.
+
+        === Errors ===
+        NoOptionError:
+            The specified option is not listed in the schema
+        TypeError:
+            The value specified was not of the expected type
+        """
         options = self.list_options()
         if (option not in options.keys()):
             raise NoOptionError('Section [%s] has no option [%s]' %
@@ -529,18 +740,71 @@ class SSSDDomain:
             self.options[option] = value
 
     def get_option(self, optionname):
+        """
+        Return the value of a domain option
+
+        === Returns ===
+        The value for the specified service option.
+
+        === Errors ===
+        NoOptionError:
+            The specified option was not listed in the service
+        """
         if optionname in self.options.keys():
             return self.options[optionname]
         raise NoOptionError(optionname)
 
     def get_all_options(self):
+        """
+        Return all configured domain options
+
+        === Returns ===
+        A dictionary of the domain options, keyed on the option name.
+
+        Example:
+        { 'debug_level': 0,
+          'min_id': 1000,
+          'cache_credentials': True
+        }
+
+        === Errors ===
+        No errors
+        """
         return self.options
 
     def remove_option(self, optionname):
+        """
+        Remove an option from the domain. If the option does not exist, it is ignored.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        No errors
+        """
         if optionname in self.options.keys():
             del self.options[optionname]
 
     def add_provider(self, provider, provider_type):
+        """
+        Add a new provider type to the domain
+
+        type:
+          Provider backend type. (e.g. local, ldap, krb5, etc.)
+        subtype:
+          Subtype of the backend type. (e.g. id, auth, chpass)
+
+        === Returns ===
+        No return value.
+
+        === Errors ===
+        ProviderSubtypeInUse:
+          Another backend is already providing this subtype
+        NoSuchProviderError:
+          The specified provider is not listed in the schema or plugins
+        NoSuchProviderSubtypeError:
+          The specified provider subtype is not listed in the schema
+        """
         # Check that provider and provider_type are valid
         configured_providers = self.list_providers()
         if provider in configured_providers.keys():
@@ -572,6 +836,21 @@ class SSSDDomain:
 
 
     def remove_provider(self, provider, provider_type):
+        """
+        Remove a provider from the domain. If the provider is not present, it
+        is ignored.
+
+        type:
+          Provider backend type. (e.g. local, ldap, krb5, etc.)
+        subtype:
+          Subtype of the backend type. (e.g. id, auth, chpass)
+
+        === Returns ===
+        No return value.
+
+        === Errors ===
+        No Errors
+        """
         if (provider,provider_type) not in self.providers:
             return
 
@@ -583,7 +862,34 @@ class SSSDDomain:
         self.providers.remove((provider,provider_type))
 
 class SSSDConfig(RawConfigParser):
+    """
+    class SSSDConfig
+    Primary class for operating on SSSD configurations
+    """
     def __init__(self, schemafile=None, schemaplugindir=None):
+        """
+        Initialize the SSSD config parser/editor. This constructor does not
+        open or create a config file. If the schemafile and schemaplugindir
+        are not passed, it will use the system defaults.
+
+        schemafile:
+          The path to the api schema config file. Usually
+          /etc/sssd/sssd.api.conf
+        schemaplugindir:
+          The path the directory containing the provider schema config files.
+          Usually /etc/sssd/sssd.api.d
+
+        === Returns ===
+        The newly-created SSSDConfig object.
+
+        === Errors ===
+        IOError:
+          Exception raised when the schema file could not be opened for
+          reading.
+        ParsingError:
+          The main schema file or one of those in the plugin directory could
+          not be parsed.
+        """
         RawConfigParser.__init__(self, None, dict)
         self.schema = SSSDConfigSchema(schemafile, schemaplugindir)
         self.configfile = None
@@ -591,6 +897,26 @@ class SSSDConfig(RawConfigParser):
         self.API_VERSION = 2
 
     def import_config(self,configfile=None):
+        """
+        Read in a config file, populating all of the service and domain
+        objects with the read values.
+
+        configfile:
+          The path to the SSSD config file. If not specified, use the system
+          default, usually /etc/sssd/sssd.conf
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        IOError:
+          Exception raised when the file could not be opened for reading
+        ParsingError:
+          Exception raised when errors occur attempting to parse a file.
+        AlreadyInitializedError:
+          This SSSDConfig object was already initialized by a call to
+          import_config() or new_config()
+        """
         if self.initialized:
             raise AlreadyInitializedError
 
@@ -618,6 +944,17 @@ class SSSDConfig(RawConfigParser):
             raise ParsingError("File contains no config_file_version")
 
     def new_config(self):
+        """
+        Initialize the SSSDConfig object with the defaults from the schema.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        AlreadyInitializedError:
+          This SSSDConfig object was already initialized by a call to
+          import_config() or new_config()
+        """
         if self.initialized:
             raise AlreadyInitializedError
 
@@ -628,6 +965,25 @@ class SSSDConfig(RawConfigParser):
             service = self.new_service(servicename)
 
     def write(self, outputfile=None):
+        """
+        Write out the configuration to a file.
+
+        outputfile:
+          The path to write the new config file. If it is not specified, it
+          will use the path specified by the import() call.
+        === Returns ===
+        No return value
+
+        === Errors ===
+        IOError:
+          Exception raised when the file could not be opened for writing
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        NoOutputFileError:
+          No outputfile was specified and this SSSDConfig object was not
+          initialized by import()
+        """
         if not self.initialized:
             raise NotInitializedError
 
@@ -643,6 +999,17 @@ class SSSDConfig(RawConfigParser):
         of.close()
 
     def list_services(self):
+        """
+        Retrieve a list of known services.
+
+        === Returns ===
+        The list of known services.
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
 
@@ -651,6 +1018,23 @@ class SSSDConfig(RawConfigParser):
         return service_list
 
     def get_service(self, name):
+        """
+        Get an SSSDService object to edit a service.
+
+        name:
+          The name of the service to return.
+
+        === Returns ===
+        An SSSDService instance containing the current state of a service in
+        the SSSDConfig
+
+        === Errors ===
+        NoServiceError:
+          There is no such service with the specified name in the SSSDConfig.
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         if not self.has_section(name):
@@ -663,6 +1047,26 @@ class SSSDConfig(RawConfigParser):
         return service
 
     def new_service(self, name):
+        """
+        Create a new service from the defaults and return the SSSDService
+        object for it. This function will also add this service to the list of
+        active services in the [SSSD] section.
+
+        name:
+          The name of the service to create and return.
+
+        === Returns ===
+        The newly-created SSSDService object
+
+        === Errors ===
+        ServiceNotRecognizedError:
+          There is no such service in the schema.
+        ServiceAlreadyExistsError:
+          The service being created already exists in the SSSDConfig object.
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         if (self.has_section(name)):
@@ -673,11 +1077,40 @@ class SSSDConfig(RawConfigParser):
         return service
 
     def delete_service(self, name):
+        """
+        Remove a service from the SSSDConfig object. This function will also
+        remove this service from the list of active services in the [SSSD]
+        section. Has no effect if the service does not exist.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         self.remove_section(name)
 
     def save_service(self, service):
+        """
+        Save the changes made to the service object back to the SSSDConfig
+        object.
+
+        service_object:
+          The SSSDService object to save to the configuration.
+
+        === Returns ===
+        No return value
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        TypeError:
+          service_object was not of the type SSSDService
+        """
         if not self.initialized:
             raise NotInitializedError
         if not isinstance(service, SSSDService):
@@ -700,9 +1133,23 @@ class SSSDConfig(RawConfigParser):
             self.set(name, option, value)
 
     def _striplist(self, l):
+        """
+        Remove leading and trailing spaces from all entries in a list
+        """
         return([x.strip() for x in l])
 
     def list_active_domains(self):
+        """
+        Return a list of all active domains.
+
+        === Returns ===
+        The list of configured, active domains.
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
 
@@ -716,6 +1163,17 @@ class SSSDConfig(RawConfigParser):
         return domains
 
     def list_inactive_domains(self):
+        """
+        Return a list of all configured, but disabled domains.
+
+        === Returns ===
+        The list of configured, inactive domains.
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
 
@@ -729,12 +1187,40 @@ class SSSDConfig(RawConfigParser):
         return domains
 
     def list_domains(self):
+        """
+        Return a list of all configured domains, including inactive domains.
+
+        === Returns ===
+        The list of configured domains, both active and inactive.
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         domains = [x[7:] for x in self.sections() if x.startswith('domain/')]
         return domains
 
     def get_domain(self, name):
+        """
+        Get an SSSDDomain object to edit a domain.
+
+        name:
+          The name of the domain to return.
+
+        === Returns ===
+        An SSSDDomain instance containing the current state of a domain in the
+        SSSDConfig
+
+        === Errors ===
+        NoDomainError:
+          There is no such domain with the specified name in the SSSDConfig.
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         if not self.has_section('domain/%s' % name):
@@ -756,6 +1242,22 @@ class SSSDConfig(RawConfigParser):
         return domain
 
     def new_domain(self, name):
+        """
+        Create a new, empty domain and return the SSSDDomain object for it.
+
+        name:
+          The name of the domain to create and return.
+
+        === Returns ===
+        The newly-created SSSDDomain object
+
+        === Errors ===
+        DomainAlreadyExistsError:
+          The service being created already exists in the SSSDConfig object.
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         if self.has_section('domain/%s' % name):
@@ -766,11 +1268,42 @@ class SSSDConfig(RawConfigParser):
         return domain
 
     def delete_domain(self, name):
+        """
+        Remove a domain from the SSSDConfig object. This function will also
+        remove this domain from the list of active domains in the [SSSD]
+        section, if it is there.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        """
         if not self.initialized:
             raise NotInitializedError
         self.remove_section('domain/%s' % name)
 
     def save_domain(self, domain):
+        """
+        Save the changes made to the domain object back to the SSSDConfig
+        object. If this domain is marked active, ensure it is present in the
+        active domain list in the [SSSD] section
+
+        domain_object:
+          The SSSDDomain object to save to the configuration.
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        TypeError:
+          domain_object was not of type SSSDDomain
+        """
         if not self.initialized:
             raise NotInitializedError
         if not isinstance(domain, SSSDDomain):
