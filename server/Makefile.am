@@ -68,6 +68,7 @@ if HAVE_CHECK
         resolv-tests \
         krb5-utils-tests \
         check_and_open-tests \
+	ipa_timerules-tests \
         files-tests \
         refcount-tests \
         fail_over-tests
@@ -294,6 +295,7 @@ dist_noinst_HEADERS = \
     providers/ldap/sdap_async_private.h \
     providers/ipa/ipa_common.h \
     providers/ipa/ipa_access.h \
+    providers/ipa/ipa_timerules.h \
     tools/tools_util.h \
     tools/sss_sync_ops.h \
     resolv/async_resolv.h \
@@ -497,6 +499,24 @@ fail_over_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     $(CARES_LIBS)
+
+ipa_timerules_tests_SOURCES = \
+    providers/ipa/ipa_timerules.c \
+    tests/ipa_timerules-tests.c \
+    tests/common.c \
+    $(SSSD_DEBUG_OBJ)
+ipa_timerules_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(PCRE_CFLAGS) \
+    $(CHECK_CFLAGS)
+ipa_timerules_tests_LDADD = \
+    $(POPT_LIBS) \
+    $(PCRE_LIBS) \
+    $(TALLOC_LIBS) \
+    $(CHECK_LIBS)
+
 endif
 
 stress_tests_SOURCES = \
