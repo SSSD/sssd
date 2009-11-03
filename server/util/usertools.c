@@ -45,6 +45,15 @@ char *get_username_from_uid(TALLOC_CTX *mem_ctx, uid_t uid)
     return username;
 }
 
+static int sss_names_ctx_destructor(struct sss_names_ctx *snctx)
+{
+    if (snctx->re) {
+        pcre_free(snctx->re);
+        snctx->re = NULL;
+    }
+    return 0;
+}
+
 int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names_ctx **out)
 {
     struct sss_names_ctx *ctx;
@@ -55,6 +64,7 @@ int sss_names_init(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb, struct sss_names
 
     ctx = talloc_zero(mem_ctx, struct sss_names_ctx);
     if (!ctx) return ENOMEM;
+    talloc_set_destructor(ctx, sss_names_ctx_destructor);
 
     ret = confdb_get_string(cdb, ctx, CONFDB_MONITOR_CONF_ENTRY,
                             CONFDB_MONITOR_NAME_REGEX, NULL, &ctx->re_pattern);
