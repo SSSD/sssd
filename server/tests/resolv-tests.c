@@ -253,15 +253,13 @@ END_TEST
 
 static void test_internet(struct tevent_req *req)
 {
-    int i;
     int recv_status;
     int status;
     struct resolv_test_ctx *test_ctx;
     void *tmp_ctx;
     struct hostent *hostent = NULL;
-    struct txt_reply *txt_replies = NULL;
-    struct srv_reply *srv_replies = NULL;
-    int count;
+    struct ares_txt_reply *txt_replies = NULL, *txtptr;
+    struct ares_srv_reply *srv_replies = NULL, *srvptr;
 
     test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
 
@@ -278,20 +276,20 @@ static void test_internet(struct tevent_req *req)
         break;
     case TESTING_TXT:
         recv_status = resolv_gettxt_recv(tmp_ctx, req, &status, NULL,
-                                         &txt_replies, &count);
-        test_ctx->error = (count == 0) ? ENOENT : EOK;
-        for (i = 0; i < count; i++) {
-            DEBUG(2, ("TXT Record: %s\n", txt_replies[i].txt));
+                                         &txt_replies);
+        test_ctx->error = (txt_replies == NULL) ? ENOENT : EOK;
+        for (txtptr = txt_replies; txtptr != NULL; txtptr = txtptr->next) {
+            DEBUG(2, ("TXT Record: %s\n", txtptr->txt));
         }
         break;
     case TESTING_SRV:
         recv_status = resolv_getsrv_recv(tmp_ctx, req, &status, NULL,
-                                         &srv_replies, &count);
-        test_ctx->error = (count == 0) ? ENOENT : EOK;
-        for (i = 0; i < count; i++) {
-            DEBUG(2, ("SRV Record: %d %d %d %s\n", srv_replies[i].weight,
-                      srv_replies[i].priority, srv_replies[i].port,
-                      srv_replies[i].host));
+                                         &srv_replies);
+        test_ctx->error = (srv_replies == NULL) ? ENOENT : EOK;
+        for (srvptr = srv_replies; srvptr != NULL; srvptr = srvptr->next) {
+            DEBUG(2, ("SRV Record: %d %d %d %s\n", srvptr->weight,
+                      srvptr->priority, srvptr->port,
+                      srvptr->host));
         }
         break;
     }

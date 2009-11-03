@@ -77,8 +77,7 @@ int resolv_getsrv_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        int *status,
                        int *timeouts,
-                       struct srv_reply **reply_list,
-                       int *num_replies);
+                       struct ares_srv_reply **reply_list);
 
 /** Get TXT record **/
 struct tevent_req *resolv_gettxt_send(TALLOC_CTX *mem_ctx,
@@ -90,7 +89,6 @@ int resolv_gettxt_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
                        int *status,
                        int *timeouts,
-                       struct txt_reply **reply_list,
-                       int *num_replies);
+                       struct ares_txt_reply **reply_list);
 
 #endif /* __ASYNC_RESOLV_H__ */
