@@ -69,6 +69,15 @@
                 <variablelist>
                     <title>Section parameters</title>
                     <varlistentry>
+                        <term>config_file_version (integer)</term>
+                        <listitem>
+                            <para>
+                                Indicates what is the syntax of the config
+                                file. SSSD 0.6.0 and later use version 2.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
                         <term>services</term>
                         <listitem>
                             <para>
@@ -81,7 +90,7 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
-                        <term>reconnection_retries</term>
+                        <term>reconnection_retries (integer)</term>
                         <listitem>
                             <para>
                                 Number of times services should attempt to
@@ -214,29 +223,6 @@
             </variablelist>
         </refsect2>
 
-        <refsect2 id='Monitor'>
-            <title>Monitor configuration options</title>
-            <para>
-                Monitor is the central controller of the SSSD. It is
-                responsible for running all the other services that provide
-                specific pieces of functionality.
-            </para>
-            <variablelist>
-                <varlistentry>
-                    <term>sbus_timeout (string)</term>
-                    <listitem>
-                        <para>
-                            Specifies the timeout for messages sent over the SBUS.
-                        </para>
-                        <para>
-                            Default: -1  (implies a reasonable timeout as defined
-                            by the D-BUS library)
-                        </para>
-                    </listitem>
-                </varlistentry>
-            </variablelist>
-        </refsect2>
-
         <refsect2 id='NSS'>
             <title>NSS configuration options</title>
             <para>
@@ -292,9 +278,10 @@
                     <term>entry_negative_timeout (integer)</term>
                     <listitem>
                         <para>
-                            How long should nss_sss cache negative cache hits
-                            (that is, queries for invalid database entries, like
-                            nonexistent ones) before asking the backend again
+                            Specifies for how long nss_sss should cache
+                            negative cache hits (that is, queries for
+                            invalid database entries, like nonexistent ones)
+                            before asking the back end again.
                         </para>
                         <para>
                             Default: 15
