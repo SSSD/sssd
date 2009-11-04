@@ -299,6 +299,7 @@ dist_noinst_HEADERS = \
     providers/ipa/ipa_common.h \
     providers/ipa/ipa_access.h \
     providers/ipa/ipa_timerules.h \
+    providers/ipa/ipa_auth.h \
     tools/tools_util.h \
     tools/sss_sync_ops.h \
     resolv/async_resolv.h \
@@ -598,6 +599,7 @@ libsss_krb5_la_LDFLAGS = \
 libsss_ipa_la_SOURCES = \
     providers/ipa/ipa_init.c \
     providers/ipa/ipa_common.c \
+    providers/ipa/ipa_auth.c \
     providers/ipa/ipa_access.c \
     providers/ipa/ipa_timerules.c \
     providers/ldap/ldap_id.c \

@@ -582,6 +582,9 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
             case KRB5KDC_ERR_KEY_EXP:
                     pam_status = PAM_AUTHTOK_EXPIRED;
                     break;
+            case KRB5KDC_ERR_PREAUTH_FAILED:
+                    pam_status = PAM_CRED_ERR;
+                    break;
             default:
                     pam_status = PAM_SYSTEM_ERR;
         }

@@ -29,6 +29,7 @@
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
+#include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_timerules.h"
 
@@ -41,7 +42,7 @@ struct bet_ops ipa_id_ops = {
 };
 
 struct bet_ops ipa_auth_ops = {
-    .handler = krb5_pam_handler,
+    .handler = ipa_auth,
     .finalize = NULL,
 };
 
