@@ -106,7 +106,9 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          const char *search_base,
                                          int scope,
                                          const char *filter,
-                                         const char **attrs);
+                                         const char **attrs,
+                                         struct sdap_attr_map *map,
+                                         int map_num_attrs);
 int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);

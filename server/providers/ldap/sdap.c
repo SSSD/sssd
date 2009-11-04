@@ -68,17 +68,20 @@ int sdap_get_map(TALLOC_CTX *memctx,
 
 /* =Parse-msg============================================================= */
 
-static int sdap_parse_entry(TALLOC_CTX *memctx,
-                            struct sdap_handle *sh, struct sdap_msg *sm,
-                            struct sdap_attr_map *map, int attrs_num,
-                            struct sysdb_attrs **_attrs, char **_dn)
+int sdap_parse_entry(TALLOC_CTX *memctx,
+                     struct sdap_handle *sh, struct sdap_msg *sm,
+                     struct sdap_attr_map *map, int attrs_num,
+                     struct sysdb_attrs **_attrs, char **_dn)
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
-    char **vals;
+    struct berval **vals;
+    struct ldb_val v;
     char *str;
     int lerrno;
     int a, i, ret;
+    const char *name;
+    bool store;
 
     lerrno = 0;
     ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
@@ -108,48 +111,64 @@ static int sdap_parse_entry(TALLOC_CTX *memctx,
     }
     ldap_memfree(str);
 
-    vals = ldap_get_values(sh->ldap, sm->msg, "objectClass");
-    if (!vals) {
-        DEBUG(1, ("Unknown entry type, no objectClasses found!\n"));
-        ret = EINVAL;
-        goto fail;
-    }
-
-    for (i = 0; vals[i]; i++) {
-        /* the objectclass is always the first name in the map */
-        if (strcasecmp(vals[i], map[0].name) == 0) {
-            /* ok it's a user */
-            break;
+    if (map) {
+        vals = ldap_get_values_len(sh->ldap, sm->msg, "objectClass");
+        if (!vals) {
+            DEBUG(1, ("Unknown entry type, no objectClasses found!\n"));
+            ret = EINVAL;
+            goto fail;
         }
+
+        for (i = 0; vals[i]; i++) {
+            /* the objectclass is always the first name in the map */
+            if (strncasecmp(map[0].name,
+                            vals[i]->bv_val, vals[i]->bv_len) == 0) {
+                /* ok it's an entry of the right type */
+                break;
+            }
+        }
+        if (!vals[i]) {
+            DEBUG(1, ("objectClass not matching: %s\n",
+                      map[0].name));
+            ldap_value_free_len(vals);
+            ret = EINVAL;
+            goto fail;
+        }
+        ldap_value_free_len(vals);
     }
-    if (!vals[i]) {
-        DEBUG(1, ("Not a user entry, objectClass not matching: %s\n",
-                  map[0].name));
-        ldap_value_free(vals);
-        ret = EINVAL;
-        goto fail;
-    }
-    ldap_value_free(vals);
 
     str = ldap_first_attribute(sh->ldap, sm->msg, &ber);
     if (!str) {
         ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
         DEBUG(1, ("Entry has no attributes [%d(%s)]!?\n",
                   lerrno, ldap_err2string(lerrno)));
-        ret = EINVAL;
-        goto fail;
+        if (map) {
+            ret = EINVAL;
+            goto fail;
+        }
     }
     while (str) {
-        for (a = 1; a < attrs_num; a++) {
-            /* check if this attr is valid with the chosen schema */
-            if (!map[a].name) continue;
-            /* check if it is an attr we are interested in */
-            if (strcasecmp(str, map[a].name) == 0) break;
-        }
-        if (a < attrs_num) {
+        if (map) {
+            for (a = 1; a < attrs_num; a++) {
+                /* check if this attr is valid with the chosen schema */
+                if (!map[a].name) continue;
+                /* check if it is an attr we are interested in */
+                if (strcasecmp(str, map[a].name) == 0) break;
+            }
             /* interesting attr */
+            if (a < attrs_num) {
+                store = true;
+                name = map[a].sys_name;
+            } else {
+                store = false;
+            }
+        } else {
+            name = str;
+            store = true;
+        }
 
-            vals = ldap_get_values(sh->ldap, sm->msg, str);
+        if (store) {
+            vals = ldap_get_values_len(sh->ldap, sm->msg, str);
             if (!vals) {
                 ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
                 DEBUG(1, ("LDAP Library error: %d(%s)",
@@ -163,96 +182,14 @@ static int sdap_parse_entry(TALLOC_CTX *memctx,
                 goto fail;
             }
             for (i = 0; vals[i]; i++) {
-                ret = sysdb_attrs_add_string(attrs, map[a].sys_name, vals[i]);
+                v.data = (uint8_t *)vals[i]->bv_val;
+                v.length = vals[i]->bv_len;
+
+                ret = sysdb_attrs_add_val(attrs, name, &v);
                 if (ret) goto fail;
             }
-            ldap_value_free(vals);
+            ldap_value_free_len(vals);
         }
-
-        ldap_memfree(str);
-        str = ldap_next_attribute(sh->ldap, sm->msg, ber);
-    }
-    ber_free(ber, 0);
-
-    ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-    if (lerrno) {
-        DEBUG(1, ("LDAP Library error: %d(%s)",
-                  lerrno, ldap_err2string(lerrno)));
-        ret = EIO;
-        goto fail;
-    }
-
-    *_attrs = attrs;
-    return EOK;
-
-fail:
-    if (ber) ber_free(ber, 0);
-    talloc_free(attrs);
-    return ret;
-}
-
-int sdap_parse_generic_entry(TALLOC_CTX *memctx,
-                             struct sdap_handle *sh,
-                             struct sdap_msg *sm,
-                             struct sysdb_attrs **_attrs)
-{
-    struct sysdb_attrs *attrs;
-    BerElement *ber = NULL;
-    struct berval **vals;
-    struct ldb_val v;
-    char *str;
-    int lerrno;
-    int i;
-    int ret;
-
-    lerrno = 0;
-    ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-
-    attrs = sysdb_new_attrs(memctx);
-    if (!attrs) return ENOMEM;
-
-    str = ldap_get_dn(sh->ldap, sm->msg);
-    if (!str) {
-        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(1, ("ldap_get_dn failed: %d(%s)\n",
-                  lerrno, ldap_err2string(lerrno)));
-        ret = EIO;
-        goto fail;
-    }
-
-    DEBUG(9, ("OriginalDN: [%s].\n", str));
-    ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
-    if (ret) goto fail;
-    ldap_memfree(str);
-
-    str = ldap_first_attribute(sh->ldap, sm->msg, &ber);
-    if (!str) {
-        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(9, ("Entry has no attributes [%d(%s)]!?\n",
-                  lerrno, ldap_err2string(lerrno)));
-    }
-    while (str) {
-        vals = ldap_get_values_len(sh->ldap, sm->msg, str);
-        if (!vals) {
-            ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-            DEBUG(1, ("LDAP Library error: %d(%s)",
-                      lerrno, ldap_err2string(lerrno)));
-            ret = EIO;
-            goto fail;
-        }
-        if (!vals[0]) {
-            DEBUG(1, ("Missing value after ldap_get_values() ??\n"));
-            ret = EINVAL;
-            goto fail;
-        }
-        for (i = 0; vals[i]; i++) {
-            v.data = (uint8_t *) vals[i]->bv_val;
-            v.length = vals[i]->bv_len;
-
-            ret = sysdb_attrs_add_val(attrs, str, &v);
-            if (ret) goto fail;
-        }
-        ldap_value_free_len(vals);
 
         ldap_memfree(str);
         str = ldap_next_attribute(sh->ldap, sm->msg, ber);

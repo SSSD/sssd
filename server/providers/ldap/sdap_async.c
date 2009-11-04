@@ -3287,7 +3287,7 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_send(state, ev, opts, sh,
                                    "", LDAP_SCOPE_BASE,
-                                   "(objectclass=*)", NULL);
+                                   "(objectclass=*)", NULL, NULL, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -3648,6 +3648,8 @@ struct sdap_get_generic_state {
     int scope;
     const char *filter;
     const char **attrs;
+    struct sdap_attr_map *map;
+    int map_num_attrs;
 
     struct sdap_op *op;
 
@@ -3670,7 +3672,9 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          const char *search_base,
                                          int scope,
                                          const char *filter,
-                                         const char **attrs)
+                                         const char **attrs,
+                                         struct sdap_attr_map *map,
+                                         int map_num_attrs)
 {
     struct tevent_req *req = NULL;
     struct sdap_get_generic_state *state = NULL;
@@ -3688,6 +3692,8 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     state->scope = scope;
     state->filter = filter;
     state->attrs = attrs;
+    state->map = map;
+    state->map_num_attrs = map_num_attrs;
     state->op = NULL;
     state->reply_max = 0;
     state->reply_count = 0;
@@ -3762,7 +3768,9 @@ static void sdap_get_generic_done(struct sdap_op *op,
         break;
 
     case LDAP_RES_SEARCH_ENTRY:
-        ret = sdap_parse_generic_entry(state, state->sh, reply, &attrs);
+        ret = sdap_parse_entry(state, state->sh, reply,
+                               state->map, state->map_num_attrs,
+                               &attrs, NULL);
         if (ret != EOK) {
             DEBUG(1, ("sdap_parse_generic_entry failed.\n"));
             tevent_req_error(req, ENOMEM);
