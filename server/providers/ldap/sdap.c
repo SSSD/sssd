@@ -421,4 +421,31 @@ bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
     return false;
 }
 
+int build_attrs_from_map(TALLOC_CTX *memctx,
+                         struct sdap_attr_map *map,
+                         size_t size, const char ***_attrs)
+{
+    char **attrs;
+    int i, j;
+
+    attrs = talloc_array(memctx, char *, size + 1);
+    if (!attrs) return ENOMEM;
+
+    /* first attribute is "objectclass" not the specifc one */
+    attrs[0] = talloc_strdup(memctx, "objectClass");
+    if (!attrs[0]) return ENOMEM;
+
+    /* add the others */
+    for (i = j = 1; i < size; i++) {
+        if (map[i].name) {
+            attrs[j] = map[i].name;
+            j++;
+        }
+    }
+    attrs[j] = NULL;
+
+    *_attrs = (const char **)attrs;
+
+    return EOK;
+}
 

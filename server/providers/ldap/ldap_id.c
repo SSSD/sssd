@@ -32,36 +32,6 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
-static int build_attrs_from_map(TALLOC_CTX *memctx,
-                                struct sdap_attr_map *map,
-                                size_t size,
-                                const char ***_attrs)
-{
-    char **attrs;
-    int i, j;
-
-    attrs = talloc_array(memctx, char *, size + 1);
-    if (!attrs) return ENOMEM;
-
-    /* first attribute is "objectclass" not the specifc one */
-    attrs[0] = talloc_strdup(memctx, "objectClass");
-    if (!attrs[0]) return ENOMEM;
-
-    /* add the others */
-    for (i = j = 1; i < size; i++) {
-        if (map[i].name) {
-            attrs[j] = map[i].name;
-            j++;
-        }
-    }
-    attrs[j] = NULL;
-
-    *_attrs = (const char **)attrs;
-
-    return EOK;
-}
-
-
 /* =Connection-handling-functions========================================= */
 
 static bool connected(struct sdap_id_ctx *ctx)

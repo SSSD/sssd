@@ -226,4 +226,7 @@ errno_t setup_tls_config(struct dp_option *basic_opts);
 bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
                                          const char *sasl_mech);
 
+int build_attrs_from_map(TALLOC_CTX *memctx,
+                         struct sdap_attr_map *map,
+                         size_t size, const char ***_attrs);
 #endif /* _SDAP_H_ */
