@@ -56,23 +56,13 @@ errno_t set_debug_file_from_fd(const int fd)
 void debug_fn(const char *format, ...)
 {
     va_list ap;
-    char *s = NULL;
-    int ret;
 
     va_start(ap, format);
 
-    ret = vasprintf(&s, format, ap);
-    if (ret < 0) {
-        /* ENOMEM */
-        return;
-    }
+    vfprintf(debug_file ? debug_file : stderr, format, ap);
+    fflush(debug_file ? debug_file : stderr);
 
     va_end(ap);
-
-    /*write(state.fd, s, strlen(s));*/
-    fprintf(debug_file ? debug_file : stderr, s);
-    fflush(debug_file ? debug_file : stderr);
-    free(s);
 }
 
 void ldb_debug_messages(void *context, enum ldb_debug_level level,
