@@ -411,8 +411,6 @@ resolv_gethostbyname_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
         *timeouts = state->timeouts;
     if (hostent)
         *hostent = talloc_steal(mem_ctx, state->hostent);
-    else
-        talloc_free(hostent);
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         return -1;
@@ -595,8 +593,6 @@ resolv_getsrv_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
         *timeouts = state->timeouts;
     if (reply_list)
         *reply_list = talloc_steal(mem_ctx, state->reply_list);
-    else
-        talloc_free(state->reply_list);
     if (num_replies)
         *num_replies = state->num_replies;
 
@@ -779,8 +775,6 @@ resolv_gettxt_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
         *timeouts = state->timeouts;
     if (reply_list)
         *reply_list = talloc_steal(mem_ctx, state->reply_list);
-    else
-        talloc_free(state->reply_list);
     if (num_replies)
         *num_replies = state->num_replies;
 
