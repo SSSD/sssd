@@ -65,8 +65,8 @@ struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx)
     return talloc_zero(memctx, struct sysdb_attrs);
 }
 
-int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
-                       struct ldb_message_element **el)
+static int sysdb_attrs_get_el_int(struct sysdb_attrs *attrs, const char *name,
+                                  bool alloc, struct ldb_message_element **el)
 {
     struct ldb_message_element *e = NULL;
     int i;
@@ -76,7 +76,7 @@ int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
             e = &(attrs->a[i]);
     }
 
-    if (!e) {
+    if (!e && alloc) {
         e = talloc_realloc(attrs, attrs->a,
                            struct ldb_message_element, attrs->num+1);
         if (!e) return ENOMEM;
@@ -93,8 +93,37 @@ int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
         attrs->num++;
     }
 
+    if (!e) {
+        return ENOENT;
+    }
+
     *el = e;
 
+    return EOK;
+}
+
+int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
+                       struct ldb_message_element **el)
+{
+    return sysdb_attrs_get_el_int(attrs, name, true, el);
+}
+
+int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
+                           const char **string)
+{
+    struct ldb_message_element *el;
+    int ret;
+
+    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    if (ret) {
+        return ret;
+    }
+
+    if (el->num_values != 1) {
+        return ERANGE;
+    }
+
+    *string = (const char *)el->values[0].data;
     return EOK;
 }
 

@@ -74,6 +74,7 @@
 
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"
+#define SYSDB_ORIG_MEMBEROF "originalMemberOf"
 
 #define SYSDB_USN "entryUSN"
 #define SYSDB_HIGH_USN "highestUSN"
@@ -173,6 +174,8 @@ int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
                        struct ldb_message_element **el);
 int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
                              const char *name, char *str);
+int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
+                           const char **string);
 
 int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
                                  const char *newname);
