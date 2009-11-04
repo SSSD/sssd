@@ -327,7 +327,7 @@ struct tevent_req *sysdb_delete_recursive_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req, *subreq;
     struct sysdb_delete_recursive_state *state;
     int ret;
-    const char *no_attrs[] = { NULL };
+    const char **no_attrs;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sysdb_delete_recursive_state);
@@ -340,6 +340,12 @@ struct tevent_req *sysdb_delete_recursive_send(TALLOC_CTX *mem_ctx,
     state->msgs_count = 0;
     state->msgs = NULL;
     state->current_item = 0;
+
+    no_attrs = talloc_array(state, const char *, 1);
+    if (no_attrs == NULL) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+    no_attrs[0] = NULL;
 
     subreq = sysdb_search_entry_send(state, ev, handle, dn, LDB_SCOPE_SUBTREE,
                                      "(distinguishedName=*)", no_attrs);
