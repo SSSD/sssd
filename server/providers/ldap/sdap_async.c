@@ -1305,7 +1305,6 @@ struct sdap_save_user_state {
 
 static void sdap_save_user_done(struct tevent_req *subreq);
 
-    /* FIXME: support non legacy */
     /* FIXME: support storing additional attributes */
 
 static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
@@ -1314,7 +1313,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
                                               struct sdap_options *opts,
                                               struct sss_domain_info *dom,
                                               struct sdap_handle *sh,
-                                              struct sdap_msg *entry)
+                                              struct sysdb_attrs *attrs)
 {
     struct tevent_req *req, *subreq;
     struct sdap_save_user_state *state;
@@ -1340,11 +1339,8 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     state->sh = sh;
     state->dom = dom;
     state->opts = opts;
+    state->attrs = attrs;
     state->timestamp = NULL;
-
-    ret = sdap_parse_user(state, state->opts, state->sh,
-                          entry, &state->attrs, NULL);
-    if (ret) goto fail;
 
     ret = sysdb_attrs_get_el(state->attrs,
                              opts->user_map[SDAP_AT_USER_NAME].sys_name, &el);
@@ -1432,6 +1428,25 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
                                      (const char *) el->values[0].data);
         if (ret) {
             goto fail;
+        }
+    }
+
+    ret = sysdb_attrs_get_el(state->attrs, SYSDB_MEMBEROF, &el);
+    if (ret) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("Original memberOf is not available for [%s].\n",
+                  state->name));
+    } else {
+        DEBUG(7, ("Adding original memberOf attributes to [%s].\n",
+                  state->name));
+        for (i = 0; i < el->num_values; i++) {
+            ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
+                                         (const char *) el->values[i].data);
+            if (ret) {
+                goto fail;
+            }
         }
     }
 
@@ -2295,6 +2310,7 @@ static void sdap_get_users_done(struct sdap_op *op,
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
     struct tevent_req *subreq;
+    struct sysdb_attrs *usr_attrs;
     char *errmsg;
     int result;
     int ret;
@@ -2315,9 +2331,16 @@ static void sdap_get_users_done(struct sdap_op *op,
 
     case LDAP_RES_SEARCH_ENTRY:
 
+        ret = sdap_parse_user(state, state->opts, state->sh,
+                              reply, &usr_attrs, NULL);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
         subreq = sdap_save_user_send(state, state->ev, state->handle,
                                      state->opts, state->dom,
-                                     state->sh, reply);
+                                     state->sh, usr_attrs);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
