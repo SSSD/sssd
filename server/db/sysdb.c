@@ -1429,3 +1429,35 @@ int compare_ldb_dn_comp_num(const void *m1, const void *m2)
     return ldb_dn_get_comp_num(msg2->dn) - ldb_dn_get_comp_num(msg1->dn);
 }
 
+int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
+                             const char *newname)
+{
+    struct ldb_message_element *e = NULL;
+    int i;
+    const char *dummy;
+
+    if (attrs == NULL || oldname == NULL || newname == NULL) return EINVAL;
+
+    for (i = 0; i < attrs->num; i++) {
+        if (strcasecmp(oldname, attrs->a[i].name) == 0) {
+            e = &(attrs->a[i]);
+        }
+        if (strcasecmp(newname, attrs->a[i].name) == 0) {
+            DEBUG(3, ("New attribute name [%s] already exists.\n", newname));
+            return EEXIST;
+        }
+    }
+
+    if (e != NULL) {
+        dummy = talloc_strdup(attrs, newname);
+        if (dummy == NULL) {
+            DEBUG(1, ("talloc_strdup failed.\n"));
+            return ENOMEM;
+        }
+
+        talloc_free(discard_const(e->name));
+        e->name = dummy;
+    }
+
+    return EOK;
+}

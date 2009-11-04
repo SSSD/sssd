@@ -174,6 +174,9 @@ int sysdb_attrs_get_el(struct sysdb_attrs *attrs, const char *name,
 int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
                              const char *name, char *str);
 
+int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
+                                 const char *newname);
+
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);
 

@@ -2310,6 +2310,49 @@ START_TEST (test_sysdb_delete_recursive)
 }
 END_TEST
 
+START_TEST (test_sysdb_attrs_replace_name)
+{
+    struct sysdb_attrs *attrs;
+    struct ldb_message_element *el;
+    int ret;
+
+    attrs = sysdb_new_attrs(NULL);
+    fail_unless(attrs != NULL, "sysdb_new_attrs failed");
+
+    ret = sysdb_attrs_add_string(attrs, "foo", "bar");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed");
+
+    ret = sysdb_attrs_add_string(attrs, "fool", "bool");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed");
+
+    ret = sysdb_attrs_add_string(attrs, "foot", "boot");
+    fail_unless(ret == EOK, "sysdb_attrs_add_string failed");
+
+    ret = sysdb_attrs_replace_name(attrs, "foo", "foot");
+    fail_unless(ret == EEXIST,
+                "sysdb_attrs_replace overwrites existing attribute");
+
+    ret = sysdb_attrs_replace_name(attrs, "foo", "oof");
+    fail_unless(ret == EOK, "sysdb_attrs_replace failed");
+
+    ret = sysdb_attrs_get_el(attrs, "foo", &el);
+    fail_unless(ret == EOK, "sysdb_attrs_get_el failed");
+    fail_unless(el->num_values == 0, "Attribute foo is not empty.");
+
+    ret = sysdb_attrs_get_el(attrs, "oof", &el);
+    fail_unless(ret == EOK, "sysdb_attrs_get_el failed");
+    fail_unless(el->num_values == 1,
+                "Wrong number of values for attribute oof, "
+                "expected [1] got [%d].", el->num_values);
+    fail_unless(strncmp("bar", (char *) el->values[0].data,
+                        el->values[0].length) == 0,
+                "Wrong value, expected [bar] got [%.*s]", el->values[0].length,
+                                                          el->values[0].data);
+
+    talloc_free(attrs);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2403,6 +2446,8 @@ Suite *create_sysdb_suite(void)
 
     /* test recursive delete */
     tcase_add_test(tc_sysdb, test_sysdb_delete_recursive);
+
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_replace_name);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
