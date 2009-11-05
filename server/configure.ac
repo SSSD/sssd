@@ -109,6 +109,8 @@ fi
 
 AC_CHECK_HEADERS([sys/inotify.h])
 
+AC_CHECK_HEADERS([sasl/sasl.h],,AC_MSG_ERROR([Could not find SASL headers]))
+
 PKG_CHECK_MODULES([CHECK], [check], [have_check=1], [have_check=])
 if test x$have_check = x; then
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
