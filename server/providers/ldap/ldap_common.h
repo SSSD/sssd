@@ -69,4 +69,11 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      const char *conf_path,
                      struct sdap_options **_opts);
 
+void ldap_id_enumerate(struct tevent_context *ev,
+                       struct tevent_timer *tt,
+                       struct timeval tv, void *pvt);
+
+bool sdap_connected(struct sdap_id_ctx *ctx);
+void sdap_mark_offline(struct sdap_id_ctx *ctx);
+
 #endif /* _LDAP_COMMON_H_ */

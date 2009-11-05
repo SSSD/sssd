@@ -264,3 +264,44 @@ void sdap_handler_done(struct be_req *req, int dp_err,
     return req->fn(req, dp_err, error, errstr);
 }
 
+bool sdap_connected(struct sdap_id_ctx *ctx)
+{
+    if (ctx->gsh) {
+        return ctx->gsh->connected;
+    }
+
+    return false;
+}
+
+void sdap_mark_offline(struct sdap_id_ctx *ctx)
+{
+    if (ctx->gsh) {
+        /* make sure we mark the connection as gone when we go offline so that
+         * we do not try to reuse a bad connection by mistale later */
+        talloc_zfree(ctx->gsh);
+    }
+
+    be_mark_offline(ctx->be);
+}
+
+
+int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
+{
+    struct tevent_timer *enum_task;
+    int ret = EOK;
+
+    /* set up enumeration task */
+    if (ctx->be->domain->enumerate) {
+        /* run the first one in a couple of seconds so that we have time to
+         * finish initializations first*/
+        ctx->last_run = tevent_timeval_current_ofs(2, 0);
+        enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
+                                     ldap_id_enumerate, ctx);
+        if (!enum_task) {
+            DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
+            ret = EFAULT;
+        }
+    }
+
+    return ret;
+}
