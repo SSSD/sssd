@@ -103,13 +103,14 @@ static int nss_get_config(struct nss_ctx *nctx,
 
 
     ret = confdb_get_int(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
-                         CONFDB_NSS_ENTRY_CACHE_NOWAIT_TIMEOUT, 0,
-                         &nctx->cache_refresh_timeout);
+                         CONFDB_NSS_ENTRY_CACHE_NOWAIT_PERCENTAGE, 0,
+                         &nctx->cache_refresh_percent);
     if (ret != EOK) goto done;
-    if (nctx->cache_refresh_timeout < 0) {
-        DEBUG(0,("Configuration error: EntryCacheNoWaitRefreshTimeout is"
+    if (nctx->cache_refresh_percent < 0 ||
+        nctx->cache_refresh_percent > 99) {
+        DEBUG(0,("Configuration error: entry_cache_nowait_percentage is"
                  "invalid. Disabling feature.\n"));
-        nctx->cache_refresh_timeout = 0;
+        nctx->cache_refresh_percent = 0;
     }
 
     ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,

@@ -257,12 +257,31 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>entry_cache_nowait_timeout (integer)</term>
+                    <term>entry_cache_nowait_percentage (integer)</term>
                     <listitem>
                         <para>
-                            How long should nss_sss return cached entries before
-                            initiating an out-of-band cache refresh (0 disables
-                            this feature)
+                            The entry cache can be set to automatically update
+                            entries in the background if they are requested
+                            beyond a percentage of the entry_cache_timeout
+                            value for the domain.
+                        </para>
+                        <para>
+                            For example, if the domain's entry_cache_timeout
+                            is set to 30s and entry_cache_nowait_percentage is
+                            set to 50 (percent), entries that come in after 15
+                            seconds past the last cache update will be
+                            returned immediately, but the SSSD will go and
+                            update the cache on its own, so that future
+                            requests will not need to block waiting for a
+                            cache update.
+                        </para>
+                        <para>
+                            Valid values for this option are 0-99 and
+                            represent a percentage of the entry_cache_timeout
+                            for each domain. For performance reasons, this
+                            percentage will never reduce the nowait timeout to
+                            less than 10 seconds.
+                            (0 disables this feature)
                         </para>
                         <para>
                             Default: 0

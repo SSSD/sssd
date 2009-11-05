@@ -278,10 +278,10 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
 {
     errno_t ret;
     int timeout;
-    int refresh_timeout;
     time_t now;
     uint64_t lastUpdate;
     uint64_t cacheExpire;
+    uint64_t midpoint_refresh;
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
     bool call_provider = false;
@@ -298,13 +298,26 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
         } else if ((req_type == SSS_DP_GROUP) ||
                    ((req_type == SSS_DP_USER) && (res->count == 1))) {
 
-            refresh_timeout = nctx->cache_refresh_timeout;
             now = time(NULL);
 
             lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                      SYSDB_LAST_UPDATE, 0);
             cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                       SYSDB_CACHE_EXPIRE, 0);
+
+            midpoint_refresh = 0;
+            if(nctx->cache_refresh_percent) {
+                midpoint_refresh = lastUpdate +
+                  (cacheExpire - lastUpdate)*nctx->cache_refresh_percent/100;
+                if (midpoint_refresh - lastUpdate < 10) {
+                    /* If the percentage results in an expiration
+                     * less than ten seconds after the lastUpdate time,
+                     * that's too often we will simply set it to 10s
+                     */
+                    midpoint_refresh = lastUpdate+10;
+                }
+            }
+
             if (cacheExpire < now) {
                 /* This is a cache miss. We need to get the updated user
                  * information before returning it.
@@ -312,11 +325,12 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
                 call_provider = true;
                 cb = callback;
             }
-            else if (refresh_timeout && (lastUpdate + refresh_timeout < now)) {
+            else if (midpoint_refresh && midpoint_refresh < now) {
                 /* We're past the the cache refresh timeout
                  * We'll return the value from the cache, but we'll also
                  * queue the cache entry for update out-of-band.
                  */
+                DEBUG(6, ("Performing midpoint cache update on [%s]\n", opt_name));
                 call_provider = true;
                 cb = NULL;
             }
