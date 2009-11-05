@@ -273,6 +273,7 @@ dist_noinst_HEADERS = \
     providers/ldap/ldap_common.h \
     providers/ldap/sdap.h \
     providers/ldap/sdap_async.h \
+    providers/ldap/sdap_async_private.h \
     providers/ipa/ipa_common.h \
     tools/tools_util.h \
     tools/sss_sync_ops.h \
@@ -515,6 +516,8 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/ldap_auth.c \
     providers/ldap/ldap_common.c \
     providers/ldap/sdap_async.c \
+    providers/ldap/sdap_async_accounts.c \
+    providers/ldap/sdap_async_connection.c \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
     util/sss_krb5.c \

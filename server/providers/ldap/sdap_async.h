@@ -19,6 +19,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _SDAP_ASYNC_H_
+#define _SDAP_ASYNC_H_
+
 #include <talloc.h>
 #include <tevent.h>
 #include "providers/dp_backend.h"
@@ -112,3 +115,5 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);
+
+#endif /* _SDAP_ASYNC_H_ */
