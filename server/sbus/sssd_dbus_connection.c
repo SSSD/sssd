@@ -54,7 +54,7 @@ static void sbus_dispatch(struct tevent_context *ev,
     conn = talloc_get_type(data, struct sbus_connection);
 
     dbus_conn = conn->dbus.conn;
-    DEBUG(6, ("dbus conn: %lX\n", dbus_conn));
+    DEBUG(9, ("dbus conn: %lX\n", dbus_conn));
 
     if (conn->retries > 0) {
         DEBUG(6, ("SBUS is reconnecting. Deferring.\n"));
@@ -99,7 +99,7 @@ static void sbus_dispatch(struct tevent_context *ev,
      */
     ret = dbus_connection_get_dispatch_status(dbus_conn);
     if (ret != DBUS_DISPATCH_COMPLETE) {
-        DEBUG(6,("Dispatching.\n"));
+        DEBUG(9,("Dispatching.\n"));
         dbus_connection_dispatch(dbus_conn);
     }
 
