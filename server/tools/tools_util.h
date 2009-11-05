@@ -95,4 +95,14 @@ int remove_homedir(TALLOC_CTX *mem_ctx,
                    const char *username,
                    uid_t uid, bool force);
 
+/* from files.c */
+int remove_tree(const char *root);
+
+int copy_tree(const char *src_root,
+              const char *dst_root,
+              uid_t uid, gid_t gid);
+
+int selinux_file_context(const char *dst_name);
+int reset_selinux_file_context(void);
+
 #endif  /* __TOOLS_UTIL_H__ */

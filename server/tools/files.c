@@ -64,6 +64,7 @@
 
 #include "config.h"
 #include "util/util.h"
+#include "tools/tools_util.h"
 
 #ifdef HAVE_SELINUX
 #include <selinux/selinux.h>

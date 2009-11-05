@@ -183,7 +183,6 @@ SSSD_UTIL_OBJ = \
     util/backup_file.c \
     util/strtonum.c \
     util/check_and_open.c \
-    util/files.c \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \
@@ -194,7 +193,8 @@ SSSD_RESPONDER_OBJ = \
 
 SSSD_TOOLS_OBJ = \
     tools/sss_sync_ops.c \
-    tools/tools_util.c
+    tools/tools_util.c \
+    tools/files.c
 
 SSSD_RESOLV_OBJ = \
     resolv/async_resolv.c
@@ -433,7 +433,7 @@ files_tests_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
     tests/files-tests.c \
     util/check_and_open.c \
-    util/files.c
+    tools/files.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
