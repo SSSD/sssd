@@ -1294,7 +1294,6 @@ struct sdap_save_user_state {
     struct tevent_context *ev;
     struct sysdb_handle *handle;
     struct sdap_options *opts;
-    struct sdap_handle *sh;
 
     struct sss_domain_info *dom;
 
@@ -1312,7 +1311,6 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
                                               struct sysdb_handle *handle,
                                               struct sdap_options *opts,
                                               struct sss_domain_info *dom,
-                                              struct sdap_handle *sh,
                                               struct sysdb_attrs *attrs)
 {
     struct tevent_req *req, *subreq;
@@ -1338,7 +1336,6 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->handle = handle;
-    state->sh = sh;
     state->dom = dom;
     state->opts = opts;
     state->attrs = attrs;
@@ -1584,76 +1581,6 @@ static int sdap_save_user_recv(struct tevent_req *req,
 
 /* ==Group-Parsing Routines=============================================== */
 
-struct sdap_grp_members {
-    struct sdap_grp_members *prev, *next;
-
-    char *name;
-    char *dn;
-    struct ldb_val *member_dns;
-    int num_mem_dns;
-};
-
-/* this function steals memory from "attrs", but does not modify its
- * pointers. Make sure that's ok with what the caller expects */
-static int sdap_get_groups_save_membership(TALLOC_CTX *memctx,
-                                           struct sdap_options *opts,
-                                           struct sysdb_attrs *attrs,
-                                           struct sdap_grp_members **list)
-{
-    struct sdap_grp_members *m;
-    struct ldb_message_element *el;
-    int ret;
-
-    m = talloc_zero(memctx, struct sdap_grp_members);
-    if (!m) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_attrs_get_el(attrs,
-                      opts->group_map[SDAP_AT_GROUP_NAME].sys_name, &el);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    m->name = talloc_steal(m, (char *)el->values[0].data);
-    if (!m->name) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
-    if (ret != EOK) {
-        goto fail;
-    }
-    m->dn = talloc_steal(m, (char *)el->values[0].data);
-    if (!m->dn) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    ret = sysdb_attrs_get_el(attrs,
-                      opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
-    if (ret != EOK) {
-        goto fail;
-    }
-    if (el->num_values) {
-        m->member_dns = talloc_steal(m, el->values);
-        if (!m->member_dns) {
-            ret = ENOMEM;
-            goto fail;
-        }
-    }
-    m->num_mem_dns = el->num_values;
-
-    DLIST_ADD(*list, m);
-
-    return EOK;
-
-fail:
-    talloc_free(m);
-    return ret;
-}
-
 static int sdap_parse_memberships(TALLOC_CTX *memctx,
                                   struct sysdb_handle *handle,
                                   struct sdap_options *opts,
@@ -1878,140 +1805,6 @@ done:
     return ret;
 }
 
-/* ==Save-Groups-Members================================================== */
-
-struct sdap_set_members_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sdap_options *opts;
-
-    struct sss_domain_info *dom;
-
-    struct sdap_grp_members *curmem;
-};
-
-static void sdap_set_members_done(struct tevent_req *subreq);
-static struct tevent_req *sdap_set_grpmem_send(TALLOC_CTX *memctx,
-                                               struct tevent_context *ev,
-                                               struct sysdb_handle *handle,
-                                               struct sdap_options *opts,
-                                               struct sss_domain_info *dom,
-                                               struct sdap_grp_members *gm);
-static struct tevent_req *sdap_set_members_send(TALLOC_CTX *memctx,
-                                                struct tevent_context *ev,
-                                                struct sysdb_handle *handle,
-                                                struct sdap_options *opts,
-                                                struct sss_domain_info *dom,
-                                                struct sdap_grp_members *m)
-{
-    struct tevent_req *req, *subreq;
-    struct sdap_set_members_state *state;
-
-    DEBUG(9, ("Now setting group members.\n"));
-
-    req = tevent_req_create(memctx, &state, struct sdap_set_members_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->dom = dom;
-    state->opts = opts;
-    state->curmem = m;
-
-    subreq = sdap_set_grpmem_send(state, state->ev, state->handle,
-                                  state->opts, state->dom,
-                                  state->curmem);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, sdap_set_members_done, req);
-
-    return req;
-}
-
-static struct tevent_req *sdap_set_grpmem_send(TALLOC_CTX *memctx,
-                                               struct tevent_context *ev,
-                                               struct sysdb_handle *handle,
-                                               struct sdap_options *opts,
-                                               struct sss_domain_info *dom,
-                                               struct sdap_grp_members *gm)
-{
-    struct tevent_req *subreq;
-    const char **member_groups = NULL;
-    const char **member_users = NULL;
-    int ret;
-
-    DEBUG(7, ("Adding member users to group [%s]\n", gm->name));
-
-    ret = sdap_parse_memberships(memctx, handle, opts,
-                                 gm->member_dns,
-                                 gm->num_mem_dns,
-                                 &member_users, &member_groups);
-    if (ret != EOK) {
-        return NULL;
-    }
-
-    subreq = sysdb_store_group_send(memctx, ev, handle, dom,
-                                    gm->name, 0,
-                                    member_users, member_groups, NULL,
-                                    dp_opt_get_int(opts->basic,
-                                                   SDAP_ENTRY_CACHE_TIMEOUT));
-
-    /* steal members on subreq,
-     * so they are freed when the request is finished */
-    talloc_steal(subreq, member_users);
-    talloc_steal(subreq, member_groups);
-
-    return subreq;
-}
-
-static void sdap_set_members_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_set_members_state *state = tevent_req_data(req,
-                                             struct sdap_set_members_state);
-    int ret;
-
-    ret = sysdb_store_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(2, ("Failed to store group members for %s. Ignoring\n",
-                  state->curmem->name));
-    }
-
-    if (state->curmem->next) {
-        state->curmem = state->curmem->next;
-
-        subreq = sdap_set_grpmem_send(state, state->ev, state->handle,
-                                      state->opts, state->dom,
-                                      state->curmem);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sdap_set_members_done, req);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static int sdap_set_members_recv(struct tevent_req *req)
-{
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
-
-    return EOK;
-}
-
 /* ==Save-Group-Entry===================================================== */
 
 struct sdap_save_group_state {
@@ -2212,6 +2005,286 @@ static int sdap_save_group_recv(struct tevent_req *req,
 }
 
 
+/* ==Save-Group-Memebrs=================================================== */
+
+struct sdap_save_grpmem_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sdap_options *opts;
+
+    struct sss_domain_info *dom;
+
+    const char *name;
+};
+
+static void sdap_save_grpmem_done(struct tevent_req *subreq);
+
+    /* FIXME: support non legacy */
+    /* FIXME: support storing additional attributes */
+
+static struct tevent_req *sdap_save_grpmem_send(TALLOC_CTX *memctx,
+                                                struct tevent_context *ev,
+                                                struct sysdb_handle *handle,
+                                                struct sdap_options *opts,
+                                                struct sss_domain_info *dom,
+                                                struct sysdb_attrs *attrs)
+{
+    struct tevent_req *req, *subreq;
+    struct sdap_save_grpmem_state *state;
+    struct ldb_message_element *el;
+    const char **member_groups = NULL;
+    const char **member_users = NULL;
+    int ret;
+
+    req = tevent_req_create(memctx, &state, struct sdap_save_grpmem_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->handle = handle;
+    state->dom = dom;
+    state->opts = opts;
+
+    ret = sysdb_attrs_get_string(attrs,
+                                opts->group_map[SDAP_AT_GROUP_NAME].sys_name,
+                                &state->name);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = sysdb_attrs_get_el(attrs,
+                    opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
+    if (ret != EOK) {
+        goto fail;
+    }
+    if (el->num_values == 0) {
+        DEBUG(7, ("No members for group [%s]\n", state->name));
+
+    } else {
+        DEBUG(7, ("Adding member users to group [%s]\n", state->name));
+
+        ret = sdap_parse_memberships(state, handle, opts,
+                                     el->values, el->num_values,
+                                     &member_users, &member_groups);
+        if (ret) {
+            goto fail;
+        }
+    }
+
+    DEBUG(6, ("Storing members for group %s\n", state->name));
+
+    subreq = sysdb_store_group_send(state, state->ev,
+                                    state->handle, state->dom,
+                                    state->name, 0,
+                                    member_users, member_groups,
+                                    NULL,
+                                    dp_opt_get_int(opts->basic,
+                                               SDAP_ENTRY_CACHE_TIMEOUT));
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sdap_save_grpmem_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sdap_save_grpmem_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_save_grpmem_state *state = tevent_req_data(req,
+                                              struct sdap_save_grpmem_state);
+    int ret;
+
+    ret = sysdb_store_group_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(2, ("Failed to save group members for %s [%d]\n",
+                  state->name, ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static int sdap_save_grpmem_recv(struct tevent_req *req)
+{
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (!err) return EIO;
+        return err;
+    }
+    return EOK;
+}
+
+
+/* ==Generic-Function-to-save-multiple-users============================= */
+
+struct sdap_save_users_state {
+    struct tevent_context *ev;
+    struct sysdb_ctx *sysdb;
+    struct sdap_options *opts;
+    struct sss_domain_info *dom;
+
+    struct sysdb_attrs **users;
+    int count;
+    int cur;
+
+    struct sysdb_handle *handle;
+
+    char *higher_timestamp;
+};
+
+static void sdap_save_users_trans(struct tevent_req *subreq);
+static void sdap_save_users_store(struct tevent_req *req);
+static void sdap_save_users_process(struct tevent_req *subreq);
+struct tevent_req *sdap_save_users_send(TALLOC_CTX *memctx,
+                                         struct tevent_context *ev,
+                                         struct sss_domain_info *dom,
+                                         struct sysdb_ctx *sysdb,
+                                         struct sdap_options *opts,
+                                         struct sysdb_attrs **users,
+                                         int num_users)
+{
+    struct tevent_req *req, *subreq;
+    struct sdap_save_users_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_save_users_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+    state->sysdb = sysdb;
+    state->dom = dom;
+    state->users = users;
+    state->count = 0;
+    state->cur = 0;
+    state->handle = NULL;
+    state->higher_timestamp = NULL;
+
+    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        tevent_req_post(req, ev);
+        return req;
+    }
+    tevent_req_set_callback(subreq, sdap_save_users_trans, req);
+
+    return req;
+}
+
+static void sdap_save_users_trans(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_save_users_state *state;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_save_users_state);
+
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sdap_save_users_store(req);
+}
+
+static void sdap_save_users_store(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sdap_save_users_state *state;
+
+    state = tevent_req_data(req, struct sdap_save_users_state);
+
+    subreq = sdap_save_user_send(state, state->ev, state->handle,
+                                  state->opts, state->dom,
+                                  state->users[state->cur]);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_save_users_process, req);
+}
+
+static void sdap_save_users_process(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_save_users_state *state;
+    char *timestamp = NULL;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_save_users_state);
+
+    ret = sdap_save_user_recv(subreq, state, &timestamp);
+    talloc_zfree(subreq);
+
+    /* Do not fail completely on errors.
+     * Just report the failure to save and go on */
+    if (ret) {
+        DEBUG(2, ("Failed to store user %d. Ignoring.\n", state->cur));
+    }
+
+    if (timestamp) {
+        if (state->higher_timestamp) {
+            if (strcmp(timestamp, state->higher_timestamp) > 0) {
+                talloc_zfree(state->higher_timestamp);
+                state->higher_timestamp = timestamp;
+            } else {
+                talloc_zfree(timestamp);
+            }
+        } else {
+            state->higher_timestamp = timestamp;
+        }
+    }
+
+    state->cur++;
+    if (state->cur < state->count) {
+        sdap_save_users_store(req);
+    } else {
+        subreq = sysdb_transaction_commit_send(state, state->ev,
+                                               state->handle);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        /* sysdb_transaction_complete will call tevent_req_done(req) */
+        tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
+    }
+}
+
+static int sdap_save_users_recv(struct tevent_req *req,
+                                TALLOC_CTX *mem_ctx, char **timestamp)
+{
+    struct sdap_save_users_state *state  = tevent_req_data(req,
+                                               struct sdap_save_users_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (err) return err;
+        return EIO;
+    }
+
+    if (timestamp) {
+        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
+    }
+
+    return EOK;
+}
+
+
 /* ==Search-Users-with-filter============================================= */
 
 struct sdap_get_users_state {
@@ -2219,20 +2292,17 @@ struct sdap_get_users_state {
     struct sdap_options *opts;
     struct sdap_handle *sh;
     struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
     const char **attrs;
     const char *filter;
 
-    struct sysdb_handle *handle;
-    struct sdap_op *op;
-
     char *higher_timestamp;
+    struct sysdb_attrs **users;
+    size_t count;
 };
 
-static void sdap_get_users_transaction(struct tevent_req *subreq);
-static void sdap_get_users_done(struct sdap_op *op,
-                                struct sdap_msg *reply,
-                                int error, void *pvt);
-static void sdap_get_users_save_done(struct tevent_req *subreq);
+static void sdap_get_users_process(struct tevent_req *subreq);
+static void sdap_get_users_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
@@ -2253,171 +2323,80 @@ struct tevent_req *sdap_get_users_send(TALLOC_CTX *memctx,
     state->opts = opts;
     state->dom = dom;
     state->sh = sh;
+    state->sysdb = sysdb;
     state->filter = filter;
     state->attrs = attrs;
     state->higher_timestamp = NULL;
+    state->users =  NULL;
+    state->count = 0;
 
-    subreq = sysdb_transaction_send(state, state->ev, sysdb);
-    if (!subreq) return NULL;
-    tevent_req_set_callback(subreq, sdap_get_users_transaction, req);
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   dp_opt_get_string(state->opts->basic,
+                                                     SDAP_USER_SEARCH_BASE),
+                                   LDAP_SCOPE_SUBTREE,
+                                   state->filter, state->attrs,
+                                   state->opts->user_map, SDAP_OPTS_USER);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_users_process, req);
 
     return req;
 }
 
-static void sdap_get_users_transaction(struct tevent_req *subreq)
+static void sdap_get_users_process(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
-    int lret, ret;
-    int msgid;
+    int ret;
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->count, &state->users);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
 
-    DEBUG(5, ("calling ldap_search_ext with [%s].\n", state->filter));
+    DEBUG(6, ("Search for users, returned %d results.\n", state->count));
 
-    lret = ldap_search_ext(state->sh->ldap,
-                           dp_opt_get_string(state->opts->basic,
-                                              SDAP_USER_SEARCH_BASE),
-                           LDAP_SCOPE_SUBTREE, state->filter,
-                           discard_const(state->attrs),
-                           false, NULL, NULL, NULL, 0, &msgid);
-    if (lret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
-        tevent_req_error(req, EIO);
+    if (state->count == 0) {
+        tevent_req_error(req, ENOENT);
         return;
     }
-    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
 
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_users_done, req,
-                      dp_opt_get_int(state->opts->basic,
-                                      SDAP_SEARCH_TIMEOUT),
-                      &state->op);
-    if (ret) {
-        DEBUG(1, ("Failed to set up operation!\n"));
-        tevent_req_error(req, ret);
+    subreq = sdap_save_users_send(state, state->ev, state->dom,
+                                  state->sysdb, state->opts,
+                                  state->users, state->count);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
     }
+    tevent_req_set_callback(subreq, sdap_get_users_done, req);
 }
 
-static void sdap_get_users_done(struct sdap_op *op,
-                                struct sdap_msg *reply,
-                                int error, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_get_users_state *state = tevent_req_data(req,
-                                            struct sdap_get_users_state);
-    struct tevent_req *subreq;
-    struct sysdb_attrs *usr_attrs;
-    char *errmsg;
-    int result;
-    int ret;
-
-    if (error) {
-        tevent_req_error(req, error);
-        return;
-    }
-
-    switch (ldap_msgtype(reply->msg)) {
-    case LDAP_RES_SEARCH_REFERENCE:
-        /* ignore references for now */
-        talloc_free(reply);
-
-        /* unlock the operation so that we can proceed with the next result */
-        sdap_unlock_next_reply(state->op);
-        break;
-
-    case LDAP_RES_SEARCH_ENTRY:
-
-        ret = sdap_parse_user(state, state->opts, state->sh,
-                              reply, &usr_attrs, NULL);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        subreq = sdap_save_user_send(state, state->ev, state->handle,
-                                     state->opts, state->dom,
-                                     state->sh, usr_attrs);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sdap_get_users_save_done, req);
-
-        break;
-
-    case LDAP_RES_SEARCH_RESULT:
-        /* End of the story */
-
-        ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                                &result, NULL, &errmsg, NULL, NULL, 0);
-        if (ret != LDAP_SUCCESS) {
-            DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
-            tevent_req_error(req, EIO);
-            return;
-        }
-
-        DEBUG(3, ("Search result: %s(%d), %s\n",
-                  ldap_err2string(result), result, errmsg));
-
-        subreq = sysdb_transaction_commit_send(state, state->ev,
-                                               state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        /* sysdb_transaction_complete will call tevent_req_done(req) */
-        tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
-        break;
-
-    default:
-        /* what is going on here !? */
-        tevent_req_error(req, EIO);
-        return;
-    }
-}
-
-static void sdap_get_users_save_done(struct tevent_req *subreq)
+static void sdap_get_users_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
-    char *timestamp = NULL;
     int ret;
 
-    ret = sdap_save_user_recv(subreq, state, &timestamp);
+    DEBUG(9, ("Saving %d Users - Done\n", state->count));
+
+    ret = sdap_save_users_recv(subreq, state, &state->higher_timestamp);
     talloc_zfree(subreq);
-
-    /* Do not fail completely on errors.
-     * Just report the failure to save and go on */
     if (ret) {
-        DEBUG(2, ("Failed to store user. Ignoring.\n"));
-        timestamp = NULL;
+        DEBUG(2, ("Failed to store users.\n"));
+        tevent_req_error(req, ret);
+        return;
     }
 
-    if (timestamp) {
-        if (state->higher_timestamp) {
-            if (strcmp(timestamp, state->higher_timestamp) > 0) {
-                talloc_zfree(state->higher_timestamp);
-                state->higher_timestamp = timestamp;
-            } else {
-                talloc_zfree(timestamp);
-            }
-        } else {
-            state->higher_timestamp = timestamp;
-        }
-    }
-
-    /* unlock the operation so that we can proceed with the next result */
-    sdap_unlock_next_reply(state->op);
+    tevent_req_done(req);
 }
 
 int sdap_get_users_recv(struct tevent_req *req,
@@ -2440,324 +2419,7 @@ int sdap_get_users_recv(struct tevent_req *req,
     return EOK;
 }
 
-/* ==Search-Groups-with-filter============================================ */
-
-struct sdap_get_groups_state {
-    struct tevent_context *ev;
-    struct sdap_options *opts;
-    struct sdap_handle *sh;
-    struct sss_domain_info *dom;
-    const char **attrs;
-    const char *filter;
-
-    struct sysdb_handle *handle;
-    struct sdap_op *op;
-    char *higher_timestamp;
-
-    struct sdap_grp_members *mlist;
-};
-
-static void sdap_get_groups_transaction(struct tevent_req *subreq);
-static void sdap_get_groups_done(struct sdap_op *op,
-                                 struct sdap_msg *reply,
-                                 int error, void *pvt);
-static void sdap_get_groups_save_done(struct tevent_req *subreq);
-static void sdap_get_groups_save_mems(struct tevent_req *subreq);
-
-struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
-                                       struct tevent_context *ev,
-                                       struct sss_domain_info *dom,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sdap_options *opts,
-                                       struct sdap_handle *sh,
-                                       const char **attrs,
-                                       const char *filter)
-{
-    struct tevent_req *req, *subreq;
-    struct sdap_get_groups_state *state;
-
-    req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->opts = opts;
-    state->dom = dom;
-    state->sh = sh;
-    state->filter = filter;
-    state->attrs = attrs;
-    state->higher_timestamp = NULL;
-    state->mlist = NULL;
-
-    subreq = sysdb_transaction_send(state, state->ev, sysdb);
-    if (!subreq) {
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, sdap_get_groups_transaction, req);
-
-    return req;
-}
-
-static void sdap_get_groups_transaction(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                               struct sdap_get_groups_state);
-    int ret, lret;
-    int msgid;
-
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    DEBUG(7, ("calling ldap_search_ext with [%s].\n", state->filter));
-    if (debug_level >= 7) {
-        int i;
-
-        for (i = 0; state->attrs[i]; i++) {
-            DEBUG(7, ("Requesting attrs: [%s]\n", state->attrs[i]));
-        }
-    }
-
-    lret = ldap_search_ext(state->sh->ldap,
-                           dp_opt_get_string(state->opts->basic,
-                                              SDAP_GROUP_SEARCH_BASE),
-                           LDAP_SCOPE_SUBTREE, state->filter,
-                           discard_const(state->attrs),
-                           false, NULL, NULL, NULL, 0, &msgid);
-    if (lret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
-        tevent_req_error(req, EIO);
-        return;
-    }
-    DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
-
-    /* FIXME: get timeouts from configuration, for now 10 minutes */
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_get_groups_done, req,
-                      dp_opt_get_int(state->opts->basic,
-                                      SDAP_SEARCH_TIMEOUT),
-                      &state->op);
-    if (ret) {
-        DEBUG(1, ("Failed to set up operation!\n"));
-        tevent_req_error(req, ret);
-    }
-}
-
-static void sdap_get_groups_done(struct sdap_op *op,
-                                 struct sdap_msg *reply,
-                                 int error, void *pvt)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
-    struct tevent_req *subreq;
-    struct sysdb_attrs *grp_attrs;
-    char *errmsg;
-    int result;
-    int ret;
-
-    if (error) {
-        tevent_req_error(req, error);
-        return;
-    }
-
-    switch (ldap_msgtype(reply->msg)) {
-    case LDAP_RES_SEARCH_REFERENCE:
-        /* ignore references for now */
-        talloc_free(reply);
-
-        /* unlock the operation so that we can proceed with the next result */
-        sdap_unlock_next_reply(state->op);
-        break;
-
-    case LDAP_RES_SEARCH_ENTRY:
-
-        /* allocate on reply so that it will be freed once the
-         * reply is processed. Remember to steal if you need something
-         * to stick longer */
-        ret = sdap_parse_group(reply, state->opts, state->sh,
-                               reply, &grp_attrs, NULL);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        switch (state->opts->schema_type) {
-        case SDAP_SCHEMA_RFC2307:
-        case SDAP_SCHEMA_RFC2307BIS:
-
-            subreq = sdap_save_group_send(state, state->ev, state->handle,
-                                          state->opts, state->dom,
-                                          grp_attrs, true);
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            tevent_req_set_callback(subreq, sdap_get_groups_save_done, req);
-
-            break;
-
-        case SDAP_SCHEMA_IPA_V1:
-        case SDAP_SCHEMA_AD:
-
-            subreq = sdap_save_group_send(state, state->ev, state->handle,
-                                          state->opts, state->dom,
-                                          grp_attrs, false);
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            tevent_req_set_callback(subreq, sdap_get_groups_save_done, req);
-
-            ret = sdap_get_groups_save_membership(state, state->opts,
-                                                  grp_attrs, &state->mlist);
-            if (ret != EOK) {
-                tevent_req_error(req, ret);
-                return;
-            }
-
-            break;
-
-        default:
-            tevent_req_error(req, EFAULT);
-            return;
-        }
-
-        break;
-
-    case LDAP_RES_SEARCH_RESULT:
-        /* End of the story */
-
-        ret = ldap_parse_result(state->sh->ldap, reply->msg,
-                                &result, NULL, &errmsg, NULL, NULL, 0);
-        if (ret != LDAP_SUCCESS) {
-            DEBUG(2, ("ldap_parse_result failed (%d)\n", state->op->msgid));
-            tevent_req_error(req, EIO);
-            return;
-        }
-
-        DEBUG(3, ("Search result: %s(%d), %s\n",
-                  ldap_err2string(result), result, errmsg));
-
-        if (state->mlist) {
-            /* need second pass to set members */
-            subreq = sdap_set_members_send(state, state->ev, state->handle,
-                                           state->opts, state->dom,
-                                           state->mlist);
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            tevent_req_set_callback(subreq, sdap_get_groups_save_mems, req);
-
-        } else {
-            subreq = sysdb_transaction_commit_send(state, state->ev,
-                                                   state->handle);
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            /* sysdb_transaction_complete will call tevent_req_done(req) */
-            tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
-        }
-
-        break;
-
-    default:
-        /* what is going on here !? */
-        tevent_req_error(req, EIO);
-        return;
-    }
-}
-
-static void sdap_get_groups_save_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
-    char *timestamp;
-    int ret;
-
-    ret = sdap_save_group_recv(subreq, state, &timestamp);
-    talloc_zfree(subreq);
-
-    /* Do not fail completely on errors.
-     * Just report the failure to save and go on */
-
-    if (ret) {
-        DEBUG(2, ("Failed to store group. Ignoring.\n"));
-        timestamp = NULL;
-    }
-
-    if (timestamp) {
-        if (state->higher_timestamp) {
-            if (strcmp(timestamp, state->higher_timestamp) > 0) {
-                talloc_zfree(state->higher_timestamp);
-                state->higher_timestamp = timestamp;
-            } else {
-                talloc_zfree(timestamp);
-            }
-        } else {
-            state->higher_timestamp = timestamp;
-        }
-    }
-
-    /* unlock the operation so that we can proceed with the next result */
-    sdap_unlock_next_reply(state->op);
-}
-
-static void sdap_get_groups_save_mems(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
-    int ret;
-
-    ret = sdap_set_members_recv(subreq);
-    talloc_zfree(subreq);
-
-    if (ret) {
-        DEBUG(2, ("Failed to store group memberships.\n"));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    /* sysdb_transaction_complete will call tevent_req_done(req) */
-    tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
-}
-
-int sdap_get_groups_recv(struct tevent_req *req,
-                         TALLOC_CTX *mem_ctx, char **timestamp)
-{
-    struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
-
-    if (timestamp) {
-        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
-    }
-
-    return EOK;
-}
-
-/* ==Initgr-call-(groups-a-user-is-member-of)-Save-Groups================= */
+/* ==Generic-Function-to-save-multiple-groups============================= */
 
 struct sdap_save_groups_state {
     struct tevent_context *ev;
@@ -2768,14 +2430,18 @@ struct sdap_save_groups_state {
     struct sysdb_attrs **groups;
     int count;
     int cur;
-    bool savemembers;
+    bool twopass;
 
     struct sysdb_handle *handle;
+
+    char *higher_timestamp;
 };
 
 static void sdap_save_groups_trans(struct tevent_req *subreq);
-static void sdap_save_groups_store(struct tevent_req *req);
-static void sdap_save_groups_process(struct tevent_req *subreq);
+static void sdap_save_groups_save(struct tevent_req *req);
+static void sdap_save_groups_loop(struct tevent_req *subreq);
+static void sdap_save_groups_mem_save(struct tevent_req *req);
+static void sdap_save_groups_mem_loop(struct tevent_req *subreq);
 struct tevent_req *sdap_save_groups_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sss_domain_info *dom,
@@ -2798,16 +2464,17 @@ struct tevent_req *sdap_save_groups_send(TALLOC_CTX *memctx,
     state->count = 0;
     state->cur = 0;
     state->handle = NULL;
+    state->higher_timestamp = NULL;
 
     switch (opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
     case SDAP_SCHEMA_RFC2307BIS:
-        state->savemembers = true;
+        state->twopass = false;
         break;
 
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
-        state->savemembers = false;
+        state->twopass = true;
         break;
 
     default:
@@ -2843,39 +2510,39 @@ static void sdap_save_groups_trans(struct tevent_req *subreq)
         return;
     }
 
-    sdap_save_groups_store(req);
+    sdap_save_groups_save(req);
 }
 
-static void sdap_save_groups_store(struct tevent_req *req)
+static void sdap_save_groups_save(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct sdap_save_groups_state *state;
 
     state = tevent_req_data(req, struct sdap_save_groups_state);
 
-    /* 1st pass savemembers = false */
-    /* 2nd pass savemembers = true */
+    /* if 2 pass savemembers = false */
     subreq = sdap_save_group_send(state, state->ev, state->handle,
                                   state->opts, state->dom,
                                   state->groups[state->cur],
-                                  state->savemembers);
+                                  (!state->twopass));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_save_groups_process, req);
+    tevent_req_set_callback(subreq, sdap_save_groups_loop, req);
 }
 
-static void sdap_save_groups_process(struct tevent_req *subreq)
+static void sdap_save_groups_loop(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_save_groups_state *state;
+    char *timestamp = NULL;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_save_groups_state);
 
-    ret = sdap_save_group_recv(subreq, NULL, NULL);
+    ret = sdap_save_group_recv(subreq, state, &timestamp);
     talloc_zfree(subreq);
 
     /* Do not fail completely on errors.
@@ -2884,14 +2551,31 @@ static void sdap_save_groups_process(struct tevent_req *subreq)
         DEBUG(2, ("Failed to store group %d. Ignoring.\n", state->cur));
     }
 
+    if (timestamp) {
+        if (state->higher_timestamp) {
+            if (strcmp(timestamp, state->higher_timestamp) > 0) {
+                talloc_zfree(state->higher_timestamp);
+                state->higher_timestamp = timestamp;
+            } else {
+                talloc_zfree(timestamp);
+            }
+        } else {
+            state->higher_timestamp = timestamp;
+        }
+    }
+
     state->cur++;
     if (state->cur < state->count) {
-        sdap_save_groups_store(req);
-    } else if (state->savemembers == false) {
-        state->savemembers = true;
+
+        sdap_save_groups_save(req);
+
+    } else if (state->twopass) {
+
         state->cur = 0;
-        sdap_save_groups_store(req);
+        sdap_save_groups_mem_save(req);
+
     } else {
+
         subreq = sysdb_transaction_commit_send(state, state->ev,
                                                state->handle);
         if (!subreq) {
@@ -2903,8 +2587,64 @@ static void sdap_save_groups_process(struct tevent_req *subreq)
     }
 }
 
-static int sdap_save_groups_recv(struct tevent_req *req)
+static void sdap_save_groups_mem_save(struct tevent_req *req)
 {
+    struct tevent_req *subreq;
+    struct sdap_save_groups_state *state;
+
+    state = tevent_req_data(req, struct sdap_save_groups_state);
+
+    subreq = sdap_save_grpmem_send(state, state->ev, state->handle,
+                                  state->opts, state->dom,
+                                  state->groups[state->cur]);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_save_groups_mem_loop, req);
+}
+
+static void sdap_save_groups_mem_loop(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    struct sdap_save_groups_state *state;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct sdap_save_groups_state);
+
+    ret = sdap_save_grpmem_recv(subreq);
+    talloc_zfree(subreq);
+
+    /* Do not fail completely on errors.
+     * Just report the failure to save and go on */
+    if (ret) {
+        DEBUG(2, ("Failed to store group %d. Ignoring.\n", state->cur));
+    }
+
+    state->cur++;
+    if (state->cur < state->count) {
+
+        sdap_save_groups_mem_save(req);
+
+    } else {
+
+        subreq = sysdb_transaction_commit_send(state, state->ev,
+                                               state->handle);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        /* sysdb_transaction_complete will call tevent_req_done(req) */
+        tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
+    }
+}
+
+static int sdap_save_groups_recv(struct tevent_req *req,
+                                 TALLOC_CTX *mem_ctx, char **timestamp)
+{
+    struct sdap_save_groups_state *state = tevent_req_data(req,
+                                              struct sdap_save_groups_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
@@ -2912,6 +2652,146 @@ static int sdap_save_groups_recv(struct tevent_req *req)
         if (err) return err;
         return EIO;
     }
+
+    if (timestamp) {
+        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
+    }
+
+    return EOK;
+}
+
+
+/* ==Search-Groups-with-filter============================================ */
+
+struct sdap_get_groups_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+    const char **attrs;
+    const char *filter;
+
+    char *higher_timestamp;
+    struct sysdb_attrs **groups;
+    size_t count;
+};
+
+static void sdap_get_groups_process(struct tevent_req *subreq);
+static void sdap_get_groups_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
+                                       struct tevent_context *ev,
+                                       struct sss_domain_info *dom,
+                                       struct sysdb_ctx *sysdb,
+                                       struct sdap_options *opts,
+                                       struct sdap_handle *sh,
+                                       const char **attrs,
+                                       const char *filter)
+{
+    struct tevent_req *req, *subreq;
+    struct sdap_get_groups_state *state;
+
+    req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->opts = opts;
+    state->dom = dom;
+    state->sh = sh;
+    state->sysdb = sysdb;
+    state->filter = filter;
+    state->attrs = attrs;
+    state->higher_timestamp = NULL;
+    state->groups =  NULL;
+    state->count = 0;
+
+    subreq = sdap_get_generic_send(state, state->ev, state->opts, state->sh,
+                                   dp_opt_get_string(state->opts->basic,
+                                                     SDAP_GROUP_SEARCH_BASE),
+                                   LDAP_SCOPE_SUBTREE,
+                                   state->filter, state->attrs,
+                                   state->opts->group_map, SDAP_OPTS_GROUP);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_get_groups_process, req);
+
+    return req;
+}
+
+static void sdap_get_groups_process(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+    int ret;
+
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->count, &state->groups);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    DEBUG(6, ("Search for groups, returned %d results.\n", state->count));
+
+    if (state->count == 0) {
+        tevent_req_error(req, ENOENT);
+        return;
+    }
+
+    subreq = sdap_save_groups_send(state, state->ev, state->dom,
+                                   state->sysdb, state->opts,
+                                   state->groups, state->count);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_get_groups_done, req);
+}
+
+static void sdap_get_groups_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+    int ret;
+
+    DEBUG(9, ("Saving %d Groups - Done\n", state->count));
+
+    ret = sdap_save_groups_recv(subreq, state, &state->higher_timestamp);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(2, ("Failed to store groups.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sdap_get_groups_recv(struct tevent_req *req,
+                         TALLOC_CTX *mem_ctx, char **timestamp)
+{
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+    enum tevent_req_state tstate;
+    uint64_t err;
+
+    if (tevent_req_is_error(req, &tstate, &err)) {
+        if (err) return err;
+        return EIO;
+    }
+
+    if (timestamp) {
+        *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
+    }
+
     return EOK;
 }
 
@@ -3015,7 +2895,7 @@ static void sdap_initgr_rfc2307_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    ret = sdap_save_groups_recv(subreq);
+    ret = sdap_save_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -3214,7 +3094,7 @@ static void sdap_initgr_nested_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    ret = sdap_save_groups_recv(subreq);
+    ret = sdap_save_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -3380,7 +3260,7 @@ static void sdap_get_initgr_store(struct tevent_req *subreq)
 
     subreq = sdap_save_user_send(state, state->ev, state->handle,
                                  state->opts, state->dom,
-                                 state->sh, state->orig_user);
+                                 state->orig_user);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
