@@ -343,8 +343,10 @@ sendresponse:
     resp = prepare_response_message(kr, kerr, pam_status);
     if (resp == NULL) {
         DEBUG(1, ("prepare_response_message failed.\n"));
-        krb5_cc_destroy(kr->ctx, kr->cc);
-        kr->cc = NULL;
+        if (kr->cc != NULL) {
+            krb5_cc_destroy(kr->ctx, kr->cc);
+            kr->cc = NULL;
+        }
         return ENOMEM;
     }
 
@@ -352,8 +354,10 @@ sendresponse:
     if (ret == -1) {
         err = errno;
         DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        krb5_cc_destroy(kr->ctx, kr->cc);
-        kr->cc = NULL;
+        if (kr->cc != NULL) {
+            krb5_cc_destroy(kr->ctx, kr->cc);
+            kr->cc = NULL;
+        }
         return err;
     }
 
@@ -421,8 +425,10 @@ sendresponse:
     resp = prepare_response_message(kr, kerr, pam_status);
     if (resp == NULL) {
         DEBUG(1, ("prepare_response_message failed.\n"));
-        krb5_cc_destroy(kr->ctx, kr->cc);
-        kr->cc = NULL;
+        if (kr->cc != NULL) {
+            krb5_cc_destroy(kr->ctx, kr->cc);
+            kr->cc = NULL;
+        }
         return ENOMEM;
     }
 
@@ -430,8 +436,10 @@ sendresponse:
     if (ret == -1) {
         err = errno;
         DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        krb5_cc_destroy(kr->ctx, kr->cc);
-        kr->cc = NULL;
+        if (kr->cc != NULL) {
+            krb5_cc_destroy(kr->ctx, kr->cc);
+            kr->cc = NULL;
+        }
         return err;
     }
 
