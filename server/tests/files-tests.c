@@ -32,6 +32,7 @@
 #include <popt.h>
 
 #include "config.h"
+#include "tools/tools_util.h"
 #include "util/util.h"
 
 static char tpl_dir[] = "file-tests-dir-XXXXXX";
