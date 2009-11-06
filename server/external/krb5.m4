@@ -1,5 +1,14 @@
 AC_SUBST(KRB5_CFLAGS)
 AC_SUBST(KRB5_LIBS)
+
+if test x$KRB5_LIBS != x; then
+    KRB5_PASSED_LIBS=$KRB5_LIBS
+fi
+
+if test x$KRB5_CFLAGS != x; then
+    KRB5_PASSED_CFLAGS=$KRB5_CFLAGS
+fi
+
 AC_PATH_PROG(KRB5_CONFIG, krb5-config)
 AC_MSG_CHECKING(for working krb5-config)
 if test -x "$KRB5_CONFIG"; then
@@ -7,8 +16,21 @@ if test -x "$KRB5_CONFIG"; then
   KRB5_LIBS="`$KRB5_CONFIG --libs`"
   AC_MSG_RESULT(yes)
 else
-  AC_MSG_ERROR(no. Please install MIT kerberos devel package)
+    if test x$KRB5_PASSED_LIBS = x; then
+        AC_MSG_ERROR(no. Please install MIT kerberos devel package)
+    fi
 fi
+
+if test x$KRB5_PASSED_LIBS != x; then
+    KRB5_LIBS=$KRB5_PASSED_LIBS
+fi
+
+if test x$KRB5_PASSED_CFLAGS != x; then
+    KRB5_CFLAGS=$KRB5_PASSED_CFLAGS
+fi
+
+AC_ARG_VAR([KRB5_CFLAGS], [C compiler flags for kerberos, overriding krb5-config])dnl
+AC_ARG_VAR([KRB5_LIBS], [linker flags for kerberos, overriding krb5-config])dnl
 
 SAVE_CFLAGS=$CFLAGS
 SAVE_LIBS=$LIBS

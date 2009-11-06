@@ -98,6 +98,8 @@ libsss_crypt_la_SOURCES = \
     util/nss_sha512crypt.c
 libsss_crypt_la_CPPFLAGS = \
     $(NSS_CFLAGS)
+libsss_crypt_la_LIBADD = \
+    $(NSS_LIBS)
 
 if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
@@ -208,7 +210,6 @@ endif
 
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
-    $(TDB_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
@@ -223,7 +224,6 @@ SSSD_LIBS = \
 
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
-    $(TDB_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
@@ -234,7 +234,17 @@ PYTHON_BINDINGS_LIBS = \
     libsss_crypt.la
 
 TOOLS_LIBS = \
-    $(SSSD_LIBS)
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(POPT_LIBS) \
+    $(LDB_LIBS) \
+    $(DBUS_LIBS) \
+    $(PCRE_LIBS) \
+    $(INI_CFG_LIBS) \
+    $(COLLECTION_LIBS) \
+    $(DHASH_LIBS) \
+    $(REPLACE_LIBS) \
+    libsss_crypt.la
 
 if BUILD_SELINUX
     TOOLS_LIBS += $(SELINUX_LIBS)
@@ -300,6 +310,7 @@ sssd_nss_SOURCES = \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
+    $(TDB_LIBS) \
     $(SSSD_LIBS)
 
 sssd_pam_SOURCES = \
@@ -387,7 +398,7 @@ sysdb_tests_CFLAGS = \
 sysdb_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS)
-    
+
 strtonum_tests_SOURCES = \
     tests/strtonum-tests.c \
     util/debug.c \
@@ -502,8 +513,6 @@ libsss_krb5_la_SOURCES = \
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
-libsss_krb5_la_LIBADD = \
-    $(KRB5_LIBS)
 libsss_krb5_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module

@@ -46,7 +46,6 @@ pam_sss_la_SOURCES = \
 
 pam_sss_la_LDFLAGS = \
     -lpam \
-    -lpam_misc \
     -module \
     -avoid-version \
     -Wl,--version-script,$(srcdir)/sss_pam.exports

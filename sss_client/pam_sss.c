@@ -30,7 +30,6 @@
 #include <syslog.h>
 
 #include <security/pam_modules.h>
-#include <security/pam_misc.h>
 #include <security/pam_ext.h>
 #include <security/pam_modutil.h>
 #include "sss_pam_macros.h"
