@@ -232,7 +232,7 @@ static void test_add_user(struct tevent_req *subreq)
                                  data->ctx->domain, data->username,
                                  data->uid, 0,
                                  gecos, homedir, "/bin/bash",
-                                 NULL);
+                                 NULL, 0);
     if (!subreq) {
         return test_return(data, ENOMEM);
     }
@@ -445,7 +445,7 @@ static void test_add_group(struct tevent_req *req)
 
     subreq = sysdb_add_group_send(data, data->ev, data->handle,
                                   data->ctx->domain, data->groupname,
-                                  data->gid, NULL);
+                                  data->gid, NULL, 0);
     if (!subreq) {
         test_return(data, ret);
     }

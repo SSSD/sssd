@@ -334,7 +334,7 @@ static struct tevent_req *user_add_send(TALLOC_CTX *mem_ctx,
                                  state->data->domain, state->data->name,
                                  state->data->uid, state->data->gid,
                                  state->data->gecos, state->data->home,
-                                 state->data->shell, NULL);
+                                 state->data->shell, NULL, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -800,7 +800,7 @@ static struct tevent_req *group_add_send(TALLOC_CTX *mem_ctx,
 
     subreq = sysdb_add_group_send(state, state->ev, state->handle,
                                   state->data->domain, state->data->name,
-                                  state->data->gid, NULL);
+                                  state->data->gid, NULL, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;

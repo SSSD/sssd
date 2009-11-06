@@ -1882,6 +1882,8 @@ struct sysdb_add_user_state {
     const char *homedir;
     const char *shell;
     struct sysdb_attrs *attrs;
+
+    int cache_timeout;
 };
 
 static void sysdb_add_user_group_check(struct tevent_req *subreq);
@@ -1889,6 +1891,7 @@ static void sysdb_add_user_uid_check(struct tevent_req *subreq);
 static void sysdb_add_user_basic_done(struct tevent_req *subreq);
 static void sysdb_add_user_get_id_done(struct tevent_req *subreq);
 static void sysdb_add_user_set_id_done(struct tevent_req *subreq);
+static void sysdb_add_user_set_attrs(struct tevent_req *req);
 static void sysdb_add_user_set_attrs_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
@@ -1900,7 +1903,8 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
                                        const char *gecos,
                                        const char *homedir,
                                        const char *shell,
-                                       struct sysdb_attrs *attrs)
+                                       struct sysdb_attrs *attrs,
+                                       int cache_timeout)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_add_user_state *state;
@@ -1919,6 +1923,7 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
     state->homedir = homedir;
     state->shell = shell;
     state->attrs = attrs;
+    state->cache_timeout = cache_timeout;
 
     if (handle->ctx->mpg) {
         if (gid != 0) {
@@ -2099,20 +2104,7 @@ static void sysdb_add_user_basic_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->attrs) {
-        subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                          state->domain, state->name,
-                                          state->attrs, SYSDB_MOD_ADD);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_add_user_set_attrs_done, req);
-        return;
-    }
-
-    tevent_req_done(req);
+    sysdb_add_user_set_attrs(req);
 }
 
 static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
@@ -2166,21 +2158,7 @@ static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->attrs) {
-        subreq = sysdb_set_user_attr_send(state, state->ev,
-                                          state->handle, state->domain,
-                                          state->name, state->attrs,
-                                          SYSDB_MOD_REP);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_add_user_set_attrs_done, req);
-        return;
-    }
-
-    tevent_req_done(req);
+    sysdb_add_user_set_attrs(req);
 }
 
 static void sysdb_add_user_set_id_done(struct tevent_req *subreq)
@@ -2199,20 +2177,54 @@ static void sysdb_add_user_set_id_done(struct tevent_req *subreq)
     }
 
     if (state->attrs) {
-        subreq = sysdb_set_user_attr_send(state, state->ev,
-                                          state->handle, state->domain,
-                                          state->name, state->attrs,
-                                          SYSDB_MOD_REP);
-        if (!subreq) {
+    }
+
+    tevent_req_done(req);
+}
+
+static void sysdb_add_user_set_attrs(struct tevent_req *req)
+{
+    struct sysdb_add_user_state *state = tevent_req_data(req,
+                                            struct sysdb_add_user_state);
+    struct tevent_req *subreq;
+    time_t now = time(NULL);
+    int ret;
+
+    if (!state->attrs) {
+        state->attrs = sysdb_new_attrs(state);
+        if (!state->attrs) {
             DEBUG(6, ("Error: Out of memory\n"));
             tevent_req_error(req, ENOMEM);
             return;
         }
-        tevent_req_set_callback(subreq, sysdb_add_user_set_attrs_done, req);
+    }
+
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
         return;
     }
 
-    tevent_req_done(req);
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
+                                 ((state->cache_timeout) ?
+                                  (now + state->cache_timeout) : 0));
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_set_user_attr_send(state, state->ev,
+                                      state->handle, state->domain,
+                                      state->name, state->attrs,
+                                      SYSDB_MOD_REP);
+    if (!subreq) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_add_user_set_attrs_done, req);
 }
 
 static void sysdb_add_user_set_attrs_done(struct tevent_req *subreq)
@@ -2325,13 +2337,15 @@ struct sysdb_add_group_state {
     const char *name;
     gid_t gid;
     struct sysdb_attrs *attrs;
+
+    int cache_timeout;
 };
 
 static void sysdb_add_group_user_check(struct tevent_req *subreq);
 static void sysdb_add_group_gid_check(struct tevent_req *subreq);
 static void sysdb_add_group_basic_done(struct tevent_req *subreq);
 static void sysdb_add_group_get_id_done(struct tevent_req *subreq);
-static void sysdb_add_group_set_id_done(struct tevent_req *subreq);
+static void sysdb_add_group_set_attrs(struct tevent_req *req);
 static void sysdb_add_group_set_attrs_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
@@ -2339,7 +2353,8 @@ struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
                                         struct sysdb_handle *handle,
                                         struct sss_domain_info *domain,
                                         const char *name, gid_t gid,
-                                        struct sysdb_attrs *attrs)
+                                        struct sysdb_attrs *attrs,
+                                        int cache_timeout)
 {
     struct tevent_req *req, *subreq;
     struct sysdb_add_group_state *state;
@@ -2512,21 +2527,7 @@ static void sysdb_add_group_basic_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->attrs) {
-        subreq = sysdb_set_group_attr_send(state, state->ev,
-                                           state->handle, state->domain,
-                                           state->name, state->attrs,
-                                           SYSDB_MOD_ADD);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_add_group_set_attrs_done, req);
-        return;
-    }
-
-    tevent_req_done(req);
+    sysdb_add_group_set_attrs(req);
 }
 
 static void sysdb_add_group_get_id_done(struct tevent_req *subreq)
@@ -2535,7 +2536,6 @@ static void sysdb_add_group_get_id_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sysdb_add_group_state *state = tevent_req_data(req,
                                            struct sysdb_add_group_state);
-    struct sysdb_attrs *id_attrs;
     uint32_t id;
     int ret;
 
@@ -2547,79 +2547,69 @@ static void sysdb_add_group_get_id_done(struct tevent_req *subreq)
     }
 
     if (state->gid == 0) {
-        id_attrs = sysdb_new_attrs(state);
-        if (!id_attrs) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+        if (!state->attrs) {
+            state->attrs = sysdb_new_attrs(state);
+            if (!state->attrs) {
+                DEBUG(6, ("Error: Out of memory\n"));
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
         }
-        ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_GIDNUM, id);
+
+        ret = sysdb_attrs_add_uint32(state->attrs, SYSDB_GIDNUM, id);
         if (ret) {
             DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
             tevent_req_error(req, ret);
             return;
         }
-
-        subreq = sysdb_set_group_attr_send(state, state->ev, state->handle,
-                                           state->domain, state->name,
-                                           id_attrs, SYSDB_MOD_REP);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_add_group_set_id_done, req);
-        return;
     }
 
-    if (state->attrs) {
-        subreq = sysdb_set_group_attr_send(state, state->ev,
-                                           state->handle, state->domain,
-                                           state->name, state->attrs,
-                                           SYSDB_MOD_ADD);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_add_group_set_attrs_done, req);
-        return;
-    }
-
-    tevent_req_done(req);
+    sysdb_add_group_set_attrs(req);
 }
 
-static void sysdb_add_group_set_id_done(struct tevent_req *subreq)
+static void sysdb_add_group_set_attrs(struct tevent_req *req)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
     struct sysdb_add_group_state *state = tevent_req_data(req,
                                            struct sysdb_add_group_state);
+    struct tevent_req *subreq;
+    time_t now = time(NULL);
     int ret;
 
-    ret = sysdb_set_group_attr_recv(subreq);
-    talloc_zfree(subreq);
+    if (!state->attrs) {
+        state->attrs = sysdb_new_attrs(state);
+        if (!state->attrs) {
+            DEBUG(6, ("Error: Out of memory\n"));
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    }
+
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
         return;
     }
 
-    if (state->attrs) {
-        subreq = sysdb_set_group_attr_send(state, state->ev,
-                                           state->handle, state->domain,
-                                           state->name, state->attrs,
-                                           SYSDB_MOD_ADD);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_add_group_set_attrs_done, req);
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
+                                 ((state->cache_timeout) ?
+                                  (now + state->cache_timeout) : 0));
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
         return;
     }
 
-    tevent_req_done(req);
+    subreq = sysdb_set_group_attr_send(state, state->ev,
+                                       state->handle, state->domain,
+                                       state->name, state->attrs,
+                                       SYSDB_MOD_REP);
+    if (!subreq) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_add_group_set_attrs_done, req);
 }
 
 static void sysdb_add_group_set_attrs_done(struct tevent_req *subreq)
@@ -2821,7 +2811,8 @@ static void sysdb_store_user_check(struct tevent_req *subreq)
                                      state->domain, state->name,
                                      state->uid, state->gid,
                                      state->gecos, state->homedir,
-                                     state->shell, state->attrs);
+                                     state->shell, state->attrs,
+                                     state->cache_timeout);
         if (!subreq) {
             DEBUG(6, ("Error: Out of memory\n"));
             tevent_req_error(req, ENOMEM);
@@ -2904,7 +2895,8 @@ static void sysdb_store_user_check(struct tevent_req *subreq)
     }
 
     ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
-                                               now + state->cache_timeout);
+                                 ((state->cache_timeout) ?
+                                  (now + state->cache_timeout) : 0));
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
@@ -3116,7 +3108,8 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
         /* group doesn't exist, turn into adding a group */
         subreq = sysdb_add_group_send(state, state->ev, state->handle,
                                       state->domain, state->name,
-                                      state->gid, state->attrs);
+                                      state->gid, state->attrs,
+                                      state->cache_timeout);
         if (!subreq) {
             DEBUG(6, ("Error: Out of memory\n"));
             tevent_req_error(req, ENOMEM);
@@ -3155,7 +3148,8 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
     }
 
     ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
-                                               now + state->cache_timeout);
+                                 ((state->cache_timeout) ?
+                                  (now + state->cache_timeout) : 0));
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);

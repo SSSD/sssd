@@ -457,7 +457,8 @@ struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
                                        const char *gecos,
                                        const char *homedir,
                                        const char *shell,
-                                       struct sysdb_attrs *attrs);
+                                       struct sysdb_attrs *attrs,
+                                       int cache_timeout);
 int sysdb_add_user_recv(struct tevent_req *req);
 
 /* Add group (only basic attrs and w/o checks) */
@@ -474,7 +475,8 @@ struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
                                         struct sysdb_handle *handle,
                                         struct sss_domain_info *domain,
                                         const char *name, gid_t gid,
-                                        struct sysdb_attrs *attrs);
+                                        struct sysdb_attrs *attrs,
+                                        int cache_timeout);
 int sysdb_add_group_recv(struct tevent_req *req);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
