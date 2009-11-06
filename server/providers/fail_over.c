@@ -456,16 +456,18 @@ fo_resolve_service_done(struct tevent_req *subreq)
     int resolv_status;
     struct resolve_service_request *request;
     struct server_common *common;
+    int ret;
 
     common = tevent_req_callback_data(subreq, struct server_common);
 
-    if (common->hostent != NULL)
-        talloc_free(common->hostent);
-    resolv_gethostbyname_recv(common, subreq, &resolv_status, NULL,
-                              &common->hostent);
-    talloc_free(subreq);
+    if (common->hostent != NULL) {
+        talloc_zfree(common->hostent);
+    }
 
-    if (common->hostent == NULL) {
+    ret = resolv_gethostbyname_recv(subreq, common,
+                                    &resolv_status, NULL, &common->hostent);
+    talloc_free(subreq);
+    if (ret != EOK) {
         DEBUG(1, ("Failed to resolve %s: %s\n", common->name,
               resolv_strerror(resolv_status)));
     }
@@ -473,10 +475,11 @@ fo_resolve_service_done(struct tevent_req *subreq)
     /* Take care of all requests for this server. */
     while ((request = common->request_list) != NULL) {
         DLIST_REMOVE(common->request_list, request);
-        if (resolv_status)
+        if (resolv_status) {
             tevent_req_error(request->req, resolv_status);
-        else
+        } else {
             tevent_req_done(request->req);
+        }
     }
 }
 

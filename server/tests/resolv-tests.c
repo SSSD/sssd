@@ -141,7 +141,8 @@ static void test_localhost(struct tevent_req *req)
 
     test_ctx->done = true;
 
-    recv_status = resolv_gethostbyname_recv(test_ctx, req, &status, NULL, &hostent);
+    recv_status = resolv_gethostbyname_recv(req, test_ctx,
+                                            &status, NULL, &hostent);
     talloc_zfree(req);
     if (recv_status != EOK) {
         DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
@@ -205,7 +206,8 @@ static void test_negative(struct tevent_req *req)
      test_ctx = tevent_req_callback_data(req, struct resolv_test_ctx);
      test_ctx->done = true;
 
-     recv_status = resolv_gethostbyname_recv(test_ctx, req, &status, NULL, &hostent);
+     recv_status = resolv_gethostbyname_recv(req, test_ctx,
+                                             &status, NULL, &hostent);
      talloc_zfree(req);
      if (recv_status == EOK) {
          DEBUG(7, ("resolv_gethostbyname_recv succeeded in a negative test"));
@@ -270,8 +272,8 @@ static void test_internet(struct tevent_req *req)
 
     switch (test_ctx->tested_function) {
     case TESTING_HOSTNAME:
-        recv_status = resolv_gethostbyname_recv(tmp_ctx, req, &status, NULL,
-                                                &hostent);
+        recv_status = resolv_gethostbyname_recv(req, tmp_ctx,
+                                                &status, NULL, &hostent);
         test_ctx->error = (hostent->h_length == 0) ? ENOENT : EOK;
         break;
     case TESTING_TXT:

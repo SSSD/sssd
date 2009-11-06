@@ -395,25 +395,28 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
 }
 
 int
-resolv_gethostbyname_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req,
+resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                           int *status, int *timeouts,
                           struct hostent **hostent)
 {
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
 
     /* Fill in even in case of error as status contains the
      * c-ares return code */
-    if (status)
+    if (status) {
         *status = state->status;
-    if (timeouts)
+    }
+    if (timeouts) {
         *timeouts = state->timeouts;
-    if (hostent)
+    }
+    if (hostent) {
         *hostent = talloc_steal(mem_ctx, state->hostent);
+    }
 
     if (tevent_req_is_error(req, &tstate, &err)) {
-        return -1;
+        return err;
     }
 
     return EOK;
