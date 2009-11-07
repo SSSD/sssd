@@ -179,6 +179,9 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
     uint64_t err = 0;
 
     if (tevent_req_is_error(subreq, &tstate, &err)) {
+        if (tstate != TEVENT_REQ_USER_ERROR) {
+            err = EIO;
+        }
         goto fail;
     }
     talloc_zfree(subreq);
@@ -210,9 +213,12 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
     struct global_enum_state *state = tevent_req_data(req,
                                                  struct global_enum_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = 0;
 
     if (tevent_req_is_error(subreq, &tstate, &err)) {
+        if (tstate != TEVENT_REQ_USER_ERROR) {
+            err = EIO;
+        }
         goto fail;
     }
     talloc_zfree(subreq);

@@ -386,12 +386,8 @@ static int get_user_dn_recv(struct tevent_req *req,
 {
     struct get_user_dn_state *state = tevent_req_data(req,
                                            struct get_user_dn_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *dn = talloc_steal(memctx, state->dn);
     if (!*dn) return ENOMEM;
@@ -535,9 +531,15 @@ int auth_recv(struct tevent_req *req,
     uint64_t err;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err == ETIMEDOUT) *result = SDAP_UNAVAIL;
-        else *result = SDAP_ERROR;
-        return EOK;
+        switch (tstate) {
+        case TEVENT_REQ_USER_ERROR:
+            if (err == ETIMEDOUT) *result = SDAP_UNAVAIL;
+            else *result = SDAP_ERROR;
+            return err;
+        default:
+            *result = SDAP_ERROR;
+            return EIO;
+        }
     }
 
     if (sh != NULL) {

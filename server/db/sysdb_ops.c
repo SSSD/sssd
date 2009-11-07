@@ -186,9 +186,14 @@ static int sldb_request_recv(struct tevent_req *req,
     }
 
     if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err != 0) return err;
-        if (tstate == TEVENT_REQ_IN_PROGRESS) return EOK;
-        return EIO;
+        switch (tstate) {
+        case TEVENT_REQ_USER_ERROR:
+            return err;
+        case TEVENT_REQ_IN_PROGRESS:
+             return EOK;
+        default:
+            return EIO;
+        }
     }
 
     return EOK;
@@ -238,12 +243,7 @@ done:
 
 static int sysdb_op_default_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -573,12 +573,8 @@ int sysdb_search_entry_recv(struct tevent_req *req,
 {
     struct sysdb_op_state *state = tevent_req_data(req,
                                                    struct sysdb_op_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *msgs_count = state->msgs_count;
     *msgs = talloc_move(mem_ctx, &state->msgs);
@@ -783,12 +779,8 @@ int sysdb_search_user_recv(struct tevent_req *req,
 {
     struct sysdb_search_user_state *state = tevent_req_data(req,
                                               struct sysdb_search_user_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->msgs_count > 1) {
         DEBUG(1, ("More than one result found.\n"));
@@ -1083,12 +1075,8 @@ int sysdb_search_group_recv(struct tevent_req *req,
 {
     struct sysdb_search_group_state *state = tevent_req_data(req,
                                              struct sysdb_search_group_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->msgs_count > 1) {
         DEBUG(1, ("More than one result found.\n"));
@@ -1750,12 +1738,8 @@ int sysdb_get_new_id_recv(struct tevent_req *req, uint32_t *id)
 {
     struct sysdb_get_new_id_state *state = tevent_req_data(req,
                                                  struct sysdb_get_new_id_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *id = state->new_id;
 
@@ -3590,12 +3574,8 @@ int sysdb_check_handle_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct sysdb_check_handle_state *state = tevent_req_data(req,
                                              struct sysdb_check_handle_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *handle = talloc_move(memctx, &state->handle);
 
@@ -3735,12 +3715,8 @@ int sysdb_search_custom_recv(struct tevent_req *req,
 {
     struct sysdb_search_custom_state *state = tevent_req_data(req,
                                               struct sysdb_search_custom_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->msgs_count > 1) {
         DEBUG(1, ("More than one result found.\n"));
@@ -3940,12 +3916,7 @@ static void sysdb_store_custom_done(struct tevent_req *subreq)
 
 int sysdb_store_custom_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -4036,12 +4007,7 @@ static void sysdb_delete_custom_done(struct tevent_req *subreq)
 
 int sysdb_delete_custom_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -4247,13 +4213,9 @@ int sysdb_asq_search_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 {
     struct sysdb_asq_search_state *state = tevent_req_data(req,
                                               struct sysdb_asq_search_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
     int i;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *msgs_count = state->msgs_count;
     for (i = 0; i < state->msgs_count; i++) {

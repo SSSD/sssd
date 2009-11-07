@@ -487,13 +487,10 @@ int
 fo_resolve_service_recv(struct tevent_req *req, struct fo_server **server)
 {
     struct resolve_service_state *state;
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
 
     state = tevent_req_data(req, struct resolve_service_state);
 
-    if (tevent_req_is_error(req, &tstate, &err))
-        return err;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (server)
         *server = state->server;

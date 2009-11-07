@@ -61,12 +61,7 @@ struct sync_op_res {
  */
 static int sync_ops_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }

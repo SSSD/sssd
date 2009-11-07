@@ -176,7 +176,7 @@ static void users_get_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
     int dp_err = DP_ERR_OK;
     const char *error = NULL;
     int ret = EOK;
@@ -347,7 +347,7 @@ static void groups_get_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
     int dp_err = DP_ERR_OK;
     const char *error = NULL;
     int ret = EOK;
@@ -493,7 +493,7 @@ static void groups_by_user_done(struct tevent_req *req)
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sdap_id_ctx *ctx;
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
     int dp_err = DP_ERR_OK;
     const char *error = NULL;
     int ret = EOK;

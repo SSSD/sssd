@@ -140,6 +140,18 @@ errno_t set_debug_file_from_fd(const int fd);
     } while(0)
 #endif
 
+#define TEVENT_REQ_RETURN_ON_ERROR(req) do { \
+    enum tevent_req_state TRROEstate; \
+    uint64_t TRROEerr; \
+    \
+    if (tevent_req_is_error(req, &TRROEstate, &TRROEerr)) { \
+        if (TRROEstate == TEVENT_REQ_USER_ERROR) { \
+            return TRROEerr; \
+        } \
+        return EIO; \
+    } \
+} while (0)
+
 #include "util/dlinklist.h"
 
 /* From debug.c */

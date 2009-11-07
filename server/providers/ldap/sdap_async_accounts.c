@@ -299,13 +299,8 @@ static int sdap_save_user_recv(struct tevent_req *req,
 {
     struct sdap_save_user_state *state = tevent_req_data(req,
                                             struct sdap_save_user_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (!err) return EIO;
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (timestamp) {
         *timestamp = talloc_steal(mem_ctx, state->timestamp);
@@ -460,13 +455,8 @@ static int sdap_save_users_recv(struct tevent_req *req,
 {
     struct sdap_save_users_state *state  = tevent_req_data(req,
                                                struct sdap_save_users_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (timestamp) {
         *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
@@ -595,13 +585,8 @@ int sdap_get_users_recv(struct tevent_req *req,
 {
     struct sdap_get_users_state *state = tevent_req_data(req,
                                             struct sdap_get_users_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (timestamp) {
         *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
@@ -1020,13 +1005,8 @@ static int sdap_save_group_recv(struct tevent_req *req,
 {
     struct sdap_save_group_state *state = tevent_req_data(req,
                                             struct sdap_save_group_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (!err) return EIO;
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if ( timestamp ) {
         *timestamp = talloc_steal(mem_ctx, state->timestamp);
@@ -1146,13 +1126,8 @@ static void sdap_save_grpmem_done(struct tevent_req *subreq)
 
 static int sdap_save_grpmem_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (!err) return EIO;
-        return err;
-    }
     return EOK;
 }
 
@@ -1385,13 +1360,8 @@ static int sdap_save_groups_recv(struct tevent_req *req,
 {
     struct sdap_save_groups_state *state = tevent_req_data(req,
                                               struct sdap_save_groups_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (timestamp) {
         *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
@@ -1520,13 +1490,8 @@ int sdap_get_groups_recv(struct tevent_req *req,
 {
     struct sdap_get_groups_state *state = tevent_req_data(req,
                                             struct sdap_get_groups_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (timestamp) {
         *timestamp = talloc_steal(mem_ctx, state->higher_timestamp);
@@ -1647,13 +1612,8 @@ static void sdap_initgr_rfc2307_done(struct tevent_req *subreq)
 
 static int sdap_initgr_rfc2307_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
     return EOK;
 }
 
@@ -1846,13 +1806,8 @@ static void sdap_initgr_nested_done(struct tevent_req *subreq)
 
 static int sdap_initgr_nested_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
     return EOK;
 }
 
@@ -2147,13 +2102,7 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
 int sdap_get_initgr_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }

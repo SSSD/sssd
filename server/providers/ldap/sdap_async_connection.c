@@ -205,7 +205,7 @@ int sdap_connect_recv(struct tevent_req *req,
     struct sdap_connect_state *state = tevent_req_data(req,
                                                   struct sdap_connect_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* if tstate shows in progress, it is because
@@ -401,14 +401,9 @@ static int simple_bind_recv(struct tevent_req *req, int *ldaperr)
 {
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        *ldaperr = LDAP_OTHER;
-        if (err) return err;
-        return EIO;
-    }
+    *ldaperr = LDAP_OTHER;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *ldaperr = state->result;
     return EOK;
@@ -537,13 +532,12 @@ static int sasl_bind_recv(struct tevent_req *req, int *ldaperr)
     struct sasl_bind_state *state = tevent_req_data(req,
                                             struct sasl_bind_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         if (tstate != TEVENT_REQ_IN_PROGRESS) {
             *ldaperr = LDAP_OTHER;
-            if (err) return err;
-            return EIO;
+            return err;
         }
     }
 
@@ -755,13 +749,12 @@ int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result)
     struct sdap_kinit_state *state = tevent_req_data(req,
                                                 struct sdap_kinit_state);
     enum tevent_req_state tstate;
-    uint64_t err;
+    uint64_t err = EIO;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         if (tstate != TEVENT_REQ_IN_PROGRESS) {
             *result = SDAP_ERROR;
-            if (err) return err;
-            return EIO;
+            return err;
         }
     }
 
@@ -852,13 +845,10 @@ int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result)
 {
     struct sdap_auth_state *state = tevent_req_data(req,
                                                  struct sdap_auth_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        *result = SDAP_ERROR;
-        return err;
-    }
+    *result = SDAP_ERROR;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
     switch (state->result) {
         case LDAP_SUCCESS:
             *result = SDAP_AUTH_SUCCESS;
@@ -870,7 +860,7 @@ int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result)
             *result = SDAP_AUTH_PW_EXPIRED;
             break;
         default:
-            *result = SDAP_ERROR;
+            break;
     }
 
     return EOK;
@@ -1128,13 +1118,8 @@ int sdap_cli_connect_recv(struct tevent_req *req,
 {
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (gsh) {
         *gsh = talloc_steal(memctx, state->sh);

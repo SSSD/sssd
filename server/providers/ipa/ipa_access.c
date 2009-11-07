@@ -274,14 +274,9 @@ static int hbac_get_user_info_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct hbac_get_user_info_state *state = tevent_req_data(req,
                                                struct hbac_get_user_info_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
     int i;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *user_dn = talloc_steal(memctx, state->user_orig_dn);
     *groups_count = state->groups_count;
@@ -716,13 +711,8 @@ static int hbac_get_host_info_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct hbac_get_host_info_state *state = tevent_req_data(req,
                                                struct hbac_get_host_info_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *hhi = talloc_steal(memctx, state->hbac_host_info);
     return EOK;
@@ -1118,14 +1108,9 @@ static int hbac_get_rules_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct hbac_get_rules_state *state = tevent_req_data(req,
                                                      struct hbac_get_rules_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
     int i;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *hbac_rule_count = state->hbac_reply_count;
     *hbac_rule_list = talloc_steal(memctx, state->hbac_reply_list);

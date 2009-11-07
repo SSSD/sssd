@@ -400,8 +400,6 @@ resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                           struct hostent **hostent)
 {
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
 
     /* Fill in even in case of error as status contains the
      * c-ares return code */
@@ -415,9 +413,7 @@ resolv_gethostbyname_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
         *hostent = talloc_steal(mem_ctx, state->hostent);
     }
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -587,8 +583,6 @@ resolv_getsrv_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
                    int *num_replies)
 {
     struct getsrv_state *state = tevent_req_data(req, struct getsrv_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
     if (status)
         *status = state->status;
@@ -599,8 +593,7 @@ resolv_getsrv_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
     if (num_replies)
         *num_replies = state->num_replies;
 
-    if (tevent_req_is_error(req, &tstate, &err))
-        return -1;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -769,8 +762,6 @@ resolv_gettxt_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
                    int *num_replies)
 {
     struct gettxt_state *state = tevent_req_data(req, struct gettxt_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
     if (status)
         *status = state->status;
@@ -781,8 +772,7 @@ resolv_gettxt_recv(TALLOC_CTX *mem_ctx, struct tevent_req *req, int *status,
     if (num_replies)
         *num_replies = state->num_replies;
 
-    if (tevent_req_is_error(req, &tstate, &err))
-        return -1;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }

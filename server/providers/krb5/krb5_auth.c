@@ -573,19 +573,18 @@ static void read_pipe_done(struct tevent_context *ev,
 
 }
 
-static ssize_t read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                              uint8_t **buf, uint64_t *error)
+static int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                          uint8_t **buf, ssize_t *len)
 {
     struct read_pipe_state *state = tevent_req_data(req,
                                                     struct read_pipe_state);
-    enum tevent_req_state tstate;
 
-    if (tevent_req_is_error(req, &tstate, error)) {
-        return -1;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *buf = talloc_move(mem_ctx, &state->buf);
-    return state->len;
+    *len = state->len;
+
+    return EOK;
 }
 
 struct handle_child_state {
@@ -647,15 +646,15 @@ static void handle_child_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct handle_child_state *state = tevent_req_data(req,
                                                     struct handle_child_state);
-    uint64_t error;
+    int ret;
 
-    state->len = read_pipe_recv(subreq, state, &state->buf, &error);
+    ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
     talloc_zfree(subreq);
     talloc_zfree(state->kr->timeout_handler);
     close(state->kr->read_from_child_fd);
     state->kr->read_from_child_fd = -1;
-    if (state->len == -1) {
-        tevent_req_error(req, error);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
         return;
     }
 
@@ -663,20 +662,19 @@ static void handle_child_done(struct tevent_req *subreq)
     return;
 }
 
-static ssize_t handle_child_recv(struct tevent_req *req,
-                                 TALLOC_CTX *mem_ctx,
-                                 uint8_t **buf, uint64_t *error)
+static int handle_child_recv(struct tevent_req *req,
+                             TALLOC_CTX *mem_ctx,
+                             uint8_t **buf, ssize_t *len)
 {
     struct handle_child_state *state = tevent_req_data(req,
                                                     struct handle_child_state);
-    enum tevent_req_state tstate;
 
-    if (tevent_req_is_error(req, &tstate, error)) {
-        return -1;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *buf = talloc_move(mem_ctx, &state->buf);
-    return state->len;
+    *len = state->len;
+
+    return EOK;
 }
 
 static void get_user_upn_done(void *pvt, int err, struct ldb_result *res);
@@ -827,7 +825,6 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     int ret;
     uint8_t *buf;
     ssize_t len;
-    uint64_t error;
     int p;
     int32_t *msg_status;
     int32_t *msg_type;
@@ -841,10 +838,10 @@ static void krb5_pam_handler_done(struct tevent_req *req)
     pd->pam_status = PAM_SYSTEM_ERR;
     talloc_free(kr);
 
-    len = handle_child_recv(req, pd, &buf, &error);
+    ret = handle_child_recv(req, pd, &buf, &len);
     talloc_zfree(req);
-    if (len == -1) {
-        DEBUG(1, ("child failed\n"));
+    if (ret != EOK) {
+        DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
         goto done;
     }
 

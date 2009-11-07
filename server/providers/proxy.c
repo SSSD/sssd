@@ -300,13 +300,7 @@ static void proxy_default_done(struct tevent_req *subreq)
 
 static int proxy_default_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err = 0;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err != 0) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -1808,13 +1802,7 @@ static void get_groups_by_gid_process(struct tevent_req *subreq)
 
 static int get_groups_by_gid_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err = 0;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err != 0) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -1977,13 +1965,7 @@ static void get_group_from_gid_send_del_done(struct tevent_req *subreq)
 
 static int get_group_from_gid_recv(struct tevent_req *req)
 {
-    enum tevent_req_state tstate;
-    uint64_t err = 0;
-
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err != 0) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }

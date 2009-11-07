@@ -601,14 +601,10 @@ int sdap_exop_modify_passwd_recv(struct tevent_req *req,
 {
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
     *result = SDAP_ERROR;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (state->result == LDAP_SUCCESS) {
         *result = SDAP_SUCCESS;
@@ -702,13 +698,8 @@ int sdap_get_rootdse_recv(struct tevent_req *req,
 {
     struct sdap_get_rootdse_state *state = tevent_req_data(req,
                                              struct sdap_get_rootdse_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *rootdse = talloc_steal(memctx, state->rootdse);
 
@@ -912,13 +903,8 @@ int sdap_get_generic_recv(struct tevent_req *req,
 {
     struct sdap_get_generic_state *state = tevent_req_data(req,
                                             struct sdap_get_generic_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        if (err) return err;
-        return EIO;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *reply_count = state->reply_count;
     *reply = talloc_steal(mem_ctx, state->reply);

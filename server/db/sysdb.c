@@ -375,12 +375,8 @@ static int sysdb_get_handle_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct sysdb_get_handle_state *state = tevent_req_data(req,
                                              struct sysdb_get_handle_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *handle = talloc_steal(memctx, state->handle);
     if (!*handle) return ENOMEM;
@@ -454,12 +450,8 @@ int sysdb_transaction_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct sysdb_transaction_state *state = tevent_req_data(req,
                                          struct sysdb_transaction_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *handle = talloc_steal(memctx, state->handle);
     if (!*handle) return ENOMEM;
@@ -503,16 +495,12 @@ int sysdb_transaction_commit_recv(struct tevent_req *req)
 {
     struct sysdb_transaction_state *state = tevent_req_data(req,
                                          struct sysdb_transaction_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
     /* finally free handle
      * this will also trigger the next transaction in the queue if any */
     talloc_zfree(state->handle);
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -595,12 +583,8 @@ int sysdb_operation_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct sysdb_operation_state *state = tevent_req_data(req,
                                              struct sysdb_operation_state);
-    enum tevent_req_state tstate;
-    uint64_t err;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        return err;
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *handle = talloc_steal(memctx, state->handle);
     if (!*handle) return ENOMEM;
