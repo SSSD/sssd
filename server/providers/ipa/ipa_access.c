@@ -402,7 +402,8 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
                                    state->host_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->host_filter,
-                                   state->host_attrs);
+                                   state->host_attrs,
+                                   NULL, 0);
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -442,7 +443,8 @@ static void hbac_get_host_info_connect_done(struct tevent_req *subreq)
                                    state->host_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->host_filter,
-                                   state->host_attrs);
+                                   state->host_attrs,
+                                   NULL, 0);
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -865,7 +867,8 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
                                    state->hbac_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->hbac_filter,
-                                   state->hbac_attrs);
+                                   state->hbac_attrs,
+                                   NULL, 0);
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
@@ -905,7 +908,8 @@ static void hbac_get_rules_connect_done(struct tevent_req *subreq)
                                    state->hbac_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->hbac_filter,
-                                   state->hbac_attrs);
+                                   state->hbac_attrs,
+                                   NULL, 0);
 
     if (subreq == NULL) {
         DEBUG(1, ("sdap_get_generic_send failed.\n"));
