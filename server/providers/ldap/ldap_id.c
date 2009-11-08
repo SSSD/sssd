@@ -36,20 +36,26 @@
 struct users_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    int filter_type;
 
     char *filter;
     const char **attrs;
 };
 
 static void users_get_connect_done(struct tevent_req *subreq);
-static void users_get_op_done(struct tevent_req *subreq);
+static void users_get_done(struct tevent_req *subreq);
+static void users_get_delete(struct tevent_req *subreq);
 
-static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
-                                         struct tevent_context *ev,
-                                         struct sdap_id_ctx *ctx,
-                                         const char *name,
-                                         int filter_type,
-                                         int attrs_type)
+struct tevent_req *users_get_send(TALLOC_CTX *memctx,
+                                  struct tevent_context *ev,
+                                  struct sdap_id_ctx *ctx,
+                                  const char *name,
+                                  int filter_type,
+                                  int attrs_type)
 {
     struct tevent_req *req, *subreq;
     struct users_get_state *state;
@@ -61,8 +67,12 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->sysdb = ctx->be->sysdb;
+    state->domain = state->ctx->be->domain;
+    state->name = name;
+    state->filter_type = filter_type;
 
-    switch(filter_type) {
+    switch (filter_type) {
     case BE_FILTER_NAME:
         attr_name = ctx->opts->user_map[SDAP_AT_USER_NAME].name;
         break;
@@ -106,15 +116,14 @@ static struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_users_send(state, state->ev,
-                                 state->ctx->be->domain,
-                                 state->ctx->be->sysdb,
+                                 state->domain, state->sysdb,
                                  state->ctx->opts, state->ctx->gsh,
                                  state->attrs, state->filter);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(subreq, users_get_op_done, req);
+    tevent_req_set_callback(subreq, users_get_done, req);
 
     return req;
 
@@ -144,83 +153,130 @@ static void users_get_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_get_users_send(state, state->ev,
-                                 state->ctx->be->domain,
-                                 state->ctx->be->sysdb,
+                                 state->domain, state->sysdb,
                                  state->ctx->opts, state->ctx->gsh,
                                  state->attrs, state->filter);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, users_get_op_done, req);
+    tevent_req_set_callback(subreq, users_get_done, req);
 }
 
-static void users_get_op_done(struct tevent_req *subreq)
+static void users_get_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct users_get_state *state = tevent_req_data(req,
+                                                     struct users_get_state);
+    char *endptr;
+    uid_t uid;
     int ret;
 
     ret = sdap_get_users_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
+    }
+
+    if (ret == ENOENT) {
+        if (strchr(state->name, '*')) {
+            /* it was an enumeration */
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        switch (state->filter_type) {
+        case BE_FILTER_NAME:
+            subreq = sysdb_delete_user_send(state, state->ev,
+                                            state->sysdb, NULL,
+                                            state->domain, state->name, 0);
+            if (!subreq) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            tevent_req_set_callback(subreq, users_get_delete, req);
+            return;
+
+        case BE_FILTER_IDNUM:
+            errno = 0;
+            uid = (uid_t)strtol(state->name, &endptr, 0);
+            if (errno || *endptr || (state->name == endptr)) {
+                tevent_req_error(req, errno);
+                return;
+            }
+
+            subreq = sysdb_delete_user_send(state, state->ev,
+                                            state->sysdb, NULL,
+                                            state->domain, NULL, uid);
+            if (!subreq) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            tevent_req_set_callback(subreq, users_get_delete, req);
+            return;
+
+        default:
+            tevent_req_error(req, EINVAL);
+            return;
+        }
     }
 
     tevent_req_done(req);
 }
 
-static void users_get_done(struct tevent_req *req)
+static void users_get_delete(struct tevent_req *subreq)
 {
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    struct sdap_id_ctx *ctx;
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
-    int dp_err = DP_ERR_OK;
-    const char *error = NULL;
-    int ret = EOK;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct users_get_state *state = tevent_req_data(req,
+                                                     struct users_get_state);
+    int ret;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        ret = err;
-    }
-
+    ret = sysdb_delete_user_recv(subreq);
+    talloc_zfree(subreq);
     if (ret) {
-        dp_err = DP_ERR_FATAL;
-        error = "Enum Users Failed";
-
-        if (ret == ETIMEDOUT) {
-            dp_err = DP_ERR_TIMEOUT;
-        }
-        if (ret == ETIMEDOUT || ret == EFAULT) {
-            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
-                                  struct sdap_id_ctx);
-            sdap_mark_offline(ctx);
-        }
+        DEBUG(2, ("User (%s) delete returned %d (%s)\n",
+                  state->name, ret, strerror(ret)));
     }
 
-    sdap_handler_done(breq, dp_err, ret, error);
+    tevent_req_done(req);
 }
+
+int users_get_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 
 /* =Groups-Related-Functions-(by-name,by-uid)============================= */
 
 struct groups_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    int filter_type;
 
     char *filter;
     const char **attrs;
 };
 
 static void groups_get_connect_done(struct tevent_req *subreq);
-static void groups_get_op_done(struct tevent_req *subreq);
+static void groups_get_done(struct tevent_req *subreq);
+static void groups_get_delete(struct tevent_req *subreq);
 
-static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
-                                          struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx,
-                                          const char *name,
-                                          int filter_type,
-                                          int attrs_type)
+struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_id_ctx *ctx,
+                                   const char *name,
+                                   int filter_type,
+                                   int attrs_type)
 {
     struct tevent_req *req, *subreq;
     struct groups_get_state *state;
@@ -232,6 +288,10 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->sysdb = ctx->be->sysdb;
+    state->domain = state->ctx->be->domain;
+    state->name = name;
+    state->filter_type = filter_type;
 
     switch(filter_type) {
     case BE_FILTER_NAME:
@@ -277,15 +337,14 @@ static struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     }
 
     subreq = sdap_get_groups_send(state, state->ev,
-                                 state->ctx->be->domain,
-                                 state->ctx->be->sysdb,
-                                 state->ctx->opts, state->ctx->gsh,
-                                 state->attrs, state->filter);
+                                  state->domain, state->sysdb,
+                                  state->ctx->opts, state->ctx->gsh,
+                                  state->attrs, state->filter);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(subreq, groups_get_op_done, req);
+    tevent_req_set_callback(subreq, groups_get_done, req);
 
     return req;
 
@@ -315,63 +374,104 @@ static void groups_get_connect_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_get_groups_send(state, state->ev,
-                                  state->ctx->be->domain,
-                                  state->ctx->be->sysdb,
+                                  state->domain, state->sysdb,
                                   state->ctx->opts, state->ctx->gsh,
                                   state->attrs, state->filter);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, groups_get_op_done, req);
+    tevent_req_set_callback(subreq, groups_get_done, req);
 }
 
-static void groups_get_op_done(struct tevent_req *subreq)
+static void groups_get_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+    char *endptr;
+    gid_t gid;
     int ret;
 
     ret = sdap_get_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
+    }
+
+    if (ret == ENOENT) {
+        if (strchr(state->name, '*')) {
+            /* it was an enumeration */
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        switch (state->filter_type) {
+        case BE_FILTER_NAME:
+            subreq = sysdb_delete_group_send(state, state->ev,
+                                            state->sysdb, NULL,
+                                            state->domain, state->name, 0);
+            if (!subreq) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            tevent_req_set_callback(subreq, groups_get_delete, req);
+            return;
+
+        case BE_FILTER_IDNUM:
+            errno = 0;
+            gid = (gid_t)strtol(state->name, &endptr, 0);
+            if (errno || *endptr || (state->name == endptr)) {
+                tevent_req_error(req, errno);
+                return;
+            }
+
+            subreq = sysdb_delete_group_send(state, state->ev,
+                                            state->sysdb, NULL,
+                                            state->domain, NULL, gid);
+            if (!subreq) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            tevent_req_set_callback(subreq, groups_get_delete, req);
+            return;
+
+        default:
+            tevent_req_error(req, EINVAL);
+            return;
+        }
     }
 
     tevent_req_done(req);
 }
 
-static void groups_get_done(struct tevent_req *req)
+static void groups_get_delete(struct tevent_req *subreq)
 {
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    struct sdap_id_ctx *ctx;
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
-    int dp_err = DP_ERR_OK;
-    const char *error = NULL;
-    int ret = EOK;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+    int ret;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        ret = err;
-    }
-
+    ret = sysdb_delete_group_recv(subreq);
+    talloc_zfree(subreq);
     if (ret) {
-        dp_err = DP_ERR_FATAL;
-        error = "Enum Groups Failed";
-
-        if (ret == ETIMEDOUT) {
-            dp_err = DP_ERR_TIMEOUT;
-        }
-        if (ret == ETIMEDOUT || ret == EFAULT) {
-            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
-                                  struct sdap_id_ctx);
-            sdap_mark_offline(ctx);
-        }
+        DEBUG(2, ("Group (%s) delete returned %d (%s)\n",
+                  state->name, ret, strerror(ret)));
     }
 
-    return sdap_handler_done(breq, dp_err, ret, error);
+    tevent_req_done(req);
 }
+
+int groups_get_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
 
 /* =Get-Groups-for-User================================================== */
 
@@ -383,7 +483,7 @@ struct groups_by_user_state {
 };
 
 static void groups_by_user_connect_done(struct tevent_req *subreq);
-static void groups_by_user_op_done(struct tevent_req *subreq);
+static void groups_by_user_done(struct tevent_req *subreq);
 
 static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
@@ -431,7 +531,7 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
         ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(subreq, groups_by_user_op_done, req);
+    tevent_req_set_callback(subreq, groups_by_user_done, req);
 
     return req;
 
@@ -469,10 +569,10 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, groups_by_user_op_done, req);
+    tevent_req_set_callback(subreq, groups_by_user_done, req);
 }
 
-static void groups_by_user_op_done(struct tevent_req *subreq)
+static void groups_by_user_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -488,35 +588,11 @@ static void groups_by_user_op_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-static void groups_by_user_done(struct tevent_req *req)
+int groups_by_user_recv(struct tevent_req *req)
 {
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    struct sdap_id_ctx *ctx;
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
-    int dp_err = DP_ERR_OK;
-    const char *error = NULL;
-    int ret = EOK;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        ret = err;
-    }
-
-    if (ret) {
-        dp_err = DP_ERR_FATAL;
-        error = "Init Groups Failed";
-
-        if (ret == ETIMEDOUT) {
-            dp_err = DP_ERR_TIMEOUT;
-        }
-        if (ret == ETIMEDOUT || ret == EFAULT) {
-            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
-                                  struct sdap_id_ctx);
-            sdap_mark_offline(ctx);
-        }
-    }
-
-    return sdap_handler_done(breq, dp_err, ret, error);
+    return EOK;
 }
 
 
@@ -525,6 +601,11 @@ static void groups_by_user_done(struct tevent_req *req)
 
 /* FIXME: embed this function in sssd_be and only call out
  * specific functions from modules ? */
+
+static void sdap_account_info_users_done(struct tevent_req *req);
+static void sdap_account_info_groups_done(struct tevent_req *req);
+static void sdap_account_info_initgr_done(struct tevent_req *req);
+
 void sdap_account_info_handler(struct be_req *breq)
 {
     struct sdap_id_ctx *ctx;
@@ -557,7 +638,7 @@ void sdap_account_info_handler(struct be_req *breq)
             return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
 
-        tevent_req_set_callback(req, users_get_done, breq);
+        tevent_req_set_callback(req, sdap_account_info_users_done, breq);
 
         break;
 
@@ -576,7 +657,7 @@ void sdap_account_info_handler(struct be_req *breq)
             return sdap_handler_done(breq, DP_ERR_FATAL, ENOMEM, "Out of memory");
         }
 
-        tevent_req_set_callback(req, groups_get_done, breq);
+        tevent_req_set_callback(req, sdap_account_info_groups_done, breq);
 
         break;
 
@@ -601,7 +682,7 @@ void sdap_account_info_handler(struct be_req *breq)
         if (!req) ret = ENOMEM;
         /* tevent_req_set_callback(req, groups_by_user_done, breq); */
 
-        tevent_req_set_callback(req, groups_by_user_done, breq);
+        tevent_req_set_callback(req, sdap_account_info_initgr_done, breq);
 
         break;
 
@@ -611,5 +692,89 @@ void sdap_account_info_handler(struct be_req *breq)
     }
 
     if (ret != EOK) return sdap_handler_done(breq, DP_ERR_FATAL, ret, err);
+}
+
+static void sdap_account_info_users_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct sdap_id_ctx *ctx;
+    int dp_err = DP_ERR_OK;
+    const char *error = NULL;
+    int ret;
+
+    ret = users_get_recv(req);
+    talloc_zfree(req);
+
+    if (ret) {
+        dp_err = DP_ERR_FATAL;
+        error = "Enum Users Failed";
+
+        if (ret == ETIMEDOUT) {
+            dp_err = DP_ERR_TIMEOUT;
+        }
+        if (ret == ETIMEDOUT || ret == EFAULT) {
+            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                                  struct sdap_id_ctx);
+            sdap_mark_offline(ctx);
+        }
+    }
+
+    sdap_handler_done(breq, dp_err, ret, error);
+}
+
+static void sdap_account_info_groups_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct sdap_id_ctx *ctx;
+    int dp_err = DP_ERR_OK;
+    const char *error = NULL;
+    int ret;
+
+    ret = groups_get_recv(req);
+    talloc_zfree(req);
+
+    if (ret) {
+        dp_err = DP_ERR_FATAL;
+        error = "Enum Groups Failed";
+
+        if (ret == ETIMEDOUT) {
+            dp_err = DP_ERR_TIMEOUT;
+        }
+        if (ret == ETIMEDOUT || ret == EFAULT) {
+            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                                  struct sdap_id_ctx);
+            sdap_mark_offline(ctx);
+        }
+    }
+
+    return sdap_handler_done(breq, dp_err, ret, error);
+}
+
+static void sdap_account_info_initgr_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    struct sdap_id_ctx *ctx;
+    int dp_err = DP_ERR_OK;
+    const char *error = NULL;
+    int ret;
+
+    ret = groups_by_user_recv(req);
+    talloc_zfree(req);
+
+    if (ret) {
+        dp_err = DP_ERR_FATAL;
+        error = "Init Groups Failed";
+
+        if (ret == ETIMEDOUT) {
+            dp_err = DP_ERR_TIMEOUT;
+        }
+        if (ret == ETIMEDOUT || ret == EFAULT) {
+            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                                  struct sdap_id_ctx);
+            sdap_mark_offline(ctx);
+        }
+    }
+
+    return sdap_handler_done(breq, dp_err, ret, error);
 }
 

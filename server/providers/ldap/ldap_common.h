@@ -69,11 +69,26 @@ int ldap_get_options(TALLOC_CTX *memctx,
                      const char *conf_path,
                      struct sdap_options **_opts);
 
-void ldap_id_enumerate(struct tevent_context *ev,
-                       struct tevent_timer *tt,
-                       struct timeval tv, void *pvt);
+int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
+int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 
 bool sdap_connected(struct sdap_id_ctx *ctx);
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
+
+struct tevent_req *users_get_send(TALLOC_CTX *memctx,
+                                  struct tevent_context *ev,
+                                  struct sdap_id_ctx *ctx,
+                                  const char *name,
+                                  int filter_type,
+                                  int attrs_type);
+int users_get_recv(struct tevent_req *req);
+
+struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
+                                   struct tevent_context *ev,
+                                   struct sdap_id_ctx *ctx,
+                                   const char *name,
+                                   int filter_type,
+                                   int attrs_type);
+int groups_get_recv(struct tevent_req *req);
 
 #endif /* _LDAP_COMMON_H_ */

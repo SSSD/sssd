@@ -31,31 +31,36 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
+extern struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
+                                               struct tevent_context *ev,
+                                               struct sdap_id_ctx *ctx);
+
 /* ==Enumeration-Task===================================================== */
 
 static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
                                                  struct sdap_id_ctx *ctx);
+
 static void ldap_id_enumerate_reschedule(struct tevent_req *req);
-static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
-                                        struct timeval tv);
 
 static void ldap_id_enumerate_timeout(struct tevent_context *ev,
                                       struct tevent_timer *te,
                                       struct timeval tv, void *pvt);
 
-void ldap_id_enumerate(struct tevent_context *ev,
-                       struct tevent_timer *tt,
-                       struct timeval tv, void *pvt)
+static void ldap_id_enumerate_timer(struct tevent_context *ev,
+                                    struct tevent_timer *tt,
+                                    struct timeval tv, void *pvt)
 {
     struct sdap_id_ctx *ctx = talloc_get_type(pvt, struct sdap_id_ctx);
     struct tevent_timer *timeout;
     struct tevent_req *req;
-    int ert;
+    int delay;
 
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
         /* schedule starting from now, not the last run */
-        ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
+        delay = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+        tv = tevent_timeval_current_ofs(delay, 0);
+        ldap_id_enumerate_set_timer(ctx, tv);
         return;
     }
 
@@ -65,16 +70,17 @@ void ldap_id_enumerate(struct tevent_context *ev,
     if (!req) {
         DEBUG(1, ("Failed to schedule enumeration, retrying later!\n"));
         /* schedule starting from now, not the last run */
-        ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
+        delay = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+        tv = tevent_timeval_current_ofs(delay, 0);
+        ldap_id_enumerate_set_timer(ctx, tv);
         return;
     }
     tevent_req_set_callback(req, ldap_id_enumerate_reschedule, ctx);
 
     /* if enumeration takes so long, either we try to enumerate too
      * frequently, or something went seriously wrong */
-    tv = tevent_timeval_current();
-    ert = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
-    tv = tevent_timeval_add(&tv, ert, 0);
+    delay = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    tv = tevent_timeval_current_ofs(delay, 0);
     timeout = tevent_add_timer(ctx->be->ev, req, tv,
                                ldap_id_enumerate_timeout, req);
     return;
@@ -87,11 +93,13 @@ static void ldap_id_enumerate_timeout(struct tevent_context *ev,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
                                                        struct sdap_id_ctx);
-    int ert;
+    int delay;
 
-    ert = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
-    DEBUG(1, ("Enumeration timed out! Timeout too small? (%ds)!\n", ert));
-    ldap_id_enumerate_set_timer(ctx, tevent_timeval_current());
+    delay = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    DEBUG(1, ("Enumeration timed out! Timeout too small? (%ds)!\n", delay));
+
+    tv = tevent_timeval_current_ofs(delay, 0);
+    ldap_id_enumerate_set_timer(ctx, tv);
 
     talloc_zfree(req);
 }
@@ -100,9 +108,10 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
 {
     struct sdap_id_ctx *ctx = tevent_req_callback_data(req,
                                                        struct sdap_id_ctx);
-    struct timeval tv;
     enum tevent_req_state tstate;
     uint64_t err;
+    struct timeval tv;
+    int delay;
 
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* On error schedule starting from now, not the last run */
@@ -112,25 +121,29 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
     }
     talloc_zfree(req);
 
-    ldap_id_enumerate_set_timer(ctx, ctx->last_run);
+    delay = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
+    tv = tevent_timeval_add(&tv, delay, 0);
+    ldap_id_enumerate_set_timer(ctx, tv);
 }
 
-static void ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx,
-                                        struct timeval tv)
+
+
+int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
 {
     struct tevent_timer *enum_task;
-    int ert;
 
-    ert = dp_opt_get_int(ctx->opts->basic, SDAP_ENUM_REFRESH_TIMEOUT);
-    tv = tevent_timeval_add(&tv, ert, 0);
-    enum_task = tevent_add_timer(ctx->be->ev, ctx, tv, ldap_id_enumerate, ctx);
+    DEBUG(6, ("Scheduling next enumeration at %ld.%ld\n",
+              (long)tv.tv_sec, (long)tv.tv_usec));
+
+    enum_task = tevent_add_timer(ctx->be->ev, ctx,
+                                 tv, ldap_id_enumerate_timer, ctx);
     if (!enum_task) {
         DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
-        /* shutdown! */
-        exit(1);
+        return EFAULT;
     }
-}
 
+    return EOK;
+}
 
 
 struct global_enum_state {
@@ -146,6 +159,7 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
                                           struct sdap_id_ctx *ctx);
 static void ldap_id_enum_groups_done(struct tevent_req *subreq);
+static void ldap_id_enum_cleanup_done(struct tevent_req *subreq);
 
 static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
                                                  struct sdap_id_ctx *ctx)
@@ -182,7 +196,9 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
         if (tstate != TEVENT_REQ_USER_ERROR) {
             err = EIO;
         }
-        goto fail;
+        if (err != ENOENT) {
+            goto fail;
+        }
     }
     talloc_zfree(subreq);
 
@@ -219,11 +235,18 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
         if (tstate != TEVENT_REQ_USER_ERROR) {
             err = EIO;
         }
-        goto fail;
+        if (err != ENOENT) {
+            goto fail;
+        }
     }
     talloc_zfree(subreq);
 
-    tevent_req_done(req);
+    subreq = ldap_id_cleanup_send(state, state->ev, state->ctx);
+    if (!subreq) {
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, ldap_id_enum_cleanup_done, req);
+
     return;
 
 fail:
@@ -231,6 +254,14 @@ fail:
     sdap_mark_offline(state->ctx);
     DEBUG(1, ("Failed to enumerate groups (%d [%s]), retrying later!\n",
               (int)err, strerror(err)));
+    tevent_req_done(req);
+}
+
+static void ldap_id_enum_cleanup_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    talloc_zfree(subreq);
     tevent_req_done(req);
 }
 

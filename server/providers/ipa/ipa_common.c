@@ -51,6 +51,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 3600 }, NULL_NUMBER },
     { "entry_cache_timeout", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
     { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -211,7 +212,7 @@ done:
 /* the following preprocessor code is used to keep track of
  * the options in the ldap module, so that if they change and ipa
  * is not updated correspondingly this will trigger a build error */
-#if SDAP_OPTS_BASIC > 28
+#if SDAP_OPTS_BASIC > 29
 #error There are ldap options not accounted for
 #endif
 

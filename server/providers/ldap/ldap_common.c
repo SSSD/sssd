@@ -44,6 +44,7 @@ struct dp_option default_basic_opts[] = {
     { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
+    { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 3600 }, NULL_NUMBER },
     { "entry_cache_timoeut", DP_OPT_NUMBER, { .number = 1800 }, NULL_NUMBER },
     { "ldap_tls_cacert", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_tls_cacertdir", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -287,20 +288,23 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx)
 
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
-    struct tevent_timer *enum_task;
+    struct timeval tv;
     int ret = EOK;
 
     /* set up enumeration task */
     if (ctx->be->domain->enumerate) {
         /* run the first one in a couple of seconds so that we have time to
          * finish initializations first*/
-        ctx->last_run = tevent_timeval_current_ofs(2, 0);
-        enum_task = tevent_add_timer(ctx->be->ev, ctx, ctx->last_run,
-                                     ldap_id_enumerate, ctx);
-        if (!enum_task) {
-            DEBUG(0, ("FATAL: failed to setup enumeration task!\n"));
-            ret = EFAULT;
-        }
+        tv = tevent_timeval_current_ofs(2, 0);
+        ret = ldap_id_enumerate_set_timer(ctx, tv);
+    } else {
+        /* the enumeration task, runs the cleanup process by itself,
+         * but if enumeration is not runnig we need to schedule it */
+
+        /* run the first one in a couple of seconds so that we have time to
+         * finish initializations first*/
+        tv = tevent_timeval_current_ofs(2, 0);
+        ret = ldap_id_cleanup_set_timer(ctx, tv);
     }
 
     return ret;

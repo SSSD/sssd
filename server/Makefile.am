@@ -531,6 +531,7 @@ stress_tests_LDADD = \
 libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \
+    providers/ldap/ldap_id_cleanup.c \
     providers/ldap/ldap_auth.c \
     providers/ldap/ldap_init.c \
     providers/ldap/ldap_common.c \
@@ -580,6 +581,7 @@ libsss_ipa_la_SOURCES = \
     providers/ipa/ipa_timerules.c \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \
+    providers/ldap/ldap_id_cleanup.c \
     providers/ldap/ldap_auth.c \
     providers/ldap/ldap_common.c \
     providers/ldap/sdap_async.c \
