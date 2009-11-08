@@ -510,10 +510,13 @@ stress_tests_LDADD = \
 ####################
 libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
+    providers/ldap/ldap_id_enum.c \
     providers/ldap/ldap_auth.c \
     providers/ldap/ldap_init.c \
     providers/ldap/ldap_common.c \
     providers/ldap/sdap_async.c \
+    providers/ldap/sdap_async_accounts.c \
+    providers/ldap/sdap_async_connection.c \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
     util/sss_krb5.c
