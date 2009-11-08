@@ -354,7 +354,7 @@ struct tevent_req *sdap_save_users_send(TALLOC_CTX *memctx,
     state->sysdb = sysdb;
     state->dom = dom;
     state->users = users;
-    state->count = 0;
+    state->count = num_users;
     state->cur = 0;
     state->handle = NULL;
     state->higher_timestamp = NULL;
@@ -423,6 +423,8 @@ static void sdap_save_users_process(struct tevent_req *subreq)
      * Just report the failure to save and go on */
     if (ret) {
         DEBUG(2, ("Failed to store user %d. Ignoring.\n", state->cur));
+    } else {
+        DEBUG(9, ("User %d processed!\n", state->cur));
     }
 
     if (timestamp) {
@@ -1197,7 +1199,7 @@ struct tevent_req *sdap_save_groups_send(TALLOC_CTX *memctx,
     state->sysdb = sysdb;
     state->dom = dom;
     state->groups = groups;
-    state->count = 0;
+    state->count = num_groups;
     state->cur = 0;
     state->handle = NULL;
     state->higher_timestamp = NULL;
@@ -1285,6 +1287,8 @@ static void sdap_save_groups_loop(struct tevent_req *subreq)
      * Just report the failure to save and go on */
     if (ret) {
         DEBUG(2, ("Failed to store group %d. Ignoring.\n", state->cur));
+    } else {
+        DEBUG(9, ("Group %d processed!\n", state->cur));
     }
 
     if (timestamp) {
