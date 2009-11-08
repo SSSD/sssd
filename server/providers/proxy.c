@@ -628,11 +628,10 @@ static void get_pw_uid_process(struct tevent_req *subreq)
         DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", state->uid));
 
-        subreq = sysdb_delete_user_by_uid_send(state, state->ev,
-                                               state->handle,
-                                               state->domain,
-                                               state->uid,
-                                               true);
+        subreq = sysdb_delete_user_send(state, state->ev,
+                                        NULL, state->handle,
+                                        state->domain,
+                                        NULL, state->uid);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -649,9 +648,9 @@ static void get_pw_uid_remove_done(struct tevent_req *subreq)
                                                 struct proxy_state);
     int ret;
 
-    ret = sysdb_delete_user_by_uid_recv(subreq);
+    ret = sysdb_delete_user_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1239,11 +1238,10 @@ again:
         DEBUG(7, ("Group %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", state->gid));
 
-        subreq = sysdb_delete_group_by_gid_send(state, state->ev,
-                                                state->handle,
-                                                state->domain,
-                                                state->gid,
-                                                true);
+        subreq = sysdb_delete_group_send(state, state->ev,
+                                         NULL, state->handle,
+                                         state->domain,
+                                         NULL, state->gid);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
@@ -1260,9 +1258,9 @@ static void get_gr_gid_remove_done(struct tevent_req *subreq)
                                                 struct proxy_state);
     int ret;
 
-    ret = sysdb_delete_group_by_gid_recv(subreq);
+    ret = sysdb_delete_group_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1911,11 +1909,10 @@ again:
     }
 
     if (delete_user) {
-        subreq = sysdb_delete_group_by_gid_send(state, state->ev,
-                                                state->handle,
-                                                state->domain,
-                                                state->gid,
-                                                true);
+        subreq = sysdb_delete_group_send(state, state->ev,
+                                         NULL, state->handle,
+                                         state->domain,
+                                         NULL, state->gid);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -1955,7 +1952,7 @@ static void get_group_from_gid_send_del_done(struct tevent_req *subreq)
 
     ret = sysdb_delete_entry_recv(subreq);
     talloc_zfree(subreq);
-    if (ret) {
+    if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }

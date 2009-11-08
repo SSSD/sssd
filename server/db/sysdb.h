@@ -366,15 +366,6 @@ int sysdb_search_user_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            struct ldb_message **msg);
 
-/* Delete User by uid */
-struct tevent_req *sysdb_delete_user_by_uid_send(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 struct sysdb_handle *handle,
-                                                 struct sss_domain_info *domain,
-                                                 uid_t uid,
-                                                 bool ignore_not_found);
-int sysdb_delete_user_by_uid_recv(struct tevent_req *req);
-
 /* Search Group (gy gid or name) */
 struct tevent_req *sysdb_search_group_by_name_send(TALLOC_CTX *mem_ctx,
                                                    struct tevent_context *ev,
@@ -393,15 +384,6 @@ struct tevent_req *sysdb_search_group_by_gid_send(TALLOC_CTX *mem_ctx,
 int sysdb_search_group_recv(struct tevent_req *req,
                             TALLOC_CTX *mem_ctx,
                             struct ldb_message **msg);
-
-/* Delete group by gid */
-struct tevent_req *sysdb_delete_group_by_gid_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  gid_t gid,
-                                                  bool ignore_not_found);
-int sysdb_delete_group_by_gid_recv(struct tevent_req *req);
 
 /* Replace entry attrs */
 struct tevent_req *sysdb_set_entry_attr_send(TALLOC_CTX *mem_ctx,
@@ -593,4 +575,41 @@ struct tevent_req *sysdb_asq_search_send(TALLOC_CTX *mem_ctx,
                                          const char **attrs);
 int sysdb_asq_search_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                           size_t *msgs_count, struct ldb_message ***msgs);
+
+struct tevent_req *sysdb_search_users_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sysdb_handle *handle,
+                                           struct sss_domain_info *domain,
+                                           const char *sub_filter,
+                                           const char **attrs);
+int sysdb_search_users_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                            size_t *msgs_count, struct ldb_message ***msgs);
+
+struct tevent_req *sysdb_delete_user_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sysdb_ctx *sysdb,
+                                          struct sysdb_handle *handle,
+                                          struct sss_domain_info *domain,
+                                          const char *name, uid_t uid);
+int sysdb_delete_user_recv(struct tevent_req *req);
+
+struct tevent_req *sysdb_search_groups_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sysdb_ctx *sysdb,
+                                            struct sysdb_handle *handle,
+                                            struct sss_domain_info *domain,
+                                            const char *sub_filter,
+                                            const char **attrs);
+int sysdb_search_groups_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                             size_t *msgs_count, struct ldb_message ***msgs);
+
+struct tevent_req *sysdb_delete_group_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sysdb_handle *handle,
+                                           struct sss_domain_info *domain,
+                                           const char *name, gid_t gid);
+int sysdb_delete_group_recv(struct tevent_req *req);
+
 #endif /* __SYS_DB_H__ */

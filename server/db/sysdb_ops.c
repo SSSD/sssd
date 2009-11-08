@@ -793,92 +793,6 @@ int sysdb_search_user_recv(struct tevent_req *req,
 }
 
 
-/* =Delete-User-by-UID==================================================== */
-
-static void sysdb_delete_user_by_uid_found(struct tevent_req *subreq);
-static void sysdb_delete_user_by_uid_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_delete_user_by_uid_send(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 struct sysdb_handle *handle,
-                                                 struct sss_domain_info *domain,
-                                                 uid_t uid,
-                                                 bool ignore_not_found)
-{
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = ignore_not_found;
-    state->ldbreply = NULL;
-
-    subreq = sysdb_search_user_by_uid_send(state, ev, NULL, handle,
-                                           domain, uid, NULL);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_user_by_uid_found, req);
-
-    return req;
-}
-
-static void sysdb_delete_user_by_uid_found(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct sysdb_op_state *state = tevent_req_data(req,
-                                                  struct sysdb_op_state);
-    struct ldb_message *msg;
-    int ret;
-
-    ret = sysdb_search_user_recv(subreq, state, &msg);
-    talloc_zfree(subreq);
-    if (ret) {
-        if (state->ignore_not_found && ret == ENOENT) {
-            return tevent_req_done(req);
-        }
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_delete_entry_send(state, state->ev,
-                                     state->handle, msg->dn,
-                                     state->ignore_not_found);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_user_by_uid_done, req);
-}
-
-static void sysdb_delete_user_by_uid_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_delete_user_by_uid_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
-}
-
-
 /* =Search-Group-by-[GID/NAME]============================================ */
 
 struct sysdb_search_group_state {
@@ -1086,92 +1000,6 @@ int sysdb_search_group_recv(struct tevent_req *req,
     *msg = talloc_move(mem_ctx, &state->msgs[0]);
 
     return EOK;
-}
-
-
-/* =Delete-Group-by-GID=================================================== */
-
-static void sysdb_delete_group_by_gid_found(struct tevent_req *subreq);
-static void sysdb_delete_group_by_gid_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_delete_group_by_gid_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  gid_t gid,
-                                                  bool ignore_not_found)
-{
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = ignore_not_found;
-    state->ldbreply = NULL;
-
-    subreq = sysdb_search_group_by_gid_send(state, ev, NULL, handle,
-                                            domain, gid, NULL);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_group_by_gid_found, req);
-
-    return req;
-}
-
-static void sysdb_delete_group_by_gid_found(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct sysdb_op_state *state = tevent_req_data(req,
-                                                  struct sysdb_op_state);
-    struct ldb_message *msg;
-    int ret;
-
-    ret = sysdb_search_group_recv(subreq, state, &msg);
-    talloc_zfree(subreq);
-    if (ret) {
-        if (state->ignore_not_found && ret == ENOENT) {
-            return tevent_req_done(req);
-        }
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_delete_entry_send(state, state->ev,
-                                     state->handle, msg->dn,
-                                     state->ignore_not_found);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_group_by_gid_done, req);
-}
-
-static void sysdb_delete_group_by_gid_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_delete_group_by_gid_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
 }
 
 
@@ -4169,8 +3997,9 @@ static void sysdb_asq_search_done(struct tevent_req *subreq)
     int ret;
 
     ret = sldb_request_recv(subreq, state, &ldbreply);
+    /* DO NOT free the subreq here, the subrequest search is not
+     * finished until we get an ldbreply of type LDB_REPLY_DONE */
     if (ret != EOK) {
-        talloc_free(subreq);
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
         return;
@@ -4196,6 +4025,8 @@ static void sysdb_asq_search_done(struct tevent_req *subreq)
             return;
 
         case LDB_REPLY_DONE:
+            /* now it is safe to free the subrequest, the search is complete */
+            talloc_zfree(subreq);
             break;
 
         default:
@@ -4204,7 +4035,6 @@ static void sysdb_asq_search_done(struct tevent_req *subreq)
             return;
     }
 
-    talloc_zfree(subreq);
     tevent_req_done(req);
 }
 
@@ -4213,15 +4043,580 @@ int sysdb_asq_search_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 {
     struct sysdb_asq_search_state *state = tevent_req_data(req,
                                               struct sysdb_asq_search_state);
-    int i;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *msgs_count = state->msgs_count;
-    for (i = 0; i < state->msgs_count; i++) {
-        talloc_steal(mem_ctx, state->msgs[i]);
-    }
     *msgs = talloc_move(mem_ctx, &state->msgs);
 
     return EOK;
 }
+
+/* =Search-Users-with-Custom-Filter====================================== */
+
+struct sysdb_search_users_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sss_domain_info *domain;
+    const char *sub_filter;
+    const char **attrs;
+
+    struct ldb_message **msgs;
+    size_t msgs_count;
+};
+
+void sysdb_search_users_check_handle(struct tevent_req *subreq);
+static void sysdb_search_users_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_search_users_send(TALLOC_CTX *mem_ctx,
+                                           struct tevent_context *ev,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sysdb_handle *handle,
+                                           struct sss_domain_info *domain,
+                                           const char *sub_filter,
+                                           const char **attrs)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_search_users_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_search_users_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->sub_filter = sub_filter;
+    state->attrs = attrs;
+
+    state->msgs_count = 0;
+    state->msgs = NULL;
+
+    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_users_check_handle, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+void sysdb_search_users_check_handle(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_search_users_state *state = tevent_req_data(req,
+                                            struct sysdb_search_users_state);
+    struct ldb_dn *basedn;
+    char *filter;
+    int ret;
+
+    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    basedn = ldb_dn_new_fmt(state, state->handle->ctx->ldb,
+                            SYSDB_TMPL_USER_BASE, state->domain->name);
+    if (!basedn) {
+        DEBUG(2, ("Failed to build base dn\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    filter = talloc_asprintf(state, "(&(%s)%s)",
+                             SYSDB_UC, state->sub_filter);
+    if (!filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    DEBUG(6, ("Search users with filter: %s\n", filter));
+
+    subreq = sysdb_search_entry_send(state, state->ev, state->handle,
+                                     basedn, LDB_SCOPE_SUBTREE,
+                                     filter, state->attrs);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_users_done, req);
+}
+
+static void sysdb_search_users_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct sysdb_search_users_state *state = tevent_req_data(req,
+                                            struct sysdb_search_users_state);
+    int ret;
+
+    ret = sysdb_search_entry_recv(subreq, state,
+                                  &state->msgs_count, &state->msgs);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_search_users_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                            size_t *msgs_count, struct ldb_message ***msgs)
+{
+    struct sysdb_search_users_state *state = tevent_req_data(req,
+                                            struct sysdb_search_users_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *msgs_count = state->msgs_count;
+    *msgs = talloc_move(mem_ctx, &state->msgs);
+
+    return EOK;
+}
+
+/* =Delete-User-by-Name-OR-uid============================================ */
+
+struct sysdb_delete_user_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    uid_t uid;
+
+    struct sysdb_handle *handle;
+};
+
+void sysdb_delete_user_check_handle(struct tevent_req *subreq);
+static void sysdb_delete_user_found(struct tevent_req *subreq);
+static void sysdb_delete_user_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_delete_user_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sysdb_ctx *sysdb,
+                                          struct sysdb_handle *handle,
+                                          struct sss_domain_info *domain,
+                                          const char *name, uid_t uid)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_delete_user_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_delete_user_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->name = name;
+    state->uid = uid;
+
+    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        tevent_req_post(req, ev);
+        return req;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_user_check_handle, req);
+
+    return req;
+}
+
+void sysdb_delete_user_check_handle(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_delete_user_state *state = tevent_req_data(req,
+                                            struct sysdb_delete_user_state);
+    static const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
+    int ret;
+
+    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->name) {
+        subreq = sysdb_search_user_by_name_send(state, state->ev, NULL,
+                                                state->handle, state->domain,
+                                                state->name, attrs);
+    } else {
+        subreq = sysdb_search_user_by_uid_send(state, state->ev, NULL,
+                                               state->handle, state->domain,
+                                               state->uid, NULL);
+    }
+
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_user_found, req);
+}
+
+static void sysdb_delete_user_found(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_delete_user_state *state = tevent_req_data(req,
+                                            struct sysdb_delete_user_state);
+    struct ldb_message *msg;
+    int ret;
+
+    ret = sysdb_search_user_recv(subreq, state, &msg);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->name && state->uid) {
+        /* verify name/gid match */
+        const char *name;
+        uint64_t uid;
+
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        if (name == NULL || uid == 0) {
+            DEBUG(2, ("Attribute is missing but this should never happen!\n"));
+            tevent_req_error(req, EFAULT);
+            return;
+        }
+        if (strcmp(state->name, name) || state->uid != uid) {
+            /* this is not the entry we are looking for */
+            tevent_req_error(req, EINVAL);
+            return;
+        }
+    }
+
+    subreq = sysdb_delete_entry_send(state, state->ev,
+                                     state->handle, msg->dn, false);
+    if (!subreq) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_user_done, req);
+}
+
+static void sysdb_delete_user_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    int ret;
+
+    ret = sysdb_delete_entry_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_delete_user_recv(struct tevent_req *req)
+{
+    return sysdb_op_default_recv(req);
+}
+
+
+/* =Search-Groups-with-Custom-Filter===================================== */
+
+struct sysdb_search_groups_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sss_domain_info *domain;
+    const char *sub_filter;
+    const char **attrs;
+
+    struct ldb_message **msgs;
+    size_t msgs_count;
+};
+
+void sysdb_search_groups_check_handle(struct tevent_req *subreq);
+static void sysdb_search_groups_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_search_groups_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sysdb_ctx *sysdb,
+                                            struct sysdb_handle *handle,
+                                            struct sss_domain_info *domain,
+                                            const char *sub_filter,
+                                            const char **attrs)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_search_groups_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_search_groups_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->sub_filter = sub_filter;
+    state->attrs = attrs;
+
+    state->msgs_count = 0;
+    state->msgs = NULL;
+
+    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_groups_check_handle, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+void sysdb_search_groups_check_handle(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_search_groups_state *state = tevent_req_data(req,
+                                            struct sysdb_search_groups_state);
+    struct ldb_dn *basedn;
+    char *filter;
+    int ret;
+
+    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    basedn = ldb_dn_new_fmt(state, state->handle->ctx->ldb,
+                            SYSDB_TMPL_GROUP_BASE, state->domain->name);
+    if (!basedn) {
+        DEBUG(2, ("Failed to build base dn\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    filter = talloc_asprintf(state, "(&(%s)%s)",
+                             SYSDB_GC, state->sub_filter);
+    if (!filter) {
+        DEBUG(2, ("Failed to build filter\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    DEBUG(6, ("Search groups with filter: %s\n", filter));
+
+    subreq = sysdb_search_entry_send(state, state->ev, state->handle,
+                                     basedn, LDB_SCOPE_SUBTREE,
+                                     filter, state->attrs);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_groups_done, req);
+}
+
+static void sysdb_search_groups_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct sysdb_search_groups_state *state = tevent_req_data(req,
+                                            struct sysdb_search_groups_state);
+    int ret;
+
+    ret = sysdb_search_entry_recv(subreq, state,
+                                  &state->msgs_count, &state->msgs);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_search_groups_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                            size_t *msgs_count, struct ldb_message ***msgs)
+{
+    struct sysdb_search_groups_state *state = tevent_req_data(req,
+                                            struct sysdb_search_groups_state);
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *msgs_count = state->msgs_count;
+    *msgs = talloc_move(mem_ctx, &state->msgs);
+
+    return EOK;
+}
+
+/* =Delete-Group-by-Name-OR-gid=========================================== */
+
+struct sysdb_delete_group_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    gid_t gid;
+
+    struct sysdb_handle *handle;
+};
+
+void sysdb_delete_group_check_handle(struct tevent_req *subreq);
+static void sysdb_delete_group_found(struct tevent_req *subreq);
+static void sysdb_delete_group_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_delete_group_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          struct sysdb_ctx *sysdb,
+                                          struct sysdb_handle *handle,
+                                          struct sss_domain_info *domain,
+                                          const char *name, gid_t gid)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_delete_group_state *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_delete_group_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->name = name;
+    state->gid = gid;
+
+    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        tevent_req_post(req, ev);
+        return req;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_group_check_handle, req);
+
+    return req;
+}
+
+void sysdb_delete_group_check_handle(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_delete_group_state *state = tevent_req_data(req,
+                                           struct sysdb_delete_group_state);
+    static const char *attrs[] = { SYSDB_NAME, SYSDB_GIDNUM, NULL };
+    int ret;
+
+    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->name) {
+        subreq = sysdb_search_group_by_name_send(state, state->ev, NULL,
+                                                 state->handle, state->domain,
+                                                 state->name, attrs);
+    } else {
+        subreq = sysdb_search_group_by_gid_send(state, state->ev, NULL,
+                                                state->handle, state->domain,
+                                                state->gid, NULL);
+    }
+
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_group_found, req);
+}
+
+static void sysdb_delete_group_found(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct sysdb_delete_group_state *state = tevent_req_data(req,
+                                           struct sysdb_delete_group_state);
+    struct ldb_message *msg;
+    int ret;
+
+    ret = sysdb_search_group_recv(subreq, state, &msg);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (state->name && state->gid) {
+        /* verify name/gid match */
+        const char *name;
+        uint64_t gid;
+
+        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+        if (name == NULL || gid == 0) {
+            DEBUG(2, ("Attribute is missing but this should never happen!\n"));
+            tevent_req_error(req, EFAULT);
+            return;
+        }
+        if (strcmp(state->name, name) || state->gid != gid) {
+            /* this is not the entry we are looking for */
+            tevent_req_error(req, EINVAL);
+            return;
+        }
+    }
+
+    subreq = sysdb_delete_entry_send(state, state->ev,
+                                     state->handle, msg->dn, false);
+    if (!subreq) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_delete_group_done, req);
+}
+
+static void sysdb_delete_group_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    int ret;
+
+    ret = sysdb_delete_entry_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_delete_group_recv(struct tevent_req *req)
+{
+    return sysdb_op_default_recv(req);
+}
+
+
