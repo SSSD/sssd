@@ -135,7 +135,7 @@ static int fill_pwent(struct sss_packet *packet,
     uint32_t uid;
     uint32_t gid;
     size_t rsize, rp, blen;
-    size_t s1, s2, s3, s4;
+    size_t s1, s2, s3, s4, s5;
     size_t dom_len = 0;
     int delim = 1;
     int i, ret, num, t;
@@ -201,9 +201,10 @@ static int fill_pwent(struct sss_packet *packet,
         s2 = strlen(gecos) + 1;
         s3 = strlen(homedir) + 1;
         s4 = strlen(shell) + 1;
+        s5 = strlen(nctx->pwfield) + 1;
         if (add_domain) s1 += delim + dom_len;
 
-        rsize = 2*sizeof(uint32_t) +s1 + 2 + s2 + s3 +s4;
+        rsize = 2*sizeof(uint32_t) +s1 + s2 + s3 + s4 + s5;
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -244,8 +245,8 @@ static int fill_pwent(struct sss_packet *packet,
         }
         rp += s1;
 
-        memcpy(&body[rp], "x", 2);
-        rp += 2;
+        memcpy(&body[rp], nctx->pwfield, s5);
+        rp += s5;
         memcpy(&body[rp], gecos, s2);
         rp += s2;
         memcpy(&body[rp], homedir, s3);

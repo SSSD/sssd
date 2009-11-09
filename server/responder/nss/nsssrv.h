@@ -57,6 +57,8 @@ struct nss_ctx {
     struct getent_ctx *gctx;
 
     bool filter_users_in_groups;
+
+    char *pwfield;
 };
 
 struct nss_packet;

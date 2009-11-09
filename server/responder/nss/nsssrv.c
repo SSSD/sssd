@@ -45,6 +45,8 @@
 
 #define SSS_NSS_PIPE_NAME "nss"
 
+#define DEFAULT_PWFIELD "*"
+
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 
 struct sbus_method monitor_nss_methods[] = {
@@ -200,6 +202,11 @@ static int nss_get_config(struct nss_ctx *nctx,
             }
         }
     }
+
+    ret = confdb_get_string(cdb, nctx, CONFDB_NSS_CONF_ENTRY,
+                            CONFDB_NSS_PWFIELD, DEFAULT_PWFIELD,
+                            &nctx->pwfield);
+    if (ret != EOK) goto done;
 
     ret = 0;
 done:

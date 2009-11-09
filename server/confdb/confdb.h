@@ -60,6 +60,7 @@
 #define CONFDB_NSS_FILTER_USERS_IN_GROUPS "filter_users_in_groups"
 #define CONFDB_NSS_FILTER_USERS "filter_users"
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
+#define CONFDB_NSS_PWFIELD  "pwfield"
 
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"
