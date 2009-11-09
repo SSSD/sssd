@@ -47,8 +47,9 @@ struct krb5child_req {
 
     struct tevent_timer *timeout_handler;
 
-    char *ccname;
+    const char *ccname;
     const char *homedir;
+    bool is_offline;
 };
 
 struct krb5_ctx {

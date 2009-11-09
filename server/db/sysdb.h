@@ -72,6 +72,7 @@
 
 #define SYSDB_UUID "uniqueID"
 #define SYSDB_UPN "userPrincipalName"
+#define SYSDB_CCACHE_FILE "ccacheFile"
 
 #define SYSDB_ORIG_DN "originalDN"
 #define SYSDB_ORIG_MODSTAMP "originalModifyTimestamp"

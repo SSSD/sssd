@@ -73,7 +73,6 @@ struct krb5_child_ctx {
 
 struct krb5_req {
     krb5_context ctx;
-    krb5_ccache cc;
     krb5_principal princ;
     char* name;
     krb5_creds *creds;
@@ -105,6 +104,98 @@ struct response {
     size_t size;
     uint8_t *buf;
 };
+
+static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds)
+{
+    krb5_error_code kerr;
+    krb5_ccache tmp_cc = NULL;
+    char *cc_file_name;
+    int fd = -1;
+    size_t ccname_len;
+    char *dummy;
+    char *tmp_ccname;
+
+    if (strncmp(kr->ccname, "FILE:", 5) == 0) {
+        cc_file_name = kr->ccname + 5;
+    } else {
+        cc_file_name = kr->ccname;
+    }
+
+    if (cc_file_name[0] != '/') {
+        DEBUG(1, ("Ccache filename is not an absolute path.\n"));
+        return EINVAL;
+    }
+
+    dummy = strrchr(cc_file_name, '/');
+    tmp_ccname = talloc_strndup(kr, cc_file_name, (size_t) (dummy-cc_file_name));
+    if (tmp_ccname == NULL) {
+        DEBUG(1, ("talloc_strdup failed.\n"));
+        return ENOMEM;
+    }
+    tmp_ccname = talloc_asprintf_append(tmp_ccname, "/.krb5cc_dummy_XXXXXX");
+
+    fd = mkstemp(tmp_ccname);
+    if (fd == -1) {
+        DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    kerr = krb5_cc_resolve(kr->ctx, tmp_ccname, &tmp_cc);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+
+    kerr = krb5_cc_initialize(kr->ctx, tmp_cc, kr->princ);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+    if (fd != -1) {
+        close(fd);
+        fd = -1;
+    }
+
+    if (creds != NULL) {
+        kerr = krb5_cc_store_cred(kr->ctx, tmp_cc, creds);
+        if (kerr != 0) {
+            KRB5_DEBUG(1, kerr);
+            goto done;
+        }
+    }
+
+    kerr = krb5_cc_close(kr->ctx, tmp_cc);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
+    }
+    tmp_cc = NULL;
+
+    ccname_len = strlen(cc_file_name);
+    if (ccname_len >= 6 && strcmp(cc_file_name + (ccname_len-6), "XXXXXX")==0 ) {
+        fd = mkstemp(cc_file_name);
+        if (fd == -1) {
+            DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
+            kerr = errno;
+            goto done;
+        }
+    }
+
+    kerr = rename(tmp_ccname, cc_file_name);
+    if (kerr == -1) {
+        DEBUG(1, ("rename failed [%d][%s].\n", errno, strerror(errno)));
+    }
+
+done:
+    if (fd != -1) {
+        close(fd);
+        fd = -1;
+    }
+    if (kerr != 0 && tmp_cc != NULL) {
+        krb5_cc_destroy(kr->ctx, tmp_cc);
+    }
+    return kerr;
+}
 
 static struct response *init_response(TALLOC_CTX *mem_ctx) {
     struct response *r;
@@ -163,7 +254,7 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     }
 
     if (kerr == 0) {
-        if (kr->cc == NULL || kr->ccname == NULL) {
+        if (kr->ccname == NULL) {
             DEBUG(1, ("Error obtaining ccname.\n"));
             return NULL;
         }
@@ -193,6 +284,27 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     }
 
     return resp;
+}
+
+static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
+                            struct krb5_req *kr)
+{
+    int ret;
+    struct response *resp;
+
+    resp = prepare_response_message(kr, kerr, pam_status);
+    if (resp == NULL) {
+        DEBUG(1, ("prepare_response_message failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = write(fd, resp->buf, resp->size);
+    if (ret == -1) {
+        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
+        return errno;
+    }
+
+    return EOK;
 }
 
 static krb5_error_code validate_tgt(struct krb5_req *kr)
@@ -293,9 +405,6 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
 {
     krb5_error_code kerr = 0;
     int ret;
-    int fd = -1;
-    size_t ccname_len = 0;
-    size_t offset = 0;
 
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         password, NULL, NULL, 0, NULL,
@@ -324,44 +433,9 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         DEBUG(9, ("TGT validation is disabled.\n"));
     }
 
-    if (kr->ccname[0] == '/' || strncmp(kr->ccname, "FILE:", 5) == 0) {
-        offset = 0;
-        if (kr->ccname[0] == 'F') {
-            offset = 5;
-        }
-        ccname_len = strlen(kr->ccname);
-        if (ccname_len >= 6 &&
-            strcmp(kr->ccname + (ccname_len-6), "XXXXXX")==0 ) {
-            fd = mkstemp(kr->ccname + offset);
-            if (fd == -1) {
-                DEBUG(1, ("mkstemp failed [%d][%s].\n", errno,
-                          strerror(errno)));
-                kerr = KRB5KRB_ERR_GENERIC;
-                goto done;
-            }
-        }
-    }
-
-    kerr = krb5_cc_resolve(kr->ctx, kr->ccname, &kr->cc);
+    kerr = create_ccache_file(kr, kr->creds);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
-        goto done;
-    }
-
-    kerr = krb5_cc_initialize(kr->ctx, kr->cc, kr->princ);
-    if (fd != -1) {
-        close(fd);
-    }
-    if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
-        goto done;
-    }
-
-    kerr = krb5_cc_store_cred(kr->ctx, kr->cc, kr->creds);
-    if (kerr != 0) {
-        KRB5_DEBUG(1, kerr);
-        krb5_cc_destroy(kr->ctx, kr->cc);
-        kr->cc = NULL;
         goto done;
     }
 
@@ -378,10 +452,8 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
 {
     int ret;
     krb5_error_code kerr = 0;
-    errno_t err;
     char *pass_str = NULL;
     char *newpass_str = NULL;
-    struct response *resp = NULL;
     int pam_status = PAM_SYSTEM_ERR;
     int result_code = -1;
     krb5_data result_code_string;
@@ -425,6 +497,8 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     if (kerr != 0 || result_code != 0) {
         if (kerr != 0) {
             KRB5_DEBUG(1, kerr);
+        } else {
+            kerr = KRB5KRB_ERR_GENERIC;
         }
 
         if (result_code_string.length > 0) {
@@ -455,43 +529,20 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     }
 
 sendresponse:
-    resp = prepare_response_message(kr, kerr, pam_status);
-    if (resp == NULL) {
-        DEBUG(1, ("prepare_response_message failed.\n"));
-        if (kr->cc != NULL) {
-            krb5_cc_destroy(kr->ctx, kr->cc);
-            kr->cc = NULL;
-        }
-        return ENOMEM;
+    ret = sendresponse(fd, kerr, pam_status, kr);
+    if (ret != EOK) {
+        DEBUG(1, ("sendresponse failed.\n"));
     }
 
-    ret = write(fd, resp->buf, resp->size);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        if (kr->cc != NULL) {
-            krb5_cc_destroy(kr->ctx, kr->cc);
-            kr->cc = NULL;
-        }
-        return err;
-    }
-
-    if (kr->cc != NULL) {
-        krb5_cc_close(kr->ctx, kr->cc);
-        kr->cc = NULL;
-    }
-
-    return EOK;
+    return ret;
 }
 
 static errno_t tgt_req_child(int fd, struct krb5_req *kr)
 {
     int ret;
     krb5_error_code kerr = 0;
-    errno_t err;
     char *pass_str = NULL;
     int pam_status = PAM_SYSTEM_ERR;
-    struct response *resp = NULL;
 
     pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
                               kr->pd->authtok_size);
@@ -506,7 +557,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     /* If the password is expired the KDC will always return
        KRB5KDC_ERR_KEY_EXP regardless if the supplied password is correct or
        not. In general the password can still be used to get a changepw ticket.
-       So we validate the password by trying to get a changepw ticket. */ 
+       So we validate the password by trying to get a changepw ticket. */
     if (kerr == KRB5KDC_ERR_KEY_EXP) {
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                             pass_str, NULL, NULL, 0,
@@ -537,36 +588,35 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     }
 
 sendresponse:
-    resp = prepare_response_message(kr, kerr, pam_status);
-    if (resp == NULL) {
-        DEBUG(1, ("prepare_response_message failed.\n"));
-        if (kr->cc != NULL) {
-            krb5_cc_destroy(kr->ctx, kr->cc);
-            kr->cc = NULL;
-        }
-        return ENOMEM;
+    ret = sendresponse(fd, kerr, pam_status, kr);
+    if (ret != EOK) {
+        DEBUG(1, ("sendresponse failed.\n"));
     }
 
-    ret = write(fd, resp->buf, resp->size);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        if (kr->cc != NULL) {
-            krb5_cc_destroy(kr->ctx, kr->cc);
-            kr->cc = NULL;
-        }
-        return err;
-    }
-
-    if (kr->cc != NULL) {
-        krb5_cc_close(kr->ctx, kr->cc);
-        kr->cc = NULL;
-    }
-
-    return EOK;
+    return ret;
 }
 
-uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx, const uint8_t *src, size_t len)
+static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
+{
+    int ret;
+    int pam_status = PAM_SUCCESS;
+
+    ret = create_ccache_file(kr, NULL);
+    if (ret != 0) {
+        KRB5_DEBUG(1, ret);
+        pam_status = PAM_SYSTEM_ERR;
+    }
+
+    ret = sendresponse(fd, ret, pam_status, kr);
+    if (ret != EOK) {
+        DEBUG(1, ("sendresponse failed.\n"));
+    }
+
+    return ret;
+}
+
+uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx, const uint8_t *src,
+                                  size_t len)
 {
     uint8_t *str;
 
@@ -680,11 +730,9 @@ static int krb5_cleanup(void *ptr)
         krb5_free_creds(kr->ctx, kr->creds);
     }
     if (kr->name != NULL)
-        krb5_free_unparsed_name(kr->ctx, kr->name);
+        sss_krb5_free_unparsed_name(kr->ctx, kr->name);
     if (kr->princ != NULL)
         krb5_free_principal(kr->ctx, kr->princ);
-    if (kr->cc != NULL)
-        krb5_cc_close(kr->ctx, kr->cc);
     if (kr->ctx != NULL)
         krb5_free_context(kr->ctx);
 
@@ -735,7 +783,13 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
 
     switch(pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
-            kr->child_req = tgt_req_child;
+            /* if authtok_size is 1 we got an empty password, this means we
+             * are offline and need to create an empty ccache file */
+            if (pd->authtok_size == 1) {
+                kr->child_req = create_empty_ccache;
+            } else {
+                kr->child_req = tgt_req_child;
+            }
             break;
         case SSS_PAM_CHAUTHTOK:
             kr->child_req = changepw_child;
@@ -898,6 +952,7 @@ int main(int argc, const char *argv[])
     ret = kr->child_req(STDOUT_FILENO, kr);
     if (ret != EOK) {
         DEBUG(1, ("Child request failed.\n"));
+        goto fail;
     }
 
     close(STDOUT_FILENO);
@@ -906,6 +961,7 @@ int main(int argc, const char *argv[])
     return 0;
 
 fail:
+    close(STDOUT_FILENO);
     talloc_free(pd);
     exit(-1);
 }

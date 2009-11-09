@@ -68,10 +68,11 @@ if HAVE_CHECK
         resolv-tests \
         krb5-utils-tests \
         check_and_open-tests \
-	ipa_timerules-tests \
+        ipa_timerules-tests \
         files-tests \
         refcount-tests \
-        fail_over-tests
+        fail_over-tests \
+        find_uid-tests
 endif
 
 check_PROGRAMS = \
@@ -133,7 +134,7 @@ INI_CFG_LIBS = \
 DHASH_CFLAGS = \
     -I$(srcdir)/../common/dhash
 DHASH_LIBS = \
-    -L$(builddir)/../common/dhash/.libs/ \
+    -L$(builddir)/../common/dhash/ \
     -ldhash
 
 AM_CPPFLAGS = -Wall \
@@ -267,6 +268,7 @@ dist_noinst_HEADERS = \
     util/sss_ldap.h \
     util/sss_krb5.h \
     util/refcount.h \
+    util/find_uid.h \
     config.h \
     monitor/monitor.h \
     monitor/monitor_interfaces.h \
@@ -518,6 +520,20 @@ ipa_timerules_tests_LDADD = \
     $(TALLOC_LIBS) \
     $(CHECK_LIBS)
 
+find_uid_tests_SOURCES = \
+    tests/find_uid-tests.c \
+    util/find_uid.c \
+    $(SSSD_DEBUG_OBJ)
+find_uid_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(DHASH_CFLAGS) \
+    $(CHECK_CFLAGS)
+find_uid_tests_LDADD = \
+    $(TALLOC_LIBS) \
+    $(DHASH_LIBS) \
+    $(CHECK_LIBS)
+
 endif
 
 stress_tests_SOURCES = \
@@ -564,6 +580,7 @@ libsss_proxy_la_LDFLAGS = \
     -module
 
 libsss_krb5_la_SOURCES = \
+    util/find_uid.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_auth.c \
@@ -571,7 +588,9 @@ libsss_krb5_la_SOURCES = \
     providers/krb5/krb5_init.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
-    $(KRB5_CFLAGS)
+    $(DHASH_CFLAGS)
+libsss_krb5_la_LIBADD = \
+    $(DHASH_LIBS)
 libsss_krb5_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
@@ -592,6 +611,7 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
     util/sss_krb5.c \
+    util/find_uid.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_common.c \
@@ -599,9 +619,11 @@ libsss_ipa_la_SOURCES = \
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(LDAP_CFLAGS) \
+    $(DHASH_CFLAGS) \
     $(KRB5_CFLAGS)
 libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
+    $(DHASH_LIBS) \
     $(KRB5_LIBS)
 libsss_ipa_la_LDFLAGS = \
     -version-info 1:0:0 \
