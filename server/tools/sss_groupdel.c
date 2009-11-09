@@ -94,10 +94,8 @@ int main(int argc, const char **argv)
                               tctx->octx->name, tctx->local,
                               &tctx->octx);
     if (ret != EOK) {
-        ERROR("Cannot find group in local domain, "
-              "modifying groups is allowed only in local domain\n");
-        ret = EXIT_FAILURE;
-        goto fini;
+        /* Error message will be printed in the switch */
+        goto done;
     }
 
     if ((tctx->octx->gid < tctx->local->id_min) ||
@@ -125,9 +123,9 @@ int main(int argc, const char **argv)
 
     end_transaction(tctx);
 
+    ret = tctx->error;
 done:
-    if (tctx->error) {
-        ret = tctx->error;
+    if (ret) {
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));
         switch (ret) {
             case ENOENT:
