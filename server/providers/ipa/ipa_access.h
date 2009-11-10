@@ -35,11 +35,13 @@ enum ipa_access_mode {
 struct ipa_access_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
+    struct time_rules_ctx *tr_ctx;
 };
 
 struct hbac_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
+    struct time_rules_ctx *tr_ctx;
     struct be_req *be_req;
     struct pam_data *pd;
     struct hbac_host_info **hbac_host_info;

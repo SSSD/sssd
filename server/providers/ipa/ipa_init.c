@@ -30,6 +30,7 @@
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/ipa/ipa_access.h"
+#include "providers/ipa/ipa_timerules.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -230,6 +231,12 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
                           IPA_OPTS_BASIC, &ipa_access_ctx->ipa_options);
     if (ret != EOK) {
         DEBUG(1, ("dp_copy_options failed.\n"));
+        goto done;
+    }
+
+    ret = init_time_rules_parser(ipa_access_ctx, &ipa_access_ctx->tr_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("init_time_rules_parser failed.\n"));
         goto done;
     }
 

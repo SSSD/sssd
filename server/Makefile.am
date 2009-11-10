@@ -577,6 +577,7 @@ libsss_ipa_la_SOURCES = \
     providers/ipa/ipa_init.c \
     providers/ipa/ipa_common.c \
     providers/ipa/ipa_access.c \
+    providers/ipa/ipa_timerules.c \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \
     providers/ldap/ldap_auth.c \
