@@ -307,26 +307,27 @@ void krb5_child_sig_handler(struct tevent_context *ev,
 {
     int ret;
     int child_status;
-    siginfo_t *siginfo = (siginfo_t *)__siginfo;
 
-    errno = 0;
+    DEBUG(7, ("Waiting for [%d] childeren.\n", count));
     do {
-        ret = waitpid(siginfo->si_pid, &child_status, WNOHANG);
-    } while (ret == -1 && errno == EINTR);
-    if (ret == siginfo->si_pid) {
-        DEBUG(4, ("child status [%d].\n", child_status));
-        if (WEXITSTATUS(child_status) != 0) {
-            DEBUG(1, ("child failed.\n"));
+        errno = 0;
+        ret = waitpid(-1, &child_status, WNOHANG);
+
+        if (ret == -1) {
+            DEBUG(1, ("waitpid failed [%d][%s].\n", errno, strerror(errno)));
+        } else if (ret == 0) {
+            DEBUG(1, ("waitpid did not found a child with changed status.\n"));
+        } else  {
+            if (WEXITSTATUS(child_status) != 0) {
+                DEBUG(1, ("child [%d] failed with status [%d].\n", ret,
+                          child_status));
+            } else {
+                DEBUG(4, ("child [%d] finished successful.\n", ret));
+            }
         }
-    } else if (ret == 0) {
-        DEBUG(1, ("waitpid did not found a child with changed status.\n", ret));
-    } else if (ret >= 0 && ret != siginfo->si_pid) {
-        DEBUG(1, ("waitpid returned wrong child pid [%d], continue waiting.\n", ret));
-    } else if (ret == -1 && errno == ECHILD) {
-        DEBUG(1, ("no child with pid [%d].\n", siginfo->si_pid));
-    } else {
-        DEBUG(1, ("waitpid failed [%s].\n", strerror(errno)));
-    }
+
+        --count;
+    } while (count < 0);
 
     return;
 }
