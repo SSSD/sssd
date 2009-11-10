@@ -709,10 +709,8 @@ static void sdap_account_info_users_done(struct tevent_req *req)
         dp_err = DP_ERR_FATAL;
         error = "Enum Users Failed";
 
-        if (ret == ETIMEDOUT) {
-            dp_err = DP_ERR_TIMEOUT;
-        }
-        if (ret == ETIMEDOUT || ret == EFAULT) {
+        if (ret == ETIMEDOUT || ret == EFAULT || ret == EIO) {
+            dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             sdap_mark_offline(ctx);
@@ -737,10 +735,8 @@ static void sdap_account_info_groups_done(struct tevent_req *req)
         dp_err = DP_ERR_FATAL;
         error = "Enum Groups Failed";
 
-        if (ret == ETIMEDOUT) {
-            dp_err = DP_ERR_TIMEOUT;
-        }
-        if (ret == ETIMEDOUT || ret == EFAULT) {
+        if (ret == ETIMEDOUT || ret == EFAULT || ret == EIO) {
+            dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             sdap_mark_offline(ctx);
@@ -765,10 +761,8 @@ static void sdap_account_info_initgr_done(struct tevent_req *req)
         dp_err = DP_ERR_FATAL;
         error = "Init Groups Failed";
 
-        if (ret == ETIMEDOUT) {
-            dp_err = DP_ERR_TIMEOUT;
-        }
-        if (ret == ETIMEDOUT || ret == EFAULT) {
+        if (ret == ETIMEDOUT || ret == EFAULT || ret == EIO) {
+            dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             sdap_mark_offline(ctx);
