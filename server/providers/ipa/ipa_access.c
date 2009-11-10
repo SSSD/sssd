@@ -45,6 +45,7 @@
 #define IPA_UNIQUE_ID "ipauniqueid"
 #define IPA_ENABLED_FLAG "ipaenabledflag"
 #define IPA_MEMBER_HOST "memberHost"
+#define IPA_HOST_CATEGORY "hostCategory"
 #define IPA_CN "cn"
 
 #define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,dc=%s"
@@ -790,7 +791,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->hbac_attrs = talloc_array(state, const char *, 13);
+    state->hbac_attrs = talloc_array(state, const char *, 15);
     if (state->hbac_attrs == NULL) {
         DEBUG(1, ("Failed to allocate HBAC attribute list.\n"));
         ret = ENOMEM;
@@ -808,10 +809,14 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->hbac_attrs[9] = IPA_ENABLED_FLAG;
     state->hbac_attrs[10] = IPA_CN;
     state->hbac_attrs[11] = "objectclass";
-    state->hbac_attrs[12] = NULL;
+    state->hbac_attrs[12] = IPA_MEMBER_HOST;
+    state->hbac_attrs[13] = IPA_HOST_CATEGORY;
+    state->hbac_attrs[14] = NULL;
 
     state->hbac_filter = talloc_asprintf(state,
-                                         "(&(objectclass=ipaHBACRule)(|(%s=%s)",
+                                         "(&(objectclass=ipaHBACRule)"
+                                           "(|(%s=%s)(%s=%s)",
+                                         IPA_HOST_CATEGORY, "all",
                                          IPA_MEMBER_HOST, host_dn);
     if (state->hbac_filter == NULL) {
         ret = ENOMEM;
@@ -1239,14 +1244,33 @@ enum check_result check_user(struct hbac_ctx *hbac_ctx,
         return RULE_ERROR;
     }
 
-/* TODO: add group and category checks */
+    ret = sysdb_attrs_get_el(rule_attrs, IPA_USER_CATEGORY, &el);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+        return RULE_ERROR;
+    }
+    if (el->num_values == 0) {
+        DEBUG(9, ("USer category is not set.\n"));
+    } else {
+        for (i = 0; i < el->num_values; i++) {
+            if (strncasecmp("all", (const char *) el->values[i].data,
+                            el->values[i].length) == 0) {
+                DEBUG(9, ("User category is set to 'all', rule applies.\n"));
+                return RULE_APPLICABLE;
+            }
+            DEBUG(9, ("Unsupported user category [%.*s].\n",
+                      el->values[i].length,
+                      (char *) el->values[i].data));
+        }
+    }
+
     ret = sysdb_attrs_get_el(rule_attrs, IPA_MEMBER_USER, &el);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
         return RULE_ERROR;
     }
     if (el->num_values == 0) {
-        DEBUG(9, ("No user specified, assuming rule applies.\n"));
+        DEBUG(9, ("No user specified, rule does not apply.\n"));
         return RULE_APPLICABLE;
     } else {
         for (i = 0; i < el->num_values; i++) {
@@ -1283,6 +1307,7 @@ enum check_result check_remote_hosts(struct pam_data *pd,
 {
     int ret;
     int i;
+    struct ldb_message_element *cat_el;
     struct ldb_message_element *src_el;
     struct ldb_message_element *ext_el;
     const char *remote_hostname;
@@ -1301,7 +1326,28 @@ enum check_result check_remote_hosts(struct pam_data *pd,
         remote_hostname = pd->rhost;
     }
 
-/* TODO: add group and category checks */
+    ret = sysdb_attrs_get_el(rule_attrs, IPA_SOURCE_HOST_CATEGORY, &cat_el);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+        return RULE_ERROR;
+    }
+    if (cat_el->num_values == 0) {
+        DEBUG(9, ("Source host category not set.\n"));
+    } else {
+        for(i = 0; i < cat_el->num_values; i++) {
+            if (strncasecmp("all", (const char *) cat_el->values[i].data,
+                            cat_el->values[i].length) == 0) {
+                DEBUG(9, ("Source host category is set to 'all', "
+                          "rule applies.\n"));
+                return RULE_APPLICABLE;
+            }
+            DEBUG(9, ("Unsupported source hosts category [%.*s].\n",
+                      cat_el->values[i].length,
+                      (char *) cat_el->values[i].data));
+        }
+    }
+
+
     ret = sysdb_attrs_get_el(rule_attrs, IPA_SOURCE_HOST, &src_el);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
@@ -1314,8 +1360,8 @@ enum check_result check_remote_hosts(struct pam_data *pd,
     }
 
     if (src_el->num_values == 0 && ext_el->num_values == 0) {
-        DEBUG(9, ("No remote host specified, assuming rule applies.\n"));
-        return RULE_APPLICABLE;
+        DEBUG(9, ("No remote host specified, rule does not apply.\n"));
+        return RULE_NOT_APPLICABLE;
     } else {
         for (i = 0; i < src_el->num_values; i++) {
             if (strncasecmp(remote_hostname,
