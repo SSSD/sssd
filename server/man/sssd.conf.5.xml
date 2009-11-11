@@ -570,7 +570,9 @@
                             The proxy target PAM proxies to.
                         </para>
                         <para>
-                            Default: sssd_pam_proxy_default
+                            Default: not set by default, you have to take an
+                            existing pam configuration or create a new one and
+                            add the service name here.
                         </para>
                     </listitem>
                 </varlistentry>

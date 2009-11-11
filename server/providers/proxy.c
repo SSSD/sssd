@@ -129,8 +129,27 @@ static void proxy_pam_handler(struct be_req *req) {
     struct proxy_auth_ctx *ctx;;
     bool cache_auth_data = false;
 
-    ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data, struct proxy_auth_ctx);
     pd = talloc_get_type(req->req_data, struct pam_data);
+
+    switch (pd->cmd) {
+        case SSS_PAM_AUTHENTICATE:
+            ctx = talloc_get_type(req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
+                                  struct proxy_auth_ctx);
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            ctx = talloc_get_type(req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
+                                  struct proxy_auth_ctx);
+            break;
+        case SSS_PAM_ACCT_MGMT:
+            ctx = talloc_get_type(req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
+                                  struct proxy_auth_ctx);
+            break;
+        default:
+            DEBUG(1, ("Unsupported PAM task.\n"));
+            pd->pam_status = PAM_SUCCESS;
+            proxy_reply(req, DP_ERR_OK, PAM_SUCCESS, NULL);
+            return;
+    }
 
     conv.conv=proxy_internal_conv;
     auth_data = talloc_zero(req, struct authtok_conv);
@@ -2355,11 +2374,9 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
                             &ctx->pam_target);
     if (ret != EOK) goto done;
     if (!ctx->pam_target) {
-        ctx->pam_target = talloc_strdup(ctx, "sssd_pam_proxy_default");
-        if (!ctx->pam_target) {
-            ret = ENOMEM;
-            goto done;
-        }
+        DEBUG(1, ("Missing option proxy_pam_target.\n"));
+        ret = EINVAL;
+        goto done;
     }
 
     *ops = &proxy_auth_ops;
