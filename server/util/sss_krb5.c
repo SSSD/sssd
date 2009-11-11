@@ -83,10 +83,22 @@ void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
                                                    krb5_get_init_creds_opt *opt)
 {
 #ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_ALLOC
-        krb5_get_init_creds_opt_free(context, opt);
+    krb5_get_init_creds_opt_free(context, opt);
 #else
-        free(opt);
+    free(opt);
 #endif
 
     return;
+}
+
+void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name)
+{
+#ifdef HAVE_KRB5_FREE_UNPARSED_NAME
+    krb5_free_unparsed_name(context, name);
+#else
+    if (name != NULL) {
+        memset(name, 0, strlen(name));
+        free(name);
+    }
+#endif
 }

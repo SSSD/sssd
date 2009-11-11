@@ -565,6 +565,7 @@ libsss_proxy_la_LDFLAGS = \
 
 libsss_krb5_la_SOURCES = \
     providers/krb5/krb5_utils.c \
+    providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_auth.c \
     providers/krb5/krb5_common.c \
     providers/krb5/krb5_init.c
@@ -592,6 +593,7 @@ libsss_ipa_la_SOURCES = \
     util/sss_ldap.c \
     util/sss_krb5.c \
     providers/krb5/krb5_utils.c \
+    providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_common.c \
     providers/krb5/krb5_auth.c
 libsss_ipa_la_CFLAGS = \
@@ -607,6 +609,7 @@ libsss_ipa_la_LDFLAGS = \
 
 krb5_child_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
+    providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_child.c \
     util/sss_krb5.c
 krb5_child_CFLAGS = \

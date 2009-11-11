@@ -42,4 +42,6 @@ krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_alloc(
 
 void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
                                                   krb5_get_init_creds_opt *opt);
+
+void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name);
 #endif /* __SSS_KRB5_H__ */

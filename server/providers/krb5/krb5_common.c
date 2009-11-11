@@ -35,6 +35,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_ccname_template", DP_OPT_STRING, { "FILE:%d/krb5cc_%U_XXXXXX" }, NULL_STRING},
     { "krb5_changepw_principal", DP_OPT_STRING, { "kadmin/changepw" }, NULL_STRING },
     { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
+    { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
+    { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
 };
 
 errno_t check_and_export_options(struct dp_option *opts,

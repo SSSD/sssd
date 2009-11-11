@@ -178,6 +178,31 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_validate (boolean)</term>
+                    <listitem>
+                        <para>
+                            Verify with the help of krb5_keytab that the TGT obtained has not been spoofed.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_keytab (string)</term>
+                    <listitem>
+                        <para>
+                            The location of the keytab to use when validating
+                            credentials obtained from KDCs.
+                        </para>
+                        <para>
+                            Default: /etc/krb5.keytab
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

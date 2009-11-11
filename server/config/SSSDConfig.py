@@ -91,6 +91,8 @@ option_strings = {
     # [provider/krb5/auth]
     'krb5_ccachedir' : _('Directory to store credential caches'),
     'krb5_ccname_template' : _("Location of the user's credential cache"),
+    'krb5_keytab' : _("Location of the keytab to validate credentials"),
+    'krb5_validate' : _("Enable credential validation"),
 
     # [provider/krb5/chpass]
     'krb5_changepw_principal' : _('The principal of the change password service'),

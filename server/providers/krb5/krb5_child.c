@@ -88,6 +88,8 @@ struct krb5_req {
     errno_t (*child_req)(int fd, struct krb5_req *kr);
 
     char *ccname;
+    char *keytab;
+    bool validate;
 };
 
 static krb5_context krb5_error_ctx;
@@ -193,10 +195,104 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     return resp;
 }
 
+static krb5_error_code validate_tgt(struct krb5_req *kr)
+{
+    krb5_error_code kerr;
+    krb5_error_code kt_err;
+    char *principal;
+    krb5_keytab keytab;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+    krb5_verify_init_creds_opt opt;
+
+    memset(&keytab, 0, sizeof(keytab));
+    kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
+    if (kerr != 0) {
+        DEBUG(1, ("error resolving keytab [%s], not verifying TGT.\n",
+                  kr->keytab));
+        return kerr;
+    }
+
+    memset(&cursor, 0, sizeof(cursor));
+    kerr = krb5_kt_start_seq_get(kr->ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(1, ("error reading keytab [%s], not verifying TGT.\n",
+                  kr->keytab));
+        return kerr;
+    }
+
+    /* We look for the first entry from our realm or take the last one */
+    memset(&entry, 0, sizeof(entry));
+    while ((kt_err = krb5_kt_next_entry(kr->ctx, keytab, &entry, &cursor)) == 0) {
+        if (krb5_realm_compare(kr->ctx, entry.principal, kr->princ)) {
+            DEBUG(9, ("Found keytab entry with the realm of the credential.\n"));
+            break;
+        }
+
+        kerr = krb5_free_keytab_entry_contents(kr->ctx, &entry);
+        if (kerr != 0) {
+            DEBUG(1, ("Failed to free keytab entry.\n"));
+        }
+        memset(&entry, 0, sizeof(entry));
+    }
+
+    /* Close the keytab here.  Even though we're using cursors, the file
+     * handle is stored in the krb5_keytab structure, and it gets
+     * overwritten when the verify_init_creds() call below creates its own
+     * cursor, creating a leak. */
+    kerr = krb5_kt_end_seq_get(kr->ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_kt_end_seq_get failed, not verifying TGT.\n"));
+        goto done;
+    }
+
+    /* check if we got any errors from krb5_kt_next_entry */
+    if (kt_err != 0 && kt_err != KRB5_KT_END) {
+        DEBUG(1, ("error reading keytab [%s], not verifying TGT.\n",
+                  kr->keytab));
+        goto done;
+    }
+
+    /* Get the principal to which the key belongs, for logging purposes. */
+    principal = NULL;
+    kerr = krb5_unparse_name(kr->ctx, entry.principal, &principal);
+    if (kerr != 0) {
+        DEBUG(1, ("internal error parsing principal name, "
+                  "not verifying TGT.\n"));
+        goto done;
+    }
+
+
+    krb5_verify_init_creds_opt_init(&opt);
+    kerr = krb5_verify_init_creds(kr->ctx, kr->creds, entry.principal, keytab,
+                                  NULL, &opt);
+
+    if (kerr == 0) {
+        DEBUG(5, ("TGT verified using key for [%s].\n", principal));
+    } else {
+        DEBUG(1 ,("TGT failed verification using key for [%s].\n", principal));
+    }
+
+done:
+    if (krb5_kt_close(kr->ctx, keytab) != 0) {
+        DEBUG(1, ("krb5_kt_close failed"));
+    }
+    if (krb5_free_keytab_entry_contents(kr->ctx, &entry) != 0) {
+        DEBUG(1, ("Failed to free keytab entry.\n"));
+    }
+    if (principal != NULL) {
+        sss_krb5_free_unparsed_name(kr->ctx, principal);
+    }
+
+    return kerr;
+
+}
+
 static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
                                         char *password)
 {
     krb5_error_code kerr = 0;
+    int ret;
     int fd = -1;
     size_t ccname_len = 0;
     size_t offset = 0;
@@ -207,6 +303,25 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         return kerr;
+    }
+
+    if (kr->validate) {
+        kerr = validate_tgt(kr);
+        if (kerr != 0) {
+            KRB5_DEBUG(1, kerr);
+            return kerr;
+        }
+
+        /* We drop root privileges which were needed to read the keytab file
+         * for the validation validation of the credentials here to run the
+         * ccache I/O operations with user privileges. */
+        ret = become_user(kr->pd->pw_uid, kr->pd->gr_gid);
+        if (ret != EOK) {
+            DEBUG(1, ("become_user failed.\n"));
+            return ret;
+        }
+    } else {
+        DEBUG(9, ("TGT validation is disabled.\n"));
     }
 
     if (kr->ccname[0] == '/' || strncmp(kr->ccname, "FILE:", 5) == 0) {
@@ -467,7 +582,7 @@ uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx, const uint8_t *src, size_
 }
 
 static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
-                             char **ccname)
+                             char **ccname, char **keytab, uint32_t *validate)
 {
     size_t p = 0;
     uint32_t *len;
@@ -475,6 +590,21 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
     len = ((uint32_t *)(buf+p));
     pd->cmd = *len;
+    p += sizeof(uint32_t);
+
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
+    len = ((uint32_t *)(buf+p));
+    pd->pw_uid = *len;
+    p += sizeof(uint32_t);
+
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
+    len = ((uint32_t *)(buf+p));
+    pd->gr_gid = *len;
+    p += sizeof(uint32_t);
+
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
+    len = ((uint32_t *)(buf+p));
+    *validate = *len;
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
@@ -495,6 +625,16 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     *ccname = (char *) copy_buffer_and_add_zero(pd, buf+p,
                                                 sizeof(char) * (*len));
     if (*ccname == NULL) return ENOMEM;
+    p += *len;
+
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
+    len = ((uint32_t *)(buf+p));
+    p += sizeof(uint32_t);
+
+    if ((p + *len ) > size) return EINVAL;
+    *keytab = (char *) copy_buffer_and_add_zero(pd, buf+p,
+                                                sizeof(char) * (*len));
+    if (*keytab == NULL) return ENOMEM;
     p += *len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
@@ -667,6 +807,8 @@ int main(int argc, const char *argv[])
     struct pam_data *pd = NULL;
     struct krb5_req *kr = NULL;
     char *ccname;
+    char *keytab;
+    uint32_t validate;
     int opt;
     poptContext pc;
     int debug_fd = -1;
@@ -738,7 +880,7 @@ int main(int argc, const char *argv[])
     }
     close(STDIN_FILENO);
 
-    ret = unpack_buffer(buf, len, pd, &ccname);
+    ret = unpack_buffer(buf, len, pd, &ccname, &keytab, &validate);
     if (ret != EOK) {
         DEBUG(1, ("unpack_buffer failed.\n"));
         goto fail;
@@ -750,6 +892,8 @@ int main(int argc, const char *argv[])
         goto fail;
     }
     kr->ccname = ccname;
+    kr->keytab = keytab;
+    kr->validate = (validate == 0) ? false : true;
 
     ret = kr->child_req(STDOUT_FILENO, kr);
     if (ret != EOK) {

@@ -43,36 +43,6 @@
 #define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
 #endif
 
-static errno_t become_user(uid_t uid, gid_t gid)
-{
-    int ret;
-    ret = setgid(gid);
-    if (ret == -1) {
-        DEBUG(1, ("setgid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
-    }
-
-    ret = setuid(uid);
-    if (ret == -1) {
-        DEBUG(1, ("setuid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
-    }
-
-    ret = setegid(gid);
-    if (ret == -1) {
-        DEBUG(1, ("setegid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
-    }
-
-    ret = seteuid(uid);
-    if (ret == -1) {
-        DEBUG(1, ("seteuid failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
-    }
-
-    return EOK;
-}
-
 struct io_buffer {
     uint8_t *data;
     size_t size;
@@ -82,6 +52,16 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
 {
     struct io_buffer *buf;
     size_t rp;
+    const char *keytab;
+    uint32_t validate;
+
+    keytab = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_KEYTAB);
+    if (keytab == NULL) {
+        DEBUG(1, ("Missing keytab option.\n"));
+        return EINVAL;
+    }
+
+    validate = dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ? 1 : 0;
 
     buf = talloc(kr, struct io_buffer);
     if (buf == NULL) {
@@ -89,10 +69,11 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
         return ENOMEM;
     }
 
-    buf->size = 4*sizeof(int) + strlen(kr->pd->upn) + strlen(kr->ccname) +
+    buf->size = 8*sizeof(uint32_t) + strlen(kr->pd->upn) + strlen(kr->ccname) +
+                strlen(keytab) +
                 kr->pd->authtok_size;
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-        buf->size += sizeof(int) + kr->pd->newauthtok_size;
+        buf->size += sizeof(uint32_t) + kr->pd->newauthtok_size;
     }
 
     buf->data = talloc_size(kr, buf->size);
@@ -106,6 +87,15 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->cmd;
     rp += sizeof(uint32_t);
 
+    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->pw_uid;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->gr_gid;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = validate;
+    rp += sizeof(uint32_t);
+
     ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(kr->pd->upn);
     rp += sizeof(uint32_t);
 
@@ -117,6 +107,12 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
 
     memcpy(&buf->data[rp], kr->ccname, strlen(kr->ccname));
     rp += strlen(kr->ccname);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(keytab);
+    rp += sizeof(uint32_t);
+
+    memcpy(&buf->data[rp], keytab, strlen(keytab));
+    rp += strlen(keytab);
 
     ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->authtok_size;
     rp += sizeof(uint32_t);
@@ -436,12 +432,16 @@ static errno_t fork_child(struct krb5child_req *kr)
             return err;
         }
 
-        ret = become_user(kr->pd->pw_uid, kr->pd->gr_gid);
-        if (ret != EOK) {
-            DEBUG(1, ("become_user failed.\n"));
-            return ret;
+        /* We need to keep the root privileges to read the keytab file if
+         * validation is enabled, otherwise we can drop them here and run
+         * krb5_child with user privileges. */
+        if (!dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE)) {
+            ret = become_user(kr->pd->pw_uid, kr->pd->gr_gid);
+            if (ret != EOK) {
+                DEBUG(1, ("become_user failed.\n"));
+                return ret;
+            }
         }
-
 
         close(pipefd_to_child[1]);
         ret = dup2(pipefd_to_child[0],STDIN_FILENO);

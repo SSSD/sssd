@@ -94,6 +94,23 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_validate (boolean)</term>
+                    <listitem>
+                        <para>
+                            Verify with the help of krb5_keytab that the TGT
+                            obtained has not been spoofed.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                        <para>
+                             Please note that this default differs from the
+                             traditional kerberos provider backend.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

@@ -44,6 +44,8 @@ enum krb5_opts {
     KRB5_CCNAME_TMPL,
     KRB5_CHANGEPW_PRINC,
     KRB5_AUTH_TIMEOUT,
+    KRB5_KEYTAB,
+    KRB5_VALIDATE,
 
     KRB5_OPTS
 };

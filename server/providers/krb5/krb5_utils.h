@@ -34,4 +34,6 @@
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                              const char *template);
 
+errno_t become_user(uid_t uid, gid_t gid);
+
 #endif /* __KRB5_UTILS_H__ */
