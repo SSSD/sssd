@@ -30,5 +30,6 @@ setup(
     url='http://fedorahosted.org/sssd',
     py_modules=[
     'SSSDConfig',
+    'ipachangeconf',
     ],
 )

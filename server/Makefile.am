@@ -111,6 +111,7 @@ endif
 
 dist_noinst_SCRIPTS = \
     config/setup.py \
+    config/ipachangeconf.py \
     config/SSSDConfig.py
 
 ###############################
