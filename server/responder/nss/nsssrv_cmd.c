@@ -284,77 +284,88 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
     uint64_t midpoint_refresh;
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    bool call_provider = false;
-    sss_dp_callback_t cb = NULL;
+    bool off_band_update = false;
 
-    if (dctx->check_provider) {
-        if (res->count == 0) {
-            /* This is a cache miss. We need to get the updated user
-             * information before returning it.
-             */
-            call_provider = true;
-            cb = callback;
+    /* when searching for a user, more than one reply is a db error */
+    if ((req_type == SSS_DP_USER) && (res->count > 1)) {
+        DEBUG(1, ("getpwXXX call returned more than one result!"
+                  " DB Corrupted?\n"));
+        ret = nss_cmd_send_error(cmdctx, ENOENT);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR_CODE(cctx, ENOENT);
+        }
+        sss_cmd_done(cctx, cmdctx);
+        return ENOENT;
+    }
 
-        } else if ((req_type == SSS_DP_GROUP) ||
-                   ((req_type == SSS_DP_USER) && (res->count == 1))) {
+    /* if we have any reply let's check cache validity */
+    if (res->count > 0) {
 
-            now = time(NULL);
+        now = time(NULL);
 
-            lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                     SYSDB_LAST_UPDATE, 0);
-            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                      SYSDB_CACHE_EXPIRE, 0);
+        lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                 SYSDB_LAST_UPDATE, 0);
+        cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                  SYSDB_CACHE_EXPIRE, 0);
 
-            midpoint_refresh = 0;
-            if(nctx->cache_refresh_percent) {
-                midpoint_refresh = lastUpdate +
-                  (cacheExpire - lastUpdate)*nctx->cache_refresh_percent/100;
-                if (midpoint_refresh - lastUpdate < 10) {
-                    /* If the percentage results in an expiration
-                     * less than ten seconds after the lastUpdate time,
-                     * that's too often we will simply set it to 10s
-                     */
-                    midpoint_refresh = lastUpdate+10;
-                }
-            }
-
-            if (cacheExpire < now) {
-                /* This is a cache miss. We need to get the updated user
-                 * information before returning it.
+        midpoint_refresh = 0;
+        if(nctx->cache_refresh_percent) {
+            midpoint_refresh = lastUpdate +
+              (cacheExpire - lastUpdate)*nctx->cache_refresh_percent/100;
+            if (midpoint_refresh - lastUpdate < 10) {
+                /* If the percentage results in an expiration
+                 * less than ten seconds after the lastUpdate time,
+                 * that's too often we will simply set it to 10s
                  */
-                call_provider = true;
-                cb = callback;
+                midpoint_refresh = lastUpdate+10;
             }
-            else if (midpoint_refresh && midpoint_refresh < now) {
+        }
+
+        if (cacheExpire > now) {
+            /* cache still valid */
+
+            if (midpoint_refresh && midpoint_refresh < now) {
                 /* We're past the the cache refresh timeout
                  * We'll return the value from the cache, but we'll also
                  * queue the cache entry for update out-of-band.
                  */
-                DEBUG(6, ("Performing midpoint cache update on [%s]\n", opt_name));
-                call_provider = true;
-                cb = NULL;
+                DEBUG(6, ("Performing midpoint cache update on [%s]\n",
+                          opt_name));
+                off_band_update = true;
             }
             else {
-                /* Cache is still valid. Just return it. */
-                call_provider = false;
-                cb = NULL;
-            }
 
-        } else {
-            if (req_type == SSS_DP_USER) {
-                DEBUG(1, ("getpwXXX call returned more than one result!"
-                          " DB Corrupted?\n"));
+                /* Cache is still valid. Just return it. */
+                return EOK;
             }
-            ret = nss_cmd_send_error(cmdctx, ENOENT);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR_CODE(cctx, ENOENT);
-            }
-            sss_cmd_done(cctx, cmdctx);
-            return ENOENT;
         }
     }
 
-    if (call_provider) {
+    if (off_band_update) {
+
+        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
+
+        /* No callback required
+         * This was an out-of-band update. We'll return EOK
+         * so the calling function can return the cached entry
+         * immediately.
+         */
+        ret = sss_dp_send_acct_req(cctx->rctx, NULL, NULL, NULL,
+                                   timeout, dctx->domain->name,
+                                   req_type, opt_name, opt_id);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+        } else {
+
+            DEBUG(3, ("Updating cache out-of-band\n"));
+        }
+
+    } else {
+       /* This is a cache miss. Or the cache is expired.
+        * We need to get the updated user information before returning it.
+        */
+
         /* dont loop forever :-) */
         dctx->check_provider = false;
         timeout = SSS_CLI_SOCKET_TIMEOUT/2;
@@ -379,19 +390,7 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
             return EIO;
         }
 
-        /* Tell the calling function to return so the dp callback
-         * can resolve
-         */
-        if (cb) {
-            return EAGAIN;
-        }
-
-        /* No callback required
-         * This was an out-of-band update. We'll return EOK
-         * so the calling function can return the cached entry
-         * immediately.
-         */
-        DEBUG(3, ("Updating cache out-of-band\n"));
+        return EAGAIN;
     }
 
     return EOK;
@@ -426,14 +425,16 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
         return;
     }
 
-    ret = check_cache(dctx, nctx, res,
-                      SSS_DP_USER, cmdctx->name, 0,
-                      nss_cmd_getpwnam_dp_callback);
-    if (ret != EOK) {
-        /* Anything but EOK means we should reenter the mainloop
-         * because we may be refreshing the cache
-         */
-        return;
+    if (dctx->check_provider) {
+        ret = check_cache(dctx, nctx, res,
+                          SSS_DP_USER, cmdctx->name, 0,
+                          nss_cmd_getpwnam_dp_callback);
+        if (ret != EOK) {
+            /* Anything but EOK means we should reenter the mainloop
+             * because we may be refreshing the cache
+             */
+            return;
+        }
     }
 
     switch (res->count) {
@@ -773,14 +774,16 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
         return;
     }
 
-    ret = check_cache(dctx, nctx, res,
-                      SSS_DP_USER, NULL, cmdctx->id,
-                      nss_cmd_getpwuid_dp_callback);
-    if (ret != EOK) {
-        /* Anything but EOK means we should reenter the mainloop
-         * because we may be refreshing the cache
-         */
-        return;
+    if (dctx->check_provider) {
+        ret = check_cache(dctx, nctx, res,
+                          SSS_DP_USER, NULL, cmdctx->id,
+                          nss_cmd_getpwuid_dp_callback);
+        if (ret != EOK) {
+            /* Anything but EOK means we should reenter the mainloop
+             * because we may be refreshing the cache
+             */
+            return;
+        }
     }
 
     switch (res->count) {
@@ -1760,14 +1763,16 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
         return;
     }
 
-    ret = check_cache(dctx, nctx, res,
-                      SSS_DP_GROUP, cmdctx->name, 0,
-                      nss_cmd_getgrnam_dp_callback);
-    if (ret != EOK) {
-        /* Anything but EOK means we should reenter the mainloop
-         * because we may be refreshing the cache
-         */
-        return;
+    if (dctx->check_provider) {
+        ret = check_cache(dctx, nctx, res,
+                          SSS_DP_GROUP, cmdctx->name, 0,
+                          nss_cmd_getgrnam_dp_callback);
+        if (ret != EOK) {
+            /* Anything but EOK means we should reenter the mainloop
+             * because we may be refreshing the cache
+             */
+            return;
+        }
     }
 
     switch (res->count) {
@@ -2103,14 +2108,16 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
         return;
     }
 
-    ret = check_cache(dctx, nctx, res,
-                      SSS_DP_GROUP, NULL, cmdctx->id,
-                      nss_cmd_getgrgid_dp_callback);
-    if (ret != EOK) {
-        /* Anything but EOK means we should reenter the mainloop
-         * because we may be refreshing the cache
-         */
-        return;
+    if (dctx->check_provider) {
+        ret = check_cache(dctx, nctx, res,
+                          SSS_DP_GROUP, NULL, cmdctx->id,
+                          nss_cmd_getgrgid_dp_callback);
+        if (ret != EOK) {
+            /* Anything but EOK means we should reenter the mainloop
+             * because we may be refreshing the cache
+             */
+            return;
+        }
     }
 
     switch (res->count) {
