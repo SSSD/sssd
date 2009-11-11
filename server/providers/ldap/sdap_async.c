@@ -102,7 +102,9 @@ static void sdap_handle_release(struct sdap_handle *sh)
         while (sh->ops) {
             op = sh->ops;
             op->callback(op, NULL, EIO, op->data);
-            talloc_free(op);
+            /* calling the callback may result in freeing the op */
+            /* check if it is still the same or avoid freeing */
+            if (op == sh->ops) talloc_free(op);
         }
 
         ldap_unbind_ext(sh->ldap, NULL, NULL);
