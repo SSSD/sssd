@@ -1039,20 +1039,11 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                   "from provider [%s].\n", ctx->bet_info[BET_AUTH].mod_name));
     }
 
-    ret = load_backend_module(ctx, BET_ACCESS,
-                              &ctx->bet_info[BET_ACCESS],
-                              ctx->bet_info[BET_ID].mod_name);
+    ret = load_backend_module(ctx, BET_ACCESS, &ctx->bet_info[BET_ACCESS],
+                              ACCESS_PERMIT);
     if (ret != EOK) {
-        if (ret != ENOENT) {
-            DEBUG(0, ("No ACCESS backend target available.\n"));
-            return ret;
-        }
-        ret = load_backend_module(ctx, BET_ACCESS,
-                                  &ctx->bet_info[BET_ACCESS], ACCESS_PERMIT);
-        if (ret != EOK) {
-            DEBUG(0, ("Failed to set ACCESS backend to default (permit).\n"));
-            return ret;
-        }
+        DEBUG(0, ("Failed to setup ACCESS backend.\n"));
+        return ret;
     }
     DEBUG(9, ("ACCESS backend target successfully loaded "
               "from provider [%s].\n", ctx->bet_info[BET_ACCESS].mod_name));

@@ -513,9 +513,7 @@
                             <quote>deny</quote> always deny access.
                         </para>
                         <para>
-                            Default: <quote>id_provider</quote> is used if it
-                            is set and can handle access control requests or
-                            <quote>permit</quote> otherwise.
+                            Default: <quote>permit</quote>
                         </para>
                     </listitem>
                 </varlistentry>
