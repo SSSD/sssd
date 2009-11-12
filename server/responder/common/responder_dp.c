@@ -232,7 +232,7 @@ error:
 }
 
 static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
-                                       TALLOC_CTX *memctx,
+                                       TALLOC_CTX *callback_memctx,
                                        const char *domain,
                                        uint32_t be_type,
                                        char *filter,
@@ -241,7 +241,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                        void *callback_ctx,
                                        struct sss_dp_req **ndp);
 
-int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
+int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          sss_dp_callback_t callback, void *callback_ctx,
                          int timeout, const char *domain, int type,
                          const char *opt_name, uint32_t opt_id)
@@ -329,7 +329,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
                 goto done;
             }
 
-            cb = talloc_zero(memctx, struct sss_dp_callback);
+            cb = talloc_zero(callback_memctx, struct sss_dp_callback);
             if (!cb) {
                 ret = ENOMEM;
                 goto done;
@@ -350,7 +350,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *memctx,
         /* No such request in progress
          * Create a new request
          */
-        ret = sss_dp_send_acct_req_create(rctx, memctx, domain,
+        ret = sss_dp_send_acct_req_create(rctx, callback_memctx, domain,
                                           be_type, filter, timeout,
                                           callback, callback_ctx,
                                           &sdp_req);
@@ -402,7 +402,7 @@ done:
 }
 
 static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
-                                       TALLOC_CTX *memctx,
+                                       TALLOC_CTX *callback_memctx,
                                        const char *domain,
                                        uint32_t be_type,
                                        char *filter,
@@ -478,7 +478,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
     sdp_req->pending_reply = pending_reply;
 
     if (callback) {
-        cb = talloc_zero(memctx, struct sss_dp_callback);
+        cb = talloc_zero(callback_memctx, struct sss_dp_callback);
         if (!cb) {
             dbus_message_unref(msg);
             talloc_zfree(sdp_req);
