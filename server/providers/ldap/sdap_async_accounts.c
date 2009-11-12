@@ -46,7 +46,8 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
                                               struct sysdb_handle *handle,
                                               struct sdap_options *opts,
                                               struct sss_domain_info *dom,
-                                              struct sysdb_attrs *attrs)
+                                              struct sysdb_attrs *attrs,
+                                              bool is_initgr)
 {
     struct tevent_req *req, *subreq;
     struct sdap_save_user_state *state;
@@ -63,6 +64,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     char *upn = NULL;
     int i;
     char *val = NULL;
+    int cache_timeout;
 
     DEBUG(9, ("Save user\n"));
 
@@ -253,14 +255,23 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         }
     }
 
+    cache_timeout = dp_opt_get_int(opts->basic, SDAP_ENTRY_CACHE_TIMEOUT);
+
+    if (is_initgr) {
+        ret = sysdb_attrs_add_time_t(user_attrs, SYSDB_INITGR_EXPIRE,
+                                     (cache_timeout ?
+                                      (time(NULL) + cache_timeout) : 0));
+        if (ret) {
+            goto fail;
+        }
+    }
+
     DEBUG(6, ("Storing info for user %s\n", state->name));
 
     subreq = sysdb_store_user_send(state, state->ev, state->handle,
                                    state->dom, state->name, pwd,
                                    uid, gid, gecos, homedir, shell,
-                                   user_attrs,
-                                   dp_opt_get_int(opts->basic,
-                                                  SDAP_ENTRY_CACHE_TIMEOUT));
+                                   user_attrs, cache_timeout);
     if (!subreq) {
         ret = ENOMEM;
         goto fail;
@@ -393,7 +404,7 @@ static void sdap_save_users_store(struct tevent_req *req)
 
     subreq = sdap_save_user_send(state, state->ev, state->handle,
                                   state->opts, state->dom,
-                                  state->users[state->cur]);
+                                  state->users[state->cur], false);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1955,7 +1966,7 @@ static void sdap_get_initgr_store(struct tevent_req *subreq)
 
     subreq = sdap_save_user_send(state, state->ev, state->handle,
                                  state->opts, state->dom,
-                                 state->orig_user);
+                                 state->orig_user, true);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
