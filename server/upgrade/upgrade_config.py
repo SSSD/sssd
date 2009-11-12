@@ -198,7 +198,7 @@ class SSSDConfigFile(object):
         krb5_kw = { 'krb5_kdcip' : 'krb5KDCIP',
                     'krb5_realm'  : 'krb5REALM',
                     'krb5_try_simple_upn' : 'krb5try_simple_upn',
-                    'krb5_changepw_principle' : 'krb5changepw_principle',
+                    'krb5_changepw_principal' : 'krb5changepw_principle',
                     'krb5_ccachedir' : 'krb5ccache_dir',
                     'krb5_auth_timeout' : 'krb5auth_timeout',
                     'krb5_ccname_template' : 'krb5ccname_template',

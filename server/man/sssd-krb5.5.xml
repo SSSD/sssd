@@ -80,12 +80,12 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_changepw_principle (string)</term>
+                    <term>krb5_changepw_principal (string)</term>
                     <listitem>
                         <para>
                             The priciple of the change password service.
                             If only the 'identifier/instance' part of the
-                            principle are given the realm part is added
+                            principal are given the realm part is added
                             automatically.
                         </para>
                         <para>
@@ -125,7 +125,7 @@
                                 </varlistentry>
                                 <varlistentry>
                                     <term>%p</term>
-                                    <listitem><para>principle name</para>
+                                    <listitem><para>principal name</para>
                                     </listitem>
                                 </varlistentry>
                                 <varlistentry>
