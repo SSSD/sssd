@@ -725,7 +725,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
         ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
                                    pam_check_user_dp_callback, preq,
-                                   timeout, preq->domain->name, SSS_DP_USER,
+                                   timeout, preq->domain->name, SSS_DP_INITGROUPS,
                                    preq->pd->user, 0);
     }
     else {
