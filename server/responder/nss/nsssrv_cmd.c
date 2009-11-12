@@ -280,7 +280,7 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
     int timeout;
     time_t now;
     uint64_t lastUpdate;
-    uint64_t cacheExpire;
+    uint64_t cacheExpire = 0;
     uint64_t midpoint_refresh;
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
@@ -305,8 +305,14 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
 
         lastUpdate = ldb_msg_find_attr_as_uint64(res->msgs[0],
                                                  SYSDB_LAST_UPDATE, 0);
-        cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                  SYSDB_CACHE_EXPIRE, 0);
+        if (req_type == SSS_DP_INITGROUPS) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                 SYSDB_INITGR_EXPIRE, 1);
+        }
+        if (cacheExpire == 0) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                 SYSDB_CACHE_EXPIRE, 0);
+        }
 
         midpoint_refresh = 0;
         if(nctx->cache_refresh_percent) {
@@ -2780,147 +2786,47 @@ done:
     return EOK;
 }
 
-static void nss_cmd_initgr_callback(void *ptr, int status,
-                                   struct ldb_result *res)
+static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
 {
-    struct nss_cmd_ctx *cmdctx = talloc_get_type(ptr, struct nss_cmd_ctx);
-    struct cli_ctx *cctx = cmdctx->cctx;
     uint8_t *body;
     size_t blen;
-    uint32_t gid;
-    uint32_t num;
-    int ret, i;
+    gid_t gid;
+    int ret, i, num;
 
-    /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
+    if (res->count == 0) {
+        return ENOENT;
+    }
+
+    /* one less, the first one is the user entry */
+    num = res->count -1;
+
+    ret = sss_packet_grow(packet, (2 + res->count) * sizeof(uint32_t));
     if (ret != EOK) {
-        NSS_CMD_FATAL_ERROR(cctx);
+        return ret;
     }
+    sss_packet_get_body(packet, &body, &blen);
 
-    if (status != LDB_SUCCESS) {
-        sss_packet_set_error(cctx->creq->out, status);
-        goto done;
-    }
-
-    num = res->count;
-    ret = sss_packet_grow(cctx->creq->out, (2 + num) * sizeof(uint32_t));
-    if (ret != EOK) {
-        sss_packet_set_error(cctx->creq->out, ret);
-        goto done;
-    }
-    sss_packet_get_body(cctx->creq->out, &body, &blen);
-
+    /* skip first entry, it's the user entry */
     for (i = 0; i < num; i++) {
-        gid = ldb_msg_find_attr_as_uint64(res->msgs[i], SYSDB_GIDNUM, 0);
+        gid = ldb_msg_find_attr_as_uint64(res->msgs[i + 1], SYSDB_GIDNUM, 0);
         if (!gid) {
             DEBUG(1, ("Incomplete group object for initgroups! Aborting\n"));
-            sss_packet_set_error(cctx->creq->out, EIO);
-            num = 0;
-            goto done;
+            return EFAULT;
         }
-        ((uint32_t *)body)[2+i] = gid;
+        ((uint32_t *)body)[2 + i] = gid;
     }
 
     ((uint32_t *)body)[0] = num; /* num results */
     ((uint32_t *)body)[1] = 0; /* reserved */
 
-done:
-    sss_cmd_done(cctx, cmdctx);
+    return EOK;
 }
 
-static void nss_cmd_getinitgr_callback(uint16_t err_maj, uint32_t err_min,
-                                       const char *err_msg, void *ptr)
-{
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
-    int ret;
+static void nss_cmd_getinitgr_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                          const char *err_msg, void *ptr);
 
-    if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n"
-                  "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-    }
-
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-    ret = sysdb_initgroups(cmdctx, sysdb,
-                           dctx->domain, cmdctx->name,
-                           nss_cmd_initgr_callback, cmdctx);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
-
-        ret = nss_cmd_send_error(cmdctx, ret);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_cmd_done(cctx, cmdctx);
-    }
-}
-
-static void nss_cmd_getinit_callback(void *ptr, int status,
-                                     struct ldb_result *res);
-
-static void nss_cmd_getinitnam_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                           const char *err_msg, void *ptr)
-{
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
-    int ret;
-
-    if (err_maj) {
-        DEBUG(2, ("Unable to get information from Data Provider\n"
-                  "Error: %u, %u, %s\n"
-                  "Will try to return what we have in cache\n",
-                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
-
-        if (!dctx->res) {
-            /* return 0 results */
-            dctx->res = talloc_zero(dctx, struct ldb_result);
-            if (!dctx->res) {
-                ret = ENOMEM;
-                goto done;
-            }
-        }
-
-        nss_cmd_getinit_callback(dctx, LDB_SUCCESS, dctx->res);
-        return;
-    }
-
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-    ret = sysdb_getpwnam(cmdctx, sysdb,
-                         dctx->domain, cmdctx->name,
-                         nss_cmd_getinit_callback, dctx);
-
-done:
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
-
-        ret = nss_cmd_send_error(cmdctx, ret);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_cmd_done(cctx, cmdctx);
-    }
-}
-
-static void nss_cmd_getinit_callback(void *ptr, int status,
-                                     struct ldb_result *res)
+static void nss_cmd_getinitgr_callback(void *ptr, int status,
+                                       struct ldb_result *res)
 {
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
@@ -2928,11 +2834,8 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
-    int timeout;
-    uint64_t cacheExpire;
     uint8_t *body;
     size_t blen;
-    bool call_provider = false;
     bool neghit = false;
     int ncret;
     int ret;
@@ -2949,55 +2852,15 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
     }
 
     if (dctx->check_provider) {
-        switch (res->count) {
-        case 0:
-            call_provider = true;
-            break;
-
-        case 1:
-            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                      SYSDB_CACHE_EXPIRE, 0);
-            if (cacheExpire < time(NULL)) {
-                call_provider = true;
-            }
-            break;
-
-        default:
-            DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
-            ret = nss_cmd_send_error(cmdctx, ENOENT);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
+        ret = check_cache(dctx, nctx, res,
+                          SSS_DP_INITGROUPS, cmdctx->name, 0,
+                          nss_cmd_getinitgr_dp_callback);
+        if (ret != EOK) {
+            /* Anything but EOK means we should reenter the mainloop
+             * because we may be refreshing the cache
+             */
             return;
         }
-    }
-
-    if (call_provider) {
-
-        /* dont loop forever :-) */
-        dctx->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-        /* keep around current data in case backend is offline */
-        if (res->count) {
-            dctx->res = talloc_steal(dctx, res);
-        }
-
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_getinitnam_dp_callback, dctx,
-                                   timeout, dctx->domain->name, SSS_DP_USER,
-                                   cmdctx->name, 0);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-        }
-        return;
     }
 
     switch (res->count) {
@@ -3047,9 +2910,9 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
                     DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
                     NSS_CMD_FATAL_ERROR(cctx);
                 }
-                ret = sysdb_getpwnam(cmdctx, sysdb,
-                                     dctx->domain, cmdctx->name,
-                                     nss_cmd_getinit_callback, dctx);
+                ret = sysdb_initgroups(cmdctx, sysdb,
+                                       dctx->domain, cmdctx->name,
+                                       nss_cmd_getinitgr_callback, dctx);
                 if (ret != EOK) {
                     DEBUG(1, ("Failed to make request to our cache!\n"));
                 }
@@ -3081,35 +2944,74 @@ static void nss_cmd_getinit_callback(void *ptr, int status,
         ((uint32_t *)body)[1] = 0; /* reserved */
         break;
 
-    case 1:
-
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_getinitgr_callback, dctx,
-                                   timeout, dctx->domain->name,
-                                   SSS_DP_INITGROUPS,
-                                   cmdctx->name, 0);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-        }
-
-        return;
-
     default:
-        DEBUG(1, ("getpwnam call returned more than one result !?!\n"));
-        ret = nss_cmd_send_error(cmdctx, ENOENT);
+
+        DEBUG(6, ("Returning initgr for user [%s]\n", cmdctx->name));
+
+        ret = sss_packet_new(cctx->creq, 0,
+                             sss_packet_get_cmd(cctx->creq->in),
+                             &cctx->creq->out);
         if (ret != EOK) {
             NSS_CMD_FATAL_ERROR(cctx);
         }
+        ret = fill_initgr(cctx->creq->out, res);
+        if (ret == ENOENT) {
+            ret = fill_empty(cctx->creq->out);
+        }
+        sss_packet_set_error(cctx->creq->out, ret);
     }
 
     sss_cmd_done(cctx, cmdctx);
+}
+
+static void nss_cmd_getinitgr_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                          const char *err_msg, void *ptr)
+{
+    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    struct sysdb_ctx *sysdb;
+    int ret;
+
+    if (err_maj) {
+        DEBUG(2, ("Unable to get information from Data Provider\n"
+                  "Error: %u, %u, %s\n"
+                  "Will try to return what we have in cache\n",
+                  (unsigned int)err_maj, (unsigned int)err_min, err_msg));
+
+        if (!dctx->res) {
+            /* return 0 results */
+            dctx->res = talloc_zero(dctx, struct ldb_result);
+            if (!dctx->res) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
+        nss_cmd_getinitgr_callback(dctx, LDB_SUCCESS, dctx->res);
+        return;
+    }
+
+    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
+                                  dctx->domain, &sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        NSS_CMD_FATAL_ERROR(cctx);
+    }
+    ret = sysdb_initgroups(cmdctx, sysdb,
+                           dctx->domain, cmdctx->name,
+                           nss_cmd_getinitgr_callback, dctx);
+
+done:
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to make request to our cache!\n"));
+
+        ret = nss_cmd_send_error(cmdctx, ret);
+        if (ret != EOK) {
+            NSS_CMD_FATAL_ERROR(cctx);
+        }
+        sss_cmd_done(cctx, cmdctx);
+    }
 }
 
 /* for now, if we are online, try to always query the backend */
@@ -3227,9 +3129,9 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
         ret = EFAULT;
         goto done;
     }
-    ret = sysdb_getpwnam(cmdctx, sysdb,
-                         dctx->domain, cmdctx->name,
-                         nss_cmd_getinit_callback, dctx);
+    ret = sysdb_initgroups(cmdctx, sysdb,
+                           dctx->domain, cmdctx->name,
+                           nss_cmd_getinitgr_callback, dctx);
     if (ret != EOK) {
         DEBUG(1, ("Failed to make request to our cache!\n"));
     }

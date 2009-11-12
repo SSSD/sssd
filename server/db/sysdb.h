@@ -66,6 +66,7 @@
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
 #define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
+#define SYSDB_INITGR_EXPIRE "initgrExpireTimestamp"
 
 #define SYSDB_CACHEDPWD "cachedPassword"
 
@@ -101,41 +102,29 @@
 
 #define SYSDB_GETCACHED_FILTER "(&"SYSDB_UC")("SYSDB_LAST_LOGIN">=%lu))"
 
+#define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
+                            SYSDB_CACHE_EXPIRE, \
+                            SYSDB_INITGR_EXPIRE, \
+                            "objectClass"
+
 #define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
                         SYSDB_GIDNUM, SYSDB_GECOS, \
                         SYSDB_HOMEDIR, SYSDB_SHELL, \
-                        SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
-                        "objectClass", \
+                        SYSDB_DEFAULT_ATTRS, \
                         NULL}
-#define SYSDB_USER_ATTRS {SYSDB_DEFAULTGROUP, \
-                          SYSDB_GECOS, \
-                          SYSDB_HOMEDIR, \
-                          SYSDB_SHELL, \
-                          SYSDB_FULLNAME, \
-                          SYSDB_LOCALE, \
-                          SYSDB_KEYBOARD, \
-                          SYSDB_SESSION, \
-                          SYSDB_LAST_LOGIN, \
-                          SYSDB_USERPIC, \
-                          SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
-                          NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
-                           SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
-                           "objectClass", \
+                           SYSDB_DEFAULT_ATTRS, \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
-                          SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
-                          "objectClass", \
+                          SYSDB_DEFAULT_ATTRS, \
                           NULL}
 #define SYSDB_GRENT_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, SYSDB_MEMBEROF, \
-                           SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
-                           "objectClass", \
+                           SYSDB_DEFAULT_ATTRS, \
                            NULL}
 
 #define SYSDB_INITGR_ATTR SYSDB_MEMBEROF
 #define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, \
-                            SYSDB_LAST_UPDATE, SYSDB_CACHE_EXPIRE, \
-                            "objectClass", \
+                            SYSDB_DEFAULT_ATTRS, \
                             NULL}
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
