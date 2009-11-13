@@ -32,6 +32,13 @@ enum ipa_access_mode {
     IPA_ACCESS_ALLOW
 };
 
+struct hbac_host_info {
+    const char *fqdn;
+    const char *serverhostname;
+    const char *dn;
+    const char **memberof;
+};
+
 struct ipa_access_ctx {
     struct sdap_id_ctx *sdap_ctx;
     struct dp_option *ipa_options;
@@ -45,6 +52,7 @@ struct hbac_ctx {
     struct be_req *be_req;
     struct pam_data *pd;
     struct hbac_host_info **hbac_host_info;
+    struct hbac_host_info *remote_hhi;
     struct sysdb_attrs **hbac_rule_list;
     size_t hbac_rule_count;
     const char *user_dn;

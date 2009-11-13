@@ -56,14 +56,6 @@
 #define HBAC_RULES_SUBDIR "hbac_rules"
 #define HBAC_HOSTS_SUBDIR "hbac_hosts"
 
-struct hbac_host_info {
-    const char *fqdn;
-    const char *serverhostname;
-    const char *dn;
-    const char **memberof;
-};
-
-
 static void ipa_access_reply(struct be_req *be_req, int pam_status)
 {
     struct pam_data *pd;
@@ -297,7 +289,6 @@ struct hbac_get_host_info_state {
     struct sysdb_ctx *sysdb;
     struct sysdb_handle *handle;
 
-    const char *hostname;
     char *host_filter;
     char *host_search_base;
     const char **host_attrs;
@@ -319,15 +310,16 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
                                                   struct sdap_id_ctx *sdap_ctx,
                                                   struct sysdb_ctx *sysdb,
                                                   const char *ipa_domain,
-                                                  const char *hostname)
+                                                  const char **hostnames)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct hbac_get_host_info_state *state;
     int ret;
+    int i;
 
-    if (hostname == NULL || ipa_domain == NULL) {
-        DEBUG(1, ("Missing fqdn or domain.\n"));
+    if (hostnames == NULL || ipa_domain == NULL) {
+        DEBUG(1, ("Missing hostnames or domain.\n"));
         return NULL;
     }
 
@@ -341,17 +333,30 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->sdap_ctx = sdap_ctx;
     state->sysdb = sysdb;
     state->handle = NULL;
-    state->hostname= hostname;
 
     state->host_reply_list = NULL;
     state->host_reply_count = 0;
     state->current_item = 0;
+    state->hbac_host_info = NULL;
 
-    state->host_filter = talloc_asprintf(state,
-                      "(&(|(fqdn=%s)(serverhostname=%s))(objectclass=ipaHost))",
-                      hostname, hostname);
+    state->host_filter = talloc_asprintf(state, "(|");
     if (state->host_filter == NULL) {
         DEBUG(1, ("Failed to create filter.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    for (i = 0; hostnames[i] != NULL; i++) {
+        state->host_filter = talloc_asprintf_append(state->host_filter,
+                                             "(&(objectclass=ipaHost)"
+                                             "(|(fqdn=%s)(serverhostname=%s)))",
+                                             hostnames[i], hostnames[i]);
+        if (state->host_filter == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+    state->host_filter = talloc_asprintf_append(state->host_filter, ")");
+    if (state->host_filter == NULL) {
         ret = ENOMEM;
         goto fail;
     }
@@ -477,8 +482,8 @@ static void host_get_host_memberof_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->host_reply_list == NULL) {
-        DEBUG(1, ("Host [%s] not found in IPA server.\n", state->hostname));
+    if (state->host_reply_count == 0) {
+        DEBUG(1, ("No hosts not found in IPA server.\n"));
         ret = ENOENT;
         goto fail;
     }
@@ -493,7 +498,7 @@ static void host_get_host_memberof_done(struct tevent_req *subreq)
            sizeof(struct hbac_host_info *) * (state->host_reply_count + 1));
 
     for (i = 0; i < state->host_reply_count; i++) {
-        hhi[i] = talloc_zero(state, struct hbac_host_info);
+        hhi[i] = talloc_zero(hhi, struct hbac_host_info);
         if (hhi[i] == NULL) {
             ret = ENOMEM;
             goto fail;
@@ -1302,28 +1307,20 @@ enum check_result check_user(struct hbac_ctx *hbac_ctx,
     return RULE_ERROR;
 }
 
-enum check_result check_remote_hosts(struct pam_data *pd,
+enum check_result check_remote_hosts(const char *rhost,
+                                     struct hbac_host_info *hhi,
                                      struct sysdb_attrs *rule_attrs)
 {
     int ret;
     int i;
+    int m;
     struct ldb_message_element *cat_el;
     struct ldb_message_element *src_el;
     struct ldb_message_element *ext_el;
-    const char *remote_hostname;
 
-    if (pd->rhost == NULL && pd->tty == NULL) {
-        DEBUG(1, ("Neither remote host nor tty specified in pam data, "
-                  "assuming error.\n"));
+    if (hhi == NULL && (rhost == NULL || *rhost == '\0')) {
+        DEBUG(1, ("No remote host information specified, assuming error.\n"));
         return RULE_ERROR;
-    }
-
-    if (pd->rhost == NULL) {
-        DEBUG(5, ("No remote host specified, but tty is set [%s], "
-                  "assuming 'localhost'.\n", pd->tty));
-        remote_hostname = "localhost";
-    } else {
-        remote_hostname = pd->rhost;
     }
 
     ret = sysdb_attrs_get_el(rule_attrs, IPA_SOURCE_HOST_CATEGORY, &cat_el);
@@ -1347,7 +1344,6 @@ enum check_result check_remote_hosts(struct pam_data *pd,
         }
     }
 
-
     ret = sysdb_attrs_get_el(rule_attrs, IPA_SOURCE_HOST, &src_el);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
@@ -1360,25 +1356,37 @@ enum check_result check_remote_hosts(struct pam_data *pd,
     }
 
     if (src_el->num_values == 0 && ext_el->num_values == 0) {
-        DEBUG(9, ("No remote host specified, rule does not apply.\n"));
+        DEBUG(9, ("No remote host specified in rule, rule does not apply.\n"));
         return RULE_NOT_APPLICABLE;
     } else {
-        for (i = 0; i < src_el->num_values; i++) {
-            if (strncasecmp(remote_hostname,
-                            (const char *) src_el->values[i].data,
-                            src_el->values[i].length) == 0) {
-                DEBUG(9, ("Source host [%s] found, rule applies.\n",
-                          remote_hostname));
-                return RULE_APPLICABLE;
+        if (hhi != NULL) {
+            for (i = 0; i < src_el->num_values; i++) {
+                if (strncasecmp(hhi->dn, (const char *) src_el->values[i].data,
+                                src_el->values[i].length) == 0) {
+                    DEBUG(9, ("Source host [%s] found, rule applies.\n",
+                              hhi->dn));
+                    return RULE_APPLICABLE;
+                }
+                for (m = 0; hhi->memberof[m] != NULL; m++) {
+                    if (strncasecmp(hhi->memberof[m],
+                                    (const char *) src_el->values[i].data,
+                                    src_el->values[i].length) == 0) {
+                        DEBUG(9, ("Source host group [%s] found, rule applies.\n",
+                                  hhi->memberof[m]));
+                        return RULE_APPLICABLE;
+                    }
+                }
             }
         }
-        for (i = 0; i < ext_el->num_values; i++) {
-            if (strncasecmp(remote_hostname,
-                            (const char *) ext_el->values[i].data,
-                            ext_el->values[i].length) == 0) {
-                DEBUG(9, ("External host [%s] found, rule applies.\n",
-                          remote_hostname));
-                return RULE_APPLICABLE;
+
+        if (rhost != NULL && *rhost != '\0') {
+            for (i = 0; i < ext_el->num_values; i++) {
+                if (strncasecmp(rhost, (const char *) ext_el->values[i].data,
+                                ext_el->values[i].length) == 0) {
+                    DEBUG(9, ("External host [%s] found, rule applies.\n",
+                              rhost));
+                    return RULE_APPLICABLE;
+                }
             }
         }
         DEBUG(9, ("No matching remote host found.\n"));
@@ -1452,7 +1460,7 @@ static errno_t check_if_rule_applies(enum hbac_result *result,
         goto not_applicable;
     }
 
-    ret = check_remote_hosts(pd, rule_attrs);
+    ret = check_remote_hosts(pd->rhost, hbac_ctx->remote_hhi, rule_attrs);
     if (ret != RULE_APPLICABLE) {
         goto not_applicable;
     }
@@ -1520,6 +1528,7 @@ void ipa_access_handler(struct be_req *be_req)
     struct hbac_ctx *hbac_ctx;
     int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
+    const char *hostlist[3];
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
@@ -1537,12 +1546,29 @@ void ipa_access_handler(struct be_req *be_req)
     hbac_ctx->ipa_options = ipa_access_ctx->ipa_options;
     hbac_ctx->tr_ctx = ipa_access_ctx->tr_ctx;
 
+
+    hostlist[0] = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
+    if (hostlist[0] == NULL) {
+        DEBUG(1, ("ipa_hostname not available.\n"));
+        goto fail;
+    }
+    if (pd->rhost != NULL && *pd->rhost != '\0') {
+        hostlist[1] = pd->rhost;
+    } else {
+        hostlist[1] = NULL;
+        pd->rhost = dp_opt_get_string(hbac_ctx->ipa_options, IPA_HOSTNAME);
+        if (pd->rhost == NULL) {
+            DEBUG(1, ("ipa_hostname not available.\n"));
+            goto fail;
+        }
+    }
+    hostlist[2] = NULL;
+
     req = hbac_get_host_info_send(hbac_ctx, be_req->be_ctx->ev,
                                   hbac_ctx->sdap_ctx, be_req->be_ctx->sysdb,
                                   dp_opt_get_string(hbac_ctx->ipa_options,
                                                     IPA_DOMAIN),
-                                  dp_opt_get_string(hbac_ctx->ipa_options,
-                                                    IPA_HOSTNAME));
+                                  hostlist);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_host_info_send failed.\n"));
         goto fail;
@@ -1562,6 +1588,7 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
     const char *ipa_hostname;
+    struct hbac_host_info *local_hhi = NULL;
     int i;
 
     ret = hbac_get_host_info_recv(req, hbac_ctx, &hbac_ctx->hbac_host_info);
@@ -1581,10 +1608,18 @@ static void hbac_get_host_info_done(struct tevent_req *req)
         if (strcmp(hbac_ctx->hbac_host_info[i]->fqdn, ipa_hostname) == 0 ||
             strcmp(hbac_ctx->hbac_host_info[i]->serverhostname,
                    ipa_hostname) == 0) {
-            break;
+            local_hhi = hbac_ctx->hbac_host_info[i];
+        }
+        if (hbac_ctx->pd->rhost != NULL && *hbac_ctx->pd->rhost != '\0') {
+            if (strcmp(hbac_ctx->hbac_host_info[i]->fqdn,
+                       hbac_ctx->pd->rhost) == 0 ||
+                strcmp(hbac_ctx->hbac_host_info[i]->serverhostname,
+                       hbac_ctx->pd->rhost) == 0) {
+                hbac_ctx->remote_hhi = hbac_ctx->hbac_host_info[i];
+            }
         }
     }
-    if (hbac_ctx->hbac_host_info[i] == NULL) {
+    if (local_hhi == NULL) {
         DEBUG(1, ("Missing host info for [%s].\n", ipa_hostname));
         ret = EINVAL;
         goto fail;
@@ -1593,8 +1628,7 @@ static void hbac_get_host_info_done(struct tevent_req *req)
                               be_req->be_ctx->sysdb,
                               dp_opt_get_string(hbac_ctx->ipa_options,
                                                 IPA_DOMAIN),
-                              hbac_ctx->hbac_host_info[i]->dn,
-                              hbac_ctx->hbac_host_info[i]->memberof);
+                              local_hhi->dn, local_hhi->memberof);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_rules_send failed.\n"));
         goto fail;
