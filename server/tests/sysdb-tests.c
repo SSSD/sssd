@@ -1398,6 +1398,7 @@ START_TEST (test_sysdb_getpwnam)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct test_data *data_uc;
     int ret;
 
     /* Setup */
@@ -1428,6 +1429,25 @@ START_TEST (test_sysdb_getpwnam)
     }
     fail_unless(data->uid == _i,
                 "Did not find the expected UID");
+
+    /* Search for the user with the wrong case */
+    data_uc = talloc_zero(test_ctx, struct test_data);
+    data_uc->ctx = test_ctx;
+    data_uc->username = talloc_asprintf(data_uc, "TESTUSER%d", _i);
+
+    ret = sysdb_getpwnam(test_ctx,
+                         test_ctx->sysdb,
+                         data_uc->ctx->domain,
+                         data_uc->username,
+                         test_getpwent,
+                         data_uc);
+    if (ret == EOK) {
+        ret = test_loop(data_uc);
+    }
+
+    fail_unless(ret == ENOENT,
+                "The upper-case username search should fail. ");
+
 done:
     talloc_free(test_ctx);
 }
@@ -1437,6 +1457,7 @@ START_TEST (test_sysdb_getgrnam)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
+    struct test_data *data_uc;
     int ret;
 
     /* Setup */
@@ -1468,6 +1489,24 @@ START_TEST (test_sysdb_getgrnam)
     fail_unless(data->gid == _i,
                 "Did not find the expected GID (found %d expected %d)",
                 data->gid, _i);
+
+    /* Search for the group with the wrong case */
+    data_uc = talloc_zero(test_ctx, struct test_data);
+    data_uc->ctx = test_ctx;
+    data_uc->groupname = talloc_asprintf(data_uc, "TESTGROUP%d", _i);
+
+    ret = sysdb_getgrnam(test_ctx,
+                         test_ctx->sysdb,
+                         data_uc->ctx->domain,
+                         data_uc->groupname,
+                         test_getgrent,
+                         data_uc);
+    if (ret == EOK) {
+        ret = test_loop(data_uc);
+    }
+
+    fail_unless(ret == ENOENT,
+                "The upper-case groupname search should fail. ");
 done:
     talloc_free(test_ctx);
 }

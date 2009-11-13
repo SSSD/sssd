@@ -34,7 +34,6 @@
      "cn: CASE_INSENSITIVE\n" \
      "dc: CASE_INSENSITIVE\n" \
      "dn: CASE_INSENSITIVE\n" \
-     "name: CASE_INSENSITIVE\n" \
      "objectclass: CASE_INSENSITIVE\n" \
      "\n" \
      "dn: @INDEXLIST\n" \
