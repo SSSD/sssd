@@ -78,7 +78,7 @@ return_code(int ares_code)
         return ENOMEM;
     case ARES_EFILE:
     default:
-        return -1;
+        return EIO;
     }
 }
 

@@ -129,8 +129,8 @@ get_server_status(struct fo_server *server)
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server->common, tv) > timeout) {
-            server->common->server_status = SERVER_NAME_RESOLVED;
-            server->last_status_change.tv_sec = tv.tv_sec;
+            server->common->server_status = SERVER_NAME_NOT_RESOLVED;
+            server->last_status_change.tv_sec = 0;
         }
     }
 
@@ -196,6 +196,9 @@ fo_new_service(struct fo_ctx *ctx, const char *name,
     ret = fo_get_service(ctx, name, &service);
     if (ret == EOK) {
         DEBUG(1, ("Service %s already exists\n", name));
+        if (_service) {
+                *_service = service;
+        }
         return EEXIST;
     } else if (ret != ENOENT) {
         return ret;
@@ -215,7 +218,9 @@ fo_new_service(struct fo_ctx *ctx, const char *name,
     DLIST_ADD(ctx->service_list, service);
 
     talloc_set_destructor(service, service_destructor);
-    *_service = service;
+    if (_service) {
+        *_service = service;
+    }
 
     return EOK;
 }
@@ -227,7 +232,7 @@ fo_get_service(struct fo_ctx *ctx, const char *name,
     struct fo_service *service;
 
     DLIST_FOR_EACH(service, ctx->service_list) {
-        if (!strcasecmp(name, service->name)) {
+        if (!strcmp(name, service->name)) {
             *_service = service;
             return EOK;
         }
@@ -476,6 +481,10 @@ fo_resolve_service_done(struct tevent_req *subreq)
     while ((request = common->request_list) != NULL) {
         DLIST_REMOVE(common->request_list, request);
         if (resolv_status) {
+            /* FIXME FIXME: resolv_status is an ARES error.
+             * but any caller will expect classic error codes.
+             * also the send() function may return ENOENT, so this mix
+             * IS explosive (ENOENT = 2 = ARES_EFORMER) */
             tevent_req_error(request->req, resolv_status);
         } else {
             tevent_req_done(request->req);
@@ -490,10 +499,12 @@ fo_resolve_service_recv(struct tevent_req *req, struct fo_server **server)
 
     state = tevent_req_data(req, struct resolve_service_state);
 
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
+    /* always return the server if asked for, otherwise the caller
+     * cannot mark it as faulty in case we return an error */
     if (server)
         *server = state->server;
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
@@ -530,6 +541,11 @@ int
 fo_get_server_port(struct fo_server *server)
 {
     return server->port;
+}
+
+const char *fo_get_server_name(struct fo_server *server)
+{
+    return server->common->name;
 }
 
 struct hostent *
