@@ -26,6 +26,10 @@
 #include "providers/ldap/sdap.h"
 #include "providers/fail_over.h"
 
+#define PWD_POL_OPT_NONE "none"
+#define PWD_POL_OPT_SHADOW "shadow"
+#define PWD_POL_OPT_MIT "mit_kerberos"
+
 struct sdap_id_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;

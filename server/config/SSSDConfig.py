@@ -136,6 +136,9 @@ option_strings = {
     'ldap_user_member_of' : _('memberOf attribute'),
     'ldap_user_modify_timestamp' : _('Modification time attribute'),
 
+    # [provider/ldap/auth]
+    'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
+
     # [provider/local/id]
     'default_shell' : _('Default shell, /bin/bash'),
     'base_directory' : _('Base for home directories'),

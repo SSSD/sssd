@@ -55,7 +55,8 @@ struct dp_option default_basic_opts[] = {
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
-    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING }
 };
 
 struct sdap_attr_map generic_attr_map[] = {
@@ -157,6 +158,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_group_map;
     struct sdap_options *opts;
     char *schema;
+    const char *pwd_policy;
     int ret;
 
     opts = talloc_zero(memctx, struct sdap_options);
@@ -193,6 +195,20 @@ int ldap_get_options(TALLOC_CTX *memctx,
         DEBUG(6, ("Option %s set to %s\n",
                   opts->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_BASE)));
+    }
+
+    pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
+    if (pwd_policy == NULL) {
+        DEBUG(1, ("Missing password policy, this may not happen.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+    if (strcasecmp(pwd_policy, PWD_POL_OPT_NONE) != 0 &&
+        strcasecmp(pwd_policy, PWD_POL_OPT_SHADOW) != 0 &&
+        strcasecmp(pwd_policy, PWD_POL_OPT_MIT) != 0) {
+        DEBUG(1, ("Unsupported password policy [%s].\n", pwd_policy));
+        ret = EINVAL;
+        goto done;
     }
 
     /* schema type */

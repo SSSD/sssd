@@ -582,6 +582,39 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_pwd_policy (string)</term>
+                    <listitem>
+                        <para>
+                            Select the policy to evaluate the password
+                            expiration on the client side. The following values
+                            are allowed:
+                        </para>
+                        <para>
+                            <emphasis>none</emphasis> No evaluation on the
+                            client side. This option cannot disable server side
+                            password policies.
+                        </para>
+                        <para>
+                            <emphasis>shadow</emphasis> use
+                            <citerefentry><refentrytitle>shadow</refentrytitle>
+                            <manvolnum>5</manvolnum></citerefentry> style
+                            attributes to evaluate if the password is expired.
+                            Please note that the current version of sssd cannot
+                            update this attribute during a password change.
+                        </para>
+                        <para>
+                            <emphasis>mit_kerberos</emphasis> use the attributes
+                            used by MIT Kerberos to evaluate if the password is
+                            expired. Use chpass_provider=krb5 to update these
+                            attributes when the password is changed.
+                        </para>
+                        <para>
+                            Default: none
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

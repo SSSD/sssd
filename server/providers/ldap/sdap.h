@@ -122,6 +122,7 @@ enum sdap_basic_opt {
     SDAP_KRB5_KEYTAB,
     SDAP_KRB5_KINIT,
     SDAP_KRB5_REALM,
+    SDAP_PWD_POLICY,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
