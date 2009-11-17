@@ -23,10 +23,12 @@
 #ifndef __INT_SYS_DB_H__
 #define __INT_SYS_DB_H__
 
-#define SYSDB_VERSION "0.3"
+#define SYSDB_VERSION_0_4 "0.4"
 #define SYSDB_VERSION_0_3 "0.3"
 #define SYSDB_VERSION_0_2 "0.2"
 #define SYSDB_VERSION_0_1 "0.1"
+
+#define SYSDB_VERSION SYSDB_VERSION_0_4
 
 #define SYSDB_BASE_LDIF \
      "dn: @ATTRIBUTES\n" \

@@ -777,7 +777,7 @@ done:
         return EIO;
     }
 
-    *ver = "0.2";
+    *ver = SYSDB_VERSION_0_2;
     return ret;
 }
 
@@ -1065,6 +1065,93 @@ done:
     return ret;
 }
 
+static int sysdb_upgrade_03(struct sysdb_ctx *ctx, const char **ver)
+{
+    TALLOC_CTX *tmp_ctx;
+    int ret;
+    struct ldb_message *msg;
+
+    tmp_ctx = talloc_new(ctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
+
+    /* Make this database case-sensitive */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "@ATTRIBUTES");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "name", LDB_FLAG_MOD_DELETE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    /* conversion done, upgrade version number */
+    msg = ldb_msg_new(tmp_ctx);
+    if (!msg) {
+        ret = ENOMEM;
+        goto done;
+    }
+    msg->dn = ldb_dn_new(tmp_ctx, ctx->ldb, "cn=sysdb");
+    if (!msg->dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_msg_add_empty(msg, "version", LDB_FLAG_MOD_REPLACE, NULL);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = ldb_msg_add_string(msg, "version", SYSDB_VERSION_0_4);
+    if (ret != LDB_SUCCESS) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+
+    if (ret != EOK) {
+        ret = ldb_transaction_cancel(ctx->ldb);
+    } else {
+        ret = ldb_transaction_commit(ctx->ldb);
+    }
+    if (ret != LDB_SUCCESS) {
+        ret = EIO;
+    }
+
+    *ver = SYSDB_VERSION_0_4;
+    return ret;
+}
 
 static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
@@ -1199,6 +1286,11 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
                 ret = EOK;
                 goto done;
+            }
+
+            if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
+                ret = sysdb_upgrade_03(ctx, &version);
+                if (ret != EOK) goto done;
             }
 
         }
