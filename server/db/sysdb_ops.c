@@ -2181,6 +2181,7 @@ struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
     state->name = name;
     state->gid = gid;
     state->attrs = attrs;
+    state->cache_timeout = cache_timeout;
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
