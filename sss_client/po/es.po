@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_client 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-10-23 14:32-0400\n"
+"POT-Creation-Date: 2009-11-18 07:19-0500\n"
 "PO-Revision-Date: 2009-05-21 14:10-0400\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -16,22 +16,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: pam_sss.c:323
+#: pam_sss.c:322
 msgid "Passwords do not match"
 msgstr "Passwords do not match"
 
-#: pam_sss.c:599
+#: pam_sss.c:598
 msgid "Password: "
 msgstr ""
 
-#: pam_sss.c:631
+#: pam_sss.c:630
 msgid "New Password: "
 msgstr ""
 
-#: pam_sss.c:632
+#: pam_sss.c:631
 msgid "Reenter new Password: "
 msgstr ""
 
-#: pam_sss.c:836
+#: pam_sss.c:835
 msgid "Password has expired."
 msgstr ""

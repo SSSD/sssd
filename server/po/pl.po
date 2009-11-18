@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-11-02 15:29-0500\n"
+"POT-Creation-Date: 2009-11-18 07:19-0500\n"
 "PO-Revision-Date: 2009-10-23 22:20+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
@@ -344,7 +344,12 @@ msgstr "Błąd podczas inicjowania narzędzi\n"
 msgid "Invalid domain specified in FQDN\n"
 msgstr "Podano nieprawidłową domenę w FQDN\n"
 
-#: tools/sss_groupdel.c:116
+#: tools/sss_groupdel.c:103
+#, c-format
+msgid "Group %s is outside the defined ID range for domain\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:132
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
@@ -352,7 +357,7 @@ msgstr ""
 "Nie ma takiej grupy w lokalnej domenie. Usuwanie grup jest dozwolone tylko w "
 "lokalnej domenie.\n"
 
-#: tools/sss_groupdel.c:121
+#: tools/sss_groupdel.c:137
 msgid "Internal error. Could not remove group.\n"
 msgstr "Wewnętrzny błąd. Nie można usunąć grupy.\n"
 
@@ -439,24 +444,29 @@ msgstr "Proszę podać użytkownika do usunięcia\n"
 msgid "Cannot set default values\n"
 msgstr "Nie można ustawić domyślnych wartości\n"
 
-#: tools/sss_userdel.c:162
+#: tools/sss_userdel.c:137
+#, c-format
+msgid "User %s is outside the defined ID range for domain\n"
+msgstr ""
+
+#: tools/sss_userdel.c:168
 msgid "Not removing home dir - not owned by user\n"
 msgstr ""
 "Katalog domowy nie zostanie usunięty - użytkownik nie jest właścicielem\n"
 
-#: tools/sss_userdel.c:164
+#: tools/sss_userdel.c:170
 #, c-format
 msgid "Cannot remove homedir: %s\n"
 msgstr "Nie można usunąć katalogu domowego: %s\n"
 
-#: tools/sss_userdel.c:176
+#: tools/sss_userdel.c:182
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 "Nie ma takiego użytkownika w lokalnej domenie. Usuwanie użytkowników jest "
 "dozwolone tylko w lokalnej domenie.\n"
 
-#: tools/sss_userdel.c:181
+#: tools/sss_userdel.c:187
 msgid "Internal error. Could not remove user.\n"
 msgstr "Wewnętrzny błąd. Nie można usunąć użytkownika.\n"
 

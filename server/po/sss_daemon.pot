@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-11-02 15:29-0500\n"
+"POT-Creation-Date: 2009-11-18 07:19-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -344,13 +344,18 @@ msgstr ""
 msgid "Invalid domain specified in FQDN\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:116
+#: tools/sss_groupdel.c:103
+#, c-format
+msgid "Group %s is outside the defined ID range for domain\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:132
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:121
+#: tools/sss_groupdel.c:137
 msgid "Internal error. Could not remove group.\n"
 msgstr ""
 
@@ -429,21 +434,26 @@ msgstr ""
 msgid "Cannot set default values\n"
 msgstr ""
 
-#: tools/sss_userdel.c:162
+#: tools/sss_userdel.c:137
+#, c-format
+msgid "User %s is outside the defined ID range for domain\n"
+msgstr ""
+
+#: tools/sss_userdel.c:168
 msgid "Not removing home dir - not owned by user\n"
 msgstr ""
 
-#: tools/sss_userdel.c:164
+#: tools/sss_userdel.c:170
 #, c-format
 msgid "Cannot remove homedir: %s\n"
 msgstr ""
 
-#: tools/sss_userdel.c:176
+#: tools/sss_userdel.c:182
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 
-#: tools/sss_userdel.c:181
+#: tools/sss_userdel.c:187
 msgid "Internal error. Could not remove user.\n"
 msgstr ""
 
