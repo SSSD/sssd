@@ -128,6 +128,14 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     }
     uid = l;
 
+    /* check that the uid is valid for this domain */
+    if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                      state->name));
+        ret = EINVAL;
+        goto fail;
+    }
+
     ret = sysdb_attrs_get_el(state->attrs,
                              opts->user_map[SDAP_AT_USER_GID].sys_name, &el);
     if (ret) goto fail;
@@ -144,6 +152,14 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         goto fail;
     }
     gid = l;
+
+    /* check that the gid is valid for this domain */
+    if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                      state->name));
+        ret = EINVAL;
+        goto fail;
+    }
 
     user_attrs = sysdb_new_attrs(state);
     if (user_attrs == NULL) {
@@ -902,6 +918,14 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         goto fail;
     }
     gid = l;
+
+    /* check that the gid is valid for this domain */
+    if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
+            DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
+                      state->name));
+        ret = EINVAL;
+        goto fail;
+    }
 
     group_attrs = sysdb_new_attrs(state);
     if (!group_attrs) {

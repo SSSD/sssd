@@ -369,6 +369,7 @@ static void get_pw_name_process(struct tevent_req *subreq)
     struct proxy_state *state = tevent_req_data(req,
                                                 struct proxy_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *buffer;
     size_t buflen;
@@ -416,7 +417,12 @@ static void get_pw_name_process(struct tevent_req *subreq)
                   state->pwd->pw_uid, state->pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
-        if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                          state->name));
             delete_user = true;
             break;
         }
@@ -561,6 +567,7 @@ static void get_pw_uid_process(struct tevent_req *subreq)
     struct proxy_state *state = tevent_req_data(req,
                                                 struct proxy_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *buffer;
     size_t buflen;
@@ -609,7 +616,12 @@ static void get_pw_uid_process(struct tevent_req *subreq)
                   state->pwd->pw_uid, state->pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
-        if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                          state->name));
             delete_user = true;
             break;
         }
@@ -764,6 +776,7 @@ static void enum_users_process(struct tevent_req *subreq)
     struct enum_users_state *state = tevent_req_data(req,
                                                 struct enum_users_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *newbuf;
     int ret;
@@ -832,7 +845,13 @@ again:
                   state->pwd->pw_uid, state->pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
-        if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                          state->pwd->pw_name));
+
             goto again; /* skip */
         }
 
@@ -931,6 +950,7 @@ static void get_gr_name_process(struct tevent_req *subreq)
     struct proxy_state *state = tevent_req_data(req,
                                                 struct proxy_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *buffer;
     char *newbuf;
@@ -999,7 +1019,11 @@ again:
                   state->grp->gr_name, state->grp->gr_gid));
 
         /* gid=0 is an invalid value */
-        if (state->grp->gr_gid == 0) {
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
+                          state->name));
             delete_group = true;
             break;
         }
@@ -1148,6 +1172,7 @@ static void get_gr_gid_process(struct tevent_req *subreq)
     struct proxy_state *state = tevent_req_data(req,
                                                 struct proxy_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *buffer;
     char *newbuf;
@@ -1214,7 +1239,11 @@ again:
                   state->grp->gr_name, state->grp->gr_gid));
 
         /* gid=0 is an invalid value */
-        if (state->grp->gr_gid == 0) {
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
+                          state->grp->gr_name));
             delete_group = true;
             break;
         }
@@ -1374,6 +1403,7 @@ static void enum_groups_process(struct tevent_req *subreq)
     struct enum_groups_state *state = tevent_req_data(req,
                                                 struct enum_groups_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     const char **members;
     char *newbuf;
@@ -1439,13 +1469,19 @@ again:
         return;
 
     case NSS_STATUS_SUCCESS:
-        /* gid=0 is an invalid value */
-        if (state->grp->gr_gid == 0) {
-            goto again; /* skip */
-        }
 
         DEBUG(7, ("Group found (%s, %d)\n",
                   state->grp->gr_name, state->grp->gr_gid));
+
+        /* gid=0 is an invalid value */
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
+                          state->grp->gr_name));
+
+            goto again; /* skip */
+        }
 
         DEBUG_GR_MEM(7, state);
 
@@ -1547,6 +1583,7 @@ static void get_initgr_process(struct tevent_req *subreq)
     struct proxy_state *state = tevent_req_data(req,
                                                 struct proxy_state);
     struct proxy_ctx *ctx = state->ctx;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *buffer;
     size_t buflen;
@@ -1587,7 +1624,12 @@ static void get_initgr_process(struct tevent_req *subreq)
     case NSS_STATUS_SUCCESS:
 
         /* uid=0 or gid=0 are invalid values */
-        if (state->pwd->pw_uid == 0 || state->pwd->pw_gid == 0) {
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                          state->name));
             delete_user = true;
             break;
         }
@@ -1833,11 +1875,12 @@ static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req, *subreq;
     struct proxy_state *state;
+    struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
     char *buffer;
     char *newbuf;
     size_t buflen;
-    bool delete_user = false;
+    bool delete_group = false;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_state);
@@ -1890,14 +1933,18 @@ again:
 
     case NSS_STATUS_NOTFOUND:
 
-        delete_user = true;
+        delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
         /* gid=0 is an invalid value */
-        if (state->grp->gr_gid == 0) {
-            delete_user = true;
+        /* also check that the id is in the valid range for this domain */
+        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+
+                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
+                          state->grp->gr_name));
+            delete_group = true;
             break;
         }
 
@@ -1927,7 +1974,7 @@ again:
         goto fail;
     }
 
-    if (delete_user) {
+    if (delete_group) {
         subreq = sysdb_delete_group_send(state, state->ev,
                                          NULL, state->handle,
                                          state->domain,

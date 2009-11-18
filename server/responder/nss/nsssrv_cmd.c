@@ -174,14 +174,6 @@ static int fill_pwent(struct sss_packet *packet,
             }
         }
 
-        /* check that the uid is valid for this domain */
-        if ((dom->id_min && (uid < dom->id_min)) ||
-            (dom->id_max && (uid > dom->id_max))) {
-                DEBUG(4, ("User [%s@%s] filtered out! (id out of range)\n",
-                          name, domain));
-            continue;
-        }
-
         if (!packet_initialized) {
             /* first 2 fields (len and reserved), filled up later */
             ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -1553,14 +1545,6 @@ static int fill_grent(struct sss_packet *packet,
                           name, domain));
                 continue;
             }
-        }
-
-        /* check that the gid is valid for this domain */
-        if ((dom->id_min && (gid < dom->id_min)) ||
-            (dom->id_max && (gid > dom->id_max))) {
-                DEBUG(4, ("Group [%s@%s] filtered out! (id out of range)\n",
-                          name, domain));
-            continue;
         }
 
         nsize = strlen(name) + 1; /* includes terminating \0 */

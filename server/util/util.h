@@ -152,6 +152,9 @@ errno_t set_debug_file_from_fd(const int fd);
     } \
 } while (0)
 
+#define OUT_OF_ID_RANGE(id, min, max) \
+    (id == 0 || (min && (id < min)) || (max && (id > max)))
+
 #include "util/dlinklist.h"
 
 /* From debug.c */
