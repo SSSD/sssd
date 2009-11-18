@@ -31,9 +31,12 @@
 
 #define SYSDB_BASE "cn=sysdb"
 #define SYSDB_DOM_BASE "cn=%s,cn=sysdb"
-#define SYSDB_TMPL_USER_BASE "cn=users,cn=%s,"SYSDB_BASE
-#define SYSDB_TMPL_GROUP_BASE "cn=groups,cn=%s,"SYSDB_BASE
-#define SYSDB_TMPL_CUSTOM_BASE "cn=custom,cn=%s,"SYSDB_BASE
+#define SYSDB_USERS_CONTAINER "cn=users"
+#define SYSDB_GROUPS_CONTAINER "cn=groups"
+#define SYSDB_CUSTOM_CONTAINER "cn=custom"
+#define SYSDB_TMPL_USER_BASE SYSDB_USERS_CONTAINER",cn=%s,"SYSDB_BASE
+#define SYSDB_TMPL_GROUP_BASE SYSDB_GROUPS_CONTAINER",cn=%s,"SYSDB_BASE
+#define SYSDB_TMPL_CUSTOM_BASE SYSDB_CUSTOM_CONTAINER",cn=%s,"SYSDB_BASE
 
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
@@ -114,6 +117,7 @@
                         SYSDB_DEFAULT_ATTRS, \
                         NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
+                           SYSDB_MEMBER, \
                            SYSDB_DEFAULT_ATTRS, \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
