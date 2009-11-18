@@ -1,0 +1,39 @@
+# Italian translations for sss_client package.
+# Copyright (C) 2009 Red Hat, Inc.
+# This file is distributed under the same license as the sss_client package.
+# Marina Latini <deneb.alphacygni@gmail.com>, 2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: it\n"
+"Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
+"POT-Creation-Date: 2009-11-18 07:19-0500\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Marina Latini <deneb.alphacygni@gmail.com>\n"
+"Language-Team: Italian <fedora-trans-it@redhat.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Italian\n"
+"X-Poedit-Country: ITALY\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: pam_sss.c:322
+msgid "Passwords do not match"
+msgstr "Le password non coincidono"
+
+#: pam_sss.c:598
+msgid "Password: "
+msgstr "Password:"
+
+#: pam_sss.c:630
+msgid "New Password: "
+msgstr "Nuova Password:"
+
+#: pam_sss.c:631
+msgid "Reenter new Password: "
+msgstr "Reinserire la nuova Password:"
+
+#: pam_sss.c:835
+msgid "Password has expired."
+msgstr "La password è scaduta"
