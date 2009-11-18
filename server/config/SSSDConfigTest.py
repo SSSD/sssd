@@ -74,7 +74,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertEquals(new_options['full_name_format'][0], str)
 
         del sssdconfig
-        pass
 
     def testDomains(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
@@ -96,7 +95,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('auth_provider' in domain_opts.keys())
 
         del sssdconfig
-        pass
 
     def testListProviders(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
@@ -155,7 +153,6 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
     def setUp(self):
         self.schema = SSSDConfig.SSSDConfigSchema("etc/sssd.api.conf",
                                                   "etc/sssd.api.d")
-        pass
 
     def tearDown(self):
         pass
@@ -166,30 +163,15 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
 
         # Type Error test
         # Name is not a string
-        try:
-            service = SSSDConfig.SSSDService(3, self.schema)
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError exception")
+        self.assertRaises(TypeError, SSSDConfig.SSSDService, 3, self.schema)
 
         # TypeError test
         # schema is not an SSSDSchema
-        try:
-            service = SSSDConfig.SSSDService('3', self)
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError exception")
+        self.assertRaises(TypeError, SSSDConfig.SSSDService, '3', self)
 
         # ServiceNotRecognizedError test
-        try:
-            service = SSSDConfig.SSSDService('ssd', self.schema)
-        except SSSDConfig.ServiceNotRecognizedError:
-            pass
-        else:
-            self.fail("Expected ServiceNotRecognizedError")
-
+        self.assertRaises(SSSDConfig.ServiceNotRecognizedError,
+                          SSSDConfig.SSSDService, 'ssd', self.schema)
 
     def testListOptions(self):
         service = SSSDConfig.SSSDService('sssd', self.schema)
@@ -270,20 +252,10 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         self.assertTrue('debug_level' not in service.options.keys())
 
         # Negative test - Nonexistent Option
-        try:
-            service.set_option('nosuchoption', 1)
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("Expected NoOptionError")
+        self.assertRaises(SSSDConfig.NoOptionError, service.set_option, 'nosuchoption', 1)
 
         # Negative test - Incorrect type
-        try:
-            service.set_option('debug_level', 'two')
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError")
+        self.assertRaises(TypeError, service.set_option, 'debug_level', 'two')
 
     def testGetOption(self):
         service = SSSDConfig.SSSDService('sssd', self.schema)
@@ -295,12 +267,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         self.assertEqual(service.get_option('services'), ['nss', 'pam'])
 
         # Negative Test - Bad Option
-        try:
-            service.get_option('nosuchoption')
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("Expected NoOptionError")
+        self.assertRaises(SSSDConfig.NoOptionError, service.get_option, 'nosuchoption')
 
     def testGetAllOptions(self):
         service = SSSDConfig.SSSDService('sssd', self.schema)
@@ -334,28 +301,16 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         # Positive test - Remove an option that exists
         self.assertEqual(service.get_option('debug_level'), 0)
         service.remove_option('debug_level')
-        try:
-            service.get_option('debug_level')
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("debug_level should have been removed")
+        self.assertRaises(SSSDConfig.NoOptionError, service.get_option, 'debug_level')
 
         # Positive test - Remove an option that doesn't exist
-        try:
-            service.get_option('nosuchentry')
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("nosuchentry should not exist")
-
+        self.assertRaises(SSSDConfig.NoOptionError, service.get_option, 'nosuchentry')
         service.remove_option('nosuchentry')
 
 class SSSDConfigTestSSSDDomain(unittest.TestCase):
     def setUp(self):
         self.schema = SSSDConfig.SSSDConfigSchema("etc/sssd.api.conf",
                                                   "etc/sssd.api.d")
-        pass
 
     def tearDown(self):
         pass
@@ -365,20 +320,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('mydomain', self.schema)
 
         # Negative Test - Name not a string
-        try:
-            domain = SSSDConfig.SSSDDomain(2, self.schema)
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError")
+        self.assertRaises(TypeError, SSSDConfig.SSSDDomain, 2, self.schema)
 
         # Negative Test - Schema is not an SSSDSchema
-        try:
-            domain = SSSDConfig.SSSDDomain('mydomain', self)
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError")
+        self.assertRaises(TypeError, SSSDConfig.SSSDDomain, 'mydomain', self)
 
     def testGetName(self):
         # Positive Test
@@ -593,28 +538,16 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.add_provider('local', 'id')
 
         # Negative Test - No such backend type
-        try:
-            domain.add_provider('nosuchbackend', 'auth')
-        except SSSDConfig.NoSuchProviderError:
-            pass
-        else:
-            self.fail("Expected NoSuchProviderError")
+        self.assertRaises(SSSDConfig.NoSuchProviderError,
+                          domain.add_provider, 'nosuchbackend', 'auth')
 
         # Negative Test - No such backend subtype
-        try:
-            domain.add_provider('ldap', 'nosuchsubtype')
-        except SSSDConfig.NoSuchProviderSubtypeError:
-            pass
-        else:
-            self.fail("Expected NoSuchProviderSubtypeError")
+        self.assertRaises(SSSDConfig.NoSuchProviderSubtypeError,
+                          domain.add_provider, 'ldap', 'nosuchsubtype')
 
         # Negative Test - Try to add a second provider of the same type
-        try:
-            domain.add_provider('ldap', 'id')
-        except SSSDConfig.ProviderSubtypeInUse:
-            pass
-        else:
-            self.fail("Expected ProviderSubtypeInUse")
+        self.assertRaises(SSSDConfig.ProviderSubtypeInUse,
+                          domain.add_provider, 'ldap', 'id')
 
     def testRemoveProvider(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
@@ -755,24 +688,14 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         self.assertEqual(domain.get_option('debug_level'), 0)
 
         # Negative Test - Try to get valid option that is not set
-        try:
-            domain.get_option('max_id')
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("Expected NoOptionError")
+        self.assertRaises(SSSDConfig.NoOptionError, domain.get_option, 'max_id')
 
         # Positive Test - Set the above option and get it
         domain.set_option('max_id', 10000)
         self.assertEqual(domain.get_option('max_id'), 10000)
 
         # Negative Test - Try yo get invalid option
-        try:
-            domain.get_option('nosuchoption')
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("Expected NoOptionError")
+        self.assertRaises(SSSDConfig.NoOptionError, domain.get_option, 'nosuchoption')
 
     def testSetOption(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
@@ -786,20 +709,10 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         self.assertTrue('max_id' not in domain.get_all_options().keys())
 
         # Negative Test - invalid option
-        try:
-            domain.set_option('nosuchoption', 1)
-        except SSSDConfig.NoOptionError:
-            pass
-        else:
-            self.fail("Expected NoOptionError")
+        self.assertRaises(SSSDConfig.NoOptionError, domain.set_option, 'nosuchoption', 1)
 
         # Negative Test - incorrect type
-        try:
-            domain.set_option('max_id', 'a string')
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError")
+        self.assertRaises(TypeError, domain.set_option, 'max_id', 'a string')
 
         # Positive Test - Coax options to appropriate type
         domain.set_option('max_id', '10000')
@@ -839,22 +752,12 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - No Such File
-        try:
-            sssdconfig = SSSDConfig.SSSDConfig("nosuchfile.api.conf",
-                                               "etc/sssd.api.d")
-        except IOError:
-            pass
-        else:
-            self.fail("Expected IOError")
+        self.assertRaises(IOError,
+                          SSSDConfig.SSSDConfig, "nosuchfile.api.conf", "etc/sssd.api.d")
 
         # Negative Test - Schema is not parsable
-        try:
-            sssdconfig = SSSDConfig.SSSDConfig("testconfigs/noparse.api.conf",
-                                               "etc/sssd.api.d")
-        except SSSDConfig.ParsingError:
-            pass
-        else:
-            self.fail("Expected ParsingError")
+        self.assertRaises(SSSDConfig.ParsingError,
+                          SSSDConfig.SSSDConfig, "testconfigs/noparse.api.conf", "etc/sssd.api.d")
 
     def testImportConfig(self):
         # Positive Test
@@ -902,55 +805,31 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         #TODO: Check the types and values of the settings
 
         # Negative Test - Missing config file
-        try:
-            sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
-                                               "etc/sssd.api.d")
-            sssdconfig.import_config("nosuchfile.conf")
-        except IOError:
-            pass
-        else:
-            self.fail("Expected IOError")
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+        self.assertRaises(IOError, sssdconfig.import_config, "nosuchfile.conf")
 
         # Negative Test - Invalid config file
-        try:
-            sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
-                                               "etc/sssd.api.d")
-            sssdconfig.import_config("testconfigs/sssd-invalid.conf")
-        except SSSDConfig.ParsingError:
-            pass
-        else:
-            self.fail("Expected ParsingError")
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+        self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, "testconfigs/sssd-invalid.conf")
 
         # Negative Test - Invalid config file version
-        try:
-            sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
-                                               "etc/sssd.api.d")
-            sssdconfig.import_config("testconfigs/sssd-badversion.conf")
-        except SSSDConfig.ParsingError:
-            pass
-        else:
-            self.fail("Expected ParsingError")
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+        self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, "testconfigs/sssd-badversion.conf")
 
         # Negative Test - No config file version
-        try:
-            sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
-                                               "etc/sssd.api.d")
-            sssdconfig.import_config("testconfigs/sssd-noversion.conf")
-        except SSSDConfig.ParsingError:
-            pass
-        else:
-            self.fail("Expected ParsingError")
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+        self.assertRaises(SSSDConfig.ParsingError, sssdconfig.import_config, "testconfigs/sssd-noversion.conf")
 
         # Negative Test - Already initialized
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                            "etc/sssd.api.d")
         sssdconfig.import_config("testconfigs/sssd-valid.conf")
-        try:
-            sssdconfig.import_config("testconfigs/sssd-valid.conf")
-        except SSSDConfig.AlreadyInitializedError:
-            pass
-        else:
-            self.fail("Expected AlreadyInitializedError")
+        self.assertRaises(SSSDConfig.AlreadyInitializedError,
+                          sssdconfig.import_config, "testconfigs/sssd-valid.conf")
 
     def testNewConfig(self):
         # Positive Test
@@ -987,12 +866,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             option)
 
         # Negative Test - Already Initialized
-        try:
-            sssdconfig.new_config()
-        except SSSDConfig.AlreadyInitializedError:
-            pass
-        else:
-            self.fail("Expected AlreadyInitializedError")
+        self.assertRaises(SSSDConfig.AlreadyInitializedError, sssdconfig.new_config)
 
     def testWrite(self):
         #TODO Write tests to compare output files
@@ -1003,12 +877,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - sssdconfig not initialized
-        try:
-            sssdconfig.list_services()
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.list_services)
 
         sssdconfig.new_config()
 
@@ -1031,12 +900,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - Not initialized
-        try:
-            service = sssdconfig.get_service('sssd')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.get_service, 'sssd')
 
         sssdconfig.new_config()
 
@@ -1046,24 +910,14 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # TODO verify the contents of this service
 
         # Negative Test - No such service
-        try:
-            service = sssdconfig.get_service('nosuchservice')
-        except SSSDConfig.NoServiceError:
-            pass
-        else:
-            self.fail("Expected NoServiceError")
+        self.assertRaises(SSSDConfig.NoServiceError, sssdconfig.get_service, 'nosuchservice')
 
     def testNewService(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                            "etc/sssd.api.d")
 
         # Negative Test - Not initialized
-        try:
-            service = sssdconfig.new_service('sssd')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.new_service, 'sssd')
 
         sssdconfig.new_config()
 
@@ -1081,12 +935,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - Not initialized
-        try:
-            service = sssdconfig.delete_service('sssd')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.delete_service, 'sssd')
 
         sssdconfig.new_config()
 
@@ -1100,12 +949,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         new_service = SSSDConfig.SSSDService('sssd', sssdconfig.schema)
 
         # Negative Test - Not initialized
-        try:
-            service = sssdconfig.save_service(new_service)
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.save_service, new_service)
 
         # Positive Test
         sssdconfig.new_config()
@@ -1114,24 +958,14 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # TODO: check that all entries were saved correctly (change a few)
 
         # Negative Test - Type Error
-        try:
-            sssdconfig.save_service(self)
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError")
+        self.assertRaises(TypeError, sssdconfig.save_service, self)
 
     def testListActiveDomains(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                            "etc/sssd.api.d")
 
         # Negative Test - Not Initialized
-        try:
-            sssdconfig.list_active_domains()
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.list_active_domains)
 
         # Positive Test
         sssdconfig.import_config('testconfigs/sssd-valid.conf')
@@ -1155,12 +989,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - Not Initialized
-        try:
-            sssdconfig.list_inactive_domains()
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.list_inactive_domains)
 
         # Positive Test
         sssdconfig.import_config('testconfigs/sssd-valid.conf')
@@ -1184,12 +1013,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - Not Initialized
-        try:
-            sssdconfig.list_domains()
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.list_domains)
 
         # Positive Test
         sssdconfig.import_config('testconfigs/sssd-valid.conf')
@@ -1215,12 +1039,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - Not initialized
-        try:
-            domain = sssdconfig.get_domain('sssd')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.get_domain, 'sssd')
 
         sssdconfig.import_config('testconfigs/sssd-valid.conf')
 
@@ -1230,24 +1049,14 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # TODO verify the contents of this domain
 
         # Negative Test - No such domain
-        try:
-            domain = sssdconfig.get_domain('nosuchdomain')
-        except SSSDConfig.NoDomainError:
-            pass
-        else:
-            self.fail("Expected NoDomainError")
+        self.assertRaises(SSSDConfig.NoDomainError, sssdconfig.get_domain, 'nosuchdomain')
 
     def testNewDomain(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                            "etc/sssd.api.d")
 
         # Negative Test - Not initialized
-        try:
-            domain = sssdconfig.new_domain('example.com')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.new_domain, 'example.com')
 
         sssdconfig.new_config()
 
@@ -1265,12 +1074,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                                            "etc/sssd.api.d")
 
         # Negative Test - Not initialized
-        try:
-            sssdconfig.delete_domain('IPA')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.delete_domain, 'IPA')
 
         # Positive Test
         sssdconfig.import_config('testconfigs/sssd-valid.conf')
@@ -1285,12 +1089,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                            "etc/sssd.api.d")
         # Negative Test - Not initialized
-        try:
-            sssdconfig.delete_domain('IPA')
-        except SSSDConfig.NotInitializedError:
-            pass
-        else:
-            self.fail("Expected NotInitializedError")
+        self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.save_domain, 'IPA')
 
         # Positive Test
         sssdconfig.new_config()
@@ -1306,12 +1105,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                          'ldap://ldap.example.com')
 
         # Negative Test - Type Error
-        try:
-            sssdconfig.save_service(self)
-        except TypeError:
-            pass
-        else:
-            self.fail("Expected TypeError")
+        self.assertRaises(TypeError, sssdconfig.save_domain, self)
 
 if __name__ == "__main__":
     error = 0

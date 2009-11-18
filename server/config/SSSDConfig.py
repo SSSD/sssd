@@ -22,6 +22,7 @@ class ServiceNotRecognizedError(SSSDConfigException): pass
 class ServiceAlreadyExists(SSSDConfigException): pass
 class NoDomainError(SSSDConfigException): pass
 class DomainNotRecognized(SSSDConfigException): pass
+class DomainAlreadyExistsError(SSSDConfigException): pass
 class NoSuchProviderError(SSSDConfigException): pass
 class NoSuchProviderSubtypeError(SSSDConfigException): pass
 class ProviderSubtypeInUse(SSSDConfigException): pass
@@ -144,6 +145,9 @@ option_strings = {
     'proxy_pam_target' : _('PAM stack to use')
 }
 
+def striplist(l):
+    return([x.strip() for x in l])
+
 class SSSDConfigSchema(SSSDChangeConf):
     def __init__(self, schemafile, schemaplugindir):
         SSSDChangeConf.__init__(self)
@@ -185,9 +189,6 @@ class SSSDConfigSchema(SSSDChangeConf):
             'true'  : True,
             }
 
-    def _striplist(self, l):
-        return([x.strip() for x in l])
-
     def get_options(self, section):
         if not self.has_section(section):
             raise NoSectionError
@@ -202,7 +203,7 @@ class SSSDConfigSchema(SSSDChangeConf):
         parsed_options = {}
         for option in self.strip_comments_empty(options):
             unparsed_option = option['value']
-            split_option = self._striplist(unparsed_option.split(','))
+            split_option = striplist(unparsed_option.split(','))
             optionlen = len(split_option)
 
             primarytype = self.type_lookup[split_option[PRIMARY_TYPE]]
@@ -316,7 +317,67 @@ class SSSDConfigSchema(SSSDChangeConf):
             providers[key] = tuple(providers[key])
         return providers
 
-class SSSDService:
+class SSSDConfigObject(object):
+    def __init__(self):
+        self.name = None
+        self.options = {}
+
+    def get_name(self):
+        """
+        Return the name of the this object
+
+        === Returns ===
+        The domain name
+
+        === Errors ===
+        No errors
+        """
+        return self.name
+
+    def get_option(self, optionname):
+        """
+        Return the value of an service option
+
+        optionname:
+          The option to get.
+
+        === Returns ===
+        The value for the requested option.
+
+        === Errors ===
+        NoOptionError:
+          The specified option was not listed in the service
+        """
+        if optionname in self.options.keys():
+            return self.options[optionname]
+        raise NoOptionError(optionname)
+
+    def get_all_options(self):
+        """
+        Return a dictionary of name/value pairs for this object
+
+        === Returns ===
+        A dictionary of name/value pairs currently in use for this object
+
+        === Errors ===
+        No errors
+        """
+        return self.options
+
+    def remove_option(self, optionname):
+        """
+        Remove an option from the object. If the option does not exist, it is ignored.
+
+        === Returns ===
+        No return value.
+
+        === Errors ===
+        No errors
+        """
+        if self.options.has_key(optionname):
+            del self.options[optionname]
+
+class SSSDService(SSSDConfigObject):
     '''
     Object to manipulate SSSD service options
     '''
@@ -341,6 +402,8 @@ class SSSDService:
         ServiceNotRecognizedError:
           The service was not listed in the schema
         """
+        SSSDConfigObject.__init__(self)
+
         if not isinstance(apischema, SSSDConfigSchema) or type(servicename) != str:
             raise TypeError
 
@@ -366,18 +429,6 @@ class SSSDService:
         if servicename == 'sssd':
             self.options['config_file_version'] = 2
             self.hidden_options.append('config_file_version')
-
-    def get_name(self):
-        """
-        Return the name of the service this object manages.
-
-        === Returns ===
-        The service name
-
-        === Errors ===
-        No errors
-        """
-        return self.name
 
     def list_options(self):
         """
@@ -406,12 +457,6 @@ class SSSDService:
         options.update(schema_options)
 
         return options
-
-    def _striplist(self, l):
-        """
-        Remove leading and trailing spaces from all entries in a list
-        """
-        return([x.strip() for x in l])
 
     def set_option(self, optionname, value):
         """
@@ -452,7 +497,7 @@ class SSSDService:
         # wrong subtype, it will fail below
         if option_schema[0] == list and type(value) != list:
             if type(value) == str:
-                value = self._striplist(value.split(','))
+                value = striplist(value.split(','))
             else:
                 value = [value]
 
@@ -475,50 +520,7 @@ class SSSDService:
 
         self.options[optionname] = value
 
-    def get_option(self, optionname):
-        """
-        Return the value of a service option
-
-        optionname:
-          The option to get.
-
-        === Returns ===
-        The value for the requested option.
-
-        === Errors ===
-        NoOptionError:
-          The specified option was not listed in the service
-        """
-        if optionname in self.options.keys():
-            return self.options[optionname]
-        raise NoOptionError(optionname)
-
-    def get_all_options(self):
-        """
-        Return a dictionary of name/value pairs for this service
-
-        === Returns ===
-        A dictionary of name/value pairs currently in use for this service
-
-        === Errors ===
-        No errors
-        """
-        return self.options
-
-    def remove_option(self, optionname):
-        """
-        Remove an option from the service. If the option does not exist, it is ignored.
-
-        === Returns ===
-        No return value.
-
-        === Errors ===
-        No errors
-        """
-        if self.options.has_key(optionname):
-            del self.options[optionname]
-
-class SSSDDomain:
+class SSSDDomain(SSSDConfigObject):
     """
     Object to manipulate SSSD domain options
     """
@@ -541,6 +543,8 @@ class SSSDDomain:
           apischema was not an SSSDConfigSchema object or domainname was not
          a string
         """
+        SSSDConfigObject.__init__(self)
+
         if not isinstance(apischema, SSSDConfigSchema) or type(domainname) != str:
             raise TypeError
 
@@ -556,18 +560,6 @@ class SSSDDomain:
         # Set up default options for all domains
         self.options.update(self.schema.get_defaults('provider'))
         self.options.update(self.schema.get_defaults('domain'))
-
-    def get_name(self):
-        """
-        Return the name of the domain this object manages.
-
-        === Returns ===
-        The domain name
-
-        === Errors ===
-        No errors
-        """
-        return self.name
 
     def set_active(self, active):
         """
@@ -710,7 +702,7 @@ class SSSDDomain:
         # wrong subtype, it will fail below
         if option_schema[0] == list and type(value) != list:
             if type(value) == str:
-                value = self._striplist(value.split(','))
+                value = striplist(value.split(','))
             else:
                 value = [value]
 
@@ -739,52 +731,6 @@ class SSSDDomain:
             self.add_provider(value, provider)
         else:
             self.options[option] = value
-
-    def get_option(self, optionname):
-        """
-        Return the value of a domain option
-
-        === Returns ===
-        The value for the specified service option.
-
-        === Errors ===
-        NoOptionError:
-            The specified option was not listed in the service
-        """
-        if optionname in self.options.keys():
-            return self.options[optionname]
-        raise NoOptionError(optionname)
-
-    def get_all_options(self):
-        """
-        Return all configured domain options
-
-        === Returns ===
-        A dictionary of the domain options, keyed on the option name.
-
-        Example:
-        { 'debug_level': 0,
-          'min_id': 1000,
-          'cache_credentials': True
-        }
-
-        === Errors ===
-        No errors
-        """
-        return self.options
-
-    def remove_option(self, optionname):
-        """
-        Remove an option from the domain. If the option does not exist, it is ignored.
-
-        === Returns ===
-        No return value
-
-        === Errors ===
-        No errors
-        """
-        if optionname in self.options.keys():
-            del self.options[optionname]
 
     def add_provider(self, provider, provider_type):
         """
@@ -818,7 +764,7 @@ class SSSDDomain:
         with_this_type = [x for x in self.providers if x[1] == provider_type]
         if len(with_this_type) > 1:
             # This should never happen!
-            raise ProviderSubtypeInUser
+            raise ProviderSubtypeInUse
         if len(with_this_type) == 1:
             if with_this_type[0][0] != provider:
                 raise ProviderSubtypeInUse(with_this_type[0][0])
@@ -1136,12 +1082,6 @@ class SSSDConfig(SSSDChangeConf):
 
         self.add_section(name, addkw, index)
 
-    def _striplist(self, l):
-        """
-        Remove leading and trailing spaces from all entries in a list
-        """
-        return([x.strip() for x in l])
-
     def list_active_domains(self):
         """
         Return a list of all active domains.
@@ -1158,7 +1098,7 @@ class SSSDConfig(SSSDChangeConf):
             raise NotInitializedError
 
         if (self.has_option('sssd', 'domains')):
-            active_domains = self._striplist(self.get('sssd', 'domains').split(','))
+            active_domains = striplist(self.get('sssd', 'domains').split(','))
         else:
             active_domains = []
 
@@ -1182,7 +1122,7 @@ class SSSDConfig(SSSDChangeConf):
             raise NotInitializedError
 
         if (self.has_option('sssd', 'domains')):
-            active_domains = self._striplist(self.get('sssd', 'domains').split(','))
+            active_domains = striplist(self.get('sssd', 'domains').split(','))
         else:
             active_domains = []
 
@@ -1268,7 +1208,7 @@ class SSSDConfig(SSSDChangeConf):
             raise DomainAlreadyExistsError
 
         domain = SSSDDomain(name, self.schema)
-        self.save_domain(domain);
+        self.save_domain(domain)
         return domain
 
     def delete_domain(self, name):
