@@ -1,0 +1,38 @@
+# translation of sss_client_ja.po to Japanese
+# Copyright (C) YEAR Red Hat, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Noriko Mizumoto <noriko@fedoraproject.org>, 2009.
+msgid ""
+msgstr ""
+"Project-Id-Version: sss_client_ja\n"
+"Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
+"POT-Creation-Date: 2009-11-18 07:19-0500\n"
+"PO-Revision-Date: 2009-11-18 09:47+1000\n"
+"Last-Translator: Noriko Mizumoto <noriko@fedoraproject.org>\n"
+"Language-Team: Japanese <fedora-trans-ja@redhat.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms:  nplurals=1; plural=0;\n"
+
+#: pam_sss.c:322
+msgid "Passwords do not match"
+msgstr ""
+
+#: pam_sss.c:598
+msgid "Password: "
+msgstr ""
+
+#: pam_sss.c:630
+msgid "New Password: "
+msgstr ""
+
+#: pam_sss.c:631
+msgid "Reenter new Password: "
+msgstr ""
+
+#: pam_sss.c:835
+msgid "Password has expired."
+msgstr ""
