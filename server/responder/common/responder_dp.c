@@ -243,7 +243,8 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
 
 int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          sss_dp_callback_t callback, void *callback_ctx,
-                         int timeout, const char *domain, int type,
+                         int timeout, const char *domain,
+                         bool fast_reply, int type,
                          const char *opt_name, uint32_t opt_id)
 {
     int ret, hret;
@@ -277,6 +278,10 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
         break;
     default:
         return EINVAL;
+    }
+
+    if (fast_reply) {
+        be_type |= BE_REQ_FAST;
     }
 
     if (dp_requests == NULL) {

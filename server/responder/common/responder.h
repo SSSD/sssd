@@ -145,7 +145,8 @@ typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
 
 int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
                          sss_dp_callback_t callback, void *callback_ctx,
-                         int timeout, const char *domain, int type,
+                         int timeout, const char *domain,
+                         bool fast_reply, int type,
                          const char *opt_name, uint32_t opt_id);
 
 #endif /* __SSS_RESPONDER_H__ */

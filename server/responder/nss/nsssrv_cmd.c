@@ -351,7 +351,8 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
          */
         ret = sss_dp_send_acct_req(cctx->rctx, NULL, NULL, NULL,
                                    timeout, dctx->domain->name,
-                                   req_type, opt_name, opt_id);
+                                   true, req_type,
+                                   opt_name, opt_id);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
                       ret, strerror(ret)));
@@ -376,7 +377,8 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
 
         ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    callback, dctx, timeout,
-                                   dctx->domain->name, req_type,
+                                   dctx->domain->name,
+                                   true, req_type,
                                    opt_name, opt_id);
         if (ret != EOK) {
             DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
@@ -1125,8 +1127,8 @@ static void nss_cmd_setpwent_callback(void *ptr, int status,
             timeout = SSS_CLI_SOCKET_TIMEOUT;
             ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setpw_dp_callback, dctx,
-                                       timeout, dom->name, SSS_DP_USER,
-                                       NULL, 0);
+                                       timeout, dom->name, true,
+                                       SSS_DP_USER, NULL, 0);
         } else {
             ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
                                           dctx->domain, &sysdb);
@@ -1272,8 +1274,8 @@ static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
         timeout = SSS_CLI_SOCKET_TIMEOUT;
         ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_setpw_dp_callback, dctx,
-                                   timeout, dom->name, SSS_DP_USER,
-                                   NULL, 0);
+                                   timeout, dom->name, true,
+                                   SSS_DP_USER, NULL, 0);
     } else {
         ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
                                       dctx->domain, &sysdb);
@@ -2448,8 +2450,8 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
             timeout = SSS_CLI_SOCKET_TIMEOUT;
             ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                        nss_cmd_setgr_dp_callback, dctx,
-                                       timeout, dom->name, SSS_DP_GROUP,
-                                       NULL, 0);
+                                       timeout, dom->name, true,
+                                       SSS_DP_GROUP, NULL, 0);
         } else {
             ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
                                           dctx->domain, &sysdb);
@@ -2595,8 +2597,8 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
         timeout = SSS_CLI_SOCKET_TIMEOUT;
         ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
                                    nss_cmd_setgr_dp_callback, dctx,
-                                   timeout, dom->name, SSS_DP_GROUP,
-                                   NULL, 0);
+                                   timeout, dom->name, true,
+                                   SSS_DP_GROUP, NULL, 0);
     } else {
         ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
                                       dctx->domain, &sysdb);

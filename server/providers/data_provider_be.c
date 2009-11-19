@@ -251,36 +251,43 @@ static void acctinfo_callback(struct be_req *req,
     dbus_uint32_t err_min = 0;
     const char *err_msg = NULL;
 
-    err_maj = dp_err_type;
-    err_min = errnum;
-    if (errstr) {
-        err_msg = errstr;
-    } else {
-        err_msg = dp_err_to_string(req, dp_err_type, errnum);
-    }
-    if (!err_msg) {
-        DEBUG(1, ("Failed to set err_msg, Out of memory?\n"));
-        err_msg = "OOM";
-    }
-
     reply = (DBusMessage *)req->pvt;
 
-    dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, &err_maj,
-                                     DBUS_TYPE_UINT32, &err_min,
-                                     DBUS_TYPE_STRING, &err_msg,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) {
-        DEBUG(1, ("Failed to generate dbus reply\n"));
-        return;
+    if (reply) {
+        /* Return a reply if one was requested
+         * There may not be one if this request began
+         * while we were offline
+         */
+
+        err_maj = dp_err_type;
+        err_min = errnum;
+        if (errstr) {
+            err_msg = errstr;
+        } else {
+            err_msg = dp_err_to_string(req, dp_err_type, errnum);
+        }
+        if (!err_msg) {
+            DEBUG(1, ("Failed to set err_msg, Out of memory?\n"));
+            err_msg = "OOM";
+        }
+
+        dbret = dbus_message_append_args(reply,
+                                         DBUS_TYPE_UINT16, &err_maj,
+                                         DBUS_TYPE_UINT32, &err_min,
+                                         DBUS_TYPE_STRING, &err_msg,
+                                         DBUS_TYPE_INVALID);
+        if (!dbret) {
+            DEBUG(1, ("Failed to generate dbus reply\n"));
+            return;
+        }
+
+        dbus_conn = sbus_get_connection(req->becli->conn);
+        dbus_connection_send(dbus_conn, reply, NULL);
+        dbus_message_unref(reply);
+
+        DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg));
     }
-
-    dbus_conn = sbus_get_connection(req->becli->conn);
-    dbus_connection_send(dbus_conn, reply, NULL);
-    dbus_message_unref(reply);
-
-    DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
 
     /* finally free the request */
     talloc_free(req);
@@ -328,6 +335,36 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
+
+    /* If we are offline and fast reply was requested
+     * return offline immediately
+     */
+    if ((type & BE_REQ_FAST) && becli->bectx->offstat.offline) {
+        /* Send back an immediate reply */
+        err_maj = DP_ERR_OFFLINE;
+        err_min = EAGAIN;
+        err_msg = "Fast reply - offline";
+
+        dbret = dbus_message_append_args(reply,
+                                         DBUS_TYPE_UINT16, &err_maj,
+                                         DBUS_TYPE_UINT32, &err_min,
+                                         DBUS_TYPE_STRING, &err_msg,
+                                         DBUS_TYPE_INVALID);
+        if (!dbret) return EIO;
+
+        DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg));
+
+        sbus_conn_send_reply(conn, reply);
+        dbus_message_unref(reply);
+        reply = NULL;
+        /* This reply will be queued and sent
+         * when we reenter the mainloop.
+         *
+         * Continue processing in case we are
+         * going back online.
+         */
+    }
 
     if (attrs) {
         if (strcmp(attrs, "core") == 0) attr_type = BE_ATTR_CORE;
@@ -410,19 +447,21 @@ done:
         talloc_free(be_req);
     }
 
-    dbret = dbus_message_append_args(reply,
-                                     DBUS_TYPE_UINT16, &err_maj,
-                                     DBUS_TYPE_UINT32, &err_min,
-                                     DBUS_TYPE_STRING, &err_msg,
-                                     DBUS_TYPE_INVALID);
-    if (!dbret) return EIO;
+    if (reply) {
+        dbret = dbus_message_append_args(reply,
+                                         DBUS_TYPE_UINT16, &err_maj,
+                                         DBUS_TYPE_UINT32, &err_min,
+                                         DBUS_TYPE_STRING, &err_msg,
+                                         DBUS_TYPE_INVALID);
+        if (!dbret) return EIO;
 
-    DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
-              err_maj, err_min, err_msg));
+        DEBUG(4, ("Request processed. Returned %d,%d,%s\n",
+                  err_maj, err_min, err_msg));
 
-    /* send reply back */
-    sbus_conn_send_reply(conn, reply);
-    dbus_message_unref(reply);
+        /* send reply back */
+        sbus_conn_send_reply(conn, reply);
+        dbus_message_unref(reply);
+    }
 
     return EOK;
 }
