@@ -879,7 +879,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Section [%s] missing" %
                             section)
         for section in sssdconfig.sections():
-            self.assertTrue(section in control_list)
+            self.assertTrue(section['name'] in control_list)
 
         # Verify that all options were imported for a section
         control_list = [
@@ -893,7 +893,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Option [%s] missing from [sssd]" %
                             option)
         for option in sssdconfig.options('sssd'):
-            self.assertTrue(option in control_list,
+            if option['type'] in ('empty', 'comment'):
+                continue
+            self.assertTrue(option['name'] in control_list,
                             "Option [%s] unexpectedly found" %
                             option)
 
@@ -966,7 +968,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Section [%s] missing" %
                             section)
         for section in sssdconfig.sections():
-            self.assertTrue(section in control_list)
+            self.assertTrue(section['name'] in control_list)
 
         control_list = [
             'config_file_version',
@@ -978,7 +980,9 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                             "Option [%s] missing from [sssd]" %
                             option)
         for option in sssdconfig.options('sssd'):
-            self.assertTrue(option in control_list,
+            if option['type'] in ('empty', 'comment'):
+                continue
+            self.assertTrue(option['name'] in control_list,
                             "Option [%s] unexpectedly found" %
                             option)
 

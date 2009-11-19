@@ -7,7 +7,7 @@ Created on Sep 18, 2009
 import os
 import gettext
 import exceptions
-from ConfigParser import RawConfigParser, NoSectionError
+from ipachangeconf import SSSDChangeConf
 
 # Exceptions
 class SSSDConfigException(Exception): pass
@@ -144,15 +144,15 @@ option_strings = {
     'proxy_pam_target' : _('PAM stack to use')
 }
 
-class SSSDConfigSchema(RawConfigParser):
+class SSSDConfigSchema(SSSDChangeConf):
     def __init__(self, schemafile, schemaplugindir):
+        SSSDChangeConf.__init__(self)
         #TODO: get these from a global setting
         if not schemafile:
             schemafile = '/etc/sssd/sssd.api.conf'
         if not schemaplugindir:
             schemaplugindir = '/etc/sssd/sssd.api.d'
 
-        RawConfigParser.__init__(self, None, dict)
         try:
             #Read the primary config file
             fd = open(schemafile, 'r')
@@ -165,7 +165,7 @@ class SSSDConfigSchema(RawConfigParser):
                 fd.close()
         except IOError:
             raise
-        except:
+        except SyntaxError: # can be raised with readfp
             raise ParsingError
 
         # Set up lookup table for types
@@ -200,43 +200,43 @@ class SSSDConfigSchema(RawConfigParser):
 
         # Parse values
         parsed_options = {}
-        for option in options:
-            unparsed_option = self.get(section, option)
+        for option in self.strip_comments_empty(options):
+            unparsed_option = option['value']
             split_option = self._striplist(unparsed_option.split(','))
             optionlen = len(split_option)
 
             primarytype = self.type_lookup[split_option[PRIMARY_TYPE]]
             subtype = self.type_lookup[split_option[SUBTYPE]]
 
-            if option_strings.has_key(option):
-                desc = option_strings[option]
+            if option_strings.has_key(option['name']):
+                desc = option_strings[option['name']]
             else:
                 desc = None
 
             if optionlen == 2:
                 # This option has no defaults
-                parsed_options[option] = \
+                parsed_options[option['name']] = \
                     (primarytype,
                      subtype,
                      desc,
                      None)
             elif optionlen == 3:
                 if type(split_option[DEFAULT]) == primarytype:
-                    parsed_options[option] = \
+                    parsed_options[option['name']] = \
                         (primarytype,
                          subtype,
                          desc,
                          split_option[DEFAULT])
                 elif primarytype == list:
                     if (type(split_option[DEFAULT]) == subtype):
-                        parsed_options[option] = \
+                        parsed_options[option['name']] = \
                             (primarytype,
                              subtype,
                              desc,
                              [split_option[DEFAULT]])
                     else:
                         try:
-                            parsed_options[option] = \
+                            parsed_options[option['name']] = \
                                 (primarytype,
                                  subtype,
                                  desc,
@@ -245,7 +245,7 @@ class SSSDConfigSchema(RawConfigParser):
                             raise ParsingError
                 else:
                     try:
-                        parsed_options[option] = \
+                        parsed_options[option['name']] = \
                             (primarytype,
                              subtype,
                              desc,
@@ -265,7 +265,7 @@ class SSSDConfigSchema(RawConfigParser):
                             raise ParsingError
                     else:
                         fixed_options.extend([x])
-                parsed_options[option] = \
+                parsed_options[option['name']] = \
                     (primarytype,
                      subtype,
                      desc,
@@ -297,16 +297,16 @@ class SSSDConfigSchema(RawConfigParser):
         return defaults
 
     def get_services(self):
-        service_list = [x for x in self.sections()
-                        if x != 'service' and
-                        not x.startswith('domain') and
-                        not x.startswith('provider')]
+        service_list = [x['name'] for x in self.sections()
+                        if x['name'] != 'service' and
+                        not x['name'].startswith('domain') and
+                        not x['name'].startswith('provider')]
         return service_list
 
     def get_providers(self):
         providers = {}
-        for section in self._sections:
-            splitsection = section.split('/')
+        for section in self.sections():
+            splitsection = section['name'].split('/')
             if (splitsection[0] == 'provider'):
                 if(len(splitsection) == 3):
                     if not providers.has_key(splitsection[1]):
@@ -862,7 +862,7 @@ class SSSDDomain:
 
         self.providers.remove((provider,provider_type))
 
-class SSSDConfig(RawConfigParser):
+class SSSDConfig(SSSDChangeConf):
     """
     class SSSDConfig
     Primary class for operating on SSSD configurations
@@ -891,7 +891,7 @@ class SSSDConfig(RawConfigParser):
           The main schema file or one of those in the plugin directory could
           not be parsed.
         """
-        RawConfigParser.__init__(self, None, dict)
+        SSSDChangeConf.__init__(self)
         self.schema = SSSDConfigSchema(schemafile, schemaplugindir)
         self.configfile = None
         self.initialized = False
@@ -995,8 +995,9 @@ class SSSDConfig(RawConfigParser):
             outputfile = self.configfile
 
         # open() will raise IOError if it fails
-        of = open(outputfile, 'w')
-        RawConfigParser.write(self, of)
+        of = open(outputfile, "wb")
+        output = self.dump(self.opts)
+        of.write(output)
         of.close()
 
     def list_services(self):
@@ -1014,8 +1015,8 @@ class SSSDConfig(RawConfigParser):
         if not self.initialized:
             raise NotInitializedError
 
-        service_list = [x for x in self.sections()
-                        if not x.startswith('domain')]
+        service_list = [x['name'] for x in self.sections()
+                        if not x['name'].startswith('domain') ]
         return service_list
 
     def get_service(self, name):
@@ -1042,8 +1043,8 @@ class SSSDConfig(RawConfigParser):
             raise NoServiceError
 
         service = SSSDService(name, self.schema)
-        [service.set_option(option, value)
-         for (option,value) in self.items(name)]
+        [service.set_option(opt['name'], opt['value'])
+         for opt in self.strip_comments_empty(self.options(name)) ]
 
         return service
 
@@ -1093,7 +1094,7 @@ class SSSDConfig(RawConfigParser):
         """
         if not self.initialized:
             raise NotInitializedError
-        self.remove_section(name)
+        self.delete_option('section', name)
 
     def save_service(self, service):
         """
@@ -1121,17 +1122,19 @@ class SSSDConfig(RawConfigParser):
         # Ensure that the existing section is removed
         # This way we ensure that we are getting a
         # complete copy of the service.
-        # remove_section() is a noop if the section
+        # delete_option() is a noop if the section
         # does not exist.
-        self.remove_section(name)
-        self.add_section(name)
-        option_dict = service.get_all_options()
-        for option in option_dict.keys():
-            value = option_dict[option]
+        index = self.delete_option('section', name)
+
+        addkw = []
+        for option,value in service.get_all_options().items():
             if (type(value) == list):
                 value = ', '.join(value)
+            addkw.append( { 'type'  : 'option',
+                            'name'  : option,
+                            'value' : str(value) } )
 
-            self.set(name, option, value)
+        self.add_section(name, addkw, index)
 
     def _striplist(self, l):
         """
@@ -1201,7 +1204,7 @@ class SSSDConfig(RawConfigParser):
         """
         if not self.initialized:
             raise NotInitializedError
-        domains = [x[7:] for x in self.sections() if x.startswith('domain/')]
+        domains = [x['name'][7:] for x in self.sections() if x['name'].startswith('domain/')]
         return domains
 
     def get_domain(self, name):
@@ -1231,14 +1234,14 @@ class SSSDConfig(RawConfigParser):
 
         # Read in the providers first or we may have type
         # errors trying to read in their options
-        providers = [x for x in self.items('domain/%s' % name)
-                     if x[0].rfind('_provider') > 0]
+        providers = [ (x['name'],x['value']) for x in self.strip_comments_empty(self.options('domain/%s' % name))
+                     if x['name'].rfind('_provider') > 0]
         [domain.set_option(option, value)
          for (option, value) in providers]
 
-        [domain.set_option(option, value)
-         for (option,value) in self.items('domain/%s' % name)
-         if (option,value) not in providers]
+        [domain.set_option(opt['name'], opt['value'])
+         for opt in self.strip_comments_empty(self.options('domain/%s' % name))
+         if opt not in providers]
 
         return domain
 
@@ -1284,7 +1287,7 @@ class SSSDConfig(RawConfigParser):
         """
         if not self.initialized:
             raise NotInitializedError
-        self.remove_section('domain/%s' % name)
+        self.delete_option('section', 'domain/%s' % name)
 
     def save_domain(self, domain):
         """
@@ -1315,20 +1318,23 @@ class SSSDConfig(RawConfigParser):
         # Ensure that the existing section is removed
         # This way we ensure that we are getting a
         # complete copy of the service.
-        # remove_section() is a noop if the section
+        # delete_option() is a noop if the section
         # does not exist.
-        self.remove_section(sectionname)
-        self.add_section(sectionname)
-        option_dict = domain.get_all_options()
-        [self.set(sectionname, option, option_dict[option])
-         for option in option_dict.keys()]
+        index = self.delete_option('section', sectionname)
+        addkw = []
+        for option,value in domain.get_all_options().items():
+            if (type(value) == list):
+                value = ', '.join(value)
+            addkw.append( { 'type'  : 'option',
+                            'name'  : option,
+                            'value' : str(value) } )
+        self.add_section(sectionname, addkw, index)
 
         if domain.active:
             if domain.get_name not in self.list_active_domains():
                 # Add it to the list of active domains
-                if (self.has_option('sssd','domains')):
-                    active_domains = self.get('sssd', 'domains')
-                    active_domains += ", %s" % domain.get_name()
+                item = self.get_option_index('sssd', 'domains')[1]
+                if item:
+                    item['value'] += ", %s" % domain.get_name()
                 else:
-                    active_domains = domain.get_name()
-                self.set('sssd', 'domains', active_domains)
+                    self.set('sssd', 'domains', domain.get_name())
