@@ -64,8 +64,6 @@ static void ldap_id_enumerate_timer(struct tevent_context *ev,
         return;
     }
 
-    ctx->last_run = tv;
-
     req = ldap_id_enumerate_send(ev, ctx);
     if (!req) {
         DEBUG(1, ("Failed to schedule enumeration, retrying later!\n"));
@@ -117,7 +115,7 @@ static void ldap_id_enumerate_reschedule(struct tevent_req *req)
         /* On error schedule starting from now, not the last run */
         tv = tevent_timeval_current();
     } else {
-        tv = ctx->last_run;
+        tv = ctx->last_enum;
     }
     talloc_zfree(req);
 
@@ -149,15 +147,19 @@ int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
 struct global_enum_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+
+    bool purge;
 };
 
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx);
+                                          struct sdap_id_ctx *ctx,
+                                          bool purge);
 static void ldap_id_enum_users_done(struct tevent_req *subreq);
 static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx);
+                                          struct sdap_id_ctx *ctx,
+                                          bool purge);
 static void ldap_id_enum_groups_done(struct tevent_req *subreq);
 static void ldap_id_enum_cleanup_done(struct tevent_req *subreq);
 
@@ -166,6 +168,7 @@ static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
 {
     struct global_enum_state *state;
     struct tevent_req *req, *subreq;
+    int t;
 
     req = tevent_req_create(ctx, &state, struct global_enum_state);
     if (!req) return NULL;
@@ -173,7 +176,16 @@ static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
     state->ev = ev;
     state->ctx = ctx;
 
-    subreq = enum_users_send(state, ev, ctx);
+    ctx->last_enum = tevent_timeval_current();
+
+    t = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+    if ((ctx->last_purge.tv_sec + t) < ctx->last_enum.tv_sec) {
+        state->purge = true;
+    } else {
+        state->purge = false;
+    }
+
+    subreq = enum_users_send(state, ev, ctx, state->purge);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -202,7 +214,7 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
 
-    subreq = enum_groups_send(state, state->ev, state->ctx);
+    subreq = enum_groups_send(state, state->ev, state->ctx, state->purge);
     if (!subreq) {
         goto fail;
     }
@@ -241,12 +253,18 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
 
-    subreq = ldap_id_cleanup_send(state, state->ev, state->ctx);
-    if (!subreq) {
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, ldap_id_enum_cleanup_done, req);
+    if (state->purge) {
 
+        subreq = ldap_id_cleanup_send(state, state->ev, state->ctx);
+        if (!subreq) {
+            goto fail;
+        }
+        tevent_req_set_callback(subreq, ldap_id_enum_cleanup_done, req);
+
+        return;
+    }
+
+    tevent_req_done(req);
     return;
 
 fail:
@@ -281,7 +299,8 @@ static void enum_users_op_done(struct tevent_req *subreq);
 
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx)
+                                          struct sdap_id_ctx *ctx,
+                                          bool purge)
 {
     struct tevent_req *req, *subreq;
     struct enum_users_state *state;
@@ -293,7 +312,8 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
 
-    if (ctx->max_user_timestamp) {
+    if (ctx->max_user_timestamp && !purge) {
+
         state->filter = talloc_asprintf(state,
                                "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
                                ctx->opts->user_map[SDAP_AT_USER_NAME].name,
@@ -429,7 +449,8 @@ static void enum_groups_op_done(struct tevent_req *subreq);
 
 static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx)
+                                          struct sdap_id_ctx *ctx,
+                                          bool purge)
 {
     struct tevent_req *req, *subreq;
     struct enum_groups_state *state;
@@ -444,7 +465,8 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 
     attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
 
-    if (ctx->max_group_timestamp) {
+    if (ctx->max_group_timestamp && !purge) {
+
         state->filter = talloc_asprintf(state,
                               "(&(%s=*)(objectclass=%s)(%s>=%s)(!(%s=%s)))",
                               ctx->opts->group_map[SDAP_AT_GROUP_NAME].name,

@@ -37,7 +37,9 @@ struct sdap_id_ctx {
     struct sdap_handle *gsh;
 
     /* enumeration loop timer */
-    struct timeval last_run;
+    struct timeval last_enum;
+    /* cleanup loop timer */
+    struct timeval last_purge;
 
     char *max_user_timestamp;
     char *max_group_timestamp;

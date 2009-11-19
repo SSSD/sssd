@@ -60,8 +60,6 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
         return;
     }
 
-    ctx->last_run = tv;
-
     req = ldap_id_cleanup_send(ctx, ev, ctx);
     if (!req) {
         DEBUG(1, ("Failed to schedule cleanup, retrying later!\n"));
@@ -113,7 +111,7 @@ static void ldap_id_cleanup_reschedule(struct tevent_req *req)
         /* On error schedule starting from now, not the last run */
         tv = tevent_timeval_current();
     } else {
-        tv = ctx->last_run;
+        tv = ctx->last_purge;
     }
     talloc_zfree(req);
 
@@ -176,6 +174,8 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
         return NULL;
     }
     tevent_req_set_callback(subreq, ldap_id_cleanup_users_done, req);
+
+    ctx->last_purge = tevent_timeval_current();
 
     return req;
 }

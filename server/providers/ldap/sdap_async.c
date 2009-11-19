@@ -769,7 +769,7 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
     state->reply_count = 0;
     state->reply = NULL;
 
-    DEBUG(7, ("calling ldap_search_ext with [%s][%s].\n", state->filter,
+    DEBUG(6, ("calling ldap_search_ext with [%s][%s].\n", state->filter,
                                                           state->search_base));
     if (debug_level >= 7) {
         int i;
