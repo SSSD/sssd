@@ -1290,7 +1290,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
 
             if (strcmp(version, SYSDB_VERSION_0_3) == 0) {
                 ret = sysdb_upgrade_03(ctx, &version);
-                if (ret != EOK) goto done;
+                goto done;
             }
 
         }
