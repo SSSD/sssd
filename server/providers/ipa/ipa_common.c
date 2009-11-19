@@ -478,19 +478,19 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     /* free old one and replace with new one */
     talloc_zfree(service->sdap->uri);
     service->sdap->uri = new_uri;
-    talloc_zfree(service->krb_server->address);
-    service->krb_server->address = address;
+    talloc_zfree(service->krb5_service->address);
+    service->krb5_service->address = address;
 
-    /* set also env variable */
-    ret = setenv(SSSD_KRB5_KDC, address, 1);
+    ret = write_kdcinfo_file(service->krb5_service->realm, address);
     if (ret != EOK) {
-        DEBUG(2, ("setenv %s failed, authentication might fail.\n",
-                  SSSD_KRB5_KDC));
+        DEBUG(2, ("write_kdcinfo_file failed, authentication might fail.\n"));
     }
+
 }
 
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                     const char *servers, struct ipa_service **_service)
+                     const char *servers, const char *domain,
+                     struct ipa_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
     struct ipa_service *service;
@@ -514,8 +514,8 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         ret = ENOMEM;
         goto done;
     }
-    service->krb_server = talloc_zero(service, struct krb_server);
-    if (!service->krb_server) {
+    service->krb5_service = talloc_zero(service, struct krb5_service);
+    if (!service->krb5_service) {
         ret = ENOMEM;
         goto done;
     }
@@ -528,6 +528,18 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     service->sdap->name = talloc_strdup(service, "IPA");
     if (!service->sdap->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    service->krb5_service->name = talloc_strdup(service, "IPA");
+    if (!service->krb5_service->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    service->krb5_service->realm = talloc_strdup(service, domain);
+    if (!service->krb5_service->realm) {
         ret = ENOMEM;
         goto done;
     }

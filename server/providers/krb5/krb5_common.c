@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
@@ -47,17 +48,8 @@ errno_t check_and_export_options(struct dp_option *opts,
     const char *realm;
     const char *dummy;
     struct stat stat_buf;
-
-    dummy = dp_opt_get_cstring(opts, KRB5_KDC);
-    if (dummy == NULL) {
-        DEBUG(2, ("No KDC expicitly configured, using defaults"));
-    } else {
-        ret = setenv(SSSD_KRB5_KDC, dummy, 1);
-        if (ret != EOK) {
-            DEBUG(2, ("setenv %s failed, authentication might fail.\n",
-                      SSSD_KRB5_KDC));
-        }
-    }
+    char **list;
+    int count;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -68,10 +60,28 @@ errno_t check_and_export_options(struct dp_option *opts,
         }
         realm = dom->name;
     }
+
     ret = setenv(SSSD_KRB5_REALM, realm, 1);
     if (ret != EOK) {
         DEBUG(2, ("setenv %s failed, authentication might fail.\n",
                   SSSD_KRB5_REALM));
+    }
+
+    dummy = dp_opt_get_cstring(opts, KRB5_KDC);
+    if (dummy == NULL) {
+        DEBUG(1, ("No KDC expicitly configured, using defaults"));
+    } else {
+        ret = sss_split_list(opts, dummy, ", ", &list, &count);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to parse server list!\n"));
+            return ret;
+        }
+        ret = write_kdcinfo_file(realm, list[0]);
+        if (ret != EOK) {
+            DEBUG(1, ("write_kdcinfo_file failed, "
+                      "using kerberos defaults from /etc/krb5.conf"));
+        }
+        talloc_free(list);
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_CCACHEDIR);
@@ -154,3 +164,195 @@ done:
 
     return ret;
 }
+
+errno_t write_kdcinfo_file(const char *realm, const char *kdc)
+{
+    int ret;
+    int fd = -1;
+    char *tmp_name = NULL;
+    char *kdcinfo_name = NULL;
+    TALLOC_CTX *tmp_ctx = NULL;
+    int kdc_len;
+
+    if (realm == NULL || *realm == '\0' || kdc == NULL || *kdc == '\0') {
+        DEBUG(1, ("Missing or empty realm or kdc.\n"));
+        return EINVAL;
+    }
+
+    kdc_len = strlen(kdc);
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    tmp_name = talloc_asprintf(tmp_ctx, PUBCONF_PATH"/.kdcinfo_dummy_XXXXXX");
+    if (tmp_name == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    kdcinfo_name = talloc_asprintf(tmp_ctx, KDCINFO_TMPL, realm);
+    if (kdcinfo_name == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    fd = mkstemp(tmp_name);
+    if (fd == -1) {
+        DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
+        ret = errno;
+        goto done;
+    }
+
+    ret = write(fd, kdc, kdc_len);
+    if (ret == -1) {
+        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
+        goto done;
+    }
+    if (ret != kdc_len) {
+        DEBUG(1, ("Partial write occured, this should never happen.\n"));
+        ret = EINTR;
+        goto done;
+    }
+
+    ret = fchmod(fd, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    if (ret == -1) {
+        DEBUG(1, ("fchmod failed [%d][%s].\n", errno, strerror(errno)));
+        goto done;
+    }
+
+    ret = close(fd);
+    if (ret == -1) {
+        DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+        goto done;
+    }
+
+    ret = rename(tmp_name, kdcinfo_name);
+    if (ret == -1) {
+        DEBUG(1, ("rename failed [%d][%s].\n", errno, strerror(errno)));
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static void krb5_resolve_callback(void *private_data, struct fo_server *server)
+{
+    struct krb5_service *krb5_service;
+    struct hostent *srvaddr;
+    char *address;
+    int ret;
+
+    krb5_service = talloc_get_type(private_data, struct krb5_service);
+    if (!krb5_service) {
+        DEBUG(1, ("FATAL: Bad private_data\n"));
+        return;
+    }
+
+    srvaddr = fo_get_server_hostent(server);
+    if (!srvaddr) {
+        DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
+                  fo_get_server_name(server)));
+        return;
+    }
+
+    address = talloc_asprintf(krb5_service, srvaddr->h_name);
+    if (!address) {
+        DEBUG(1, ("Failed to copy address ...\n"));
+        return;
+    }
+
+    talloc_zfree(krb5_service->address);
+    krb5_service->address = address;
+
+    ret = write_kdcinfo_file(krb5_service->realm, address);
+    if (ret != EOK) {
+        DEBUG(2, ("write_kdcinfo_file failed, authentication might fail.\n"));
+    }
+
+    return;
+}
+
+
+int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                      const char *service_name, const char *servers,
+                      const char *realm, struct krb5_service **_service)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct krb5_service *service;
+    char **list = NULL;
+    int count = 0;
+    int ret;
+    int i;
+
+    tmp_ctx = talloc_new(memctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    service = talloc_zero(tmp_ctx, struct krb5_service);
+    if (!service) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_fo_add_service(ctx, service_name);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to create failover service!\n"));
+        goto done;
+    }
+
+    service->name = talloc_strdup(service, service_name);
+    if (!service->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    service->realm = talloc_strdup(service, realm);
+    if (!service->realm) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_split_list(tmp_ctx, servers, ", ", &list, &count);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    for (i = 0; i < count; i++) {
+
+        talloc_steal(service, list[i]);
+
+        ret = be_fo_add_server(ctx, service_name, list[i], 0, NULL);
+        if (ret && ret != EEXIST) {
+            DEBUG(0, ("Failed to add server\n"));
+            goto done;
+        }
+
+        DEBUG(6, ("Added Server %s\n", list[i]));
+    }
+
+    ret = be_fo_service_add_callback(memctx, ctx, service_name,
+                                     krb5_resolve_callback, service);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to add failover callback!\n"));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_service = talloc_steal(memctx, service);
+    }
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+

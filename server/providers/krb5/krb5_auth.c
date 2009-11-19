@@ -528,6 +528,7 @@ static errno_t krb5_setup(struct be_req *req, struct krb5child_req **krb5_req)
     kr->read_from_child_fd = -1;
     kr->write_to_child_fd = -1;
     kr->is_offline = false;
+    kr->active_ccache_present = true;
     talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
     kr->pd = pd;
@@ -929,6 +930,7 @@ static int handle_child_recv(struct tevent_req *req,
 }
 
 static void get_user_attr_done(void *pvt, int err, struct ldb_result *res);
+static void krb5_resolve_done(struct tevent_req *req);
 static void krb5_save_ccname_done(struct tevent_req *req);
 static void krb5_child_done(struct tevent_req *req);
 static void krb5_pam_handler_cache_done(struct tevent_req *treq);
@@ -988,7 +990,6 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
     int dp_err = DP_ERR_FATAL;
     const char *ccache_file = NULL;
     const char *dummy;
-    bool active_ccache_present = false;
 
     ret = krb5_setup(be_req, &kr);
     if (ret != EOK) {
@@ -1047,7 +1048,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         }
 
         if (ccache_file == NULL) {
-            active_ccache_present = false;
+            kr->active_ccache_present = false;
             DEBUG(4, ("No active ccache file for user [%s] found.\n",
                       pd->user));
             ccache_file = expand_ccname_template(kr, kr,
@@ -1059,11 +1060,11 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
                 goto failed;
             }
         } else {
-            active_ccache_present = true;
+            kr->active_ccache_present = true;
         }
         DEBUG(9, ("Ccache_file is [%s] and %s.\n", ccache_file,
-                  active_ccache_present ? "will be kept/renewed" :
-                                          "will be generated"));
+                  kr->active_ccache_present ? "will be kept/renewed" :
+                                              "will be generated"));
         kr->ccname = ccache_file;
         break;
 
@@ -1074,6 +1075,44 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         break;
     }
 
+    req = be_resolve_server_send(kr, be_req->be_ctx->ev, be_req->be_ctx,
+                                 krb5_ctx->service->name);
+    if (req == NULL) {
+        DEBUG(1, ("handle_child_send failed.\n"));
+        goto failed;
+    }
+
+    tevent_req_set_callback(req, krb5_resolve_done, kr);
+
+    return;
+
+failed:
+    talloc_free(kr);
+
+    pd->pam_status = pam_status;
+    krb_reply(be_req, dp_err, pd->pam_status);
+}
+
+static void krb5_resolve_done(struct tevent_req *req)
+{
+    struct krb5child_req *kr = tevent_req_callback_data(req,
+                                                        struct krb5child_req);
+    int ret;
+    int pam_status = PAM_SYSTEM_ERR;
+    int dp_err = DP_ERR_FATAL;
+    struct pam_data *pd = kr->pd;
+    struct be_req *be_req = kr->req;
+
+    ret = be_resolve_server_recv(req, &kr->srv);
+    talloc_zfree(req);
+    if (ret) {
+        /* all servers have been tried and none
+         * was found good, setting offline,
+         * but we still have to call the child to setup
+         * the ccache file. */
+        be_mark_offline(be_req->be_ctx);
+        kr->is_offline = true;
+    }
 
     if (be_is_offline(be_req->be_ctx)) {
         DEBUG(9, ("Preparing for offline operation.\n"));
@@ -1081,14 +1120,14 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         memset(pd->authtok, 0, pd->authtok_size);
         pd->authtok_size = 0;
 
-        if (active_ccache_present) {
+        if (kr->active_ccache_present) {
             req = krb5_save_ccname_send(kr, be_req->be_ctx->ev,
                                         be_req->be_ctx->sysdb,
                                         be_req->be_ctx->domain, pd->user,
                                         kr->ccname);
             if (req == NULL) {
                 DEBUG(1, ("krb5_save_ccname_send failed.\n"));
-                goto failed;
+                goto done;
             }
 
             tevent_req_set_callback(req, krb5_save_ccname_done, kr);
@@ -1099,15 +1138,14 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
     req = handle_child_send(kr, be_req->be_ctx->ev, kr);
     if (req == NULL) {
         DEBUG(1, ("handle_child_send failed.\n"));
-        goto failed;
+        goto done;
     }
 
     tevent_req_set_callback(req, krb5_child_done, kr);
     return;
 
-failed:
+done:
     talloc_free(kr);
-
     pd->pam_status = pam_status;
     krb_reply(be_req, dp_err, pd->pam_status);
 }
@@ -1189,6 +1227,9 @@ static void krb5_child_done(struct tevent_req *req)
     }
 
     if (*msg_status == PAM_AUTHINFO_UNAVAIL) {
+        if (kr->srv != NULL) {
+            fo_set_server_status(kr->srv, SERVER_NOT_WORKING);
+        }
         be_mark_offline(be_req->be_ctx);
         kr->is_offline = true;
     }

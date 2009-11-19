@@ -28,6 +28,7 @@ Requires(postun): /sbin/service
 %define sssdstatedir %{_localstatedir}/lib/sss
 %define dbpath %{sssdstatedir}/db
 %define pipepath %{sssdstatedir}/pipes
+%define pubconfpath %{sssdstatedir}/pubconf
 
 ### Build Dependencies ###
 
@@ -80,6 +81,7 @@ KRB5_LIBS=-lkrb5 \
     --without-tests \
     --with-db-path=%{dbpath} \
     --with-pipe-path=%{pipepath} \
+    --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
     --enable-nsslibdir=/%{_lib}
 
@@ -138,6 +140,7 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{sssdstatedir}
 %attr(700,root,root) %dir %{dbpath}
 %attr(755,root,root) %dir %{pipepath}
+%attr(755,root,root) %dir %{pubconfpath}
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(700,root,root) %dir %{_sysconfdir}/sssd

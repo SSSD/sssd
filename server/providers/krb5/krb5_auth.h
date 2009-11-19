@@ -50,6 +50,8 @@ struct krb5child_req {
     const char *ccname;
     const char *homedir;
     bool is_offline;
+    struct fo_server *srv;
+    bool active_ccache_present;
 };
 
 struct fo_service;
@@ -80,7 +82,7 @@ struct krb5_ctx {
     action_type action;
 
     struct dp_option *opts;
-    struct krb_server *server;
+    struct krb5_service *service;
     int child_debug_fd;
 };
 

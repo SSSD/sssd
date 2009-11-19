@@ -27,12 +27,14 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <netdb.h>
-
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <krb5/locate_plugin.h>
 
 #include "providers/krb5/krb5_common.h"
 
+#define BUFSIZE 512
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define DEBUG_KEY "[sssd_krb5_locator] "
 #define PLUGIN_DEBUG(body) do { \
@@ -67,12 +69,89 @@ void debug_fn(const char *format, ...)
     free(s);
 }
 
+static int get_kdcinfo(const char *realm, struct sssd_ctx *ctx)
+{
+    int ret;
+    char *kdcinfo_name = NULL;
+    size_t len;
+    uint8_t buf[BUFSIZE + 1];
+    uint8_t *p;
+    int fd = -1;
+
+    len = strlen(realm) + strlen(KDCINFO_TMPL);
+
+    kdcinfo_name = calloc(1, len + 1);
+    if (kdcinfo_name == NULL) {
+        PLUGIN_DEBUG(("malloc failed.\n"));
+        return ENOMEM;
+    }
+
+    ret = snprintf(kdcinfo_name, len, KDCINFO_TMPL, realm);
+    if (ret < 0) {
+        PLUGIN_DEBUG(("snprintf failed"));
+        ret = EINVAL;
+    }
+    kdcinfo_name[len] = '\0';
+
+    fd = open(kdcinfo_name, O_RDONLY);
+    if (fd == -1) {
+        PLUGIN_DEBUG(("open failed [%d][%s].\n", errno, strerror(errno)));
+        ret = errno;
+        goto done;
+    }
+
+    len = BUFSIZE;
+    p = buf;
+    memset(buf, 0, BUFSIZE+1);
+    while (len != 0 && (ret = read(fd, p, len)) != 0) {
+        if (ret == -1) {
+            if (errno == EINTR) continue;
+            PLUGIN_DEBUG(("read failed [%d][%s].\n", errno, strerror(errno)));
+            close(fd);
+            goto done;
+        }
+
+        len -= ret;
+        p += ret;
+    }
+    close(fd);
+
+    if (len == 0) {
+        PLUGIN_DEBUG(("Content of kdcinfo file [%s] is [%d] or larger.\n",
+                      kdcinfo_name, BUFSIZE));
+    }
+    PLUGIN_DEBUG(("Found kdcinfo [%s].\n", buf));
+
+    ret = getaddrinfo((char *) buf, "kerberos", NULL, &ctx->sssd_kdc_addrinfo);
+    if (ret != 0) {
+        PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
+                                                        gai_strerror(ret)));
+        if (ret == EAI_SYSTEM) {
+            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
+                                                            strerror(errno)));
+        }
+        goto done;
+    }
+
+    ctx->sssd_realm = strdup(realm);
+    if (ctx->sssd_realm == NULL) {
+        PLUGIN_DEBUG(("strdup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+
+
+done:
+    free(kdcinfo_name);
+    return ret;
+}
+
 krb5_error_code sssd_krb5_locator_init(krb5_context context,
                                        void **private_data)
 {
     struct sssd_ctx *ctx;
     const char *dummy;
-    int ret;
 
     ctx = calloc(1,sizeof(struct sssd_ctx));
     if (ctx == NULL) return ENOMEM;
@@ -85,36 +164,9 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         PLUGIN_DEBUG(("sssd_krb5_locator_init called\n"));
     }
 
-    dummy = getenv(SSSD_KRB5_REALM);
-    if (dummy == NULL) goto failed;
-    ctx->sssd_realm = strdup(dummy);
-    if (ctx->sssd_realm == NULL) goto failed;
-
-    dummy = getenv(SSSD_KRB5_KDC);
-    if (dummy == NULL) goto failed;
-
-    ret = getaddrinfo(dummy, "kerberos", NULL, &ctx->sssd_kdc_addrinfo);
-    if (ret != 0) {
-        PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
-                                                        gai_strerror(ret)));
-        if (ret == EAI_SYSTEM) {
-            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
-                                                            strerror(errno)));
-        }
-        goto failed;
-    }
-
     *private_data = ctx;
 
     return 0;
-failed:
-    freeaddrinfo(ctx->sssd_kdc_addrinfo);
-    free(ctx->sssd_realm);
-    free(ctx);
-
-    private_data = NULL;
-
-    return EINVAL;
 }
 
 void sssd_krb5_locator_close(void *private_data)
@@ -149,6 +201,18 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
+
+    if (ctx->sssd_realm == NULL || strcmp(ctx->sssd_realm, realm) != 0) {
+        freeaddrinfo(ctx->sssd_kdc_addrinfo);
+        ctx->sssd_kdc_addrinfo = NULL;
+        free(ctx->sssd_realm);
+        ctx->sssd_realm = NULL;
+        ret = get_kdcinfo(realm, ctx);
+        if (ret != EOK) {
+            PLUGIN_DEBUG(("get_kdcinfo failed.\n"));
+            return KRB5_PLUGIN_NO_HANDLE;
+        }
+    }
 
     PLUGIN_DEBUG(("sssd_realm[%s] requested realm[%s] family[%d] socktype[%d] "
                   "locate_service[%d]\n", ctx->sssd_realm, realm, family,

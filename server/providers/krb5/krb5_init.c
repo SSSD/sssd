@@ -29,12 +29,14 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
 
-struct bet_ops krb5_auth_ops = {
-    .handler = krb5_pam_handler,
-    .finalize = NULL,
+struct krb5_options {
+    struct dp_option *opts;
+    struct krb5_ctx *auth_ctx;
 };
 
-struct bet_ops krb5_chpass_ops = {
+struct krb5_options *krb5_options = NULL;
+
+struct bet_ops krb5_auth_ops = {
     .handler = krb5_pam_handler,
     .finalize = NULL,
 };
@@ -48,6 +50,28 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     struct tevent_signal *sige;
     unsigned v;
     FILE *debug_filep;
+    const char *krb5_servers;
+    const char *krb5_realm;
+
+    if (krb5_options == NULL) {
+        krb5_options = talloc_zero(bectx, struct krb5_options);
+        if (krb5_options == NULL) {
+            DEBUG(1, ("talloc_zero failed.\n"));
+            return ENOMEM;
+        }
+        ret = krb5_get_options(krb5_options, bectx->cdb, bectx->conf_path,
+                               &krb5_options->opts);
+        if (ret != EOK) {
+            DEBUG(1, ("krb5_get_options failed.\n"));
+            return ret;
+        }
+    }
+
+    if (krb5_options->auth_ctx != NULL) {
+        *ops = &krb5_auth_ops;
+        *pvt_auth_data = krb5_options->auth_ctx;
+        return EOK;
+    }
 
     ctx = talloc_zero(bectx, struct krb5_ctx);
     if (!ctx) {
@@ -56,11 +80,25 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     }
 
     ctx->action = INIT_PW;
+    ctx->opts = krb5_options->opts;
 
-    ret = krb5_get_options(ctx, bectx->cdb, bectx->conf_path, &ctx->opts);
+    krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
+    if (krb5_servers == NULL) {
+        DEBUG(0, ("Missing krb5_kdcip option!\n"));
+        return EINVAL;
+    }
+
+    krb5_realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
+    if (krb5_realm == NULL) {
+        DEBUG(0, ("Missing krb5_realm option!\n"));
+        return EINVAL;
+    }
+
+    ret = krb5_service_init(ctx, bectx, "KRB5", krb5_servers, krb5_realm,
+                            &ctx->service);
     if (ret != EOK) {
-        DEBUG(1, ("krb5_get_options failed.\n"));
-        goto fail;
+        DEBUG(0, ("Failed to init IPA failover service!\n"));
+        return ret;
     }
 
     ret = check_and_export_options(ctx->opts, bectx->domain);

@@ -66,6 +66,23 @@ AC_DEFUN([WITH_LOG_PATH],
     AC_DEFINE_UNQUOTED(LOG_PATH, "$config_logpath", [Where to store log files for the SSSD])
   ])
 
+AC_DEFUN([WITH_PUBCONF_PATH],
+  [ AC_ARG_WITH([pubconf-path],
+                [AC_HELP_STRING([--with-pubconf-path=PATH],
+                                [Where to store pubconf files for the SSSD [/var/lib/sss/pubconf]]
+                               )
+                ]
+               )
+    config_pubconfpath="\"VARDIR\"/lib/sss/pubconf"
+    pubconfpath="${localstatedir}/lib/sss/pubconf"
+    if test x"$with_pubconf_path" != x; then
+        config_pubconfpath=$with_pubconf_path
+        pubconfpath=$with_pubconf_path
+    fi
+    AC_SUBST(pubconfpath)
+    AC_DEFINE_UNQUOTED(PUBCONF_PATH, "$config_pubconfpath", [Where to store pubconf files for the SSSD])
+  ])
+
 AC_DEFUN([WITH_PIPE_PATH],
   [ AC_ARG_WITH([pipe-path],
                 [AC_HELP_STRING([--with-pipe-path=PATH],

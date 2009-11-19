@@ -22,6 +22,7 @@ pidpath = @pidpath@
 pipepath = @pipepath@
 initdir = @initdir@
 logpath = @logpath@
+pubconfpath = @pubconfpath@
 
 AM_CFLAGS =
 if WANT_AUX_INFO
@@ -432,13 +433,16 @@ krb5_utils_tests_SOURCES = \
     tests/krb5_utils-tests.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_common.c \
+    providers/data_provider_fo.c \
     providers/data_provider_opts.c \
+    $(SSSD_FAILOVER_OBJ) \
     $(SSSD_UTIL_OBJ)
 krb5_utils_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 krb5_utils_tests_LDADD = \
     $(SSSD_LIBS)\
+    $(CARES_LIBS) \
     $(CHECK_LIBS)
 
 check_and_open_tests_SOURCES = \
@@ -749,7 +753,8 @@ installsssddirs::
     $(DESTDIR)$(dbpath) \
     $(DESTDIR)$(pidpath) \
     $(DESTDIR)$(initdir) \
-    $(DESTDIR)$(logpath)
+    $(DESTDIR)$(logpath) \
+    $(DESTDIR)$(pubconfpath)
 
 install-exec-hook: installsssddirs
 	if [ "$(DESTDIR)" = "" ]; then \

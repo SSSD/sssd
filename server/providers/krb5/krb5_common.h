@@ -37,6 +37,8 @@
 #define SSSD_KRB5_REALM "SSSD_KRB5_REALM"
 #define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
 
+#define KDCINFO_TMPL PUBCONF_PATH"/kdcinfo.%s"
+
 enum krb5_opts {
     KRB5_KDC = 0,
     KRB5_REALM,
@@ -50,8 +52,10 @@ enum krb5_opts {
     KRB5_OPTS
 };
 
-struct krb_server {
+struct krb5_service {
+    char *name;
     char *address;
+    char *realm;
 };
 
 errno_t check_and_export_options(struct dp_option *opts,
@@ -59,4 +63,10 @@ errno_t check_and_export_options(struct dp_option *opts,
 
 errno_t krb5_get_options(TALLOC_CTX *memctx, struct confdb_ctx *cdb,
                          const char *conf_path, struct dp_option **_opts);
+
+errno_t write_kdcinfo_file(const char *realm, const char *kdc);
+
+int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                      const char *service_name, const char *servers,
+                      const char *realm, struct krb5_service **_service);
 #endif /* __KRB5_COMMON_H__ */
