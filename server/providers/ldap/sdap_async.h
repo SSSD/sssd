@@ -62,6 +62,7 @@ int sdap_get_groups_recv(struct tevent_req *req,
 struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_handle *sh,
+                                   int    timeout,
                                    const char *keytab,
                                    const char *principal,
                                    const char *realm);

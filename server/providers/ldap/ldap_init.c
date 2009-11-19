@@ -22,7 +22,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <fcntl.h>
+
+#include "providers/child_common.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_async_private.h"
 
 static void sdap_shutdown(struct be_req *req);
 
@@ -43,6 +47,49 @@ struct bet_ops sdap_chpass_ops = {
     .handler = sdap_pam_chpass_handler,
     .finalize = sdap_shutdown
 };
+
+static int setup_child(struct sdap_id_ctx *ctx)
+{
+    int ret;
+    const char *mech;
+    struct tevent_signal *sige;
+    unsigned v;
+    FILE *debug_filep;
+
+    mech = dp_opt_get_string(ctx->opts->basic,
+                             SDAP_SASL_MECH);
+    if (!mech) {
+        return EOK;
+    }
+
+    sige = tevent_add_signal(ctx->be->ev, ctx, SIGCHLD, SA_SIGINFO,
+                             child_sig_handler, NULL);
+    if (sige == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        return ENOMEM;
+    }
+
+    if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
+        ret = open_debug_file_ex("ldap_child", &debug_filep);
+        if (ret != EOK) {
+            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
+                        ret, strerror(ret)));
+            return ret;
+        }
+
+        ldap_child_debug_fd = fileno(debug_filep);
+        if (ldap_child_debug_fd == -1) {
+            DEBUG(0, ("fileno failed [%d][%s]\n", errno, strerror(errno)));
+            ret = errno;
+            return ret;
+        }
+
+        v = fcntl(ldap_child_debug_fd, F_GETFD, 0);
+        fcntl(ldap_child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
+    }
+
+    return EOK;
+}
 
 int sssm_ldap_init(struct be_ctx *bectx,
                    struct bet_ops **ops,
@@ -85,6 +132,13 @@ int sssm_ldap_init(struct be_ctx *bectx,
 
     ret = sdap_id_setup_tasks(ctx);
     if (ret != EOK) {
+        goto done;
+    }
+
+    ret = setup_child(ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("setup_child failed [%d][%s].\n",
+                  ret, strerror(ret)));
         goto done;
     }
 

@@ -420,7 +420,8 @@
                         <para>
                             Specifies a timeout (in seconds) after which
                             calls to synchronous LDAP APIs will abort if no
-                            response is received.
+                            response is received. Also controls the timeout
+                            when communicating to KDC in case of SASL bind.
                         </para>
                         <para>
                             Default: 5

@@ -56,6 +56,7 @@ sssdlibexec_PROGRAMS = \
     sssd_pam \
     sssd_be \
     krb5_child \
+    ldap_child \
     $(sssd_pk) \
     $(sssd_info)
 
@@ -566,6 +567,7 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/sdap_async.c \
     providers/ldap/sdap_async_accounts.c \
     providers/ldap/sdap_async_connection.c \
+    providers/ldap/sdap_child_helpers.c \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
     util/sss_krb5.c
@@ -622,6 +624,7 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/sdap_async.c \
     providers/ldap/sdap_async_accounts.c \
     providers/ldap/sdap_async_connection.c \
+    providers/ldap/sdap_child_helpers.c \
     providers/ldap/sdap.c \
     util/sss_ldap.c \
     util/sss_krb5.c \
@@ -657,6 +660,22 @@ krb5_child_LDADD = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
     $(POPT_LIBS) \
+    $(KRB5_LIBS)
+
+ldap_child_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
+    providers/ldap/ldap_child.c \
+    providers/child_common.c \
+    util/sss_krb5.c
+ldap_child_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(KRB5_CFLAGS)
+ldap_child_LDADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(POPT_LIBS) \
+    $(OPENLDAP_LIBS) \
     $(KRB5_LIBS)
 
 memberof_la_SOURCES = \

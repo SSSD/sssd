@@ -41,4 +41,19 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 int sdap_get_rootdse_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,
                           struct sysdb_attrs **rootdse);
+
+/* from sdap_child_helpers.c */
+
+struct tevent_req *sdap_krb5_get_tgt_send(TALLOC_CTX *mem_ctx,
+                                          struct tevent_context *ev,
+                                          int timeout,
+                                          const char *realm_str,
+                                          const char *princ_str,
+                                          const char *keytab_name);
+
+int sdap_krb5_get_tgt_recv(struct tevent_req *req,
+                           TALLOC_CTX *mem_ctx,
+                           int  *result,
+                           char **ccname);
+
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */

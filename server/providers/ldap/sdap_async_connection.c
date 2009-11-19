@@ -547,168 +547,22 @@ static int sasl_bind_recv(struct tevent_req *req, int *ldaperr)
 
 /* ==Perform-Kinit-given-keytab-and-principal============================= */
 
-static int sdap_krb5_get_tgt_sync(TALLOC_CTX *memctx,
-                                  const char *realm_str,
-                                  const char *princ_str,
-                                  const char *keytab_name)
-{
-    char *ccname;
-    char *realm_name = NULL;
-    char *full_princ = NULL;
-    krb5_context context = NULL;
-    krb5_keytab keytab = NULL;
-    krb5_ccache ccache = NULL;
-    krb5_principal kprinc;
-    krb5_creds my_creds;
-    krb5_get_init_creds_opt options;
-    krb5_error_code krberr;
-    int ret;
-
-    krberr = krb5_init_context(&context);
-    if (krberr) {
-        DEBUG(2, ("Failed to init kerberos context\n"));
-        return EFAULT;
-    }
-
-    if (!realm_str) {
-        krberr = krb5_get_default_realm(context, &realm_name);
-        if (krberr) {
-            DEBUG(2, ("Failed to get default realm name: %s\n",
-                      sss_krb5_get_error_message(context, krberr)));
-            ret = EFAULT;
-            goto done;
-        }
-    } else {
-        realm_name = talloc_strdup(memctx, realm_str);
-        if (!realm_name) {
-            ret = ENOMEM;
-            goto done;
-        }
-    }
-
-    if (princ_str) {
-        if (!strchr(princ_str, '@')) {
-            full_princ = talloc_asprintf(memctx, "%s@%s",
-                                         princ_str, realm_name);
-        } else {
-            full_princ = talloc_strdup(memctx, princ_str);
-        }
-    } else {
-        char hostname[512];
-
-        ret = gethostname(hostname, 511);
-        if (ret == -1) {
-            ret = errno;
-            goto done;
-        }
-        hostname[511] = '\0';
-
-        full_princ = talloc_asprintf(memctx, "host/%s@%s",
-                                     hostname, realm_name);
-    }
-    if (!full_princ) {
-        ret = ENOMEM;
-        goto done;
-    }
-    DEBUG(4, ("Principal name is: [%s]\n", full_princ));
-
-    krberr = krb5_parse_name(context, full_princ, &kprinc);
-    if (krberr) {
-        DEBUG(2, ("Unable to build principal: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
-        goto done;
-    }
-
-    if (keytab_name) {
-        krberr = krb5_kt_resolve(context, keytab_name, &keytab);
-    } else {
-        krberr = krb5_kt_default(context, &keytab);
-    }
-    if (krberr) {
-        DEBUG(2, ("Failed to read keytab file: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
-        goto done;
-    }
-
-    ccname = talloc_asprintf(memctx, "FILE:%s/ccache_%s", DB_PATH, realm_name);
-    if (!ccname) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = setenv("KRB5CCNAME", ccname, 1);
-    if (ret == -1) {
-        DEBUG(2, ("Unable to set env. variable KRB5CCNAME!\n"));
-        ret = EFAULT;
-        goto done;
-    }
-
-    krberr = krb5_cc_resolve(context, ccname, &ccache);
-    if (krberr) {
-        DEBUG(2, ("Failed to set cache name: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
-        goto done;
-    }
-
-    memset(&my_creds, 0, sizeof(my_creds));
-    memset(&options, 0, sizeof(options));
-
-    krb5_get_init_creds_opt_set_address_list(&options, NULL);
-    krb5_get_init_creds_opt_set_forwardable(&options, 0);
-    krb5_get_init_creds_opt_set_proxiable(&options, 0);
-    /* set a very short lifetime, we don't keep the ticket around */
-    krb5_get_init_creds_opt_set_tkt_life(&options, 300);
-
-    krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
-                                        keytab, 0, NULL, &options);
-
-    if (krberr) {
-        DEBUG(2, ("Failed to init credentials: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
-        goto done;
-    }
-
-    krberr = krb5_cc_initialize(context, ccache, kprinc);
-    if (krberr) {
-        DEBUG(2, ("Failed to init ccache: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
-        goto done;
-    }
-
-    krberr = krb5_cc_store_cred(context, ccache, &my_creds);
-    if (krberr) {
-        DEBUG(2, ("Failed to store creds: %s\n",
-                  sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
-        goto done;
-    }
-
-    ret = EOK;
-
-done:
-    if (keytab) krb5_kt_close(context, keytab);
-    if (context) krb5_free_context(context);
-    return ret;
-}
-
 struct sdap_kinit_state {
     int result;
 };
 
-/* TODO: make it really async */
+static void sdap_kinit_done(struct tevent_req *subreq);
+
 struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct sdap_handle *sh,
+                                   int    timeout,
                                    const char *keytab,
                                    const char *principal,
                                    const char *realm)
 {
     struct tevent_req *req;
+    struct tevent_req *subreq;
     struct sdap_kinit_state *state;
     int ret;
 
@@ -723,31 +577,62 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
         ret = setenv("KRB5_KTNAME", keytab, 1);
         if (ret == -1) {
             DEBUG(2, ("Failed to set KRB5_KTNAME to %s\n", keytab));
-            ret = EFAULT;
-            goto fail;
+            return NULL;
         }
     }
 
-    ret = sdap_krb5_get_tgt_sync(state, realm, principal, keytab);
-    if (ret == EOK) {
-        state->result = SDAP_AUTH_SUCCESS;
-    } else {
-        goto fail;
+    subreq = sdap_krb5_get_tgt_send(state, ev, timeout,
+                                    realm, principal, keytab);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_kinit_done, req);
+
+    return req;
+}
+
+static void sdap_kinit_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_kinit_state *state = tevent_req_data(req,
+                                                     struct sdap_kinit_state);
+
+    int ret;
+    int result;
+    char *ccname = NULL;
+
+    ret = sdap_krb5_get_tgt_recv(subreq, state, &result, &ccname);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        state->result = ret;
+        DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
     }
 
-    tevent_req_post(req, ev);
-    return req;
+    if (result == EOK) {
+        ret = setenv("KRB5CCNAME", ccname, 1);
+        if (ret == -1) {
+            DEBUG(2, ("Unable to set env. variable KRB5CCNAME!\n"));
+            state->result = EFAULT;
+            tevent_req_error(req, EFAULT);
+        }
 
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
+        state->result = SDAP_AUTH_SUCCESS;
+        tevent_req_done(req);
+        return;
+    }
+
+    DEBUG(4, ("Could not get TGT: %d [%s]\n", result, strerror(result)));
+    state->result = SDAP_AUTH_FAILED;
+    tevent_req_error(req, EIO);
 }
 
 int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result)
 {
     struct sdap_kinit_state *state = tevent_req_data(req,
-                                                struct sdap_kinit_state);
+                                                     struct sdap_kinit_state);
     enum tevent_req_state tstate;
     uint64_t err = EIO;
 
@@ -1068,7 +953,10 @@ static void sdap_cli_kinit_step(struct tevent_req *req)
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
 
-    subreq = sdap_kinit_send(state, state->ev, state->sh,
+    subreq = sdap_kinit_send(state, state->ev,
+                             state->sh,
+                        dp_opt_get_int(state->opts->basic,
+                                                   SDAP_OPT_TIMEOUT),
                         dp_opt_get_string(state->opts->basic,
                                                    SDAP_KRB5_KEYTAB),
                         dp_opt_get_string(state->opts->basic,

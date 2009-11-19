@@ -30,6 +30,9 @@
 #define PWD_POL_OPT_SHADOW "shadow"
 #define PWD_POL_OPT_MIT "mit_kerberos"
 
+/* a fd the child process would log into */
+extern int ldap_child_debug_fd;
+
 struct sdap_id_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;

@@ -25,6 +25,9 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
 
+/* a fd the child process would log into */
+int ldap_child_debug_fd = -1;
+
 struct dp_option default_basic_opts[] = {
     { "ldap_uri", DP_OPT_STRING, { "ldap://localhost" }, NULL_STRING },
     { "ldap_search_base", DP_OPT_STRING, { "dc=example,dc=com" }, NULL_STRING },
