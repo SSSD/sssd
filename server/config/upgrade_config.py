@@ -24,124 +24,94 @@ import os
 import sys
 import shutil
 import traceback
-import copy
-from ConfigParser import RawConfigParser
-from ConfigParser import NoOptionError
 from optparse import OptionParser
 
-class SSSDConfigParser(RawConfigParser):
-    def raw_set(self, section, option):
-        " set without interpolation "
-        pass
+from ipachangeconf import openLocked
+from ipachangeconf import SSSDChangeConf
 
-    def raw_get(self, section, option):
-        " get without interpolation "
-        return self._sections[section].get(option)
+class SSSDConfigFile(SSSDChangeConf):
+    def __init__(self, filename):
+        SSSDChangeConf.__init__(self)
+        self.filename = filename
 
-    def _write_section(self, section, fp):
-        fp.write("[%s]\n" % section)
-        for (key, value) in sorted(self._sections[section].items()):
-            if key != "__name__":
-                fp.write("%s = %s\n" %
-                        (key, str(value).replace('\n', '\n\t')))
-        fp.write("\n")
+        f = openLocked(self.filename, 0600)
+        self.opts = self.parse(f)
+        f.close()
 
-    def write(self, fp):
-        """
-        SSSD Config file uses a logical order of sections
-        ConfigParser does not allow sorting the sections, so
-        we hackishly sort them here..
-        """
-        # Write SSSD first
-        if "sssd" in self._sections:
-            self._write_section("sssd", fp)
-            if (self.has_option('sssd', 'domains')):
-                active_domains = [s.strip() for s in self.get('sssd','domains').split(',')]
-            else:
-                #There were no active domains configured
-                active_domains = []
-            del self._sections["sssd"]
-        # Write the other services
-        for service in [ s for s in self._sections if not s.startswith('domain/') ]:
-            self._write_section(service, fp)
-            del self._sections[service]
-
-        # Write the domains in the order that is specified in domains =
-        for dom in active_domains:
-            self._write_section('domain/%s' % dom, fp)
-            del self._sections['domain/%s' % dom]
-
-        # Write inactive domains
-        for section in sorted(self._sections):
-            self._write_section(section, fp)
-
-class SSSDConfigFile(object):
-    def __init__(self, file_name):
-        self.file_name = file_name
-        self._config = SSSDConfigParser()
-        self._new_config = SSSDConfigParser()
-        self._config.read(file_name)
+    def _backup_file(self, file_name):
+        " Copy the file we operate on to a backup location "
+        shutil.copy(file_name, file_name + self.backup_suffix)
+        # make sure we don't leak data, force permissions on the backup
+        os.chmod(file_name + self.backup_suffix, 0600)
 
     def get_version(self):
-        " Guess if we are looking at v1 config file "
-        if not self._config.has_section('sssd'):
+        ver = self.get_option_index('sssd', 'config_file_version')[1]
+        if not ver:
             return 1
-        if not self._config.has_option('sssd', 'config_file_version'):
-            return 1
-        return self._config.getint('sssd', 'config_file_version')
+        try:
+            return int(ver['value'])
+        except ValueError:
+            raise SyntaxError, 'config_file_version not an integer'
 
-    def _backup_file(self):
-        " Copy the file we operate on to a backup location "
-        shutil.copy(self.file_name, self.file_name+".bak")
+    def rename_opts(self, parent_name, rename_kw, type='option'):
+        for new_name, old_name in rename_kw.items():
+            index, item = self.get_option_index(parent_name, old_name, type)
+            if item:
+                item['name'] = new_name
 
-        # make sure we don't leak data, force permissions on the backup
-        os.chmod(self.file_name+".bak", 0600)
+    def _do_v2_changes(self):
+        # remove Data Provider
+        srvlist = self.get_option_index('sssd', 'services')[1]
+        if srvlist:
+            services = [ srv.strip() for srv in srvlist['value'].split(',') ]
+            if 'dp' in services:
+                services.remove('dp')
+            srvlist['value'] = ", ".join([srv for srv in services])
+        self.delete_option('section', 'dp')
 
-    def _migrate_if_exists(self, to_section, to_option, from_section, from_option):
-        """
-        Move value of parameter from one section to another, renaming the parameter
-        """
-        if self._config.has_section(from_section) and \
-           self._config.has_option(from_section, from_option):
-            self._new_config.set(to_section, to_option,
-                                 self._config.get(from_section, from_option))
+    def _update_option(self, to_section_name, from_section_name, opts):
+        to_section = [ s for s in self.sections() if s['name'].strip() == to_section_name ]
+        from_section = [ s for s in self.sections() if s['name'].strip() == from_section_name ]
 
-    def _migrate_kw(self, to_section, from_section, new_old_dict):
-        """
-        Move value of parameter from one section to another according to
-        mapping in ``new_old_dict``
-        """
-        for new, old in new_old_dict.items():
-            self._migrate_if_exists(to_section, new, from_section, old)
+        if len(to_section) > 0 and len(from_section) > 0:
+            vals = to_section[0]['value']
+            for o in [one_opt for one_opt in from_section[0]['value'] if one_opt['name'] in opts]:
+                updated = False
+                for v in vals:
+                    if v['type'] == 'empty':
+                        continue
+                    # if already in list, just update
+                    if o['name'] == v['name']:
+                        o['value'] = v['value']
+                        updated = True
+                # not in list, add there
+                if not updated:
+                    vals.insert(0, { 'name' : o['name'], 'type' : o['type'], 'value' : o['value'] })
 
-    def _migrate_enumerate(self, to_section, from_section):
+    def _migrate_enumerate(self, domain):
         " Enumerate was special as it turned into bool from (0,1,2,3) enum "
-        if self._config.has_section(from_section) and \
-           self._config.has_option(from_section, 'enumerate'):
-            enumvalue = self._config.get(from_section, 'enumerate')
-            if enumvalue.upper() in ['TRUE', 'FALSE']:
-                self._new_config.set(to_section, 'enumerate', enumvalue)
-            else:
+        enum = self.findOpts(domain, 'option', 'enumerate')[1]
+        if enum:
+            if enum['value'].upper() not in ['TRUE', 'FALSE']:
                 try:
-                    enumvalue = int(enumvalue)
+                    enum['value'] = int(enum['value'])
                 except ValueError:
-                    raise ValueError('Cannot convert value %s in domain %s' % (enumvalue, from_section))
+                    raise ValueError('Cannot convert value %s in domain %s' % (enum['value'], domain['name']))
 
-                if enumvalue == 0:
-                    self._new_config.set(to_section, 'enumerate', 'FALSE')
-                elif enumvalue > 0:
-                    self._new_config.set(to_section, 'enumerate', 'TRUE')
+                if enum['value'] == 0:
+                    enum['value'] = 'FALSE'
+                elif enum['value'] > 0:
+                    enum['value'] = 'TRUE'
                 else:
-                    raise ValueError('Cannot convert value %s in domain %s' % (enumvalue, from_section))
+                    raise ValueError('Cannot convert value %s in domain %s' % (enum['value'], domain['name']))
 
     def _migrate_domain(self, domain):
-        new_domsec = 'domain/%s' % domain
-        old_domsec = 'domains/%s' % domain
-        self._new_config.add_section(new_domsec)
+        # rename the section
+        domain['name'] = domain['name'].strip().replace('domains', 'domain')
 
         # Generic options - new:old
-        generic_kw = { 'min_id' : 'minID',
-                       'max_id': 'maxID',
+        generic_kw = { 'min_id' : 'minId',
+                       'max_id': 'maxId',
                        'timeout': 'timeout',
                        'magic_private_groups' : 'magicPrivateGroups',
                        'cache_credentials' : 'cache-credentials',
@@ -207,74 +177,38 @@ class SSSDConfigFile(object):
                              'base_directory' : 'baseDirectory',
                            }
 
-        self._migrate_enumerate(new_domsec, old_domsec)
-        self._migrate_kw(new_domsec, old_domsec, generic_kw)
-        self._migrate_kw(new_domsec, old_domsec, proxy_kw)
-        self._migrate_kw(new_domsec, old_domsec, ldap_kw)
-        self._migrate_kw(new_domsec, old_domsec, krb5_kw)
+        self._migrate_enumerate(domain['value'])
+        self.rename_opts(domain['name'], generic_kw)
+        self.rename_opts(domain['name'], proxy_kw)
+        self.rename_opts(domain['name'], ldap_kw)
+        self.rename_opts(domain['name'], krb5_kw)
 
         # configuration files before 0.5.0 did not enforce provider= in local domains
         # it did special-case by domain name (LOCAL)
-        try:
-            prv = self._new_config.get(new_domsec, 'id_provider')
-        except NoOptionError:
-            if old_domsec == 'domains/LOCAL':
-                prv = 'local'
-                self._new_config.set(new_domsec, 'id_provider', prv)
-
+        prv = self.findOpts(domain['value'], 'option', 'id_provider')[1]
+        if not prv and domain['name'] == 'domain/LOCAL':
+            prv = { 'type'  : 'option',
+                    'name'  : 'id_provider',
+                    'value' : 'local',
+                  }
+            domain['value'].insert(0, prv)
         # if domain was local, update with parameters from [user_defaults]
-        if prv == 'local':
-            self._migrate_kw(new_domsec, 'user_defaults', user_defaults_kw)
+        if prv['value'] == 'local':
+            self._update_option(domain['name'], 'user_defaults', user_defaults_kw.values())
+            self.delete_option('section', 'user_defaults')
+            self.rename_opts(domain['name'], user_defaults_kw)
 
     def _migrate_domains(self):
-        for domain in [ s.replace('domains/','') for s in self._config.sections() if s.startswith("domains/") ]:
-            domain = domain.strip()
+        for domain in [ s for s in self.sections() if s['name'].startswith("domains/") ]:
             self._migrate_domain(domain)
 
-    def _remove_dp(self):
-        # If data provider is in the list of active services, remove it
-        if self._new_config.has_option('sssd', 'services'):
-            services = [ srv.strip() for srv in self._new_config.get('sssd', 'services').split(',') ]
-            if 'dp' in services:
-                services.remove('dp')
+    def _update_if_exists(self, opt, to_name, from_section, from_name):
+        index, item = self.get_option_index(from_section, from_name)
+        if item:
+            item['name'] = to_name
+            opt.append(item)
 
-        self._new_config.set('sssd', 'services', ", ".join([srv for srv in services]))
-
-        # also remove the [dp] section
-        self._new_config.remove_section('dp')
-
-    def _do_v2_changes(self):
-        # the changes themselves
-        self._remove_dp()
-
-    def v2_changes(self, out_file_name, backup=True):
-        """
-        Check for needed changes in V2 format and write the result into
-        ``out_file_name```.
-        """
-        # basically a wrapper around _do_v2_changes
-        self._new_config = copy.deepcopy(self._config)
-
-        if backup:
-            self._backup_file()
-
-        self._do_v2_changes()
-
-        # all done, open the file for writing
-        of = open(out_file_name, "wb")
-
-        # make sure it has the right permissions too
-        os.chmod(out_file_name, 0600)
-        self._new_config.write(of)
-
-    def upgrade_v2(self, out_file_name, backup=True):
-        """
-        Upgrade the config file to V2 format and write the result into
-        ``out_file_name```.
-        """
-        if backup:
-            self._backup_file()
-
+    def _migrate_services(self):
         # [service] - options common to all services, no section as in v1
         service_kw = { 'reconnection_retries' : 'reconnection_retries',
                        'debug_level' : 'debug-level',
@@ -283,24 +217,37 @@ class SSSDConfigFile(object):
                        'timeout' : 'timeout',
                      }
 
+        # rename services sections
+        names_kw = { 'nss' : 'services/nss',
+                     'pam' : 'services/pam',
+                     'dp'  : 'services/dp',
+                   }
+        self.rename_opts(None, names_kw, 'section')
+
         # [sssd] - monitor service
-        self._new_config.add_section('sssd')
-        self._new_config.set('sssd', 'config_file_version', '2')
-        self._migrate_if_exists('sssd', 'domains',
-                                'domains', 'domains')
-        self._migrate_if_exists('sssd', 'services',
-                                'services', 'activeServices')
-        self._migrate_if_exists('sssd', 'sbus_timeout',
-                                 'services/monitor', 'sbusTimeout')
-        self._migrate_if_exists('sssd', 're_expression',
-                                'names', 're-expression')
-        self._migrate_if_exists('sssd', 're_expression',
-                                'names', 'full-name-format')
-        self._migrate_kw('sssd', 'services', service_kw)
-        self._migrate_kw('sssd', 'services/monitor', service_kw)
+        sssd_kw = [
+                    { 'type'  : 'option',
+                      'name'  : 'config_file_version',
+                      'value' : '2',
+                      'action': 'set',
+                    }
+                  ]
+        self._update_if_exists(sssd_kw, 'domains',
+                               'domains', 'domains')
+        self._update_if_exists(sssd_kw, 'services',
+                               'services', 'activeServices')
+        self._update_if_exists(sssd_kw, 'sbus_timeout',
+                               'services/monitor', 'sbusTimeout')
+        self._update_if_exists(sssd_kw, 're_expression',
+                              'names', 're-expression')
+        self._update_if_exists(sssd_kw, 're_expression',
+                              'names', 'full-name-format')
+        self.add_section('sssd', sssd_kw)
+        # update from general services section and monitor
+        self._update_option('sssd', 'services', service_kw.values())
+        self._update_option('sssd', 'services/monitor', service_kw.values())
 
         # [nss] - Name service
-        self._new_config.add_section('nss')
         nss_kw = { 'enum_cache_timeout' : 'EnumCacheTimeout',
                    'entry_cache_timeout' : 'EntryCacheTimeout',
                    'entry_cache_nowait_timeout' : 'EntryCacheNoWaitRefreshTimeout',
@@ -310,29 +257,55 @@ class SSSDConfigFile(object):
                    'filter_users_in_groups' : 'filterUsersInGroups',
                    }
         nss_kw.update(service_kw)
-        self._migrate_kw('nss', 'services', service_kw)
-        self._migrate_kw('nss', 'services/nss', nss_kw)
+        self._update_option('nss', 'services', service_kw.values())
+        self.rename_opts('nss', nss_kw)
 
         # [pam] - Authentication service
-        self._new_config.add_section('pam')
         pam_kw = {}
         pam_kw.update(service_kw)
-        self._migrate_kw('pam', 'services', service_kw)
-        self._migrate_kw('pam', 'services/pam', pam_kw)
+        self._update_option('pam', 'services', service_kw.values())
+        self.rename_opts('pam', pam_kw)
 
-        # Migrate domains
-        self._migrate_domains()
+        # remove obsolete sections
+        self.delete_option('section', 'services')
+        self.delete_option('section', 'names')
+        self.delete_option('section', 'domains')
+        self.delete_option('section', 'services/monitor')
 
-        # Perform neccessary changes
+    def v2_changes(self, out_file_name, backup=True):
+        # read in the old file, make backup if needed
+        if backup:
+            self._backup_file(self.filename)
+
         self._do_v2_changes()
 
-        # all done, open the file for writing
+        # all done, write the file
         of = open(out_file_name, "wb")
-
+        output = self.dump(self.opts)
+        of.write(output)
+        of.close()
         # make sure it has the right permissions too
         os.chmod(out_file_name, 0600)
 
-        self._new_config.write(of)
+    def upgrade_v2(self, out_file_name, backup=True):
+        # read in the old file, make backup if needed
+        if backup:
+            self._backup_file(self.filename)
+
+        # do the migration to v2 format
+        # do the upgrade
+        self._migrate_services()
+        self._migrate_domains()
+        # also include any changes in the v2 format
+        self._do_v2_changes()
+
+        # all done, write the file
+        of = open(out_file_name, "wb")
+        output = self.dump(self.opts)
+        of.write(output)
+        of.close()
+        # make sure it has the right permissions too
+        os.chmod(out_file_name, 0600)
 
 def parse_options():
     parser = OptionParser()
@@ -373,7 +346,8 @@ def main():
 
     try:
         config = SSSDConfigFile(options.filename)
-    except SSSDConfigParser.ParsingError:
+    except SyntaxError:
+        verbose(traceback.format_exc(), options.verbose)
         print >>sys.stderr, "Cannot parse config file %s" % options.filename
         return 1
 
@@ -382,6 +356,7 @@ def main():
 
     version = config.get_version()
     if version == 2:
+        verbose("Looks like v2, only checking changes", options.verbose)
         try:
             config.v2_changes(options.outfile, options.backup)
         except Exception, e:
@@ -389,6 +364,7 @@ def main():
             verbose(traceback.format_exc(), options.verbose)
             return 1
     elif version == 1:
+        verbose("Looks like v1, performing full upgrade", options.verbose)
         try:
             config.upgrade_v2(options.outfile, options.backup)
         except Exception, e:

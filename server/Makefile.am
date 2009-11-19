@@ -59,7 +59,7 @@ sssdlibexec_PROGRAMS = \
     $(sssd_info)
 
 dist_sssdlibexec_SCRIPTS = \
-    upgrade/upgrade_config.py
+    config/upgrade_config.py
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
