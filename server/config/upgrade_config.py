@@ -69,6 +69,10 @@ class SSSDConfigFile(SSSDChangeConf):
             srvlist['value'] = ", ".join([srv for srv in services])
         self.delete_option('section', 'dp')
 
+        # remove magic_private_groups from all domains
+        for domain in [ s for s in self.sections() if s['name'].startswith("domain/") ]:
+            self.delete_option_subtree(domain['value'], 'option', 'magic_private_groups')
+
     def _update_option(self, to_section_name, from_section_name, opts):
         to_section = [ s for s in self.sections() if s['name'].strip() == to_section_name ]
         from_section = [ s for s in self.sections() if s['name'].strip() == from_section_name ]
@@ -120,6 +124,7 @@ class SSSDConfigFile(SSSDChangeConf):
                        'access_provider' : 'access-module',
                        'chpass_provider' : 'chpass-module',
                        'use_fully_qualified_names' : 'useFullyQualifiedNames',
+                       'store_legacy_passwords' : 'store-legacy-passwords',
                       }
         # Proxy options
         proxy_kw = { 'proxy_pam_target' : 'pam-target',
@@ -183,20 +188,33 @@ class SSSDConfigFile(SSSDChangeConf):
         self.rename_opts(domain['name'], ldap_kw)
         self.rename_opts(domain['name'], krb5_kw)
 
+        # remove obsolete libPath option
+        self.delete_option_subtree(domain['value'], 'option', 'libPath')
+
         # configuration files before 0.5.0 did not enforce provider= in local domains
         # it did special-case by domain name (LOCAL)
-        prv = self.findOpts(domain['value'], 'option', 'id_provider')[1]
+        prvindex, prv = self.findOpts(domain['value'], 'option', 'id_provider')
         if not prv and domain['name'] == 'domain/LOCAL':
             prv = { 'type'  : 'option',
                     'name'  : 'id_provider',
                     'value' : 'local',
                   }
             domain['value'].insert(0, prv)
+
         # if domain was local, update with parameters from [user_defaults]
         if prv['value'] == 'local':
             self._update_option(domain['name'], 'user_defaults', user_defaults_kw.values())
             self.delete_option('section', 'user_defaults')
             self.rename_opts(domain['name'], user_defaults_kw)
+
+        # if domain had provider = files, unroll that into provider=proxy, proxy_lib_name=files
+        if prv['value'] == 'files':
+            prv['value'] = 'proxy'
+            libkw = { 'type'  : 'option',
+                      'name'  : 'proxy_lib_name',
+                      'value' : 'files',
+                    }
+            domain['value'].insert(prvindex+1, libkw)
 
     def _migrate_domains(self):
         for domain in [ s for s in self.sections() if s['name'].startswith("domains/") ]:
