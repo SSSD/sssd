@@ -457,3 +457,94 @@ class IPAChangeConf:
             except IOError:
                 pass
         return True
+
+# A SSSD-specific subclass of IPAChangeConf
+class SSSDChangeConf(IPAChangeConf):
+    def __init__(self):
+        IPAChangeConf.__init__(self, "SSSD")
+        self.comment = ("#",";")
+        self.backup_suffix = ".bak"
+        self.opts = []
+
+    def readfp(self, fd):
+        self.opts.extend(self.parse(fd))
+
+    def read(self, filename):
+        fd = open(filename, 'r')
+        self.readfp(fd)
+        fd.close()
+
+    def get(self, section, name):
+        index, item = self.get_option_index(section, name)
+        if item:
+            return item['value']
+
+    def set(self, section, name, value):
+        modkw = { 'type'  : 'section',
+                  'name'  : section,
+                  'value' : [{
+                        'type'  : 'option',
+                        'name'  : name,
+                        'value' : value,
+                        'action': 'set',
+                            }],
+                   'action': 'set',
+                }
+        self.mergeNew(self.opts, [ modkw ])
+
+    def add_section(self, name, optkw, index=0):
+        optkw.append({'type':'empty', 'value':'empty'})
+        addkw = { 'type'   : 'section',
+                   'name'   : name,
+                   'value'  : optkw,
+                }
+        self.opts.insert(index, addkw)
+
+    def delete_section(self, name):
+        self.delete_option('section', name)
+
+    def sections(self):
+        return [ o for o in self.opts if o['type'] == 'section' ]
+
+    def has_section(self, section):
+        return len([ o for o in self.opts if o['type'] == 'section' if o['name'] == section ]) > 0
+
+    def options(self, section):
+        for opt in self.opts:
+            if opt['type'] == 'section' and opt['name'] == section:
+                return opt['value']
+
+    def delete_option(self, type, name, exclude_sections=False):
+        return self.delete_option_subtree(self.opts, type, name)
+
+    def delete_option_subtree(self, subtree, type, name, exclude_sections=False):
+        index, item = self.findOpts(subtree, type, name, exclude_sections)
+        if item:
+            del subtree[index]
+        return index
+
+    def has_option(self, section, name):
+        index, item = self.get_option_index(section, name)
+        if index != -1 and item != None:
+            return True
+        return False
+
+    def strip_comments_empty(self, optlist):
+        retlist = []
+        for opt in optlist:
+            if opt['type'] in ('comment', 'empty'):
+                continue
+            retlist.append(opt)
+        return retlist
+
+    def get_option_index(self, parent_name, name, type='option'):
+        subtree = None
+        if parent_name:
+            pindex, pdata = self.findOpts(self.opts, 'section', parent_name)
+            if not pdata:
+                return (-1, None)
+            subtree = pdata['value']
+        else:
+            subtree = self.opts
+        return self.findOpts(subtree, type, name)
+
