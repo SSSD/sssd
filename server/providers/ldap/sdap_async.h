@@ -26,10 +26,12 @@
 #include <tevent.h>
 #include "providers/dp_backend.h"
 #include "providers/ldap/sdap.h"
+#include "providers/fail_over.h"
 
 struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sdap_options *opts,
+                                     const char *uri,
                                      bool use_start_tls);
 int sdap_connect_recv(struct tevent_req *req,
                       TALLOC_CTX *memctx,
@@ -91,11 +93,14 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                                 char *user_dn,
                                                 char *password,
                                                 char *new_password);
-int sdap_exop_modify_passwd_recv(struct tevent_req *req, enum sdap_result *result);
+int sdap_exop_modify_passwd_recv(struct tevent_req *req,
+                                 enum sdap_result *result);
 
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sdap_options *opts,
+                                         struct be_ctx *be,
+                                         struct sdap_service *service,
                                          struct sysdb_attrs **rootdse);
 int sdap_cli_connect_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,

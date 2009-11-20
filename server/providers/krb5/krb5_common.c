@@ -50,8 +50,7 @@ errno_t check_and_export_options(struct dp_option *opts,
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
     if (dummy == NULL) {
-        DEBUG(1, ("No KDC configured, "
-                  "using kerberos defaults from /etc/krb5.conf"));
+        DEBUG(2, ("No KDC expicitly configured, using defaults"));
     } else {
         ret = setenv(SSSD_KRB5_KDC, dummy, 1);
         if (ret != EOK) {

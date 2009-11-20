@@ -414,8 +414,11 @@ struct auth_state {
     char *dn;
     enum pwexpire pw_expire_type;
     void *pw_expire_data;
+
+    struct fo_server *srv;
 };
 
+static void auth_resolve_done(struct tevent_req *subreq);
 static void auth_connect_done(struct tevent_req *subreq);
 static void auth_get_user_dn_done(struct tevent_req *subreq);
 static void auth_bind_user_done(struct tevent_req *subreq);
@@ -436,17 +439,43 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->username = username;
     state->password = password;
+    state->srv = NULL;
 
-    subreq = sdap_connect_send(state, ev, ctx->opts, true);
+    subreq = be_resolve_server_send(state, ev, ctx->be, ctx->service->name);
     if (!subreq) goto fail;
 
-    tevent_req_set_callback(subreq, auth_connect_done, req);
+    tevent_req_set_callback(subreq, auth_resolve_done, req);
 
     return req;
 
 fail:
     talloc_zfree(req);
     return NULL;
+}
+
+static void auth_resolve_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct auth_state *state = tevent_req_data(req,
+                                                    struct auth_state);
+    int ret;
+
+    ret = be_resolve_server_recv(subreq, &state->srv);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_connect_send(state, state->ev, state->ctx->opts,
+                               state->ctx->service->uri, true);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, auth_connect_done, req);
 }
 
 static void auth_connect_done(struct tevent_req *subreq)
@@ -460,6 +489,11 @@ static void auth_connect_done(struct tevent_req *subreq)
     ret = sdap_connect_recv(subreq, state, &state->sh);
     talloc_zfree(subreq);
     if (ret) {
+        if (state->srv) {
+            /* mark the server as bad if connection failed */
+            fo_set_server_status(state->srv, SERVER_NOT_WORKING);
+        }
+
         tevent_req_error(req, ret);
         return;
     }

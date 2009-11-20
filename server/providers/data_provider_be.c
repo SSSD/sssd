@@ -41,6 +41,8 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "providers/dp_backend.h"
+#include "providers/fail_over.h"
+#include "resolv/async_resolv.h"
 #include "monitor/monitor_interfaces.h"
 
 #define MSG_TARGET_NO_CONFIGURED "sssd_be: The requested target is not configured"
@@ -137,7 +139,6 @@ static int be_file_request(struct be_ctx *ctx,
 
     return EOK;
 }
-
 
 bool be_is_offline(struct be_ctx *ctx)
 {
@@ -989,6 +990,12 @@ int be_process_init(TALLOC_CTX *mem_ctx,
     if (!ctx->identity || !ctx->conf_path) {
         DEBUG(0, ("Out of memory!?\n"));
         return ENOMEM;
+    }
+
+    ret = be_init_failover(ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing failover context\n"));
+        return ret;
     }
 
     ret = confdb_get_domain(cdb, be_domain, &ctx->domain);

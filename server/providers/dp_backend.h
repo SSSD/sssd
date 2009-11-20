@@ -23,6 +23,7 @@
 #define __DP_BACKEND_H__
 
 #include "providers/data_provider.h"
+#include "providers/fail_over.h"
 #include "db/sysdb.h"
 
 struct be_ctx;
@@ -73,6 +74,8 @@ struct be_client {
     bool initialized;
 };
 
+struct be_failover_ctx;
+
 struct be_ctx {
     struct tevent_context *ev;
     struct confdb_ctx *cdb;
@@ -80,6 +83,7 @@ struct be_ctx {
     struct sss_domain_info *domain;
     const char *identity;
     const char *conf_path;
+    struct be_failover_ctx *be_fo;
 
     struct be_offline_status offstat;
 
@@ -117,5 +121,22 @@ struct be_acct_req {
 
 bool be_is_offline(struct be_ctx *ctx);
 void be_mark_offline(struct be_ctx *ctx);
+
+/* from data_provider_fo.c */
+typedef void (be_svc_callback_fn_t)(void *, struct fo_server *);
+
+int be_init_failover(struct be_ctx *ctx);
+int be_fo_add_service(struct be_ctx *ctx, const char *service_name);
+int be_fo_service_add_callback(TALLOC_CTX *memctx,
+                               struct be_ctx *ctx, const char *service_name,
+                               be_svc_callback_fn_t *fn, void *private_data);
+int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
+                     const char *server, int port, void *user_data);
+
+struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
+                                          struct tevent_context *ev,
+                                          struct be_ctx *ctx,
+                                          const char *service_name);
+int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv);
 
 #endif /* __DP_BACKEND_H___ */

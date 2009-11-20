@@ -104,7 +104,9 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts,
+                                       ctx->be, ctx->service,
+                                       &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -325,7 +327,9 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts,
+                                       ctx->be, ctx->service,
+                                       &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;
@@ -511,7 +515,9 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts, &ctx->rootDSE);
+        subreq = sdap_cli_connect_send(state, ev, ctx->opts,
+                                       ctx->be, ctx->service,
+                                       &ctx->rootDSE);
         if (!subreq) {
             ret = ENOMEM;
             goto fail;

@@ -50,6 +50,10 @@ enum krb5_opts {
     KRB5_OPTS
 };
 
+struct krb_server {
+    char *address;
+};
+
 errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom);
 

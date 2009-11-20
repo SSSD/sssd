@@ -24,11 +24,13 @@
 
 #include "providers/dp_backend.h"
 #include "providers/ldap/sdap.h"
+#include "providers/fail_over.h"
 
 struct sdap_id_ctx {
     struct be_ctx *be;
-
     struct sdap_options *opts;
+    struct fo_service *fo_service;
+    struct sdap_service *service;
 
     /* what rootDSE returns */
     struct sysdb_attrs *rootDSE;
@@ -48,6 +50,8 @@ struct sdap_id_ctx {
 struct sdap_auth_ctx {
     struct be_ctx *be;
     struct sdap_options *opts;
+    struct fo_service *fo_service;
+    struct sdap_service *service;
 };
 
 /* id */
@@ -64,6 +68,10 @@ void sdap_pam_chpass_handler(struct be_req *breq);
 
 void sdap_handler_done(struct be_req *req, int dp_err,
                        int error, const char *errstr);
+
+int sdap_service_init(TALLOC_CTX *mmectx, struct be_ctx *ctx,
+                      const char *service_name, const char *urls,
+                      struct sdap_service **service);
 
 /* options parser */
 int ldap_get_options(TALLOC_CTX *memctx,

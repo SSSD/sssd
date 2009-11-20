@@ -56,6 +56,34 @@ struct bet_ops ipa_access_ops = {
     .finalize = NULL
 };
 
+int common_ipa_init(struct be_ctx *bectx)
+{
+    const char *ipa_servers;
+    int ret;
+
+    ret = ipa_get_options(bectx, bectx->cdb,
+                          bectx->conf_path,
+                          bectx->domain, &ipa_options);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
+    if (!ipa_servers) {
+        DEBUG(0, ("Missing ipa_server option!\n"));
+        return EINVAL;
+    }
+
+    ret = ipa_service_init(ipa_options, bectx,
+                           ipa_servers, &ipa_options->service);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to init IPA failover service!\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
 int sssm_ipa_init(struct be_ctx *bectx,
                   struct bet_ops **ops,
                   void **pvt_data)
@@ -64,12 +92,10 @@ int sssm_ipa_init(struct be_ctx *bectx,
     int ret;
 
     if (!ipa_options) {
-        ipa_get_options(bectx, bectx->cdb,
-                        bectx->conf_path,
-                        bectx->domain, &ipa_options);
-    }
-    if (!ipa_options) {
-        return ENOMEM;
+        ret = common_ipa_init(bectx);
+        if (ret != EOK) {
+            return ret;
+        }
     }
 
     if (ipa_options->id_ctx) {
@@ -84,6 +110,7 @@ int sssm_ipa_init(struct be_ctx *bectx,
         return ENOMEM;
     }
     ctx->be = bectx;
+    ctx->service = ipa_options->service->sdap;
     ipa_options->id_ctx = ctx;
 
     ret = ipa_get_id_options(ipa_options, bectx->cdb,
@@ -127,12 +154,10 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     int ret;
 
     if (!ipa_options) {
-        ipa_get_options(bectx, bectx->cdb,
-                        bectx->conf_path,
-                        bectx->domain, &ipa_options);
-    }
-    if (!ipa_options) {
-        return ENOMEM;
+        ret = common_ipa_init(bectx);
+        if (ret != EOK) {
+            return ret;
+        }
     }
 
     if (ipa_options->auth_ctx) {
@@ -146,6 +171,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     if (!ctx) {
         return ENOMEM;
     }
+    ctx->server = ipa_options->service->krb_server;
     ipa_options->auth_ctx = ctx;
 
     ret = ipa_get_auth_options(ipa_options, bectx->cdb,

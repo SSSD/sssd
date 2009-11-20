@@ -52,6 +52,8 @@ struct krb5child_req {
     bool is_offline;
 };
 
+struct fo_service;
+
 struct krb5_ctx {
     /* opts taken from kinit */
     /* in seconds */
@@ -76,7 +78,9 @@ struct krb5_ctx {
     char* k4_cache_name;
 
     action_type action;
+
     struct dp_option *opts;
+    struct krb_server *server;
     int child_debug_fd;
 };
 

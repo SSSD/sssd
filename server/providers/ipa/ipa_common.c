@@ -22,6 +22,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <netdb.h>
 #include <ctype.h>
 #include "providers/ipa/ipa_common.h"
 
@@ -251,24 +252,6 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
-    /* set ldap_uri */
-    if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_URI)) {
-        value = talloc_asprintf(tmpctx, "ldap://%s",
-                                dp_opt_get_string(ipa_opts->basic,
-                                                  IPA_SERVER));
-        if (!value) {
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_URI, value);
-        if (ret != EOK) {
-            goto done;
-        }
-        DEBUG(6, ("Option %s set to %s\n",
-                  ipa_opts->id->basic[SDAP_URI].opt_name,
-                  dp_opt_get_string(ipa_opts->id->basic, SDAP_URI)));
-    }
-
     if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_SEARCH_BASE)) {
         ret = domain_to_basedn(tmpctx,
                                dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN),
@@ -429,22 +412,6 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
         goto done;
     }
 
-    /* set KDC */
-    if (NULL == dp_opt_get_string(ipa_opts->auth, KRB5_KDC)) {
-        value = dp_opt_get_string(ipa_opts->basic, IPA_SERVER);
-        if (!value) {
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = dp_opt_set_string(ipa_opts->auth, KRB5_KDC, value);
-        if (ret != EOK) {
-            goto done;
-        }
-        DEBUG(6, ("Option %s set to %s\n",
-                  ipa_opts->auth[KRB5_KDC].opt_name,
-                  dp_opt_get_string(ipa_opts->auth, KRB5_KDC)));
-    }
-
     /* set krb realm */
     if (NULL == dp_opt_get_string(ipa_opts->auth, KRB5_REALM)) {
         value = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
@@ -473,3 +440,133 @@ done:
     }
     return ret;
 }
+
+static void ipa_resolve_callback(void *private_data, struct fo_server *server)
+{
+    struct ipa_service *service;
+    struct hostent *srvaddr;
+    char *address;
+    char *new_uri;
+    int ret;
+
+    service = talloc_get_type(private_data, struct ipa_service);
+    if (!service) {
+        DEBUG(1, ("FATAL: Bad private_data\n"));
+        return;
+    }
+
+    srvaddr = fo_get_server_hostent(server);
+    if (!srvaddr) {
+        DEBUG(1, ("FATAL: No hostent available for server (%s)\n",
+                  fo_get_server_name(server)));
+        return;
+    }
+
+    address = talloc_asprintf(service, srvaddr->h_name);
+    if (!address) {
+        DEBUG(1, ("Failed to copy address ...\n"));
+        return;
+    }
+
+    new_uri = talloc_asprintf(service, "ldap://%s", address);
+    if (!new_uri) {
+        DEBUG(2, ("Failed to copy URI ...\n"));
+        talloc_free(address);
+        return;
+    }
+
+    /* free old one and replace with new one */
+    talloc_zfree(service->sdap->uri);
+    service->sdap->uri = new_uri;
+    talloc_zfree(service->krb_server->address);
+    service->krb_server->address = address;
+
+    /* set also env variable */
+    ret = setenv(SSSD_KRB5_KDC, address, 1);
+    if (ret != EOK) {
+        DEBUG(2, ("setenv %s failed, authentication might fail.\n",
+                  SSSD_KRB5_KDC));
+    }
+}
+
+int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                     const char *servers, struct ipa_service **_service)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ipa_service *service;
+    char **list = NULL;
+    int count = 0;
+    int ret;
+    int i;
+
+    tmp_ctx = talloc_new(memctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    service = talloc_zero(tmp_ctx, struct ipa_service);
+    if (!service) {
+        ret = ENOMEM;
+        goto done;
+    }
+    service->sdap = talloc_zero(service, struct sdap_service);
+    if (!service->sdap) {
+        ret = ENOMEM;
+        goto done;
+    }
+    service->krb_server = talloc_zero(service, struct krb_server);
+    if (!service->krb_server) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_fo_add_service(ctx, "IPA");
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to create failover service!\n"));
+        goto done;
+    }
+
+    service->sdap->name = talloc_strdup(service, "IPA");
+    if (!service->sdap->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* split server parm into a list */
+    ret = sss_split_list(tmp_ctx, servers, ", ", &list, &count);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    /* now for each one add a new server to the failover service */
+    for (i = 0; i < count; i++) {
+
+        talloc_steal(service, list[i]);
+
+        ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL);
+        if (ret && ret != EEXIST) {
+            DEBUG(0, ("Failed to add server\n"));
+            goto done;
+        }
+
+        DEBUG(6, ("Added Server %s\n", list[i]));
+    }
+
+    ret = be_fo_service_add_callback(memctx, ctx, "IPA",
+                                     ipa_resolve_callback, service);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to add failover callback!\n"));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_service = talloc_steal(memctx, service);
+    }
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+

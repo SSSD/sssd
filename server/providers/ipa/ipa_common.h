@@ -27,6 +27,11 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/krb5/krb5_common.h"
 
+struct ipa_service {
+    struct sdap_service *sdap;
+    struct krb_server *krb_server;
+};
+
 enum ipa_basic_opt {
     IPA_DOMAIN = 0,
     IPA_SERVER,
@@ -37,6 +42,8 @@ enum ipa_basic_opt {
 
 struct ipa_options {
     struct dp_option *basic;
+
+    struct ipa_service *service;
 
     /* id provider */
     struct sdap_options *id;
@@ -63,5 +70,8 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct confdb_ctx *cdb,
                          const char *conf_path,
                          struct dp_option **_opts);
+
+int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                     const char *servers, struct ipa_service **_service);
 
 #endif /* _IPA_COMMON_H_ */

@@ -62,6 +62,11 @@ struct sdap_handle {
     struct sdap_op *ops;
 };
 
+struct sdap_service {
+    char *name;
+    char *uri;
+};
+
 #define SYSDB_SHADOWPW_LASTCHANGE "shadowLastChange"
 #define SYSDB_SHADOWPW_MIN "shadowMin"
 #define SYSDB_SHADOWPW_MAX "shadowMax"

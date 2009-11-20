@@ -23,6 +23,7 @@
 */
 
 #include "providers/ldap/ldap_common.h"
+#include "providers/fail_over.h"
 
 struct dp_option default_basic_opts[] = {
     { "ldap_uri", DP_OPT_STRING, { "ldap://localhost" }, NULL_STRING },
@@ -309,3 +310,110 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
 
     return ret;
 }
+
+static void sdap_uri_callback(void *private_data, struct fo_server *server)
+{
+    struct sdap_service *service;
+    const char *tmp;
+    char *new_uri;
+
+    service = talloc_get_type(private_data, struct sdap_service);
+    if (!service) return;
+
+    tmp = (const char *)fo_get_server_user_data(server);
+    if (tmp && ldap_is_ldap_url(tmp)) {
+        new_uri = talloc_strdup(service, tmp);
+    } else {
+        new_uri = talloc_asprintf(service, "ldap://%s",
+                                  fo_get_server_name(server));
+    }
+    if (!new_uri) {
+        DEBUG(2, ("Failed to copy URI ...\n"));
+        return;
+    }
+
+    /* free old one and replace with new one */
+    talloc_zfree(service->uri);
+    service->uri = new_uri;
+}
+
+int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                      const char *service_name, const char *urls,
+                      struct sdap_service **_service)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sdap_service *service;
+    LDAPURLDesc *lud;
+    char **list = NULL;
+    int count = 0;
+    int ret;
+    int i;
+
+    tmp_ctx = talloc_new(memctx);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    service = talloc_zero(tmp_ctx, struct sdap_service);
+    if (!service) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_fo_add_service(ctx, service_name);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to create failover service!\n"));
+        goto done;
+    }
+
+    service->name = talloc_strdup(service, service_name);
+    if (!service->name) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    /* split server parm into a list */
+    ret = sss_split_list(tmp_ctx, urls, ", ", &list, &count);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to parse server list!\n"));
+        goto done;
+    }
+
+    /* now for each URI add a new server to the failover service */
+    for (i = 0; i < count; i++) {
+        ret = ldap_url_parse(list[i], &lud);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(0, ("Failed to parse ldap URI (%s)!\n", list[i]));
+            ret = EINVAL;
+            goto done;
+        }
+
+        DEBUG(6, ("Added URI %s\n", list[i]));
+
+        talloc_steal(service, list[i]);
+
+        ret = be_fo_add_server(ctx, service->name,
+                               lud->lud_host, lud->lud_port, list[i]);
+        if (ret) {
+            goto done;
+        }
+        ldap_free_urldesc(lud);
+    }
+
+    ret = be_fo_service_add_callback(memctx, ctx, service->name,
+                                     sdap_uri_callback, service);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to add failover callback!\n"));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK) {
+        *_service = talloc_steal(memctx, service);
+    }
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+

@@ -183,6 +183,7 @@ SSSD_UTIL_OBJ = \
     sbus/sssd_dbus_common.c \
     sbus/sssd_dbus_connection.c \
     sbus/sssd_dbus_server.c \
+    util/util.c \
     util/memory.c \
     util/server.c \
     util/signal.c \
@@ -341,9 +342,11 @@ sssd_pam_LDADD = \
 
 sssd_be_SOURCES = \
     providers/data_provider_be.c \
+    providers/data_provider_fo.c \
     providers/data_provider_opts.c \
+    $(SSSD_FAILOVER_OBJ) \
     $(SSSD_UTIL_OBJ)
-sssd_be_LDADD = $(SSSD_LIBS)
+sssd_be_LDADD = $(SSSD_LIBS) $(CARES_LIBS)
 sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/providers/sssd_be.exports \
     -export-dynamic
