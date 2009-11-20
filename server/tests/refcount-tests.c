@@ -223,7 +223,8 @@ int main(int argc, const char *argv[])
     suite = create_suite();
     sr = srunner_create(suite);
     srunner_set_fork_status(sr, CK_FORK);
-    srunner_run_all(sr, CK_VERBOSE);
+    /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */
+    srunner_run_all(sr, CK_ENV);
     failure_count = srunner_ntests_failed(sr);
     srunner_free(sr);
     return (failure_count == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
