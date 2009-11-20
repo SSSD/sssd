@@ -295,7 +295,7 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
     if (ctx->be->domain->enumerate) {
         /* run the first one in a couple of seconds so that we have time to
          * finish initializations first*/
-        tv = tevent_timeval_current_ofs(2, 0);
+        tv = tevent_timeval_current_ofs(10, 0);
         ret = ldap_id_enumerate_set_timer(ctx, tv);
     } else {
         /* the enumeration task, runs the cleanup process by itself,
@@ -303,7 +303,7 @@ int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
 
         /* run the first one in a couple of seconds so that we have time to
          * finish initializations first*/
-        tv = tevent_timeval_current_ofs(2, 0);
+        tv = tevent_timeval_current_ofs(10, 0);
         ret = ldap_id_cleanup_set_timer(ctx, tv);
     }
 

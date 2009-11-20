@@ -2102,7 +2102,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
     mini->conn = conn;
 
     /* 5 seconds should be plenty */
-    tv = tevent_timeval_current_ofs(5, 0);
+    tv = tevent_timeval_current_ofs(10, 0);
 
     mini->timeout = tevent_add_timer(ctx->ev, mini, tv, init_timeout, mini);
     if (!mini->timeout) {
