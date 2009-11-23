@@ -70,9 +70,9 @@
 #define BE_FILTER_NAME 1
 #define BE_FILTER_IDNUM 2
 
-#define BE_REQ_USER 1
-#define BE_REQ_GROUP 2
-#define BE_REQ_INITGROUPS 3
+#define BE_REQ_USER 0x0001
+#define BE_REQ_GROUP 0x0002
+#define BE_REQ_INITGROUPS 0x0003
 
 /* AUTH related common data and functions */
 

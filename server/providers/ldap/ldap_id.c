@@ -628,7 +628,7 @@ void sdap_account_info_handler(struct be_req *breq)
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
 
-    switch (ar->entry_type) {
+    switch (ar->entry_type & 0xFFF) {
     case BE_REQ_USER: /* user */
 
         /* skip enumerations on demand */
