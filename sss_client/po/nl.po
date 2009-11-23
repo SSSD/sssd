@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd.master.sss_client\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-11-18 07:19-0500\n"
-"PO-Revision-Date: 2009-11-19 12:19+0100\n"
+"PO-Revision-Date: 2009-11-19 13:14+0100\n"
 "Last-Translator: Richard van der Luit <nippur@fedoraproject.org>\n"
 "Language-Team: Dutch <nl@li.org>\n"
 "MIME-Version: 1.0\n"
@@ -19,21 +19,21 @@ msgstr ""
 
 #: pam_sss.c:322
 msgid "Passwords do not match"
-msgstr ""
+msgstr "Wachtwoorden komen niet overeen"
 
 #: pam_sss.c:598
 msgid "Password: "
-msgstr ""
+msgstr "Wachtwoord: "
 
 #: pam_sss.c:630
 msgid "New Password: "
-msgstr ""
+msgstr "Nieuw Wachtwoord: "
 
 #: pam_sss.c:631
 msgid "Reenter new Password: "
-msgstr ""
+msgstr "Voer nieuw wachtwoord nogmaals in: "
 
 #: pam_sss.c:835
 msgid "Password has expired."
-msgstr ""
+msgstr "Wachtwoord is verlopen."
 
