@@ -27,7 +27,6 @@
 
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <fcntl.h>
 #include <pwd.h>
 #include <sys/stat.h>
 
@@ -36,6 +35,7 @@
 #include "util/util.h"
 #include "util/find_uid.h"
 #include "db/sysdb.h"
+#include "providers/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
@@ -412,23 +412,6 @@ static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
     }
 }
 
-static void fd_nonblocking(int fd)
-{
-    int flags;
-
-    flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
-        DEBUG(1, ("F_GETFL failed [%d][%s].\n", errno, strerror(errno)));
-        return;
-    }
-
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        DEBUG(1, ("F_SETFL failed [%d][%s].\n", errno, strerror(errno)));
-    }
-
-    return;
-}
-
 static void krb_reply(struct be_req *req, int dp_err, int result);
 
 static void krb5_child_timeout(struct tevent_context *ev,
@@ -543,37 +526,6 @@ failed:
     talloc_zfree(kr);
 
     return err;
-}
-
-void krb5_child_sig_handler(struct tevent_context *ev,
-                            struct tevent_signal *sige, int signum,
-                            int count, void *__siginfo, void *pvt)
-{
-    int ret;
-    int child_status;
-
-    DEBUG(7, ("Waiting for [%d] childeren.\n", count));
-    do {
-        errno = 0;
-        ret = waitpid(-1, &child_status, WNOHANG);
-
-        if (ret == -1) {
-            DEBUG(1, ("waitpid failed [%d][%s].\n", errno, strerror(errno)));
-        } else if (ret == 0) {
-            DEBUG(1, ("waitpid did not found a child with changed status.\n"));
-        } else  {
-            if (WEXITSTATUS(child_status) != 0) {
-                DEBUG(1, ("child [%d] failed with status [%d].\n", ret,
-                          child_status));
-            } else {
-                DEBUG(4, ("child [%d] finished successful.\n", ret));
-            }
-        }
-
-        --count;
-    } while (count < 0);
-
-    return;
 }
 
 static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
@@ -741,100 +693,6 @@ static errno_t fork_child(struct krb5child_req *kr)
         DEBUG(1, ("fork failed [%d][%s].\n", errno, strerror(errno)));
         return err;
     }
-
-    return EOK;
-}
-
-
-struct read_pipe_state {
-    int fd;
-    uint8_t *buf;
-    size_t len;
-};
-
-static void read_pipe_done(struct tevent_context *ev,
-                           struct tevent_fd *fde,
-                           uint16_t flags, void *pvt);
-
-static struct tevent_req *read_pipe_send(TALLOC_CTX *memctx,
-                                         struct tevent_context *ev, int fd)
-{
-    struct tevent_req *req;
-    struct read_pipe_state *state;
-    struct tevent_fd *fde;
-
-
-    req = tevent_req_create(memctx, &state, struct read_pipe_state);
-    if (req == NULL) return NULL;
-
-    state->fd = fd;
-    state->buf = talloc_array(state, uint8_t, MAX_CHILD_MSG_SIZE);
-    state->len = 0;
-    if (state->buf == NULL) goto fail;
-
-    fde = tevent_add_fd(ev, state, fd, TEVENT_FD_READ,
-                       read_pipe_done, req);
-    if (fde == NULL) {
-        DEBUG(1, ("tevent_add_fd failed.\n"));
-        goto fail;
-    }
-
-    return req;
-
-fail:
-    talloc_zfree(req);
-    return NULL;
-}
-
-static void read_pipe_done(struct tevent_context *ev,
-                           struct tevent_fd *fde,
-                           uint16_t flags, void *pvt)
-{
-    ssize_t size;
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct read_pipe_state *state = tevent_req_data(req, struct read_pipe_state);
-
-    if (flags & TEVENT_FD_WRITE) {
-        DEBUG(1, ("read_pipe_done called with TEVENT_FD_WRITE, this should not happen.\n"));
-        tevent_req_error(req, EINVAL);
-        return;
-    }
-
-    size = read(state->fd, state->buf + state->len, talloc_get_size(state->buf) - state->len);
-    if (size == -1) {
-        if (errno == EAGAIN || errno == EINTR) return;
-        DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-        tevent_req_error(req, errno);
-        return;
-    } else if (size > 0) {
-        state->len += size;
-        if (state->len > talloc_get_size(state->buf)) {
-            DEBUG(1, ("read to much, this should never happen.\n"));
-            tevent_req_error(req, EINVAL);
-            return;
-        }
-        return;
-    } else if (size == 0) {
-        tevent_req_done(req);
-        return;
-    } else {
-        DEBUG(1, ("unexpected return value of read [%d].\n", size));
-        tevent_req_error(req, EINVAL);
-        return;
-    }
-
-}
-
-static int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                          uint8_t **buf, ssize_t *len)
-{
-    struct read_pipe_state *state = tevent_req_data(req,
-                                                    struct read_pipe_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *buf = talloc_move(mem_ctx, &state->buf);
-    *len = state->len;
 
     return EOK;
 }

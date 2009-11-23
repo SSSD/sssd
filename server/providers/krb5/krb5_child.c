@@ -30,11 +30,10 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "providers/child_common.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
-
-#define IN_BUF_SIZE 512
 
 struct krb5_child_ctx {
     /* opts taken from kinit */
@@ -98,12 +97,6 @@ static const char *__krb5_error_msg;
     DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
     sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
 } while(0);
-
-struct response {
-    size_t max_size;
-    size_t size;
-    uint8_t *buf;
-};
 
 static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds)
 {
@@ -616,22 +609,6 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
     }
 
     return ret;
-}
-
-uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx, const uint8_t *src,
-                                  size_t len)
-{
-    uint8_t *str;
-
-    str = talloc_size(mem_ctx, len + 1);
-    if (str == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
-        return NULL;
-    }
-    memcpy(str, src, len);
-    str[len] = '\0';
-
-    return str;
 }
 
 static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,

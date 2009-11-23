@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "providers/child_common.h"
 #include "providers/ipa/ipa_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/ipa/ipa_auth.h"
@@ -195,7 +196,7 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     }
 
     sige = tevent_add_signal(bectx->ev, ctx, SIGCHLD, SA_SIGINFO,
-                             krb5_child_sig_handler, NULL);
+                             child_sig_handler, NULL);
     if (sige == NULL) {
         DEBUG(1, ("tevent_add_signal failed.\n"));
         ret = ENOMEM;

@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include "providers/child_common.h"
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_common.h"
 
@@ -108,7 +109,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     }
 
     sige = tevent_add_signal(bectx->ev, ctx, SIGCHLD, SA_SIGINFO,
-                             krb5_child_sig_handler, NULL);
+                             child_sig_handler, NULL);
     if (sige == NULL) {
         DEBUG(1, ("tevent_add_signal failed.\n"));
         ret = ENOMEM;

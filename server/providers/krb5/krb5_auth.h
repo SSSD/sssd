@@ -30,7 +30,6 @@
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
 
-#define MAX_CHILD_MSG_SIZE 255
 #define CCACHE_ENV_NAME "KRB5CCNAME"
 #define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
 
@@ -87,9 +86,5 @@ struct krb5_ctx {
 };
 
 void krb5_pam_handler(struct be_req *be_req);
-
-void krb5_child_sig_handler(struct tevent_context *ev,
-                            struct tevent_signal *sige, int signum,
-                            int count, void *__siginfo, void *pvt);
 
 #endif /* __KRB5_AUTH_H__ */

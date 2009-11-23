@@ -291,6 +291,7 @@ dist_noinst_HEADERS = \
     providers/dp_backend.h \
     providers/fail_over.h \
     providers/providers.h \
+    providers/child_common.h \
     providers/krb5/krb5_auth.h \
     providers/krb5/krb5_common.h \
     providers/krb5/krb5_utils.h \
@@ -555,6 +556,7 @@ stress_tests_LDADD = \
 # Plugin Libraries #
 ####################
 libsss_ldap_la_SOURCES = \
+    providers/child_common.c \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \
     providers/ldap/ldap_id_cleanup.c \
@@ -590,6 +592,7 @@ libsss_proxy_la_LDFLAGS = \
 
 libsss_krb5_la_SOURCES = \
     util/find_uid.c \
+    providers/child_common.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_auth.c \
@@ -605,6 +608,7 @@ libsss_krb5_la_LDFLAGS = \
     -module
 
 libsss_ipa_la_SOURCES = \
+    providers/child_common.c \
     providers/ipa/ipa_init.c \
     providers/ipa/ipa_common.c \
     providers/ipa/ipa_auth.c \
@@ -643,6 +647,7 @@ krb5_child_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
     providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_child.c \
+    providers/child_common.c \
     util/sss_krb5.c
 krb5_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -650,6 +655,7 @@ krb5_child_CFLAGS = \
     $(KRB5_CFLAGS)
 krb5_child_LDADD = \
     $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
     $(POPT_LIBS) \
     $(KRB5_LIBS)
 
