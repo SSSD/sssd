@@ -623,15 +623,6 @@ static errno_t fork_child(struct krb5child_req *kr)
     pid = fork();
 
     if (pid == 0) { /* child */
-        //talloc_free(kr->req->be_ctx->ev);
-
-        ret = chdir("/tmp");
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("chdir failed [%d][%s].\n", errno, strerror(errno)));
-            return err;
-        }
-
         /* We need to keep the root privileges to read the keytab file if
          * validation is enabled, otherwise we can drop them here and run
          * krb5_child with user privileges.
