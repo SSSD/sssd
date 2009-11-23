@@ -212,12 +212,10 @@ done:
     return ret;
 }
 
-/* the following preprocessor code is used to keep track of
- * the options in the ldap module, so that if they change and ipa
- * is not updated correspondingly this will trigger a build error */
-#if SDAP_OPTS_BASIC > 29
-#error There are ldap options not accounted for
-#endif
+/* the following define is used to keep track of * the options in the ldap
+ * module, so that if they change and ipa is not updated correspondingly
+ * this will trigger a runtime abort error */
+#define IPA_OPTS_BASIC_TEST 30
 
 int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
@@ -231,6 +229,14 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     char *value;
     int ret;
     int i;
+
+    /* self check test, this should never fail, unless someone forgot
+     * to properly update the code after new ldap options have been added */
+    if (SDAP_OPTS_BASIC != IPA_OPTS_BASIC_TEST) {
+        DEBUG(0, ("Option numbers do not match (%d != %d)\n",
+                   SDAP_OPTS_BASIC, IPA_OPTS_BASIC_TEST));
+        abort();
+    }
 
     tmpctx = talloc_new(ipa_opts);
     if (!tmpctx) {
@@ -382,12 +388,10 @@ done:
     return ret;
 }
 
-/* the following preprocessor code is used to keep track of
- * the options in the krb5 module, so that if they change and ipa
- * is not updated correspondingly this will trigger a build error */
-#if KRB5_OPTS > 6
-#error There are krb5 options not accounted for
-#endif
+/* the following define is used to keep track of * the options in the krb5
+ * module, so that if they change and ipa is not updated correspondingly
+ * this will trigger a runtime abort error */
+#define IPA_KRB5_OPTS_TEST 8
 
 int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct confdb_ctx *cdb,
@@ -397,6 +401,14 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     char *value;
     int ret;
     int i;
+
+    /* self check test, this should never fail, unless someone forgot
+     * to properly update the code after new ldap options have been added */
+    if (KRB5_OPTS != IPA_KRB5_OPTS_TEST) {
+        DEBUG(0, ("Option numbers do not match (%d != %d)\n",
+                   KRB5_OPTS, IPA_KRB5_OPTS_TEST));
+        abort();
+    }
 
     ipa_opts->auth = talloc_zero(ipa_opts, struct dp_option);
     if (ipa_opts->auth == NULL) {
