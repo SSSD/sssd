@@ -158,15 +158,15 @@ static void proxy_pam_handler(struct be_req *req) {
     ret = pam_start(ctx->pam_target, pd->user, &conv, &pamh);
     if (ret == PAM_SUCCESS) {
         DEBUG(1, ("Pam transaction started.\n"));
-        pam_set_item(pamh, PAM_TTY, pd->tty);
+        ret = pam_set_item(pamh, PAM_TTY, pd->tty);
         if (ret != PAM_SUCCESS) {
             DEBUG(1, ("Setting PAM_TTY failed: %s.\n", pam_strerror(pamh, ret)));
         }
-        pam_set_item(pamh, PAM_RUSER, pd->ruser);
+        ret = pam_set_item(pamh, PAM_RUSER, pd->ruser);
         if (ret != PAM_SUCCESS) {
             DEBUG(1, ("Setting PAM_RUSER failed: %s.\n", pam_strerror(pamh, ret)));
         }
-        pam_set_item(pamh, PAM_RHOST, pd->rhost);
+        ret = pam_set_item(pamh, PAM_RHOST, pd->rhost);
         if (ret != PAM_SUCCESS) {
             DEBUG(1, ("Setting PAM_RHOST failed: %s.\n", pam_strerror(pamh, ret)));
         }
