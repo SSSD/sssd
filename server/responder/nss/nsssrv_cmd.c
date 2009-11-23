@@ -1636,6 +1636,24 @@ static int fill_grent(struct sss_packet *packet,
                     continue;
                 }
                 nlen = p - name;
+
+                if (nctx->filter_users_in_groups) {
+                    char t;
+                    t = *p;
+                    *p = '\0';
+                    ret = nss_ncache_check_user(nctx->ncache,
+                                                nctx->neg_timeout,
+                                                domain, name);
+                    *p = t;
+                    if (ret == EEXIST) {
+                        DEBUG(6, ("Group [%s] member [%.*s@%s] filtered out!"
+                                  " (negative cache)\n",
+                                  (char *)&body[rzero+STRS_ROFFSET],
+                                  nlen, name, domain));
+                        continue;
+                    }
+                }
+
                 p++;
                 if (strncmp(p, SYSDB_USERS_CONTAINER, sysuserslen) != 0) {
                     DEBUG(1, ("Member [%.*s] not in the std format ?! "
