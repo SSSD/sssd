@@ -1122,7 +1122,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
     struct krb5_ctx *krb5_ctx = kr->krb5_ctx;
-    int pam_status=PAM_SYSTEM_ERR;
+    int pam_status = PAM_SYSTEM_ERR;
     int dp_err = DP_ERR_FATAL;
     int ret;
     char *password = NULL;
@@ -1191,6 +1191,9 @@ static void krb5_save_ccname_done(struct tevent_req *req)
         tevent_req_set_callback(req, krb5_pam_handler_cache_done, be_req);
         return;
     }
+
+    pam_status = PAM_SUCCESS;
+    dp_err = DP_ERR_OK;
 
 failed:
     talloc_free(kr);
