@@ -107,7 +107,11 @@ int main(int argc, const char **argv)
     ret = init_sss_tools(&tctx);
     if (ret != EOK) {
         DEBUG(1, ("init_sss_tools failed (%d): %s\n", ret, strerror(ret)));
-        ERROR("Error initializing the tools\n");
+        if (ret == ENOENT) {
+            ERROR("Error initializing the tools - no local domain\n");
+        } else {
+            ERROR("Error initializing the tools\n");
+        }
         ret = EXIT_FAILURE;
         goto fini;
     }

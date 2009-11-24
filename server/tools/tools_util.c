@@ -64,7 +64,7 @@ static int setup_db(struct tools_ctx *ctx)
 
     ret = confdb_get_domain(ctx->confdb, "local", &ctx->local);
     if (ret != EOK) {
-        DEBUG(1, ("Could not get 'local' domain\n"));
+        DEBUG(1, ("Could not get 'local' domain: [%d] [%s]\n", ret, strerror(ret)));
         return ret;
     }
 
