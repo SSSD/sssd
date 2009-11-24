@@ -2525,7 +2525,14 @@ int main(int argc, const char *argv[])
 
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, &monitor);
-    if (ret != EOK) return 4;
+    if (ret != EOK) {
+        if (ret == EIO) {
+            DEBUG(1, ("Cannot read configuration file %s\n", config_file));
+            ERROR("Cannot read config file %s, please check if permissions "
+                  "are 0600 and the file is owned by root.root\n", config_file);
+        }
+        return 4;
+    }
 
     /* set up things like debug , signals, daemonization, etc... */
     ret = server_setup("sssd", flags, CONFDB_MONITOR_CONF_ENTRY, &main_ctx);
