@@ -1201,6 +1201,10 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
+#ifdef SYSDB_TEST
+    ldb_set_modules_dir(ctx->ldb, "./.libs");
+#endif
+
     ret = ldb_connect(ctx->ldb, ctx->ldb_file, 0, NULL);
     if (ret != LDB_SUCCESS) {
         return EIO;

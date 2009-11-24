@@ -412,6 +412,7 @@ sysdb_tests_SOURCES = \
     tests/sysdb-tests.c \
     $(SSSD_UTIL_OBJ)
 sysdb_tests_CFLAGS = \
+    -DSYSDB_TEST \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
