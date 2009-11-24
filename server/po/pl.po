@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-11-23 12:37-0500\n"
-"PO-Revision-Date: 2009-11-21 00:18+0100\n"
+"PO-Revision-Date: 2009-11-24 20:27+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
 "MIME-Version: 1.0\n"
@@ -83,7 +83,7 @@ msgstr "Czy filtrowani użytkownicy powinni pojawiać się w grupach"
 
 #: config/SSSDConfig.py:60
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
+msgstr "Wartość pola hasła, jaką dostawca NSS powinien zwrócić"
 
 #: config/SSSDConfig.py:63
 msgid "How long to allow cached logins between online logins (days)"
@@ -173,13 +173,12 @@ msgid "Location of the user's credential cache"
 msgstr "Położenie pamięci podręcznej danych uwierzytelniających użytkownika"
 
 #: config/SSSDConfig.py:94
-#, fuzzy
 msgid "Location of the keytab to validate credentials"
-msgstr "Położenie pamięci podręcznej danych uwierzytelniających użytkownika"
+msgstr "Położenie tablicy kluczy do sprawdzania danych uwierzytelniających"
 
 #: config/SSSDConfig.py:95
 msgid "Enable credential validation"
-msgstr ""
+msgstr "Włącza sprawdzanie danych uwierzytelniających"
 
 #: config/SSSDConfig.py:98
 msgid "The principal of the change password service"
@@ -239,7 +238,7 @@ msgstr "Podaje używany identyfikator upoważnienia SASL"
 
 #: config/SSSDConfig.py:116
 msgid "Kerberos service keytab"
-msgstr "Tablica klucza usługi Kerberos"
+msgstr "Tablica kluczy usługi Kerberos"
 
 #: config/SSSDConfig.py:117
 msgid "Use Kerberos auth for LDAP connection"
@@ -319,7 +318,7 @@ msgstr "Atrybut czasu modyfikacji"
 
 #: config/SSSDConfig.py:140
 msgid "Policy to evaluate the password expiration"
-msgstr ""
+msgstr "Polityka do oszacowania wygaszenia hasła"
 
 #: config/SSSDConfig.py:143
 msgid "Default shell, /bin/bash"
