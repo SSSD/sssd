@@ -6,7 +6,7 @@ builddir ?= .
 
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
-ldblibdir = $(libdir)/ldb
+ldblibdir = @ldblibdir@
 if BUILD_KRB5_LOCATOR_PLUGIN
 krb5plugindir = @krb5pluginpath@
 endif
