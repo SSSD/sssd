@@ -220,10 +220,10 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     struct ldb_dn *valdn;
     int i, ret;
 
-	if (ldb_dn_is_special(req->op.add.message->dn)) {
-		/* do not manipulate our control entries */
-		return ldb_next_request(module, req);
-	}
+    if (ldb_dn_is_special(req->op.add.message->dn)) {
+        /* do not manipulate our control entries */
+        return ldb_next_request(module, req);
+    }
 
     ctx = mbof_init(module, req);
     if (!ctx) {
@@ -501,7 +501,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     struct mbof_ctx *ctx;
     struct mbof_add_ctx *add_ctx;
     struct ldb_context *ldb;
-	struct ldb_message_element *el;
+    struct ldb_message_element *el;
     struct ldb_request *mod_req;
     struct ldb_message *msg;
     struct ldb_dn *elval_dn;
@@ -672,7 +672,7 @@ static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
     struct ldb_context *ldb;
     struct ldb_message *msg;
     struct ldb_request *mod_req;
-	struct ldb_message_element *el;
+    struct ldb_message_element *el;
     struct mbof_ctx *ctx;
     struct mbof_dn *iter;
     const char *val;
@@ -998,7 +998,7 @@ static int mbof_orig_del_callback(struct ldb_request *req,
     struct ldb_context *ldb;
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
-	int ret;
+    int ret;
 
     del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
     ctx = del_ctx->ctx;
@@ -1015,12 +1015,12 @@ static int mbof_orig_del_callback(struct ldb_request *req,
                                ares->error);
     }
 
-	if (ares->type != LDB_REPLY_DONE) {
-		talloc_zfree(ares);
-		ldb_set_errstring(ldb, "Invalid reply type!");
+    if (ares->type != LDB_REPLY_DONE) {
+        talloc_zfree(ares);
+        ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
-	}
+    }
 
     /* save real call stuff */
     ctx->ret_ctrls = talloc_steal(ctx, ares->controls);
@@ -1106,7 +1106,7 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
     struct ldb_context *ldb;
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
-	int ret;
+    int ret;
 
     del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
     first = del_ctx->first;
@@ -1125,12 +1125,12 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
                                ares->error);
     }
 
-	if (ares->type != LDB_REPLY_DONE) {
-		talloc_zfree(ares);
-		ldb_set_errstring(ldb, "Invalid reply type!");
+    if (ares->type != LDB_REPLY_DONE) {
+        talloc_zfree(ares);
+        ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
-	}
+    }
 
     if (first->num_parents > first->cur_parent) {
         /* still parents to cleanup, go on */
@@ -1973,7 +1973,7 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
     struct ldb_context *ldb;
     struct mbof_mod_ctx *mod_ctx;
     struct mbof_ctx *ctx;
-	int ret;
+    int ret;
 
     mod_ctx = talloc_get_type(req->context, struct mbof_mod_ctx);
     ctx = mod_ctx->ctx;
@@ -1990,13 +1990,13 @@ static int mbof_orig_mod_callback(struct ldb_request *req,
                                ares->error);
     }
 
-	if (ares->type != LDB_REPLY_DONE) {
-		talloc_zfree(ares);
+    if (ares->type != LDB_REPLY_DONE) {
+        talloc_zfree(ares);
         ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid reply type!");
-		ldb_set_errstring(ldb, "Invalid reply type!");
+        ldb_set_errstring(ldb, "Invalid reply type!");
         return ldb_module_done(ctx->req, NULL, NULL,
                                LDB_ERR_OPERATIONS_ERROR);
-	}
+    }
 
     /* save real call stuff */
     ctx->ret_ctrls = talloc_steal(ctx, ares->controls);
