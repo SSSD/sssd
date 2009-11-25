@@ -507,6 +507,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     TALLOC_CTX *tmp_ctx;
     struct ipa_service *service;
     char **list = NULL;
+    char *realm;
     int count = 0;
     int ret;
     int i;
@@ -550,11 +551,15 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    service->krb5_service->realm = talloc_strdup(service, domain);
-    if (!service->krb5_service->realm) {
+    realm = talloc_strdup(service, domain);
+    if (!realm) {
         ret = ENOMEM;
         goto done;
     }
+    for (i = 0; realm[i]; i++) {
+        realm[i] = toupper(realm[i]);
+    }
+    service->krb5_service->realm = realm;
 
     /* split server parm into a list */
     ret = sss_split_list(tmp_ctx, servers, ", ", &list, &count);
