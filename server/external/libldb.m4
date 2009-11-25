@@ -20,7 +20,7 @@ if test x"$with_ldb_lib_dir" != x; then
     ldblibdir=$with_ldb_lib_dir
 else
     ldblibdir="`$PKG_CONFIG --variable=modulesdir ldb`"
-    if test x"$ldblibdir" == x; then
+    if ! test -d $ldblibdir; then
         ldblibdir="${libdir}/ldb"
     fi
 fi
