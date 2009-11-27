@@ -1480,6 +1480,7 @@ static int fill_grent(struct sss_packet *packet,
     size_t nsize;
     size_t delim;
     size_t dom_len;
+    size_t pwlen;
     int i, j;
     int ret, num, memnum;
     size_t rzero, rsize;
@@ -1496,6 +1497,7 @@ static int fill_grent(struct sss_packet *packet,
     }
 
     num = 0;
+    pwlen = strlen(nctx->pwfield) + 1;
 
     /* first 2 fields (len and reserved), filled up later */
     ret = sss_packet_grow(packet, 2*sizeof(uint32_t));
@@ -1549,7 +1551,7 @@ static int fill_grent(struct sss_packet *packet,
         if (add_domain) nsize += delim + dom_len;
 
         /* fill in gid and name and set pointer for number of members */
-        rsize = STRS_ROFFSET + nsize + 2; /* name\0x\0 */
+        rsize = STRS_ROFFSET + nsize + pwlen; /* name\0x\0 */
 
         ret = sss_packet_grow(packet, rsize);
         if (ret != EOK) {
@@ -1602,8 +1604,8 @@ static int fill_grent(struct sss_packet *packet,
             memcpy(&body[rzero+STRS_ROFFSET], name, nsize);
         }
 
-        body[rzero + rsize -2] = 'x'; /* group passwd field */
-        body[rzero + rsize -1] = '\0';
+        /* group passwd field */
+        memcpy(&body[rzero + rsize -pwlen], nctx->pwfield, pwlen);
 
         el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
         if (el) {
