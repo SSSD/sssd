@@ -117,7 +117,7 @@
                         SYSDB_DEFAULT_ATTRS, \
                         NULL}
 #define SYSDB_GRSRC_ATTRS {SYSDB_NAME, SYSDB_GIDNUM, \
-                           SYSDB_MEMBER, \
+                           SYSDB_MEMBERUID, \
                            SYSDB_DEFAULT_ATTRS, \
                            NULL}
 #define SYSDB_GRPW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
