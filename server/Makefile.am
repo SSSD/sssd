@@ -211,11 +211,11 @@ SSSD_TOOLS_OBJ = \
 
 SSSD_RESOLV_OBJ = \
     resolv/async_resolv.c
-if BUILD_ARES_PARSE_SRV
-    SSSD_RESOLV_OBJ += resolv/ares/ares_parse_srv_reply.c
-endif
-if BUILD_ARES_PARSE_TXT
-    SSSD_RESOLV_OBJ += resolv/ares/ares_parse_txt_reply.c
+if BUILD_ARES_DATA
+    SSSD_RESOLV_OBJ += \
+	resolv/ares/ares_parse_srv_reply.c \
+	resolv/ares/ares_parse_txt_reply.c \
+	resolv/ares/ares_data.c
 endif
 
 SSSD_FAILOVER_OBJ = \
@@ -311,6 +311,7 @@ dist_noinst_HEADERS = \
     resolv/async_resolv.h \
     resolv/ares/ares_parse_srv_reply.h \
     resolv/ares/ares_parse_txt_reply.h \
+    resolv/ares/ares_data.h \
     tests/common.h
 
 

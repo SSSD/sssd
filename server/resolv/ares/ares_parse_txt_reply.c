@@ -50,21 +50,26 @@
 #include "ares.h"
 /* this drags in some private macros c-ares uses */
 #include "ares_dns.h"
+#include "ares_data.h"
 
 #include "ares_parse_txt_reply.h"
 
-int _ares_parse_txt_reply(const unsigned char* abuf, int alen,
-                          struct txt_reply **txt_out, int *ntxtreply)
+int _ares_parse_txt_reply (const unsigned char *abuf, int alen,
+                           struct ares_txt_reply **txt_out)
 {
-  unsigned int qdcount, ancount;
+  size_t substr_len, str_len;
+  unsigned int qdcount, ancount, i;
   const unsigned char *aptr;
-  int status, i, rr_type, rr_class, rr_len;
+  const unsigned char *strptr;
+  int status, rr_type, rr_class, rr_len;
   long len;
   char *hostname = NULL, *rr_name = NULL;
-  struct txt_reply *txt = NULL;
+  struct ares_txt_reply *txt_head = NULL;
+  struct ares_txt_reply *txt_last = NULL;
+  struct ares_txt_reply *txt_curr;
 
-  if (txt_out)
-      *txt_out = NULL;
+  /* Set *txt_out to NULL for all failure cases. */
+  *txt_out = NULL;
 
   /* Give up if abuf doesn't have room for a header. */
   if (alen < HFIXEDSZ)
@@ -91,29 +96,21 @@ int _ares_parse_txt_reply(const unsigned char* abuf, int alen,
     }
   aptr += len + QFIXEDSZ;
 
-  /* Allocate txt_reply array; ancount gives an upper bound */
-  txt = malloc ((ancount) * sizeof (struct txt_reply));
-  if (!txt)
-    {
-      free (hostname);
-      return ARES_ENOMEM;
-    }
-
   /* Examine each answer resource record (RR) in turn. */
   for (i = 0; i < (int) ancount; i++)
     {
       /* Decode the RR up to the data field. */
       status = ares_expand_name(aptr, abuf, alen, &rr_name, &len);
       if (status != ARES_SUCCESS)
-	{
-	  break;
-	}
+       {
+         break;
+       }
       aptr += len;
       if (aptr + RRFIXEDSZ > abuf + alen)
-	{
-	  status = ARES_EBADRESP;
-	  break;
-	}
+       {
+         status = ARES_EBADRESP;
+         break;
+       }
       rr_type = DNS_RR_TYPE(aptr);
       rr_class = DNS_RR_CLASS(aptr);
       rr_len = DNS_RR_LEN(aptr);
@@ -121,37 +118,87 @@ int _ares_parse_txt_reply(const unsigned char* abuf, int alen,
 
       /* Check if we are really looking at a TXT record */
       if (rr_class == C_IN && rr_type == T_TXT)
-	{
-            /* Grab the TXT payload */
-            txt[i].length = rr_len;
-            txt[i].txt = malloc(sizeof(unsigned char) * rr_len);
-            if (txt[i].txt == NULL)
+        {
+          /* Allocate storage for this TXT answer appending it to the list */
+          txt_curr = _ares_malloc_data(ARES_DATATYPE_TXT_REPLY);
+          if (!txt_curr)
             {
                 status = ARES_ENOMEM;
                 break;
             }
-            memcpy((void *) txt[i].txt, aptr+1, sizeof(unsigned char) * rr_len);
-            /* Move on to the next record */
-            aptr += rr_len;
+          if (txt_last)
+            {
+              txt_last->next = txt_curr;
+            }
+          else
+            {
+              txt_head = txt_curr;
+            }
+          txt_last = txt_curr;
+
+          /*
+           * There may be multiple substrings in a single TXT record. Each
+           * substring may be up to 255 characters in length, with a
+           * "length byte" indicating the size of the substring payload.
+           * RDATA contains both the length-bytes and payloads of all
+           * substrings contained therein.
+           */
+
+          /* Compute total length to allow a single memory allocation */
+          strptr = aptr;
+          while (strptr < (aptr + rr_len))
+            {
+              substr_len = (unsigned char)*strptr;
+              txt_curr->length += substr_len;
+              strptr += substr_len + 1;
+            }
+
+          /* Including null byte */
+          txt_curr->txt = malloc (txt_curr->length + 1);
+          if (txt_curr->txt == NULL)
+            {
+              status = ARES_ENOMEM;
+              break;
+            }
+
+          /* Step through the list of substrings, concatenating them */
+          str_len = 0;
+          strptr = aptr;
+          while (strptr < (aptr + rr_len))
+            {
+              substr_len = (unsigned char)*strptr;
+              strptr++;
+              memcpy ((char *) txt_curr->txt + str_len, strptr, substr_len);
+              str_len += substr_len;
+              strptr += substr_len;
+            }
+          /* Make sure we NULL-terminate */
+          *((char *) txt_curr->txt + txt_curr->length) = '\0';
         }
 
       /* Don't lose memory in the next iteration */
       free(rr_name);
       rr_name = NULL;
+
+      /* Move on to the next record */
+      aptr += rr_len;
     }
 
-  free(hostname);
-  free(rr_name);
+  if (hostname)
+    free (hostname);
+  if (rr_name)
+    free (rr_name);
 
   /* clean up on error */
   if (status != ARES_SUCCESS)
     {
-      free (txt);
+      if (txt_head)
+        _ares_free_data (txt_head);
       return status;
     }
 
   /* everything looks fine, return the data */
-  *txt_out = txt;
-  *ntxtreply = ancount;
-  return 0;
+  *txt_out = txt_head;
+
+  return ARES_SUCCESS;
 }

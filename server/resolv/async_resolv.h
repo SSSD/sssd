@@ -29,13 +29,13 @@
 #include <netdb.h>
 #include <ares.h>
 
-#ifndef HAVE_ARES_PARSE_TXT
-#include "resolv/ares/ares_parse_txt_reply.h"
-#endif /* HAVE_ARES_PARSE_TXT */
+#include "config.h"
 
-#ifndef HAVE_ARES_PARSE_SRV
+#ifndef HAVE_ARES_DATA
 #include "resolv/ares/ares_parse_srv_reply.h"
-#endif /* HAVE_ARES_PARSE_SRV */
+#include "resolv/ares/ares_parse_txt_reply.h"
+#include "resolv/ares/ares_data.h"
+#endif /* HAVE_ARES_DATA */
 
 /*
  * An opaque structure which holds context for a module using the async

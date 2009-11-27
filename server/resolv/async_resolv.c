@@ -42,15 +42,16 @@
 #include "util/dlinklist.h"
 #include "util/util.h"
 
-#ifndef HAVE_ARES_PARSE_SRV
+#ifndef HAVE_ARES_DATA
 #define ares_parse_srv_reply(abuf, alen, srv_out) \
     _ares_parse_srv_reply(abuf, alen, srv_out)
-#endif /* HAVE_ARES_PARSE_SRV */
-
-#ifndef HAVE_ARES_PARSE_TXT
 #define ares_parse_txt_reply(abuf, alen, txt_out) \
     _ares_parse_txt_reply(abuf, alen, txt_out)
-#endif /* HAVE_ARES_PARSE_TXT */
+#define ares_free_data(dataptr) \
+    _ares_free_data(dataptr)
+#define ares_malloc_data(data) \
+    _ares_malloc_data(data)
+#endif /* HAVE_ARES_DATA */
 
 struct fd_watch {
     struct fd_watch *prev;

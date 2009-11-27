@@ -51,25 +51,24 @@
 #include "ares.h"
 /* this drags in some private macros c-ares uses */
 #include "ares_dns.h"
+#include "ares_data.h"
 
 #include "ares_parse_srv_reply.h"
 
 int _ares_parse_srv_reply (const unsigned char *abuf, int alen,
-                           struct srv_reply **srv_out, int *nsrvreply)
+                           struct ares_srv_reply **srv_out)
 {
-  unsigned int qdcount, ancount;
-  const unsigned char *aptr;
-  int status, i, rr_type, rr_class, rr_len;
+  unsigned int qdcount, ancount, i;
+  const unsigned char *aptr, *vptr;
+  int status, rr_type, rr_class, rr_len;
   long len;
   char *hostname = NULL, *rr_name = NULL;
-  struct srv_reply *srv = NULL;
+  struct ares_srv_reply *srv_head = NULL;
+  struct ares_srv_reply *srv_last = NULL;
+  struct ares_srv_reply *srv_curr;
 
   /* Set *srv_out to NULL for all failure cases. */
-  if (srv_out)
-    *srv_out = NULL;
-  /* Same with *nsrvreply. */
-  if (nsrvreply)
-    *nsrvreply = 0;
+  *srv_out = NULL;
 
   /* Give up if abuf doesn't have room for a header. */
   if (alen < HFIXEDSZ)
@@ -95,14 +94,6 @@ int _ares_parse_srv_reply (const unsigned char *abuf, int alen,
       return ARES_EBADRESP;
     }
   aptr += len + QFIXEDSZ;
-
-  /* Allocate srv_reply array; ancount gives an upper bound */
-  srv = malloc ((ancount) * sizeof (struct srv_reply));
-  if (!srv)
-    {
-      free (hostname);
-      return ARES_ENOMEM;
-    }
 
   /* Examine each answer resource record (RR) in turn. */
   for (i = 0; i < (int) ancount; i++)
@@ -134,40 +125,59 @@ int _ares_parse_srv_reply (const unsigned char *abuf, int alen,
               break;
             }
 
-          srv[i].priority = ntohs (*((const uint16_t *)aptr));
-          aptr += sizeof(uint16_t);
-          srv[i].weight = ntohs (*((const uint16_t *)aptr));
-          aptr += sizeof(uint16_t);
-          srv[i].port = ntohs (*((const uint16_t *)aptr));
-          aptr += sizeof(uint16_t);
+          /* Allocate storage for this SRV answer appending it to the list */
+          srv_curr = _ares_malloc_data(ARES_DATATYPE_SRV_REPLY);
+          if (!srv_curr)
+            {
+              status = ARES_ENOMEM;
+              break;
+            }
+          if (srv_last)
+            {
+              srv_last->next = srv_curr;
+            }
+          else
+            {
+              srv_head = srv_curr;
+            }
+          srv_last = srv_curr;
 
-          status = ares_expand_name (aptr, abuf, alen, &srv[i].host, &len);
+          vptr = aptr;
+          srv_curr->priority = ntohs (*((const unsigned short *)vptr));
+          vptr += sizeof(const unsigned short);
+          srv_curr->weight = ntohs (*((const unsigned short *)vptr));
+          vptr += sizeof(const unsigned short);
+          srv_curr->port = ntohs (*((const unsigned short *)vptr));
+          vptr += sizeof(const unsigned short);
+
+          status = ares_expand_name (vptr, abuf, alen, &srv_curr->host, &len);
           if (status != ARES_SUCCESS)
             break;
-
-          /* Move on to the next record */
-          aptr += len;
-
-          /* Don't lose memory in the next iteration */
-          free (rr_name);
-          rr_name = NULL;
         }
+
+      /* Don't lose memory in the next iteration */
+      free(rr_name);
+      rr_name = NULL;
+
+      /* Move on to the next record */
+      aptr += rr_len;
     }
+
+  if (hostname)
+    free (hostname);
+  if (rr_name)
+    free (rr_name);
 
   /* clean up on error */
   if (status != ARES_SUCCESS)
     {
-      free (srv);
-      free (hostname);
-      free (rr_name);
+      if (srv_head)
+        _ares_free_data (srv_head);
       return status;
     }
 
   /* everything looks fine, return the data */
-  *srv_out = srv;
-  *nsrvreply = ancount;
+  *srv_out = srv_head;
 
-  free (hostname);
-  free (rr_name);
-  return status;
+  return ARES_SUCCESS;
 }
