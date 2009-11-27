@@ -1482,7 +1482,6 @@ static int fill_grent(struct sss_packet *packet,
     size_t dom_len;
     int i, j;
     int ret, num, memnum;
-    size_t sysnamelen, sysuserslen;
     size_t rzero, rsize;
     bool add_domain = dom->fqnames;
     const char *domain = dom->name;
@@ -1495,9 +1494,6 @@ static int fill_grent(struct sss_packet *packet,
         delim = 0;
         dom_len = 0;
     }
-
-    sysnamelen = strlen(SYSDB_NAME);
-    sysuserslen = strlen(SYSDB_USERS_CONTAINER);
 
     num = 0;
 
@@ -1609,61 +1605,27 @@ static int fill_grent(struct sss_packet *packet,
         body[rzero + rsize -2] = 'x'; /* group passwd field */
         body[rzero + rsize -1] = '\0';
 
-        el = ldb_msg_find_element(msg, SYSDB_MEMBER);
+        el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
         if (el) {
             memnum = 0;
 
             for (j = 0; j < el->num_values; j++) {
-                int nlen;
-                char *p;
-
-                if (strncmp((const char *)el->values[j].data,
-                            SYSDB_NAME, sysnamelen) != 0) {
-                    DEBUG(1, ("Member [%.*s] not in the std format ?! "
-                              "("SYSDB_NAME"=value,...)\n",
-                              el->values[i].length,
-                              (const char *)el->values[i].data));
-                    continue;
-                }
-
-                name = &((const char *)el->values[j].data)[sysnamelen + 1];
-                p = strchr(name, ',');
-                if (!p) {
-                    DEBUG(1, ("Member [%.*s] not in the std format ?! "
-                              "("SYSDB_NAME"=value,...)\n",
-                              el->values[i].length,
-                              (const char *)el->values[j].data));
-                    continue;
-                }
-                nlen = p - name;
+                name = (const char *)el->values[j].data;
 
                 if (nctx->filter_users_in_groups) {
-                    char t;
-                    t = *p;
-                    *p = '\0';
                     ret = nss_ncache_check_user(nctx->ncache,
                                                 nctx->neg_timeout,
                                                 domain, name);
-                    *p = t;
                     if (ret == EEXIST) {
-                        DEBUG(6, ("Group [%s] member [%.*s@%s] filtered out!"
+                        DEBUG(6, ("Group [%s] member [%s@%s] filtered out!"
                                   " (negative cache)\n",
                                   (char *)&body[rzero+STRS_ROFFSET],
-                                  nlen, name, domain));
+                                  name, domain));
                         continue;
                     }
                 }
 
-                p++;
-                if (strncmp(p, SYSDB_USERS_CONTAINER, sysuserslen) != 0) {
-                    DEBUG(1, ("Member [%.*s] not in the std format ?! "
-                              "("SYSDB_NAME"=value,...)\n",
-                              el->values[i].length,
-                              (const char *)el->values[j].data));
-                    continue;
-                }
-
-                nsize = nlen + 1; /* includes terminating \0 */
+                nsize = strlen(name) + 1; /* includes terminating \0 */
                 if (add_domain) nsize += delim + dom_len;
 
                 ret = sss_packet_grow(packet, nsize);
@@ -1674,14 +1636,8 @@ static int fill_grent(struct sss_packet *packet,
                 sss_packet_get_body(packet, &body, &blen);
 
                 if (add_domain) {
-                    char tmp[nlen+1];
-
-                    memcpy(tmp, name, nlen);
-                    tmp[nlen] = '\0';
-
-
                     ret = snprintf((char *)&body[rzero + rsize],
-                                    nsize, namefmt, tmp, domain);
+                                    nsize, namefmt, name, domain);
                     if (ret >= nsize) {
                         /* need more space,
                          * got creative with the print format ? */
@@ -1697,7 +1653,7 @@ static int fill_grent(struct sss_packet *packet,
 
                         /* retry */
                         ret = snprintf((char *)&body[rzero + rsize],
-                                        nsize, namefmt, tmp, domain);
+                                        nsize, namefmt, name, domain);
                     }
 
                     if (ret != nsize-1) {
@@ -1715,8 +1671,7 @@ static int fill_grent(struct sss_packet *packet,
                     }
 
                 } else {
-                    memcpy(&body[rzero + rsize], name, nlen);
-                    body[rzero + rsize + nlen] = '\0';
+                    memcpy(&body[rzero + rsize], name, nsize);
                 }
 
                 rsize += nsize;
