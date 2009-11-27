@@ -21,12 +21,13 @@
 #ifndef __ARES_PARSE_TXT_REPLY_H__
 #define __ARES_PARSE_TXT_REPLY_H__
 
-struct txt_reply {
-    int length;         /* length of the text */
-    unsigned char *txt; /* may contain nulls */
+struct ares_txt_reply {
+    struct ares_txt_reply  *next;
+    unsigned char          *txt;
+    size_t                  length;  /* length excludes null termination */
 };
 
 int _ares_parse_txt_reply(const unsigned char* abuf, int alen,
-                          struct txt_reply **txt_out, int *ntxtreply);
+                          struct ares_txt_reply **txt_out);
 
 #endif /* __ARES_PARSE_TXT_REPLY_H__ */

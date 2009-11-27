@@ -21,14 +21,15 @@
 #ifndef __ARES_PARSE_SRV_REPLY_H__
 #define __ARES_PARSE_SRV_REPLY_H__
 
-struct srv_reply {
-    u_int16_t weight;
-    u_int16_t priority;
-    u_int16_t port;
-    char *host;
+struct ares_srv_reply {
+    struct ares_srv_reply  *next;
+    char                   *host;
+    unsigned short          priority;
+    unsigned short          weight;
+    unsigned short          port;
 };
 
 int _ares_parse_srv_reply (const unsigned char *abuf, int alen,
-                           struct srv_reply **srv_out, int *nsrvreply);
+                           struct ares_srv_reply **srv_out);
 
 #endif /* __ARES_PARSE_SRV_REPLY_H__ */
