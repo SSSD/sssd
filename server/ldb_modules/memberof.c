@@ -20,6 +20,13 @@
 #include <string.h>
 #include "ldb_module.h"
 
+#define DB_MEMBER "member"
+#define DB_MEMBEROF "memberof"
+#define DB_MEMBERUID "memberuid"
+#define DB_NAME "name"
+#define DB_USER_CLASS "user"
+#define DB_OC "objectClass"
+
 #ifndef talloc_zfree
 #define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
 #endif
@@ -39,8 +46,8 @@ struct mbof_dn {
 };
 
 struct mbof_ctx {
-	struct ldb_module *module;
-	struct ldb_request *req;
+    struct ldb_module *module;
+    struct ldb_request *req;
 
     struct ldb_control **ret_ctrls;
     struct ldb_extended *ret_resp;
@@ -56,6 +63,11 @@ struct mbof_add_operation {
     struct ldb_message *entry;
 };
 
+struct mbof_memberuid_op {
+    struct ldb_dn *dn;
+    struct ldb_message_element *el;
+};
+
 struct mbof_add_ctx {
     struct mbof_ctx *ctx;
 
@@ -67,6 +79,10 @@ struct mbof_add_ctx {
     bool terminate;
 
     struct mbof_dn *missing;
+
+    struct mbof_memberuid_op *muops;
+    int num_muops;
+    int cur_muop;
 };
 
 struct mbof_del_ancestors_ctx {
@@ -94,14 +110,23 @@ struct mbof_del_operation {
     struct mbof_del_ancestors_ctx *anc_ctx;
 };
 
+struct mbof_mod_ctx;
+
 struct mbof_del_ctx {
     struct mbof_ctx *ctx;
 
     struct mbof_del_operation *first;
     struct mbof_dn *history;
 
-    void *followup_ctx;
-    int (*followup_fn)(void *);
+    struct ldb_message **mus;
+    int num_mus;
+
+    struct mbof_memberuid_op *muops;
+    int num_muops;
+    int cur_muop;
+
+    struct mbof_mod_ctx *follow_mod;
+    bool is_mod;
 };
 
 struct mbof_mod_ctx {
@@ -132,7 +157,101 @@ static struct mbof_ctx *mbof_init(struct ldb_module *module,
     return ctx;
 }
 
+static int entry_is_user_object(struct ldb_message *entry)
+{
+    struct ldb_message_element *el;
+    struct ldb_val *val;
+    int i;
 
+    el = ldb_msg_find_element(entry, DB_OC);
+    if (!el) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    /* see if this is a user */
+    for (i = 0; i < el->num_values; i++) {
+        val = &(el->values[i]);
+        if (strncasecmp(DB_USER_CLASS, (char *)val->data, val->length) == 0) {
+            return LDB_SUCCESS;
+        }
+    }
+
+    return LDB_ERR_NO_SUCH_ATTRIBUTE;
+}
+
+static int mbof_append_muop(TALLOC_CTX *memctx,
+                            struct mbof_memberuid_op **_muops,
+                            int *_num_muops,
+                            int flags,
+                            struct ldb_dn *parent,
+                            const char *name)
+{
+    struct mbof_memberuid_op *muops = *_muops;
+    int num_muops = *_num_muops;
+    struct mbof_memberuid_op *op;
+    struct ldb_val *val;
+    int i;
+
+    op = NULL;
+    if (muops) {
+        for (i = 0; i < num_muops; i++) {
+            if (ldb_dn_compare(parent, muops[i].dn) == 0) {
+                op = &muops[i];
+                break;
+            }
+        }
+    }
+    if (!op) {
+        muops = talloc_realloc(memctx, muops,
+                               struct mbof_memberuid_op,
+                               num_muops + 1);
+        if (!muops) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        op = &muops[num_muops];
+        num_muops++;
+        *_muops = muops;
+        *_num_muops = num_muops;
+
+        op->dn = parent;
+        op->el = NULL;
+    }
+
+    if (!op->el) {
+        op->el = talloc_zero(muops, struct ldb_message_element);
+        if (!op->el) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        op->el->name = talloc_strdup(op->el, DB_MEMBERUID);
+        if (!op->el->name) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        op->el->flags = flags;
+    }
+
+    for (i = 0; i < op->el->num_values; i++) {
+        if (strcmp((char *)op->el->values[i].data, name) == 0) {
+            /* we already have this value, get out*/
+            return LDB_SUCCESS;
+        }
+    }
+
+    val = talloc_realloc(op->el, op->el->values,
+                         struct ldb_val, op->el->num_values + 1);
+    if (!val) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    val[op->el->num_values].data = (uint8_t *)talloc_strdup(val, name);
+    if (!val[op->el->num_values].data) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    val[op->el->num_values].length = strlen(name);
+
+    op->el->values = val;
+    op->el->num_values++;
+
+    return LDB_SUCCESS;
+}
 
 
 /* add operation */
@@ -141,20 +260,27 @@ static struct mbof_ctx *mbof_init(struct ldb_module *module,
  * First of all a new object cannot yet have parents, so the only memberof
  * attribute that can be added to any member contains just one object DN.
  *
- * Once the add operation has been performed to assure nothing else fails, then
- * on return we list all members and for each member we create an "add
- * operation" for each member of the object we just added and we pass it a
- * parent list of one member (the object we just added).
+ * The real add operation is done first, to assure nothing else fails.
+ * Then we list all members of the object just created, and for each member
+ * we create an "add operation" and we pass it a parent list of one member
+ * (the object we just added again).
  *
- * For each add operation we lookup the object we want to operate on (children
- * or descendant of a previously added/changed object).
- * We take the list of memberof attributes and sort out which parents are still
- * missing from the parent list we have been provided.
+ * For each add operation we lookup the object we want to operate on.
+ * We take the list of memberof attributes and sort out which parents are
+ * still missing from the parent list we have provided.
  * We modify the object memberof attributes to reflect the new memberships.
- * Then we list all members of this object, and for each once again we create an
- * "add operation" as we did in the initial object.
+ * Then we list all members of this object, and for each once again we create
+ * an "add operation" as we did in the initial object.
+ *
  * Processing stops when the target object does not have members or when it
  * already has all the parents (can happen if nested groups create loops).
+ *
+ * Group cache unrolling:
+ * Every time we add a memberof attribute to an actual user object,
+ * we proceed to store the user name.
+ *
+ * At the end we will add a memberuid attribute to our new object that
+ * includes all direct and indeirect user members names.
  */
 
 static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
@@ -208,6 +334,11 @@ static int mbof_next_add_callback(struct ldb_request *req,
 static int mbof_add_operation(struct mbof_add_operation *addop);
 static int mbof_add_missing(struct mbof_add_ctx *add_ctx, struct ldb_dn *dn);
 static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx);
+static int mbof_add_cleanup_callback(struct ldb_request *req,
+                                     struct ldb_reply *ares);
+static int mbof_add_muop(struct mbof_add_ctx *add_ctx);
+static int mbof_add_muop_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares);
 
 static int memberof_add(struct ldb_module *module, struct ldb_request *req)
 {
@@ -223,6 +354,22 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     if (ldb_dn_is_special(req->op.add.message->dn)) {
         /* do not manipulate our control entries */
         return ldb_next_request(module, req);
+    }
+
+    /* check if memberof is specified */
+    el = ldb_msg_find_element(req->op.add.message, DB_MEMBEROF);
+    if (el) {
+        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                  "Error: the memberof attribute is readonly.");
+        return LDB_ERR_UNWILLING_TO_PERFORM;
+    }
+
+    /* check if memberuid is specified */
+    el = ldb_msg_find_element(req->op.add.message, DB_MEMBERUID);
+    if (el) {
+        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                  "Error: the memberuid attribute is readonly.");
+        return LDB_ERR_UNWILLING_TO_PERFORM;
     }
 
     ctx = mbof_init(module, req);
@@ -242,16 +389,8 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     }
     add_ctx->msg_dn = add_ctx->msg->dn;
 
-    /* ignore memberof if specified */
-    el = ldb_msg_find_element(add_ctx->msg, "memberof");
-    if (el) {
-        ldb_debug(ldb, LDB_DEBUG_ERROR,
-                  "the memberof attribute is readonly. Ignoring.");
-        ldb_msg_remove_element(add_ctx->msg, el);
-    }
-
     /* continue with normal ops if there are no members */
-    el = ldb_msg_find_element(add_ctx->msg, "member");
+    el = ldb_msg_find_element(add_ctx->msg, DB_MEMBER);
     if (!el) {
         add_ctx->terminate = true;
         goto done;
@@ -355,6 +494,9 @@ static int mbof_add_callback(struct ldb_request *req,
             if (add_ctx->missing) {
                 ret = mbof_add_cleanup(add_ctx);
             }
+            else if (add_ctx->muops) {
+                ret = mbof_add_muop(add_ctx);
+            }
             else {
                 return ldb_module_done(ctx->req,
                                        ctx->ret_ctrls,
@@ -375,7 +517,8 @@ static int mbof_add_callback(struct ldb_request *req,
 
 static int mbof_next_add(struct mbof_add_operation *addop)
 {
-    static const char *attrs[] = {"member", "memberof", NULL};
+    static const char *attrs[] = { DB_OC, DB_NAME,
+                                   DB_MEMBER, DB_MEMBEROF, NULL };
     struct ldb_context *ldb;
     struct ldb_request *req;
     struct mbof_add_ctx *add_ctx;
@@ -442,6 +585,7 @@ static int mbof_next_add_callback(struct ldb_request *req,
             return ldb_module_done(ctx->req, NULL, NULL,
                                    LDB_ERR_OPERATIONS_ERROR);
         }
+
         break;
     case LDB_REPLY_REFERRAL:
         /* ignore */
@@ -466,6 +610,9 @@ static int mbof_next_add_callback(struct ldb_request *req,
                 /* no more operations */
                 if (add_ctx->missing) {
                     ret = mbof_add_cleanup(add_ctx);
+                }
+                else if (add_ctx->muops) {
+                    ret = mbof_add_muop(add_ctx);
                 }
                 else {
                     return ldb_module_done(ctx->req,
@@ -509,6 +656,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     struct mbof_dn_array *parents;
     int i, j, ret;
     const char *val;
+    const char *name;
 
     add_ctx = addop->add_ctx;
     ctx = add_ctx->ctx;
@@ -536,7 +684,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     }
 
     /* remove entries that are already there */
-    el = ldb_msg_find_element(addop->entry, "memberof");
+    el = ldb_msg_find_element(addop->entry, DB_MEMBEROF);
     if (el) {
 
         tmp_ctx = talloc_new(addop);
@@ -573,7 +721,11 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
 
             if (addop->next) {
                 return mbof_next_add(addop->next);
-            } else {
+            }
+            else if (add_ctx->muops) {
+                ret = mbof_add_muop(add_ctx);
+            }
+            else {
                 /* that was the last entry, get out */
                 return ldb_module_done(ctx->req,
                                        ctx->ret_ctrls,
@@ -585,7 +737,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     }
 
     /* if it is a group add all members */
-    el = ldb_msg_find_element(addop->entry, "member");
+    el = ldb_msg_find_element(addop->entry, DB_MEMBER);
     if (el) {
         for (i = 0; i < el->num_values; i++) {
             valdn = ldb_dn_from_ldb_val(add_ctx, ldb, &el->values[i]);
@@ -607,6 +759,37 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         }
     }
 
+    /* check if we need to store memberuid ops for this entry */
+    ret = entry_is_user_object(addop->entry);
+    switch (ret) {
+    case LDB_SUCCESS:
+        /* it's a user object  */
+        name = ldb_msg_find_attr_as_string(addop->entry, DB_NAME, NULL);
+        if (!name) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        for (i = 0; i < parents->num; i++) {
+            ret = mbof_append_muop(add_ctx, &add_ctx->muops,
+                                   &add_ctx->num_muops,
+                                   LDB_FLAG_MOD_ADD,
+                                   parents->dns[i], name);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+
+        break;
+
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
+        /* it is not a user object, continue */
+        break;
+
+    default:
+        /* an error occured, return */
+        return ret;
+    }
+
     /* we are done with the entry now */
     talloc_free(addop->entry);
     addop->entry = NULL;
@@ -617,7 +800,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
 
     msg->dn = addop->entry_dn;
 
-    ret = ldb_msg_add_empty(msg, "memberof", LDB_FLAG_MOD_ADD, &el);
+    ret = ldb_msg_add_empty(msg, DB_MEMBEROF, LDB_FLAG_MOD_ADD, &el);
     if (ret != LDB_SUCCESS) {
         return ret;
     }
@@ -666,7 +849,7 @@ static int mbof_add_missing(struct mbof_add_ctx *add_ctx, struct ldb_dn *dn)
     return LDB_SUCCESS;
 }
 
-/* remove unexisting members */
+/* remove unexisting members and add memberuid attribute */
 static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
 {
     struct ldb_context *ldb;
@@ -694,7 +877,7 @@ static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
 
     msg->dn = add_ctx->msg_dn;
 
-    ret = ldb_msg_add_empty(msg, "member", LDB_FLAG_MOD_DELETE, &el);
+    ret = ldb_msg_add_empty(msg, DB_MEMBER, LDB_FLAG_MOD_DELETE, &el);
     if (ret != LDB_SUCCESS) {
         return ret;
     }
@@ -712,10 +895,9 @@ static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
         }
     }
 
-    add_ctx->terminate = true;
     ret = ldb_build_mod_req(&mod_req, ldb, add_ctx,
                             msg, NULL,
-                            add_ctx, mbof_add_callback,
+                            add_ctx, mbof_add_cleanup_callback,
                             ctx->req);
     if (ret != LDB_SUCCESS) {
         return ret;
@@ -724,22 +906,158 @@ static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
     return ldb_next_request(ctx->module, mod_req);
 }
 
+static int mbof_add_cleanup_callback(struct ldb_request *req,
+                                     struct ldb_reply *ares)
+{
+    struct mbof_add_ctx *add_ctx;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    add_ctx = talloc_get_type(req->context, struct mbof_add_ctx);
+    ctx = add_ctx->ctx;
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+        /* shouldn't happen */
+        talloc_zfree(ares);
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        if (add_ctx->muops) {
+            ret = mbof_add_muop(add_ctx);
+        }
+        else {
+            return ldb_module_done(ctx->req,
+                                   ctx->ret_ctrls,
+                                   ctx->ret_resp,
+                                   LDB_SUCCESS);
+        }
+
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+/* add memberuid attributes to parent groups */
+static int mbof_add_muop(struct mbof_add_ctx *add_ctx)
+{
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_request *mod_req;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    ctx = add_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    msg = ldb_msg_new(add_ctx);
+    if (!msg) return LDB_ERR_OPERATIONS_ERROR;
+
+    msg->dn = add_ctx->muops[add_ctx->cur_muop].dn;
+    msg->elements = add_ctx->muops[add_ctx->cur_muop].el;
+    msg->num_elements = 1;
+
+    ret = ldb_build_mod_req(&mod_req, ldb, add_ctx,
+                            msg, NULL,
+                            add_ctx, mbof_add_muop_callback,
+                            ctx->req);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_next_request(ctx->module, mod_req);
+}
+
+static int mbof_add_muop_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares)
+{
+    struct mbof_add_ctx *add_ctx;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    add_ctx = talloc_get_type(req->context, struct mbof_add_ctx);
+    ctx = add_ctx->ctx;
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+        /* shouldn't happen */
+        talloc_zfree(ares);
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        add_ctx->cur_muop++;
+        if (add_ctx->cur_muop < add_ctx->num_muops) {
+            ret = mbof_add_muop(add_ctx);
+        }
+        else {
+            return ldb_module_done(ctx->req,
+                                   ctx->ret_ctrls,
+                                   ctx->ret_resp,
+                                   LDB_SUCCESS);
+        }
+
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+
 
 
 /* delete operations */
 
 /* The implementation of delete operations is a bit more complex than an add
- * operation. This is because we need to recompute, memberships of potentially
- * quite far descendants and we also have to account for loops and how to break
- * them without ending in an endless loop ourselves.
- * The difficulty is in the fact that while the member -> memberof link is quite
- * direct, memberof -> member is not as membership ius transitive.
+ * operation. This is because we need to recompute memberships of potentially
+ * quite far descendants and we also have to account for loops and how to
+ * break them without ending in an endless loop ourselves.
+ * The difficulty is in the fact that while the member -> memberof link is
+ * direct, memberof -> member is not as membership is transitive.
  *
- * Ok, first of all, contrary to the add operation, a delete operation involves
- * an existing object that may have existing parents. So forst thing we search
- * the object itself to get the original membership lists (member and memberof)
- * for this object, and we also search for any object that has it as one of its
- * members.
+ * Ok, first of all, contrary to the add operation, a delete operation
+ * involves an existing object that may have existing parents. So, first, we
+ * search  the object itself to get the original membership lists (member and
+ * memberof) for this object, and we also search for any object that has it as
+ * one of its members.
  * Once we have the results, we store object and parents and proceed with the
  * original operation to make sure it is valid.
  *
@@ -750,19 +1068,20 @@ static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
  * points to the object we just deleted. Once done for all parents (or if no
  * parents exists), we proceed with the children and descendants.
  *
- * To handle the children we create a first ancestor operation that reflects the
- * delete we just made. We set as parents of this object the parents just
+ * To handle the children we create a first ancestor operation that reflects
+ * the delete we just made. We set as parents of this object the parents just
  * retrieved with the first search. Then we create a remove list.
  *
  * The remove list contains all objects in the original memberof list and the
  * object dn itself of the original delete operation target object (the first
  * ancestor).
  *
- * An operation is identified by an object that contains a tre of descendants,
- * The remove list for the children, the immediate parent, and the dn and entry
- * of the object this operation is about.
+ * An operation is identified by an object that contains a tree of
+ * descendants:
+ * The remove list for the children, the immediate parent, and the dn and
+ * entry of the object this operation is about.
  *
- * We now proceed with adding a new operatoin for each original member of the
+ * We now proceed with adding a new operation for each original member of the
  * first ancestor.
  *
  * In each operation we must first lookup the target object and each immediate
@@ -777,20 +1096,24 @@ static int mbof_add_cleanup(struct mbof_add_ctx *add_ctx)
  * duplicates). This way we are certain all direct and indirect membership are
  * accounted for.
  *
- * At this point we have the final new memberof list for this operation  and we
+ * At this point we have the final new memberof list for this operation and we
  * can proceed to modify the entry.
  *
  * Once the entry has been modified we proceed again to check if there are any
  * children of this entry (the entry has "member"s).
- * We create a new remove list that is the difference between the original entry
- * memberof list and the new memberof list we just stored back in the object.
+ * We create a new remove list that is the difference between the original
+ * entry memberof list and the new memberof list we just stored back in the
+ * object.
  * Then for each member we create a new operation.
  *
  * We continue to process operations until no new operations need to be
  * performed.
  *
- * Ordering is important here, se the mbof_del_get_next() function to understand
- * how we proceed to select which new operation to process.
+ * Ordering is important here, se the mbof_del_get_next() function to
+ * understand how we proceed to select which new operation to process.
+ *
+ * As a final operation remove any memberuid corresponding to a removal of
+ * a memberof field from a user entry
  */
 
 static int mbof_del_search_callback(struct ldb_request *req,
@@ -817,11 +1140,17 @@ static int mbof_del_mod_callback(struct ldb_request *req,
 static int mbof_del_progeny(struct mbof_del_operation *delop);
 static int mbof_del_get_next(struct mbof_del_operation *delop,
                              struct mbof_del_operation **nextop);
+static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
+                              struct ldb_message *entry);
+static int mbof_del_muop(struct mbof_del_ctx *ctx);
+static int mbof_del_muop_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares);
 
 
 static int memberof_del(struct ldb_module *module, struct ldb_request *req)
 {
-    static const char *attrs[] = {"member", "memberof", NULL};
+    static const char *attrs[] = { DB_OC, DB_NAME,
+                                   DB_MEMBER, DB_MEMBEROF, NULL };
     struct ldb_context *ldb = ldb_module_get_ctx(module);
     struct mbof_del_operation *first;
     struct ldb_request *search;
@@ -867,8 +1196,8 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
     expression = talloc_asprintf(del_ctx,
-                                 "(|(distinguishedName=%s)(member=%s))",
-                                 dn, dn);
+                                 "(|(distinguishedName=%s)(%s=%s))",
+                                 dn, DB_MEMBER, dn);
     if (!expression) {
         talloc_free(ctx);
         return LDB_ERR_OPERATIONS_ERROR;
@@ -1028,12 +1357,24 @@ static int mbof_orig_del_callback(struct ldb_request *req,
 
     /* prep following clean ops */
     if (del_ctx->first->num_parents) {
+
+        /* if there are parents there may be memberuids to remove */
+        ret = mbof_del_fill_muop(del_ctx, del_ctx->first->entry);
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+
         /* if there are any parents, fire a removal sequence */
         ret = mbof_del_cleanup_parents(del_ctx);
     }
-    else if (ldb_msg_find_element(del_ctx->first->entry, "member")) {
+    else if (ldb_msg_find_element(del_ctx->first->entry, DB_MEMBER)) {
         /* if there are any children, fire a removal sequence */
         ret = mbof_del_cleanup_children(del_ctx);
+    }
+    /* see if there are memberuid operations to perform */
+    else if (del_ctx->muops) {
+        return mbof_del_muop(del_ctx);
     }
     else {
         /* no parents nor children, end ops */
@@ -1072,7 +1413,7 @@ static int mbof_del_cleanup_parents(struct mbof_del_ctx *del_ctx)
     msg->dn = first->parents[first->cur_parent]->dn;
     first->cur_parent++;
 
-    ret = ldb_msg_add_empty(msg, "member", LDB_FLAG_MOD_DELETE, &el);
+    ret = ldb_msg_add_empty(msg, DB_MEMBER, LDB_FLAG_MOD_DELETE, &el);
     if (ret != LDB_SUCCESS) {
         return ret;
     }
@@ -1138,9 +1479,13 @@ static int mbof_del_clean_par_callback(struct ldb_request *req,
     }
     else {
         /* continue */
-        if (ldb_msg_find_element(first->entry, "member")) {
+        if (ldb_msg_find_element(first->entry, DB_MEMBER)) {
             /* if there are any children, fire a removal sequence */
             ret = mbof_del_cleanup_children(del_ctx);
+        }
+        /* see if there are memberuid operations to perform */
+        else if (del_ctx->muops) {
+            return mbof_del_muop(del_ctx);
         }
         else {
             /* no children, end ops */
@@ -1173,7 +1518,7 @@ static int mbof_del_cleanup_children(struct mbof_del_ctx *del_ctx)
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
-    el = ldb_msg_find_element(first->entry, "member");
+    el = ldb_msg_find_element(first->entry, DB_MEMBER);
 
     /* prepare del sets */
     for (i = 0; i < el->num_values; i++) {
@@ -1230,7 +1575,8 @@ static int mbof_del_execute_op(struct mbof_del_operation *delop)
     struct ldb_request *search;
     char *expression;
     const char *dn;
-    static const char *attrs[] = {"member", "memberof", NULL};
+    static const char *attrs[] = { DB_OC, DB_NAME,
+                                   DB_MEMBER, DB_MEMBEROF, NULL };
     int ret;
 
     del_ctx = delop->del_ctx;
@@ -1243,8 +1589,8 @@ static int mbof_del_execute_op(struct mbof_del_operation *delop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
     expression = talloc_asprintf(del_ctx,
-                                 "(|(distinguishedName=%s)(member=%s))",
-                                 dn, dn);
+                                 "(|(distinguishedName=%s)(%s=%s))",
+                                 dn, DB_MEMBER, dn);
     if (!expression) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
@@ -1415,7 +1761,7 @@ static int mbof_del_ancestors(struct mbof_del_operation *delop)
     struct mbof_ctx *ctx;
     struct ldb_context *ldb;
     struct mbof_dn_array *new_list;
-    static const char *attrs[] = {"memberof", NULL};
+    static const char *attrs[] = { DB_MEMBEROF, NULL };
     struct ldb_request *search;
     int ret;
 
@@ -1500,7 +1846,7 @@ static int mbof_del_anc_callback(struct ldb_request *req,
         }
 
         /* check entry */
-        el = ldb_msg_find_element(anc_ctx->entry, "memberof");
+        el = ldb_msg_find_element(anc_ctx->entry, DB_MEMBEROF);
         if (el) {
             for (i = 0; i < el->num_values; i++) {
                 valdn = ldb_dn_from_ldb_val(new_list, ldb, &el->values[i]);
@@ -1538,12 +1884,12 @@ static int mbof_del_anc_callback(struct ldb_request *req,
         anc_ctx->cur++;
 
         /* check if we need to process any more */
-        if (anc_ctx->cur == anc_ctx->num_direct) {
-            /* ok, end of the story, proceed to modify the entry */
-            ret = mbof_del_mod_entry(delop);
-        } else {
+        if (anc_ctx->cur < anc_ctx->num_direct) {
             /* ok process the next one */
             ret = mbof_del_ancestors(delop);
+        } else {
+            /* ok, end of the story, proceed to modify the entry */
+            ret = mbof_del_mod_entry(delop);
         }
 
         if (ret != LDB_SUCCESS) {
@@ -1565,13 +1911,65 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
     struct ldb_request *mod_req;
     struct ldb_message *msg;
     struct ldb_message_element *el;
+    struct ldb_dn **diff;
+    const char *name;
     const char *val;
-    int i, j, ret;
+    int i, j, k;
+    bool is_user;
+    int ret;
 
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
     new_list = delop->anc_ctx->new_list;
+
+    /* if this is a user we need to find out which entries have been
+     * removed so that we can later schedule removal of memberuid
+     * attributes from these entries */
+    ret = entry_is_user_object(delop->entry);
+    switch (ret) {
+    case LDB_SUCCESS:
+        /* it's a user object  */
+        is_user = true;
+        break;
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
+        /* it is not a user object, continue */
+        is_user = false;
+        break;
+    default:
+        /* an error occured, return */
+        return ret;
+    }
+
+    if (is_user) {
+        /* prepare memberuid delete list */
+        /* copy all original memberof entries, and then later remove
+         * the ones that will survive in the entry */
+        el = ldb_msg_find_element(delop->entry, DB_MEMBEROF);
+        if (!el || !el->num_values) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        diff = talloc_array(del_ctx->muops, struct ldb_dn *,
+                            el->num_values + 1);
+        if (!diff) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        for (i = 0, j = 0; i < el->num_values; i++) {
+            diff[j] = ldb_dn_from_ldb_val(diff, ldb, &el->values[i]);
+            if (!diff[j]) {
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+            /* skip the deleted entry if this is a delete op */
+            if (!del_ctx->is_mod) {
+                if (ldb_dn_compare(del_ctx->first->entry_dn, diff[j]) == 0) {
+                    continue;
+                }
+            }
+            j++;
+        }
+        /* zero terminate array */
+        diff[j] = NULL;
+    }
 
     /* change memberof on entry */
     msg = ldb_msg_new(delop);
@@ -1580,7 +1978,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
     msg->dn = delop->entry_dn;
 
     if (new_list->num) {
-        ret = ldb_msg_add_empty(msg, "memberof", LDB_FLAG_MOD_REPLACE, &el);
+        ret = ldb_msg_add_empty(msg, DB_MEMBEROF, LDB_FLAG_MOD_REPLACE, &el);
         if (ret != LDB_SUCCESS) {
             return ret;
         }
@@ -1602,13 +2000,50 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
                 return LDB_ERR_OPERATIONS_ERROR;
             }
             j++;
+
+            if (is_user) {
+                /* compare the entry's original memberof list with the new
+                 * one and for each missing entry add a memberuid removal
+                 * operation */
+                for (k = 0; diff[k]; k++) {
+                    if (ldb_dn_compare(new_list->dns[i], diff[k]) == 0) {
+                        break;
+                    }
+                }
+                if (diff[k]) {
+                    talloc_zfree(diff[k]);
+                    for (; diff[k + 1]; k++) {
+                        diff[k] = diff[k + 1];
+                    }
+                    diff[k] = NULL;
+                }
+            }
         }
         el->num_values = j;
+
     }
     else {
-        ret = ldb_msg_add_empty(msg, "memberof", LDB_FLAG_MOD_DELETE, &el);
+        ret = ldb_msg_add_empty(msg, DB_MEMBEROF, LDB_FLAG_MOD_DELETE, &el);
         if (ret != LDB_SUCCESS) {
             return ret;
+        }
+    }
+
+    if (is_user && diff[0]) {
+        /* file memberuid removal operations */
+        name = ldb_msg_find_attr_as_string(delop->entry, DB_NAME, NULL);
+        if (!name) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        for (i = 0; diff[i]; i++) {
+            ret = mbof_append_muop(del_ctx, &del_ctx->muops,
+                                   &del_ctx->num_muops,
+                                   LDB_FLAG_MOD_DELETE,
+                                   diff[i], name);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
         }
     }
 
@@ -1674,18 +2109,19 @@ static int mbof_del_mod_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
+static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
+                        struct mbof_dn_array *ael);
+
 static int mbof_del_progeny(struct mbof_del_operation *delop)
 {
     struct mbof_ctx *ctx;
     struct mbof_del_ctx *del_ctx;
     struct mbof_del_operation *nextop;
     const struct ldb_message_element *el;
-    struct mbof_dn_array *new_list;
     struct ldb_context *ldb;
     struct ldb_dn *valdn;
     int i, ret;
 
-    new_list = delop->anc_ctx->new_list;
     del_ctx = delop->del_ctx;
     ctx = del_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
@@ -1693,7 +2129,7 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
     /* now verify if this entry is a group and members need to be processed as
      * well */
 
-    el = ldb_msg_find_element(delop->entry, "member");
+    el = ldb_msg_find_element(delop->entry, DB_MEMBER);
     if (el) {
         for (i = 0; i < el->num_values; i++) {
             valdn = ldb_dn_from_ldb_val(delop, ldb, &el->values[i]);
@@ -1720,9 +2156,14 @@ static int mbof_del_progeny(struct mbof_del_operation *delop)
         return mbof_del_execute_op(nextop);
     }
 
+    /* see if there are memberuid operations to perform */
+    if (del_ctx->muops) {
+        return mbof_del_muop(del_ctx);
+    }
     /* see if there are follow functions to run */
-    if (del_ctx->followup_fn) {
-        return del_ctx->followup_fn(del_ctx->followup_ctx);
+    if (del_ctx->follow_mod) {
+        return mbof_mod_add(del_ctx->follow_mod,
+                            del_ctx->follow_mod->to_add);
     }
 
     /* ok, no more ops, this means our job is done */
@@ -1788,6 +2229,154 @@ static int mbof_del_get_next(struct mbof_del_operation *delop,
     return LDB_SUCCESS;
 }
 
+static int mbof_del_fill_muop(struct mbof_del_ctx *del_ctx,
+                              struct ldb_message *entry)
+{
+    struct ldb_message_element *el;
+    char *name;
+    int ret;
+    int i;
+
+    el = ldb_msg_find_element(entry, DB_MEMBEROF);
+    if (!el || el->num_values == 0) {
+        /* no memberof attributes ... */
+        return LDB_SUCCESS;
+    }
+
+    ret = entry_is_user_object(entry);
+    switch (ret) {
+    case LDB_SUCCESS:
+        /* it's a user object, continue */
+        break;
+
+    case LDB_ERR_NO_SUCH_ATTRIBUTE:
+        /* it is not a user object, just return */
+        return LDB_SUCCESS;
+
+    default:
+        /* an error occured, return */
+        return ret;
+    }
+
+    name = talloc_strdup(del_ctx,
+                         ldb_msg_find_attr_as_string(entry, DB_NAME, NULL));
+    if (!name) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    for (i = 0; i < el->num_values; i++) {
+        struct ldb_dn *valdn;
+
+        valdn = ldb_dn_from_ldb_val(del_ctx->muops,
+                                    ldb_module_get_ctx(del_ctx->ctx->module),
+                                    &el->values[i]);
+        if (!valdn || !ldb_dn_validate(valdn)) {
+            ldb_debug(ldb_module_get_ctx(del_ctx->ctx->module),
+                      LDB_DEBUG_ERROR,
+                      "Invalid dn value: [%s]",
+                      (const char *)el->values[i].data);
+        }
+
+        ret = mbof_append_muop(del_ctx, &del_ctx->muops,
+                               &del_ctx->num_muops,
+                               LDB_FLAG_MOD_DELETE,
+                               valdn, name);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+    }
+
+    return LDB_SUCCESS;
+}
+
+/* del memberuid attributes to parent groups */
+static int mbof_del_muop(struct mbof_del_ctx *del_ctx)
+{
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_request *mod_req;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    ctx = del_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    msg = ldb_msg_new(del_ctx);
+    if (!msg) return LDB_ERR_OPERATIONS_ERROR;
+
+    msg->dn = del_ctx->muops[del_ctx->cur_muop].dn;
+    msg->elements = del_ctx->muops[del_ctx->cur_muop].el;
+    msg->num_elements = 1;
+
+    ret = ldb_build_mod_req(&mod_req, ldb, del_ctx,
+                            msg, NULL,
+                            del_ctx, mbof_del_muop_callback,
+                            ctx->req);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_next_request(ctx->module, mod_req);
+}
+
+static int mbof_del_muop_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares)
+{
+    struct mbof_del_ctx *del_ctx;
+    struct mbof_ctx *ctx;
+    int ret;
+
+    del_ctx = talloc_get_type(req->context, struct mbof_del_ctx);
+    ctx = del_ctx->ctx;
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+        /* shouldn't happen */
+        talloc_zfree(ares);
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        del_ctx->cur_muop++;
+        if (del_ctx->cur_muop < del_ctx->num_muops) {
+            ret = mbof_del_muop(del_ctx);
+        }
+        /* see if there are follow functions to run */
+        else if (del_ctx->follow_mod) {
+            return mbof_mod_add(del_ctx->follow_mod,
+                                del_ctx->follow_mod->to_add);
+        }
+        else {
+            return ldb_module_done(ctx->req,
+                                   ctx->ret_ctrls,
+                                   ctx->ret_resp,
+                                   LDB_SUCCESS);
+        }
+
+        if (ret != LDB_SUCCESS) {
+            talloc_zfree(ares);
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
 
 
 /* mod operation */
@@ -1808,9 +2397,6 @@ static int mbof_orig_mod(struct mbof_mod_ctx *mod_ctx);
 static int mbof_orig_mod_callback(struct ldb_request *req,
                                   struct ldb_reply *ares);
 static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done);
-static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
-                        struct mbof_dn_array *ael);
-static int mbof_mod_followup(void *ctx);
 static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
                            struct mbof_dn_array *del);
 static int mbof_fill_dn_array(TALLOC_CTX *memctx,
@@ -1823,7 +2409,7 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
     struct ldb_message_element *el;
     struct mbof_mod_ctx *mod_ctx;
     struct mbof_ctx *ctx;
-    static const char *attrs[] = {"member", "memberof", NULL};
+    static const char *attrs[] = {DB_MEMBER, DB_MEMBEROF, NULL};
     struct ldb_context *ldb = ldb_module_get_ctx(module);
     struct ldb_request *search;
     int ret;
@@ -1833,7 +2419,21 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
         return ldb_next_request(module, req);
     }
 
-    /* TODO: fail if this is not a group ? */
+    /* check if memberof is specified */
+    el = ldb_msg_find_element(req->op.mod.message, DB_MEMBEROF);
+    if (el) {
+        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                  "Error: the memberof attribute is readonly.");
+        return LDB_ERR_UNWILLING_TO_PERFORM;
+    }
+
+    /* check if memberuid is specified */
+    el = ldb_msg_find_element(req->op.mod.message, DB_MEMBERUID);
+    if (el) {
+        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                  "Error: the memberuid attribute is readonly.");
+        return LDB_ERR_UNWILLING_TO_PERFORM;
+    }
 
     ctx = mbof_init(module, req);
     if (!ctx) {
@@ -1852,16 +2452,8 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
         return LDB_ERR_OPERATIONS_ERROR;
     }
 
-    /* fail operation if memberof is ever specified */
-    el = ldb_msg_find_element(mod_ctx->msg, "memberof");
-    if (el) {
-        ldb_debug(ldb, LDB_DEBUG_ERROR,
-                  "the memberof attribute is readonly. Ignoring.");
-        ldb_msg_remove_element(mod_ctx->msg, el);
-    }
-
     /* continue with normal ops if there are no members */
-    el = ldb_msg_find_element(mod_ctx->msg, "member");
+    el = ldb_msg_find_element(mod_ctx->msg, DB_MEMBER);
     if (!el) {
         mod_ctx->terminate = true;
         return mbof_orig_mod(mod_ctx);
@@ -2051,7 +2643,7 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
     case LDB_FLAG_MOD_DELETE:
 
         if (mod_ctx->membel->num_values == 0) {
-            el = ldb_msg_find_element(mod_ctx->entry, "member");
+            el = ldb_msg_find_element(mod_ctx->entry, DB_MEMBER);
         } else {
             el = mod_ctx->membel;
         }
@@ -2072,7 +2664,7 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
     case LDB_FLAG_MOD_REPLACE:
 
         removed = NULL;
-        el = ldb_msg_find_element(mod_ctx->entry, "member");
+        el = ldb_msg_find_element(mod_ctx->entry, DB_MEMBER);
         if (el) {
             ret = mbof_fill_dn_array(mod_ctx, ldb, el, &removed);
             if (ret != LDB_SUCCESS) {
@@ -2137,15 +2729,6 @@ static int mbof_mod_process(struct mbof_mod_ctx *mod_ctx, bool *done)
     return LDB_ERR_OPERATIONS_ERROR;
 }
 
-static int mbof_mod_followup(void *ctx)
-{
-    struct mbof_mod_ctx *mod_ctx;
-
-    mod_ctx = talloc_get_type(ctx, struct mbof_mod_ctx);
-
-    return mbof_mod_add(mod_ctx, mod_ctx->to_add);
-}
-
 static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
                         struct mbof_dn_array *ael)
 {
@@ -2159,7 +2742,7 @@ static int mbof_mod_add(struct mbof_mod_ctx *mod_ctx,
     ctx = mod_ctx->ctx;
     ldb = ldb_module_get_ctx(ctx->module);
 
-    el = ldb_msg_find_element(mod_ctx->entry, "memberof");
+    el = ldb_msg_find_element(mod_ctx->entry, DB_MEMBEROF);
 
     /* all the parents + itself */
     ret = mbof_fill_dn_array(mod_ctx, ldb, el, &parents);
@@ -2209,6 +2792,7 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
         return LDB_ERR_OPERATIONS_ERROR;
     }
     del_ctx->ctx = ctx;
+    del_ctx->is_mod = true;
 
     /* create first entry */
     /* the first entry is the parent of all entries and the one where we
@@ -2233,8 +2817,7 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
 
     /* add followup function if we also have stuff to add */
     if (mod_ctx->to_add) {
-        del_ctx->followup_ctx = mod_ctx;
-        del_ctx->followup_fn = mbof_mod_followup;
+        del_ctx->follow_mod = mod_ctx;
     }
 
     /* now that sets are built, start processing */
@@ -2281,7 +2864,6 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
 
 
 
-
 /* module init code */
 
 static int memberof_init(struct ldb_module *module)
@@ -2291,8 +2873,8 @@ static int memberof_init(struct ldb_module *module)
 
     /* set syntaxes for member and memberof so that comparisons in filters and
      * such are done right */
-    ret = ldb_schema_attribute_add(ldb, "member", 0, LDB_SYNTAX_DN);
-    ret = ldb_schema_attribute_add(ldb, "memberof", 0, LDB_SYNTAX_DN);
+    ret = ldb_schema_attribute_add(ldb, DB_MEMBER, 0, LDB_SYNTAX_DN);
+    ret = ldb_schema_attribute_add(ldb, DB_MEMBEROF, 0, LDB_SYNTAX_DN);
 
     return ldb_next_init(module);
 }
