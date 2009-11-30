@@ -879,68 +879,10 @@ static void test_store_custom_done(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_search_custom_by_name_done(struct tevent_req *subreq)
+static void test_search_custom_done(struct tevent_req *req)
 {
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
 
-    ret = sysdb_search_custom_recv(subreq, data, &data->msg);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        data->error = ret;
-        goto done;
-    }
-
-    fail_unless(data->msg->num_elements == 1,
-                "Wrong number of results, expected [1] got [%d]",
-                data->msg->num_elements);
-    fail_unless(strcmp(data->msg->elements[0].name, TEST_ATTR_NAME) == 0,
-                "Wrong attribute name");
-    fail_unless(data->msg->elements[0].num_values == 1,
-                "Wrong number of attribute values");
-    fail_unless(strncmp((const char *)data->msg->elements[0].values[0].data,
-                TEST_ATTR_VALUE, data->msg->elements[0].values[0].length) == 0,
-                "Wrong attribute value");
-
-done:
-    data->finished = true;
-    return;
-}
-
-static void test_search_custom_update_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-    struct ldb_message_element *el;
-
-    ret = sysdb_search_custom_recv(subreq, data, &data->msg);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        data->error = ret;
-        goto done;
-    }
-
-    fail_unless(data->msg->num_elements == 2,
-                "Wrong number of results, expected [1] got [%d]",
-                data->msg->num_elements);
-
-    el = ldb_msg_find_element(data->msg, TEST_ATTR_NAME);
-    fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_NAME);
-    fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
-                "of attribute values for [%s]", el->num_values, TEST_ATTR_NAME);
-    fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_UPDATE_VALUE,
-                el->values[0].length) == 0,
-                "Wrong attribute value");
-
-    el = ldb_msg_find_element(data->msg, TEST_ATTR_ADD_NAME);
-    fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_ADD_NAME);
-    fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
-                "of attribute values for [%s]", el->num_values, TEST_ATTR_ADD_NAME);
-    fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_ADD_VALUE,
-                el->values[0].length) == 0,
-                "Wrong attribute value");
-
-done:
     data->finished = true;
     return;
 }
@@ -1993,9 +1935,29 @@ START_TEST (test_sysdb_search_custom_by_name)
     }
 
     if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_custom_by_name_done, data);
+        tevent_req_set_callback(subreq, test_search_custom_done, data);
 
         ret = test_loop(data);
+
+        ret = sysdb_search_custom_recv(subreq, data, &data->msgs_count,
+                                       &data->msgs);
+        talloc_zfree(subreq);
+        fail_unless(ret == EOK, "sysdb_search_custom_by_name_send failed");
+
+        fail_unless(data->msgs_count == 1,
+                    "Wrong number of objects, exptected [1] got [%d]",
+                    data->msgs_count);
+        fail_unless(data->msgs[0]->num_elements == 1,
+                    "Wrong number of results, expected [1] got [%d]",
+                    data->msgs[0]->num_elements);
+        fail_unless(strcmp(data->msgs[0]->elements[0].name, TEST_ATTR_NAME) == 0,
+                    "Wrong attribute name");
+        fail_unless(data->msgs[0]->elements[0].num_values == 1,
+                    "Wrong number of attribute values");
+        fail_unless(strncmp((const char *)data->msgs[0]->elements[0].values[0].data,
+                            TEST_ATTR_VALUE,
+                            data->msgs[0]->elements[0].values[0].length) == 0,
+                    "Wrong attribute value");
     }
 
     fail_if(ret != EOK, "Could not search custom object");
@@ -2066,6 +2028,7 @@ START_TEST (test_sysdb_search_custom_update)
     struct tevent_req *subreq;
     int ret;
     char *object_name;
+    struct ldb_message_element *el;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2098,9 +2061,93 @@ START_TEST (test_sysdb_search_custom_update)
     }
 
     if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_custom_update_done, data);
+        tevent_req_set_callback(subreq, test_search_custom_done, data);
 
         ret = test_loop(data);
+
+        ret = sysdb_search_custom_recv(subreq, data, &data->msgs_count,
+                                       &data->msgs);
+        talloc_zfree(subreq);
+        fail_unless(ret == EOK, "sysdb_search_custom_by_name_send failed");
+
+        fail_unless(data->msgs_count == 1,
+                    "Wrong number of objects, exptected [1] got [%d]",
+                    data->msgs_count);
+        fail_unless(data->msgs[0]->num_elements == 2,
+                    "Wrong number of results, expected [2] got [%d]",
+                    data->msgs[0]->num_elements);
+
+        el = ldb_msg_find_element(data->msgs[0], TEST_ATTR_NAME);
+        fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_NAME);
+        fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
+                    "of attribute values for [%s]", el->num_values, TEST_ATTR_NAME);
+        fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_UPDATE_VALUE,
+                    el->values[0].length) == 0,
+                    "Wrong attribute value");
+
+        el = ldb_msg_find_element(data->msgs[0], TEST_ATTR_ADD_NAME);
+        fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_ADD_NAME);
+        fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
+                    "of attribute values for [%s]", el->num_values, TEST_ATTR_ADD_NAME);
+        fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_ADD_VALUE,
+                    el->values[0].length) == 0,
+                    "Wrong attribute value");
+
+    }
+
+    fail_if(ret != EOK, "Could not search custom object");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_search_custom)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *subreq;
+    int ret;
+    const char *filter = "(distinguishedName=*)";
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    fail_unless(data != NULL, "talloc_zero failed");
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->attrlist = talloc_array(test_ctx, const char *, 3);
+    fail_unless(data->attrlist != NULL, "talloc_array failed");
+    data->attrlist[0] = TEST_ATTR_NAME;
+    data->attrlist[1] = TEST_ATTR_ADD_NAME;
+    data->attrlist[2] = NULL;
+
+    subreq = sysdb_search_custom_send(data, data->ev,
+                                               data->ctx->sysdb, NULL,
+                                               data->ctx->domain,
+                                               filter,
+                                               CUSTOM_TEST_CONTAINER,
+                                               data->attrlist);
+    if (!subreq) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(subreq, test_search_custom_done, data);
+
+        ret = test_loop(data);
+
+        ret = sysdb_search_custom_recv(subreq, data, &data->msgs_count,
+                                       &data->msgs);
+        talloc_zfree(subreq);
+        fail_unless(ret == EOK, "sysdb_search_custom_send failed");
+
+        fail_unless(data->msgs_count == 10,
+                    "Wrong number of objects, exptected [10] got [%d]",
+                    data->msgs_count);
     }
 
     fail_if(ret != EOK, "Could not search custom object");
@@ -2484,6 +2531,7 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_search_custom_by_name);
     tcase_add_test(tc_sysdb, test_sysdb_update_custom);
     tcase_add_test(tc_sysdb, test_sysdb_search_custom_update);
+    tcase_add_test(tc_sysdb, test_sysdb_search_custom);
     tcase_add_test(tc_sysdb, test_sysdb_delete_custom);
 
     /* test recursive delete */
