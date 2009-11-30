@@ -3395,7 +3395,12 @@ struct tevent_req *sysdb_check_handle_send(TALLOC_CTX *mem_ctx,
 
     if (handle != NULL) {
         state->handle = talloc_memdup(state, handle, sizeof(struct sysdb_handle));
-        tevent_req_done(req);
+        if (state->handle == NULL) {
+            DEBUG(1, ("talloc_memdup failed.\n"));
+            tevent_req_error(req, ENOMEM);
+        } else {
+            tevent_req_done(req);
+        }
         tevent_req_post(req, ev);
         return req;
     }
@@ -3457,6 +3462,7 @@ struct sysdb_search_custom_state {
     const char **attrs;
     const char *filter;
     int scope;
+    bool expect_not_more_than_one;
 
     size_t msgs_count;
     struct ldb_message **msgs;
@@ -3464,6 +3470,70 @@ struct sysdb_search_custom_state {
 
 static void sysdb_search_custom_check_handle_done(struct tevent_req *subreq);
 static void sysdb_search_custom_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_search_custom_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sysdb_ctx *sysdb,
+                                            struct sysdb_handle *handle,
+                                            struct sss_domain_info *domain,
+                                            const char *filter,
+                                            const char *subtree_name,
+                                            const char **attrs)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_search_custom_state *state;
+    int ret;
+
+    if (sysdb == NULL && handle == NULL) return NULL;
+
+    if (filter == NULL || subtree_name == NULL) return NULL;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_search_custom_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->handle = handle;
+    state->attrs = attrs;
+    state->filter = filter;
+    state->scope = LDB_SCOPE_SUBTREE;
+    state->expect_not_more_than_one = false;
+    state->msgs_count = 0;
+    state->msgs = NULL;
+
+    if (sysdb == NULL) {
+        sysdb = handle->ctx;
+    }
+    state->basedn = sysdb_custom_subtree_dn(sysdb, state, domain->name,
+                                            subtree_name);
+    if (state->basedn == NULL) {
+        DEBUG(1, ("sysdb_custom_subtree_dn failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    if (!ldb_dn_validate(state->basedn)) {
+        DEBUG(1, ("Failed to create DN.\n"));
+        ret = EINVAL;
+        goto fail;
+    }
+
+    subreq = sysdb_check_handle_send(state, state->ev, sysdb, state->handle);
+    if (!subreq) {
+        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, sysdb_search_custom_check_handle_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
 
 struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
                                                     struct tevent_context *ev,
@@ -3493,6 +3563,7 @@ struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
     state->attrs = attrs;
     state->filter = NULL;
     state->scope = LDB_SCOPE_BASE;
+    state->expect_not_more_than_one = true;
     state->msgs_count = 0;
     state->msgs = NULL;
 
@@ -3571,24 +3642,27 @@ static void sysdb_search_custom_done(struct tevent_req *subreq)
         return;
     }
 
+    if (state->expect_not_more_than_one && state->msgs_count > 1) {
+        DEBUG(1, ("More than one result found.\n"));
+        tevent_req_error(req, EFAULT);
+        return;
+    }
+
     tevent_req_done(req);
 }
 
 int sysdb_search_custom_recv(struct tevent_req *req,
                               TALLOC_CTX *mem_ctx,
-                              struct ldb_message **msg)
+                              size_t *msgs_count,
+                              struct ldb_message ***msgs)
 {
     struct sysdb_search_custom_state *state = tevent_req_data(req,
                                               struct sysdb_search_custom_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    if (state->msgs_count > 1) {
-        DEBUG(1, ("More than one result found.\n"));
-        return EFAULT;
-    }
-
-    *msg = talloc_move(mem_ctx, &state->msgs[0]);
+    *msgs_count = state->msgs_count;
+    *msgs = talloc_move(mem_ctx, &state->msgs);
 
     return EOK;
 }
@@ -3690,13 +3764,14 @@ static void sysdb_store_custom_check_done(struct tevent_req *subreq)
                                             struct sysdb_store_custom_state);
     int ret;
     int i;
-    struct ldb_message *resp;
+    size_t resp_count = 0;
+    struct ldb_message **resp;
     struct ldb_message *msg;
     struct ldb_request *ldbreq;
     struct ldb_message_element *el;
     bool add_object = false;
 
-    ret = sysdb_search_custom_recv(subreq, state, &resp);
+    ret = sysdb_search_custom_recv(subreq, state, &resp_count, &resp);
     talloc_zfree(subreq);
     if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
@@ -3727,7 +3802,7 @@ static void sysdb_store_custom_check_done(struct tevent_req *subreq)
         if (add_object) {
             msg->elements[i].flags = LDB_FLAG_MOD_ADD;
         } else {
-            el = ldb_msg_find_element(resp, state->attrs->a[i].name);
+            el = ldb_msg_find_element(resp[0], state->attrs->a[i].name);
             if (el == NULL) {
                 msg->elements[i].flags = LDB_FLAG_MOD_ADD;
             } else {

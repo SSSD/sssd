@@ -538,6 +538,14 @@ struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
                                          struct sysdb_attrs *attrs);
 int sysdb_store_custom_recv(struct tevent_req *req);
 
+struct tevent_req *sysdb_search_custom_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sysdb_ctx *sysdb,
+                                            struct sysdb_handle *handle,
+                                            struct sss_domain_info *domain,
+                                            const char *filter,
+                                            const char *subtree_name,
+                                            const char **attrs);
 struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
                                                     struct tevent_context *ev,
                                                     struct sysdb_ctx *sysdb,
@@ -548,7 +556,8 @@ struct tevent_req *sysdb_search_custom_by_name_send(TALLOC_CTX *mem_ctx,
                                                     const char **attrs);
 int sysdb_search_custom_recv(struct tevent_req *req,
                               TALLOC_CTX *mem_ctx,
-                              struct ldb_message **msg);
+                              size_t *msgs_count,
+                              struct ldb_message ***msg);
 
 struct tevent_req *sysdb_delete_custom_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
