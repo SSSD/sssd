@@ -686,53 +686,6 @@ static int sdap_parse_memberships(TALLOC_CTX *memctx,
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
-        DEBUG(9, ("[RFC2307bis Schema]\n"));
-
-        /* in this schema only users are members */
-        mus = talloc_array(memctx, const char *, num_values +1);
-        if (!mus) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        for (i = 0, u = 0; i < num_values; i++) {
-            struct ldb_dn *tmp_dn = NULL;
-            const struct ldb_val *v;
-
-            /* parse out DN */
-            tmp_dn = ldb_dn_new_fmt(mus,
-                                    sysdb_handle_get_ldb(handle), "%.*s",
-                                    (int)values[i].length,
-                                    (char *)values[i].data);
-            if (!tmp_dn) {
-                DEBUG(1, ("Unable to parse DN: [%.*s]\n",
-                          (int)values[i].length,
-                          (char *)values[i].data));
-                continue;
-            }
-            v = ldb_dn_get_rdn_val(tmp_dn);
-            if (!v) {
-                DEBUG(1, ("Unable to parse DN: [%.*s]\n",
-                          (int)values[i].length,
-                          (char *)values[i].data));
-                continue;
-            }
-
-            mus[u] = talloc_asprintf(mus, "%.*s",
-                                     (int)v->length,
-                                     (char *)v->data);
-            if (!mus[u]) {
-                DEBUG(1, ("Out of memory?!\n"));
-                continue;
-            }
-            u++;
-
-            DEBUG(9, ("Member DN [%.*s], RDN [%.*s]\n",
-                      (int)values[i].length, (char *)values[i].data,
-                      (int)v->length, (char *)v->data));
-        }
-        break;
-
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
         DEBUG(9, ("[IPA or AD Schema]\n"));
@@ -1216,10 +1169,10 @@ struct tevent_req *sdap_save_groups_send(TALLOC_CTX *memctx,
 
     switch (opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
-    case SDAP_SCHEMA_RFC2307BIS:
         state->twopass = false;
         break;
 
+    case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
         state->twopass = true;
@@ -2056,25 +2009,6 @@ static void sdap_get_initgr_process(struct tevent_req *subreq)
         break;
 
     case SDAP_SCHEMA_RFC2307BIS:
-
-        ret = sysdb_attrs_get_string(state->orig_user,
-                                     SYSDB_ORIG_DN, &user_dn);
-        if (ret) {
-            tevent_req_error(req, EINVAL);
-            return;
-        }
-
-        subreq = sdap_initgr_rfc2307_send(state, state->ev, state->opts,
-                                          state->sysdb, state->dom,
-                                          state->sh, user_dn,
-                                          state->name, state->grp_attrs);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sdap_get_initgr_done, req);
-        return;
-
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
         /* TODO: AD uses a different member/memberof schema
@@ -2109,11 +2043,11 @@ static void sdap_get_initgr_done(struct tevent_req *subreq)
 
     switch (state->opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
-    case SDAP_SCHEMA_RFC2307BIS:
 
         ret = sdap_initgr_rfc2307_recv(subreq);
         break;
 
+    case SDAP_SCHEMA_RFC2307BIS:
     case SDAP_SCHEMA_IPA_V1:
     case SDAP_SCHEMA_AD:
 
