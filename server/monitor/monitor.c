@@ -913,10 +913,33 @@ static int check_local_domain_unique(struct sss_domain_info *domains)
     return EOK;
 }
 
+static char *check_services(char **services)
+{
+    const char *known_services[] = { "nss", "pam", NULL };
+    int i;
+    int ii;
+
+    /* Check if services we are about to start are in the list if known */
+    for (i = 0; services[i]; i++) {
+        for (ii=0; known_services[ii]; ii++) {
+            if (strcasecmp(services[i], known_services[ii]) == 0) {
+                break;
+            }
+        }
+
+        if (known_services[ii] == NULL) {
+            return services[i];
+        }
+    }
+
+    return NULL;
+}
+
 int get_monitor_config(struct mt_ctx *ctx)
 {
     int ret;
     int timeout_seconds;
+    char *badsrv = NULL;
 
     ret = confdb_get_int(ctx->cdb, ctx,
                          CONFDB_MONITOR_CONF_ENTRY,
@@ -938,6 +961,12 @@ int get_monitor_config(struct mt_ctx *ctx)
                                     &ctx->services);
     if (ret != EOK) {
         DEBUG(0, ("No services configured!\n"));
+        return EINVAL;
+    }
+
+    badsrv = check_services(ctx->services);
+    if (badsrv != NULL) {
+        DEBUG(0, ("Invalid service %s\n", badsrv));
         return EINVAL;
     }
 
