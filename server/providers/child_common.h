@@ -25,9 +25,12 @@
 #ifndef __CHILD_COMMON_H__
 #define __CHILD_COMMON_H__
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <tevent.h>
+
+#include "util/util.h"
 
 #define IN_BUF_SIZE         512
 #define MAX_CHILD_MSG_SIZE  255
@@ -36,6 +39,11 @@ struct response {
     size_t max_size;
     size_t size;
     uint8_t *buf;
+};
+
+struct io_buffer {
+    uint8_t *data;
+    size_t size;
 };
 
 uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx,
@@ -56,5 +64,11 @@ void fd_nonblocking(int fd);
 void child_sig_handler(struct tevent_context *ev,
                        struct tevent_signal *sige, int signum,
                        int count, void *__siginfo, void *pvt);
+
+errno_t exec_child(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, int debug_fd);
+
+void child_cleanup(int readfd, int writefd);
 
 #endif /* __CHILD_COMMON_H__ */

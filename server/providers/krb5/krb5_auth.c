@@ -45,11 +45,6 @@
 #define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
 #endif
 
-struct io_buffer {
-    uint8_t *data;
-    size_t size;
-};
-
 static errno_t add_krb5_env(struct dp_option *opts, const char *ccname,
                             struct pam_data *pd)
 {
@@ -463,24 +458,11 @@ static errno_t activate_child_timeout_handler(struct krb5child_req *kr)
 
 static int krb5_cleanup(void *ptr)
 {
-    int ret;
     struct krb5child_req *kr = talloc_get_type(ptr, struct krb5child_req);
 
     if (kr == NULL) return EOK;
 
-    if (kr->read_from_child_fd != -1) {
-        ret = close(kr->read_from_child_fd);
-        if (ret != EOK) {
-            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
-        }
-    }
-    if (kr->write_to_child_fd != -1) {
-        ret = close(kr->write_to_child_fd);
-        if (ret != EOK) {
-            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
-        }
-    }
-
+    child_cleanup(kr->read_from_child_fd, kr->write_to_child_fd);
     memset(kr, 0, sizeof(struct krb5child_req));
 
     return EOK;
@@ -528,76 +510,6 @@ failed:
     return err;
 }
 
-static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
-                                  struct krb5child_req *kr,
-                                  char ***_argv)
-{
-    uint_t argc = 3; /* program name, debug_level and NULL */
-    char ** argv;
-    errno_t ret = EINVAL;
-
-    /* Save the current state in case an interrupt changes it */
-    bool child_debug_to_file = debug_to_file;
-    bool child_debug_timestamps = debug_timestamps;
-
-    if (child_debug_to_file) argc++;
-    if (child_debug_timestamps) argc++;
-
-    /* program name, debug_level,
-     * debug_to_file, debug_timestamps
-     * and NULL */
-    argv  = talloc_array(mem_ctx, char *, argc);
-    if (argv == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
-        return ENOMEM;
-    }
-
-    argv[--argc] = NULL;
-
-    argv[--argc] = talloc_asprintf(argv, "--debug-level=%d",
-                              debug_level);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (child_debug_to_file) {
-        argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
-                                  kr->krb5_ctx->child_debug_fd);
-        if (argv[argc] == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-    }
-
-    if (child_debug_timestamps) {
-        argv[--argc] = talloc_strdup(argv, "--debug-timestamps");
-        if (argv[argc] == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-    }
-
-    argv[--argc] = talloc_strdup(argv, KRB5_CHILD);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (argc != 0) {
-        ret = EINVAL;
-        goto fail;
-    }
-
-    *_argv = argv;
-
-    return EOK;
-
-fail:
-    talloc_free(argv);
-    return ret;
-}
-
 static errno_t fork_child(struct krb5child_req *kr)
 {
     int pipefd_to_child[2];
@@ -605,7 +517,6 @@ static errno_t fork_child(struct krb5child_req *kr)
     pid_t pid;
     int ret;
     errno_t err;
-    char **argv;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -637,32 +548,12 @@ static errno_t fork_child(struct krb5child_req *kr)
             }
         }
 
-        close(pipefd_to_child[1]);
-        ret = dup2(pipefd_to_child[0],STDIN_FILENO);
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("dup2 failed [%d][%s].\n", errno, strerror(errno)));
-            return err;
-        }
-
-        close(pipefd_from_child[0]);
-        ret = dup2(pipefd_from_child[1],STDOUT_FILENO);
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("dup2 failed [%d][%s].\n", errno, strerror(errno)));
-            return err;
-        }
-
-        ret = prepare_child_argv(kr, kr, &argv);
-        if (ret != EOK) {
-            DEBUG(1, ("prepare_child_argv.\n"));
-            return ret;
-        }
-
-        ret = execv(KRB5_CHILD, argv);
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("execv failed [%d][%s].\n", errno, strerror(errno)));
+        err = exec_child(kr,
+                         pipefd_to_child, pipefd_from_child,
+                         KRB5_CHILD, kr->krb5_ctx->child_debug_fd);
+        if (err != EOK) {
+            DEBUG(1, ("Could not exec LDAP child: [%d][%s].\n",
+                      err, strerror(err)));
             return err;
         }
     } else if (pid > 0) { /* parent */

@@ -42,11 +42,6 @@
 #define LDAP_CHILD_USER  "nobody"
 #endif
 
-struct io_buffer {
-    uint8_t *data;
-    size_t size;
-};
-
 struct sdap_child_req {
     /* child info */
     pid_t child_pid;
@@ -67,26 +62,11 @@ struct sdap_child_req {
 
 static int sdap_child_req_destructor(void *ptr)
 {
-    int ret;
     struct sdap_child_req *cr = talloc_get_type(ptr, struct sdap_child_req);
 
     if (cr == NULL) return EOK;
 
-    if (cr->read_from_child_fd != -1) {
-        ret = close(cr->read_from_child_fd);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
-        }
-    }
-    if (cr->write_to_child_fd != -1) {
-        ret = close(cr->write_to_child_fd);
-        if (ret != EOK) {
-            ret = errno;
-            DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
-        }
-    }
-
+    child_cleanup(cr->read_from_child_fd, cr->write_to_child_fd);
     memset(cr, 0, sizeof(struct sdap_child_req));
 
     return EOK;
@@ -131,76 +111,6 @@ static errno_t activate_child_timeout_handler(struct sdap_child_req *child_req)
     return EOK;
 }
 
-static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
-                                  struct sdap_child_req *child_req,
-                                  char ***_argv)
-{
-    uint_t argc = 3; /* program name, debug_level and NULL */
-    char ** argv;
-    errno_t ret = EINVAL;
-
-    /* Save the current state in case an interrupt changes it */
-    bool child_debug_to_file = debug_to_file;
-    bool child_debug_timestamps = debug_timestamps;
-
-    if (child_debug_to_file) argc++;
-    if (child_debug_timestamps) argc++;
-
-    /* program name, debug_level,
-     * debug_to_file, debug_timestamps
-     * and NULL */
-    argv  = talloc_array(mem_ctx, char *, argc);
-    if (argv == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
-        return ENOMEM;
-    }
-
-    argv[--argc] = NULL;
-
-    argv[--argc] = talloc_asprintf(argv, "--debug-level=%d",
-                                   debug_level);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (child_debug_to_file) {
-        argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
-                                       ldap_child_debug_fd);
-        if (argv[argc] == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-    }
-
-    if (child_debug_timestamps) {
-        argv[--argc] = talloc_strdup(argv, "--debug-timestamps");
-        if (argv[argc] == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-    }
-
-    argv[--argc] = talloc_strdup(argv, LDAP_CHILD);
-    if (argv[argc] == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    if (argc != 0) {
-        ret = EINVAL;
-        goto fail;
-    }
-
-    *_argv = argv;
-
-    return EOK;
-
-fail:
-    talloc_free(argv);
-    return ret;
-}
-
 static errno_t fork_ldap_child(struct sdap_child_req *child_req)
 {
     int pipefd_to_child[2];
@@ -208,7 +118,6 @@ static errno_t fork_ldap_child(struct sdap_child_req *child_req)
     pid_t pid;
     int ret;
     errno_t err;
-    char **argv;
 
     ret = pipe(pipefd_from_child);
     if (ret == -1) {
@@ -226,32 +135,12 @@ static errno_t fork_ldap_child(struct sdap_child_req *child_req)
     pid = fork();
 
     if (pid == 0) { /* child */
-        close(pipefd_to_child[1]);
-        ret = dup2(pipefd_to_child[0], STDIN_FILENO);
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("dup2 failed [%d][%s].\n", err, strerror(err)));
-            return err;
-        }
-
-        close(pipefd_from_child[0]);
-        ret = dup2(pipefd_from_child[1], STDOUT_FILENO);
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("dup2 failed [%d][%s].\n", err, strerror(err)));
-            return err;
-        }
-
-        ret = prepare_child_argv(child_req, child_req, &argv);
-        if (ret != EOK) {
-            DEBUG(1, ("prepare_child_argv.\n"));
-            return ret;
-        }
-
-        ret = execv(LDAP_CHILD, argv);
-        if (ret == -1) {
-            err = errno;
-            DEBUG(1, ("execv failed [%d][%s].\n", err, strerror(err)));
+        err = exec_child(child_req,
+                         pipefd_to_child, pipefd_from_child,
+                         LDAP_CHILD, ldap_child_debug_fd);
+        if (err != EOK) {
+            DEBUG(1, ("Could not exec LDAP child: [%d][%s].\n",
+                      err, strerror(err)));
             return err;
         }
     } else if (pid > 0) { /* parent */
