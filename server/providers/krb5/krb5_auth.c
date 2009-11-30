@@ -801,6 +801,13 @@ void krb5_pam_handler(struct be_req *be_req)
         goto done;
     }
 
+    if (be_is_offline(be_req->be_ctx) && pd->cmd == SSS_PAM_CHAUTHTOK) {
+        DEBUG(9, ("Password changes are not possible while offline.\n"));
+        pam_status = PAM_AUTHINFO_UNAVAIL;
+        dp_err = DP_ERR_OFFLINE;
+        goto done;
+    }
+
     attrs = talloc_array(be_req, const char *, 4);
     if (attrs == NULL) {
         goto done;
