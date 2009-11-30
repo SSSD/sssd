@@ -254,6 +254,54 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
     return ret;
 }
 
+static char *build_dom_dn_str_escape(TALLOC_CTX *memctx, const char *template,
+                                     const char *domain, const char *name)
+{
+    char *ret;
+    int l;
+
+    l = strcspn(name, ",=\n+<>#;\\\"");
+    if (name[l] != '\0') {
+        struct ldb_val v;
+        char *tmp;
+
+        v.data = discard_const_p(uint8_t, name);
+        v.length = strlen(name);
+
+        tmp = ldb_dn_escape_value(memctx, v);
+        if (!tmp) {
+            return NULL;
+        }
+
+        ret = talloc_asprintf(memctx, template, tmp, domain);
+        talloc_zfree(tmp);
+        if (!ret) {
+            return NULL;
+        }
+
+        return ret;
+    }
+
+    ret = talloc_asprintf(memctx, template, name, domain);
+    if (!ret) {
+        return NULL;
+    }
+
+    return ret;
+}
+
+char *sysdb_user_strdn(TALLOC_CTX *memctx,
+                       const char *domain, const char *name)
+{
+    return build_dom_dn_str_escape(memctx, SYSDB_TMPL_USER, domain, name);
+}
+
+char *sysdb_group_strdn(TALLOC_CTX *memctx,
+                        const char *domain, const char *name)
+{
+    return build_dom_dn_str_escape(memctx, SYSDB_TMPL_GROUP, domain, name);
+}
+
 /* TODO: make a more complete and precise mapping */
 int sysdb_error_to_errno(int ldberr)
 {

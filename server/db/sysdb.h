@@ -192,6 +192,10 @@ struct ldb_dn *sysdb_custom_subtree_dn(struct sysdb_ctx *ctx, void *memctx,
                                        const char *domain,
                                        const char *subtree_name);
 
+char *sysdb_user_strdn(TALLOC_CTX *memctx,
+                       const char *domain, const char *name);
+char *sysdb_group_strdn(TALLOC_CTX *memctx,
+                        const char *domain, const char *name);
 
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);

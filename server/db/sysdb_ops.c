@@ -2769,42 +2769,6 @@ int sysdb_store_user_recv(struct tevent_req *req)
 
 /* =Store-Group-(Native/Legacy)-(replaces-existing-data)================== */
 
-static char *build_dom_dn_str_escape(TALLOC_CTX *memctx, const char *template,
-                                     const char *domain, const char *name)
-{
-    char *ret;
-    int l;
-
-    l = strcspn(name, ",=\n+<>#;\\\"");
-    if (name[l] != '\0') {
-        struct ldb_val v;
-        char *tmp;
-
-        v.data = discard_const_p(uint8_t, name);
-        v.length = strlen(name);
-
-        tmp = ldb_dn_escape_value(memctx, v);
-        if (!tmp) {
-            return NULL;
-        }
-
-        ret = talloc_asprintf(memctx, template, tmp, domain);
-        talloc_zfree(tmp);
-        if (!ret) {
-            return NULL;
-        }
-
-        return ret;
-    }
-
-    ret = talloc_asprintf(memctx, template, name, domain);
-    if (!ret) {
-        return NULL;
-    }
-
-    return ret;
-}
-
 /* this function does not check that all user members are actually present */
 
 struct sysdb_store_group_state {
@@ -2909,9 +2873,9 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
         for (i = 0; state->member_users && state->member_users[i]; i++) {
             char *member;
 
-            member = build_dom_dn_str_escape(state, SYSDB_TMPL_USER,
-                                             state->domain->name,
-                                             state->member_users[i]);
+            member = sysdb_user_strdn(state,
+                                      state->domain->name,
+                                      state->member_users[i]);
             if (!member) {
                 DEBUG(4, ("Error: Out of memory\n"));
                 tevent_req_error(req, ENOMEM);
@@ -2932,9 +2896,9 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
         for (i = 0; state->member_groups && state->member_groups[i]; i++) {
             char *member;
 
-            member = build_dom_dn_str_escape(state, SYSDB_TMPL_GROUP,
-                                             state->domain->name,
-                                             state->member_groups[i]);
+            member = sysdb_group_strdn(state,
+                                       state->domain->name,
+                                       state->member_groups[i]);
             if (!member) {
                 DEBUG(4, ("Error: Out of memory\n"));
                 tevent_req_error(req, ENOMEM);
