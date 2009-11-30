@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <tevent.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #include "util/util.h"
 #include "util/find_uid.h"
@@ -193,3 +194,134 @@ void child_sig_handler(struct tevent_context *ev,
     return;
 }
 
+static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
+                                  int child_debug_fd,
+                                  const char *binary,
+                                  char ***_argv)
+{
+    uint_t argc = 3; /* program name, debug_level and NULL */
+    char ** argv;
+    errno_t ret = EINVAL;
+
+    /* Save the current state in case an interrupt changes it */
+    bool child_debug_to_file = debug_to_file;
+    bool child_debug_timestamps = debug_timestamps;
+
+    if (child_debug_to_file) argc++;
+    if (child_debug_timestamps) argc++;
+
+    /* program name, debug_level,
+     * debug_to_file, debug_timestamps
+     * and NULL */
+    argv  = talloc_array(mem_ctx, char *, argc);
+    if (argv == NULL) {
+        DEBUG(1, ("talloc_array failed.\n"));
+        return ENOMEM;
+    }
+
+    argv[--argc] = NULL;
+
+    argv[--argc] = talloc_asprintf(argv, "--debug-level=%d",
+                              debug_level);
+    if (argv[argc] == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (child_debug_to_file) {
+        argv[--argc] = talloc_asprintf(argv, "--debug-fd=%d",
+                                       child_debug_fd);
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    if (child_debug_timestamps) {
+        argv[--argc] = talloc_strdup(argv, "--debug-timestamps");
+        if (argv[argc] == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+    }
+
+    argv[--argc] = talloc_strdup(argv, binary);
+    if (argv[argc] == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    if (argc != 0) {
+        ret = EINVAL;
+        goto fail;
+    }
+
+    *_argv = argv;
+
+    return EOK;
+
+fail:
+    talloc_free(argv);
+    return ret;
+}
+
+errno_t exec_child(TALLOC_CTX *mem_ctx,
+                   int *pipefd_to_child, int *pipefd_from_child,
+                   const char *binary, int debug_fd)
+{
+    int ret;
+    errno_t err;
+    char **argv;
+
+    close(pipefd_to_child[1]);
+    ret = dup2(pipefd_to_child[0], STDIN_FILENO);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(1, ("dup2 failed [%d][%s].\n", err, strerror(err)));
+        return err;
+    }
+
+    close(pipefd_from_child[0]);
+    ret = dup2(pipefd_from_child[1], STDOUT_FILENO);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(1, ("dup2 failed [%d][%s].\n", err, strerror(err)));
+        return err;
+    }
+
+    ret = prepare_child_argv(mem_ctx, debug_fd,
+                             binary, &argv);
+    if (ret != EOK) {
+        DEBUG(1, ("prepare_child_argv.\n"));
+        return ret;
+    }
+
+    ret = execv(binary, argv);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(1, ("execv failed [%d][%s].\n", err, strerror(err)));
+        return err;
+    }
+
+    return EOK;
+}
+
+void child_cleanup(int readfd, int writefd)
+{
+    int ret;
+
+    if (readfd != -1) {
+        ret = close(readfd);
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+        }
+    }
+    if (writefd != -1) {
+        ret = close(writefd);
+        if (ret != EOK) {
+            ret = errno;
+            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+        }
+    }
+}
