@@ -110,6 +110,7 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_krb5.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ipa.la \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
     $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
 
