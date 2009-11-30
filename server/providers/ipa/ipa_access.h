@@ -58,6 +58,7 @@ struct hbac_ctx {
     const char *user_dn;
     size_t groups_count;
     const char **groups;
+    bool offline;
 };
 
 void ipa_access_handler(struct be_req *be_req);
