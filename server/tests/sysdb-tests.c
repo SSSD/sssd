@@ -43,6 +43,9 @@
 #define ASQ_TEST_USER "testuser27010"
 #define ASQ_TEST_USER_UID 27010
 
+#define MBO_USER_BASE 27500
+#define MBO_GROUP_BASE 28500
+
 struct sysdb_test_ctx {
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *confdb;
@@ -879,7 +882,7 @@ static void test_store_custom_done(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_search_custom_done(struct tevent_req *req)
+static void test_search_done(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
 
@@ -920,14 +923,6 @@ static void test_delete_custom_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     return test_return(data, ret);
-}
-
-static void test_asq_search_done(struct tevent_req *req)
-{
-    struct test_data *data = tevent_req_callback_data(req, struct test_data);
-
-    data->finished = true;
-    return;
 }
 
 static void test_search_all_users_done(struct tevent_req *subreq);
@@ -1008,6 +1003,57 @@ static void test_delete_recursive_done(struct tevent_req *subreq)
     ret = sysdb_delete_recursive_recv(subreq);
     talloc_zfree(subreq);
     fail_unless(ret == EOK, "sysdb_delete_recursive_recv returned [%d]", ret);
+    return test_return(data, ret);
+}
+
+static void test_memberof_store_group_done(struct tevent_req *subreq);
+static void test_memberof_store_group(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+    struct sysdb_attrs *attrs = NULL;
+    char *member;
+    int i;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    attrs = sysdb_new_attrs(data);
+    if (!attrs) {
+        return test_return(data, ENOMEM);
+    }
+    for (i = 0; data->attrlist && data->attrlist[i]; i++) {
+        member = sysdb_group_strdn(data, data->ctx->domain->name,
+                                   data->attrlist[i]);
+        if (!member) {
+            return test_return(data, ENOMEM);
+        }
+        ret = sysdb_attrs_steal_string(attrs, SYSDB_MEMBER, member);
+        if (ret != EOK) {
+            return test_return(data, ret);
+        }
+    }
+
+    subreq = sysdb_store_group_send(data, data->ev, data->handle,
+                                    data->ctx->domain, data->groupname,
+                                    data->gid, attrs, -1);
+    if (!subreq) {
+        test_return(data, ret);
+    }
+    tevent_req_set_callback(subreq, test_memberof_store_group_done, data);
+}
+
+static void test_memberof_store_group_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_store_group_recv(subreq);
+    talloc_zfree(subreq);
+
     return test_return(data, ret);
 }
 
@@ -1935,7 +1981,7 @@ START_TEST (test_sysdb_search_custom_by_name)
     }
 
     if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_custom_done, data);
+        tevent_req_set_callback(subreq, test_search_done, data);
 
         ret = test_loop(data);
 
@@ -2061,7 +2107,7 @@ START_TEST (test_sysdb_search_custom_update)
     }
 
     if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_custom_done, data);
+        tevent_req_set_callback(subreq, test_search_done, data);
 
         ret = test_loop(data);
 
@@ -2136,7 +2182,7 @@ START_TEST (test_sysdb_search_custom)
     }
 
     if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_custom_done, data);
+        tevent_req_set_callback(subreq, test_search_done, data);
 
         ret = test_loop(data);
 
@@ -2264,7 +2310,7 @@ START_TEST (test_sysdb_asq_search)
     }
 
     if (ret == EOK) {
-        tevent_req_set_callback(req, test_asq_search_done, data);
+        tevent_req_set_callback(req, test_search_done, data);
 
         ret = test_loop(data);
 
@@ -2442,6 +2488,409 @@ START_TEST (test_sysdb_attrs_replace_name)
 }
 END_TEST
 
+START_TEST (test_sysdb_memberof_store_group)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = MBO_GROUP_BASE + _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    if (_i == 0) {
+        data->attrlist = NULL;
+    } else {
+        data->attrlist = talloc_array(data, const char *, 2);
+        fail_unless(data->attrlist != NULL, "talloc_array failed.");
+        data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid - 1);
+        data->attrlist[1] = NULL;
+    }
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_memberof_store_group, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not store POSIX group #%d", data->gid);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_close_loop)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = MBO_GROUP_BASE;
+    data->groupname = talloc_asprintf(data, "testgroup%d", data->gid);
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "talloc_array failed.");
+    data->attrlist[0] = talloc_asprintf(data, "testgroup%d", data->gid + 9);
+    data->attrlist[1] = NULL;
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_memberof_store_group, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not store POSIX group #%d", data->gid);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_store_user)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = MBO_USER_BASE + _i;
+    data->gid = 0; /* MPG domain */
+    data->username = talloc_asprintf(data, "testuser%d", data->uid);
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_store_user, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not store user %s", data->username);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_add_group_member)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i + MBO_GROUP_BASE);
+    data->uid = MBO_USER_BASE + _i;
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_add_group_member, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not modify group %s", data->groupname);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i + MBO_GROUP_BASE;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "tallo_array failed.");
+    data->attrlist[0] = "memberuid";
+    data->attrlist[1] = NULL;
+
+    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
+                                         data->ctx->domain,
+                                         _i + MBO_GROUP_BASE,
+                                         data->attrlist);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_search_done, data);
+
+        ret = test_loop(data);
+
+        ret = sysdb_search_group_recv(req, data, &data->msg);
+        talloc_zfree(req);
+        if (_i == 5) {
+            fail_unless(ret == ENOENT,
+                        "sysdb_search_group_by_gid_send found "
+                        "already deleted group");
+            ret = EOK;
+        } else {
+            fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
+
+            fail_unless(data->msg->num_elements == 1,
+                        "Wrong number of results, expected [1] got [%d]",
+                        data->msg->num_elements);
+            fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                        "Wrong attribute name");
+            fail_unless(data->msg->elements[0].num_values == ((_i + 1) % 6),
+                        "Wrong number of attribute values, "
+                        "expected [%d] got [%d]", ((_i + 1) % 6),
+                        data->msg->elements[0].num_values);
+        }
+    }
+
+    fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_check_memberuid)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i + MBO_GROUP_BASE;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "tallo_array failed.");
+    data->attrlist[0] = "memberuid";
+    data->attrlist[1] = NULL;
+
+    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
+                                         data->ctx->domain,
+                                         _i + MBO_GROUP_BASE,
+                                         data->attrlist);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_search_done, data);
+
+        ret = test_loop(data);
+
+        ret = sysdb_search_group_recv(req, data, &data->msg);
+        talloc_zfree(req);
+        fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
+
+        fail_unless(data->msg->num_elements == 1,
+                    "Wrong number of results, expected [1] got [%d]",
+                    data->msg->num_elements);
+        fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                    "Wrong attribute name");
+        fail_unless(data->msg->elements[0].num_values == _i + 1,
+                    "Wrong number of attribute values, expected [%d] got [%d]",
+                    _i + 1, data->msg->elements[0].num_values);
+    }
+
+    fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_check_memberuid_loop)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i + MBO_GROUP_BASE;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "tallo_array failed.");
+    data->attrlist[0] = "memberuid";
+    data->attrlist[1] = NULL;
+
+    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
+                                         data->ctx->domain,
+                                         _i + MBO_GROUP_BASE,
+                                         data->attrlist);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_search_done, data);
+
+        ret = test_loop(data);
+
+        ret = sysdb_search_group_recv(req, data, &data->msg);
+        talloc_zfree(req);
+        fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
+
+        fail_unless(data->msg->num_elements == 1,
+                    "Wrong number of results, expected [1] got [%d]",
+                    data->msg->num_elements);
+        fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                    "Wrong attribute name");
+        fail_unless(data->msg->elements[0].num_values == 10,
+                    "Wrong number of attribute values, expected [%d] got [%d]",
+                    10, data->msg->elements[0].num_values);
+    }
+
+    fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i + MBO_GROUP_BASE;
+
+    data->attrlist = talloc_array(data, const char *, 2);
+    fail_unless(data->attrlist != NULL, "tallo_array failed.");
+    data->attrlist[0] = "memberuid";
+    data->attrlist[1] = NULL;
+
+    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
+                                         data->ctx->domain,
+                                         _i + MBO_GROUP_BASE,
+                                         data->attrlist);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_search_done, data);
+
+        ret = test_loop(data);
+
+        ret = sysdb_search_group_recv(req, data, &data->msg);
+        talloc_zfree(req);
+        if (_i == 5) {
+            fail_unless(ret == ENOENT,
+                        "sysdb_search_group_by_gid_send found "
+                        "already deleted group");
+            ret = EOK;
+        } else {
+            fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
+
+            fail_unless(data->msg->num_elements == 1,
+                        "Wrong number of results, expected [1] got [%d]",
+                        data->msg->num_elements);
+            fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                        "Wrong attribute name");
+            fail_unless(data->msg->elements[0].num_values == ((_i + 5) % 10),
+                        "Wrong number of attribute values, expected [%d] got [%d]",
+                        ((_i + 5) % 10), data->msg->elements[0].num_values);
+        }
+    }
+
+    fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2541,6 +2990,39 @@ Suite *create_sysdb_suite(void)
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
+
+    TCase *tc_memberof = tcase_create("SYSDB member/memberof/memberuid Tests");
+
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group, 0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_user, 0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_add_group_member,
+                        0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_memberuid,
+                        0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE + 5, MBO_GROUP_BASE + 6);
+    tcase_add_loop_test(tc_memberof,
+                        test_sysdb_memberof_check_memberuid_without_group_5,
+                        0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_group, 0, 10);
+    tcase_add_test(tc_memberof, test_sysdb_memberof_close_loop);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_store_user, 0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_add_group_member,
+                        0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_memberof_check_memberuid_loop,
+                        0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE + 5, MBO_GROUP_BASE + 6);
+    tcase_add_loop_test(tc_memberof,
+                        test_sysdb_memberof_check_memberuid_loop_without_group_5,
+                        0, 10);
+    tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
+                        MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
+
+    suite_add_tcase(s, tc_memberof);
 
     return s;
 }
