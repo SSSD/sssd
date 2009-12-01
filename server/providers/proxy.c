@@ -956,7 +956,7 @@ static void get_gr_name_process(struct tevent_req *subreq)
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
-    const char **members;
+    struct sysdb_attrs *members;
     int ret;
 
     DEBUG(7, ("Searching group by name (%s)\n", state->name));
@@ -1031,7 +1031,18 @@ again:
         DEBUG_GR_MEM(7, state);
 
         if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = (const char **)state->grp->gr_mem;
+            members = sysdb_new_attrs(state);
+            if (!members) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
+                                                  state->domain->name,
+                                                  (const char **)state->grp->gr_mem);
+            if (ret) {
+                tevent_req_error(req, ret);
+                return;
+            }
         } else {
             members = NULL;
         }
@@ -1040,7 +1051,7 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        members, NULL, NULL,
+                                        members,
                                         ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
@@ -1178,7 +1189,7 @@ static void get_gr_gid_process(struct tevent_req *subreq)
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
-    const char **members;
+    struct sysdb_attrs *members;
     int ret;
 
     DEBUG(7, ("Searching group by gid (%d)\n", state->gid));
@@ -1251,7 +1262,18 @@ again:
         DEBUG_GR_MEM(7, state);
 
         if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = (const char **)state->grp->gr_mem;
+            members = sysdb_new_attrs(state);
+            if (!members) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
+                                                  state->domain->name,
+                                                  (const char **)state->grp->gr_mem);
+            if (ret) {
+                tevent_req_error(req, ret);
+                return;
+            }
         } else {
             members = NULL;
         }
@@ -1260,7 +1282,7 @@ again:
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        members, NULL, NULL,
+                                        members,
                                         ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
@@ -1405,7 +1427,7 @@ static void enum_groups_process(struct tevent_req *subreq)
     struct proxy_ctx *ctx = state->ctx;
     struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
-    const char **members;
+    struct sysdb_attrs *members;
     char *newbuf;
     int ret;
 
@@ -1486,7 +1508,18 @@ again:
         DEBUG_GR_MEM(7, state);
 
         if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = (const char **)state->grp->gr_mem;
+            members = sysdb_new_attrs(state);
+            if (!members) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
+                                                  state->domain->name,
+                                                  (const char **)state->grp->gr_mem);
+            if (ret) {
+                tevent_req_error(req, ret);
+                return;
+            }
         } else {
             members = NULL;
         }
@@ -1495,7 +1528,7 @@ again:
                                        state->domain,
                                        state->grp->gr_name,
                                        state->grp->gr_gid,
-                                       members, NULL, NULL,
+                                       members,
                                        ctx->entry_cache_timeout);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
@@ -1881,6 +1914,7 @@ static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
     char *newbuf;
     size_t buflen;
     bool delete_group = false;
+    struct sysdb_attrs *members;
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_state);
@@ -1948,12 +1982,27 @@ again:
             break;
         }
 
+        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
+            members = sysdb_new_attrs(state);
+            if (!members) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
+                                                  state->domain->name,
+                                                  (const char **)state->grp->gr_mem);
+            if (ret) {
+                goto fail;
+            }
+        } else {
+            members = NULL;
+        }
+
         subreq = sysdb_store_group_send(state, state->ev, state->handle,
                                         state->domain,
                                         state->grp->gr_name,
                                         state->grp->gr_gid,
-                                        (const char **)state->grp->gr_mem,
-                                        NULL, NULL,
+                                        members,
                                         ctx->entry_cache_timeout);
         if (!subreq) {
             ret = ENOMEM;

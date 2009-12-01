@@ -2778,8 +2778,6 @@ struct sysdb_store_group_state {
 
     const char *name;
     gid_t gid;
-    const char **member_users;
-    const char **member_groups;
 
     struct sysdb_attrs *attrs;
 
@@ -2796,8 +2794,6 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain,
                                           const char *name,
                                           gid_t gid,
-                                          const char **member_users,
-                                          const char **member_groups,
                                           struct sysdb_attrs *attrs,
                                           uint64_t cache_timeout)
 {
@@ -2815,8 +2811,6 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
     state->domain = domain;
     state->name = name;
     state->gid = gid;
-    state->member_users = member_users;
-    state->member_groups = member_groups;
     state->attrs = attrs;
     state->cache_timeout = cache_timeout;
 
@@ -2845,7 +2839,7 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
     struct ldb_message *msg;
     time_t now = time(NULL);
     bool new_group = false;
-    int ret, i;
+    int ret;
 
     ret = sysdb_search_group_recv(subreq, state, &msg);
     talloc_zfree(subreq);
@@ -2859,63 +2853,6 @@ static void sysdb_store_group_check(struct tevent_req *subreq)
 
     /* FIXME: use the remote modification timestamp to know if the
      * group needs any update */
-
-    if (state->member_users || state->member_groups) {
-        if (!state->attrs) {
-            state->attrs = sysdb_new_attrs(state);
-            if (!state->attrs) {
-                DEBUG(6, ("Error: Out of memory\n"));
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-        }
-
-        for (i = 0; state->member_users && state->member_users[i]; i++) {
-            char *member;
-
-            member = sysdb_user_strdn(state,
-                                      state->domain->name,
-                                      state->member_users[i]);
-            if (!member) {
-                DEBUG(4, ("Error: Out of memory\n"));
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            DEBUG(9, ("adding member: %s to group %s\n",
-                      member, state->name));
-
-            ret = sysdb_attrs_steal_string(state->attrs,
-                                           SYSDB_MEMBER, member);
-            if (ret) {
-                DEBUG(4, ("Error: %d (%s)\n", ret, strerror(ret)));
-                tevent_req_error(req, ret);
-                return;
-            }
-        }
-
-        for (i = 0; state->member_groups && state->member_groups[i]; i++) {
-            char *member;
-
-            member = sysdb_group_strdn(state,
-                                       state->domain->name,
-                                       state->member_groups[i]);
-            if (!member) {
-                DEBUG(4, ("Error: Out of memory\n"));
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-            DEBUG(9, ("adding member: %s to group %s\n",
-                      member, state->name));
-
-            ret = sysdb_attrs_steal_string(state->attrs,
-                                           SYSDB_MEMBER, member);
-            if (ret) {
-                DEBUG(4, ("Error: %d (%s)\n", ret, strerror(ret)));
-                tevent_req_error(req, ret);
-                return;
-            }
-        }
-    }
 
     if (new_group) {
         /* group doesn't exist, turn into adding a group */
