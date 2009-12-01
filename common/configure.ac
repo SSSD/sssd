@@ -23,7 +23,7 @@ AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TR
 AC_CONFIG_FILES([Makefile
 		trace/Makefile])
 
-AC_CONFIG_SUBDIRS([collection dhash ini path_utils elapi])
+AC_CONFIG_SUBDIRS([collection dhash ini path_utils])
 
 AC_DEFUN([WITH_SINGLELIB],
   [ AC_ARG_WITH([singlelib],
