@@ -68,6 +68,11 @@ struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle)
     return handle->ctx->ldb;
 }
 
+struct sysdb_ctx *sysdb_handle_get_ctx(struct sysdb_handle *handle)
+{
+    return handle->ctx;
+}
+
 struct sysdb_attrs *sysdb_new_attrs(TALLOC_CTX *memctx)
 {
     return talloc_zero(memctx, struct sysdb_attrs);
@@ -252,6 +257,98 @@ int sysdb_attrs_add_time_t(struct sysdb_attrs *attrs,
     talloc_free(str);
 
     return ret;
+}
+
+int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
+                                    const char *attr_name,
+                                    const char *domain,
+                                    const char **list)
+{
+    struct ldb_message_element *el = NULL;
+    struct ldb_val *vals;
+    int i, j, num;
+    char *member;
+    int ret;
+
+    ret = sysdb_attrs_get_el(attrs, attr_name, &el);
+    if (!ret) {
+        return ret;
+    }
+
+    for (num = 0; list[num]; num++) /* count */ ;
+
+    vals = talloc_realloc(attrs->a, el->values,
+                          struct ldb_val, el->num_values + num);
+    if (!vals) {
+        return ENOMEM;
+    }
+    el->values = vals;
+
+    DEBUG(9, ("Adding %d members to existing %d ones\n",
+              num, el->num_values));
+
+    for (i = 0, j = el->num_values; i < num; i++) {
+
+        member = sysdb_user_strdn(el->values, domain, list[i]);
+        if (!member) {
+            DEBUG(4, ("Failed to get user dn for [%s]\n", list[i]));
+            continue;
+        }
+        el->values[j].data = (uint8_t *)member;
+        el->values[j].length = strlen(member);
+        j++;
+
+        DEBUG(7, ("    member #%d: [%s]\n", i, member));
+    }
+    el->num_values = j;
+
+    return EOK;
+}
+
+int sysdb_attrs_users_from_ldb_vals(struct sysdb_attrs *attrs,
+                                    const char *attr_name,
+                                    const char *domain,
+                                    struct ldb_val *values,
+                                    int num_values)
+{
+    struct ldb_message_element *el = NULL;
+    struct ldb_val *vals;
+    int i, j;
+    char *member;
+    int ret;
+
+    ret = sysdb_attrs_get_el(attrs, attr_name, &el);
+    if (!ret) {
+        return ret;
+    }
+
+    vals = talloc_realloc(el, el->values, struct ldb_val,
+                          el->num_values + num_values);
+    if (!vals) {
+        return ENOMEM;
+    }
+    el->values = vals;
+
+    DEBUG(9, ("Adding %d members to existing %d ones\n",
+              num_values, el->num_values));
+
+    for (i = 0, j = el->num_values; i < num_values; i++) {
+        member = sysdb_user_strdn(el->values, domain,
+                                  (char *)values[i].data);
+        if (!member) {
+            DEBUG(4, ("Failed to get user dn for [%s]\n",
+                      (char *)values[i].data));
+            return ENOMEM;
+        }
+        el->values[j].data = (uint8_t *)member;
+        el->values[j].length = strlen(member);
+        j++;
+
+        DEBUG(7, ("    member #%d: [%s]\n", i, member));
+    }
+    el->num_values = j;
+
+    return EOK;
 }
 
 static char *build_dom_dn_str_escape(TALLOC_CTX *memctx, const char *template,

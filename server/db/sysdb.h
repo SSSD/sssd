@@ -175,6 +175,16 @@ int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
 int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
                                  const char *newname);
 
+int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
+                                    const char *attr_name,
+                                    const char *domain,
+                                    const char **list);
+int sysdb_attrs_users_from_ldb_vals(struct sysdb_attrs *attrs,
+                                    const char *attr_name,
+                                    const char *domain,
+                                    struct ldb_val *values,
+                                    int num_values);
+
 /* convert an ldb error into an errno error */
 int sysdb_error_to_errno(int ldberr);
 
@@ -200,6 +210,7 @@ char *sysdb_group_strdn(TALLOC_CTX *memctx,
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
 struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle);
+struct sysdb_ctx *sysdb_handle_get_ctx(struct sysdb_handle *handle);
 
 int compare_ldb_dn_comp_num(const void *m1, const void *m2);
 
@@ -497,8 +508,6 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct sss_domain_info *domain,
                                           const char *name,
                                           gid_t gid,
-                                          const char **member_users,
-                                          const char **member_groups,
                                           struct sysdb_attrs *attrs,
                                           uint64_t cache_timeout);
 int sysdb_store_group_recv(struct tevent_req *req);
