@@ -37,7 +37,12 @@ BuildRequires: automake
 BuildRequires: libtool
 BuildRequires: m4
 %{?fedora:BuildRequires: popt-devel}
-%{?rhel:BuildRequires: popt}
+%if 0%{?rhel} <= 5
+BuildRequires: popt
+%endif
+%if 0%{?rhel} >= 6
+BuildRequires: popt-devel
+%endif
 BuildRequires: libtalloc-devel
 BuildRequires: libtevent-devel
 BuildRequires: libtdb-devel
