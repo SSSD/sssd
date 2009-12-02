@@ -108,4 +108,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    int attrs_type);
 int groups_get_recv(struct tevent_req *req);
 
+/* setup child logging */
+int setup_child(struct sdap_id_ctx *ctx);
+
 #endif /* _LDAP_COMMON_H_ */

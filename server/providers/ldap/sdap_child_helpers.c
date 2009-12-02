@@ -26,6 +26,7 @@
 #include <sys/wait.h>
 #include <pwd.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "util/util.h"
 #include "providers/ldap/ldap_common.h"
@@ -498,3 +499,46 @@ int sdap_krb5_get_tgt_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* Setup child logging */
+int setup_child(struct sdap_id_ctx *ctx)
+{
+    int ret;
+    const char *mech;
+    struct tevent_signal *sige;
+    unsigned v;
+    FILE *debug_filep;
+
+    mech = dp_opt_get_string(ctx->opts->basic,
+                             SDAP_SASL_MECH);
+    if (!mech) {
+        return EOK;
+    }
+
+    sige = tevent_add_signal(ctx->be->ev, ctx, SIGCHLD, SA_SIGINFO,
+                             child_sig_handler, NULL);
+    if (sige == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        return ENOMEM;
+    }
+
+    if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
+        ret = open_debug_file_ex("ldap_child", &debug_filep);
+        if (ret != EOK) {
+            DEBUG(0, ("Error setting up logging (%d) [%s]\n",
+                        ret, strerror(ret)));
+            return ret;
+        }
+
+        ldap_child_debug_fd = fileno(debug_filep);
+        if (ldap_child_debug_fd == -1) {
+            DEBUG(0, ("fileno failed [%d][%s]\n", errno, strerror(errno)));
+            ret = errno;
+            return ret;
+        }
+
+        v = fcntl(ldap_child_debug_fd, F_GETFD, 0);
+        fcntl(ldap_child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
+    }
+
+    return EOK;
+}
