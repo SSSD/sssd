@@ -82,7 +82,7 @@ struct mbof_del_operation {
     struct mbof_del_operation *parent;
     struct mbof_del_operation **children;
     int num_children;
-    int cur_child;
+    int next_child;
 
     struct ldb_dn *entry_dn;
 
@@ -1760,23 +1760,26 @@ static int mbof_del_get_next(struct mbof_del_operation *delop,
 
     /* Find next one */
     for (top = delop; top; top = top->parent) {
-        if (top->num_children &&
-            top->cur_child < top->num_children) {
+        if (top->num_children == 0 || top->next_child >= top->num_children) {
+            /* no children, go for next one */
+            continue;
+        }
 
-            cop = top->children[top->cur_child];
-            top->cur_child++;
+        while (top->next_child < top->num_children) {
+            cop = top->children[top->next_child];
+            top->next_child++;
 
             /* verify this operation has not already been performed */
             for (tmp = del_ctx->history; tmp; tmp = tmp->next) {
-                if (ldb_dn_compare(tmp->dn, cop->entry_dn) == 0) break;
+                if (ldb_dn_compare(tmp->dn, cop->entry_dn) == 0) {
+                    break;
+                }
             }
-            if (tmp) {
-                /* it's a dup */
-                continue;
+            if (tmp == NULL) {
+                /* and return the current one */
+                *nextop = cop;
+                return LDB_SUCCESS;
             }
-
-            *nextop = cop;
-            return LDB_SUCCESS;
         }
     }
 
