@@ -107,7 +107,9 @@ static void sdap_handle_release(struct sdap_handle *sh)
             if (op == sh->ops) talloc_free(op);
         }
 
-        ldap_unbind_ext(sh->ldap, NULL, NULL);
+        if (sh->ldap) {
+            ldap_unbind_ext(sh->ldap, NULL, NULL);
+        }
         sh->connected = false;
         sh->ldap = NULL;
         sh->ops = NULL;
