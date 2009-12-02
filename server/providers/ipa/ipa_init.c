@@ -140,6 +140,13 @@ int sssm_ipa_init(struct be_ctx *bectx,
         goto done;
     }
 
+    ret = setup_child(ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("setup_child failed [%d][%s].\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
     *ops = &ipa_id_ops;
     *pvt_data = ctx;
     ret = EOK;
