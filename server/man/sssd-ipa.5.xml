@@ -20,27 +20,27 @@
     <refsect1 id='description'>
         <title>DESCRIPTION</title>
         <para>
-            This manual page describes the configuration of the IPA Provider
+            This manual page describes the configuration of the IPA provider
             for
             <citerefentry>
                 <refentrytitle>sssd</refentrytitle>
                 <manvolnum>8</manvolnum>
             </citerefentry>.
-            For a detailed syntax reference, please refer to the <quote>FILE FORMAT</quote> section of the
+            For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> manual page
+            </citerefentry> manual page.
         </para>
         <para>
-            The IPA provider is a backend useful to connect to an IPA server.
-            (see freeipa.org for information about IPa servers).
-            It requires that the machine has been joined to the IPA domain,
-            and configuration is almost entirely self discovered and obtained
+            The IPA provider is a back end used to connect to an IPA server.
+            (Refer to the freeipa.org web site for information about IPA servers.)
+            This provider requires that the machine be joined to the IPA domain;
+            configuration is almost entirely self-discovered and obtained
             directly from the server.
         </para>
         <para>
-            The IPA provider also accepts the same options used by the
+            The IPA provider accepts the same options used by the
             <citerefentry>
                 <refentrytitle>sssd-ldap</refentrytitle>
                 <manvolnum>5</manvolnum>
@@ -49,25 +49,24 @@
                 <refentrytitle>sssd-krb5</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry> authentication provider.
-            But it is not recommended to set these options and it is not necessary.
+            However, it is neither necessary nor recommended to set these options.
         </para>
     </refsect1>
 
     <refsect1 id='file-format'>
         <title>CONFIGURATION OPTIONS</title>
-        <para>
+        <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>
-            for details on the configuration of a SSSD domain.
+            </citerefentry> manual page for details on the configuration of an SSSD domain.
             <variablelist>
                 <varlistentry>
                     <term>ipa_domain (string)</term>
                     <listitem>
                         <para>
                             Specifies the name of the IPA domain.
-                            This is optional, if not provided the configuration
+                            This is optional. If not provided, the configuration
                             domain name is used.
                         </para>
                     </listitem>
@@ -78,7 +77,7 @@
                     <listitem>
                         <para>
                             The name of the IPA server.
-                            If autodiscovery is enabled this is optional.
+                            This is optional if autodiscovery is enabled.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -87,7 +86,7 @@
                     <term>ipa_hostname (string)</term>
                     <listitem>
                         <para>
-                            Optional. Maybe set on some machine where the
+                            Optional. May be set on machines where the
                             hostname(5) does not reflect the fully qualified
                             name used in the IPA domain to identify this host.
                         </para>
@@ -105,8 +104,8 @@
                             Default: true
                         </para>
                         <para>
-                             Please note that this default differs from the
-                             traditional kerberos provider backend.
+                             Note that this default differs from the
+                             traditional Kerberos provider back end.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -121,7 +120,7 @@
             The following example assumes that SSSD is correctly
             configured and example.com is one of the domains in the
             <replaceable>[sssd]</replaceable> section. This examples shows only
-            the ipa provider specific options.
+            the ipa provider-specific options.
         </para>
         <para>
 <programlisting>
