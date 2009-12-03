@@ -26,6 +26,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include "util/util.h"
 
@@ -95,8 +96,12 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
 
     if (loglevel <= debug_level) {
         if (debug_timestamps) {
-            debug_fn("(%010ld) [%s] [ldb] (%d): %s\n",
-                     (long)time(NULL), debug_prg_name, loglevel, message);
+            time_t rightnow = time(NULL);
+            char stamp[25];
+            memcpy(stamp, ctime(&rightnow), 24);
+            stamp[24] = '\0';
+            debug_fn("(%s) [%s] [ldb] (%d): %s\n",
+                     stamp, debug_prg_name, loglevel, message);
         } else {
             debug_fn("[%s] [ldb] (%d): %s\n",
                      debug_prg_name, loglevel, message);
