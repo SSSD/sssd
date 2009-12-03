@@ -81,7 +81,7 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
         loglevel = 1;
         break;
     case LDB_DEBUG_WARNING:
-        loglevel = 3;
+        loglevel = 6;
         break;
     case LDB_DEBUG_TRACE:
         loglevel = 9;
