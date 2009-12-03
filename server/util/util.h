@@ -80,8 +80,12 @@ errno_t set_debug_file_from_fd(const int fd);
 #define DEBUG(level, body) do { \
     if (level <= debug_level) { \
         if (debug_timestamps) { \
-            debug_fn("(%010ld) [%s] [%s] (%d): ", \
-                     (long)time(NULL), debug_prg_name, __FUNCTION__, level); \
+            time_t rightnow = time(NULL); \
+            char stamp[25]; \
+            memcpy(stamp, ctime(&rightnow), 24); \
+            stamp[24] = '\0'; \
+            debug_fn("(%s) [%s] [%s] (%d): ", \
+                     stamp, debug_prg_name, __FUNCTION__, level); \
         } else { \
             debug_fn("[%s] [%s] (%d): ", \
                      debug_prg_name, __FUNCTION__, level); \
