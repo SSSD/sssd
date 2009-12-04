@@ -120,6 +120,10 @@ then
     # Older versions of rpmbuild can only handle one -f option
     echo %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so >> sss_daemon.lang
 fi
+if ls $RPM_BUILD_ROOT/%{python_sitelib}/*.egg-info 1> /dev/null 2> /dev/null
+then
+    echo %{python_sitelib}/*.egg-info >> sss_daemon.lang
+fi
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -163,7 +167,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
-%{?fedora:%{python_sitelib}/*.egg-info}
 
 
 %files client -f sss_client.lang
