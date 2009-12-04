@@ -212,6 +212,14 @@ fail:
         DEBUG(9, ("User cleanup failed with: (%d)[%s]\n",
                   (int)err, strerror(err)));
 
+        if (sdap_check_gssapi_reconnect(state->ctx)) {
+            talloc_zfree(state->ctx->gsh);
+            subreq = cleanup_users_send(state, state->ev, state->ctx);
+            if (subreq != NULL) {
+                tevent_req_set_callback(subreq, ldap_id_cleanup_users_done, req);
+                return;
+            }
+        }
         sdap_mark_offline(state->ctx);
     }
 
@@ -242,7 +250,15 @@ static void ldap_id_cleanup_groups_done(struct tevent_req *subreq)
     return;
 
 fail:
-    /* always go offline on failures */
+    /* check if credentials are expired otherwise go offline on failures */
+    if (sdap_check_gssapi_reconnect(state->ctx)) {
+        talloc_zfree(state->ctx->gsh);
+        subreq = cleanup_groups_send(state, state->ev, state->ctx);
+        if (subreq != NULL) {
+            tevent_req_set_callback(subreq, ldap_id_cleanup_groups_done, req);
+            return;
+        }
+    }
     sdap_mark_offline(state->ctx);
     DEBUG(1, ("Failed to cleanup groups (%d [%s]), retrying later!\n",
               (int)err, strerror(err)));

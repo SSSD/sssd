@@ -719,6 +719,11 @@ static void sdap_account_info_users_done(struct tevent_req *req)
             dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
+            if (sdap_check_gssapi_reconnect(ctx)) {
+                talloc_zfree(ctx->gsh);
+                sdap_account_info_handler(breq);
+                return;
+            }
             sdap_mark_offline(ctx);
         }
     }
@@ -745,6 +750,11 @@ static void sdap_account_info_groups_done(struct tevent_req *req)
             dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
+            if (sdap_check_gssapi_reconnect(ctx)) {
+                talloc_zfree(ctx->gsh);
+                sdap_account_info_handler(breq);
+                return;
+            }
             sdap_mark_offline(ctx);
         }
     }
@@ -771,6 +781,11 @@ static void sdap_account_info_initgr_done(struct tevent_req *req)
             dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
+            if (sdap_check_gssapi_reconnect(ctx)) {
+                talloc_zfree(ctx->gsh);
+                sdap_account_info_handler(breq);
+                return;
+            }
             sdap_mark_offline(ctx);
         }
     }

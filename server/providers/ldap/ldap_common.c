@@ -25,6 +25,8 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
 
+#include "util/sss_krb5.h"
+
 /* a fd the child process would log into */
 int ldap_child_debug_fd = -1;
 
@@ -305,6 +307,143 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx)
     be_mark_offline(ctx->be);
 }
 
+bool sdap_check_gssapi_reconnect(struct sdap_id_ctx *ctx)
+{
+    int ret;
+    bool result = false;
+    const char *mech;
+    const char *realm;
+    char *ccname = NULL;
+    krb5_context context = NULL;
+    krb5_ccache ccache = NULL;
+    krb5_error_code krberr;
+    TALLOC_CTX *tmp_ctx = NULL;
+    krb5_creds mcred;
+    krb5_creds cred;
+    char *server_name = NULL;
+    char *client_princ_str = NULL;
+    char *full_princ = NULL;
+    krb5_principal client_principal = NULL;
+    krb5_principal server_principal = NULL;
+    char hostname[512];
+    int l_errno;
+
+
+    mech = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_MECH);
+    if (mech == NULL || strcasecmp(mech, "GSSAPI") != 0) {
+        return false;
+    }
+
+    realm = dp_opt_get_string(ctx->opts->basic, SDAP_KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(3, ("Kerberos realm not available.\n"));
+        return false;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return false;
+    }
+
+    ccname = talloc_asprintf(tmp_ctx, "FILE:%s/ccache_%s", DB_PATH, realm);
+    if (ccname == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        goto done;
+    }
+
+    krberr = krb5_init_context(&context);
+    if (krberr) {
+        DEBUG(1, ("Failed to init kerberos context\n"));
+        goto done;
+    }
+
+    krberr = krb5_cc_resolve(context, ccname, &ccache);
+    if (krberr != 0) {
+        DEBUG(1, ("krb5_cc_resolve failed.\n"));
+        goto done;
+    }
+
+    server_name = talloc_asprintf(tmp_ctx, "krbtgt/%s@%s", realm, realm);
+    if (server_name == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        goto done;
+    }
+
+    krberr = krb5_parse_name(context, server_name, &server_principal);
+    if (krberr != 0) {
+        DEBUG(1, ("krb5_parse_name failed.\n"));
+        goto done;
+    }
+
+    client_princ_str = dp_opt_get_string(ctx->opts->basic, SDAP_SASL_AUTHID);
+    if (client_princ_str) {
+        if (!strchr(client_princ_str, '@')) {
+            full_princ = talloc_asprintf(tmp_ctx, "%s@%s", client_princ_str,
+                                         realm);
+        } else {
+            full_princ = talloc_strdup(tmp_ctx, client_princ_str);
+        }
+    } else {
+        ret = gethostname(hostname, sizeof(hostname)-1);
+        if (ret == -1) {
+            l_errno = errno;
+            DEBUG(1, ("gethostname failed [%d][%s].\n", l_errno,
+                                                        strerror(l_errno)));
+            goto done;
+        }
+        hostname[sizeof(hostname)-1] = '\0';
+
+        full_princ = talloc_asprintf(tmp_ctx, "host/%s@%s", hostname, realm);
+    }
+    if (!full_princ) {
+        DEBUG(1, ("Client principal not available.\n"));
+        goto done;
+    }
+    DEBUG(7, ("Client principal name is: [%s]\n", full_princ));
+    krberr = krb5_parse_name(context, full_princ, &client_principal);
+    if (krberr != 0) {
+        DEBUG(1, ("krb5_parse_name failed.\n"));
+        goto done;
+    }
+
+    memset(&mcred, 0, sizeof(mcred));
+    memset(&cred, 0, sizeof(mcred));
+    mcred.client = client_principal;
+    mcred.server = server_principal;
+
+    krberr = krb5_cc_retrieve_cred(context, ccache, 0, &mcred, &cred);
+    if (krberr != 0) {
+        DEBUG(1, ("krb5_cc_retrieve_cred failed.\n"));
+        goto done;
+    }
+
+    DEBUG(7, ("TGT end time [%d].\n", cred.times.endtime));
+
+    if (cred.times.endtime <= time(NULL)) {
+        DEBUG(3, ("TGT is expired.\n"));
+        result = true;
+    }
+    krb5_free_cred_contents(context, &cred);
+
+done:
+    if (client_principal != NULL) {
+        krb5_free_principal(context, client_principal);
+    }
+    if (server_principal != NULL) {
+        krb5_free_principal(context, server_principal);
+    }
+    if (ccache != NULL) {
+        if (result) {
+            krb5_cc_destroy(context, ccache);
+        } else {
+            krb5_cc_close(context, ccache);
+        }
+    }
+    if (context != NULL) krb5_free_context(context);
+    talloc_free(tmp_ctx);
+    return result;
+}
 
 int sdap_id_setup_tasks(struct sdap_id_ctx *ctx)
 {
