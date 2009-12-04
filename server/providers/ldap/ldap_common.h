@@ -91,6 +91,7 @@ int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 
 bool sdap_connected(struct sdap_id_ctx *ctx);
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
+bool sdap_check_gssapi_reconnect(struct sdap_id_ctx *ctx);
 
 struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
