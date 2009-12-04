@@ -87,6 +87,11 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
 
     ret = lstat(path, &stat_buf);
     if (ret == -1) {
+        if (errno == ENOENT) {
+            DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
+                      path));
+            return EOK;
+        }
         DEBUG(1, ("lstat failed [%d][%s].\n", errno, strerror(errno)));
         return errno;
     }
@@ -98,6 +103,11 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
 
     fd = open(path, O_RDONLY);
     if (fd == -1) {
+        if (errno == ENOENT) {
+            DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
+                      path));
+            return EOK;
+        }
         DEBUG(1, ("open failed [%d][%s].\n", errno, strerror(errno)));
         return errno;
     }
