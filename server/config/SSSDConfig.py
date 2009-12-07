@@ -153,6 +153,13 @@ option_strings = {
 def striplist(l):
     return([x.strip() for x in l])
 
+def options_overlap(options1, options2):
+    overlap = []
+    for option in options1:
+        if option in options2:
+            overlap.append(option)
+    return overlap
+
 class SSSDConfigSchema(SSSDChangeConf):
     def __init__(self, schemafile, schemaplugindir):
         SSSDChangeConf.__init__(self)
@@ -729,7 +736,6 @@ class SSSDDomain(SSSDConfigObject):
                 raise TypeError('Expected %s' % option_schema[1])
 
         # Check whether we're adding a provider entry.
-        # This requires special handling
         is_provider = option.rfind('_provider')
         if (is_provider > 0):
             provider = option[:is_provider]
@@ -786,7 +792,6 @@ class SSSDDomain(SSSDConfigObject):
                                                      (provider,
                                                       provider_type)))
 
-
     def remove_provider(self, provider_type):
         """
         Remove a provider from the domain. If the provider is not present, it
@@ -812,10 +817,26 @@ class SSSDDomain(SSSDConfigObject):
         if not provider:
             return
 
-        # TODO: safely remove any unused options when removing
-        # the provider. This will require modifying the schema
-        # to account for multiple providers making use of the
-        # same options (such ask krb5_realm)
+        # Remove any unused options when removing the provider.
+        options = self.list_provider_options(provider, provider_type)
+        
+        # Trim any options that are used by other providers,
+        # if that provider is in use
+        for (prov, ptype) in self.providers:
+            # Ignore the one being removed
+            if (prov, ptype) == (provider, provider_type):
+                continue
+            
+            provider_options = self.list_provider_options(prov, ptype)
+            overlap = options_overlap(options.keys(), provider_options.keys())
+            for opt in overlap:
+                del options[opt]
+
+        # We should now have a list of options used only by this
+        # provider. So we remove them.
+        for option in options:
+            if self.options.has_key(option):
+                del self.options[option]
 
         self.providers.remove((provider, provider_type))
 
