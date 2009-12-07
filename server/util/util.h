@@ -142,6 +142,9 @@ errno_t set_debug_file_from_fd(const int fd);
             req->async.fn(req); \
         } \
     } while(0)
+
+/* noop */
+#define tevent_loop_allow_nesting(x)
 #endif
 
 #define TEVENT_REQ_RETURN_ON_ERROR(req) do { \

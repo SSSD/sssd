@@ -167,6 +167,7 @@ AM_CPPFLAGS = -Wall \
     -DSSS_PAM_SOCKET_NAME=\"$(pipepath)/pam\" \
     -DSSS_PAM_PRIV_SOCKET_NAME=\"$(pipepath)/private/pam\" \
     -DUSE_MMAP=1 \
+    -DTEVENT_DEPRECATED=1\
     -DLOCALEDIR=\"$(localedir)\"
 
 EXTRA_DIST = build/config.rpath

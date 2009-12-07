@@ -680,6 +680,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
     tevent_req_set_callback(req, sdap_find_entry_by_origDN_done, state);
 
     /* WARNING: SYNC LOOP HERE */
+    tevent_loop_allow_nesting(ev);
     while (state->done == 0) {
         tevent_loop_once(ev);
     }
