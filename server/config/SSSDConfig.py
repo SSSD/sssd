@@ -787,14 +787,12 @@ class SSSDDomain(SSSDConfigObject):
                                                       provider_type)))
 
 
-    def remove_provider(self, provider, provider_type):
+    def remove_provider(self, provider_type):
         """
         Remove a provider from the domain. If the provider is not present, it
         is ignored.
 
-        type:
-          Provider backend type. (e.g. local, ldap, krb5, etc.)
-        subtype:
+        provider_type:
           Subtype of the backend type. (e.g. id, auth, chpass)
 
         === Returns ===
@@ -803,7 +801,15 @@ class SSSDDomain(SSSDConfigObject):
         === Errors ===
         No Errors
         """
-        if (provider,provider_type) not in self.providers:
+
+        provider = None
+        for (provider, ptype) in self.providers:
+            if ptype == provider_type:
+                break
+            provider = None
+
+        # Check whether the provider_type was found
+        if not provider:
             return
 
         # TODO: safely remove any unused options when removing
@@ -811,7 +817,7 @@ class SSSDDomain(SSSDConfigObject):
         # to account for multiple providers making use of the
         # same options (such ask krb5_realm)
 
-        self.providers.remove((provider,provider_type))
+        self.providers.remove((provider, provider_type))
 
 class SSSDConfig(SSSDChangeConf):
     """
