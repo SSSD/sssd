@@ -34,7 +34,7 @@ class SSSDConfigFile(SSSDChangeConf):
         SSSDChangeConf.__init__(self)
         self.filename = filename
 
-        f = openLocked(self.filename, 0600)
+        f = openLocked(self.filename, 0600, False)
         self.opts = self.parse(f)
         f.close()
 
@@ -367,6 +367,10 @@ def main():
     except SyntaxError:
         verbose(traceback.format_exc(), options.verbose)
         print >>sys.stderr, "Cannot parse config file %s" % options.filename
+        return 1
+    except Exception, e:
+        print "ERROR: %s" % e
+        verbose(traceback.format_exc(), options.verbose)
         return 1
 
     # make sure we keep strict settings when creating new files
