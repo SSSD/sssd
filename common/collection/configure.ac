@@ -30,6 +30,8 @@ AC_CHECK_FUNC([strcasestr],
                         [Define if strcasestr exists]),
               AC_MSG_ERROR("Platform must support strcasestr"))
 
+AC_DEFINE([COL_MAX_DATA], [65535], [Max length of the data block allowed in the collection value.])
+
 
 AC_CONFIG_FILES([Makefile collection.pc])
 AC_OUTPUT
