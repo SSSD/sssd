@@ -174,6 +174,7 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
     }
     talloc_set_destructor((TALLOC_CTX *)callback, be_svc_callback_destroy);
 
+    callback->svc = svc;
     callback->fn = fn;
     callback->private_data = private_data;
 
