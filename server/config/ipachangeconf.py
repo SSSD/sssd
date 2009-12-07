@@ -23,6 +23,7 @@ import os
 import string
 import time
 import shutil
+import re
 
 def openLocked(filename, perms):
     fd = -1
@@ -460,11 +461,43 @@ class IPAChangeConf:
 
 # A SSSD-specific subclass of IPAChangeConf
 class SSSDChangeConf(IPAChangeConf):
+    OPTCRE = re.compile(
+            r'(?P<option>[^:=\s][^:=]*)'          # very permissive!
+            r'\s*=\s*'                            # any number of space/tab,
+                                                  # followed by separator
+                                                  # followed by any # space/tab
+            r'(?P<value>.*)$'                     # everything up to eol
+            )
+
     def __init__(self):
         IPAChangeConf.__init__(self, "SSSD")
         self.comment = ("#",";")
         self.backup_suffix = ".bak"
         self.opts = []
+
+    def parseLine(self, line):
+        """
+        Overrides IPAChangeConf parseLine so that lines are splitted
+        using any separator in self.assign, not just the default one
+        """
+
+        if self.matchEmpty(line):
+            return {'name':'empty', 'type':'empty'}
+
+        value = self.matchComment(line)
+        if value:
+            return {'name':'comment', 'type':'comment', 'value':value.rstrip()}
+
+        mo = self.OPTCRE.match(line)
+        if not mo:
+            raise SyntaxError, 'Syntax Error: Unknown line format'
+
+        try:
+            name, value = mo.group('option', 'value')
+        except IndexError:
+            raise SyntaxError, 'Syntax Error: Unknown line format'
+
+        return {'name':name.strip(), 'type':'option', 'value':value.strip()}
 
     def readfp(self, fd):
         self.opts.extend(self.parse(fd))

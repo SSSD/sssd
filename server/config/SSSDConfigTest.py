@@ -149,6 +149,14 @@ class SSSDConfigTestValid(unittest.TestCase):
 
         sssdconfig.write('/tmp/testModifyExistingConfig.conf')
 
+    def testSpaces(self):
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+        sssdconfig.import_config("testconfigs/sssd-valid.conf")
+        ldap_domain = sssdconfig.get_domain('LDAP')
+        self.assertEqual(ldap_domain.get_option('auth_provider'), 'ldap')
+        self.assertEqual(ldap_domain.get_option('id_provider'), 'ldap')
+
 class SSSDConfigTestSSSDService(unittest.TestCase):
     def setUp(self):
         self.schema = SSSDConfig.SSSDConfigSchema("etc/sssd.api.conf",
