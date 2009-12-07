@@ -21,5 +21,7 @@ AC_ARG_ENABLE([trace],
               [trace_level="0"])
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
+AC_DEFINE([MAX_KEY], [1024], [Max length of the key in the INI file.])
+
 AC_CONFIG_FILES([Makefile ini_config.pc])
 AC_OUTPUT
