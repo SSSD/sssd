@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include "collection.h"
+#include "config.h"
 
 /* Name of the default (missing section in the INI file */
 #define INI_DEFAULT_SECTION "default"
@@ -68,9 +69,7 @@
 
 
 
-/* Internal sizes */
-/* FIXME - make them configurable via config.h */
-#define MAX_KEY         1024
+/* Internal sizes. MAX_KEY is defined in config.h */
 #define MAX_VALUE       PATH_MAX
 #define BUFFER_SIZE     MAX_KEY + MAX_VALUE + 3
 

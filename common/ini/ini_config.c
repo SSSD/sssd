@@ -110,11 +110,15 @@ const char *parsing_error_str(int parsing_error)
             return str_error[parsing_error-1];
 }
 
-/* Function to return grammar error */
+/* Function to return grammar error.
+ * This functions is currently not used.
+ * It is planned to be used by the INI
+ * file grammar parser.
+ */
 const char *grammar_error_str(int grammar_error)
 {
     const char *placeholder= _("Unknown grammar error.");
-    /* FIXME - this is a temporary placeholder !!!! */
+    /* THIS IS A TEMPORARY PLACEHOLDER !!!! */
     const char *str_error[] = { _(""),
                                 _(""),
                                 _(""),
@@ -131,11 +135,15 @@ const char *grammar_error_str(int grammar_error)
             return str_error[grammar_error-1];
 }
 
-/* Function to return validation error */
+/* Function to return validation error.
+ * This functions is currently not used.
+ * It is planned to be used by the INI
+ * file grammar validator.
+ */
 const char *validation_error_str(int validation_error)
 {
     const char *placeholder= _("Unknown validation error.");
-    /* FIXME - this is a temporary placeholder !!!! */
+    /* THIS IS A TEMPORARY PLACEHOLDER !!!! */
     const char *str_error[] = { _(""),
                                 _(""),
                                 _(""),
