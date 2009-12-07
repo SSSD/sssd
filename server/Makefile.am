@@ -211,12 +211,6 @@ SSSD_TOOLS_OBJ = \
 
 SSSD_RESOLV_OBJ = \
     resolv/async_resolv.c
-if BUILD_ARES_DATA
-    SSSD_RESOLV_OBJ += \
-	resolv/ares/ares_parse_srv_reply.c \
-	resolv/ares/ares_parse_txt_reply.c \
-	resolv/ares/ares_data.c
-endif
 
 SSSD_FAILOVER_OBJ = \
     providers/fail_over.c \
@@ -480,14 +474,24 @@ files_tests_CFLAGS = \
 files_tests_LDADD = \
     $(FILES_TESTS_LIBS)
 
+SSSD_RESOLV_TESTS_OBJ = \
+    $(SSSD_RESOLV_OBJ)
+if BUILD_ARES_DATA
+    SSSD_RESOLV_TESTS_OBJ += \
+	resolv/ares/ares_parse_srv_reply.c \
+	resolv/ares/ares_parse_txt_reply.c \
+	resolv/ares/ares_data.c
+endif
+
 resolv_tests_SOURCES = \
     tests/resolv-tests.c \
     tests/common.c \
     $(SSSD_UTIL_OBJ) \
-    $(SSSD_RESOLV_OBJ)
+    $(SSSD_RESOLV_TESTS_OBJ)
 resolv_tests_CFLAGS = \
     $(AM_CFLAGS) \
-    $(CHECK_CFLAGS)
+    $(CHECK_CFLAGS) \
+    -DBUILD_TXT_SRV
 resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \

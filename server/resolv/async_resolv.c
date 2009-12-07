@@ -442,6 +442,11 @@ ares_gethostbyname_wakeup(struct tevent_req *subreq)
                        state->family, resolv_gethostbyname_done, req);
 }
 
+/* SRV and TXT parsing is not used anywhere in the code yet, so we disable it
+ * for now
+ */
+#ifdef BUILD_TXT_SRV
+
 /*
  * A simple helper function that will take an array of struct ares_srv_reply that
  * was allocated by malloc() in c-ares and copies it using talloc. The old one
@@ -820,3 +825,4 @@ ares_gettxt_wakeup(struct tevent_req *subreq)
                ns_c_in, ns_t_txt, resolv_gettxt_done, req);
 }
 
+#endif
