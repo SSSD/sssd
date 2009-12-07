@@ -142,7 +142,7 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain = sssdconfig.get_domain('LDAP')
         ldap_domain.set_option('debug_level', 3)
 
-        ldap_domain.remove_provider('ldap', 'auth')
+        ldap_domain.remove_provider('auth')
         ldap_domain.add_provider('krb5', 'auth')
         ldap_domain.set_active(True)
         sssdconfig.save_domain(ldap_domain)
@@ -455,7 +455,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         # Remove the auth domain and verify that the options
         # revert to the backup_list
-        domain.remove_provider('krb5', 'auth')
+        domain.remove_provider('auth')
         options = domain.list_options()
 
         self.assertTrue(type(options) == dict,
@@ -666,7 +666,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         # Remove the auth domain and verify that the options
         # revert to the backup_list
-        domain.remove_provider('krb5', 'auth')
+        domain.remove_provider('auth')
         options = domain.list_options()
 
         self.assertTrue(type(options) == dict,
@@ -685,15 +685,15 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             option)
 
         # Test removing nonexistent provider - Real
-        domain.remove_provider('ldap', 'id')
+        domain.remove_provider('id')
 
         # Test removing nonexistent provider - Bad backend type
         # Should pass without complaint
-        domain.remove_provider('nosuchbackend', 'id')
+        domain.remove_provider('id')
 
         # Test removing nonexistent provider - Bad provider type
         # Should pass without complaint
-        domain.remove_provider('ldap', 'nosuchprovider')
+        domain.remove_provider('nosuchprovider')
 
     def testGetOption(self):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
