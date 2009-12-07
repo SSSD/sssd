@@ -51,10 +51,6 @@
                                                collections */
 
 
-/* Any data we deal with can't be longer than this */
-/* FIXME - make it compile time option */
-#define COL_MAX_DATA    65535
-
 /* Default class for a free form collection */
 #define COL_CLASS_DEFAULT      0
 
@@ -218,21 +214,6 @@ struct collection_iterator;
 int col_create_collection(struct collection_item **ci,
                           const char *name,
                           unsigned cclass);
-
-/* Function that creates a named collection using a memory descriptor */
-/* FIXME - function is a placeholder. It is not implemented yet.
- * will be added in future together with the definition of the
- * descriptor structure.
- * The purpose is to control the internal implementation of the collection
- * a) Use hash table for faster searches if the collection is expected to be large.
- * b) Define memory functions to use.
- */
-/*
-int col_create_collection_ex(struct collection_item **ci,
-                             const char *name,
-                             unsigned cclass,
-                             struct cdescriptor *descrptor);
-*/
 
 /* Function that destroys a collection */
 void col_destroy_collection(struct collection_item *ci);

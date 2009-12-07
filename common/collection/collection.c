@@ -2455,7 +2455,6 @@ int col_get_reference_from_item(struct collection_item *ci,
 /* ADDITION */
 
 /* Add collection to collection */
-/* FIXME - allow to add collection to a collection with disposition */
 int col_add_collection_to_collection(struct collection_item *ci,
                                      const char *sub_collection_name,
                                      const char *as_property,
