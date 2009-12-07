@@ -664,6 +664,30 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
                             'Option [%s] unexpectedly found' %
                             option)
 
+        # Remove the local ID provider and add an LDAP one
+        # LDAP ID providers can also use the krb5_realm
+        domain.remove_provider('id')
+
+        domain.add_provider('ldap', 'id')
+
+        # Set the krb5_realm option and the ldap_uri option
+        domain.set_option('krb5_realm', 'EXAMPLE.COM')
+        domain.set_option('ldap_uri', 'ldap://ldap.example.com')
+
+        self.assertEquals(domain.get_option('krb5_realm'),
+                          'EXAMPLE.COM')
+        self.assertEquals(domain.get_option('ldap_uri'),
+                          'ldap://ldap.example.com')
+
+        # Remove the LDAP provider and verify that krb5_realm remains
+        domain.remove_provider('id')
+        self.assertEquals(domain.get_option('krb5_realm'),
+                  'EXAMPLE.COM')
+        self.assertFalse(domain.options.has_key('ldap_uri'))
+
+        # Put the LOCAL provider back
+        domain.add_provider('local', 'id')
+
         # Remove the auth domain and verify that the options
         # revert to the backup_list
         domain.remove_provider('auth')
@@ -683,6 +707,9 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             self.assertTrue(option in backup_list,
                             'Option [%s] unexpectedly found' %
                             option)
+
+        # Ensure that the krb5_realm option is now gone
+        self.assertFalse(domain.options.has_key('krb5_realm'))
 
         # Test removing nonexistent provider - Real
         domain.remove_provider('id')
