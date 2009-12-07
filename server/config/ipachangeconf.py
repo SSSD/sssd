@@ -25,10 +25,15 @@ import time
 import shutil
 import re
 
-def openLocked(filename, perms):
+def openLocked(filename, perms, create = True):
     fd = -1
+
+    flags = os.O_RDWR
+    if create:
+        flags = flags | os.O_CREAT
+
     try:
-        fd = os.open(filename, os.O_RDWR | os.O_CREAT, perms)
+        fd = os.open(filename, flags, perms)
         fcntl.lockf(fd, fcntl.LOCK_EX)
     except OSError, (errno, strerr):
         if fd != -1:
