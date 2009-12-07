@@ -98,6 +98,49 @@ static const char *__krb5_error_msg;
     sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
 } while(0);
 
+static krb5_error_code create_empty_cred(struct krb5_req *kr, krb5_creds **_cred)
+{
+    krb5_error_code kerr;
+    krb5_creds *cred = NULL;
+    krb5_data *krb5_realm;
+
+    cred = calloc(sizeof(krb5_creds), 1);
+    if (cred == NULL) {
+        DEBUG(1, ("calloc failed.\n"));
+        return ENOMEM;
+    }
+
+    kerr = krb5_copy_principal(kr->ctx, kr->princ, &cred->client);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_copy_principal failed.\n"));
+        goto done;
+    }
+
+    krb5_realm = krb5_princ_realm(kr->ctx, kr->princ);
+
+    kerr = krb5_build_principal_ext(kr->ctx, &cred->server,
+                                    krb5_realm->length, krb5_realm->data,
+                                    KRB5_TGS_NAME_SIZE, KRB5_TGS_NAME,
+                                    krb5_realm->length, krb5_realm->data, 0);
+    if (kerr != 0) {
+        DEBUG(1, ("krb5_build_principal_ext failed.\n"));
+        goto done;
+    }
+
+done:
+    if (kerr != 0) {
+        if (cred != NULL && cred->client != NULL) {
+            krb5_free_principal(kr->ctx, cred->client);
+        }
+
+        free(cred);
+    } else {
+        *_cred = cred;
+    }
+
+    return kerr;
+}
+
 static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds)
 {
     krb5_error_code kerr;
@@ -107,6 +150,7 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
     size_t ccname_len;
     char *dummy;
     char *tmp_ccname;
+    krb5_creds *l_cred;
 
     if (strncmp(kr->ccname, "FILE:", 5) == 0) {
         cc_file_name = kr->ccname + 5;
@@ -149,12 +193,20 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
         fd = -1;
     }
 
-    if (creds != NULL) {
-        kerr = krb5_cc_store_cred(kr->ctx, tmp_cc, creds);
+    if (creds == NULL) {
+        kerr = create_empty_cred(kr, &l_cred);
         if (kerr != 0) {
             KRB5_DEBUG(1, kerr);
             goto done;
         }
+    } else {
+        l_cred = creds;
+    }
+
+    kerr = krb5_cc_store_cred(kr->ctx, tmp_cc, l_cred);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto done;
     }
 
     kerr = krb5_cc_close(kr->ctx, tmp_cc);
