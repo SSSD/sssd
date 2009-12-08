@@ -43,23 +43,12 @@
 #define PATHLEN (NAME_MAX + 14)
 #define BUFSIZE 4096
 
-TALLOC_CTX *hash_talloc_ctx(TALLOC_CTX *mem_ctx)
+static void *hash_talloc(const size_t size, void *pvt)
 {
-    static TALLOC_CTX * saved_ctx = NULL;
-
-    if (mem_ctx != NULL) {
-        saved_ctx = mem_ctx;
-    }
-
-    return saved_ctx;
+    return talloc_size(pvt, size);
 }
 
-void *hash_talloc(const size_t size)
-{
-    return talloc_size(hash_talloc_ctx(NULL), size);
-}
-
-void hash_talloc_free(void *ptr)
+static void hash_talloc_free(void *ptr, void *pvt)
 {
     talloc_free(ptr);
 }
@@ -273,9 +262,8 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
 #ifdef __linux__
     int ret;
 
-    hash_talloc_ctx(mem_ctx);
     ret = hash_create_ex(INITIAL_TABLE_SIZE, table, 0, 0, 0, 0,
-                         hash_talloc, hash_talloc_free, NULL);
+                         hash_talloc, hash_talloc_free, mem_ctx, NULL);
     if (ret != HASH_SUCCESS) {
         DEBUG(1, ("hash_create_ex failed [%s]\n", hash_error_string(ret)));
         return ENOMEM;
