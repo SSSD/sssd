@@ -207,6 +207,7 @@ int check_group_names(struct tools_ctx *tctx,
         return ENOMEM;
     }
 
+    ret = EOK;
     for (i=0; grouplist[i]; ++i) {
         ret = sysdb_getgrnam_sync(tctx,
                                   tctx->ev,
