@@ -1182,6 +1182,12 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name)
         return ret;
     }
 
+    if (strcasecmp(svc->provider, "files") == 0) {
+        /* The files provider is not valid anymore */
+        DEBUG(0, ("The \"files\" provider is invalid\n"));
+        return EINVAL;
+    }
+
     if (strcasecmp(svc->provider, "local") == 0) {
         /* The LOCAL provider requires no back-end currently
          * We'll add it to the service list, but we don't need
