@@ -18,6 +18,8 @@ libdhash_la_SOURCES = \
     dhash.h
 
 check_PROGRAMS = dhash_test dhash_example
+TESTS = $(check_PROGRAMS)
+
 dhash_test_LDADD = dhash.o
 dhash_example_LDADD = dhash.o
 
