@@ -1481,7 +1481,8 @@ static int fill_grent(struct sss_packet *packet,
     size_t delim;
     size_t dom_len;
     size_t pwlen;
-    int i, j;
+    int i = 0;
+    int j = 0;
     int ret, num, memnum;
     size_t rzero, rsize;
     bool add_domain = dom->fqnames;
