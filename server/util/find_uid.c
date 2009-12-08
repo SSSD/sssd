@@ -263,7 +263,8 @@ errno_t get_uid_table(TALLOC_CTX *mem_ctx, hash_table_t **table)
     int ret;
 
     ret = hash_create_ex(INITIAL_TABLE_SIZE, table, 0, 0, 0, 0,
-                         hash_talloc, hash_talloc_free, mem_ctx, NULL);
+                         hash_talloc, hash_talloc_free, mem_ctx,
+                         NULL, NULL);
     if (ret != HASH_SUCCESS) {
         DEBUG(1, ("hash_create_ex failed [%s]\n", hash_error_string(ret)));
         return ENOMEM;

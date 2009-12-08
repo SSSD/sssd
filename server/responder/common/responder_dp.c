@@ -286,7 +286,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
 
     if (dp_requests == NULL) {
         /* Create a hash table to handle queued update requests */
-        ret = hash_create(10, &dp_requests, NULL);
+        ret = hash_create(10, &dp_requests, NULL, NULL);
         if (ret != HASH_SUCCESS) {
             fprintf(stderr, "cannot create hash table (%s)\n", hash_error_string(ret));
             return EIO;

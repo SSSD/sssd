@@ -36,6 +36,11 @@
 
 #define halloc(table, size) table->halloc(size, table->halloc_pvt)
 #define hfree(table, ptr) table->hfree(ptr, table->halloc_pvt)
+#define hdelete_callback(table, type, entry) do { \
+    if (table->delete_callback) { \
+        table->delete_callback(entry, type, table->delete_pvt); \
+    } \
+} while(0)
 
 /*****************************************************************************/
 /************************** Internal Type Definitions ************************/
@@ -59,7 +64,8 @@ struct hash_table_str {
     unsigned int    directory_size_shift;
     unsigned long   segment_size;
     unsigned int    segment_size_shift;
-    hash_delete_callback delete_callback;
+    hash_delete_callback *delete_callback;
+    void *delete_pvt;
     hash_alloc_func *halloc;
     hash_free_func *hfree;
     void *halloc_pvt;
@@ -457,10 +463,13 @@ const char* hash_error_string(int error)
 
 
 int hash_create(unsigned long count, hash_table_t **tbl,
-                hash_delete_callback delete_callback)
+                hash_delete_callback *delete_callback,
+                void *delete_private_data)
 {
     return hash_create_ex(count, tbl, 0, 0, 0, 0,
-                          NULL, NULL, NULL, delete_callback);
+                          NULL, NULL, NULL,
+                          delete_callback,
+                          delete_private_data);
 }
 
 int hash_create_ex(unsigned long count, hash_table_t **tbl,
@@ -471,7 +480,8 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
                    hash_alloc_func *alloc_func,
                    hash_free_func *free_func,
                    void *alloc_private_data,
-                   hash_delete_callback delete_callback)
+                   hash_delete_callback *delete_callback,
+                   void *delete_private_data)
 {
     unsigned long i;
     unsigned int n_addr_bits;
@@ -526,6 +536,7 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
     table->p = 0;
     table->entry_count = 0;
     table->delete_callback = delete_callback;
+    table->delete_pvt = delete_private_data;
 
     /*
      * Allocate initial 'i' segments of buckets
@@ -585,7 +596,7 @@ int hash_destroy(hash_table_t *table)
                     p = s[j];
                     while (p != NULL) {
                         q = p->next;
-                        if (table->delete_callback) table->delete_callback(&p->entry);
+                        hdelete_callback(table, HASH_TABLE_DESTROY, &p->entry);
                         if (p->entry.key.type == HASH_KEY_STRING) {
                             hfree(table, (char *)p->entry.key.str);
                         }
@@ -935,7 +946,7 @@ int hash_delete(hash_table_t *table, hash_key_t *key)
     lookup(table, key, &element, &chain);
 
     if (element) {
-        if (table->delete_callback) table->delete_callback(&element->entry);
+        hdelete_callback(table, HASH_ENTRY_DESTROY, &element->entry);
         *chain = element->next; /* remove from chain */
         /*
          * Table too sparse?
