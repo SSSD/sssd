@@ -177,6 +177,9 @@ const char* hash_error_string(int error);
  * parameter is a pointer to a function which will be called just prior to a
  * hash entry being deleted. This is useful when the hash value has items which
  * may need to be disposed of. The delete_callback may be NULL.
+ * The delete_private_data is data passed to the delete_callback, this way
+ * custom callbacks can have a private context to reach data they need to use
+ * before performning their operations. delete_private_data may be NULL.
  */
 int hash_create(unsigned long count, hash_table_t **tbl,
                 hash_delete_callback *delete_callback,
@@ -194,6 +197,10 @@ int hash_create(unsigned long count, hash_table_t **tbl,
  *                  is greater than the max_load_factor the table is expanded.
  * alloc_func: function pointer for allocation
  * free_func: funciton pointer for freeing memory allocated with alloc_func
+ * alloc_private data: data passed to the alloc and free functions so that
+ *                     custom functions can refernce other private data they may
+ *                     need during their execution without having to use global
+ *                     variables.
  *
  * Note directory_bits + segment_bits must be <= number of bits in unsigned long
  */
