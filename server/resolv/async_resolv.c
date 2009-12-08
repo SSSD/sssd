@@ -160,7 +160,7 @@ fd_event_add(struct resolv_ctx *ctx, int s)
     /* The file descriptor is new, register it with tevent. */
     watch = talloc(ctx, struct fd_watch);
     if (watch == NULL) {
-        DEBUG(1, ("Out of memory allocating fd_watch structure"));
+        DEBUG(1, ("Out of memory allocating fd_watch structure\n"));
         return;
     }
     talloc_set_destructor(watch, fd_watch_destructor);
@@ -170,7 +170,7 @@ fd_event_add(struct resolv_ctx *ctx, int s)
 
     fde = tevent_add_fd(ctx->ev_ctx, watch, s, TEVENT_FD_READ, fd_input_available, watch);
     if (fde == NULL) {
-        DEBUG(1, ("tevent_add_fd() failed"));
+        DEBUG(1, ("tevent_add_fd() failed\n"));
         talloc_free(watch);
         return;
     }
@@ -240,7 +240,7 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
     options.sock_state_cb_data = ctx;
     ret = ares_init_options(&ctx->channel, &options, ARES_OPT_SOCK_STATE_CB);
     if (ret != ARES_SUCCESS) {
-        DEBUG(1, ("Failed to initialize ares channel: %s",
+        DEBUG(1, ("Failed to initialize ares channel: %s\n",
                   resolv_strerror(ret)));
         ret = return_code(ret);
         goto done;
@@ -340,6 +340,8 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct tevent_req *req, *subreq;
     struct gethostbyname_state *state;
     struct timeval tv = { 0, 0 };
+
+    DEBUG(4, ("Trying to resolve A record of '%s'\n", name));
 
     if (ctx->channel == NULL) {
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
@@ -532,6 +534,8 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct getsrv_state *state;
     struct timeval tv = { 0, 0 };
 
+    DEBUG(4, ("Trying to resolve SRV record of '%s'\n", query));
+
     if (ctx->channel == NULL) {
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
         return NULL;
@@ -720,6 +724,8 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct tevent_req *req, *subreq;
     struct gettxt_state *state;
     struct timeval tv = { 0, 0 };
+
+    DEBUG(4, ("Trying to resolve TXT record of '%s'\n", query));
 
     if (ctx->channel == NULL) {
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
