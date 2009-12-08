@@ -111,7 +111,10 @@ int pidfile(const char *path, const char *name)
     int fd;
     int ret, err;
 
-    asprintf(&file, "%s/%s.pid", path, name);
+    file = talloc_asprintf(NULL, "%s/%s.pid", path, name);
+    if (!file) {
+        return ENOMEM;
+    }
 
     fd = open(file, O_RDONLY, 0644);
     err = errno;
@@ -129,25 +132,25 @@ int pidfile(const char *path, const char *name)
                 /* succeeded in signaling the process -> another sssd process */
                 if (ret == 0) {
                     close(fd);
-                    free(file);
+                    talloc_free(file);
                     return EEXIST;
                 }
                 if (ret != 0 && errno != ESRCH) {
                     err = errno;
                     close(fd);
-                    free(file);
+                    talloc_free(file);
                     return err;
                 }
             }
         }
 
-        /* notihng in the file or no process */
+        /* nothing in the file or no process */
         close(fd);
         unlink(file);
 
     } else {
         if (err != ENOENT) {
-            free(file);
+            talloc_free(file);
             return err;
         }
     }
@@ -155,10 +158,10 @@ int pidfile(const char *path, const char *name)
     fd = open(file, O_CREAT | O_WRONLY | O_EXCL, 0644);
     err = errno;
     if (fd == -1) {
-        free(file);
+        talloc_free(file);
         return err;
     }
-    free(file);
+    talloc_free(file);
 
     memset(pid_str, 0, sizeof(pid_str));
     snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
