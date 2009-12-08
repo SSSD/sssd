@@ -1,0 +1,38 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Red Hat, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sssd.master.sss_client\n"
+"Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
+"POT-Creation-Date: 2009-11-18 07:19-0500\n"
+"PO-Revision-Date: 2009-12-08 17:32+0100\n"
+"Last-Translator: Rui Gouveia <rui.gouveia@globaltek.pt>\n"
+"Language-Team: PT <fedora-trans-pt@redhat.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Portuguese\n"
+"X-Poedit-Country: PORTUGAL\n"
+
+#: pam_sss.c:322
+msgid "Passwords do not match"
+msgstr "Senhas não coincidem"
+
+#: pam_sss.c:598
+msgid "Password: "
+msgstr "Senha: "
+
+#: pam_sss.c:630
+msgid "New Password: "
+msgstr "Nova Senha: "
+
+#: pam_sss.c:631
+msgid "Reenter new Password: "
+msgstr "Digite a senha novamente: "
+
+#: pam_sss.c:835
+msgid "Password has expired."
+msgstr "Senha expirou."
