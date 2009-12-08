@@ -188,7 +188,7 @@ int main(int argc, char **argv)
     if ((status = hash_create_ex(1, &table,
                                  directory_bits, segment_bits,
                                  min_load_factor, max_load_factor,
-                                 NULL, NULL, delete_callback)) != HASH_SUCCESS) {
+                                 NULL, NULL, NULL, delete_callback)) != HASH_SUCCESS) {
         fprintf(stderr, "table creation failed at line %d (%s)\n", __LINE__, error_string(status));
         exit(1);
     }

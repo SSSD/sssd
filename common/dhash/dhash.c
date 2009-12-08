@@ -34,6 +34,9 @@
   * concatenation property
   */
 
+#define halloc(table, size) table->halloc(size, table->halloc_pvt)
+#define hfree(table, ptr) table->hfree(ptr, table->halloc_pvt)
+
 /*****************************************************************************/
 /************************** Internal Type Definitions ************************/
 /*****************************************************************************/
@@ -57,8 +60,9 @@ struct hash_table_str {
     unsigned long   segment_size;
     unsigned int    segment_size_shift;
     hash_delete_callback delete_callback;
-    hash_alloc_func alloc;
-    hash_free_func free;
+    hash_alloc_func *halloc;
+    hash_free_func *hfree;
+    void *halloc_pvt;
     segment_t **directory;
 #ifdef HASH_STATISTICS
     hash_statistics_t statistics;
@@ -116,6 +120,16 @@ int debug_level = 1;
 /*****************************************************************************/
 /***************************  Internal Functions  ****************************/
 /*****************************************************************************/
+
+static void *sys_malloc_wrapper(size_t size, void *pvt)
+{
+    return malloc(size);
+}
+
+static void sys_free_wrapper(void *ptr, void *pvt)
+{
+    return free(ptr);
+}
 
 static address_t convert_key(hash_key_t *key)
 {
@@ -224,7 +238,8 @@ static int expand_table(hash_table_t *table)
         new_segment_dir = new_address >> table->segment_size_shift;
         new_segment_index = new_address & (table->segment_size-1); /* new_address % segment_size */
         if (new_segment_index == 0) {
-            if ((table->directory[new_segment_dir] = (segment_t *) table->alloc(table->segment_size * sizeof(segment_t))) == NULL) {
+            table->directory[new_segment_dir] = (segment_t *)halloc(table, table->segment_size * sizeof(segment_t));
+            if (table->directory[new_segment_dir] == NULL) {
                 return HASH_ERROR_NO_MEMORY;
             }
             memset(table->directory[new_segment_dir], 0, table->segment_size * sizeof(segment_t));
@@ -346,7 +361,7 @@ static int contract_table(hash_table_t *table)
          */
         if (old_segment_index == 0) {
             table->segment_count--;
-            table->free(table->directory[old_segment_dir]);
+            hfree(table, table->directory[old_segment_dir]);
         }
 
 #ifdef DEBUG
@@ -441,16 +456,21 @@ const char* hash_error_string(int error)
 }
 
 
-int hash_create(unsigned long count, hash_table_t **tbl, hash_delete_callback delete_callback)
+int hash_create(unsigned long count, hash_table_t **tbl,
+                hash_delete_callback delete_callback)
 {
-    return hash_create_ex(count, tbl, 0, 0, 0, 0, NULL, NULL, delete_callback);
+    return hash_create_ex(count, tbl, 0, 0, 0, 0,
+                          NULL, NULL, NULL, delete_callback);
 }
 
 int hash_create_ex(unsigned long count, hash_table_t **tbl,
-                   unsigned int directory_bits, unsigned int segment_bits,
-                   unsigned long min_load_factor, unsigned long max_load_factor,
-                   hash_alloc_func alloc_func,
-                   hash_free_func free_func,
+                   unsigned int directory_bits,
+                   unsigned int segment_bits,
+                   unsigned long min_load_factor,
+                   unsigned long max_load_factor,
+                   hash_alloc_func *alloc_func,
+                   hash_free_func *free_func,
+                   void *alloc_private_data,
                    hash_delete_callback delete_callback)
 {
     unsigned long i;
@@ -458,8 +478,8 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
     address_t addr;
     hash_table_t *table = NULL;
 
-    if (alloc_func == NULL) alloc_func = malloc;
-    if (free_func == NULL) free_func = free;
+    if (alloc_func == NULL) alloc_func = sys_malloc_wrapper;
+    if (free_func == NULL) free_func = sys_free_wrapper;
 
     /* Compute directory and segment parameters */
     if (directory_bits == 0) directory_bits = HASH_DEFAULT_DIRECTORY_BITS;
@@ -469,12 +489,15 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
 
     if (directory_bits + segment_bits > n_addr_bits) return EINVAL;
 
-    if ((table = (hash_table_t *) alloc_func(sizeof(hash_table_t))) == NULL) {
+    table = (hash_table_t *)alloc_func(sizeof(hash_table_t),
+                                       alloc_private_data);
+    if (table == NULL) {
         return HASH_ERROR_NO_MEMORY;
     }
     memset(table, 0, sizeof(hash_table_t));
-    table->alloc = alloc_func;
-    table->free = free_func;
+    table->halloc = alloc_func;
+    table->hfree = free_func;
+    table->halloc_pvt = alloc_private_data;
 
     table->directory_size_shift = directory_bits;
     for (i = 0, table->directory_size = 1; i < table->directory_size_shift; i++, table->directory_size <<= 1);
@@ -484,7 +507,8 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
 
 
     /* Allocate directory */
-    if ((table->directory = (segment_t **) table->alloc(table->directory_size * sizeof(segment_t *))) == NULL) {
+    table->directory = (segment_t **)halloc(table, table->directory_size * sizeof(segment_t *));
+    if (table->directory == NULL) {
         return HASH_ERROR_NO_MEMORY;
     }
     memset(table->directory, 0, table->directory_size * sizeof(segment_t *));
@@ -507,7 +531,8 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
      * Allocate initial 'i' segments of buckets
      */
     for (i = 0; i < count; i++) {
-        if ((table->directory[i] = (segment_t *) table->alloc(table->segment_size * sizeof(segment_t))) == NULL) {
+        table->directory[i] = (segment_t *)halloc(table, table->segment_size * sizeof(segment_t));
+        if (table->directory[i] == NULL) {
             hash_destroy(table);
             return HASH_ERROR_NO_MEMORY;
         }
@@ -561,16 +586,18 @@ int hash_destroy(hash_table_t *table)
                     while (p != NULL) {
                         q = p->next;
                         if (table->delete_callback) table->delete_callback(&p->entry);
-                        if (p->entry.key.type == HASH_KEY_STRING) table->free ((char *)p->entry.key.str);
-                        table->free((char *) p);
+                        if (p->entry.key.type == HASH_KEY_STRING) {
+                            hfree(table, (char *)p->entry.key.str);
+                        }
+                        hfree(table, (char *)p);
                         p = q;
                     }
                 }
-                table->free(s);
+                hfree(table, s);
             }
         }
-        table->free(table->directory);
-        table->free(table);
+        hfree(table, table->directory);
+        hfree(table, table);
         table = NULL;
     }
     return HASH_SUCCESS;
@@ -639,7 +666,8 @@ struct hash_iter_context_t *new_hash_iter_context(hash_table_t *table)
 
     if (!table) return NULL;;
 
-    if ((iter = table->alloc(sizeof(struct _hash_iter_context_t))) == NULL) {
+    iter = halloc(table, sizeof(struct _hash_iter_context_t));
+    if (iter == NULL) {
         return NULL;
     }
 
@@ -675,7 +703,8 @@ int hash_keys(hash_table_t *table, unsigned long *count_arg, hash_key_t **keys_a
         return HASH_SUCCESS;
     }
 
-    if ((keys = table->alloc(sizeof(hash_key_t) * count)) == NULL) {
+    keys = halloc(table, sizeof(hash_key_t) * count);
+    if (keys == NULL) {
         *count_arg = -1;
         *keys_arg = NULL;
         return HASH_ERROR_NO_MEMORY;
@@ -705,7 +734,8 @@ int hash_values(hash_table_t *table, unsigned long *count_arg, hash_value_t **va
         return HASH_SUCCESS;
     }
 
-    if ((values = table->alloc(sizeof(hash_value_t) * count)) == NULL) {
+    values = halloc(table, sizeof(hash_value_t) * count);
+    if (values == NULL) {
         *count_arg = -1;
         *values_arg = NULL;
         return HASH_ERROR_NO_MEMORY;
@@ -748,7 +778,8 @@ int hash_entries(hash_table_t *table, unsigned long *count_arg, hash_entry_t **e
         return HASH_SUCCESS;
     }
 
-    if ((entries = table->alloc(sizeof(hash_entry_t) * count)) == NULL) {
+    entries = halloc(table, sizeof(hash_entry_t) * count);
+    if (entries == NULL) {
         *count_arg = -1;
         *entries_arg = NULL;
         return HASH_ERROR_NO_MEMORY;
@@ -809,7 +840,8 @@ int hash_enter(hash_table_t *table, hash_key_t *key, hash_value_t *value)
     lookup(table, key, &element, &chain);
 
     if (element == NULL) {                    /* not found */
-        if ((element = (element_t *) table->alloc(sizeof(element_t))) == NULL) {
+        element = (element_t *)halloc(table, sizeof(element_t));
+        if (element == NULL) {
             /* Allocation failed, return NULL */
             return HASH_ERROR_NO_MEMORY;
         }
@@ -823,8 +855,9 @@ int hash_enter(hash_table_t *table, hash_key_t *key, hash_value_t *value)
             break;
         case HASH_KEY_STRING:
             len = strlen(key->str)+1;
-            if ((element->entry.key.str = table->alloc(len)) == NULL) {
-                table->free(element);
+            element->entry.key.str = halloc(table, len);
+            if (element->entry.key.str == NULL) {
+                hfree(table, element);
                 return HASH_ERROR_NO_MEMORY;
             }
             memcpy((void *)element->entry.key.str, key->str, len);
@@ -912,8 +945,10 @@ int hash_delete(hash_table_t *table, hash_key_t *key)
                 return error;
             }
         }
-        if (element->entry.key.type == HASH_KEY_STRING) table->free ((char *)element->entry.key.str);
-        table->free(element);
+        if (element->entry.key.type == HASH_KEY_STRING) {
+            hfree(table, (char *)element->entry.key.str);
+        }
+        hfree(table, element);
         return HASH_SUCCESS;
     } else {
         return HASH_ERROR_KEY_NOT_FOUND;

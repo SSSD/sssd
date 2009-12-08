@@ -145,8 +145,8 @@ struct hash_iter_context_t {
 };
 
 /* typedef for hash_create_ex() */
-typedef void *(*hash_alloc_func)(size_t size);
-typedef void (*hash_free_func)(void *ptr);
+typedef void *(hash_alloc_func)(size_t size, void *pvt);
+typedef void (hash_free_func)(void *ptr, void *pvt);
 
 /*****************************************************************************/
 /*************************  External Global Variables  ***********************/
@@ -171,7 +171,8 @@ const char* hash_error_string(int error);
  * hash entry being deleted. This is useful when the hash value has items which
  * may need to be disposed of. The delete_callback may be NULL.
  */
-int hash_create(unsigned long count, hash_table_t **tbl, hash_delete_callback delete_callback);
+int hash_create(unsigned long count, hash_table_t **tbl,
+                hash_delete_callback delete_callback);
 
 /*
  * Create a new hash table and fine tune it's configurable parameters.
@@ -189,10 +190,13 @@ int hash_create(unsigned long count, hash_table_t **tbl, hash_delete_callback de
  * Note directory_bits + segment_bits must be <= number of bits in unsigned long
  */
 int hash_create_ex(unsigned long count, hash_table_t **tbl,
-                   unsigned int directory_bits, unsigned int segment_bits,
-                   unsigned long min_load_factor, unsigned long max_load_factor,
-                   hash_alloc_func alloc_func,
-                   hash_free_func free_func,
+                   unsigned int directory_bits,
+                   unsigned int segment_bits,
+                   unsigned long min_load_factor,
+                   unsigned long max_load_factor,
+                   hash_alloc_func *alloc_func,
+                   hash_free_func *free_func,
+                   void *alloc_private_data,
                    hash_delete_callback delete_callback);
 
 #ifdef HASH_STATISTICS
