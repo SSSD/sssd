@@ -36,6 +36,7 @@
 #include "resolv/async_resolv.h"
 
 #define STATUS_DIFF(p, tv2) ((p)->last_status_change.tv_sec - (tv2).tv_sec)
+#define SERVER_NAME(s) ((s)->common ? (s)->common->name : "(no name)")
 
 #define DEFAULT_PORT_STATUS PORT_NEUTRAL
 #define DEFAULT_SERVER_STATUS SERVER_NAME_NOT_RESOLVED
@@ -109,7 +110,43 @@ fo_context_init(TALLOC_CTX *mem_ctx, time_t retry_timeout)
 
     ctx->retry_timeout = retry_timeout;
 
+    DEBUG(3, ("Created new fail over context, retry timeout is %d\n",
+              retry_timeout));
     return ctx;
+}
+
+static const char *
+str_port_status(enum port_status status)
+{
+    switch (status) {
+    case PORT_NEUTRAL:
+        return "neutral";
+    case PORT_WORKING:
+        return "working";
+    case PORT_NOT_WORKING:
+        return "not working";
+    }
+
+    return "unknown port status";
+}
+
+static const char *
+str_server_status(enum server_status status)
+{
+    switch (status) {
+    case SERVER_NAME_NOT_RESOLVED:
+        return "name not resolved";
+    case SERVER_RESOLVING_NAME:
+        return "resolving name";
+    case SERVER_NAME_RESOLVED:
+        return "name resolved";
+    case SERVER_WORKING:
+        return "working";
+    case SERVER_NOT_WORKING:
+        return "not working";
+    }
+
+    return "unknown server status";
 }
 
 /*
@@ -125,10 +162,15 @@ get_server_status(struct fo_server *server)
     if (server->common == NULL)
         return SERVER_NAME_RESOLVED;
 
+    DEBUG(7, ("Status of server '%s' is '%s'\n", SERVER_NAME(server),
+              str_server_status(server->common->server_status)));
+
     timeout = server->service->ctx->retry_timeout;
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server->common, tv) > timeout) {
+            DEBUG(4, ("Reseting the server status of '%s'\n",
+                      SERVER_NAME(server)));
             server->common->server_status = SERVER_NAME_NOT_RESOLVED;
             server->last_status_change.tv_sec = 0;
         }
@@ -147,10 +189,15 @@ get_port_status(struct fo_server *server)
     struct timeval tv;
     time_t timeout;
 
+    DEBUG(7, ("Port status of port %d for server '%s' is '%s'\n", server->port,
+              SERVER_NAME(server), str_port_status(server->port_status)));
+
     timeout = server->service->ctx->retry_timeout;
     if (timeout != 0 && server->port_status == PORT_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server, tv) > timeout) {
+            DEBUG(4, ("Reseting the status of port %d for server '%s'\n",
+                      server->port, SERVER_NAME(server)));
             server->port_status = PORT_NEUTRAL;
             server->last_status_change.tv_sec = tv.tv_sec;
         }
@@ -193,9 +240,10 @@ fo_new_service(struct fo_ctx *ctx, const char *name,
     struct fo_service *service;
     int ret;
 
+    DEBUG(3, ("Creating new service '%s'\n", name));
     ret = fo_get_service(ctx, name, &service);
     if (ret == EOK) {
-        DEBUG(1, ("Service %s already exists\n", name));
+        DEBUG(5, ("Service '%s' already exists\n", name));
         if (_service) {
                 *_service = service;
         }
@@ -293,6 +341,8 @@ fo_add_server(struct fo_service *service, const char *name, int port,
     struct fo_server *server;
     int ret;
 
+    DEBUG(3, ("Adding new server '%s', to service '%s'\n", name,
+              service->name));
     DLIST_FOR_EACH(server, service->server_list) {
         if (server->port != port || server->user_data != user_data)
             continue;
@@ -404,6 +454,7 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     struct tevent_req *subreq;
     struct resolve_service_state *state;
 
+    DEBUG(4, ("Trying to resolve service '%s'\n", service->name));
     req = tevent_req_create(mem_ctx, &state, struct resolve_service_state);
     if (req == NULL)
         return NULL;
@@ -473,7 +524,7 @@ fo_resolve_service_done(struct tevent_req *subreq)
                                     &resolv_status, NULL, &common->hostent);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to resolve %s: %s\n", common->name,
+        DEBUG(1, ("Failed to resolve server '%s': %s\n", common->name,
               resolv_strerror(resolv_status)));
     }
 
@@ -516,6 +567,10 @@ fo_set_server_status(struct fo_server *server, enum server_status status)
         DEBUG(1, ("Bug: Trying to set server status of a name-less server\n"));
         return;
     }
+
+    DEBUG(4, ("Marking server '%s' as '%s'\n", SERVER_NAME(server),
+              str_server_status(status)));
+
     server->common->server_status = status;
     gettimeofday(&server->common->last_status_change, NULL);
 }
@@ -523,6 +578,9 @@ fo_set_server_status(struct fo_server *server, enum server_status status)
 void
 fo_set_port_status(struct fo_server *server, enum port_status status)
 {
+    DEBUG(4, ("Marking port %d of server '%s' as '%s'\n", server->port,
+              SERVER_NAME(server), str_port_status(status)));
+
     server->port_status = status;
     gettimeofday(&server->last_status_change, NULL);
     if (status == PORT_WORKING) {
