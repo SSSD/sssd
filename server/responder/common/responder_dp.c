@@ -254,7 +254,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
     hash_value_t value;
     TALLOC_CTX *tmp_ctx;
     struct timeval tv;
-    struct sss_dp_req *sdp_req;
+    struct sss_dp_req *sdp_req = NULL;
     struct sss_dp_callback *cb;
 
     /* either, or, not both */
