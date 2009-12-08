@@ -9,7 +9,7 @@ struct my_data_t {
     char bar[128];
 };
 
-void delete_callback(hash_entry_t *entry)
+void delete_callback(hash_entry_t *entry, hash_destroy_enum type, void *pvt)
 {
     if (entry->value.type == HASH_VALUE_PTR) free(entry->value.ptr);
 }
@@ -45,7 +45,8 @@ int main(int argc, char **argv)
     unsigned long count;
 
     /* Create a hash table */
-    if ((error = hash_create(10, &table, delete_callback)) != HASH_SUCCESS) {
+    error = hash_create(10, &table, delete_callback,  NULL);
+    if (error != HASH_SUCCESS) {
         fprintf(stderr, "cannot create hash table (%s)\n", hash_error_string(error));
         return error;
     }

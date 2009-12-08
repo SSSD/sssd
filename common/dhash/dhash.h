@@ -97,6 +97,12 @@ typedef enum
     HASH_VALUE_DOUBLE
 } hash_value_enum;
 
+typedef enum
+{
+    HASH_TABLE_DESTROY,
+    HASH_ENTRY_DESTROY
+} hash_destroy_enum;
+
 typedef struct hash_key_t {
     hash_key_enum type;
     union {
@@ -135,7 +141,8 @@ typedef struct hash_statistics_t {
 
 /* typedef's for callback based iteration */
 typedef bool(*hash_iterate_callback)(hash_entry_t *item, void *user_data);
-typedef void (*hash_delete_callback)(hash_entry_t *item);
+typedef void (hash_delete_callback)(hash_entry_t *item,
+                                    hash_destroy_enum type, void *pvt);
 
 /* typedef's for iteration object based iteration */
 struct hash_iter_context_t;
@@ -172,7 +179,8 @@ const char* hash_error_string(int error);
  * may need to be disposed of. The delete_callback may be NULL.
  */
 int hash_create(unsigned long count, hash_table_t **tbl,
-                hash_delete_callback delete_callback);
+                hash_delete_callback *delete_callback,
+                void *delete_private_data);
 
 /*
  * Create a new hash table and fine tune it's configurable parameters.
@@ -197,7 +205,8 @@ int hash_create_ex(unsigned long count, hash_table_t **tbl,
                    hash_alloc_func *alloc_func,
                    hash_free_func *free_func,
                    void *alloc_private_data,
-                   hash_delete_callback delete_callback);
+                   hash_delete_callback *delete_callback,
+                   void *delete_private_data);
 
 #ifdef HASH_STATISTICS
 /*
