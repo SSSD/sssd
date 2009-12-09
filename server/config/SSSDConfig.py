@@ -1266,6 +1266,89 @@ class SSSDConfig(SSSDChangeConf):
         self.save_domain(domain)
         return domain
 
+    def activate_domain(self, name):
+        """
+        Activate a configured domain
+
+        name:
+          The name of the configured domain to activate
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        NoDomainError:
+          No domain by this name is configured
+        """
+
+        if not self.initialized:
+            raise NotInitializedError
+
+        if name not in self.list_domains():
+            raise NoDomainError
+
+        item = self.get_option_index('sssd', 'domains')[1]
+        if not item:
+            self.set('sssd','domains', name)
+            return
+
+        # Turn the items into a set of dictionary keys
+        # This guarantees uniqueness and makes it easy
+        # to add a new value
+        domain_dict = dict.fromkeys(striplist(item['value'].split(',')))
+        if domain_dict.has_key(''):
+            del domain_dict['']
+
+        # Add a new key for the domain being activated
+        domain_dict[name] = None
+
+        # Write out the joined keys
+        self.set('sssd','domains', ", ".join(domain_dict.keys()))
+
+    def deactivate_domain(self, name):
+        """
+        Deactivate a configured domain
+
+        name:
+          The name of the configured domain to deactivate
+
+        === Returns ===
+        No return value
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        NoDomainError:
+          No domain by this name is configured
+        """
+
+        if not self.initialized:
+            raise NotInitializedError
+
+        if name not in self.list_domains():
+            raise NoDomainError
+        item = self.get_option_index('sssd', 'domains')[1]
+        if not item:
+            self.set('sssd','domains', '')
+            return
+
+        # Turn the items into a set of dictionary keys
+        # This guarantees uniqueness and makes it easy
+        # to remove the one unwanted value.
+        domain_dict = dict.fromkeys(striplist(item['value'].split(',')))
+        if domain_dict.has_key(''):
+            del domain_dict['']
+
+        # Add a new key for the domain being activated
+        del domain_dict[name]
+
+        # Write out the joined keys
+        self.set('sssd','domains', ", ".join(domain_dict.keys()))
+
     def delete_domain(self, name):
         """
         Remove a domain from the SSSDConfig object. This function will also
@@ -1282,6 +1365,9 @@ class SSSDConfig(SSSDChangeConf):
         """
         if not self.initialized:
             raise NotInitializedError
+
+        # Remove the domain from the active domains list if applicable
+        self.deactivate_domain(name)
         self.delete_option('section', 'domain/%s' % name)
 
     def save_domain(self, domain):
@@ -1341,10 +1427,6 @@ class SSSDConfig(SSSDChangeConf):
             self.add_section(sectionname, addkw, index)
 
         if domain.active:
-            if domain.get_name not in self.list_active_domains():
-                # Add it to the list of active domains
-                item = self.get_option_index('sssd', 'domains')[1]
-                if item:
-                    item['value'] += ", %s" % domain.get_name()
-                else:
-                    self.set('sssd', 'domains', domain.get_name())
+            self.activate_domain(name)
+        else:
+            self.deactivate_domain(name)
