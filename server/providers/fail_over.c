@@ -35,7 +35,7 @@
 #include "providers/fail_over.h"
 #include "resolv/async_resolv.h"
 
-#define STATUS_DIFF(p, tv2) ((p)->last_status_change.tv_sec - (tv2).tv_sec)
+#define STATUS_DIFF(p, now) ((now).tv_sec - (p)->last_status_change.tv_sec)
 #define SERVER_NAME(s) ((s)->common ? (s)->common->name : "(no name)")
 
 #define DEFAULT_PORT_STATUS PORT_NEUTRAL
