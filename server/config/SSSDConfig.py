@@ -743,6 +743,29 @@ class SSSDDomain(SSSDConfigObject):
         else:
             self.options[option] = value
 
+    def set_name(self, newname):
+        """
+        Change the name of the domain
+
+        newname:
+          New name for this domain
+
+        === Returns ===
+        No return value.
+
+        === Errors ===
+        TypeError:
+          newname was not a string
+        """
+
+        if type(newname) != str:
+            raise TypeError
+
+        if not self.oldname:
+            # Only set the oldname once
+            self.oldname = self.name
+        self.name = newname
+
     def add_provider(self, provider, provider_type):
         """
         Add a new provider type to the domain
@@ -819,14 +842,14 @@ class SSSDDomain(SSSDConfigObject):
 
         # Remove any unused options when removing the provider.
         options = self.list_provider_options(provider, provider_type)
-        
+
         # Trim any options that are used by other providers,
         # if that provider is in use
         for (prov, ptype) in self.providers:
             # Ignore the one being removed
             if (prov, ptype) == (provider, provider_type):
                 continue
-            
+
             provider_options = self.list_provider_options(prov, ptype)
             overlap = options_overlap(options.keys(), provider_options.keys())
             for opt in overlap:
@@ -1286,6 +1309,18 @@ class SSSDConfig(SSSDChangeConf):
             raise TypeError
 
         name = domain.get_name()
+
+        oldindex = None
+        if domain.oldname and domain.oldname != name:
+            # We are renaming this domain
+            # Remove the old section
+            oldindex = self.delete_option('section', 'domain/%s' %
+                                                     domain.oldname)
+
+            # Reset the oldname, in case we're not done with
+            # this domain object.
+            domain.oldname = None;
+
         sectionname = 'domain/%s' % name
         # Ensure that the existing section is removed
         # This way we ensure that we are getting a
@@ -1300,7 +1335,10 @@ class SSSDConfig(SSSDChangeConf):
             addkw.append( { 'type'  : 'option',
                             'name'  : option,
                             'value' : str(value) } )
-        self.add_section(sectionname, addkw, index)
+        if oldindex:
+            self.add_section(sectionname, addkw, oldindex)
+        else:
+            self.add_section(sectionname, addkw, index)
 
         if domain.active:
             if domain.get_name not in self.list_active_domains():

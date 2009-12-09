@@ -780,6 +780,23 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.remove_option('nosuchoption')
         self.assertFalse('nosuchoption' in domain.get_all_options().keys())
 
+    def testSetName(self):
+        domain = SSSDConfig.SSSDDomain('sssd', self.schema)
+
+        # Positive test - Change the name once
+        domain.set_name('sssd2');
+        self.assertEqual(domain.get_name(), 'sssd2')
+        self.assertEqual(domain.oldname, 'sssd')
+
+        # Positive test - Change the name a second time
+        domain.set_name('sssd3')
+        self.assertEqual(domain.get_name(), 'sssd3')
+        self.assertEqual(domain.oldname, 'sssd')
+
+        # Negative test - try setting the name to a non-string
+        self.assertRaises(TypeError,
+                          domain.set_name, 4)
+
 class SSSDConfigTestSSSDConfig(unittest.TestCase):
     def setUp(self):
         pass
@@ -1122,9 +1139,11 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         self.assertTrue('IPA' in sssdconfig.list_domains())
         self.assertTrue('IPA' in sssdconfig.list_active_domains())
+        self.assertTrue(sssdconfig.has_section('domain/IPA'))
         sssdconfig.delete_domain('IPA')
         self.assertFalse('IPA' in sssdconfig.list_domains())
         self.assertFalse('IPA' in sssdconfig.list_active_domains())
+        self.assertFalse(sssdconfig.has_section('domain/IPA'))
 
     def testSaveDomain(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
@@ -1147,6 +1166,23 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         # Negative Test - Type Error
         self.assertRaises(TypeError, sssdconfig.save_domain, self)
+
+        # Positive test - Change the domain name and save it
+        domain.set_name('example.com2')
+        self.assertEqual(domain.name,'example.com2')
+        self.assertEqual(domain.oldname,'example.com')
+        sssdconfig.save_domain(domain)
+
+        self.assertTrue('example.com2' in sssdconfig.list_domains())
+        self.assertTrue('example.com2' in sssdconfig.list_active_domains())
+        self.assertTrue(sssdconfig.has_section('domain/example.com2'))
+        self.assertEqual(sssdconfig.get('domain/example.com2',
+                                        'ldap_uri'),
+                         'ldap://ldap.example.com')
+        self.assertFalse('example.com' in sssdconfig.list_domains())
+        self.assertFalse('example.com' in sssdconfig.list_active_domains())
+        self.assertFalse('example.com' in sssdconfig.list_inactive_domains())
+        self.assertFalse(sssdconfig.has_section('domain/example.com'))
 
 if __name__ == "__main__":
     error = 0
