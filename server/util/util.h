@@ -229,7 +229,6 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
                                const gid_t gid, const mode_t mode);
 
 /* from util.c */
-int sss_split_list(TALLOC_CTX *memctx, const char *string,
-                   const char *sep, char ***_list, int *c);
-
+int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
+                       const char sep, bool trim, char ***_list, int *size);
 #endif /* __SSSD_UTIL_H__ */

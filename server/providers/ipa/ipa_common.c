@@ -508,7 +508,6 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     struct ipa_service *service;
     char **list = NULL;
     char *realm;
-    int count = 0;
     int ret;
     int i;
 
@@ -562,14 +561,14 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     service->krb5_service->realm = realm;
 
     /* split server parm into a list */
-    ret = sss_split_list(tmp_ctx, servers, ", ", &list, &count);
+    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to parse server list!\n"));
         goto done;
     }
 
     /* now for each one add a new server to the failover service */
-    for (i = 0; i < count; i++) {
+    for (i = 0; list[i]; i++) {
 
         talloc_steal(service, list[i]);
 

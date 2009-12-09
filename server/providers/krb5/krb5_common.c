@@ -49,7 +49,6 @@ errno_t check_and_export_options(struct dp_option *opts,
     const char *dummy;
     struct stat stat_buf;
     char **list;
-    int count;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -71,7 +70,7 @@ errno_t check_and_export_options(struct dp_option *opts,
     if (dummy == NULL) {
         DEBUG(1, ("No KDC expicitly configured, using defaults"));
     } else {
-        ret = sss_split_list(opts, dummy, ", ", &list, &count);
+        ret = split_on_separator(opts, dummy, ',', true, &list, NULL);
         if (ret != EOK) {
             DEBUG(1, ("Failed to parse server list!\n"));
             return ret;
@@ -287,7 +286,6 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     TALLOC_CTX *tmp_ctx;
     struct krb5_service *service;
     char **list = NULL;
-    int count = 0;
     int ret;
     int i;
 
@@ -320,13 +318,13 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    ret = sss_split_list(tmp_ctx, servers, ", ", &list, &count);
+    ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to parse server list!\n"));
         goto done;
     }
 
-    for (i = 0; i < count; i++) {
+    for (i = 0; list[i]; i++) {
 
         talloc_steal(service, list[i]);
 

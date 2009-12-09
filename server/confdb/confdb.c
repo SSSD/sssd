@@ -103,110 +103,6 @@ done:
     return ret;
 }
 
-/* split a string into an allocated array of strings.
- * the separator is a string, and is case-sensitive.
- * optionally single values can be trimmed of of spaces and tabs */
-static int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
-                              const char *sep, bool trim, char ***_list, int *size)
-{
-    const char *t, *p, *n;
-    size_t l, s, len;
-    char **list, **r;
-
-    if (!str || !*str || !sep || !*sep || !_list) return EINVAL;
-
-    s = strlen(sep);
-    t = str;
-
-    list = NULL;
-    l = 0;
-
-    if (trim)
-        while (*t == ' ' || *t == '\t') t++;
-
-    while (t && (p = strstr(t, sep))) {
-        len = p - t;
-        n = p + s; /* save next string starting point */
-        if (trim) {
-            while (*t == ' ' || *t == '\t') {
-                t++;
-                len--;
-                if (len == 0) break;
-            }
-            p--;
-            while (len > 0 && (*p == ' ' || *p == '\t')) {
-                len--;
-                p--;
-            }
-        }
-
-        r = talloc_realloc(mem_ctx, list, char *, l + 2);
-        if (!r) {
-            talloc_free(list);
-            return ENOMEM;
-        } else {
-            list = r;
-        }
-
-        if (len == 0) {
-            list[l] = talloc_strdup(list, "");
-        } else {
-            list[l] = talloc_strndup(list, t, len);
-        }
-        if (!list[l]) {
-            talloc_free(list);
-            return ENOMEM;
-        }
-        l++;
-
-        t = n; /* move to next string */
-    }
-
-    if (t) {
-        r = talloc_realloc(mem_ctx, list, char *, l + 2);
-        if (!r) {
-            talloc_free(list);
-            return ENOMEM;
-        } else {
-            list = r;
-        }
-
-        if (trim) {
-            len = strlen(t);
-            while (*t == ' ' || *t == '\t') {
-                t++;
-                len--;
-                if (len == 0) break;
-            }
-            p = t + len - 1;
-            while (len > 0 && (*p == ' ' || *p == '\t')) {
-                len--;
-                p--;
-            }
-
-            if (len == 0) {
-                list[l] = talloc_strdup(list, "");
-            } else {
-                list[l] = talloc_strndup(list, t, len);
-            }
-        } else {
-            list[l] = talloc_strdup(list, t);
-        }
-        if (!list[l]) {
-            talloc_free(list);
-            return ENOMEM;
-        }
-        l++;
-    }
-
-    list[l] = NULL; /* terminate list */
-
-    if (size) *size = l + 1;
-    *_list = list;
-
-    return EOK;
-}
-
 int confdb_add_param(struct confdb_ctx *cdb,
                      bool replace,
                      const char *section,
@@ -608,7 +504,7 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
         goto done;
     }
 
-    ret = split_on_separator(ctx, values[0], ",", true, result, NULL);
+    ret = split_on_separator(ctx, values[0], ',', true, result, NULL);
 
 done:
     talloc_free(values);
