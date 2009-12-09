@@ -1774,7 +1774,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 
         ret = sysdb_upgrade_02(cdb, ev, ctx, ctx_list);
         if (ret != EOK) {
-            DEBUG(0, ("FATAL: Upgrade form db version %s failed!\n",
+            DEBUG(0, ("FATAL: Upgrade from db version %s failed!\n",
                       SYSDB_VERSION_0_2));
             DEBUG(0, ("You may find a backup of the database here: %s\n",
                       DB_PATH));
@@ -1783,7 +1783,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
         }
         ret = sysdb_upgrade_03(ctx, &version);
         if (ret != EOK) {
-            DEBUG(0, ("FATAL: Upgrade form db version %d failed!\n",
+            DEBUG(0, ("FATAL: Upgrade from db version %s failed!\n",
                       SYSDB_VERSION_0_3));
             talloc_zfree(ctx_list);
             return ret;
