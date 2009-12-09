@@ -1188,22 +1188,22 @@ if __name__ == "__main__":
     error = 0
 
     suite = unittest.TestLoader().loadTestsFromTestCase(SSSDConfigTestSSSDService)
-    res = unittest.TextTestRunner(verbosity=99).run(suite)
+    res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x1
 
     suite = unittest.TestLoader().loadTestsFromTestCase(SSSDConfigTestSSSDDomain)
-    res = unittest.TextTestRunner(verbosity=99).run(suite)
+    res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x2
 
     suite = unittest.TestLoader().loadTestsFromTestCase(SSSDConfigTestSSSDConfig)
-    res = unittest.TextTestRunner(verbosity=99).run(suite)
+    res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x4
 
     suite = unittest.TestLoader().loadTestsFromTestCase(SSSDConfigTestValid)
-    res = unittest.TextTestRunner(verbosity=99).run(suite)
+    res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x8
 
