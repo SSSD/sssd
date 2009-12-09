@@ -770,6 +770,7 @@ endif
 dist_sssdconf_DATA = \
     config/etc/sssd.api.conf
 dist_sssdapiplugin_DATA = \
+    config/etc/sssd.api.d/sssd-ipa.conf \
     config/etc/sssd.api.d/sssd-krb5.conf \
     config/etc/sssd.api.d/sssd-ldap.conf \
     config/etc/sssd.api.d/sssd-local.conf \
