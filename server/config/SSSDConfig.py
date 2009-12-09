@@ -1343,8 +1343,9 @@ class SSSDConfig(SSSDChangeConf):
         if domain_dict.has_key(''):
             del domain_dict['']
 
-        # Add a new key for the domain being activated
-        del domain_dict[name]
+        # Remove the unwanted domain from the lest
+        if domain_dict.has_key(name):
+            del domain_dict[name]
 
         # Write out the joined keys
         self.set('sssd','domains', ", ".join(domain_dict.keys()))
