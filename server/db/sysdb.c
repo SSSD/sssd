@@ -1568,6 +1568,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *domains, *dom;
     struct sysdb_ctx *ctx;
     bool upgrade_02 = false;
+    const char *version = NULL;
     int ret;
 
     if (!ev) return EINVAL;
@@ -1636,13 +1637,20 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 
         ret = sysdb_upgrade_02(cdb, ev, ctx, ctx_list);
         if (ret != EOK) {
-            DEBUG(0, ("FATAL: Upgrade form db version %d failed!\n",
+            DEBUG(0, ("FATAL: Upgrade form db version %s failed!\n",
                       SYSDB_VERSION_0_2));
-            DEBUG(0, ("You can find a backup of the database here: %s\n",
-                      backup_file));
+            DEBUG(0, ("You may find a backup of the database here: %s\n",
+                      DB_PATH));
             talloc_zfree(ctx_list);
             return ret;
         }
+        ret = sysdb_upgrade_03(ctx, &version);
+        if (ret != EOK) {
+            DEBUG(0, ("FATAL: Upgrade form db version %d failed!\n",
+                      SYSDB_VERSION_0_3));
+            talloc_zfree(ctx_list);
+            return ret;
+        };
     }
 
     *_ctx_list = ctx_list;
