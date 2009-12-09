@@ -1247,6 +1247,76 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
                                            "etc/sssd.api.d")
 
+        domain_name = 'PROXY'
+
+        # Negative test - Not initialized
+        self.assertRaises(SSSDConfig.NotInitializedError,
+                          sssdconfig.activate_domain, domain_name)
+
+        sssdconfig.import_config("testconfigs/sssd-valid.conf")
+
+        # Positive test - Activate an inactive domain
+        self.assertTrue(domain_name in sssdconfig.list_domains())
+        self.assertFalse(domain_name in sssdconfig.list_active_domains())
+        self.assertTrue(domain_name in sssdconfig.list_inactive_domains())
+
+        sssdconfig.activate_domain('PROXY')
+        self.assertTrue(domain_name in sssdconfig.list_domains())
+        self.assertTrue(domain_name in sssdconfig.list_active_domains())
+        self.assertFalse(domain_name in sssdconfig.list_inactive_domains())
+
+        # Positive test - Activate an active domain
+        # This should succeed
+        sssdconfig.activate_domain('PROXY')
+        self.assertTrue(domain_name in sssdconfig.list_domains())
+        self.assertTrue(domain_name in sssdconfig.list_active_domains())
+        self.assertFalse(domain_name in sssdconfig.list_inactive_domains())
+
+        # Negative test - Invalid domain name
+        self.assertRaises(SSSDConfig.NoDomainError,
+                          sssdconfig.activate_domain, 'nosuchdomain')
+
+        # Negative test - Invalid domain name type
+        self.assertRaises(SSSDConfig.NoDomainError,
+                          sssdconfig.activate_domain, self)
+
+    def testDeactivateDomain(self):
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+
+        domain_name = 'IPA'
+
+        # Negative test - Not initialized
+        self.assertRaises(SSSDConfig.NotInitializedError,
+                          sssdconfig.activate_domain, domain_name)
+
+        sssdconfig.import_config("testconfigs/sssd-valid.conf")
+
+        # Positive test -Deactivate an active domain
+        self.assertTrue(domain_name in sssdconfig.list_domains())
+        self.assertTrue(domain_name in sssdconfig.list_active_domains())
+        self.assertFalse(domain_name in sssdconfig.list_inactive_domains())
+
+        sssdconfig.deactivate_domain(domain_name)
+        self.assertTrue(domain_name in sssdconfig.list_domains())
+        self.assertFalse(domain_name in sssdconfig.list_active_domains())
+        self.assertTrue(domain_name in sssdconfig.list_inactive_domains())
+
+        # Positive test - Deactivate an inactive domain
+        # This should succeed
+        sssdconfig.deactivate_domain(domain_name)
+        self.assertTrue(domain_name in sssdconfig.list_domains())
+        self.assertFalse(domain_name in sssdconfig.list_active_domains())
+        self.assertTrue(domain_name in sssdconfig.list_inactive_domains())
+
+        # Negative test - Invalid domain name
+        self.assertRaises(SSSDConfig.NoDomainError,
+                          sssdconfig.activate_domain, 'nosuchdomain')
+
+        # Negative test - Invalid domain name type
+        self.assertRaises(SSSDConfig.NoDomainError,
+                          sssdconfig.activate_domain, self)
+
 if __name__ == "__main__":
     error = 0
 
