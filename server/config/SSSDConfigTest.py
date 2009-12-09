@@ -1103,6 +1103,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         domain = sssdconfig.get_domain('IPA')
         self.assertTrue(isinstance(domain, SSSDConfig.SSSDDomain))
+        self.assertTrue(domain.active)
 
         # TODO verify the contents of this domain
 

@@ -1238,6 +1238,9 @@ class SSSDConfig(SSSDChangeConf):
          for opt in self.strip_comments_empty(self.options('domain/%s' % name))
          if opt not in providers]
 
+        # Determine if this domain is currently active
+        domain.active = self.is_domain_active(name)
+
         return domain
 
     def new_domain(self, name):
@@ -1265,6 +1268,32 @@ class SSSDConfig(SSSDChangeConf):
         domain = SSSDDomain(name, self.schema)
         self.save_domain(domain)
         return domain
+
+    def is_domain_active(self, name):
+        """
+        Is a particular domain set active
+
+        name:
+          The name of the configured domain to check
+
+        === Returns ===
+        True if the domain is active, False if it is inactive
+
+        === Errors ===
+        NotInitializedError:
+          This SSSDConfig object has not had import_config() or new_config()
+          run on it yet.
+        NoDomainError:
+          No domain by this name is configured
+        """
+
+        if not self.initialized:
+            raise NotInitializedError
+
+        if name not in self.list_domains():
+            raise NoDomainError
+
+        return name in self.list_active_domains()
 
     def activate_domain(self, name):
         """
