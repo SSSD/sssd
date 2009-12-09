@@ -1154,12 +1154,22 @@ class SSSDConfig(SSSDChangeConf):
 
         if (self.has_option('sssd', 'domains')):
             active_domains = striplist(self.get('sssd', 'domains').split(','))
+            domain_dict = dict.fromkeys(active_domains)
+            if domain_dict.has_key(''):
+                del domain_dict['']
+
+            # Remove any entries in this list that don't
+            # correspond to an active domain, for integrity
+            configured_domains = self.list_domains()
+            for dom in domain_dict.keys():
+                if dom not in configured_domains:
+                    del domain_dict[dom]
+
+            active_domains = domain_dict.keys()
         else:
             active_domains = []
 
-        domains = [x for x in self.list_domains()
-                   if x in active_domains]
-        return domains
+        return active_domains
 
     def list_inactive_domains(self):
         """
@@ -1430,8 +1440,10 @@ class SSSDConfig(SSSDChangeConf):
         if domain.oldname and domain.oldname != name:
             # We are renaming this domain
             # Remove the old section
+
+            self.deactivate_domain(domain.oldname)
             oldindex = self.delete_option('section', 'domain/%s' %
-                                                     domain.oldname)
+                                          domain.oldname)
 
             # Reset the oldname, in case we're not done with
             # this domain object.
