@@ -18,68 +18,121 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <ctype.h>
+
 #include "talloc.h"
 #include "util/util.h"
 
-/* Split string in a list using a set of legal seprators */
-
-int sss_split_list(TALLOC_CTX *memctx, const char *string,
-                   const char *sep, char ***_list, int *c)
+/* split a string into an allocated array of strings.
+ * the separator is a string, and is case-sensitive.
+ * optionally single values can be trimmed of of spaces and tabs */
+int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
+                       const char sep, bool trim, char ***_list, int *size)
 {
-    const char *p;
-    const char *s;
-    char **list;
-    char **t;
-    int i;
+    const char *t, *p, *n;
+    size_t l, len;
+    char **list, **r;
+    const char sep_str[2] = { sep, '\0'};
 
-    /* split server parm into a list */
+    if (!str || !*str || !_list) return EINVAL;
+
+    t = str;
+
     list = NULL;
-    s = string;
-    i = 0;
+    l = 0;
 
-    while (s) {
-        p = strpbrk(s, sep);
-        if (p) {
-            if (p - s == 1) {
-                s++;
-                continue;
-            }
+    /* trim leading whitespace */
+    if (trim)
+        while (isspace(*t)) t++;
 
-            t = talloc_realloc(memctx, list, char *, i + 1);
-            if (!t) {
-                talloc_zfree(list);
-                return ENOMEM;
+    /* find substrings separated by the separator */
+    while (t && (p = strpbrk(t, sep_str))) {
+        len = p - t;
+        n = p + 1; /* save next string starting point */
+        if (trim) {
+            /* strip whitespace after the separator
+             * so it's not in the next token */
+            while (isspace(*t)) {
+                t++;
+                len--;
+                if (len == 0) break;
             }
-            list = t;
-            list[i] = talloc_asprintf(list, "%.*s", (int)(p - s), s);
-            if (!list[i]) {
-                talloc_zfree(list);
-                return ENOMEM;
+            p--;
+            /* strip whitespace before the separator
+             * so it's not in the current token */
+            while (len > 0 && (isspace(*p))) {
+                len--;
+                p--;
             }
-            i++;
-
-            s = p + 1;
         }
-        else {
 
-            t = talloc_realloc(memctx, list, char *, i + 1);
-            if (!t) {
-                talloc_zfree(list);
-                return ENOMEM;
-            }
-            list = t;
-            list[i] = talloc_strdup(list, s);
-            if (!list[i]) {
-                talloc_zfree(list);
-                return ENOMEM;
-            }
-            i++;
-
-            s = NULL;
+        /* Add the token to the array, +2 b/c of the trailing NULL */
+        r = talloc_realloc(mem_ctx, list, char *, l + 2);
+        if (!r) {
+            talloc_free(list);
+            return ENOMEM;
+        } else {
+            list = r;
         }
+
+        if (len == 0) {
+            list[l] = talloc_strdup(list, "");
+        } else {
+            list[l] = talloc_strndup(list, t, len);
+        }
+        if (!list[l]) {
+            talloc_free(list);
+            return ENOMEM;
+        }
+        l++;
+
+        t = n; /* move to next string */
     }
 
+    /* Handle the last remaining token */
+    if (t) {
+        r = talloc_realloc(mem_ctx, list, char *, l + 2);
+        if (!r) {
+            talloc_free(list);
+            return ENOMEM;
+        } else {
+            list = r;
+        }
+
+        if (trim) {
+            /* trim leading whitespace */
+            len = strlen(t);
+            while (isspace(*t)) {
+                t++;
+                len--;
+                if (len == 0) break;
+            }
+            /* trim trailing whitespace */
+            p = t + len - 1;
+            while (len > 0 && (isspace(*p))) {
+                len--;
+                p--;
+            }
+
+            if (len == 0) {
+                list[l] = talloc_strdup(list, "");
+            } else {
+                list[l] = talloc_strndup(list, t, len);
+            }
+        } else {
+            list[l] = talloc_strdup(list, t);
+        }
+        if (!list[l]) {
+            talloc_free(list);
+            return ENOMEM;
+        }
+        l++;
+    }
+
+    list[l] = NULL; /* terminate list */
+
+    if (size) *size = l + 1;
     *_list = list;
-    *c = i;
+
     return EOK;
 }

@@ -503,7 +503,6 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     struct sdap_service *service;
     LDAPURLDesc *lud;
     char **list = NULL;
-    int count = 0;
     int ret;
     int i;
 
@@ -531,14 +530,14 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
 
     /* split server parm into a list */
-    ret = sss_split_list(tmp_ctx, urls, ", ", &list, &count);
+    ret = split_on_separator(tmp_ctx, urls, ',', true, &list, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to parse server list!\n"));
         goto done;
     }
 
     /* now for each URI add a new server to the failover service */
-    for (i = 0; i < count; i++) {
+    for (i = 0; list[i]; i++) {
         ret = ldap_url_parse(list[i], &lud);
         if (ret != LDAP_SUCCESS) {
             DEBUG(0, ("Failed to parse ldap URI (%s)!\n", list[i]));
