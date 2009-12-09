@@ -528,7 +528,7 @@ class SSSDChangeConf(IPAChangeConf):
                             }],
                    'action': 'set',
                 }
-        self.mergeNew(self.opts, [ modkw ])
+        self.opts = self.merge(self.opts, [ modkw ])
 
     def add_section(self, name, optkw, index=0):
         optkw.append({'type':'empty', 'value':'empty'})
