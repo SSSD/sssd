@@ -1183,6 +1183,69 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertFalse('example.com' in sssdconfig.list_active_domains())
         self.assertFalse('example.com' in sssdconfig.list_inactive_domains())
         self.assertFalse(sssdconfig.has_section('domain/example.com'))
+        self.assertEquals(domain.oldname, None)
+
+        # Positive test - Set the domain inactive and save it
+        activelist = sssdconfig.list_active_domains()
+        inactivelist = sssdconfig.list_inactive_domains()
+
+        domain.set_active(False)
+        sssdconfig.save_domain(domain)
+
+        self.assertFalse('example.com2' in sssdconfig.list_active_domains())
+        self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
+
+        self.assertEquals(len(sssdconfig.list_active_domains()),
+                          len(activelist)-1)
+        self.assertEquals(len(sssdconfig.list_inactive_domains()),
+                          len(inactivelist)+1)
+
+        # Positive test - Set the domain active and save it
+        activelist = sssdconfig.list_active_domains()
+        inactivelist = sssdconfig.list_inactive_domains()
+        domain.set_active(True)
+        sssdconfig.save_domain(domain)
+
+        self.assertTrue('example.com2' in sssdconfig.list_active_domains())
+        self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
+
+        self.assertEquals(len(sssdconfig.list_active_domains()),
+                          len(activelist)+1)
+        self.assertEquals(len(sssdconfig.list_inactive_domains()),
+                          len(inactivelist)-1)
+
+        # Positive test - Set the domain inactive and save it
+        activelist = sssdconfig.list_active_domains()
+        inactivelist = sssdconfig.list_inactive_domains()
+
+        sssdconfig.deactivate_domain(domain.get_name())
+
+        self.assertFalse('example.com2' in sssdconfig.list_active_domains())
+        self.assertTrue('example.com2' in sssdconfig.list_inactive_domains())
+
+        self.assertEquals(len(sssdconfig.list_active_domains()),
+                          len(activelist)-1)
+        self.assertEquals(len(sssdconfig.list_inactive_domains()),
+                          len(inactivelist)+1)
+
+        # Positive test - Set the domain active and save it
+        activelist = sssdconfig.list_active_domains()
+        inactivelist = sssdconfig.list_inactive_domains()
+
+        sssdconfig.activate_domain(domain.get_name())
+
+        self.assertTrue('example.com2' in sssdconfig.list_active_domains())
+        self.assertFalse('example.com2' in sssdconfig.list_inactive_domains())
+
+        self.assertEquals(len(sssdconfig.list_active_domains()),
+                          len(activelist)+1)
+        self.assertEquals(len(sssdconfig.list_inactive_domains()),
+                          len(inactivelist)-1)
+
+
+    def testActivateDomain(self):
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
 
 if __name__ == "__main__":
     error = 0
