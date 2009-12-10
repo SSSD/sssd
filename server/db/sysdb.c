@@ -1087,6 +1087,8 @@ static int sysdb_upgrade_02(struct confdb_ctx *cdb,
 
         for (j = 0; j < res->count; j++) {
 
+            struct ldb_dn *orig_dn;
+
             msg = res->msgs[j];
 
             /* skip pre-created congtainers */
@@ -1094,6 +1096,17 @@ static int sysdb_upgrade_02(struct confdb_ctx *cdb,
                 (ldb_dn_compare(msg->dn, users_dn) == 0) ||
                 (ldb_dn_compare(msg->dn, groups_dn) == 0)) {
                 continue;
+            }
+
+            /* regenerate the DN against the new ldb as it may have different
+             * casefolding rules (example: name changing from case insensitive
+             * to case sensitive) */
+            orig_dn = msg->dn;
+            msg->dn = ldb_dn_new(msg, ctx->ldb,
+                                 ldb_dn_get_linearized(orig_dn));
+            if (!msg->dn) {
+                ret = ENOMEM;
+                goto done;
             }
 
             ret = ldb_add(ctx->ldb, msg);
@@ -1104,7 +1117,7 @@ static int sysdb_upgrade_02(struct confdb_ctx *cdb,
                           ret, ldb_errstring(ctx->ldb)));
             }
 
-            ret = ldb_delete(local->ldb, msg->dn);
+            ret = ldb_delete(local->ldb, orig_dn);
             if (ret != LDB_SUCCESS) {
                 DEBUG(0, ("WARNING: Could not remove entry %s,"
                           " from old ldb file! (%d [%s])\n",
