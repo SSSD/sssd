@@ -249,21 +249,37 @@ class SSSDConfigSchema(SSSDChangeConf):
                              [split_option[DEFAULT]])
                     else:
                         try:
+                            if subtype == bool and \
+                            type(split_option[DEFAULT]) == str:
+                                parsed_options[option['name']] = \
+                                    (primarytype,
+                                     subtype,
+                                     desc,
+                                     [self.bool_lookup[split_option[DEFAULT].lower()]])
+                            else:
+                                parsed_options[option['name']] = \
+                                    (primarytype,
+                                     subtype,
+                                     desc,
+                                     [subtype(split_option[DEFAULT])])
+                        except ValueError, KeyError:
+                            raise ParsingError
+                else:
+                    try:
+                        if primarytype == bool and \
+                            type(split_option[DEFAULT]) == str:
+                                parsed_options[option['name']] = \
+                                    (primarytype,
+                                     subtype,
+                                     desc,
+                                     self.bool_lookup[split_option[DEFAULT].lower()])
+                        else:
                             parsed_options[option['name']] = \
                                 (primarytype,
                                  subtype,
                                  desc,
-                                 [subtype(split_option[DEFAULT])])
-                        except ValueError:
-                            raise ParsingError
-                else:
-                    try:
-                        parsed_options[option['name']] = \
-                            (primarytype,
-                             subtype,
-                             desc,
-                             primarytype(split_option[DEFAULT]))
-                    except ValueError:
+                                 primarytype(split_option[DEFAULT]))
+                    except ValueError, KeyError:
                         raise ParsingError
 
             elif optionlen > 3:
@@ -273,8 +289,12 @@ class SSSDConfigSchema(SSSDChangeConf):
                 for x in split_option[DEFAULT:]:
                     if type(x) != subtype:
                         try:
-                            fixed_options.extend([subtype(x)])
-                        except ValueError:
+                            if (subtype == bool and type(x) == str):
+                                newvalue = self.bool_lookup[x.lower()]
+                            else:
+                                newvalue = subtype(x)
+                            fixed_options.extend([newvalue])
+                        except ValueError, KeyError:
                             raise ParsingError
                     else:
                         fixed_options.extend([x])
@@ -504,6 +524,8 @@ class SSSDService(SSSDConfigObject):
             self.remove_option(optionname)
             return
 
+        raise_error = False
+
         # If we were expecting a list and didn't get one,
         # Create a list with a single entry. If it's the
         # wrong subtype, it will fail below
@@ -516,19 +538,40 @@ class SSSDService(SSSDConfigObject):
         if type(value) != option_schema[0]:
             # If it's possible to convert it, do so
             try:
-                value = option_schema[0](value)
+                if option_schema[0] == bool and \
+                type(value) == str:
+                    value = self.schema.bool_lookup[value.lower()]
+                else:
+                    value = option_schema[0](value)
             except ValueError:
+                raise_error = True
+            except KeyError:
+                raise_error = True
+
+            if raise_error:
                 raise TypeError('Expected %s for %s, received %s' %
-                            (option_schema[0], optionname, type(value)))
+                                (option_schema[0], optionname, type(value)))
 
         if type(value) == list:
             # Iterate through the list an ensure that all members
             # are of the appropriate subtype
             try:
-                value = [option_schema[1](x)
-                         for x in value]
+                newvalue = []
+                for x in value:
+                    if option_schema[1] == bool and \
+                    type(x) == str:
+                        newvalue.extend([self.schema.bool_lookup[x.lower()]])
+                    else:
+                        newvalue.extend([option_schema[1](x)])
             except ValueError:
+                raise_error = True
+            except KeyError:
+                raise_error = True
+
+            if raise_error:
                 raise TypeError('Expected %s' % option_schema[1])
+
+            value = newvalue
 
         self.options[optionname] = value
 
@@ -708,6 +751,7 @@ class SSSDDomain(SSSDConfigObject):
             return
 
         option_schema = options[option]
+        raise_error = False
 
         # If we were expecting a list and didn't get one,
         # Create a list with a single entry. If it's the
@@ -721,19 +765,39 @@ class SSSDDomain(SSSDConfigObject):
         if type(value) != option_schema[0]:
             # If it's possible to convert it, do so
             try:
-                value = option_schema[0](value)
+                if option_schema[0] == bool and \
+                type(value) == str:
+                    value = self.schema.bool_lookup[value.lower()]
+                else:
+                    value = option_schema[0](value)
             except ValueError:
+                raise_error = True
+            except KeyError:
+                raise_error = True
+
+            if raise_error:
                 raise TypeError('Expected %s for %s, received %s' %
-                            (option_schema[0], option, type(value)))
+                                (option_schema[0], option, type(value)))
 
         if type(value) == list:
             # Iterate through the list an ensure that all members
             # are of the appropriate subtype
             try:
-                value = [option_schema[1](x)
-                         for x in value]
+                newvalue = []
+                for x in value:
+                    if option_schema[1] == bool and \
+                    type(x) == str:
+                        newvalue.extend([self.schema.bool_lookup[x.lower()]])
+                    else:
+                        newvalue.extend([option_schema[1](x)])
             except ValueError:
+                raise_error = True
+            except KeyError:
+                raise_error = True
+
+            if raise_error:
                 raise TypeError('Expected %s' % option_schema[1])
+            value = newvalue
 
         # Check whether we're adding a provider entry.
         is_provider = option.rfind('_provider')
