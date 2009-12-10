@@ -975,10 +975,12 @@ static void krb5_child_done(struct tevent_req *req)
 
     if (*msg_status == PAM_AUTHINFO_UNAVAIL) {
         if (kr->srv != NULL) {
-            fo_set_server_status(kr->srv, SERVER_NOT_WORKING);
+            fo_set_port_status(kr->srv, PORT_NOT_WORKING);
         }
         be_mark_offline(be_req->be_ctx);
         kr->is_offline = true;
+    } else if (kr->srv != NULL) {
+        fo_set_port_status(kr->srv, PORT_WORKING);
     }
 
     struct sysdb_attrs *attrs;

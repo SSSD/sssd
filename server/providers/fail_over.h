@@ -88,7 +88,7 @@ void fo_set_server_status(struct fo_server *server,
 /*
  * Set feedback about the port status. This function should be used when
  * the server itself is working but the service is not. When status is set
- * to PORT_WORKING, 'server' is also marked as an "active server" for it's
+ * to PORT_WORKING, 'server' is also marked as an "active server" for its
  * service. When the next fo_resolve_service_send() function is called, this
  * server will be preferred. This will hold as long as it is not marked as
  * not-working.
