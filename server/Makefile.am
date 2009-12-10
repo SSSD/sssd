@@ -122,7 +122,6 @@ dist_noinst_SCRIPTS = \
 
 dist_noinst_DATA = \
     config/testconfigs/sssd-valid.conf \
-    config/testconfigs/.sssd-invalid-badbool.conf.swp \
     config/testconfigs/noparse.api.conf \
     config/testconfigs/sssd-noversion.conf \
     config/testconfigs/sssd-badversion.conf \
