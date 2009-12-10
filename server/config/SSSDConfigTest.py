@@ -157,6 +157,20 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertEqual(ldap_domain.get_option('auth_provider'), 'ldap')
         self.assertEqual(ldap_domain.get_option('id_provider'), 'ldap')
 
+class SSSDConfigTestInvalid(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def testBadBool(self):
+        sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
+                                           "etc/sssd.api.d")
+        sssdconfig.import_config("testconfigs/sssd-invalid-badbool.conf")
+        self.assertRaises(TypeError,
+                          sssdconfig.get_domain,'IPA')
+
 class SSSDConfigTestSSSDService(unittest.TestCase):
     def setUp(self):
         self.schema = SSSDConfig.SSSDConfigSchema("etc/sssd.api.conf",
@@ -848,6 +862,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'services',
             'reconnection_retries',
             'domains',
+            'debug_timestamps',
             'config_file_version']
 
         for option in control_list:
@@ -961,12 +976,14 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Negative Test - Not initialized
         self.assertRaises(SSSDConfig.NotInitializedError, sssdconfig.get_service, 'sssd')
 
-        sssdconfig.new_config()
+        sssdconfig.import_config('testconfigs/sssd-valid.conf')
 
         service = sssdconfig.get_service('sssd')
         self.assertTrue(isinstance(service, SSSDConfig.SSSDService))
 
-        # TODO verify the contents of this service
+        # Verify the contents of this service
+        self.assertEqual(type(service.get_option('debug_timestamps')), bool)
+        self.assertFalse(service.get_option('debug_timestamps'))
 
         # Negative Test - No such service
         self.assertRaises(SSSDConfig.NoServiceError, sssdconfig.get_service, 'nosuchservice')
@@ -1244,6 +1261,22 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertEquals(len(sssdconfig.list_inactive_domains()),
                           len(inactivelist)-1)
 
+        # Positive test - Ensure that saved domains retain values
+        domain.set_option('ldap_krb5_init_creds', True)
+        domain.set_option('ldap_id_use_start_tls', False)
+        domain.set_option('ldap_user_search_base',
+                          'cn=accounts, dc=example, dc=com')
+        self.assertTrue(domain.get_option('ldap_krb5_init_creds'))
+        self.assertFalse(domain.get_option('ldap_id_use_start_tls'))
+        self.assertEqual(domain.get_option('ldap_user_search_base'),
+                         'cn=accounts, dc=example, dc=com')
+
+        sssdconfig.save_domain(domain)
+        sssdconfig.write('/tmp/testSaveDomain.out')
+
+        domain2 = sssdconfig.get_domain('example.com2')
+        self.assertTrue(domain2.get_option('ldap_krb5_init_creds'))
+        self.assertFalse(domain2.get_option('ldap_id_use_start_tls'))
 
     def testActivateDomain(self):
         sssdconfig = SSSDConfig.SSSDConfig("etc/sssd.api.conf",
@@ -1341,5 +1374,10 @@ if __name__ == "__main__":
     res = unittest.TextTestRunner().run(suite)
     if not res.wasSuccessful():
         error |= 0x8
+
+    suite = unittest.TestLoader().loadTestsFromTestCase(SSSDConfigTestInvalid)
+    res = unittest.TextTestRunner().run(suite)
+    if not res.wasSuccessful():
+        error |= 0x10
 
     exit(error)
