@@ -271,7 +271,7 @@ int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,
     int ret;
 
     ret = sysdb_attrs_get_el(attrs, attr_name, &el);
-    if (!ret) {
+    if (ret) {
         return ret;
     }
 
@@ -318,11 +318,11 @@ int sysdb_attrs_users_from_ldb_vals(struct sysdb_attrs *attrs,
     int ret;
 
     ret = sysdb_attrs_get_el(attrs, attr_name, &el);
-    if (!ret) {
+    if (ret) {
         return ret;
     }
 
-    vals = talloc_realloc(el, el->values, struct ldb_val,
+    vals = talloc_realloc(attrs->a, el->values, struct ldb_val,
                           el->num_values + num_values);
     if (!vals) {
         return ENOMEM;
