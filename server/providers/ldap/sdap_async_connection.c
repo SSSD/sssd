@@ -1051,13 +1051,15 @@ int sdap_cli_connect_recv(struct tevent_req *req,
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* mark the server as bad if connection failed */
         if (state->srv) {
-            fo_set_server_status(state->srv, SERVER_NOT_WORKING);
+            fo_set_port_status(state->srv, PORT_NOT_WORKING);
         }
 
         if (tstate == TEVENT_REQ_USER_ERROR) {
             return err;
         }
         return EIO;
+    } else if (state->srv) {
+        fo_set_port_status(state->srv, PORT_WORKING);
     }
 
     if (gsh) {

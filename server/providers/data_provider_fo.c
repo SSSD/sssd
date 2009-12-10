@@ -41,7 +41,7 @@ struct be_svc_data {
     const char *name;
     struct fo_service *fo_service;
 
-    struct hostent *last_good_srvaddr;
+    struct fo_server *last_good_srv;
 
     struct be_svc_callback *callbacks;
 };
@@ -267,7 +267,6 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     struct be_resolve_server_state *state = tevent_req_data(req,
                                              struct be_resolve_server_state);
     struct be_svc_callback *callback;
-    struct hostent *srvaddr;
     int ret;
 
     ret = fo_resolve_service_recv(subreq, &state->srv);
@@ -295,9 +294,6 @@ static void be_resolve_server_done(struct tevent_req *subreq)
         DEBUG(6, ("Couldn't resolve server (%s), resolver returned (%d)\n",
                   fo_get_server_name(state->srv), ret));
 
-        /* mark as bad server */
-        fo_set_server_status(state->srv, SERVER_NOT_WORKING);
-
         state->attempts++;
         if (state->attempts >= 10) {
             DEBUG(2, ("Failed to find a server after 10 attempts\n"));
@@ -320,10 +316,11 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     }
 
     /* all fine we got the server */
-    srvaddr = fo_get_server_hostent(state->srv);
 
     if (debug_level >= 4) {
+        struct hostent *srvaddr;
         char ipaddr[128];
+        srvaddr = fo_get_server_hostent(state->srv);
         inet_ntop(srvaddr->h_addrtype, srvaddr->h_addr_list[0],
                   ipaddr, 128);
 
@@ -332,8 +329,8 @@ static void be_resolve_server_done(struct tevent_req *subreq)
     }
 
     /* now call all svc callbacks if server changed */
-    if (srvaddr != state->svc->last_good_srvaddr) {
-        state->svc->last_good_srvaddr = srvaddr;
+    if (state->srv != state->svc->last_good_srv) {
+        state->svc->last_good_srv = state->srv;
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
             callback->fn(callback->private_data, state->srv);

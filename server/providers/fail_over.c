@@ -341,8 +341,8 @@ fo_add_server(struct fo_service *service, const char *name, int port,
     struct fo_server *server;
     int ret;
 
-    DEBUG(3, ("Adding new server '%s', to service '%s'\n", name,
-              service->name));
+    DEBUG(3, ("Adding new server '%s', to service '%s'\n",
+              name ? name : "(no name)", service->name));
     DLIST_FOR_EACH(server, service->server_list) {
         if (server->port != port || server->user_data != user_data)
             continue;
@@ -446,7 +446,7 @@ static void fo_resolve_service_done(struct tevent_req *subreq);
 
 struct tevent_req *
 fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
-                   struct resolv_ctx *resolv, struct fo_service *service)
+                        struct resolv_ctx *resolv, struct fo_service *service)
 {
     int ret;
     struct fo_server *server;
@@ -484,6 +484,7 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
             goto done;
         }
         tevent_req_set_callback(subreq, fo_resolve_service_done, server->common);
+        fo_set_server_status(server, SERVER_RESOLVING_NAME);
         /* FALLTHROUGH */
     case SERVER_RESOLVING_NAME:
         /* Name resolution is already under way. Just add ourselves into the
@@ -506,6 +507,9 @@ done:
     return req;
 }
 
+static void set_server_common_status(struct server_common *common,
+                                     enum server_status status);
+
 static void
 fo_resolve_service_done(struct tevent_req *subreq)
 {
@@ -526,6 +530,9 @@ fo_resolve_service_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(1, ("Failed to resolve server '%s': %s\n", common->name,
               resolv_strerror(resolv_status)));
+        set_server_common_status(common, SERVER_NOT_WORKING);
+    } else {
+        set_server_common_status(common, SERVER_NAME_RESOLVED);
     }
 
     /* Take care of all requests for this server. */
@@ -560,6 +567,17 @@ fo_resolve_service_recv(struct tevent_req *req, struct fo_server **server)
     return EOK;
 }
 
+static void
+set_server_common_status(struct server_common *common,
+                         enum server_status status)
+{
+    DEBUG(4, ("Marking server '%s' as '%s'\n", common->name,
+              str_server_status(status)));
+
+    common->server_status = status;
+    gettimeofday(&common->last_status_change, NULL);
+}
+
 void
 fo_set_server_status(struct fo_server *server, enum server_status status)
 {
@@ -568,11 +586,7 @@ fo_set_server_status(struct fo_server *server, enum server_status status)
         return;
     }
 
-    DEBUG(4, ("Marking server '%s' as '%s'\n", SERVER_NAME(server),
-              str_server_status(status)));
-
-    server->common->server_status = status;
-    gettimeofday(&server->common->last_status_change, NULL);
+    set_server_common_status(server->common, status);
 }
 
 void
