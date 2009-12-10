@@ -76,6 +76,11 @@
 #define INI_ERROR       "errors"
 #define INI_ERROR_NAME  "errname"
 
+
+/* Internal sizes. MAX_KEY is defined in config.h */
+#define MAX_VALUE       PATH_MAX
+#define BUFFER_SIZE     MAX_KEY + MAX_VALUE + 3
+
 /* Internally used functions */
 static int config_with_lines(const char *application,
                              FILE *config_file,
@@ -111,7 +116,7 @@ const char *parsing_error_str(int parsing_error)
 }
 
 /* Function to return grammar error.
- * This functions is currently not used.
+ * This function is currently not used.
  * It is planned to be used by the INI
  * file grammar parser.
  */
@@ -136,7 +141,7 @@ const char *grammar_error_str(int grammar_error)
 }
 
 /* Function to return validation error.
- * This functions is currently not used.
+ * This function is currently not used.
  * It is planned to be used by the INI
  * file grammar validator.
  */

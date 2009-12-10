@@ -26,7 +26,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include "collection.h"
-#include "config.h"
 
 /* Name of the default (missing section in the INI file */
 #define INI_DEFAULT_SECTION "default"
@@ -67,11 +66,6 @@
 /* Placeholder for now... */
 #define ERR_MAXVALID        0
 
-
-
-/* Internal sizes. MAX_KEY is defined in config.h */
-#define MAX_VALUE       PATH_MAX
-#define BUFFER_SIZE     MAX_KEY + MAX_VALUE + 3
 
 struct parse_error {
     unsigned line;
