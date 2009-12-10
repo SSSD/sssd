@@ -59,8 +59,10 @@
                     <term>ldap_uri (string)</term>
                     <listitem>
                         <para>
-                            Specifies the URI of the LDAP server to which
-                            SSSD should connect.
+                            Specifies the list of URIs of the LDAP servers to which
+                            SSSD should connect in the order of preference. For more
+                            information on failover and server redundancy, see the
+                            <quote>FAILOVER</quote> section.
                         </para>
                         <para>
                             Default: ldap://localhost
@@ -619,6 +621,8 @@
             </variablelist>
         </para>
     </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
 
     <refsect1 id='example'>
         <title>EXAMPLE</title>

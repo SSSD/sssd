@@ -1,0 +1,41 @@
+<refsect1 id='failover'>
+    <title>FAILOVER</title>
+    <para>
+        The failover feature allows back ends to automatically switch to
+        a different server if the primary server fails.
+    </para>
+    <refsect2 id='failover_syntax'>
+        <title>Failover Syntax</title>
+        <para>
+            The list of servers is given as a comma-separated list; any
+            number of spaces is allowed around the comma. The servers are
+            listed in order of preference. The list can contain any number
+            of servers.
+        </para>
+    </refsect2>
+    <refsect2 id='failover_mechanism'>
+        <title>The Failover Mechanism</title>
+        <para>
+            The failover mechanism distinguishes between a machine and a
+            service. The back end first tries to resolve the hostname of a
+            given machine; if this resolution attempt fails, the machine is
+            considered offline. No further attempts are made to connect
+            to this machine for any other service. If the resolution
+            attempt succeeds, the back end tries to connect to a service
+            on this machine. If the service connection attempt fails,
+            then only this particular service is considered offline and
+            the back end automatically switches over to the next service.
+            The machine is still considered online and might still be tried
+            for another service.
+        </para>
+        <para>
+            Further connection attempts are made to machines or services
+            marked as offline after a specified period of time; this is
+            currently hard coded to 30 seconds.
+        </para>
+        <para>
+            If there are no more servers to try, the back end as a whole
+            switches to offline mode for a certain period of time.
+        </para>
+    </refsect2>
+</refsect1>

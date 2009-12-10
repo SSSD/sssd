@@ -65,7 +65,11 @@
                     <term>krb5_kdcip (string)</term>
                     <listitem>
                         <para>
-                            Specifies the IP address of the Kerberos server.
+                            Specifies the list of IP addresses or hostnames
+                            of the Kerberos servers to which SSSD should
+                            connect in the order of preference. For more
+                            information on failover and server redundancy,
+                            see the <quote>FAILOVER</quote> section.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -206,6 +210,8 @@
             </variablelist>
         </para>
     </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
 
     <refsect1 id='example'>
         <title>EXAMPLE</title>
