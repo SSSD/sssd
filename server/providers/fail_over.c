@@ -56,6 +56,7 @@ struct fo_service {
     struct fo_ctx *ctx;
     char *name;
     struct fo_server *active_server;
+    struct fo_server *last_tried_server;
     struct fo_server *server_list;
 };
 
@@ -391,21 +392,41 @@ get_first_server_entity(struct fo_service *service, struct fo_server **_server)
     server = service->active_server;
     if (server != NULL) {
         if (service_works(server)) {
-            *_server = server;
-            return EOK;
+            goto done;
         }
         service->active_server = NULL;
     }
 
-    /* Otherwise iterate through the server list. */
-    DLIST_FOR_EACH(server, service->server_list) {
-        if (service_works(server)) {
-            *_server = server;
-            return EOK;
+    /*
+     * Otherwise iterate through the server list.
+     */
+
+    /* First, try servers after the last one we tried. */
+    if (service->last_tried_server != NULL) {
+        DLIST_FOR_EACH(server, service->last_tried_server->next) {
+            if (service_works(server)) {
+                goto done;
+            }
         }
     }
 
+    /* If none were found, try at the start. */
+    DLIST_FOR_EACH(server, service->server_list) {
+        if (service_works(server)) {
+            goto done;
+        }
+        if (server == service->last_tried_server) {
+            break;
+        }
+    }
+
+    service->last_tried_server = NULL;
     return ENOENT;
+
+done:
+    service->last_tried_server = server;
+    *_server = server;
+    return EOK;
 }
 
 static int
