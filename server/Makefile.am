@@ -689,7 +689,7 @@ memberof_la_SOURCES = \
     ldb_modules/memberof.c
 memberof_la_CFLAGS = \
     $(AM_CFLAGS)
-memberof_la_LIBADD = $(LDB_LIBS)
+memberof_la_LIBADD = $(LDB_LIBS) $(DHASH_LIBS)
 memberof_la_LDFLAGS = \
     -avoid-version \
     -module

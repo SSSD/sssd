@@ -19,6 +19,8 @@
 
 #include <string.h>
 #include "ldb_module.h"
+#include "util/util.h"
+#include "dhash.h"
 
 #define DB_MEMBER "member"
 #define DB_MEMBEROF "memberof"
@@ -326,6 +328,9 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
     return LDB_SUCCESS;
 }
 
+static int memberof_recompute_task(struct ldb_module *module,
+                                   struct ldb_request *req);
+
 static int mbof_add_callback(struct ldb_request *req,
                              struct ldb_reply *ares);
 static int mbof_next_add(struct mbof_add_operation *addop);
@@ -352,7 +357,13 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     int i, ret;
 
     if (ldb_dn_is_special(req->op.add.message->dn)) {
-        /* do not manipulate our control entries */
+
+        if (strcmp("@MEMBEROF-REBUILD",
+                   ldb_dn_get_linearized(req->op.add.message->dn)) == 0) {
+            return memberof_recompute_task(module, req);
+        }
+
+        /* do not manipulate other control entries */
         return ldb_next_request(module, req);
     }
 
@@ -1983,7 +1994,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
             return ret;
         }
 
-        el->values = talloc_array(msg, struct ldb_val, new_list->num);
+        el->values = talloc_array(el, struct ldb_val, new_list->num);
         if (!el->values) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
@@ -2857,6 +2868,719 @@ static int mbof_fill_dn_array(TALLOC_CTX *memctx,
             return LDB_ERR_INVALID_DN_SYNTAX;
         }
         ar->dns[i] = valdn;
+    }
+
+    return LDB_SUCCESS;
+}
+
+
+/*************************
+ * Cleanup task routines *
+ *************************/
+
+struct mbof_member {
+    struct mbof_member *prev;
+    struct mbof_member *next;
+
+    struct ldb_dn *dn;
+    const char *name;
+    bool orig_has_memberof;
+    bool orig_has_memberuid;
+    struct ldb_message_element *orig_members;
+
+    struct mbof_member **members;
+
+    hash_table_t *memberofs;
+
+    struct ldb_message_element *memuids;
+
+    enum { MBOF_GROUP_TO_DO = 0,
+           MBOF_GROUP_DONE,
+           MBOF_USER,
+           MBOF_ITER_ERROR } status;
+};
+
+struct mbof_rcmp_context {
+    struct ldb_module *module;
+    struct ldb_request *req;
+
+    struct mbof_member *user_list;
+    hash_table_t *user_table;
+
+    struct mbof_member *group_list;
+    hash_table_t *group_table;
+};
+
+static void *hash_alloc(const size_t size, void *pvt)
+{
+    return talloc_size(pvt, size);
+}
+
+static void hash_free(void *ptr, void *pvt)
+{
+    talloc_free(ptr);
+}
+
+static int mbof_steal_msg_el(TALLOC_CTX *memctx,
+                             const char *name,
+                             struct ldb_message *msg,
+                             struct ldb_message_element **_dest)
+{
+    struct ldb_message_element *src;
+    struct ldb_message_element *dest;
+
+    src = ldb_msg_find_element(msg, name);
+    if (!src) {
+        return LDB_ERR_NO_SUCH_ATTRIBUTE;
+    }
+
+    dest = talloc_zero(memctx, struct ldb_message_element);
+    if (!dest) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    *dest = *src;
+    talloc_steal(dest, dest->name);
+    talloc_steal(dest, dest->values);
+
+    *_dest = dest;
+    return LDB_SUCCESS;
+}
+
+static int mbof_rcmp_usr_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares);
+static int mbof_rcmp_search_groups(struct mbof_rcmp_context *ctx);
+static int mbof_rcmp_grp_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares);
+static int mbof_member_update(struct mbof_rcmp_context *ctx,
+                              struct mbof_member *parent,
+                              struct mbof_member *mem);
+static bool mbof_member_iter(hash_entry_t *item, void *user_data);
+static int mbof_add_memuid(struct mbof_member *grp, const char *user);
+static int mbof_rcmp_update(struct mbof_rcmp_context *ctx);
+static int mbof_rcmp_mod_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares);
+
+static int memberof_recompute_task(struct ldb_module *module,
+                                   struct ldb_request *req)
+{
+    struct ldb_context *ldb = ldb_module_get_ctx(module);
+    static const char *attrs[] = { DB_NAME, DB_MEMBEROF, NULL };
+    static const char *filter = "(objectclass=user)";
+    struct mbof_rcmp_context *ctx;
+    struct ldb_request *src_req;
+    int ret;
+
+    ctx = talloc_zero(req, struct mbof_rcmp_context);
+    if (!ctx) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    ctx->module = module;
+    ctx->req = req;
+
+    ret = hash_create_ex(1024, &ctx->user_table, 0, 0, 0, 0,
+                         hash_alloc, hash_free, ctx, NULL, NULL);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    ret = ldb_build_search_req(&src_req, ldb, ctx,
+                               NULL, LDB_SCOPE_SUBTREE,
+                               filter, attrs, NULL,
+                               ctx, mbof_rcmp_usr_callback, ctx->req);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_request(ldb, src_req);
+}
+
+static int mbof_rcmp_usr_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares)
+{
+    struct mbof_rcmp_context *ctx;
+    struct mbof_member *usr;
+    hash_value_t value;
+    hash_key_t key;
+    const char *name;
+    int ret;
+
+    ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+
+        usr = talloc_zero(ctx, struct mbof_member);
+        if (!usr) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+
+        usr->status = MBOF_USER;
+        usr->dn = talloc_steal(usr, ares->message->dn);
+        name = ldb_msg_find_attr_as_string(ares->message, DB_NAME, NULL);
+        if (name) {
+            usr->name = talloc_steal(usr, name);
+        }
+
+        if (ldb_msg_find_element(ares->message, DB_MEMBEROF)) {
+            usr->orig_has_memberof = true;
+        }
+
+        DLIST_ADD(ctx->user_list, usr);
+
+        key.type = HASH_KEY_STRING;
+        key.str = discard_const(ldb_dn_get_linearized(usr->dn));
+        value.type = HASH_VALUE_PTR;
+        value.ptr = usr;
+
+        ret = hash_enter(ctx->user_table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+
+        break;
+
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        talloc_zfree(ares);
+
+        /* and now search groups */
+        return mbof_rcmp_search_groups(ctx);
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+static int mbof_rcmp_search_groups(struct mbof_rcmp_context *ctx)
+{
+    struct ldb_context *ldb = ldb_module_get_ctx(ctx->module);
+    static const char *attrs[] = { DB_MEMBEROF, DB_MEMBERUID,
+                                   DB_NAME, DB_MEMBER, NULL };
+    static const char *filter = "(objectclass=group)";
+    struct ldb_request *req;
+    int ret;
+
+    ret = hash_create_ex(1024, &ctx->group_table, 0, 0, 0, 0,
+                         hash_alloc, hash_free, ctx, NULL, NULL);
+    if (ret != HASH_SUCCESS) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    ret = ldb_build_search_req(&req, ldb, ctx,
+                               NULL, LDB_SCOPE_SUBTREE,
+                               filter, attrs, NULL,
+                               ctx, mbof_rcmp_grp_callback, ctx->req);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_request(ldb, req);
+}
+
+static int mbof_rcmp_grp_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares)
+{
+    struct ldb_context *ldb;
+    struct mbof_rcmp_context *ctx;
+    struct ldb_message_element *el;
+    struct mbof_member *iter;
+    struct mbof_member *grp;
+    hash_value_t value;
+    hash_key_t key;
+    const char *name;
+    int i, j;
+    int ret;
+
+    ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+
+        grp = talloc_zero(ctx, struct mbof_member);
+        if (!grp) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+
+        grp->status = MBOF_GROUP_TO_DO;
+        grp->dn = talloc_steal(grp, ares->message->dn);
+        grp->name = ldb_msg_find_attr_as_string(ares->message, DB_NAME, NULL);
+        name = ldb_msg_find_attr_as_string(ares->message, DB_NAME, NULL);
+        if (name) {
+            grp->name = talloc_steal(grp, name);
+        }
+
+        if (ldb_msg_find_element(ares->message, DB_MEMBEROF)) {
+            grp->orig_has_memberof = true;
+        }
+
+        if (ldb_msg_find_element(ares->message, DB_MEMBERUID)) {
+            grp->orig_has_memberuid = true;
+        }
+
+        ret = mbof_steal_msg_el(grp, DB_MEMBER,
+                                ares->message, &grp->orig_members);
+        if (ret != LDB_SUCCESS && ret != LDB_ERR_NO_SUCH_ATTRIBUTE) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+
+        DLIST_ADD(ctx->group_list, grp);
+
+        key.type = HASH_KEY_STRING;
+        key.str = discard_const(ldb_dn_get_linearized(grp->dn));
+        value.type = HASH_VALUE_PTR;
+        value.ptr = grp;
+
+        ret = hash_enter(ctx->group_table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+
+        break;
+
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        talloc_zfree(ares);
+
+        if (!ctx->group_list) {
+            /* no groups ? */
+            return ldb_module_done(ctx->req, NULL, NULL, LDB_SUCCESS);
+        }
+
+        /* for each group compute the members list */
+        for (iter = ctx->group_list; iter; iter = iter->next) {
+
+            el = iter->orig_members;
+            if (!el || el->num_values == 0) {
+                /* no members */
+                continue;
+            }
+
+            /* we have at most num_values group members */
+            iter->members = talloc_array(iter, struct mbof_member *,
+                                         el->num_values +1);
+            if (!iter->members) {
+                return ldb_module_done(ctx->req, NULL, NULL,
+                                       LDB_ERR_OPERATIONS_ERROR);
+            }
+
+            for (i = 0, j = 0; i < el->num_values; i++) {
+                key.type = HASH_KEY_STRING;
+                key.str = (char *)el->values[i].data;
+
+                ret = hash_lookup(ctx->user_table, &key, &value);
+                switch (ret) {
+                case HASH_SUCCESS:
+                    iter->members[j] = (struct mbof_member *)value.ptr;
+                    j++;
+                    break;
+
+                case HASH_ERROR_KEY_NOT_FOUND:
+                    /* not a user, see if it is a group */
+
+                    ret = hash_lookup(ctx->group_table, &key, &value);
+                    if (ret != HASH_SUCCESS) {
+                        if (ret != HASH_ERROR_KEY_NOT_FOUND) {
+                            return ldb_module_done(ctx->req, NULL, NULL,
+                                                   LDB_ERR_OPERATIONS_ERROR);
+                        }
+                    }
+                    if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+                        /* not a known user, nor a known group ?
+                           give a warning an continue */
+                        ldb_debug(ldb, LDB_DEBUG_ERROR,
+                                  "member attribute [%s] has no corresponding"
+                                  " entry!", key.str);
+                        break;
+                    }
+
+                    iter->members[j] = (struct mbof_member *)value.ptr;
+                    j++;
+                    break;
+
+                default:
+                    return ldb_module_done(ctx->req, NULL, NULL,
+                                           LDB_ERR_OPERATIONS_ERROR);
+                }
+            }
+            /* terminate */
+            iter->members[j] = NULL;
+
+            talloc_zfree(iter->orig_members);
+        }
+
+        /* now generate correct memberof tables */
+        while (ctx->group_list->status == MBOF_GROUP_TO_DO) {
+
+            grp = ctx->group_list;
+
+            /* move to end of list and mark as done.
+             * NOTE: this is not efficient, but will do for now */
+            DLIST_DEMOTE(ctx->group_list, grp, struct mbof_member *);
+            grp->status = MBOF_GROUP_DONE;
+
+            /* verify if members need updating */
+            if (!grp->members) {
+                continue;
+            }
+            for (i = 0; grp->members[i]; i++) {
+                ret = mbof_member_update(ctx, grp, grp->members[i]);
+                if (ret != LDB_SUCCESS) {
+                    return ldb_module_done(ctx->req, NULL, NULL,
+                                           LDB_ERR_OPERATIONS_ERROR);
+                }
+            }
+        }
+
+        /* ok all done, now go on and modify the tree */
+        return mbof_rcmp_update(ctx);
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+static int mbof_member_update(struct mbof_rcmp_context *ctx,
+                              struct mbof_member *parent,
+                              struct mbof_member *mem)
+{
+    hash_value_t value;
+    hash_key_t key;
+    int ret;
+
+    /* ignore loops */
+    if (parent == mem) return LDB_SUCCESS;
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(ldb_dn_get_linearized(parent->dn));
+
+    if (!mem->memberofs) {
+        ret = hash_create_ex(32, &mem->memberofs, 0, 0, 0, 0,
+                             hash_alloc, hash_free, mem, NULL, NULL);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        ret = HASH_ERROR_KEY_NOT_FOUND;
+
+    } else {
+
+        ret = hash_lookup(mem->memberofs, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            if (ret != HASH_ERROR_KEY_NOT_FOUND) {
+                /* fatal error */
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+        }
+    }
+
+    if (ret == HASH_ERROR_KEY_NOT_FOUND) {
+
+        /* it's missing, update member */
+        value.type = HASH_VALUE_PTR;
+        value.ptr = parent;
+
+        ret = hash_enter(mem->memberofs, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        if (mem->status == MBOF_USER) {
+            /* add corresponding memuid to the group */
+            ret = mbof_add_memuid(parent, mem->name);
+            if (ret != LDB_SUCCESS) {
+                return ret;
+            }
+        }
+
+        /* if we updated a group, mark it as TO DO again */
+        if (mem->status == MBOF_GROUP_DONE) {
+            mem->status = MBOF_GROUP_TO_DO;
+        }
+    }
+
+    /* now see if the parent has memberofs to pass down */
+    if (parent->memberofs) {
+        ret = hash_iterate(parent->memberofs, mbof_member_iter, mem);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        if (mem->status == MBOF_ITER_ERROR) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    /* finally, if it was made TO DO move it to the head */
+    if (mem->status == MBOF_GROUP_TO_DO) {
+        DLIST_PROMOTE(ctx->group_list, mem);
+    }
+
+    return LDB_SUCCESS;
+}
+
+static bool mbof_member_iter(hash_entry_t *item, void *user_data)
+{
+    struct mbof_member *parent;
+    struct mbof_member *mem;
+    hash_value_t value;
+    int ret;
+
+    mem = talloc_get_type(user_data, struct mbof_member);
+
+    /* exclude self */
+    if (strcmp(item->key.str, ldb_dn_get_linearized(mem->dn)) == 0) {
+        return true;
+    }
+
+    /* check if we already have it */
+    ret = hash_lookup(mem->memberofs, &item->key, &value);
+    if (ret != HASH_SUCCESS) {
+        if (ret != HASH_ERROR_KEY_NOT_FOUND) {
+            /* fatal error */
+            mem->status = MBOF_ITER_ERROR;
+            return false;
+        }
+
+        /* was not already here, add it and mark group as TO DO */
+        ret = hash_enter(mem->memberofs, &item->key, &item->value);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        if (mem->status == MBOF_GROUP_DONE) {
+            mem->status = MBOF_GROUP_TO_DO;
+        }
+
+        if (mem->status == MBOF_USER) {
+            /* add corresponding memuid to the group */
+            parent = (struct mbof_member *)item->value.ptr;
+            ret = mbof_add_memuid(parent, mem->name);
+            if (ret != LDB_SUCCESS) {
+                mem->status = MBOF_ITER_ERROR;
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+static int mbof_add_memuid(struct mbof_member *grp, const char *user)
+{
+    struct ldb_val *vals;
+    int n;
+
+    if (!grp->memuids) {
+        grp->memuids = talloc_zero(grp, struct ldb_message_element);
+        if (!grp->memuids) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+
+        grp->memuids->name = talloc_strdup(grp->memuids, DB_MEMBERUID);
+        if (!grp->memuids->name) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    n = grp->memuids->num_values;
+    vals = talloc_realloc(grp->memuids,
+                          grp->memuids->values,
+                          struct ldb_val, n + 1);
+    if (!vals) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    vals[n].data = (uint8_t *)talloc_strdup(vals, user);
+    vals[n].length = strlen(user);
+
+    grp->memuids->values = vals;
+    grp->memuids->num_values = n + 1;
+
+    return LDB_SUCCESS;
+}
+
+static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
+{
+    struct ldb_context *ldb = ldb_module_get_ctx(ctx->module);
+    struct ldb_message_element *el;
+    struct ldb_message *msg = NULL;
+    struct ldb_request *req;
+    struct mbof_member *x = NULL;
+    hash_key_t *keys;
+    unsigned long count;
+    int flags;
+    int ret, i;
+
+    /* we process all users first and then all groups */
+    if (ctx->user_list) {
+        /* take the next entry and remove it from the list */
+        x = ctx->user_list;
+        DLIST_REMOVE(ctx->user_list, x);
+    }
+    else if (ctx->group_list) {
+        /* take the next entry and remove it from the list */
+        x = ctx->group_list;
+        DLIST_REMOVE(ctx->group_list, x);
+    }
+    else {
+        /* processing terminated, return */
+        ret = LDB_SUCCESS;
+        goto done;
+    }
+
+    msg = ldb_msg_new(ctx);
+    if (!msg) {
+        ret = LDB_ERR_OPERATIONS_ERROR;
+        goto done;
+    }
+
+    msg->dn = x->dn;
+
+    /* process memberof */
+    if (x->memberofs) {
+        ret = hash_keys(x->memberofs, &count, &keys);
+        if (ret != HASH_SUCCESS) {
+            ret = LDB_ERR_OPERATIONS_ERROR;
+            goto done;
+        }
+
+        if (x->orig_has_memberof) {
+            flags = LDB_FLAG_MOD_REPLACE;
+        } else {
+            flags = LDB_FLAG_MOD_ADD;
+        }
+
+        ret = ldb_msg_add_empty(msg, DB_MEMBEROF, flags, &el);
+        if (ret != LDB_SUCCESS) {
+            goto done;
+        }
+
+        el->values = talloc_array(el, struct ldb_val, count);
+        if (!el->values) {
+            ret = LDB_ERR_OPERATIONS_ERROR;
+            goto done;
+        }
+        el->num_values = count;
+
+        for (i = 0; i < count; i++) {
+            el->values[i].data = (uint8_t *)keys[i].str;
+            el->values[i].length = strlen(keys[i].str);
+        }
+    } else if (x->orig_has_memberof) {
+        ret = ldb_msg_add_empty(msg, DB_MEMBEROF, LDB_FLAG_MOD_DELETE, NULL);
+        if (ret != LDB_SUCCESS) {
+            goto done;
+        }
+    }
+
+    /* process memberuid */
+    if (x->memuids) {
+        if (x->orig_has_memberuid) {
+            flags = LDB_FLAG_MOD_REPLACE;
+        } else {
+            flags = LDB_FLAG_MOD_ADD;
+        }
+
+        ret = ldb_msg_add(msg, x->memuids, flags);
+        if (ret != LDB_SUCCESS) {
+            goto done;
+        }
+    }
+    else if (x->orig_has_memberuid) {
+        ret = ldb_msg_add_empty(msg, DB_MEMBERUID, LDB_FLAG_MOD_DELETE, NULL);
+        if (ret != LDB_SUCCESS) {
+            goto done;
+        }
+    }
+
+    ret = ldb_build_mod_req(&req, ldb, ctx, msg, NULL,
+                            ctx, mbof_rcmp_mod_callback,
+                            ctx->req);
+    if (ret != LDB_SUCCESS) {
+        goto done;
+    }
+    talloc_steal(req, msg);
+
+    /* fire next call */
+    return ldb_next_request(ctx->module, req);
+
+done:
+    /* all users and groups have been processed */
+    return ldb_module_done(ctx->req, NULL, NULL, ret);
+}
+
+static int mbof_rcmp_mod_callback(struct ldb_request *req,
+                                  struct ldb_reply *ares)
+{
+    struct ldb_context *ldb;
+    struct mbof_rcmp_context *ctx;
+
+    ctx = talloc_get_type(req->context, struct mbof_rcmp_context);
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    if (!ares) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+        ldb_debug(ldb, LDB_DEBUG_TRACE, "Got an entry on a non search op ?!");
+        /* shouldn't happen */
+        talloc_zfree(ares);
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        talloc_zfree(ares);
+        break;
+
+    case LDB_REPLY_DONE:
+        talloc_zfree(ares);
+
+        /* update the next one */
+        return mbof_rcmp_update(ctx);
     }
 
     return LDB_SUCCESS;
