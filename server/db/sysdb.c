@@ -1775,6 +1775,13 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
             talloc_zfree(ctx_list);
             return ret;
         };
+        ret = sysdb_upgrade_04(ctx, &version);
+        if (ret != EOK) {
+            DEBUG(0, ("FATAL: Upgrade from db version %s failed!\n",
+                      SYSDB_VERSION_0_4));
+            talloc_zfree(ctx_list);
+            return ret;
+        };
     }
 
     *_ctx_list = ctx_list;
