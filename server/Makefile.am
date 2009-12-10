@@ -82,6 +82,7 @@ check_PROGRAMS = \
     $(non_interactive_check_based_tests)
 
 TESTS = \
+    $(srcdir)/config/SSSDConfigTest.py \
     $(non_interactive_check_based_tests)
 
 sssdlib_LTLIBRARIES = \
@@ -116,7 +117,17 @@ dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
     config/setup.py \
     config/ipachangeconf.py \
-    config/SSSDConfig.py
+    config/SSSDConfig.py \
+    config/SSSDConfigTest.py
+
+dist_noinst_DATA = \
+    config/testconfigs/sssd-valid.conf \
+    config/testconfigs/.sssd-invalid-badbool.conf.swp \
+    config/testconfigs/noparse.api.conf \
+    config/testconfigs/sssd-noversion.conf \
+    config/testconfigs/sssd-badversion.conf \
+    config/testconfigs/sssd-invalid.conf \
+    config/testconfigs/sssd-invalid-badbool.conf
 
 ###############################
 # Global compilation settings #
@@ -351,7 +362,7 @@ sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/providers/sssd_be.exports \
     -export-dynamic
 
-dist_noinst_DATA = \
+dist_noinst_DATA += \
     examples/sssd.conf \
     examples/sssdproxytest \
     examples/sudo \
