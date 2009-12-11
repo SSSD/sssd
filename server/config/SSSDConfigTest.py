@@ -1359,6 +1359,7 @@ if __name__ == "__main__":
     error = 0
 
     import os
+    import sys
     srcdir = os.getenv('srcdir')
     if srcdir:
         srcdir = srcdir + "/config"
@@ -1390,4 +1391,4 @@ if __name__ == "__main__":
     if not res.wasSuccessful():
         error |= 0x10
 
-    exit(error)
+    sys.exit(error)
