@@ -40,7 +40,7 @@ int elapi_init_test(void)
 
     error = elapi_init(APPNAME, "./"ELAPI_CONFIG_FILE);
     if (error) {
-        printf("elapi_init failed: %d", error);
+        printf("elapi_init failed: %d\n", error);
         return error;
     }
 
@@ -59,7 +59,7 @@ int elapi_get_default_tplt_test(void)
 
     error = elapi_get_default_tplt(&tpl);
     if (error) {
-        printf("elapi_get_default_tplt failed: %d", error);
+        printf("elapi_get_default_tplt failed: %d\n", error);
         return error;
     }
 
