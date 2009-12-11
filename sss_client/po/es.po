@@ -36,4 +36,3 @@ msgstr "Reingrese la contraseña nueva:"
 #: pam_sss.c:835
 msgid "Password has expired."
 msgstr "La contraseña ha expirado."
-

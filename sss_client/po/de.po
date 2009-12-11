@@ -36,4 +36,3 @@ msgstr "Neues Passwort noch einmal eingeben: "
 #: pam_sss.c:835
 msgid "Password has expired."
 msgstr "Passwort ist abgelaufen."
-
