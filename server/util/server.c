@@ -39,7 +39,7 @@
 /*******************************************************************
  Close the low 3 fd's and open dev/null in their place.
 ********************************************************************/
-static void close_low_fds(bool stderr_too)
+static void close_low_fds()
 {
 #ifndef VALGRIND
 	int fd;
@@ -47,16 +47,11 @@ static void close_low_fds(bool stderr_too)
 
 	close(0);
 	close(1);
-
-	if (stderr_too)
-		close(2);
+	close(2);
 
 	/* try and use up these file descriptors, so silly
 		library routines writing to stdout etc won't cause havoc */
 	for (i=0;i<3;i++) {
-		if (i == 2 && !stderr_too)
-			continue;
-
 		fd = open("/dev/null",O_RDWR,0);
 		if (fd < 0)
 			fd = open("/dev/null",O_WRONLY,0);
@@ -99,8 +94,7 @@ void become_daemon(bool Fork)
         }
 
 	/* Close fd's 0,1,2. Needed if started by rsh */
-	close_low_fds(false);  /* Don't close stderr, let the debug system
-				  attach it to the logfile */
+	close_low_fds();
 }
 
 int pidfile(const char *path, const char *name)
