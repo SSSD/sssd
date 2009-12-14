@@ -807,15 +807,24 @@ installsssddirs::
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath)
 
+all-local:
+	cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config
+
 install-exec-hook: installsssddirs
 	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(srcdir)/config; $(PYTHON) setup.py install --prefix=$(PYTHON_PREFIX); \
+		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/config/.files; \
 	else \
-		cd $(srcdir)/config; $(PYTHON) setup.py install  --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR); \
+		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/config/.files; \
+	fi
+
+uninstall-hook:
+	if [ -f $(abs_builddir)/config/.files ]; then \
+	    cat $(abs_builddir)/config/.files | xargs -iq rm -f $(DESTDIR)/q; \
+	    rm $(abs_builddir)/config/.files ; \
 	fi
 
 clean-local:
-	cd $(srcdir)/config; $(PYTHON) setup.py clean --all
+	cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config clean --all
 
 CLEANFILES = *.X */*.X */*/*.X
 
