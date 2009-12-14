@@ -28,6 +28,16 @@
 #include "collection.h"
 #include "collection_tools.h"
 
+typedef int (*test_fn)(void);
+
+int verbose = 0;
+
+#define COLOUT(foo) \
+    do { \
+        if (verbose) foo; \
+    } while(0)
+
+
 
 int ref_collection_test(void)
 {
@@ -40,8 +50,8 @@ int ref_collection_test(void)
 
     TRACE_FLOW_STRING("ref_collection_test", "Entry.");
 
-    printf("\n\nREF TEST!!!.\n\n\n");
-    printf("Creating PEER collection.\n");
+    COLOUT(printf("\n\nREF TEST!!!.\n\n\n"));
+    COLOUT(printf("Creating PEER collection.\n"));
 
     if ((error = col_create_collection(&peer, "peer", 0)) ||
         (error = col_add_str_property(peer, NULL, "hostname", "peerhost.mytest.com", 0)) ||
@@ -53,7 +63,7 @@ int ref_collection_test(void)
         return error;
     }
 
-    printf("Creating SOCKET collection.\n");
+    COLOUT(printf("Creating SOCKET collection.\n"));
 
     if ((error = col_create_collection(&socket, "socket", 0)) ||
         (error = col_add_int_property(socket, NULL, "id", 1)) ||
@@ -65,10 +75,10 @@ int ref_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
-    printf("Adding PEER collection to SOCKET collection as a reference named PEER\n");
+    COLOUT(printf("Adding PEER collection to SOCKET collection as a reference named PEER\n"));
 
     /* Embed peer host into the socket2 as reference */
     error = col_add_collection_to_collection(socket, NULL, "peer", peer, COL_ADD_MODE_REFERENCE);
@@ -79,14 +89,14 @@ int ref_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
-    printf("About to destroy PEER\n");
+    COLOUT(printf("About to destroy PEER\n"));
     col_destroy_collection(peer);
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
 
-    printf("About to extract PEER\n");
+    COLOUT(printf("About to extract PEER\n"));
     error = col_get_collection_reference(socket, &peer, "peer");
     if (error) {
         col_destroy_collection(socket);
@@ -94,11 +104,11 @@ int ref_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(peer);
 
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
 
     error = col_get_collection_reference(socket, &socket2, NULL);
     if (error) {
@@ -107,14 +117,14 @@ int ref_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket2, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(socket);
-    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket2, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(socket2);
 
     TRACE_FLOW_NUMBER("ref_collection_test. Returning", error);
 
-    printf("\n\nEND OF REF TEST!!!.\n\n\n");
+    COLOUT(printf("\n\nEND OF REF TEST!!!.\n\n\n"));
 
     return error;
 
@@ -138,7 +148,9 @@ int single_collection_test(void)
     }
 
     error = col_add_str_property(handle, NULL, "property 1!", "some data", 0);
-    if (error) printf("Expected error adding bad property to collection %d\n", error);
+    if (error) {
+        COLOUT(printf("Expected error adding bad property to collection %d\n", error));
+    }
     else {
         printf("Expected error but got success\n");
         return -1;
@@ -157,18 +169,21 @@ int single_collection_test(void)
         col_destroy_collection(handle);
         return error;
     }
-    printf("Created collection\n");
+
+    COLOUT(printf("Created collection\n"));
 
     /* Traverse collection */
-    error = col_debug_collection(handle, COL_TRAVERSE_DEFAULT);
-    if (error) {
-        printf("Error debugging collection %d\n", error);
-        return error;
-    }
-    error = col_print_collection(handle);
-    if (error) {
-        printf("Error printing collection %d\n", error);
-        return error;
+    if (verbose) {
+        error = col_debug_collection(handle, COL_TRAVERSE_DEFAULT);
+        if (error) {
+            printf("Error debugging collection %d\n", error);
+            return error;
+        }
+        error = col_print_collection(handle);
+        if (error) {
+            printf("Error printing collection %d\n", error);
+            return error;
+        }
     }
 
     col_destroy_collection(handle);
@@ -187,8 +202,8 @@ int add_collection_test(void)
 
     TRACE_FLOW_STRING("add_collection_test", "Entry.");
 
-    printf("\n\nADD TEST!!!.\n\n\n");
-    printf("Creating PEER collection.\n");
+    COLOUT(printf("\n\nADD TEST!!!.\n\n\n"));
+    COLOUT(printf("Creating PEER collection.\n"));
 
     if ((error = col_create_collection(&peer, "peer", 0)) ||
         (error = col_add_str_property(peer, NULL, "hostname", "peerhost.mytest.com", 0)) ||
@@ -200,7 +215,7 @@ int add_collection_test(void)
         return error;
     }
 
-    printf("Creating SOCKET collection.\n");
+    COLOUT(printf("Creating SOCKET collection.\n"));
 
     if ((error = col_create_collection(&socket, "socket", 0)) ||
         (error = col_add_int_property(socket, NULL, "id", 1)) ||
@@ -212,10 +227,10 @@ int add_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
-    printf("Adding PEER collection to SOCKET collection as a reference named PEER\n");
+    COLOUT(printf("Adding PEER collection to SOCKET collection as a reference named PEER\n"));
 
     /* Embed peer host into the socket2 as reference */
     error = col_add_collection_to_collection(socket, NULL, "peer", peer, COL_ADD_MODE_REFERENCE);
@@ -226,10 +241,10 @@ int add_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(peer);
-    col_debug_collection(socket, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(socket);
     TRACE_FLOW_NUMBER("add_collection_test. Returning", error);
     return error;
@@ -239,9 +254,9 @@ int copy_cb(struct collection_item *item,
             void *ext_data,
             int *skip)
 {
-    printf("INSIDE Copy Callback\n");
-    col_debug_item(item);
-    printf("Passed in data: %s\n", (char *) ext_data);
+    COLOUT(printf("INSIDE Copy Callback\n"));
+    COLOUT(col_debug_item(item));
+    COLOUT(printf("Passed in data: %s\n", (char *) ext_data));
     if (strcmp(col_get_item_property(item, NULL), "id") == 0) *skip = 1;
     return EOK;
 }
@@ -264,8 +279,8 @@ int mixed_collection_test(void)
 
     TRACE_FLOW_STRING("mixed_collection_test", "Entry.");
 
-    printf("\n\nMIXED TEST!!!.\n\n\n");
-    printf("Creating PEER collection.\n");
+    COLOUT(printf("\n\nMIXED TEST!!!.\n\n\n"));
+    COLOUT(printf("Creating PEER collection.\n"));
 
     if ((error = col_create_collection(&peer, "peer", 0)) ||
         (error = col_add_str_property(peer, NULL, "hostname", "peerhost.mytest.com", 0)) ||
@@ -277,9 +292,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
-    printf("Creating HOST collection.\n");
+    COLOUT(printf("Creating HOST collection.\n"));
 
     if ((error = col_create_collection(&host, "host", 0)) ||
         (error = col_add_str_property(host, NULL, "hostname", "myhost.mytest.com", 0)) ||
@@ -292,9 +307,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(host, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(host, COL_TRAVERSE_DEFAULT));
 
-    printf("Creating SOCKET1 collection.\n");
+    COLOUT(printf("Creating SOCKET1 collection.\n"));
 
     if ((error = col_create_collection(&socket1, "socket1", 0)) ||
         (error = col_add_int_property(socket1, NULL, "id", 1)) ||
@@ -307,8 +322,8 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket1, COL_TRAVERSE_DEFAULT);
-    printf("Creating a copy of SOCKET1 collection named SOCKET2.\n");
+    COLOUT(col_debug_collection(socket1, COL_TRAVERSE_DEFAULT));
+    COLOUT(printf("Creating a copy of SOCKET1 collection named SOCKET2.\n"));
 
     error = col_copy_collection(&socket2, socket1, "socket2", COL_COPY_NORMAL);
     if (error) {
@@ -319,8 +334,8 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket2, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
     error = col_copy_collection_with_cb(&socket3, socket1, "socket3",
                                         COL_COPY_FLATDOT, copy_cb, (void *)foo);
@@ -333,10 +348,10 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket3, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket3, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(socket3);
 
-    printf("Adding PEER collection to SOCKET2 collection as a reference named PEER2\n");
+    COLOUT(printf("Adding PEER collection to SOCKET2 collection as a reference named PEER2\n"));
 
     /* Embed peer host into the socket2 as reference */
     error = col_add_collection_to_collection(socket2, NULL, "peer2", peer, COL_ADD_MODE_REFERENCE);
@@ -349,9 +364,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket2, COL_TRAVERSE_DEFAULT));
 
-    printf("Creating an EVENT collection.\n");
+    COLOUT(printf("Creating an EVENT collection.\n"));
 
     /* Construct event */
     error = col_create_collection(&event, "event", 0);
@@ -364,9 +379,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_DEFAULT));
 
-    printf("Adding HOST to EVENT.\n");
+    COLOUT(printf("Adding HOST to EVENT.\n"));
 
     /* Add host to event */
     error = col_add_collection_to_collection(event, NULL, NULL, host, COL_ADD_MODE_REFERENCE);
@@ -379,9 +394,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_DEFAULT));
 
-    printf("Embed SOCKET1 into EVENT.\n");
+    COLOUT(printf("Embed SOCKET1 into EVENT.\n"));
     /* Donate socket1 to event */
     /* Socket1 should not be used after this */
     error = col_add_collection_to_collection(event, NULL, NULL, socket1, COL_ADD_MODE_EMBED);
@@ -394,20 +409,20 @@ int mixed_collection_test(void)
         return error;
     }
 
-    printf("Traverse one level:\n");
-    col_debug_collection(event, COL_TRAVERSE_ONELEVEL);
-    printf("Traverse ignore subcollections:\n");
-    col_debug_collection(event, COL_TRAVERSE_IGNORE);
-    printf("Traverse normal:\n");
-    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(socket1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("Traverse one level:\n"));
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_ONELEVEL));
+    COLOUT(printf("Traverse ignore subcollections:\n"));
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_IGNORE));
+    COLOUT(printf("Traverse normal:\n"));
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(socket1, COL_TRAVERSE_DEFAULT));
 
-    printf("SOCKET1 MUST NO BE USED AFTER THIS POINT!!!\n");
+    COLOUT(printf("SOCKET1 MUST NO BE USED AFTER THIS POINT!!!\n"));
     socket1 = NULL;
 
-    printf("Add collection PEER as PEER1 to subcollection SOCKET1 of the EVENT.\n");
+    COLOUT(printf("Add collection PEER as PEER1 to subcollection SOCKET1 of the EVENT.\n"));
 
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
     error = col_add_collection_to_collection(event, "socket1", "peer1", peer, COL_ADD_MODE_CLONE);
     if (error) {
@@ -419,9 +434,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_DEFAULT));
 
-    printf("Add property named TIMEOUT to PEER collection.\n");
+    COLOUT(printf("Add property named TIMEOUT to PEER collection.\n"));
 
     /* Add new property to the peer collection */
     error = col_add_int_property(peer, NULL, "timeout", 5);
@@ -434,9 +449,9 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(socket2, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(socket2, COL_TRAVERSE_DEFAULT));
 
-    printf("Add property named DELAY to PEER1 collection.\n");
+    COLOUT(printf("Add property named DELAY to PEER1 collection.\n"));
 
     error = col_add_int_property(event, "peer1", "delay", 10);
     if (error) {
@@ -448,10 +463,10 @@ int mixed_collection_test(void)
         return error;
     }
 
-    col_debug_collection(event, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(host, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(event, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(host, COL_TRAVERSE_DEFAULT));
 
-    printf("Check if property PEER1.DELAY is in the EVENT collection.\n");
+    COLOUT(printf("Check if property PEER1.DELAY is in the EVENT collection.\n"));
 
     /* Check if the property in the collection */
     found = 0;
@@ -465,26 +480,32 @@ int mixed_collection_test(void)
         return error;
     }
 
-    if (found == 1) printf("Property is found!\n");
-    else printf("Error property is not found!\n");
-
-
-    col_print_item(event, "peer1!IPv6");
-    col_print_item(event, "event!socket1!peer1!IPv6");
-    col_print_item(event, "event!peer1!IPv6");
-    col_print_item(event, "speer1!IPv6");
-    col_print_item(event, "eer1!IPv6");
-    col_print_item(event, "!peer1!IPv6");
-    col_print_item(event, "t!peer1!IPv6");
-
-    /* Traverse collection */
-    error = col_print_collection2(event);
-    if (error) {
-        printf("Error printing collection %d\n", error);
-        return error;
+    if (found == 1) {
+        COLOUT(printf("Property is found!\n"));
+    }
+    else {
+        COLOUT(printf("Error property is not found!\n"));
     }
 
-    printf("Delete property PEER1!DELAY from the EVENT collection.\n");
+
+    COLOUT(col_print_item(event, "peer1!IPv6"));
+    COLOUT(col_print_item(event, "event!socket1!peer1!IPv6"));
+    COLOUT(col_print_item(event, "event!peer1!IPv6"));
+    COLOUT(col_print_item(event, "speer1!IPv6"));
+    COLOUT(col_print_item(event, "eer1!IPv6"));
+    COLOUT(col_print_item(event, "!peer1!IPv6"));
+    COLOUT(col_print_item(event, "t!peer1!IPv6"));
+
+    /* Traverse collection */
+    if (verbose) {
+        error = col_print_collection2(event);
+        if (error) {
+            printf("Error printing collection %d\n", error);
+            return error;
+        }
+    }
+
+    COLOUT(printf("Delete property PEER1!DELAY from the EVENT collection.\n"));
 
     error = col_delete_property(event, "peer1!delay", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT);
     if (error) {
@@ -496,49 +517,56 @@ int mixed_collection_test(void)
         return error;
     }
 
-    printf("Printing EVENT.\n");
+    COLOUT(printf("Printing EVENT.\n"));
 
     /* Traverse collection */
-    error = col_print_collection2(event);
-    if (error) {
-        printf("Error printing collection %d\n", error);
-        return error;
-    }
-    printf("Debugging EVENT.\n");
-
-    error = col_debug_collection(event, COL_TRAVERSE_DEFAULT);
-    if (error) {
-        printf("Error printing collection %d\n", error);
-        return error;
+    if (verbose) {
+        error = col_print_collection2(event);
+        if (error) {
+            printf("Error printing collection %d\n", error);
+            return error;
+        }
     }
 
-    printf("Cleanup of the collections PEER, HOST and SOCKET2.\n");
+    COLOUT(printf("Debugging EVENT.\n"));
+    if (verbose) {
+        error = col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+        if (error) {
+            printf("Error printing collection %d\n", error);
+            return error;
+        }
+    }
+    COLOUT(printf("Cleanup of the collections PEER, HOST and SOCKET2.\n"));
 
     /* Destroy a referenced collection */
     col_destroy_collection(peer);
     col_destroy_collection(host);
     col_destroy_collection(socket2);
 
-    printf("Printing EVENT again.\n");
+    COLOUT(printf("Printing EVENT again.\n"));
 
     /* Traverse collection again - peer should still be there */
-    error = col_print_collection(event);
-    if (error) {
-        col_destroy_collection(event);
-        printf("Error printing collection %d\n", error);
-        return error;
+    if (verbose) {
+        error = col_print_collection(event);
+        if (error) {
+            col_destroy_collection(event);
+            printf("Error printing collection %d\n", error);
+            return error;
+        }
     }
 
-    printf("Debugging EVENT again.\n");
+    COLOUT(printf("Debugging EVENT again.\n"));
 
-    error = col_debug_collection(event, COL_TRAVERSE_DEFAULT);
-    if (error) {
-        col_destroy_collection(event);
-        printf("Error printing collection %d\n", error);
-        return error;
+    if (verbose) {
+        error = col_debug_collection(event, COL_TRAVERSE_DEFAULT);
+        if (error) {
+            col_destroy_collection(event);
+            printf("Error printing collection %d\n", error);
+            return error;
+        }
     }
 
-    printf("Attempt to add property to a referenced collection.\n");
+    COLOUT(printf("Attempt to add property to a referenced collection.\n"));
 
     error = col_add_int_property(event, "host", "session", 500);
     if (error) {
@@ -547,7 +575,7 @@ int mixed_collection_test(void)
         return error;
     }
 
-    printf("Attempt to delete non-existent property.\n");
+    COLOUT(printf("Attempt to delete non-existent property.\n"));
 
     /* Can't delete non exitent property */
     error = col_delete_property(event, "host.host", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT);
@@ -556,7 +584,7 @@ int mixed_collection_test(void)
         printf("Error was able to delete property that does not exist.\n");
         return -1;
     }
-    else printf("Expected error %d\n", error);
+    else COLOUT(printf("Expected error %d\n", error));
 
     /* Set collection class */
     error = col_set_collection_class(event, 2);
@@ -572,20 +600,22 @@ int mixed_collection_test(void)
         printf("Error was NOT able to get class.\n");
         return error;
     }
-    else printf("Class = %d\n", class);
+    else COLOUT(printf("Class = %d\n", class));
 
-    if (col_is_of_class(event, 2)) printf("Class mathced!\n");
+    if (col_is_of_class(event, 2)) {
+        COLOUT(printf("Class mathced!\n"));
+    }
     else {
         col_destroy_collection(event);
         printf("Error - bad class.\n");
         return -1;
     }
 
-    printf("Done. Cleaning...\n");
+    COLOUT(printf("Done. Cleaning...\n"));
 
     col_destroy_collection(event);
 
-    printf("Exit.\n");
+    COLOUT(printf("Exit.\n"));
     TRACE_FLOW_NUMBER("add_collection_test. Returning", EOK);
     return EOK;
 }
@@ -610,7 +640,7 @@ int iterator_test(void)
     uint64_t hash1, hash2;
     int rwnd = 0;
 
-    printf("\n\n==== ITERATOR TEST ====\n\n");
+    COLOUT(printf("\n\n==== ITERATOR TEST ====\n\n"));
 
     if ((error = col_create_collection(&initial, "strater", 0)) ||
         (error = col_create_collection(&peer, "peer", 0)) ||
@@ -711,13 +741,13 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nCollection (traverse default):\n\n");
-    col_debug_collection(peer, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\n\nCollection (traverse default):\n\n"));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_DEFAULT));
 
-    printf("\n\nCollection (traverse flat):\n\n");
-    col_debug_collection(peer, COL_TRAVERSE_FLAT | COL_TRAVERSE_END);
+    COLOUT(printf("\n\nCollection (traverse flat):\n\n"));
+    COLOUT(col_debug_collection(peer, COL_TRAVERSE_FLAT | COL_TRAVERSE_END));
 
-    printf("\n\nIteration (1):\n\n");
+    COLOUT(printf("\n\nIteration (1):\n\n"));
 
     do {
 
@@ -740,17 +770,17 @@ int iterator_test(void)
         col_get_iterator_depth(iterator, &idepth);
 
 
-        printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
+        COLOUT(printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
                 depth * 4,  "",
                 col_get_item_property(item, NULL),
                 col_get_item_type(item),
                 col_get_item_length(item),
                 depth,
-                idepth);
+                idepth));
 
         if ((strcmp(col_get_item_property(item, NULL), "id")==0) &&
            (*((int *)(col_get_item_data(item))) == 1)) {
-            printf("\n\nFound property we need - go up!!!\n\n\n");
+            COLOUT(printf("\n\nFound property we need - go up!!!\n\n\n"));
 
             /* This should work! */
             error = col_iterate_up(iterator, 1);
@@ -762,31 +792,31 @@ int iterator_test(void)
             }
 
             if ((error = col_modify_str_item(item, "id2", "test", 0)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_str_item(item, NULL, "test", 2)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_binary_item(item, NULL, binary_dump, sizeof(binary_dump))) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_bool_item(item, NULL, 1)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_int_item(item, "int", 1)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_long_item(item, "long", 1000000000L)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_ulong_item(item, "ulong", 4000000000UL)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_unsigned_item(item, "unsigned", 4000000000U)) ||
-                (error = col_debug_item(item)) ||
+                ((verbose) && (error = col_debug_item(item))) ||
                 (error = col_modify_double_item(item, "double", -1.1)) ||
-                (error = col_debug_item(item))) {
+                ((verbose) && (error = col_debug_item(item)))) {
                 printf("Failed to change property.\n");
                 col_unbind_iterator(iterator);
                 col_destroy_collection(peer);
                 return error;
             }
 
-            printf("Item name: %s\n", col_get_item_property(item, NULL));
-            printf("Item hash: %lu\n", (unsigned long int)col_get_item_hash(item));
+            COLOUT(printf("Item name: %s\n", col_get_item_property(item, NULL)));
+            COLOUT(printf("Item hash: %lu\n", (unsigned long int)col_get_item_hash(item)));
             error = col_modify_item_property(item, "new_name");
             if (error) {
                 printf("We expected success but got error %d\n", error);
@@ -795,21 +825,21 @@ int iterator_test(void)
                 return error;
             }
             len = 0;
-            printf("Item name: %s\n", col_get_item_property(item, &len));
-            printf("Item hash: %lu\n", (unsigned long int)col_get_item_hash(item));
-            printf("Item length: %d\n", len);
+            COLOUT(printf("Item name: %s\n", col_get_item_property(item, &len)));
+            COLOUT(printf("Item hash: %lu\n", (unsigned long int)col_get_item_hash(item)));
+            COLOUT(printf("Item length: %d\n", len));
 
             len = 0;
             hash1 = col_make_hash("new_name", 0, &len);
-            printf("String name: %s\n", "new_name");
-            printf("String hash: %lu\n", (unsigned long int)hash1);
-            printf("String length: %d\n", len);
+            COLOUT(printf("String name: %s\n", "new_name"));
+            COLOUT(printf("String hash: %lu\n", (unsigned long int)hash1));
+            COLOUT(printf("String length: %d\n", len));
 
             len = 0;
             hash2 = col_make_hash("new_name_suffix", 8, &len);
-            printf("String name: %.*s\n", len, "new_name_suffix");
-            printf("String hash: %lu\n", (unsigned long int)hash2);
-            printf("String length: %d\n", len);
+            COLOUT(printf("String name: %.*s\n", len, "new_name_suffix"));
+            COLOUT(printf("String hash: %lu\n", (unsigned long int)hash2));
+            COLOUT(printf("String length: %d\n", len));
             if (hash1 != hash2) {
                 printf("Hash calculation failed\n");
                 col_unbind_iterator(iterator);
@@ -818,9 +848,9 @@ int iterator_test(void)
             }
 
             hash2 = col_make_hash("new_name", 8, &len);
-            printf("String name: %.*s\n", len, "new_name");
-            printf("String hash: %lu\n", (unsigned long int)hash2);
-            printf("String length: %d\n", len);
+            COLOUT(printf("String name: %.*s\n", len, "new_name"));
+            COLOUT(printf("String hash: %lu\n", (unsigned long int)hash2));
+            COLOUT(printf("String length: %d\n", len));
             if (hash1 != hash2) {
                 printf("Hash calculation failed\n");
                 col_unbind_iterator(iterator);
@@ -842,7 +872,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nIteration (2 - flat):\n\n");
+    COLOUT(printf("\n\nIteration (2 - flat):\n\n"));
 
     do {
 
@@ -860,12 +890,12 @@ int iterator_test(void)
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
-        printf("%*s", depth * 4, "");
-        col_debug_item(item);
+        COLOUT(printf("%*s", depth * 4, ""));
+        COLOUT(col_debug_item(item));
 
         if ((strcmp(col_get_item_property(item, NULL), "queue") == 0) &&
             (rwnd == 0)) {
-            printf("Rewinding iterator...\n");
+            COLOUT(printf("Rewinding iterator...\n"));
             col_rewind_iterator(iterator);
             rwnd++;
         }
@@ -884,7 +914,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nIteration (3 flat with end):\n\n");
+    COLOUT(printf("\n\nIteration (3 flat with end):\n\n"));
 
     do {
 
@@ -902,8 +932,8 @@ int iterator_test(void)
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
-        printf("%*s", depth * 4, "");
-        col_debug_item(item);
+        COLOUT(printf("%*s", depth * 4, ""));
+        COLOUT(col_debug_item(item));
 
     }
     while(1);
@@ -919,7 +949,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nIteration (4 default with end):\n\n");
+    COLOUT(printf("\n\nIteration (4 default with end):\n\n"));
 
     do {
 
@@ -937,8 +967,8 @@ int iterator_test(void)
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
-        printf("%*s", depth * 4, "");
-        col_debug_item(item);
+        COLOUT(printf("%*s", depth * 4, ""));
+        COLOUT(col_debug_item(item));
 
     }
     while(1);
@@ -955,7 +985,7 @@ int iterator_test(void)
     }
 
 
-    printf("\n\nIteration (5 show headers and references with end):\n\n");
+    COLOUT(printf("\n\nIteration (5 show headers and references with end):\n\n"));
 
     do {
 
@@ -973,8 +1003,8 @@ int iterator_test(void)
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
-        printf("%*s", depth * 4, "");
-        col_debug_item(item);
+        COLOUT(printf("%*s", depth * 4, ""));
+        COLOUT(col_debug_item(item));
 
     }
     while(1);
@@ -991,7 +1021,7 @@ int iterator_test(void)
     }
 
 
-    printf("\n\nIteration (6 show headers and references no END):\n\n");
+    COLOUT(printf("\n\nIteration (6 show headers and references no END):\n\n"));
 
     do {
 
@@ -1009,8 +1039,8 @@ int iterator_test(void)
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
-        printf("%*s", depth * 4, "");
-        col_debug_item(item);
+        COLOUT(printf("%*s", depth * 4, ""));
+        COLOUT(col_debug_item(item));
 
     }
     while(1);
@@ -1026,7 +1056,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nIteration (7 show headers only no END):\n\n");
+    COLOUT(printf("\n\nIteration (7 show headers only no END):\n\n"));
 
     do {
 
@@ -1044,8 +1074,8 @@ int iterator_test(void)
 
         depth = 0;
         col_get_item_depth(iterator, &depth);
-        printf("%*s", depth * 4, "");
-        col_debug_item(item);
+        COLOUT(printf("%*s", depth * 4, ""));
+        COLOUT(col_debug_item(item));
 
     }
     while(1);
@@ -1062,7 +1092,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nIterate up test:\n\n");
+    COLOUT(printf("\n\nIterate up test:\n\n"));
 
     do {
 
@@ -1084,18 +1114,18 @@ int iterator_test(void)
         col_get_iterator_depth(iterator, &idepth);
 
 
-        printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
+        COLOUT(printf("%*sProperty (%s), type = %d, data size = %d depth = %d idepth = %d\n",
                 depth * 4,  "",
                 col_get_item_property(item, NULL),
                 col_get_item_type(item),
                 col_get_item_length(item),
                 depth,
-                idepth);
+                idepth));
 
         if (strcmp(col_get_item_property(item, NULL), "queue") == 0)  {
 
-            printf("\n\nFound property we need - go up!!!\n");
-            printf("Expect bail out of collection processing.\n\n");
+            COLOUT(printf("\n\nFound property we need - go up!!!\n"));
+            COLOUT(printf("Expect bail out of collection processing.\n\n"));
 
             /* This should work! */
             error = col_iterate_up(iterator, 10);
@@ -1120,7 +1150,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nCircled looping:\n\n");
+    COLOUT(printf("\n\nCircled looping:\n\n"));
 
     for (i = 0; i < 200; i++) {
         /* Loop through a collection */
@@ -1133,12 +1163,14 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == NULL) printf("Reached end.\n\n");
+        if (item == NULL) {
+            COLOUT(printf("Reached end.\n\n"));
+        }
         else {
             depth = 0;
             col_get_item_depth(iterator, &depth);
-            printf("%*s", depth * 4, "");
-            col_debug_item(item);
+            COLOUT(printf("%*s", depth * 4, ""));
+            COLOUT(col_debug_item(item));
         }
     }
 
@@ -1153,7 +1185,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nCircled looping with pin:\n\n");
+    COLOUT(printf("\n\nCircled looping with pin:\n\n"));
 
     do {
         /* Loop through a collection */
@@ -1168,7 +1200,7 @@ int iterator_test(void)
         if (strcmp(col_get_item_property(item, NULL), "queue") == 0) {
             /* Make it a new looping point */
             col_pin_iterator(iterator);
-            printf("Found pin point.\n\n");
+            COLOUT(printf("Found pin point.\n\n"));
             break;
         }
         /* Are we done ? */
@@ -1181,8 +1213,8 @@ int iterator_test(void)
         else {
             depth = 0;
             col_get_item_depth(iterator, &depth);
-            printf("%*s", depth * 4, "");
-            col_debug_item(item);
+            COLOUT(printf("%*s", depth * 4, ""));
+            COLOUT(col_debug_item(item));
         }
     }
     while(1);
@@ -1199,12 +1231,14 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == NULL) printf("Reached end.\n\n");
+        if (item == NULL) {
+            COLOUT(printf("Reached end.\n\n"));
+        }
         else {
             depth = 0;
             col_get_item_depth(iterator, &depth);
-            printf("%*s", depth * 4, "");
-            col_debug_item(item);
+            COLOUT(printf("%*s", depth * 4, ""));
+            COLOUT(col_debug_item(item));
         }
     }
 
@@ -1220,7 +1254,7 @@ int iterator_test(void)
         return error;
     }
 
-    printf("\n\nCircled looping with pin (default):\n\n");
+    COLOUT(printf("\n\nCircled looping with pin (default):\n\n"));
 
     do {
         /* Loop through a collection */
@@ -1235,7 +1269,7 @@ int iterator_test(void)
         if (strcmp(col_get_item_property(item, NULL), "queue") == 0) {
             /* Make it a new looping point */
             col_pin_iterator(iterator);
-            printf("Found pin point.\n\n");
+            COLOUT(printf("Found pin point.\n\n"));
             break;
         }
         /* Are we done ? */
@@ -1248,8 +1282,8 @@ int iterator_test(void)
         else {
             depth = 0;
             col_get_item_depth(iterator, &depth);
-            printf("%*s", depth * 4, "");
-            col_debug_item(item);
+            COLOUT(printf("%*s", depth * 4, ""));
+            COLOUT(col_debug_item(item));
         }
     }
     while(1);
@@ -1266,12 +1300,14 @@ int iterator_test(void)
         }
 
         /* Are we done ? */
-        if (item == NULL) printf("Reached end.\n\n");
+        if (item == NULL) {
+            COLOUT(printf("Reached end.\n\n"));
+        }
         else {
             depth = 0;
             col_get_item_depth(iterator, &depth);
-            printf("%*s", depth * 4, "");
-            col_debug_item(item);
+            COLOUT(printf("%*s", depth * 4, ""));
+            COLOUT(col_debug_item(item));
         }
     }
 
@@ -1290,7 +1326,7 @@ int insert_extract_test(void)
     int error = EOK;
     struct collection_item *item = NULL;
 
-    printf("\n\n==== INSERTION TEST ====\n\n");
+    COLOUT(printf("\n\n==== INSERTION TEST ====\n\n"));
 
     if ((error = col_create_collection(&col, "insertion", 0)) ||
         (error = col_insert_str_property(col, NULL, COL_DSP_END,
@@ -1363,11 +1399,11 @@ int insert_extract_test(void)
         return error;
     }
 
-    printf("\n\nCollection:\n\n");
-    col_debug_collection(col, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\n\nCollection:\n\n"));
+    COLOUT(col_debug_collection(col, COL_TRAVERSE_DEFAULT));
 
 
-    printf("\n\n==== EXTRACTION TEST ====\n\n");
+    COLOUT(printf("\n\n==== EXTRACTION TEST ====\n\n"));
 
     if ((error = col_create_collection(&col2, "extraction", 0)) ||
 
@@ -1377,7 +1413,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_FRONT,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_extract_item(col, NULL, COL_DSP_END,
                                   NULL, 0, 0, &item)) ||
@@ -1385,7 +1421,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_insert_str_property(col, NULL, COL_DSP_INDEX,
                                          NULL, 100, COL_INSERT_NOCHECK,
@@ -1397,7 +1433,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_extract_item(col, NULL, COL_DSP_BEFORE,
                                   "property0", 0, COL_TYPE_STRING, &item)) ||
@@ -1405,7 +1441,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_extract_item(col, NULL, COL_DSP_INDEX,
                                   NULL, 1, 0, &item)) ||
@@ -1413,7 +1449,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_extract_item(col, NULL, COL_DSP_NDUP,
                                   "property0", 1, 0, &item)) ||
@@ -1421,7 +1457,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_extract_item(col, NULL, COL_DSP_LASTDUP,
                                   "property0", 0, 0, &item)) ||
@@ -1429,7 +1465,7 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) ||
 
         (error = col_extract_item(col, NULL, COL_DSP_FIRSTDUP,
                                   "property0", 0, 0, &item)) ||
@@ -1437,22 +1473,22 @@ int insert_extract_test(void)
         (error = col_insert_item(col2, NULL, item, COL_DSP_END,
                                  NULL, 0, COL_INSERT_NOCHECK)) ||
 
-        (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT))) {
+        ((verbose) && (error = col_debug_collection(col2, COL_TRAVERSE_DEFAULT)))) {
 
-        printf("ERROR in the EXTRACTION TEST\n");
-        printf("Collection 1\n");
-        col_debug_collection(col, COL_TRAVERSE_DEFAULT);
-        printf("Collection 2\n");
-        col_debug_collection(col2, COL_TRAVERSE_DEFAULT);
+        COLOUT(printf("ERROR in the EXTRACTION TEST\n"));
+        COLOUT(printf("Collection 1\n"));
+        COLOUT(col_debug_collection(col, COL_TRAVERSE_DEFAULT));
+        COLOUT(printf("Collection 2\n"));
+        COLOUT(col_debug_collection(col2, COL_TRAVERSE_DEFAULT));
         col_destroy_collection(col);
         col_destroy_collection(col2);
         return error;
     }
 
-    printf("Collection 1\n");
-    col_debug_collection(col, COL_TRAVERSE_DEFAULT);
-    printf("Collection 2\n");
-    col_debug_collection(col2, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("Collection 1\n"));
+    COLOUT(col_debug_collection(col, COL_TRAVERSE_DEFAULT));
+    COLOUT(printf("Collection 2\n"));
+    COLOUT(col_debug_collection(col2, COL_TRAVERSE_DEFAULT));
 
     col_destroy_collection(col2);
     col_destroy_collection(col);
@@ -1467,51 +1503,51 @@ int delete_test(void)
     struct collection_item *col;
     int error = EOK;
 
-    printf("\n\n==== DELETION TEST 1====\n\n");
+    COLOUT(printf("\n\n==== DELETION TEST 1====\n\n"));
 
     if ((error = col_create_collection(&col, "test", 0)) ||
         (error = col_add_int_property(col, NULL, "tt", 1)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_add_int_property(col, NULL, "test", 1)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_delete_property(col, "test", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_add_int_property(col, NULL, "test", 1)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_delete_property(col, "test", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_add_int_property(col, NULL, "test", 1))) {
         printf("Error in delete test %d\n", error);
         col_destroy_collection(col);
         return error;
     }
 
-    col_debug_collection(col, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(col, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(col);
 
-    printf("\n\n==== DELETION TEST 1 END ====\n\n");
-    printf("\n\n==== DELETION TEST 2====\n\n");
+    COLOUT(printf("\n\n==== DELETION TEST 1 END ====\n\n"));
+    COLOUT(printf("\n\n==== DELETION TEST 2====\n\n"));
 
     if ((error = col_create_collection(&col, "test2", 0)) ||
         (error = col_add_int_property(col, NULL, "tt", 1)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_add_int_property(col, NULL, "test", 1)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_remove_item(col, NULL, COL_DSP_END, NULL, 0, COL_TYPE_ANY)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_add_int_property(col, NULL, "test", 1)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_remove_item_from_current(col, COL_DSP_AFTER, "tt", 0, COL_TYPE_ANY)) ||
-        (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT)) ||
+        ((verbose) && (error = col_debug_collection(col, COL_TRAVERSE_DEFAULT))) ||
         (error = col_add_int_property(col, NULL, "test", 1))) {
         printf("Error in delete test %d\n", error);
         col_destroy_collection(col);
         return error;
     }
 
-    col_debug_collection(col, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(col, COL_TRAVERSE_DEFAULT));
 
-    printf("\n\n==== DELETION TEST 2 END ====\n\n");
+    COLOUT(printf("\n\n==== DELETION TEST 2 END ====\n\n"));
 
 
     col_destroy_collection(col);
@@ -1530,7 +1566,7 @@ int search_test(void)
     int found = 0;
     int error = 0;
 
-    printf("\n\n==== SEARCH TEST ====\n\n");
+    COLOUT(printf("\n\n==== SEARCH TEST ====\n\n"));
 
     if ((error = col_create_collection(&level1, "level1", 0)) ||
         (error = col_create_collection(&level2, "level2", 0)) ||
@@ -1550,7 +1586,7 @@ int search_test(void)
         return error;
     }
 
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     error = col_is_item_in_collection(level1, "level1!level2!level3!level4!", COL_TYPE_ANY, COL_TRAVERSE_DEFAULT, &found);
     if (!error) {
@@ -1573,7 +1609,7 @@ int search_test(void)
         printf("Failed to find item [level1!level2!level3!level4!id]. Error %d\n", error);
         return error ? error : ENOENT;
     }
-    else printf("Expected item is found\n");
+    else COLOUT(printf("Expected item is found\n"));
 
 
     found = 0;
@@ -1587,7 +1623,7 @@ int search_test(void)
         printf("Failed to find item [level3!level4!id]. Error %d\n", error);
         return error ? error : ENOENT;
     }
-    else printf("Expected item is found\n");
+    else COLOUT(printf("Expected item is found\n"));
 
     found = 0;
     error = 0;
@@ -1600,7 +1636,7 @@ int search_test(void)
         printf("Failed to find item [level3.packets]. Error %d\n", error);
         return error ? error : ENOENT;
     }
-    else printf("Expected item is found\n");
+    else COLOUT(printf("Expected item is found\n"));
 
     found = 0;
     error = 0;
@@ -1613,7 +1649,7 @@ int search_test(void)
         printf("Failed to find item [level1!level2!stack]. Error %d\n", error);
         return error ? error : ENOENT;
     }
-    else printf("Expected item is found\n");
+    else COLOUT(printf("Expected item is found\n"));
 
     found = 0;
     error = 0;
@@ -1626,14 +1662,14 @@ int search_test(void)
         printf("Failed to find item [level1!level2!level3]. Error %d\n", error);
         return error ? error : ENOENT;
     }
-    else printf("Expected item is found\n");
+    else COLOUT(printf("Expected item is found\n"));
 
     col_destroy_collection(level1);
     col_destroy_collection(level2);
     col_destroy_collection(level3);
     col_destroy_collection(level4);
 
-    printf("\n\n==== SEARCH TEST END ====\n\n");
+    COLOUT(printf("\n\n==== SEARCH TEST END ====\n\n"));
 
     return EOK;
 }
@@ -1647,7 +1683,7 @@ int sort_test(void)
     struct collection_item *level3 = NULL;
     int error = 0;
 
-    printf("\n\n==== SORT TEST ====\n\n");
+    COLOUT(printf("\n\n==== SORT TEST ====\n\n"));
 
     if ((error = col_create_collection(&level1, "level1", 0)) ||
         (error = col_create_collection(&level2a, "level2a", 0)) ||
@@ -1701,8 +1737,8 @@ int sort_test(void)
         return error;
     }
 
-    printf("\nUNSORTED COLLECTION\n\n");
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nUNSORTED COLLECTION\n\n"));
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     error = col_sort_collection(level1, COL_CMPIN_PROP_EQU, COL_SORT_SUB | COL_SORT_MYSUB);
     if (error) {
@@ -1714,8 +1750,8 @@ int sort_test(void)
         return error;
     }
 
-    printf("\nSORTED BUT SKIPPING REFERENCES\n\n");
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nSORTED BUT SKIPPING REFERENCES\n\n"));
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     error = col_sort_collection(level1, COL_CMPIN_PROP_EQU, COL_SORT_SUB);
     if (error) {
@@ -1727,8 +1763,8 @@ int sort_test(void)
         return error;
     }
 
-    printf("\nSORTED BUT NOT SKIPPING REFERENCES\n\n");
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nSORTED BUT NOT SKIPPING REFERENCES\n\n"));
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     error = col_sort_collection(level1, COL_CMPIN_DATA_LEN, COL_SORT_SUB | COL_SORT_DESC);
     if (error) {
@@ -1740,8 +1776,8 @@ int sort_test(void)
         return error;
     }
 
-    printf("\nSORTED DESC NOT SKIPPING BY LENGTH OF DATA\n\n");
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nSORTED DESC NOT SKIPPING BY LENGTH OF DATA\n\n"));
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     error = col_sort_collection(level1, COL_CMPIN_PROP_LEN, COL_SORT_SUB | COL_SORT_DESC);
     if (error) {
@@ -1753,8 +1789,8 @@ int sort_test(void)
         return error;
     }
 
-    printf("\nSORTED DESC NOT SKIPPING BY LENGTH OF PROPERTY\n\n");
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nSORTED DESC NOT SKIPPING BY LENGTH OF PROPERTY\n\n"));
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     error = col_sort_collection(level1, COL_CMPIN_DATA, COL_SORT_SUB | COL_SORT_DESC);
     if (error) {
@@ -1766,15 +1802,15 @@ int sort_test(void)
         return error;
     }
 
-    printf("\nSORTED DESC NOT SKIPPING BY DATA\n\n");
-    col_debug_collection(level1, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nSORTED DESC NOT SKIPPING BY DATA\n\n"));
+    COLOUT(col_debug_collection(level1, COL_TRAVERSE_DEFAULT));
 
     col_destroy_collection(level1);
     col_destroy_collection(level2a);
     col_destroy_collection(level2b);
     col_destroy_collection(level3);
 
-    printf("\n\n==== SORT TEST END ====\n\n");
+    COLOUT(printf("\n\n==== SORT TEST END ====\n\n"));
 
     return EOK;
 }
@@ -1784,20 +1820,32 @@ int sort_test(void)
 int main(int argc, char *argv[])
 {
     int error = 0;
+    test_fn tests[] = { ref_collection_test,
+                        single_collection_test,
+                        add_collection_test,
+                        mixed_collection_test,
+                        iterator_test,
+                        insert_extract_test,
+                        delete_test,
+                        search_test,
+                        sort_test,
+                        NULL };
+    test_fn t;
+    int i = 0;
+
+    if ((argc > 1) && (strcmp(argv[1], "-v") == 0)) verbose = 1;
 
     printf("Start\n");
-    if ((error = ref_collection_test()) ||
-        (error = single_collection_test()) ||
-        (error = add_collection_test()) ||
-        (error = mixed_collection_test()) ||
-        (error = iterator_test()) ||
-        (error = insert_extract_test()) ||
-        (error = delete_test()) ||
-        (error = search_test()) ||
-        (error = sort_test())) {
-        printf("Failed!\n");
+
+    while ((t = tests[i++])) {
+        error = t();
+        if (error) {
+            printf("Failed!\n");
+            return error;
+        }
     }
-    else printf("Success!\n");
-    /* Add other tests here ... */
-    return error;
+
+    printf("Success!\n");
+    return 0;
+
 }

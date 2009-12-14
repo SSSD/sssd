@@ -436,6 +436,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                 if (col_find_property(collection, item->property, 0, 0, 0, &parent)) {
                                     current = parent->next;
                                     parent->next = current->next;
+                                    if (header->last == current) header->last = parent;
                                     col_delete_item(current);
                                     header->count--;
                                 }
@@ -449,6 +450,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                                     TRACE_INFO_NUMBER("Current:", (unsigned)(parent->next));
                                     current = parent->next;
                                     parent->next = current->next;
+                                    if (header->last == current) header->last = parent;
                                     col_delete_item(current);
                                     header->count--;
                                 }
@@ -463,7 +465,7 @@ int col_insert_item_into_current(struct collection_item *collection,
 
     switch (disposition) {
     case COL_DSP_END:       /* Link new item to the last item in the list if there any */
-                            if (header->last != NULL) header->last->next = item;
+                            if (header->count != 0) header->last->next = item;
                             /* Make sure we save a new last element */
                             header->last = item;
                             header->count++;
@@ -539,7 +541,7 @@ int col_insert_item_into_current(struct collection_item *collection,
                             }
                             else if(idx >= header->count - 1) {
                                 /* In this case add to the end */
-                                if (header->last != NULL) header->last->next = item;
+                                header->last->next = item;
                                 /* Make sure we save a new last element */
                                 header->last = item;
                             }
@@ -638,7 +640,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                             *ret_ref = parent->next;
                             parent->next = NULL;
                             /* Special case - one data element */
-                            if (header->count == 2) header->last = NULL;
+                            if (header->count == 2) header->last = collection;
                             else header->last = parent;
                             break;
 
@@ -646,7 +648,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                             *ret_ref = collection->next;
                             collection->next = (*ret_ref)->next;
                             /* Special case - one data element */
-                            if (header->count == 2) header->last = NULL;
+                            if (header->count == 2) header->last = collection;
                             break;
 
     case COL_DSP_BEFORE:    /* Check argument */
@@ -711,7 +713,7 @@ int col_extract_item_from_current(struct collection_item *collection,
                                 *ret_ref = collection->next;
                                 collection->next = (*ret_ref)->next;
                                 /* Special case - one data element */
-                                if (header->count == 2) header->last = NULL;
+                                if (header->count == 2) header->last = collection;
                             }
                             /* Index 0 stands for the first data element.
                              * Count includes header element.

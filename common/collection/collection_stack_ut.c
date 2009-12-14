@@ -28,6 +28,16 @@
 #include "collection_stack.h"
 #include "collection_tools.h"
 
+typedef int (*test_fn)(void);
+
+int verbose = 0;
+
+#define COLOUT(foo) \
+    do { \
+        if (verbose) foo; \
+    } while(0)
+
+
 
 int stack_test(void)
 {
@@ -40,7 +50,7 @@ int stack_test(void)
 
     TRACE_FLOW_STRING("stack_test", "Entry.");
 
-    printf("\n\nSTACK TEST!!!.\n\n\n");
+    COLOUT(printf("\n\nSTACK TEST!!!.\n\n\n"));
 
     if ((error = col_create_stack(&stack)) ||
         (error = col_push_str_property(stack, "item1", "value 1", 0)) ||
@@ -56,9 +66,9 @@ int stack_test(void)
         return error;
     }
 
-    col_debug_collection(stack, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(stack, COL_TRAVERSE_DEFAULT));
 
-    printf("Swapping last two items by popping and pushing them back.\n");
+    COLOUT(printf("Swapping last two items by popping and pushing them back.\n"));
 
     if ((error = col_pop_item(stack, &item1)) ||
         (error = col_pop_item(stack, &item2))) {
@@ -67,14 +77,14 @@ int stack_test(void)
         return error;
     }
 
-    printf("\nPopped two last items.\n");
-    col_debug_collection(stack, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("\nPopped two last items.\n"));
+    COLOUT(col_debug_collection(stack, COL_TRAVERSE_DEFAULT));
 
-    printf("\nLast item.\n");
-    col_debug_item(item1);
+    COLOUT(printf("\nLast item.\n"));
+    COLOUT(col_debug_item(item1));
 
-    printf("\nPrevious item.\n");
-    col_debug_item(item2);
+    COLOUT(printf("\nPrevious item.\n"));
+    COLOUT(col_debug_item(item2));
 
     if ((error = col_push_item(stack, item1)) ||
         (error = col_push_item(stack, item2))) {
@@ -83,13 +93,13 @@ int stack_test(void)
         return error;
     }
 
-    printf("\n\nPushed two items again in reverse order.\n\n");
+    COLOUT(printf("\n\nPushed two items again in reverse order.\n\n"));
 
-    col_debug_collection(stack, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(stack, COL_TRAVERSE_DEFAULT));
     col_destroy_collection(stack);
     TRACE_FLOW_NUMBER("stack_test. Returning", error);
 
-    printf("\n\nEND OF STACK TEST!!!.\n\n");
+    COLOUT(printf("\n\nEND OF STACK TEST!!!.\n\n"));
 
     return error;
 }
@@ -98,11 +108,24 @@ int stack_test(void)
 
 int main(int argc, char *argv[])
 {
-    int error = EOK;
+    int error = 0;
+    test_fn tests[] = { stack_test,
+                        NULL };
+    test_fn t;
+    int i = 0;
+
+    if ((argc > 1) && (strcmp(argv[1], "-v") == 0)) verbose = 1;
 
     printf("Start\n");
-    if ((error = stack_test())) printf("Failed!\n");
-    else printf("Success!\n");
 
-    return error;
+    while ((t = tests[i++])) {
+        error = t();
+        if (error) {
+            printf("Failed!\n");
+            return error;
+        }
+    }
+
+    printf("Success!\n");
+    return 0;
 }

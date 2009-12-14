@@ -28,6 +28,15 @@
 #include "collection_queue.h"
 #include "collection_tools.h"
 
+typedef int (*test_fn)(void);
+
+int verbose = 0;
+
+#define COLOUT(foo) \
+    do { \
+        if (verbose) foo; \
+    } while(0)
+
 
 int queue_test(void)
 {
@@ -40,7 +49,7 @@ int queue_test(void)
 
     TRACE_FLOW_STRING("queue_test","Entry.");
 
-    printf("\n\nQUEUE TEST!!!.\n\n\n");
+    COLOUT(printf("\n\nQUEUE TEST!!!.\n\n\n"));
 
     if((error = col_create_queue(&queue)) ||
        (error = col_enqueue_str_property(queue, "item1","value 1" ,0)) ||
@@ -56,7 +65,7 @@ int queue_test(void)
         return error;
     }
 
-    col_debug_collection(queue,COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
 
     error = col_get_collection_count(queue, &count);
     if (error) {
@@ -67,7 +76,7 @@ int queue_test(void)
 
     count--;
 
-    printf("Rotate the queue.\n");
+    COLOUT(printf("Rotate the queue.\n"));
 
     for (i = 0; i < count; i++) {
         if ((error = col_dequeue_item(queue, &item)) ||
@@ -76,26 +85,124 @@ int queue_test(void)
             col_destroy_collection(queue);
             return error;
         }
-        col_debug_collection(queue,COL_TRAVERSE_DEFAULT);
+        COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
     }
 
     col_destroy_collection(queue);
     TRACE_FLOW_NUMBER("queue_test. Returning", error);
 
-    printf("\n\nEND OF QUEUE TEST!!!.\n\n\n");
+    COLOUT(printf("\n\nEND OF QUEUE TEST!!!.\n\n\n"));
 
     return error;
 }
 
-/* Main function of the unit test */
 
-int main(int argc, char *argv[])
+int empty_test(void)
 {
+    struct collection_item *queue = NULL;
+    struct collection_item *item = NULL;
+    int i;
+    unsigned count;
     int error = EOK;
 
-    printf("Start\n");
-    if ((error = queue_test())) printf("Failed!\n");
-    else printf("Success!\n");
+    TRACE_FLOW_STRING("empty_test","Entry.");
+
+    COLOUT(printf("\n\nEMPTY QUEUE TEST!!!.\n\n\n"));
+
+    if((error = col_create_queue(&queue)) ||
+       (error = col_enqueue_str_property(queue, "item1","value 1" ,0)) ||
+       (error = col_enqueue_int_property(queue, "item2", -1)) ||
+       (error = col_enqueue_unsigned_property(queue, "item3", 1))) {
+        printf("Failed to enqueue property. Error %d\n", error);
+        col_destroy_collection(queue);
+        return error;
+    }
+
+    COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
+
+    error = col_get_collection_count(queue, &count);
+    if (error) {
+        printf("Failed to get count. Error %d\n", error);
+        col_destroy_collection(queue);
+        return error;
+    }
+
+    count--;
+
+    COLOUT(printf("Empty the queue.\n"));
+
+    for (i = 0; i < count; i++) {
+        if ((error = col_dequeue_item(queue, &item))) {
+            printf("Failed to dequeue or enqueue items. Error %d\n", error);
+            col_destroy_collection(queue);
+            return error;
+        }
+        COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
+    }
+
+    COLOUT(printf("Add elemebts again.\n"));
+    if((error = col_create_queue(&queue)) ||
+       (error = col_enqueue_str_property(queue, "item1","value 1" ,0)) ||
+       (error = col_enqueue_int_property(queue, "item2", -1)) ||
+       (error = col_enqueue_unsigned_property(queue, "item3", 1))) {
+        printf("Failed to enqueue property. Error %d\n", error);
+        col_destroy_collection(queue);
+        return error;
+    }
+
+    COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
+
+    error = col_get_collection_count(queue, &count);
+    if (error) {
+        printf("Failed to get count. Error %d\n", error);
+        col_destroy_collection(queue);
+        return error;
+    }
+
+    count--;
+
+    COLOUT(printf("Empty the queue again.\n"));
+
+    for (i = 0; i < count; i++) {
+        if ((error = col_dequeue_item(queue, &item))) {
+            printf("Failed to dequeue or enqueue items. Error %d\n", error);
+            col_destroy_collection(queue);
+            return error;
+        }
+        COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
+    }
+
+    col_destroy_collection(queue);
+    TRACE_FLOW_NUMBER("empty_test. Returning", error);
+
+    COLOUT(printf("\n\nEND OF QUEUE TEST!!!.\n\n\n"));
 
     return error;
+}
+
+
+/* Main function of the unit test */
+int main(int argc, char *argv[])
+{
+    int error = 0;
+    test_fn tests[] = { queue_test,
+                        empty_test,
+                        NULL };
+    test_fn t;
+    int i = 0;
+
+    if ((argc > 1) && (strcmp(argv[1], "-v") == 0)) verbose = 1;
+
+    printf("Start\n");
+
+    while ((t = tests[i++])) {
+        error = t();
+        if (error) {
+            printf("Failed!\n");
+            return error;
+        }
+    }
+
+    printf("Success!\n");
+    return 0;
 }
