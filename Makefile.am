@@ -1,5 +1,7 @@
 SUBDIRS = replace common server sss_client
 
+DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb
+
 RPMBUILD ?= $(PWD)/rpmbuild
 
 #Some old versions of automake don't define builddir
