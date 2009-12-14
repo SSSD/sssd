@@ -24,16 +24,16 @@ msgstr "Le password non coincidono"
 
 #: pam_sss.c:598
 msgid "Password: "
-msgstr "Password:"
+msgstr "Password: "
 
 #: pam_sss.c:630
 msgid "New Password: "
-msgstr "Nuova Password:"
+msgstr "Nuova password: "
 
 #: pam_sss.c:631
 msgid "Reenter new Password: "
-msgstr "Reinserire la nuova Password:"
+msgstr "reinserire la nuova password: "
 
 #: pam_sss.c:835
 msgid "Password has expired."
-msgstr "La password è scaduta"
+msgstr "La password è scaduta."
