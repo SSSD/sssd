@@ -1,4 +1,4 @@
-AC_PREREQ(2.50)
+AC_PREREQ(2.59)
 AC_DEFUN([AC_CHECK_LIB_EXT], [
 	AC_CHECK_LIB([$1],[$3],[$4],[$5],[$7])
 	ac_cv_lib_ext_$1_$3=$ac_cv_lib_$1_$3
