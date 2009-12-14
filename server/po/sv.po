@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-12-11 08:16-0500\n"
-"PO-Revision-Date: 2009-12-10 13:51+0100\n"
+"PO-Revision-Date: 2009-12-14 11:10+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "MIME-Version: 1.0\n"
@@ -174,7 +174,7 @@ msgstr "Plats för användarens kreditiv-cache"
 
 #: config/SSSDConfig.py:94
 msgid "Location of the keytab to validate credentials"
-msgstr "Platf för tangentgabellen för att validera kreditiv"
+msgstr "Plats för nyckeltabellen för att validera kreditiv"
 
 #: config/SSSDConfig.py:95
 msgid "Enable credential validation"
@@ -182,234 +182,239 @@ msgstr "Aktivera validering av kreditiv"
 
 #: config/SSSDConfig.py:98
 msgid "The principal of the change password service"
-msgstr ""
+msgstr "Huvudmannen för tjänsten att ändra lösenord"
 
 #: config/SSSDConfig.py:101
 msgid "ldap_uri, The URI of the LDAP server"
-msgstr ""
+msgstr "ldap_uri, URI:n för LDAP-servern"
 
 #: config/SSSDConfig.py:102
 msgid "The default base DN"
-msgstr ""
+msgstr "Standard bas-DN"
 
 #: config/SSSDConfig.py:103
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr ""
+msgstr "Schematypen som används i LDAP-servern, rfc2307"
 
 #: config/SSSDConfig.py:104
 msgid "The default bind DN"
-msgstr ""
+msgstr "Standard bindnings-DN"
 
 #: config/SSSDConfig.py:105
 msgid "The type of the authentication token of the default bind DN"
-msgstr ""
+msgstr "Typen på autenticerings-token för standard bindnings-DN"
 
 #: config/SSSDConfig.py:106
 msgid "The authentication token of the default bind DN"
-msgstr ""
+msgstr "Autenticerings-token för standard bindnings-DN"
 
 #: config/SSSDConfig.py:107
 msgid "Length of time to attempt connection"
-msgstr ""
+msgstr "Tidslängd att försöka ansluta"
 
 #: config/SSSDConfig.py:108
 msgid "Length of time to attempt synchronous LDAP operations"
-msgstr ""
+msgstr "Tidslängd att försök synkrona LDAP-operationer"
 
 #: config/SSSDConfig.py:109
 msgid "Length of time between attempts to reconnect while offline"
-msgstr ""
+msgstr "Tidslängd mellan försök att återansluta under frånkoppling"
 
 #: config/SSSDConfig.py:110
 msgid "file that contains CA certificates"
-msgstr ""
+msgstr "fil som innehåller CA-certifikat"
 
 #: config/SSSDConfig.py:111
 msgid "Require TLS certificate verification"
-msgstr ""
+msgstr "Kräv TLS-certifikatverifiering"
 
 #: config/SSSDConfig.py:112
 msgid "Specify the sasl mechanism to use"
-msgstr ""
+msgstr "Ange sasl-mekanismen att använda"
 
 #: config/SSSDConfig.py:113
 msgid "Specify the sasl authorization id to use"
-msgstr ""
+msgstr "Ange sasl-auktorisering-id att använda"
 
 #: config/SSSDConfig.py:116
 msgid "Kerberos service keytab"
-msgstr ""
+msgstr "Kerberos tjänstens nyckeltabell"
 
 #: config/SSSDConfig.py:117
 msgid "Use Kerberos auth for LDAP connection"
-msgstr ""
+msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
 #: config/SSSDConfig.py:120
 msgid "Length of time to wait for a search request"
-msgstr ""
+msgstr "Tidsläng att vänta på en sökbegäran"
 
 #: config/SSSDConfig.py:121
 msgid "Length of time between enumeration updates"
-msgstr ""
+msgstr "Tidslängt mellan uppräkningsuppdateringar"
 
 #: config/SSSDConfig.py:122
 msgid "Require TLS for ID lookups, false"
-msgstr ""
+msgstr "Kräv TLS för ID-uppslagningar, falsk"
 
 #: config/SSSDConfig.py:123
 msgid "Base DN for user lookups"
-msgstr ""
+msgstr "Bas-DN för användaruppslagningar"
 
 #: config/SSSDConfig.py:124
 msgid "Scope of user lookups"
-msgstr ""
+msgstr "Omfång av användaruppslagningar"
 
 #: config/SSSDConfig.py:125
 msgid "Filter for user lookups"
-msgstr ""
+msgstr "Filter för användaruppslagningar"
 
 #: config/SSSDConfig.py:126
 msgid "Objectclass for users"
-msgstr ""
+msgstr "Objektklass för användare"
 
 #: config/SSSDConfig.py:127
 msgid "Username attribute"
-msgstr ""
+msgstr "Användarnamnsattribut"
 
 #: config/SSSDConfig.py:128
 msgid "UID attribute"
-msgstr ""
+msgstr "UID-attribut"
 
 #: config/SSSDConfig.py:129
 msgid "Primary GID attribute"
-msgstr ""
+msgstr "Primärt GID-attribut"
 
 #: config/SSSDConfig.py:130
 msgid "GECOS attribute"
-msgstr ""
+msgstr "GECOS-attribut"
 
 #: config/SSSDConfig.py:131
 msgid "Home directory attribute"
-msgstr ""
+msgstr "Hemkatalogattribut"
 
 #: config/SSSDConfig.py:132
 msgid "Shell attribute"
-msgstr ""
+msgstr "Skalattribut"
 
 #: config/SSSDConfig.py:133
 msgid "UUID attribute"
-msgstr ""
+msgstr "UUID-attribut"
 
 #: config/SSSDConfig.py:134
 msgid "User principal attribute (for Kerberos)"
-msgstr ""
+msgstr "Användarens huvudmansattribut (för Kerberos)"
 
 #: config/SSSDConfig.py:135
 msgid "Full Name"
-msgstr ""
+msgstr "Fullständigt namn"
 
 #: config/SSSDConfig.py:136
 msgid "memberOf attribute"
-msgstr ""
+msgstr "medlemAv-attribut"
 
 #: config/SSSDConfig.py:137
 msgid "Modification time attribute"
-msgstr ""
+msgstr "Modifieringstidsattribut"
 
 #: config/SSSDConfig.py:140
 msgid "Policy to evaluate the password expiration"
-msgstr ""
+msgstr "Policy för att utvärdera utgång av lösenord"
 
 #: config/SSSDConfig.py:143
 msgid "Default shell, /bin/bash"
-msgstr ""
+msgstr "Standardskal, /bin/bash"
 
 #: config/SSSDConfig.py:144
 msgid "Base for home directories"
-msgstr ""
+msgstr "Bas för hemkataloger"
 
 #: config/SSSDConfig.py:147
 msgid "The name of the NSS library to use"
-msgstr ""
+msgstr "Namnet på NSS-biblioteket att använda"
 
 #: config/SSSDConfig.py:150
 msgid "PAM stack to use"
-msgstr ""
+msgstr "PAM-stack att använda"
 
 #: tools/sss_groupdel.c:43 tools/sss_groupmod.c:42 tools/sss_userdel.c:45
 #: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_usermod.c:46
 msgid "The debug level to run with"
-msgstr ""
+msgstr "Felsökningsnivå att köra med"
 
 #: tools/sss_groupdel.c:52 tools/sss_groupmod.c:63 tools/sss_userdel.c:57
 #: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_usermod.c:70
 msgid "Error setting the locale\n"
-msgstr ""
+msgstr "Fel när lokalen sattes\n"
 
 #: tools/sss_groupdel.c:70
 msgid "Specify group to delete\n"
-msgstr ""
+msgstr "Ange grupp att ta bort\n"
 
 #: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
 #: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
+#, fuzzy
 msgid "Error initializing the tools - no local domain\n"
-msgstr ""
+msgstr "Fel vid initiering av verktygen\n"
 
 #: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
 #: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
 msgid "Error initializing the tools\n"
-msgstr ""
+msgstr "Fel vid initiering av verktygen\n"
 
 #: tools/sss_groupdel.c:92 tools/sss_groupmod.c:121 tools/sss_userdel.c:113
 #: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_usermod.c:137
 msgid "Invalid domain specified in FQDN\n"
-msgstr ""
+msgstr "Ogiltig domän angiven i FQDN\n"
 
 #: tools/sss_groupdel.c:107
 #, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "Grupp %s är utanför det definierade ID-intervallet för domänen\n"
 
 #: tools/sss_groupdel.c:136
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr ""
+"Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
+"tillåtet i den lokala domänen.\n"
 
 #: tools/sss_groupdel.c:141
 msgid "Internal error. Could not remove group.\n"
-msgstr ""
+msgstr "Internt fel.  Kunde inte ta bort gruppen.\n"
 
 #: tools/sss_groupmod.c:44
 msgid "Groups to add this group to"
-msgstr ""
+msgstr "Grupper att lägga till denna grupp till"
 
 #: tools/sss_groupmod.c:46
 msgid "Groups to remove this group from"
-msgstr ""
+msgstr "Grupper att ta bort denna grupp från"
 
 #: tools/sss_groupmod.c:48 tools/sss_groupadd.c:43
 msgid "The GID of the group"
-msgstr ""
+msgstr "GID:t för gruppen"
 
 #: tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
-msgstr ""
+msgstr "Ange grupp att ändra\n"
 
 #: tools/sss_groupmod.c:130
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
 msgstr ""
+"Ken inte hitta gruppen i den lokala domänen, att ändra grupper är endast "
+"tillåtet i den lokala domänen\n"
 
 #: tools/sss_groupmod.c:143 tools/sss_groupmod.c:170 tools/sss_useradd.c:203
 #: tools/sss_usermod.c:162 tools/sss_usermod.c:189
 msgid "Internal error while parsing parameters\n"
-msgstr ""
+msgstr "Internt fel vid tolkning av parametrar\n"
 
 #: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
 msgid "Member groups must be in the same domain as parent group\n"
-msgstr ""
+msgstr "Medlemsgrupper måster ligga i samma domän som föräldragrupper\n"
 
 #: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
 #: tools/sss_usermod.c:205
@@ -418,135 +423,140 @@ msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"Kan inte hitta grupp %s i den lokala domänen, endast grupper i den lokala "
+"domänen är tillåtna\n"
 
 #: tools/sss_groupmod.c:194 tools/sss_groupadd.c:106
 msgid "The selected GID is outside the allowed range\n"
-msgstr ""
+msgstr "Den valda GID:n är utanför det tillåtna intervallet\n"
 
 #: tools/sss_groupmod.c:222
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
+"Kunde inte ändra gruppen - kontrollera om medlemsgruppsnamnen är riktiga\n"
 
 #: tools/sss_groupmod.c:226
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
+msgstr "Kunde inte ändra gruppen - kontrollera om gruppnamnet är riktigt\n"
 
 #: tools/sss_groupmod.c:230
 msgid "Transaction error. Could not modify group.\n"
-msgstr ""
+msgstr "Transaktionsfel.  Kunde inte ändra gruppen.\n"
 
 #: tools/sss_userdel.c:46
 msgid "Remove home directory and mail spool"
-msgstr ""
+msgstr "Ta bort hemkatalog och brevlåda"
 
 #: tools/sss_userdel.c:47
 msgid "Do not remove home directory and mail spool"
-msgstr ""
+msgstr "Ta inte bort hemkatalog och brevlåda"
 
 #: tools/sss_userdel.c:48
 msgid "Force removal of files not owned by the user"
-msgstr ""
+msgstr "Framtvinga borttagning av filer som inte ägs av användaren"
 
 #: tools/sss_userdel.c:91
 msgid "Specify user to delete\n"
-msgstr ""
+msgstr "Ange användare att ta bort\n"
 
 #: tools/sss_userdel.c:123 tools/sss_useradd.c:244
 msgid "Cannot set default values\n"
-msgstr ""
+msgstr "Kan inte sätta standardvärden\n"
 
 #: tools/sss_userdel.c:141
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "Användare %s är utanför det definierade ID-intervallet för domänen\n"
 
 #: tools/sss_userdel.c:172
 msgid "Not removing home dir - not owned by user\n"
-msgstr ""
+msgstr "Tar inte bort hemkatalogen - ägs inte av användaren\n"
 
 #: tools/sss_userdel.c:174
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr ""
+msgstr "Kan inte ta bort hemkatalogen: %s\n"
 
 #: tools/sss_userdel.c:186
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
+"Ingen sådan användare i den lokala domänen.  Det går endast att ta bort "
+"användare i den lokala domänen.\n"
 
 #: tools/sss_userdel.c:191
 msgid "Internal error. Could not remove user.\n"
-msgstr ""
+msgstr "Internt fel.  Kunde inte ta bort användaren.\n"
 
 #: tools/tools_util.c:292
 msgid "Out of memory\n"
-msgstr ""
+msgstr "Slut på minne\n"
 
 #: tools/tools_util.h:34
 #, c-format
 msgid "%s must be run as root\n"
-msgstr ""
+msgstr "%s måste köras som root\n"
 
 #: tools/sss_useradd.c:115 tools/sss_usermod.c:47
 msgid "The UID of the user"
-msgstr ""
+msgstr "Användarens UID"
 
 #: tools/sss_useradd.c:116
 msgid "The GID or group name of the user"
-msgstr ""
+msgstr "Användarens GID eller gruppnamn"
 
 #: tools/sss_useradd.c:117 tools/sss_usermod.c:49
 msgid "The comment string"
-msgstr ""
+msgstr "Kommentarsträngen"
 
 #: tools/sss_useradd.c:118 tools/sss_usermod.c:50
 msgid "Home directory"
-msgstr ""
+msgstr "Hemkatalogen"
 
 #: tools/sss_useradd.c:119 tools/sss_usermod.c:51
 msgid "Login shell"
-msgstr ""
+msgstr "Inloggningsskalet"
 
 #: tools/sss_useradd.c:120
 msgid "Groups"
-msgstr ""
+msgstr "Grupper"
 
 #: tools/sss_useradd.c:121
 msgid "Create user's directory if it does not exist"
-msgstr ""
+msgstr "Skapa användarens katalog om den inte redan finns"
 
 #: tools/sss_useradd.c:122
 msgid "Never create user's directory, overrides config"
-msgstr ""
+msgstr "Skapa aldrig användarens katalog, åsidosätter konfigurationen"
 
 #: tools/sss_useradd.c:123
 msgid "Specify an alternative skeleton directory"
-msgstr ""
+msgstr "Ange en alternativ skelettkatalog"
 
 #: tools/sss_useradd.c:172
 msgid "Specify user to add\n"
-msgstr ""
+msgstr "Ange en användare att lägga till\n"
 
 #: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
-msgstr ""
+msgstr "Grupper måste finnas i samma domän som användaren\n"
 
 #: tools/sss_useradd.c:219
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr ""
+msgstr "Hittar inte grupp %s i den lokala domänen\n"
 
 #: tools/sss_useradd.c:229
 msgid "Cannot get group information for the user\n"
-msgstr ""
+msgstr "Kan inte få gruppinformation för användaren\n"
 
 #: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
-msgstr ""
+msgstr "Den valda UID:n är utanför det tillåtna intervallet\n"
 
 #: tools/sss_useradd.c:285
 msgid "Cannot get info about the user\n"
-msgstr ""
+msgstr "Kan inte få information om användaren\n"
 
 #: tools/sss_useradd.c:299
 msgid "User's home directory already exists, not copying data from skeldir\n"
