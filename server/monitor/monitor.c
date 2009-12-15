@@ -1060,6 +1060,11 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
         return ret;
     }
 
+    /* 'timeout = 0' should be translated to the default */
+    if (svc->ping_time == 0) {
+        svc->ping_time = MONITOR_DEF_PING_TIME;
+    }
+
     *svc_cfg = svc;
     talloc_free(path);
 
