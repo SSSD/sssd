@@ -417,6 +417,8 @@ sss_groupmod_LDADD = \
 # Feature Tests #
 #################
 if HAVE_CHECK
+sysdb_tests_DEPENDENCIES = \
+    $(ldblib_LTLIBRARIES)
 sysdb_tests_SOURCES = \
     tests/sysdb-tests.c \
     $(SSSD_UTIL_OBJ)
