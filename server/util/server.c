@@ -39,7 +39,7 @@
 /*******************************************************************
  Close the low 3 fd's and open dev/null in their place.
 ********************************************************************/
-static void close_low_fds()
+static void close_low_fds(void)
 {
 #ifndef VALGRIND
 	int fd;
