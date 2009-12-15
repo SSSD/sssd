@@ -362,12 +362,12 @@
                     <term>timeout (integer)</term>
                     <listitem>
                         <para>
-                            Timeout in seconds for this particular domain.
-                            Raising this timeout might prove useful for slower
-                            backends like distant LDAP servers.
+                            Timeout in seconds between heartbeats for this domain.
+                            This is used to ensure that the backend process is
+                            alive and capable of answering requests.
                         </para>
                         <para>
-                            Default: 0 (no timeout)
+                            Default: 10
                         </para>
                     </listitem>
                 </varlistentry>
