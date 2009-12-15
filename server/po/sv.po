@@ -3,12 +3,13 @@
 # This file is distributed under the same license as the sssd package.
 # Göran Uddeborg <goeran@uddeborg.se>, 2009.
 #
+# $Revision: 1.3 $
 msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-12-11 08:16-0500\n"
-"PO-Revision-Date: 2009-12-14 11:10+0100\n"
+"PO-Revision-Date: 2009-12-15 21:19+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "MIME-Version: 1.0\n"
@@ -21,7 +22,7 @@ msgstr "Ange pratsamhet för felsökningsloggning"
 
 #: config/SSSDConfig.py:40
 msgid "Include timestamps in debug logs"
-msgstr "Inkludera tidsstämplar i felsökningslogar"
+msgstr "Inkludera tidsstämplar i felsökningsloggar"
 
 #: config/SSSDConfig.py:41
 msgid "Write debug messages to logfiles"
@@ -238,7 +239,7 @@ msgstr "Ange sasl-auktorisering-id att använda"
 
 #: config/SSSDConfig.py:116
 msgid "Kerberos service keytab"
-msgstr "Kerberos tjänstens nyckeltabell"
+msgstr "Kerberostjänstens nyckeltabell"
 
 #: config/SSSDConfig.py:117
 msgid "Use Kerberos auth for LDAP connection"
@@ -246,11 +247,11 @@ msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
 #: config/SSSDConfig.py:120
 msgid "Length of time to wait for a search request"
-msgstr "Tidsläng att vänta på en sökbegäran"
+msgstr "Tidslängd att vänta på en sökbegäran"
 
 #: config/SSSDConfig.py:121
 msgid "Length of time between enumeration updates"
-msgstr "Tidslängt mellan uppräkningsuppdateringar"
+msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
 #: config/SSSDConfig.py:122
 msgid "Require TLS for ID lookups, false"
@@ -381,7 +382,7 @@ msgstr ""
 
 #: tools/sss_groupdel.c:141
 msgid "Internal error. Could not remove group.\n"
-msgstr "Internt fel.  Kunde inte ta bort gruppen.\n"
+msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
 
 #: tools/sss_groupmod.c:44
 msgid "Groups to add this group to"
@@ -433,15 +434,17 @@ msgstr "Den valda GID:n är utanför det tillåtna intervallet\n"
 #: tools/sss_groupmod.c:222
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
-"Kunde inte ändra gruppen - kontrollera om medlemsgruppsnamnen är riktiga\n"
+"Det gick inte att ändra gruppen - kontrollera om medlemsgruppsnamnen är "
+"riktiga\n"
 
 #: tools/sss_groupmod.c:226
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr "Kunde inte ändra gruppen - kontrollera om gruppnamnet är riktigt\n"
+msgstr ""
+"Det gick inte att ändra gruppen - kontrollera om gruppnamnet är riktigt\n"
 
 #: tools/sss_groupmod.c:230
 msgid "Transaction error. Could not modify group.\n"
-msgstr "Transaktionsfel.  Kunde inte ändra gruppen.\n"
+msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
 
 #: tools/sss_userdel.c:46
 msgid "Remove home directory and mail spool"
@@ -486,7 +489,7 @@ msgstr ""
 
 #: tools/sss_userdel.c:191
 msgid "Internal error. Could not remove user.\n"
-msgstr "Internt fel.  Kunde inte ta bort användaren.\n"
+msgstr "Internt fel.  Det gick inte att ta bort användaren.\n"
 
 #: tools/tools_util.c:292
 msgid "Out of memory\n"
@@ -561,83 +564,89 @@ msgstr "Kan inte få information om användaren\n"
 #: tools/sss_useradd.c:299
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
+"Användarens hemkatalog finns redan, kopierar inte data från "
+"skelettkatalogen\n"
 
 #: tools/sss_useradd.c:302
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr ""
+msgstr "Kan inte skapa användarens hemkatalog: %s\n"
 
 #: tools/sss_useradd.c:313
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr ""
+msgstr "Kan inte skapa användarens brevlåda: %s\n"
 
 #: tools/sss_useradd.c:325
 msgid "Could not allocate ID for the user - domain full?\n"
-msgstr ""
+msgstr "Det gick inte att allokera ID för användaren - full domän?\n"
 
 #: tools/sss_useradd.c:329
 msgid "A user or group with the same name or ID already exists\n"
-msgstr ""
+msgstr "En användare eller grupp med samma namn eller ID finns redan\n"
 
 #: tools/sss_useradd.c:335
 msgid "Transaction error. Could not add user.\n"
-msgstr ""
+msgstr "Transaktionsfel.  Det gick inte att lägga till användaren.\n"
 
 #: tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
-msgstr ""
+msgstr "Ange en grupp att lägga till\n"
 
 #: tools/sss_groupadd.c:133
 msgid "Could not allocate ID for the group - domain full?\n"
-msgstr ""
+msgstr "Det gick inte att allokera ID för gruppen - full domän?\n"
 
 #: tools/sss_groupadd.c:137
 msgid "A group with the same name or GID already exists\n"
-msgstr ""
+msgstr "En grupp med samma namn eller GID finns redan\n"
 
 #: tools/sss_groupadd.c:142
 msgid "Transaction error. Could not add group.\n"
-msgstr ""
+msgstr "Transaktionsfel.  Det gick inte att lägga till gruppen.\n"
 
 #: tools/sss_usermod.c:48
 msgid "The GID of the user"
-msgstr ""
+msgstr "Användarens GID"
 
 #: tools/sss_usermod.c:52
 msgid "Groups to add this user to"
-msgstr ""
+msgstr "Grupper att lägga till denna användare till"
 
 #: tools/sss_usermod.c:53
 msgid "Groups to remove this user from"
-msgstr ""
+msgstr "Grupper att ta bort denna användare ifrån"
 
 #: tools/sss_usermod.c:54
 msgid "Lock the account"
-msgstr ""
+msgstr "Lås kontot"
 
 #: tools/sss_usermod.c:55
 msgid "Unlock the account"
-msgstr ""
+msgstr "Lås upp kontot"
 
 #: tools/sss_usermod.c:115
 msgid "Specify user to modify\n"
-msgstr ""
+msgstr "Ange användare att ändra\n"
 
 #: tools/sss_usermod.c:146
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
 msgstr ""
+"Det gick inte att hitta användaren i den lokala domänen, det går bara att "
+"ändra användare i den lokala domänen\n"
 
 #: tools/sss_usermod.c:241
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
+"Det gick inte att ändra användaren - kontrollera att gruppnamnen är riktiga\n"
 
 #: tools/sss_usermod.c:245
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
+"Det gick inte att ändra användaren - är användaren redan medlem i grupper?\n"
 
 #: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
-msgstr ""
+msgstr "Transaktionsfel.  Det gick inte att ändra användaren.\n"
