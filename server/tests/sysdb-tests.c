@@ -31,6 +31,7 @@
 #include "db/sysdb_private.h"
 
 #define TESTS_PATH "tests_sysdb"
+#define TEST_CONF_FILE "tests_conf.ldb"
 
 #define TEST_ATTR_NAME "test_attr_name"
 #define TEST_ATTR_VALUE "test_attr_value"
@@ -86,7 +87,7 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return EIO;
     }
 
-    conf_db = talloc_asprintf(test_ctx, "%s/tests_conf.ldb", TESTS_PATH);
+    conf_db = talloc_asprintf(test_ctx, "%s/%s", TESTS_PATH, TEST_CONF_FILE);
     if (conf_db == NULL) {
         fail("Out of memory, aborting!");
         talloc_free(test_ctx);
@@ -3066,5 +3067,21 @@ int main(int argc, const char *argv[]) {
     srunner_run_all(sr, CK_ENV);
     failure_count = srunner_ntests_failed(sr);
     srunner_free(sr);
-    return (failure_count==0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    if (failure_count == 0) {
+        ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
+        if (ret != EOK) {
+            fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
+                    errno, strerror(errno));
+            return EXIT_FAILURE;
+        }
+        ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);
+        if (ret != EOK) {
+            fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
+                    errno, strerror(errno));
+            return EXIT_FAILURE;
+        }
+
+        return EXIT_SUCCESS;
+    }
+    return  EXIT_FAILURE;
 }
