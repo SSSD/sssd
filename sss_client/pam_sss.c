@@ -814,7 +814,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 return ret;
             }
             if (pam_flags & PAM_PRELIM_CHECK) {
-                return ret;
+                task = SSS_PAM_CHAUTHTOK_PRELIM;
             }
             break;
         case SSS_PAM_ACCT_MGMT:

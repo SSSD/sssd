@@ -299,19 +299,24 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     }
 
     if (kerr == 0) {
-        if (kr->ccname == NULL) {
-            DEBUG(1, ("Error obtaining ccname.\n"));
-            return NULL;
-        }
+        if(kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+            ret = pack_response_packet(resp, PAM_SUCCESS, PAM_USER_INFO,
+                                       "success");
+        } else {
+            if (kr->ccname == NULL) {
+                DEBUG(1, ("Error obtaining ccname.\n"));
+                return NULL;
+            }
 
-        msg = talloc_asprintf(kr, "%s=%s",CCACHE_ENV_NAME, kr->ccname);
-        if (msg == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
-            return NULL;
-        }
+            msg = talloc_asprintf(kr, "%s=%s",CCACHE_ENV_NAME, kr->ccname);
+            if (msg == NULL) {
+                DEBUG(1, ("talloc_asprintf failed.\n"));
+                return NULL;
+            }
 
-        ret = pack_response_packet(resp, PAM_SUCCESS, PAM_ENV_ITEM, msg);
-        talloc_zfree(msg);
+            ret = pack_response_packet(resp, PAM_SUCCESS, PAM_ENV_ITEM, msg);
+            talloc_zfree(msg);
+        }
     } else {
         krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
         if (krb5_msg == NULL) {
@@ -527,6 +532,14 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     memset(pass_str, 0, kr->pd->authtok_size);
     talloc_zfree(pass_str);
     memset(kr->pd->authtok, 0, kr->pd->authtok_size);
+
+    if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+        DEBUG(9, ("Initial authentication for change password operation "
+                  "successfull.\n"));
+        krb5_free_cred_contents(kr->ctx, kr->creds);
+        pam_status = PAM_SUCCESS;
+        goto sendresponse;
+    }
 
     newpass_str = talloc_strndup(kr, (const char *) kr->pd->newauthtok,
                               kr->pd->newauthtok_size);
@@ -824,6 +837,7 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
             }
             break;
         case SSS_PAM_CHAUTHTOK:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
             kr->child_req = changepw_child;
             break;
         default:

@@ -398,6 +398,7 @@ static struct krb5_ctx *get_krb5_ctx(struct be_req *be_req)
                                        struct krb5_ctx);
             break;
         case SSS_PAM_CHAUTHTOK:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
             return talloc_get_type(be_req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                                        struct krb5_ctx);
             break;
@@ -685,14 +686,16 @@ void krb5_pam_handler(struct be_req *be_req)
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_PAM_CHAUTHTOK) {
+    if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_PAM_CHAUTHTOK &&
+        pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(4, ("krb5 does not handles pam task %d.\n", pd->cmd));
         pam_status = PAM_SUCCESS;
         dp_err = DP_ERR_OK;
         goto done;
     }
 
-    if (be_is_offline(be_req->be_ctx) && pd->cmd == SSS_PAM_CHAUTHTOK) {
+    if (be_is_offline(be_req->be_ctx) &&
+        (pd->cmd == SSS_PAM_CHAUTHTOK || pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM)) {
         DEBUG(9, ("Password changes are not possible while offline.\n"));
         pam_status = PAM_AUTHINFO_UNAVAIL;
         dp_err = DP_ERR_OFFLINE;
@@ -958,6 +961,12 @@ static void krb5_child_done(struct tevent_req *req)
         pd->pam_status = *msg_status;
     }
 
+    if (*msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+        pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
+        goto done;
+    }
+
     pref_len = strlen(CCACHE_ENV_NAME)+1;
     if (*msg_len > pref_len &&
         strncmp((const char *) &buf[p], CCACHE_ENV_NAME"=", pref_len) == 0) {
@@ -1047,6 +1056,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
 
         switch(pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
+            case SSS_PAM_CHAUTHTOK_PRELIM:
                 password = talloc_size(be_req, pd->authtok_size + 1);
                 if (password != NULL) {
                     memcpy(password, pd->authtok, pd->authtok_size);

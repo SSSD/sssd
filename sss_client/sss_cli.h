@@ -128,7 +128,7 @@ enum sss_cli_command {
     SSS_PAM_OPEN_SESSION     = 0x00F4,
     SSS_PAM_CLOSE_SESSION    = 0x00F5,
     SSS_PAM_CHAUTHTOK        = 0x00F6,
-    SSS_PAM_CHAUTHTOK_PRELIM = 0x00F6,
+    SSS_PAM_CHAUTHTOK_PRELIM = 0x00F7,
 
 };
 
