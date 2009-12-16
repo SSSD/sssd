@@ -761,7 +761,7 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         domain->enumerate = true;
     } else { /* assume the new format */
         ret = get_entry_as_bool(res->msgs[0], &domain->enumerate,
-                                CONFDB_DOMAIN_ENUMERATE, 0);
+                                CONFDB_DOMAIN_ENUMERATE, 1);
         if(ret != EOK) {
             DEBUG(0, ("Invalid value for %s\n", CONFDB_DOMAIN_ENUMERATE));
             goto done;
