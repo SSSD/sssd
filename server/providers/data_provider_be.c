@@ -565,6 +565,7 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
             target = BET_ACCESS;
             break;
         case SSS_PAM_CHAUTHTOK:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
             target = BET_CHPASS;
             break;
         default:

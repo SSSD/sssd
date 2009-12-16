@@ -137,6 +137,7 @@ static void proxy_pam_handler(struct be_req *req) {
                                   struct proxy_auth_ctx);
             break;
         case SSS_PAM_CHAUTHTOK:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
             ctx = talloc_get_type(req->be_ctx->bet_info[BET_CHPASS].pvt_bet_data,
                                   struct proxy_auth_ctx);
             break;
@@ -207,12 +208,22 @@ static void proxy_pam_handler(struct be_req *req) {
                     cache_auth_data = true;
                 }
                 break;
+            case SSS_PAM_CHAUTHTOK_PRELIM:
+                if (pd->priv != 1) {
+                    auth_data->authtok_size = pd->authtok_size;
+                    auth_data->authtok = pd->authtok;
+                    pam_status = pam_authenticate(pamh, 0);
+                } else {
+                    pam_status = PAM_SUCCESS;
+                }
+                break;
             default:
                 DEBUG(1, ("unknown PAM call"));
                 pam_status=PAM_ABORT;
         }
 
-        DEBUG(4, ("Pam result: [%d][%s]\n", pam_status, pam_strerror(pamh, pam_status)));
+        DEBUG(4, ("Pam result: [%d][%s]\n", pam_status,
+                  pam_strerror(pamh, pam_status)));
 
         if (pam_status == PAM_AUTHINFO_UNAVAIL) {
             be_mark_offline(req->be_ctx);

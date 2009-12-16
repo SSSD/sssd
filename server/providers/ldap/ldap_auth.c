@@ -661,7 +661,7 @@ void sdap_pam_chpass_handler(struct be_req *breq)
 
     pd->pam_status = PAM_SYSTEM_ERR;
 
-    if (pd->cmd != SSS_PAM_CHAUTHTOK) {
+    if (pd->cmd != SSS_PAM_CHAUTHTOK && pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(2, ("chpass target was called by wrong pam command.\n"));
         goto done;
     }
@@ -677,12 +677,15 @@ void sdap_pam_chpass_handler(struct be_req *breq)
     if (!state->password) goto done;
     talloc_set_destructor((TALLOC_CTX *)state->password,
                           password_destructor);
-    state->new_password = talloc_strndup(state,
-                                         (char *)pd->newauthtok,
-                                         pd->newauthtok_size);
-    if (!state->new_password) goto done;
-    talloc_set_destructor((TALLOC_CTX *)state->new_password,
-                          password_destructor);
+
+    if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+        state->new_password = talloc_strndup(state,
+                                             (char *)pd->newauthtok,
+                                             pd->newauthtok_size);
+        if (!state->new_password) goto done;
+        talloc_set_destructor((TALLOC_CTX *)state->new_password,
+                              password_destructor);
+    }
 
     authtok.data = (uint8_t *)state->password;
     authtok.length = strlen(state->password);
@@ -714,6 +717,14 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     talloc_zfree(req);
     if (ret) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
+        goto done;
+    }
+
+    if (result == SDAP_AUTH_SUCCESS &&
+        state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+        DEBUG(9, ("Initial authentication for change password operation "
+                  "successful.\n"));
+        state->pd->pam_status = PAM_SUCCESS;
         goto done;
     }
 
@@ -851,6 +862,7 @@ void sdap_pam_auth_handler(struct be_req *breq)
 
     switch (pd->cmd) {
     case SSS_PAM_AUTHENTICATE:
+    case SSS_PAM_CHAUTHTOK_PRELIM:
 
         state = talloc_zero(breq, struct sdap_pam_auth_state);
         if (!state) goto done;
