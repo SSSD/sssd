@@ -868,7 +868,7 @@ static void sdap_get_generic_done(struct sdap_op *op,
             return;
         }
 
-        DEBUG(3, ("Search result: %s(%d), %s\n",
+        DEBUG(6, ("Search result: %s(%d), %s\n",
                   ldap_err2string(result), result, errmsg));
 
         tevent_req_done(req);
