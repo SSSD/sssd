@@ -1149,6 +1149,11 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         return ret;
     }
 
+    /* 'timeout = 0' should be translated to the default */
+    if (svc->ping_time == 0) {
+        svc->ping_time = MONITOR_DEF_PING_TIME;
+    }
+
     talloc_free(path);
 
     /* if no provider is present do not run the domain */
