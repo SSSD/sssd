@@ -504,7 +504,9 @@
                     <listitem>
                         <para>
                             The access control provider used for the domain.
-                            Supported access providers are:
+                            There are two built-in access providers (in
+                            addition to any included in installed backends)
+                            Internal special providers are:
                         </para>
                         <para>
                             <quote>permit</quote> always allow access.
