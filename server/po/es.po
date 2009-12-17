@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-12-11 08:16-0500\n"
-"PO-Revision-Date: 2009-12-08 16:20-0300\n"
+"PO-Revision-Date: 2009-12-11 12:00-0300\n"
 "Last-Translator: Domingo Becker <domingobecker@gmail.com>\n"
 "Language-Team: Transifex Spanish\n"
 "MIME-Version: 1.0\n"
@@ -422,6 +422,7 @@ msgstr "Error interno al analizar sintácticamente los parámetros.\n"
 #: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr ""
+"Los grupos miembro deben estar en el mismo dominio que el grupo padre\n"
 
 #: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
 #: tools/sss_usermod.c:205
@@ -430,34 +431,39 @@ msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
+"No se pudo encontrar el grupo %s en el dominio local, solo se permiten los "
+"grupos del dominio local\n"
 
 #: tools/sss_groupmod.c:194 tools/sss_groupadd.c:106
 msgid "The selected GID is outside the allowed range\n"
-msgstr ""
+msgstr "El GID elegido está fuera del rango permitido\n"
 
 #: tools/sss_groupmod.c:222
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
+"No se pudo modificar el grupo - verifique si los nombre de grupo miembro son "
+"los correctos\n"
 
 #: tools/sss_groupmod.c:226
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
+"No se pudo modificar el grupo - verifique si el nombre de grupo es correcto\n"
 
 #: tools/sss_groupmod.c:230
 msgid "Transaction error. Could not modify group.\n"
-msgstr ""
+msgstr "Error de transacción. No se pudo modificar el grupo.\n"
 
 #: tools/sss_userdel.c:46
 msgid "Remove home directory and mail spool"
-msgstr ""
+msgstr "Eliminar el directorio de inicio y el receptor de correo"
 
 #: tools/sss_userdel.c:47
 msgid "Do not remove home directory and mail spool"
-msgstr ""
+msgstr "No eliminar el directorio de inicio y el receptor de correo"
 
 #: tools/sss_userdel.c:48
 msgid "Force removal of files not owned by the user"
-msgstr ""
+msgstr "Forzar la eliminación de los archivos que no pertenecen al usuario"
 
 #: tools/sss_userdel.c:91
 msgid "Specify user to delete\n"
@@ -470,11 +476,11 @@ msgstr "No se pudieron establecer los valores predeterminados\n"
 #: tools/sss_userdel.c:141
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "El usuario %s está fuera del rango de ID para el dominio\n"
 
 #: tools/sss_userdel.c:172
 msgid "Not removing home dir - not owned by user\n"
-msgstr ""
+msgstr "No eliminando el directorio de inicio - no pertenece al usuario\n"
 
 #: tools/sss_userdel.c:174
 #, c-format
@@ -485,10 +491,12 @@ msgstr " Imposible eliminar el directorio de inicio: %s\n"
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
+"No existe ese usuario en el dominio local. La eliminación de usuarios se "
+"permite en el dominio local.\n"
 
 #: tools/sss_userdel.c:191
 msgid "Internal error. Could not remove user.\n"
-msgstr ""
+msgstr "Error interno. No se pudo eliminar el usuario.\n"
 
 #: tools/tools_util.c:292
 msgid "Out of memory\n"
@@ -525,11 +533,12 @@ msgstr "Grupos"
 
 #: tools/sss_useradd.c:121
 msgid "Create user's directory if it does not exist"
-msgstr ""
+msgstr "Crear el directorio del usuario si no existe"
 
 #: tools/sss_useradd.c:122
 msgid "Never create user's directory, overrides config"
 msgstr ""
+"La opción de nunca crear el directorio del usuario, anula la configurada"
 
 #: tools/sss_useradd.c:123
 msgid "Specify an alternative skeleton directory"
@@ -541,12 +550,12 @@ msgstr "Especifique el usuario a agregar\n"
 
 #: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
-msgstr ""
+msgstr "Los grupos deben estar en el mismo dominio que el usuario\n"
 
 #: tools/sss_useradd.c:219
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr ""
+msgstr "No se pudo encontrar el grupo %s en el dominio local\n"
 
 #: tools/sss_useradd.c:229
 msgid "Cannot get group information for the user\n"
@@ -554,7 +563,7 @@ msgstr "No se pudo obtener la información del grupo del usuario\n"
 
 #: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
-msgstr ""
+msgstr "El UID seleccionado está fuera del rango permitido\n"
 
 #: tools/sss_useradd.c:285
 msgid "Cannot get info about the user\n"
@@ -563,6 +572,8 @@ msgstr "No se pudo obtener información del usuario\n"
 #: tools/sss_useradd.c:299
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
+"El directorio de inicio del usuario ya existe, no copiar datos desde el "
+"esqueleto\n"
 
 #: tools/sss_useradd.c:302
 #, c-format
@@ -576,7 +587,7 @@ msgstr "No se pudo crear el receptor de correo del usuario: %s\n"
 
 #: tools/sss_useradd.c:325
 msgid "Could not allocate ID for the user - domain full?\n"
-msgstr ""
+msgstr "No se pudo asignar el ID para el usuario - ¿el dominio estará lleno?\n"
 
 #: tools/sss_useradd.c:329
 msgid "A user or group with the same name or ID already exists\n"
@@ -584,7 +595,7 @@ msgstr "Ya existe un usuario o grupo con el mismo nombre o ID\n"
 
 #: tools/sss_useradd.c:335
 msgid "Transaction error. Could not add user.\n"
-msgstr ""
+msgstr "Error en la transacción. No se pudo agregar el usuario.\n"
 
 #: tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
@@ -592,7 +603,7 @@ msgstr "Especifique el grupo a agregar\n"
 
 #: tools/sss_groupadd.c:133
 msgid "Could not allocate ID for the group - domain full?\n"
-msgstr ""
+msgstr "No se pudo asignar el ID para el grupo - ¿el dominio estará lleno?\n"
 
 #: tools/sss_groupadd.c:137
 msgid "A group with the same name or GID already exists\n"
@@ -600,7 +611,7 @@ msgstr "Ya existe un grupo con el mismo nombre o GID\n"
 
 #: tools/sss_groupadd.c:142
 msgid "Transaction error. Could not add group.\n"
-msgstr ""
+msgstr "Error en la transacción. No se pudo agregar el grupo.\n"
 
 #: tools/sss_usermod.c:48
 msgid "The GID of the user"
@@ -612,7 +623,7 @@ msgstr "Grupos a los que se debe agregar este usuario"
 
 #: tools/sss_usermod.c:53
 msgid "Groups to remove this user from"
-msgstr ""
+msgstr "Grupos desde los que hay que eliminar este usuario"
 
 #: tools/sss_usermod.c:54
 msgid "Lock the account"
@@ -631,18 +642,23 @@ msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
 msgstr ""
+"No se pudo encontrar el usuario en el dominio local, la modificación de los "
+"usuarios se permite solamente en el dominio local\n"
 
 #: tools/sss_usermod.c:241
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
+"No se pudo modificar el usuario - verifique si los nombres de grupo son "
+"correctos\n"
 
 #: tools/sss_usermod.c:245
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
+"No se pudo modificar el usuario - ¿no será ya miembro de esos grupos?\n"
 
 #: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
-msgstr ""
+msgstr "Error de transacción. No se pudo modificar el usuario.\n"
 
 #, fuzzy
 #~ msgid "A user with the same name or UID already exists\n"
