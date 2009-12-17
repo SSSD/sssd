@@ -144,20 +144,18 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
     if (ret == -1 && errno != ENOENT) {
         DEBUG(1, ("stat failed [%d][%s].\n", errno, strerror(errno)));
         return errno;
-    } else if (ret == -1 &&  errno == ENOENT) {
-        return EOK;
-    }
+    } else if (ret == EOK) {
+        if (stat_buf.st_uid != uid) {
+            DEBUG(1, ("Cache file [%s] exists, but is owned by [%d] instead of "
+                      "[%d].\n", filename, stat_buf.st_uid, uid));
+            return EINVAL;
+        }
 
-    if (stat_buf.st_uid != uid) {
-        DEBUG(1, ("Cache file [%s] exists, but is owned by [%d] instead of "
-                  "[%d].\n", filename, stat_buf.st_uid, uid));
-        return EINVAL;
-    }
-
-    if (!S_ISREG(stat_buf.st_mode)) {
-        DEBUG(1, ("Cache file [%s] exists, but is not a regular file.\n",
-                  filename));
-        return EINVAL;
+        if (!S_ISREG(stat_buf.st_mode)) {
+            DEBUG(1, ("Cache file [%s] exists, but is not a regular file.\n",
+                      filename));
+            return EINVAL;
+        }
     }
 
     ret = check_if_uid_is_active(uid, &active);
