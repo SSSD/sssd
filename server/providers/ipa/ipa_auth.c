@@ -179,8 +179,8 @@ void ipa_auth(struct be_req *be_req)
                               be_req->be_ctx->bet_info[BET_AUTH].pvt_bet_data,
                               struct krb5_ctx);
 
-/* TODO: make password_migration configurable */
-    ipa_auth_ctx->password_migration = true;
+/* TODO: test and activate when server side support is available */
+    ipa_auth_ctx->password_migration = false;
 
     ipa_auth_ctx->dp_err_type = DP_ERR_FATAL;
     ipa_auth_ctx->errnum = EIO;
