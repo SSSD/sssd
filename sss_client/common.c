@@ -75,16 +75,26 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
     while (datasent < header[0]) {
         struct pollfd pfd;
         int rdsent;
-        int res;
+        int res, error;
 
         *errnop = 0;
         pfd.fd = sss_cli_sd;
         pfd.events = POLLOUT;
 
-        res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+        do {
+            errno = 0;
+            res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+            error = errno;
+
+            /* If error is EINTR here, we'll try again
+             * If it's any other error, we'll catch it
+             * below.
+             */
+        } while (error == EINTR);
+
         switch (res) {
         case -1:
-            *errnop = errno;
+            *errnop = error;
             break;
         case 0:
             *errnop = ETIME;
@@ -155,20 +165,30 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
     datarecv = 0;
     *buf = NULL;
     *len = 0;
+    *errnop = 0;
 
     while (datarecv < header[0]) {
         struct pollfd pfd;
         int bufrecv;
-        int res;
+        int res, error;
 
-        *errnop = 0;
         pfd.fd = sss_cli_sd;
         pfd.events = POLLIN;
 
-        res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+        do {
+            errno = 0;
+            res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+            error = errno;
+
+            /* If error is EINTR here, we'll try again
+             * If it's any other error, we'll catch it
+             * below.
+             */
+        } while (error == EINTR);
+
         switch (res) {
         case -1:
-            *errnop = errno;
+            *errnop = error;
             break;
         case 0:
             *errnop = ETIME;
@@ -528,16 +548,26 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
     /* check if the socket has been closed on the other side */
     if (sss_cli_sd != -1) {
         struct pollfd pfd;
-        int res;
+        int res, error;
 
         *errnop = 0;
         pfd.fd = sss_cli_sd;
         pfd.events = POLLIN | POLLOUT;
 
-        res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+        do {
+            errno = 0;
+            res = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+            error = errno;
+
+            /* If error is EINTR here, we'll try again
+             * If it's any other error, we'll catch it
+             * below.
+             */
+        } while (error == EINTR);
+
         switch (res) {
         case -1:
-            *errnop = errno;
+            *errnop = error;
             break;
         case 0:
             *errnop = ETIME;
