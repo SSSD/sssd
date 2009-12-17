@@ -44,4 +44,7 @@ void KRB5_CALLCONV sss_krb5_get_init_creds_opt_free (krb5_context context,
                                                   krb5_get_init_creds_opt *opt);
 
 void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name);
+
+krb5_error_code check_for_valid_tgt(const char *ccname, const char *realm,
+                                    const char *client_princ_str, bool *result);
 #endif /* __SSS_KRB5_H__ */

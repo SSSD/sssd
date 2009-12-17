@@ -51,6 +51,7 @@ struct krb5child_req {
     bool is_offline;
     struct fo_server *srv;
     bool active_ccache_present;
+    bool valid_tgt_present;
 };
 
 struct fo_service;

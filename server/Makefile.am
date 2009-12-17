@@ -618,7 +618,8 @@ libsss_krb5_la_SOURCES = \
     providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_auth.c \
     providers/krb5/krb5_common.c \
-    providers/krb5/krb5_init.c
+    providers/krb5/krb5_init.c \
+    util/sss_krb5.c
 libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(DHASH_CFLAGS)
