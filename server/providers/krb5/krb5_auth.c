@@ -113,7 +113,8 @@ done:
     return ret;
 }
 
-static errno_t check_if_ccache_file_is_used(uid_t uid, const char **ccname)
+static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
+                                            bool *result)
 {
     int ret;
     size_t offset = 0;
@@ -121,15 +122,17 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char **ccname)
     const char *filename;
     bool active;
 
-    if (ccname == NULL || *ccname == NULL) {
+    *result = false;
+
+    if (ccname == NULL || *ccname == '\0') {
         return EINVAL;
     }
 
-    if (strncmp(*ccname, "FILE:", 5) == 0) {
+    if (strncmp(ccname, "FILE:", 5) == 0) {
         offset = 5;
     }
 
-    filename = *ccname + offset;
+    filename = ccname + offset;
 
     if (filename[0] != '/') {
         DEBUG(1, ("Only absolute path names are allowed"));
@@ -142,7 +145,6 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char **ccname)
         DEBUG(1, ("stat failed [%d][%s].\n", errno, strerror(errno)));
         return errno;
     } else if (ret == -1 &&  errno == ENOENT) {
-        *ccname = NULL;
         return EOK;
     }
 
@@ -165,17 +167,11 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char **ccname)
     }
 
     if (!active) {
-        DEBUG(5, ("User [%d] is not active, deleting old ccache file [%s].\n",
-                  uid, filename));
-        ret = unlink(filename);
-        if (ret == -1) {
-            DEBUG(1, ("unlink failed [%d][%s].\n", errno, strerror(errno)));
-            return errno;
-        }
-        *ccname = NULL;
+        DEBUG(5, ("User [%d] is not active\n", uid));
     } else {
         DEBUG(9, ("User [%d] is still active, reusing ccache file [%s].\n",
                   uid, filename));
+        *result = true;
     }
     return EOK;
 }
@@ -734,12 +730,13 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
     struct krb5_ctx *krb5_ctx;
     struct krb5child_req *kr = NULL;
     struct tevent_req *req;
+    krb5_error_code kerr;
     int ret;
     struct pam_data *pd;
     int pam_status=PAM_SYSTEM_ERR;
     int dp_err = DP_ERR_FATAL;
     const char *ccache_file = NULL;
-    const char *dummy;
+    const char *realm;
 
     ret = krb5_setup(be_req, &kr);
     if (ret != EOK) {
@@ -755,6 +752,12 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         goto failed;
     }
 
+    realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+    if (realm == NULL) {
+        DEBUG(1, ("Missing Kerberos realm.\n"));
+        goto failed;
+    }
+
     switch (res->count) {
     case 0:
         DEBUG(5, ("No attributes for user [%s] found.\n", pd->user));
@@ -765,19 +768,12 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         pd->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
         if (pd->upn == NULL) {
             /* NOTE: this is a hack, works only in some environments */
-            dummy = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
-            if (dummy != NULL) {
-                pd->upn = talloc_asprintf(be_req, "%s@%s", pd->user, dummy);
-                if (pd->upn == NULL) {
-                    DEBUG(1, ("failed to build simple upn.\n"));
-                }
-                DEBUG(9, ("Using simple UPN [%s].\n", pd->upn));
+            pd->upn = talloc_asprintf(be_req, "%s@%s", pd->user, realm);
+            if (pd->upn == NULL) {
+                DEBUG(1, ("failed to build simple upn.\n"));
+                goto failed;
             }
-        }
-
-        if (pd->upn == NULL) {
-            DEBUG(1, ("Cannot set UPN.\n"));
-            goto failed;
+            DEBUG(9, ("Using simple UPN [%s].\n", pd->upn));
         }
 
         kr->homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,
@@ -790,31 +786,28 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
                                                   SYSDB_CCACHE_FILE,
                                                   NULL);
         if (ccache_file != NULL) {
-            ret = check_if_ccache_file_is_used(pd->pw_uid, &ccache_file);
+            ret = check_if_ccache_file_is_used(pd->pw_uid, ccache_file,
+                                               &kr->active_ccache_present);
             if (ret != EOK) {
                 DEBUG(1, ("check_if_ccache_file_is_used failed.\n"));
                 goto failed;
             }
-        }
 
-        if (ccache_file == NULL) {
-            kr->active_ccache_present = false;
-            DEBUG(4, ("No active ccache file for user [%s] found.\n",
-                      pd->user));
-            ccache_file = expand_ccname_template(kr, kr,
-                                          dp_opt_get_cstring(kr->krb5_ctx->opts,
-                                                             KRB5_CCNAME_TMPL)
-                                    );
-            if (ccache_file == NULL) {
-                DEBUG(1, ("expand_ccname_template failed.\n"));
+            kerr = check_for_valid_tgt(ccache_file, realm, pd->upn,
+                                       &kr->valid_tgt_present);
+            if (kerr != 0) {
+                DEBUG(1, ("check_for_valid_tgt failed.\n"));
                 goto failed;
             }
         } else {
-            kr->active_ccache_present = true;
+            kr->active_ccache_present = false;
+            kr->valid_tgt_present = false;
+            DEBUG(4, ("No ccache file for user [%s] found.\n", pd->user));
         }
-        DEBUG(9, ("Ccache_file is [%s] and %s.\n", ccache_file,
-                  kr->active_ccache_present ? "will be kept/renewed" :
-                                              "will be generated"));
+        DEBUG(9, ("Ccache_file is [%s] and is %s active and TGT is %s valid.\n",
+                  ccache_file ? ccache_file : "not set",
+                  kr->active_ccache_present ? "" : "not",
+                  kr->valid_tgt_present ? "" : "not"));
         kr->ccname = ccache_file;
         break;
 
@@ -852,6 +845,8 @@ static void krb5_resolve_done(struct tevent_req *req)
     int dp_err = DP_ERR_FATAL;
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
+    char *msg;
+    size_t offset = 0;
 
     ret = be_resolve_server_recv(req, &kr->srv);
     talloc_zfree(req);
@@ -864,9 +859,59 @@ static void krb5_resolve_done(struct tevent_req *req)
         kr->is_offline = true;
     }
 
+    if (kr->ccname == NULL ||
+        (be_is_offline(be_req->be_ctx) && !kr->active_ccache_present &&
+            !kr->valid_tgt_present) ||
+        (!be_is_offline(be_req->be_ctx) && !kr->active_ccache_present)) {
+            DEBUG(9, ("Recreating  ccache file.\n"));
+            if (kr->ccname != NULL) {
+                if (strncmp(kr->ccname, "FILE:", 5) == 0) {
+                    offset = 5;
+                }
+                if (kr->ccname[offset] != '/') {
+                    DEBUG(1, ("Ccache file name [%s] is not an absolute path.\n",
+                              kr->ccname + offset));
+                    goto done;
+                }
+                ret = unlink(kr->ccname + offset);
+                if (ret == -1 && errno != ENOENT) {
+                    DEBUG(1, ("unlink [%s] failed [%d][%s].\n", kr->ccname,
+                             errno, strerror(errno)));
+                    goto done;
+                }
+            }
+            kr->ccname = expand_ccname_template(kr, kr,
+                                          dp_opt_get_cstring(kr->krb5_ctx->opts,
+                                                             KRB5_CCNAME_TMPL)
+                                    );
+            if (kr->ccname == NULL) {
+                DEBUG(1, ("expand_ccname_template failed.\n"));
+                goto done;
+            }
+    }
+
     if (be_is_offline(be_req->be_ctx)) {
         DEBUG(9, ("Preparing for offline operation.\n"));
         kr->is_offline = true;
+
+        if (kr->valid_tgt_present) {
+            DEBUG(9, ("Valid TGT available, nothing to do.\n"));
+            msg = talloc_asprintf(pd, "%s=%s", CCACHE_ENV_NAME, kr->ccname);
+            if (msg == NULL) {
+                DEBUG(1, ("talloc_asprintf failed.\n"));
+                goto done;
+            }
+
+            ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(msg) + 1,
+                                   (uint8_t *) msg);
+            if (ret != EOK) {
+                DEBUG(1, ("pam_add_response failed.\n"));
+            }
+
+            pam_status = PAM_SUCCESS;
+            dp_err = DP_ERR_OFFLINE;
+            goto done;
+        }
         memset(pd->authtok, 0, pd->authtok_size);
         pd->authtok_size = 0;
 
