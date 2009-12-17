@@ -520,6 +520,8 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
         break;
 
     case 1:
+        DEBUG(6, ("Returning info for user [%s]\n", cmdctx->name));
+
         /* create response packet */
         ret = sss_packet_new(cctx->creq, 0,
                              sss_packet_get_cmd(cctx->creq->in),
@@ -856,6 +858,8 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
         break;
 
     case 1:
+        DEBUG(6, ("Returning info for user [%u]\n", (unsigned)cmdctx->id));
+
         /* create response packet */
         ret = sss_packet_new(cctx->creq, 0,
                              sss_packet_get_cmd(cctx->creq->in),
