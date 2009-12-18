@@ -686,7 +686,8 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
 }
 
 static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
-                             char **ccname, char **keytab, uint32_t *validate)
+                             char **ccname, char **keytab, uint32_t *validate,
+                             uint32_t *offline)
 {
     size_t p = 0;
     uint32_t len;
@@ -705,6 +706,11 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
     *validate = *((uint32_t *)(buf + p));
+    p += sizeof(uint32_t);
+
+    if ((p + sizeof(uint32_t)) > size) return EINVAL;
+    len = *((uint32_t *)(buf + p));
+    *offline = len;
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
@@ -791,7 +797,7 @@ static int krb5_cleanup(void *ptr)
 }
 
 static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
-                      struct krb5_req **krb5_req)
+                      uint32_t offline, struct krb5_req **krb5_req)
 {
     struct krb5_req *kr = NULL;
     krb5_error_code kerr = 0;
@@ -829,9 +835,8 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
 
     switch(pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
-            /* if authtok_size is 1 we got an empty password, this means we
-             * are offline and need to create an empty ccache file */
-            if (pd->authtok_size == 1) {
+            /* If we are offline, we need to create an empty ccache file */
+            if (offline) {
                 kr->child_req = create_empty_ccache;
             } else {
                 kr->child_req = tgt_req_child;
@@ -910,6 +915,7 @@ int main(int argc, const char *argv[])
     char *ccname;
     char *keytab;
     uint32_t validate;
+    uint32_t offline;
     int opt;
     poptContext pc;
     int debug_fd = -1;
@@ -983,13 +989,13 @@ int main(int argc, const char *argv[])
     }
     close(STDIN_FILENO);
 
-    ret = unpack_buffer(buf, len, pd, &ccname, &keytab, &validate);
+    ret = unpack_buffer(buf, len, pd, &ccname, &keytab, &validate, &offline);
     if (ret != EOK) {
         DEBUG(1, ("unpack_buffer failed.\n"));
         goto fail;
     }
 
-    ret = krb5_setup(pd, pd->upn, &kr);
+    ret = krb5_setup(pd, pd->upn, offline, &kr);
     if (ret != EOK) {
         DEBUG(1, ("krb5_setup failed.\n"));
         goto fail;
