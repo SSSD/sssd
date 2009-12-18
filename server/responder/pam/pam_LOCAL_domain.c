@@ -367,7 +367,10 @@ static void local_handler_callback(void *pvt, int ldb_status,
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK:
-            if (pd->cmd == SSS_PAM_CHAUTHTOK && lreq->preq->cctx->priv == 1) {
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+            if ((pd->cmd == SSS_PAM_CHAUTHTOK ||
+                 pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) &&
+                lreq->preq->cctx->priv == 1) {
 /* TODO: maybe this is a candiate for an explicit audit message. */
                 DEBUG(4, ("allowing root to reset a password.\n"));
                 break;
@@ -416,6 +419,8 @@ static void local_handler_callback(void *pvt, int ldb_status,
         case SSS_PAM_OPEN_SESSION:
             break;
         case SSS_PAM_CLOSE_SESSION:
+            break;
+        case SSS_PAM_CHAUTHTOK_PRELIM:
             break;
         default:
             lreq->error = EINVAL;
