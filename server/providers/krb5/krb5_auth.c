@@ -316,7 +316,7 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
         return ENOMEM;
     }
 
-    buf->size = 8*sizeof(uint32_t) + strlen(kr->pd->upn) + strlen(kr->ccname) +
+    buf->size = 9*sizeof(uint32_t) + strlen(kr->pd->upn) + strlen(kr->ccname) +
                 strlen(keytab) +
                 kr->pd->authtok_size;
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
@@ -341,6 +341,9 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     rp += sizeof(uint32_t);
 
     ((uint32_t *)(&buf->data[rp]))[0] = validate;
+    rp += sizeof(uint32_t);
+
+    ((uint32_t *)(&buf->data[rp]))[0] = kr->is_offline;
     rp += sizeof(uint32_t);
 
     ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(kr->pd->upn);
