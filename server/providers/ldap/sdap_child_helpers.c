@@ -42,76 +42,42 @@
 #define LDAP_CHILD_USER  "nobody"
 #endif
 
-struct sdap_child_req {
+struct sdap_child {
     /* child info */
-    pid_t child_pid;
+    pid_t pid;
     int read_from_child_fd;
     int write_to_child_fd;
-
-    /* for handling timeout */
-    struct tevent_context *ev;
-    int timeout;
-    struct tevent_timer *timeout_handler;
-    struct tevent_req *req;
-
-    /* parameters */
-    const char *realm_str;
-    const char *princ_str;
-    const char *keytab_name;
 };
 
-static int sdap_child_req_destructor(void *ptr)
+static void sdap_close_fd(int *fd)
 {
-    struct sdap_child_req *cr = talloc_get_type(ptr, struct sdap_child_req);
-
-    if (cr == NULL) return EOK;
-
-    child_cleanup(cr->read_from_child_fd, cr->write_to_child_fd);
-    memset(cr, 0, sizeof(struct sdap_child_req));
-
-    return EOK;
-}
-
-static void sdap_child_timeout(struct tevent_context *ev,
-                               struct tevent_timer *te,
-                               struct timeval tv, void *pvt)
-{
-    struct sdap_child_req *lr = talloc_get_type(pvt, struct sdap_child_req);
     int ret;
 
-    if (lr->timeout_handler == NULL) {
+    if (*fd == -1) {
+        DEBUG(6, ("fd already closed\n"));
         return;
     }
 
-    DEBUG(9, ("timeout for ldap child [%d] reached.\n", lr->child_pid));
-
-    ret = kill(lr->child_pid, SIGKILL);
-    if (ret == -1) {
-        DEBUG(1, ("kill failed [%d][%s].\n", errno, strerror(errno)));
+    ret = close(*fd);
+    if (ret) {
+        ret = errno;
+        DEBUG(2, ("Closing fd %d, return error %d (%s)\n",
+                  *fd, ret, strerror(ret)));
     }
 
-    tevent_req_error(lr->req, EIO);
+    *fd = -1;
 }
 
-static errno_t activate_child_timeout_handler(struct sdap_child_req *child_req)
+static int sdap_child_destructor(void *ptr)
 {
-    struct timeval tv;
+    struct sdap_child *child = talloc_get_type(ptr, struct sdap_child);
 
-    tv = tevent_timeval_current();
-    tv = tevent_timeval_add(&tv,
-                            child_req->timeout,
-                            0);
-    child_req->timeout_handler = tevent_add_timer(child_req->ev, child_req, tv,
-                                                  sdap_child_timeout, child_req);
-    if (child_req->timeout_handler == NULL) {
-        DEBUG(1, ("tevent_add_timer failed.\n"));
-        return ENOMEM;
-    }
+    child_cleanup(child->read_from_child_fd, child->write_to_child_fd);
 
-    return EOK;
+    return 0;
 }
 
-static errno_t fork_ldap_child(struct sdap_child_req *child_req)
+static errno_t sdap_fork_child(struct sdap_child *child)
 {
     int pipefd_to_child[2];
     int pipefd_from_child[2];
@@ -135,7 +101,7 @@ static errno_t fork_ldap_child(struct sdap_child_req *child_req)
     pid = fork();
 
     if (pid == 0) { /* child */
-        err = exec_child(child_req,
+        err = exec_child(child,
                          pipefd_to_child, pipefd_from_child,
                          LDAP_CHILD, ldap_child_debug_fd);
         if (err != EOK) {
@@ -144,13 +110,13 @@ static errno_t fork_ldap_child(struct sdap_child_req *child_req)
             return err;
         }
     } else if (pid > 0) { /* parent */
-        child_req->child_pid = pid;
-        child_req->read_from_child_fd = pipefd_from_child[0];
+        child->pid = pid;
+        child->read_from_child_fd = pipefd_from_child[0];
         close(pipefd_from_child[1]);
-        child_req->write_to_child_fd = pipefd_to_child[1];
+        child->write_to_child_fd = pipefd_to_child[1];
         close(pipefd_to_child[0]);
-        fd_nonblocking(child_req->read_from_child_fd);
-        fd_nonblocking(child_req->write_to_child_fd);
+        fd_nonblocking(child->read_from_child_fd);
+        fd_nonblocking(child->write_to_child_fd);
 
     } else { /* error */
         err = errno;
@@ -161,27 +127,36 @@ static errno_t fork_ldap_child(struct sdap_child_req *child_req)
     return EOK;
 }
 
-static errno_t create_ldap_send_buffer(struct sdap_child_req *child_req, struct io_buffer **io_buf)
+static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
+                                          const char *realm_str,
+                                          const char *princ_str,
+                                          const char *keytab_name,
+                                          struct io_buffer **io_buf)
 {
     struct io_buffer *buf;
     size_t rp;
+    int len;
 
-    buf = talloc(child_req, struct io_buffer);
+    buf = talloc(mem_ctx, struct io_buffer);
     if (buf == NULL) {
         DEBUG(1, ("talloc failed.\n"));
         return ENOMEM;
     }
 
-    buf->size = 3*sizeof(int);
-    if (child_req->realm_str)
-        buf->size += strlen(child_req->realm_str);
-    if (child_req->princ_str)
-        buf->size += strlen(child_req->princ_str);
-    if (child_req->keytab_name)
-        buf->size += strlen(child_req->keytab_name);
+    buf->size = 3 * sizeof(uint32_t);
+    if (realm_str) {
+        buf->size += strlen(realm_str);
+    }
+    if (princ_str) {
+        buf->size += strlen(princ_str);
+    }
+    if (keytab_name) {
+        buf->size += strlen(keytab_name);
+    }
+
     DEBUG(7, ("buffer size: %d\n", buf->size));
 
-    buf->data = talloc_size(child_req, buf->size);
+    buf->data = talloc_size(buf, buf->size);
     if (buf->data == NULL) {
         DEBUG(1, ("talloc_size failed.\n"));
         talloc_free(buf);
@@ -189,34 +164,41 @@ static errno_t create_ldap_send_buffer(struct sdap_child_req *child_req, struct 
     }
 
     rp = 0;
+
     /* realm */
-    ((uint32_t *)(&buf->data[rp]))[0] =
-                        (uint32_t) (child_req->realm_str ?
-                                   strlen(child_req->realm_str) : 0);
-    rp += sizeof(uint32_t);
-    if (child_req->realm_str) {
-        memcpy(&buf->data[rp], child_req->realm_str, strlen(child_req->realm_str));
-        rp += strlen(child_req->realm_str);
+    if (realm_str) {
+        len = strlen(realm_str);
+        ((uint32_t *)(&buf->data[rp]))[0] = len;
+        rp += sizeof(uint32_t);
+        memcpy(&buf->data[rp], realm_str, len);
+        rp += len;
+    } else {
+        ((uint32_t *)(&buf->data[rp]))[0] = 0;
+        rp += sizeof(uint32_t);
     }
 
     /* principal */
-    ((uint32_t *)(&buf->data[rp]))[0] =
-                        (uint32_t) (child_req->princ_str ?
-                                   strlen(child_req->princ_str) : 0);
-    rp += sizeof(uint32_t);
-    if (child_req->princ_str) {
-        memcpy(&buf->data[rp], child_req->princ_str, strlen(child_req->princ_str));
-        rp += strlen(child_req->princ_str);
+    if (princ_str) {
+        len = strlen(princ_str);
+        ((uint32_t *)(&buf->data[rp]))[0] = len;
+        rp += sizeof(uint32_t);
+        memcpy(&buf->data[rp], princ_str, len);
+        rp += len;
+    } else {
+        ((uint32_t *)(&buf->data[rp]))[0] = 0;
+        rp += sizeof(uint32_t);
     }
 
     /* keytab */
-    ((uint32_t *)(&buf->data[rp]))[0] =
-                        (uint32_t) (child_req->keytab_name ?
-                                   strlen(child_req->keytab_name) : 0);
-    rp += sizeof(uint32_t);
-    if (child_req->keytab_name) {
-        memcpy(&buf->data[rp], child_req->keytab_name, strlen(child_req->keytab_name));
-        rp += strlen(child_req->keytab_name);
+    if (keytab_name) {
+        len = strlen(keytab_name);
+        ((uint32_t *)(&buf->data[rp]))[0] = len;
+        rp += sizeof(uint32_t);
+        memcpy(&buf->data[rp], keytab_name, len);
+        rp += len;
+    } else {
+        ((uint32_t *)(&buf->data[rp]))[0] = 0;
+        rp += sizeof(uint32_t);
     }
 
     *io_buf = buf;
@@ -225,151 +207,172 @@ static errno_t create_ldap_send_buffer(struct sdap_child_req *child_req, struct 
 
 static int parse_child_response(TALLOC_CTX *mem_ctx,
                                 uint8_t *buf, ssize_t size,
-                                int  *result,
-                                char **ccache)
+                                int  *result, char **ccache)
 {
     size_t p = 0;
-    uint32_t *len;
-    uint32_t *res;
+    uint32_t len;
+    uint32_t res;
     char *ccn;
 
-    /* ccache size the ccache itself*/
+    /* operatoin result code */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    res = ((uint32_t *)(buf+p));
+    res = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
-    /* ccache size the ccache itself*/
+    /* ccache name size */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
-    if ((p + *len ) > size) return EINVAL;
+    if ((p + len ) > size) return EINVAL;
 
-    ccn = talloc_size(mem_ctx, sizeof(char) * (*len + 1));
+    ccn = talloc_size(mem_ctx, sizeof(char) * (len + 1));
     if (ccn == NULL) {
         DEBUG(1, ("talloc_size failed.\n"));
         return ENOMEM;
     }
-    memcpy(ccn, buf+p, sizeof(char) * (*len + 1));
-    ccn[*len] = '\0';
+    memcpy(ccn, buf+p, sizeof(char) * (len + 1));
+    ccn[len] = '\0';
 
-    *result = *res;
+    *result = res;
     *ccache = ccn;
     return EOK;
 }
 
 /* ==The-public-async-interface============================================*/
 
-struct sdap_krb5_get_tgt_state {
-    struct sdap_child_req *lr;
+struct sdap_get_tgt_state {
+    struct tevent_context *ev;
+    struct sdap_child *child;
     ssize_t len;
     uint8_t *buf;
 };
 
-static void sdap_krb5_get_tgt_done(struct tevent_req *subreq);
+static errno_t set_tgt_child_timeout(struct tevent_req *req,
+                                     struct tevent_context *ev,
+                                     int timeout);
+static void sdap_get_tgt_step(struct tevent_req *subreq);
+static void sdap_get_tgt_done(struct tevent_req *subreq);
 
-struct tevent_req *sdap_krb5_get_tgt_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          int timeout,
-                                          const char *realm_str,
-                                          const char *princ_str,
-                                          const char *keytab_name)
+struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     const char *realm_str,
+                                     const char *princ_str,
+                                     const char *keytab_name,
+                                     int timeout)
 {
-    struct sdap_child_req *child_req = NULL;
-    struct sdap_krb5_get_tgt_state *state = NULL;
+    struct tevent_req *req, *subreq;
+    struct sdap_get_tgt_state *state;
+    struct io_buffer *buf;
     int ret;
-    struct io_buffer *buf = NULL;
-    struct tevent_req *req = NULL;
-    struct tevent_req *subreq = NULL;
 
-    /* prepare the data to pass to child */
-    child_req = talloc_zero(mem_ctx, struct sdap_child_req);
-    if (!child_req) goto fail;
-
-    child_req->ev = ev;
-    child_req->read_from_child_fd = -1;
-    child_req->write_to_child_fd = -1;
-    child_req->realm_str = realm_str;
-    child_req->princ_str = princ_str;
-    child_req->keytab_name = keytab_name;
-    child_req->timeout = timeout;
-    talloc_set_destructor((TALLOC_CTX *) child_req, sdap_child_req_destructor);
-
-    ret = create_ldap_send_buffer(child_req, &buf);
-    if (ret != EOK) {
-        DEBUG(1, ("create_ldap_send_buffer failed.\n"));
+    req = tevent_req_create(mem_ctx, &state, struct sdap_get_tgt_state);
+    if (!req) {
         return NULL;
     }
 
-    ret = fork_ldap_child(child_req);
-    if (ret != EOK) {
-        DEBUG(1, ("fork_ldap_child failed.\n"));
+    state->ev = ev;
+
+    state->child = talloc_zero(state, struct sdap_child);
+    if (!state->child) {
+        ret = ENOMEM;
         goto fail;
     }
 
-    ret = write(child_req->write_to_child_fd, buf->data, buf->size);
-    close(child_req->write_to_child_fd);
-    child_req->write_to_child_fd = -1;
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
-        return NULL;
+    state->child->read_from_child_fd = -1;
+    state->child->write_to_child_fd = -1;
+    talloc_set_destructor((TALLOC_CTX *)state->child, sdap_child_destructor);
+
+    /* prepare the data to pass to child */
+    ret = create_tgt_req_send_buffer(state,
+                                     realm_str, princ_str, keytab_name,
+                                     &buf);
+    if (ret != EOK) {
+        DEBUG(1, ("create_tgt_req_send_buffer failed.\n"));
+        goto fail;
     }
 
-    req = tevent_req_create(mem_ctx, &state, struct sdap_krb5_get_tgt_state);
-    if (req == NULL) {
-        return NULL;
+    ret = sdap_fork_child(state->child);
+    if (ret != EOK) {
+        DEBUG(1, ("sdap_fork_child failed.\n"));
+        goto fail;
     }
 
-    state->lr = child_req;
-
-    child_req->req = req;
-    ret = activate_child_timeout_handler(child_req);
+    ret = set_tgt_child_timeout(req, ev, timeout);
     if (ret != EOK) {
         DEBUG(1, ("activate_child_timeout_handler failed.\n"));
-        return NULL;
+        goto fail;
     }
 
-    subreq = read_pipe_send(state, ev, child_req->read_from_child_fd);
-    if (tevent_req_nomem(subreq, req)) {
-        return tevent_req_post(req, ev);
+    subreq = write_pipe_send(state, ev, buf->data, buf->size,
+                             state->child->write_to_child_fd);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
     }
-    tevent_req_set_callback(subreq, sdap_krb5_get_tgt_done, req);
+    tevent_req_set_callback(subreq, sdap_get_tgt_step, req);
 
     return req;
+
 fail:
-    return NULL;
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
 }
 
-static void sdap_krb5_get_tgt_done(struct tevent_req *subreq)
+static void sdap_get_tgt_step(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_krb5_get_tgt_state *state = tevent_req_data(req,
-                                                       struct sdap_krb5_get_tgt_state);
+    struct sdap_get_tgt_state *state = tevent_req_data(req,
+                                                  struct sdap_get_tgt_state);
     int ret;
 
-    ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
+    ret = write_pipe_recv(subreq);
     talloc_zfree(subreq);
-    talloc_zfree(state->lr->timeout_handler);
-    close(state->lr->read_from_child_fd);
-    state->lr->read_from_child_fd = -1;
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    tevent_req_done(req);
-    return;
+    sdap_close_fd(&state->child->write_to_child_fd);
+
+    subreq = read_pipe_send(state, state->ev,
+                            state->child->read_from_child_fd);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_get_tgt_done, req);
 }
 
-int sdap_krb5_get_tgt_recv(struct tevent_req *req,
+static void sdap_get_tgt_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_tgt_state *state = tevent_req_data(req,
+                                                  struct sdap_get_tgt_state);
+    int ret;
+
+    ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sdap_close_fd(&state->child->read_from_child_fd);
+
+    tevent_req_done(req);
+}
+
+int sdap_get_tgt_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            int  *result,
                            char **ccname)
 {
-    struct sdap_krb5_get_tgt_state *state = tevent_req_data(req,
-                                                            struct sdap_krb5_get_tgt_state);
+    struct sdap_get_tgt_state *state = tevent_req_data(req,
+                                             struct sdap_get_tgt_state);
     char *ccn;
     int  res;
     int ret;
@@ -387,6 +390,49 @@ int sdap_krb5_get_tgt_recv(struct tevent_req *req,
     *ccname = ccn;
     return EOK;
 }
+
+
+
+static void get_tgt_timeout_handler(struct tevent_context *ev,
+                                    struct tevent_timer *te,
+                                    struct timeval tv, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct sdap_get_tgt_state *state = tevent_req_data(req,
+                                            struct sdap_get_tgt_state);
+    int ret;
+
+    DEBUG(9, ("timeout for tgt child [%d] reached.\n", state->child->pid));
+
+    ret = kill(state->child->pid, SIGKILL);
+    if (ret == -1) {
+        DEBUG(1, ("kill failed [%d][%s].\n", errno, strerror(errno)));
+    }
+
+    tevent_req_error(req, ETIMEDOUT);
+}
+
+static errno_t set_tgt_child_timeout(struct tevent_req *req,
+                                     struct tevent_context *ev,
+                                     int timeout)
+{
+    struct tevent_timer *te;
+    struct timeval tv;
+
+    DEBUG(6, ("Setting %d seconds timeout for tgt child\n", timeout));
+
+    tv = tevent_timeval_current_ofs(timeout, 0);
+
+    te = tevent_add_timer(ev, req, tv, get_tgt_timeout_handler, req);
+    if (te == NULL) {
+        DEBUG(1, ("tevent_add_timer failed.\n"));
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+
 
 /* Setup child logging */
 int setup_child(struct sdap_id_ctx *ctx)

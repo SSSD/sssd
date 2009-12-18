@@ -33,23 +33,100 @@
 #include "db/sysdb.h"
 #include "providers/child_common.h"
 
-uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx,
-                                  const uint8_t *src, size_t len)
+/* Async communication with the child process via a pipe */
+
+struct write_pipe_state {
+    int fd;
+    uint8_t *buf;
+    size_t len;
+    size_t written;
+};
+
+static void write_pipe_handler(struct tevent_context *ev,
+                               struct tevent_fd *fde,
+                               uint16_t flags, void *pvt);
+
+struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   uint8_t *buf, size_t len, int fd)
 {
-    uint8_t *str;
+    struct tevent_req *req;
+    struct write_pipe_state *state;
+    struct tevent_fd *fde;
 
-    str = talloc_size(mem_ctx, len + 1);
-    if (str == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
-        return NULL;
+    req = tevent_req_create(mem_ctx, &state, struct write_pipe_state);
+    if (req == NULL) return NULL;
+
+    state->fd = fd;
+    state->buf = buf;
+    state->len = len;
+    state->written = 0;
+
+    fde = tevent_add_fd(ev, state, fd, TEVENT_FD_WRITE,
+                        write_pipe_handler, req);
+    if (fde == NULL) {
+        DEBUG(1, ("tevent_add_fd failed.\n"));
+        goto fail;
     }
-    memcpy(str, src, len);
-    str[len] = '\0';
 
-    return str;
+    return req;
+
+fail:
+    talloc_zfree(req);
+    return NULL;
 }
 
-/* Async communication with the child process via a pipe */
+static void write_pipe_handler(struct tevent_context *ev,
+                               struct tevent_fd *fde,
+                               uint16_t flags, void *pvt)
+{
+    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
+    struct write_pipe_state *state = tevent_req_data(req,
+                                                     struct write_pipe_state);
+    ssize_t size;
+
+    if (flags & TEVENT_FD_READ) {
+        DEBUG(1, ("write_pipe_done called with TEVENT_FD_READ,"
+                  " this should not happen.\n"));
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    size = write(state->fd,
+                 state->buf + state->written,
+                 state->len - state->written);
+    if (size == -1) {
+        if (errno == EAGAIN || errno == EINTR) return;
+        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
+        tevent_req_error(req, errno);
+        return;
+
+    } else if (size >= 0) {
+        state->written += size;
+        if (state->written > state->len) {
+            DEBUG(1, ("write to much, this should never happen.\n"));
+            tevent_req_error(req, EINVAL);
+            return;
+        }
+    } else {
+        DEBUG(1, ("unexpected return value of write [%d].\n", size));
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->len == state->written) {
+        DEBUG(6, ("All data has been sent!\n"));
+        tevent_req_done(req);
+        return;
+    }
+}
+
+int write_pipe_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
 
 struct read_pipe_state {
     int fd;
@@ -57,9 +134,9 @@ struct read_pipe_state {
     size_t len;
 };
 
-static void read_pipe_done(struct tevent_context *ev,
-                           struct tevent_fd *fde,
-                           uint16_t flags, void *pvt);
+static void read_pipe_handler(struct tevent_context *ev,
+                              struct tevent_fd *fde,
+                              uint16_t flags, void *pvt);
 
 struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev, int fd)
@@ -77,7 +154,7 @@ struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
     if (state->buf == NULL) goto fail;
 
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_READ,
-                        read_pipe_done, req);
+                        read_pipe_handler, req);
     if (fde == NULL) {
         DEBUG(1, ("tevent_add_fd failed.\n"));
         goto fail;
@@ -90,37 +167,49 @@ fail:
     return NULL;
 }
 
-static void read_pipe_done(struct tevent_context *ev,
-                           struct tevent_fd *fde,
-                           uint16_t flags, void *pvt)
+static void read_pipe_handler(struct tevent_context *ev,
+                              struct tevent_fd *fde,
+                              uint16_t flags, void *pvt)
 {
-    ssize_t size;
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct read_pipe_state *state = tevent_req_data(req, struct read_pipe_state);
+    struct read_pipe_state *state = tevent_req_data(req,
+                                                    struct read_pipe_state);
+    ssize_t size;
+    errno_t err;
 
     if (flags & TEVENT_FD_WRITE) {
-        DEBUG(1, ("read_pipe_done called with TEVENT_FD_WRITE, this should not happen.\n"));
+        DEBUG(1, ("read_pipe_done called with TEVENT_FD_WRITE,"
+                  " this should not happen.\n"));
         tevent_req_error(req, EINVAL);
         return;
     }
 
-    size = read(state->fd, state->buf + state->len, talloc_get_size(state->buf) - state->len);
+    size = read(state->fd,
+                state->buf + state->len,
+                MAX_CHILD_MSG_SIZE - state->len);
     if (size == -1) {
-        if (errno == EAGAIN || errno == EINTR) return;
-        DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-        tevent_req_error(req, errno);
+        err = errno;
+        if (err == EAGAIN || err == EINTR) {
+            return;
+        }
+
+        DEBUG(1, ("read failed [%d][%s].\n", err, strerror(err)));
+        tevent_req_error(req, err);
         return;
+
     } else if (size > 0) {
         state->len += size;
-        if (state->len > talloc_get_size(state->buf)) {
+        if (state->len > MAX_CHILD_MSG_SIZE) {
             DEBUG(1, ("read to much, this should never happen.\n"));
             tevent_req_error(req, EINVAL);
             return;
         }
-        return;
+
     } else if (size == 0) {
+        DEBUG(6, ("EOF received, client finished\n"));
         tevent_req_done(req);
         return;
+
     } else {
         DEBUG(1, ("unexpected return value of read [%d].\n", size));
         tevent_req_error(req, EINVAL);
@@ -131,12 +220,12 @@ static void read_pipe_done(struct tevent_context *ev,
 int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                    uint8_t **buf, ssize_t *len)
 {
-    struct read_pipe_state *state = tevent_req_data(req,
-                                                    struct read_pipe_state);
+    struct read_pipe_state *state;
+    state = tevent_req_data(req, struct read_pipe_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *buf = talloc_move(mem_ctx, &state->buf);
+    *buf = talloc_steal(mem_ctx, state->buf);
     *len = state->len;
 
     return EOK;

@@ -581,8 +581,7 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
         }
     }
 
-    subreq = sdap_krb5_get_tgt_send(state, ev, timeout,
-                                    realm, principal, keytab);
+    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, timeout);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -603,19 +602,20 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     int result;
     char *ccname = NULL;
 
-    ret = sdap_krb5_get_tgt_recv(subreq, state, &result, &ccname);
+    ret = sdap_get_tgt_recv(subreq, state, &result, &ccname);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        state->result = ret;
+        state->result = SDAP_AUTH_FAILED;
         DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
+        return;
     }
 
     if (result == EOK) {
         ret = setenv("KRB5CCNAME", ccname, 1);
         if (ret == -1) {
             DEBUG(2, ("Unable to set env. variable KRB5CCNAME!\n"));
-            state->result = EFAULT;
+            state->result = SDAP_AUTH_FAILED;
             tevent_req_error(req, EFAULT);
         }
 
