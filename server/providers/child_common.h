@@ -46,15 +46,14 @@ struct io_buffer {
     size_t size;
 };
 
-uint8_t *copy_buffer_and_add_zero(TALLOC_CTX *mem_ctx,
-                                  const uint8_t *src, size_t len);
-
 /* Async communication with the child process via a pipe */
-struct read_pipe_state;
+struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
+                                   struct tevent_context *ev,
+                                   uint8_t *buf, size_t len, int fd);
+int write_pipe_recv(struct tevent_req *req);
 
 struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
                                   struct tevent_context *ev, int fd);
-
 int read_pipe_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
                    uint8_t **buf, ssize_t *len);
 

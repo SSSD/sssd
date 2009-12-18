@@ -339,8 +339,9 @@ static struct response *prepare_response_message(struct krb5_req *kr,
 static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
                             struct krb5_req *kr)
 {
-    int ret;
     struct response *resp;
+    size_t written;
+    int ret;
 
     resp = prepare_response_message(kr, kerr, pam_status);
     if (resp == NULL) {
@@ -348,10 +349,18 @@ static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
         return ENOMEM;
     }
 
-    ret = write(fd, resp->buf, resp->size);
-    if (ret == -1) {
-        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+    written = 0;
+    while (written < resp->size) {
+        ret = write(fd, resp->buf + written, resp->size - written);
+        if (ret == -1) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+            ret = errno;
+            DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
+            return ret;
+        }
+        written += ret;
     }
 
     return EOK;
@@ -680,79 +689,71 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
                              char **ccname, char **keytab, uint32_t *validate)
 {
     size_t p = 0;
-    uint32_t *len;
+    uint32_t len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
-    pd->cmd = *len;
+    pd->cmd = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
-    pd->pw_uid = *len;
+    pd->pw_uid = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
-    pd->gr_gid = *len;
+    pd->gr_gid = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
-    *validate = *len;
+    *validate = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
-    if ((p + *len ) > size) return EINVAL;
-    pd->upn = (char *) copy_buffer_and_add_zero(pd, buf+p,
-                                                sizeof(char) * (*len));
+    if ((p + len ) > size) return EINVAL;
+    pd->upn = talloc_strndup(pd, (char *)(buf + p), len);
     if (pd->upn == NULL) return ENOMEM;
-    p += *len;
+    p += len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
-    if ((p + *len ) > size) return EINVAL;
-    *ccname = (char *) copy_buffer_and_add_zero(pd, buf+p,
-                                                sizeof(char) * (*len));
+    if ((p + len ) > size) return EINVAL;
+    *ccname = talloc_strndup(pd, (char *)(buf + p), len);
     if (*ccname == NULL) return ENOMEM;
-    p += *len;
+    p += len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
-    if ((p + *len ) > size) return EINVAL;
-    *keytab = (char *) copy_buffer_and_add_zero(pd, buf+p,
-                                                sizeof(char) * (*len));
+    if ((p + len ) > size) return EINVAL;
+    *keytab = talloc_strndup(pd, (char *)(buf + p), len);
     if (*keytab == NULL) return ENOMEM;
-    p += *len;
+    p += len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = *((uint32_t *)(buf + p));
     p += sizeof(uint32_t);
 
-    if ((p + *len) > size) return EINVAL;
-    pd->authtok = copy_buffer_and_add_zero(pd, buf+p, sizeof(char) * (*len));
+    if ((p + len) > size) return EINVAL;
+    pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
     if (pd->authtok == NULL) return ENOMEM;
-    pd->authtok_size = *len + 1;
-    p += *len;
+    pd->authtok_size = len + 1;
+    p += len;
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
         if ((p + sizeof(uint32_t)) > size) return EINVAL;
-        len = ((uint32_t *)(buf+p));
+        len = *((uint32_t *)(buf + p));
         p += sizeof(uint32_t);
 
-        if ((p + *len) > size) return EINVAL;
-        pd->newauthtok = copy_buffer_and_add_zero(pd, buf+p,
-                                                  sizeof(char) * (*len));
+        if ((p + len) > size) return EINVAL;
+        pd->newauthtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
         if (pd->newauthtok == NULL) return ENOMEM;
-        pd->newauthtok_size = *len + 1;
-        p += *len;
+        pd->newauthtok_size = len + 1;
+        p += len;
     } else {
         pd->newauthtok = NULL;
         pd->newauthtok_size = 0;
@@ -937,6 +938,8 @@ int main(int argc, const char *argv[])
     }
 
     poptFreeContext(pc);
+
+    DEBUG(7, ("krb5_child started.\n"));
 
     pd = talloc(NULL, struct pam_data);
     if (pd == NULL) {

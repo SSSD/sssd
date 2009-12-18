@@ -42,10 +42,11 @@ struct input_buffer {
     const char *keytab_name;
 };
 
-static errno_t unpack_buffer(uint8_t *buf, size_t size, struct input_buffer *ibuf)
+static errno_t unpack_buffer(uint8_t *buf, size_t size,
+                             struct input_buffer *ibuf)
 {
     size_t p = 0;
-    uint32_t *len;
+    uint32_t len;
 
     /* realm_str size and length */
     DEBUG(7, ("total buffer size: %d\n", size));
@@ -53,47 +54,44 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct input_buffer *ibu
         DEBUG(1, ("Error: buffer too big!\n"));
         return EINVAL;
     }
-    len = ((uint32_t *)(buf+p));
+    len = ((uint32_t *)(buf + p))[0];
     p += sizeof(uint32_t);
 
-    DEBUG(7, ("realm_str size: %d\n", *len));
-    if (*len) {
-        if ((p + *len ) > size) return EINVAL;
-        ibuf->realm_str = (char *) copy_buffer_and_add_zero(ibuf, buf+p,
-                                                 sizeof(char) * (*len));
+    DEBUG(7, ("realm_str size: %d\n", len));
+    if (len) {
+        if ((p + len ) > size) return EINVAL;
+        ibuf->realm_str = talloc_strndup(ibuf, (char *)(buf + p), len);
         DEBUG(7, ("got realm_str: %s\n", ibuf->realm_str));
         if (ibuf->realm_str == NULL) return ENOMEM;
-        p += *len;
+        p += len;
     }
 
     /* princ_str size and length */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = ((uint32_t *)(buf + p))[0];
     p += sizeof(uint32_t);
 
-    DEBUG(7, ("princ_str size: %d\n", *len));
-    if (*len) {
-        if ((p + *len ) > size) return EINVAL;
-        ibuf->princ_str = (char *) copy_buffer_and_add_zero(ibuf, buf+p,
-                                                  sizeof(char) * (*len));
+    DEBUG(7, ("princ_str size: %d\n", len));
+    if (len) {
+        if ((p + len ) > size) return EINVAL;
+        ibuf->princ_str = talloc_strndup(ibuf, (char *)(buf + p), len);
         DEBUG(7, ("got princ_str: %s\n", ibuf->princ_str));
         if (ibuf->princ_str == NULL) return ENOMEM;
-        p += *len;
+        p += len;
     }
 
     /* keytab_name size and length */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf+p));
+    len = ((uint32_t *)(buf + p))[0];
     p += sizeof(uint32_t);
 
-    DEBUG(7, ("keytab_name size: %d\n", *len));
-    if (*len) {
-        if ((p + *len ) > size) return EINVAL;
-        ibuf->keytab_name = (char *) copy_buffer_and_add_zero(ibuf, buf+p,
-                                                    sizeof(char) * (*len));
+    DEBUG(7, ("keytab_name size: %d\n", len));
+    if (len) {
+        if ((p + len ) > size) return EINVAL;
+        ibuf->keytab_name = talloc_strndup(ibuf, (char *)(buf + p), len);
         DEBUG(7, ("got keytab_name: %s\n", ibuf->keytab_name));
         if (ibuf->keytab_name == NULL) return ENOMEM;
-        p += *len;
+        p += len;
     }
 
     return EOK;
@@ -321,6 +319,7 @@ int main(int argc, const char *argv[])
     const char *ccname = NULL;
     struct input_buffer *ibuf = NULL;
     struct response *resp = NULL;
+    size_t written;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
@@ -345,6 +344,8 @@ int main(int argc, const char *argv[])
     }
 
     poptFreeContext(pc);
+
+    DEBUG(7, ("ldap_child started.\n"));
 
     main_ctx = talloc_new(NULL);
     if (main_ctx == NULL) {
@@ -414,11 +415,18 @@ int main(int argc, const char *argv[])
         return ENOMEM;
     }
 
-    ret = write(STDOUT_FILENO, resp->buf, resp->size);
-    if (ret == -1) {
-        ret = errno;
-        DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
-        return errno;
+    written = 0;
+    while (written < resp->size) {
+        ret = write(STDOUT_FILENO, resp->buf + written, resp->size - written);
+        if (ret == -1) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+            ret = errno;
+            DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
+            return ret;
+        }
+        written += ret;
     }
 
     close(STDOUT_FILENO);

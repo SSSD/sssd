@@ -575,56 +575,86 @@ static errno_t fork_child(struct krb5child_req *kr)
 }
 
 struct handle_child_state {
+    struct tevent_context *ev;
     struct krb5child_req *kr;
-    ssize_t len;
     uint8_t *buf;
+    ssize_t len;
 };
 
+static void handle_child_step(struct tevent_req *subreq);
 static void handle_child_done(struct tevent_req *subreq);
 
 static struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct krb5child_req *kr)
 {
-    int ret;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
+    struct tevent_req *req, *subreq;
     struct handle_child_state *state;
     struct io_buffer *buf;
-
-    ret = create_send_buffer(kr, &buf);
-    if (ret != EOK) {
-        DEBUG(1, ("create_send_buffer failed.\n"));
-        return NULL;
-    }
-
-    ret = fork_child(kr);
-    if (ret != EOK) {
-        DEBUG(1, ("fork_child failed.\n"));
-        return NULL;
-    }
-
-    ret = write(kr->write_to_child_fd, buf->data, buf->size);
-    close(kr->write_to_child_fd);
-    kr->write_to_child_fd = -1;
-    if (ret == -1) {
-        DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
-        return NULL;
-    }
+    int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct handle_child_state);
     if (req == NULL) {
         return NULL;
     }
 
+    state->ev = ev;
     state->kr = kr;
+    state->buf = NULL;
+    state->len = 0;
 
-    subreq = read_pipe_send(state, ev, kr->read_from_child_fd);
-    if (tevent_req_nomem(subreq, req)) {
-        return tevent_req_post(req, ev);
+    ret = create_send_buffer(kr, &buf);
+    if (ret != EOK) {
+        DEBUG(1, ("create_send_buffer failed.\n"));
+        goto fail;
+    }
+
+    ret = fork_child(kr);
+    if (ret != EOK) {
+        DEBUG(1, ("fork_child failed.\n"));
+        goto fail;
+    }
+
+    subreq = write_pipe_send(state, ev, buf->data, buf->size,
+                             kr->write_to_child_fd);
+    if (!subreq) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq, handle_child_step, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void handle_child_step(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct handle_child_state *state = tevent_req_data(req,
+                                                    struct handle_child_state);
+    int ret;
+
+    ret = write_pipe_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    close(state->kr->write_to_child_fd);
+    state->kr->write_to_child_fd = -1;
+
+    subreq = read_pipe_send(state, state->ev, state->kr->read_from_child_fd);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
     }
     tevent_req_set_callback(subreq, handle_child_done, req);
-    return req;
 }
 
 static void handle_child_done(struct tevent_req *subreq)
@@ -637,13 +667,13 @@ static void handle_child_done(struct tevent_req *subreq)
 
     ret = read_pipe_recv(subreq, state, &state->buf, &state->len);
     talloc_zfree(subreq);
-    talloc_zfree(state->kr->timeout_handler);
-    close(state->kr->read_from_child_fd);
-    state->kr->read_from_child_fd = -1;
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
+
+    close(state->kr->read_from_child_fd);
+    state->kr->read_from_child_fd = -1;
 
     tevent_req_done(req);
     return;
@@ -961,6 +991,7 @@ static void krb5_child_done(struct tevent_req *req)
     int dp_err = DP_ERR_FATAL;
 
     ret = handle_child_recv(req, pd, &buf, &len);
+    talloc_zfree(kr->timeout_handler);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(1, ("child failed (%d [%s])\n", ret, strerror(ret)));
