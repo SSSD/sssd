@@ -372,6 +372,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'debug_level',
+            'debug_timestamps',
             'min_id',
             'max_id',
             'timeout',
@@ -586,6 +587,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_options()
         control_list = [
             'debug_level',
+            'debug_timestamps',
             'min_id',
             'max_id',
             'timeout',
