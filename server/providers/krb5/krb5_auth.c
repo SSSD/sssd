@@ -713,12 +713,24 @@ void krb5_pam_handler(struct be_req *be_req)
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    if (pd->cmd != SSS_PAM_AUTHENTICATE && pd->cmd != SSS_PAM_CHAUTHTOK &&
-        pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
-        DEBUG(4, ("krb5 does not handles pam task %d.\n", pd->cmd));
-        pam_status = PAM_SUCCESS;
-        dp_err = DP_ERR_OK;
-        goto done;
+    switch (pd->cmd) {
+        case SSS_PAM_AUTHENTICATE:
+        case SSS_PAM_CHAUTHTOK:
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+            break;
+        case SSS_PAM_ACCT_MGMT:
+        case SSS_PAM_SETCRED:
+        case SSS_PAM_OPEN_SESSION:
+        case SSS_PAM_CLOSE_SESSION:
+            pam_status = PAM_SUCCESS;
+            dp_err = DP_ERR_OK;
+            goto done;
+            break;
+        default:
+            DEBUG(4, ("krb5 does not handles pam task %d.\n", pd->cmd));
+            pam_status = PAM_MODULE_UNKNOWN;
+            dp_err = DP_ERR_OK;
+            goto done;
     }
 
     if (be_is_offline(be_req->be_ctx) &&

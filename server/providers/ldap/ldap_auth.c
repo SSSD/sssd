@@ -880,12 +880,18 @@ void sdap_pam_auth_handler(struct be_req *breq)
         tevent_req_set_callback(subreq, sdap_pam_auth_done, state);
         return;
 
-/* FIXME: handle other cases */
     case SSS_PAM_CHAUTHTOK:
         break;
 
-    default:
+    case SSS_PAM_ACCT_MGMT:
+    case SSS_PAM_SETCRED:
+    case SSS_PAM_OPEN_SESSION:
+    case SSS_PAM_CLOSE_SESSION:
         pd->pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
+        break;
+    default:
+        pd->pam_status = PAM_MODULE_UNKNOWN;
         dp_err = DP_ERR_OK;
     }
 

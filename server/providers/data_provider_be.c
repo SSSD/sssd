@@ -568,10 +568,15 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         case SSS_PAM_CHAUTHTOK_PRELIM:
             target = BET_CHPASS;
             break;
+        case SSS_PAM_SETCRED:
+        case SSS_PAM_OPEN_SESSION:
+        case SSS_PAM_CLOSE_SESSION:
+            pd->pam_status = PAM_SUCCESS;
+            goto done;
+            break;
         default:
             DEBUG(7, ("Unsupported PAM command [%d].\n", pd->cmd));
-            pd->pam_status = PAM_SUCCESS;
-            ret = EOK;
+            pd->pam_status = PAM_MODULE_UNKNOWN;
             goto done;
     }
 

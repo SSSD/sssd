@@ -145,10 +145,16 @@ static void proxy_pam_handler(struct be_req *req) {
             ctx = talloc_get_type(req->be_ctx->bet_info[BET_ACCESS].pvt_bet_data,
                                   struct proxy_auth_ctx);
             break;
+        case SSS_PAM_SETCRED:
+        case SSS_PAM_OPEN_SESSION:
+        case SSS_PAM_CLOSE_SESSION:
+            pd->pam_status = PAM_SUCCESS;
+            proxy_reply(req, DP_ERR_OK, EOK, NULL);
+            return;
         default:
             DEBUG(1, ("Unsupported PAM task.\n"));
-            pd->pam_status = PAM_SUCCESS;
-            proxy_reply(req, DP_ERR_OK, PAM_SUCCESS, NULL);
+            pd->pam_status = PAM_MODULE_UNKNOWN;
+            proxy_reply(req, DP_ERR_OK, EINVAL, "Unsupported PAM task");
             return;
     }
 
