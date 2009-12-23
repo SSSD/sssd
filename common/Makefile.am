@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = trace collection ini dhash path_utils elapi
+SUBDIRS = trace collection ini dhash path_utils refarray elapi
 
 dist_noinst_DATA = \
     m4
@@ -12,12 +12,14 @@ libsssd_util_la_LIBADD = \
     collection/libcollection.la \
     ini/libini_config.la \
     dhash/libdhash.la \
+    refarray/libref_array.la \
     elapi/libelapi.la
 libsssd_util_la_CFLAGS = $(AM_CFLAGS) \
     -I ./collection \
     -I ./ini \
     -I ./dhash \
     -I ./elapi \
+    -I ./refarray \
     -I ./trace
 endif
 
