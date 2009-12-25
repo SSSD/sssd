@@ -42,6 +42,9 @@
 
 #define SLASH           "/"
 
+#define EXCLUDE_EMPTY   0
+#define INCLUDE_EMPTY   1
+
 /* Name of the special collection used to store parsing errors */
 #define FILE_ERROR_SET  "ini_file_error_set"
 
@@ -1569,13 +1572,16 @@ void free_bin_config_value(char *value)
     if (value) free(value);
 }
 
-/* Arrays of stings and integers */
-char **get_string_config_array(struct collection_item *item,
-                               const char *sep, int *size, int *error)
+/* Arrays of stings */
+static char **get_str_cfg_array(struct collection_item *item,
+                                int include,
+                                const char *sep,
+                                int *size,
+                                int *error)
 {
-    const char *defsep = ",";
     char *copy = NULL;
     char *dest = NULL;
+    char locsep[4];
     int lensep;
     char *buff;
     int count = 0;
@@ -1583,11 +1589,10 @@ char **get_string_config_array(struct collection_item *item,
     int resume_len;
     char **array;
     char *start;
-    int i, j, k;
-    int growlen = 0;
+    int i, j;
     int dlen;
 
-    TRACE_FLOW_STRING("get_string_config_array", "Entry");
+    TRACE_FLOW_STRING("get_str_cfg_array", "Entry");
 
     /* Do we have the item ? */
     if ((item == NULL) ||
@@ -1598,8 +1603,16 @@ char **get_string_config_array(struct collection_item *item,
     }
 
     /* Handle the separators */
-    if (sep == NULL) sep = defsep;
-    lensep = strnlen(sep, 3);
+    if (sep == NULL) {
+        locsep[0] = ',';
+        locsep[1] = '\0';
+        lensep = 2;
+    }
+    else {
+        strncpy(locsep, sep, 3);
+        locsep[4] = '\0';
+        lensep = strlen(locsep) + 1;
+    }
 
     /* Allocate memory for the copy of the string */
     copy = malloc(col_get_item_length(item));
@@ -1613,17 +1626,18 @@ char **get_string_config_array(struct collection_item *item,
     dest = copy;
     buff = col_get_item_data(item);
     start = buff;
-    dlen = col_get_item_length(item) - 1;
+    dlen = col_get_item_length(item);
     for(i = 0; i < dlen; i++) {
-        growlen = 1;
         for(j = 0; j < lensep; j++) {
-            if(buff[i] == sep[j]) {
+            if(buff[i] == locsep[j]) {
                 /* If we found one of the separators trim spaces around */
                 resume_len = len;
                 while (len > 0) {
                     if (isspace(start[len - 1])) len--;
                     else break;
                 }
+                TRACE_INFO_STRING("Current:", start);
+                TRACE_INFO_NUMBER("Length:", len);
                 if (len > 0) {
                     /* Save block aside */
                     memcpy(dest, start, len);
@@ -1631,52 +1645,29 @@ char **get_string_config_array(struct collection_item *item,
                     dest += len;
                     *dest = '\0';
                     dest++;
-                    len = 0;
                 }
+                else if(include) {
+                    count++;
+                    *dest = '\0';
+                    dest++;
+                }
+                if (locsep[j] == '\0') break; /* We are done */
+
                 /* Move forward and trim spaces if any */
                 start += resume_len + 1;
                 i++;
                 TRACE_INFO_STRING("Other pointer :", buff + i);
-                k = 0;
-                while(1) {
-                    TRACE_INFO_STRING("Remaining buffer :", start);
-                    while (((i + k) < dlen) && (isspace(*start))) {
-                        k++;
-                        start++;
-                    }
-                    /* May be we have another separator */
-                    TRACE_INFO_STRING("Remaining before sep check :", start);
-                    if(*start && strchr(sep, *start)) {
-                        TRACE_INFO_NUMBER("Found separator:", *start);
-                        start++;
-                        k++;
-                    }
-                    else {
-                        break;
-                    }
+                while ((i < dlen) && (isspace(*start))) {
+                    i++;
+                    start++;
                 }
-
+                len = -1; /* Len will be increased in the loop */
+                i--; /* i will be increas so we need to step back */
                 TRACE_INFO_STRING("Remaining buffer after triming spaces:", start);
-
-                if (k) i += k - 1;
-                /* Next iteration of the loop will add 1 */
-                /* Break out of the inner loop */
-                growlen = 0;
                 break;
             }
         }
-        if (growlen) len++;
-    }
-
-    TRACE_INFO_STRING("Last part :", start);
-    TRACE_INFO_NUMBER("Length :", len);
-    if(len) {
-        /* Copy the remaining piece */
-        memcpy(dest, start, len);
-        count++;
-        dest += len;
-        *dest = '\0';
-        dest++;
+        len++;
     }
 
     /* Now we know how many items are there in the list */
@@ -1702,8 +1693,23 @@ char **get_string_config_array(struct collection_item *item,
 
     if (error) *error = EOK;
     if (size) *size = count;
-    TRACE_FLOW_STRING("get_string_config_array", "Exit");
+    TRACE_FLOW_STRING("get_str_cfg_array", "Exit");
     return array;
+}
+
+/* Get array of strings from item eliminating empty tokens */
+char **get_string_config_array(struct collection_item *item,
+                               const char *sep, int *size, int *error)
+{
+    TRACE_FLOW_STRING("get_string_config_array", "Called.");
+    return get_str_cfg_array(item, EXCLUDE_EMPTY, sep, size, error);
+}
+/* Get array of strings from item preserving empty tokens */
+char **get_raw_string_config_array(struct collection_item *item,
+                                   const char *sep, int *size, int *error)
+{
+    TRACE_FLOW_STRING("get_raw_string_config_array", "Called.");
+    return get_str_cfg_array(item, INCLUDE_EMPTY, sep, size, error);
 }
 
 /* Special function to free string config array */

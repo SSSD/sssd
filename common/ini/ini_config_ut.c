@@ -755,11 +755,46 @@ int get_test(void)
 
     free_string_config_array(strarray);
 
+    printf("Get raw str array without size.\n");
+
+    error = 0;
+    strarray = get_raw_string_config_array(item, ",", NULL, &error);
+    if (error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Can be used with this cycle */
+    strptr = strarray;
+    while (*strptr != NULL) {
+        printf("[%s]\n",*strptr);
+        strptr++;
+    }
+
+    free_string_config_array(strarray);
+
     printf("Get str array with size.\n");
 
     error = 0;
     size = 0;
     strarray = get_string_config_array(item, ",", &size, &error);
+    if (error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Can be used with this cycle */
+    for (i=0;i<size;i++) printf("[%s]\n",*(strarray + i));
+
+    free_string_config_array(strarray);
+
+    printf("Get raw str array with size.\n");
+
+    error = 0;
+    size = 0;
+    strarray = get_raw_string_config_array(item, ",", &size, &error);
     if (error) {
         printf("Expect success got error %d.\n", error);
         free_ini_config(ini_config);

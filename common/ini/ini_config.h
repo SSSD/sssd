@@ -226,15 +226,37 @@ const char *get_const_string_config_value(struct collection_item *item, int *err
 char *get_bin_config_value(struct collection_item *item, int *length, int *error);
 void free_bin_config_value(char *);
 
-/* Array of stings */
-/* Separator string includes up to three different separators. If NULL comma is assumed. */
-/* The spaces are trimmed automatically around separators in the string. */
-char **get_string_config_array(struct collection_item *item, const char *sep, int *size, int *error);
+/* Array of stings.
+ * Separator string includes up to three different separators. If NULL comma is assumed.
+ * The spaces are trimmed automatically around separators in the string.
+ * The function drops empty tokens from the list.
+ * This means that the string like this: "apple, ,banana, ,orange ,"
+ * will be translated into the list of three items: "apple","banana" and "orange".
+ *
+ * The length of the allocated array is returned in "size".
+ * Size and error parameters can be NULL.
+ * Use free_string_config_array() to free the array after use.
+ */
+char **get_string_config_array(struct collection_item *item,
+                               const char *sep, int *size, int *error);
+
+/* This function is same as above but does not omit empty tokens.
+ * This means that the string like this: "apple, ,banana, ,orange ,"
+ * will be translated into the items: "apple", "", "banana", "", "orange", "".
+ * This function is useful when the configuration parameter
+ * holds a positionally sensitive list.
+ * Use free_string_config_array() to free the array after use.
+ */
+char **get_raw_string_config_array(struct collection_item *item,
+                                   const char *sep, int *size, int *error);
+
 /* Array of long values - separators are detected automatically. */
-/* The length of the allocated array is returned in "size" */
+/* The length of the allocated array is returned in "size". */
+/* Size and error parameters can be NULL. */
 long *get_long_config_array(struct collection_item *item, int *size, int *error);
 /* Array of double values - separators are detected automatically. */
 /* The length of the allocated array is returned in "size" */
+/* Size and error parameters can be NULL. */
 double *get_double_config_array(struct collection_item *item, int *size, int *error);
 
 /* Special function to free string config array */
