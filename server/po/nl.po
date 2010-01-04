@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-11-23 12:37-0500\n"
+"POT-Creation-Date: 2010-01-04 13:38-0500\n"
 "PO-Revision-Date: 2009-11-19 12:19+0100\n"
 "Last-Translator: Richard van der Luit <nippur@fedoraproject.org>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -351,28 +351,33 @@ msgstr ""
 msgid "Specify group to delete\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:80 tools/sss_groupmod.c:110 tools/sss_userdel.c:101
-#: tools/sss_useradd.c:182 tools/sss_groupadd.c:85 tools/sss_usermod.c:125
+#: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
+#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
+msgid "Error initializing the tools - no local domain\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
+#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
 msgid "Error initializing the tools\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:88 tools/sss_groupmod.c:117 tools/sss_userdel.c:109
-#: tools/sss_useradd.c:190 tools/sss_groupadd.c:93 tools/sss_usermod.c:133
+#: tools/sss_groupdel.c:92 tools/sss_groupmod.c:121 tools/sss_userdel.c:113
+#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_usermod.c:137
 msgid "Invalid domain specified in FQDN\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:103
+#: tools/sss_groupdel.c:107
 #, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:132
+#: tools/sss_groupdel.c:136
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
 msgstr ""
 
-#: tools/sss_groupdel.c:137
+#: tools/sss_groupdel.c:141
 msgid "Internal error. Could not remove group.\n"
 msgstr ""
 
@@ -392,42 +397,42 @@ msgstr ""
 msgid "Specify group to modify\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:126
+#: tools/sss_groupmod.c:130
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:139 tools/sss_groupmod.c:166 tools/sss_useradd.c:199
-#: tools/sss_usermod.c:158 tools/sss_usermod.c:185
+#: tools/sss_groupmod.c:143 tools/sss_groupmod.c:170 tools/sss_useradd.c:203
+#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
 msgid "Internal error while parsing parameters\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:147 tools/sss_groupmod.c:174
+#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:155 tools/sss_groupmod.c:182 tools/sss_usermod.c:174
-#: tools/sss_usermod.c:201
+#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
+#: tools/sss_usermod.c:205
 #, c-format
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:190 tools/sss_groupadd.c:102
+#: tools/sss_groupmod.c:194 tools/sss_groupadd.c:106
 msgid "The selected GID is outside the allowed range\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:218
+#: tools/sss_groupmod.c:222
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:222
+#: tools/sss_groupmod.c:226
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 
-#: tools/sss_groupmod.c:226
+#: tools/sss_groupmod.c:230
 msgid "Transaction error. Could not modify group.\n"
 msgstr ""
 
@@ -447,34 +452,34 @@ msgstr ""
 msgid "Specify user to delete\n"
 msgstr ""
 
-#: tools/sss_userdel.c:119 tools/sss_useradd.c:240
+#: tools/sss_userdel.c:123 tools/sss_useradd.c:244
 msgid "Cannot set default values\n"
 msgstr ""
 
-#: tools/sss_userdel.c:137
+#: tools/sss_userdel.c:141
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
 msgstr ""
 
-#: tools/sss_userdel.c:168
+#: tools/sss_userdel.c:172
 msgid "Not removing home dir - not owned by user\n"
 msgstr ""
 
-#: tools/sss_userdel.c:170
+#: tools/sss_userdel.c:174
 #, c-format
 msgid "Cannot remove homedir: %s\n"
 msgstr ""
 
-#: tools/sss_userdel.c:182
+#: tools/sss_userdel.c:186
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 
-#: tools/sss_userdel.c:187
+#: tools/sss_userdel.c:191
 msgid "Internal error. Could not remove user.\n"
 msgstr ""
 
-#: tools/tools_util.c:291
+#: tools/tools_util.c:292
 msgid "Out of memory\n"
 msgstr ""
 
@@ -523,50 +528,50 @@ msgstr ""
 msgid "Specify user to add\n"
 msgstr ""
 
-#: tools/sss_useradd.c:207 tools/sss_usermod.c:166 tools/sss_usermod.c:193
+#: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
 msgstr ""
 
-#: tools/sss_useradd.c:215
+#: tools/sss_useradd.c:219
 #, c-format
 msgid "Cannot find group %s in local domain\n"
 msgstr ""
 
-#: tools/sss_useradd.c:225
+#: tools/sss_useradd.c:229
 msgid "Cannot get group information for the user\n"
 msgstr ""
 
-#: tools/sss_useradd.c:247 tools/sss_usermod.c:149
+#: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
 msgstr ""
 
-#: tools/sss_useradd.c:281
+#: tools/sss_useradd.c:285
 msgid "Cannot get info about the user\n"
 msgstr ""
 
-#: tools/sss_useradd.c:295
+#: tools/sss_useradd.c:299
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
 
-#: tools/sss_useradd.c:298
+#: tools/sss_useradd.c:302
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
 msgstr ""
 
-#: tools/sss_useradd.c:309
+#: tools/sss_useradd.c:313
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
 msgstr ""
 
-#: tools/sss_useradd.c:321
+#: tools/sss_useradd.c:325
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr ""
 
-#: tools/sss_useradd.c:325
+#: tools/sss_useradd.c:329
 msgid "A user or group with the same name or ID already exists\n"
 msgstr ""
 
-#: tools/sss_useradd.c:331
+#: tools/sss_useradd.c:335
 msgid "Transaction error. Could not add user.\n"
 msgstr ""
 
@@ -574,15 +579,15 @@ msgstr ""
 msgid "Specify group to add\n"
 msgstr ""
 
-#: tools/sss_groupadd.c:129
+#: tools/sss_groupadd.c:133
 msgid "Could not allocate ID for the group - domain full?\n"
 msgstr ""
 
-#: tools/sss_groupadd.c:133
+#: tools/sss_groupadd.c:137
 msgid "A group with the same name or GID already exists\n"
 msgstr ""
 
-#: tools/sss_groupadd.c:138
+#: tools/sss_groupadd.c:142
 msgid "Transaction error. Could not add group.\n"
 msgstr ""
 
@@ -610,20 +615,20 @@ msgstr ""
 msgid "Specify user to modify\n"
 msgstr ""
 
-#: tools/sss_usermod.c:142
+#: tools/sss_usermod.c:146
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
 msgstr ""
 
-#: tools/sss_usermod.c:237
+#: tools/sss_usermod.c:241
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 
-#: tools/sss_usermod.c:241
+#: tools/sss_usermod.c:245
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 
-#: tools/sss_usermod.c:245
+#: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
 msgstr ""
