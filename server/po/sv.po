@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the sssd package.
 # Göran Uddeborg <goeran@uddeborg.se>, 2009.
 #
-# $Revision: 1.3 $
+# $Revision: 1.4 $
 msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-01-04 13:38-0500\n"
-"PO-Revision-Date: 2009-12-15 21:19+0100\n"
+"PO-Revision-Date: 2009-12-30 17:58+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "MIME-Version: 1.0\n"
@@ -70,7 +70,7 @@ msgstr "Tidsgränslängd för bakgrundsuppdateringar av postcache (sekunder)"
 
 #: config/SSSDConfig.py:56
 msgid "Negative cache timeout length (seconds)"
-msgstr "Tidsgränslängd för negativ cache (sekuner)"
+msgstr "Tidsgränslängd för negativ cache (sekunder)"
 
 #: config/SSSDConfig.py:57
 msgid "Users that SSSD should explicitly ignore"
