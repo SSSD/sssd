@@ -71,11 +71,6 @@ static int sss_dp_req_destructor(void *ptr)
     struct sss_dp_callback *cb, *next;
     hash_key_t key;
 
-    /* Destroy any timer if present */
-    if (sdp_req->tev) {
-        talloc_zfree(sdp_req->tev);
-    }
-
     /* Cancel Dbus pending reply if still pending */
     if (sdp_req->pending_reply) {
         dbus_pending_call_cancel(sdp_req->pending_reply);
@@ -122,6 +117,11 @@ static void sdp_req_timeout(struct tevent_context *ev,
     sdp_req->err_min = ETIMEDOUT;
     sdp_req->err_msg = discard_const_p(char, "Timed out");
 
+    /* steal te on NULL because it will be freed as soon as the handler
+     * returns. Causing a double free if we don't, as te is allocated on
+     * sdp_req and we are just going to free it */
+    talloc_steal(NULL, te);
+
     talloc_free(sdp_req);
 }
 
@@ -139,9 +139,6 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
     struct timeval tv;
     struct tevent_timer *tev;
 
-    /* eventually free the original request timeout */
-    talloc_zfree(sdp_req->tev);
-
     cb = sdp_req->cb_list;
     /* Remove the callback from the list, the caller may free it, within the
      * callback. */
@@ -156,10 +153,7 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
     /* Call the next callback if needed */
     if (sdp_req->cb_list != NULL) {
         tv = tevent_timeval_current();
-        /* don't allocate on sdp_req, cause you can't free a timer event from
-         * within the handler, so if you try to free sdp_req later from within
-         * the handler, the free may fail */
-        tev = tevent_add_timer(sdp_req->ev, NULL, tv,
+        tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
                                sss_dp_invoke_callback, sdp_req);
         if (!te) {
             /* Out of memory or other serious error */
@@ -171,6 +165,11 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
 
     /* No more callbacks to invoke. Destroy the request */
 done:
+    /* steal te on NULL because it will be freed as soon as the handler
+     * returns. Causing a double free if we don't, as te is allocated on
+     * sdp_req and we are just going to free it */
+    talloc_steal(NULL, te);
+
     talloc_zfree(sdp_req);
 }
 
@@ -376,11 +375,8 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
 
         sdp_req->key = talloc_strdup(sdp_req, key.str);
 
-        /* don't allocate on sdp_req, cause you can't free a timer
-         * event from within the handler, so if you try to free
-         * sdp_req later from within the handler, the free may fail */
         tv = tevent_timeval_current_ofs(timeout, 0);
-        sdp_req->tev = tevent_add_timer(sdp_req->ev, NULL, tv,
+        sdp_req->tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
                                         sdp_req_timeout, sdp_req);
         if (!sdp_req->tev) {
             DEBUG(0, ("Out of Memory!?"));
