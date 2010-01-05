@@ -494,9 +494,9 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         control_provider_dict = {
             'ipa': ['id', 'auth', 'access', 'chpass'],
-            'local': ['id', 'auth', 'access', 'chpass'],
+            'local': ['id', 'auth', 'chpass'],
             'ldap': ['id', 'auth', 'chpass'],
-            'krb5': ['auth', 'access', 'chpass'],
+            'krb5': ['auth', 'chpass'],
             'proxy': ['id', 'auth'],
             'permit': ['access'],
             'deny': ['access']}
