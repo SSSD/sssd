@@ -241,10 +241,44 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
                         "list_options is requiring a %s" %
                         options['reconnection_retries'][1])
 
-        self.assertTrue(options['reconnection_retries'][0] == int,
-                        "reconnection_retries should default to 2. " +
-                        "list_options specifies %d" %
-                        options['reconnection_retries'][3])
+        self.assertTrue(options['reconnection_retries'][3] == None,
+                        "reconnection_retries should have no default")
+
+        self.assertTrue(type(options['services']) == tuple,
+                        "Option values should be a tuple")
+
+        self.assertTrue(options['services'][0] == list,
+                        "services should require an list. " +
+                        "list_options is requiring a %s" %
+                        options['services'][0])
+
+        self.assertTrue(options['services'][1] == str,
+                        "services should require a subtype of str. " +
+                        "list_options is requiring a %s" %
+                        options['services'][1])
+
+    def testListMandatoryOptions(self):
+        service = SSSDConfig.SSSDService('sssd', self.schema)
+
+        options = service.list_mandatory_options()
+        control_list = [
+            'services',
+            'domains']
+
+        self.assertTrue(type(options) == dict,
+                        "Options should be a dictionary")
+
+        # Ensure that all of the expected defaults are there
+        for option in control_list:
+            self.assertTrue(option in options.keys(),
+                            "Option [%s] missing" %
+                            option)
+
+        # Ensure that there aren't any unexpected options listed
+        for option in options.keys():
+            self.assertTrue(option in control_list,
+                            'Option [%s] unexpectedly found' %
+                            option)
 
         self.assertTrue(type(options['services']) == tuple,
                         "Option values should be a tuple")
@@ -299,9 +333,7 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         options = service.get_all_options()
         control_list = [
             'config_file_version',
-            'services',
-            'debug_level',
-            'reconnection_retries']
+            'services']
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -322,8 +354,8 @@ class SSSDConfigTestSSSDService(unittest.TestCase):
         service = SSSDConfig.SSSDService('sssd', self.schema)
 
         # Positive test - Remove an option that exists
-        self.assertEqual(service.get_option('debug_level'), 0)
-        service.remove_option('debug_level')
+        self.assertEqual(service.get_option('services'), ['nss', 'pam'])
+        service.remove_option('services')
         self.assertRaises(SSSDConfig.NoOptionError, service.get_option, 'debug_level')
 
         # Positive test - Remove an option that doesn't exist
@@ -473,6 +505,101 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         # revert to the backup_list
         domain.remove_provider('auth')
         options = domain.list_options()
+
+        self.assertTrue(type(options) == dict,
+                        "Options should be a dictionary")
+
+        # Ensure that all of the expected defaults are there
+        for option in backup_list:
+            self.assertTrue(option in options.keys(),
+                            "Option [%s] missing" %
+                            option)
+
+        # Ensure that there aren't any unexpected options listed
+        for option in options.keys():
+            self.assertTrue(option in backup_list,
+                            'Option [%s] unexpectedly found' %
+                            option)
+
+    def testListMandatoryOptions(self):
+        domain = SSSDConfig.SSSDDomain('sssd', self.schema)
+
+        # First test default options
+        options = domain.list_mandatory_options()
+        control_list = [
+            'cache_credentials',
+            'min_id',
+            'id_provider',
+            'auth_provider']
+
+        self.assertTrue(type(options) == dict,
+                        "Options should be a dictionary")
+
+        # Ensure that all of the expected defaults are there
+        for option in control_list:
+            self.assertTrue(option in options.keys(),
+                            "Option [%s] missing" %
+                            option)
+
+        # Ensure that there aren't any unexpected options listed
+        for option in options.keys():
+            self.assertTrue(option in control_list,
+                            'Option [%s] unexpectedly found' %
+                            option)
+
+        # Add a provider and verify that the new options appear
+        domain.add_provider('local', 'id')
+        control_list.extend(
+            ['default_shell',
+             'base_directory'])
+
+        options = domain.list_mandatory_options()
+
+        self.assertTrue(type(options) == dict,
+                        "Options should be a dictionary")
+
+        # Ensure that all of the expected defaults are there
+        for option in control_list:
+            self.assertTrue(option in options.keys(),
+                            "Option [%s] missing" %
+                            option)
+
+        # Ensure that there aren't any unexpected options listed
+        for option in options.keys():
+            self.assertTrue(option in control_list,
+                            'Option [%s] unexpectedly found' %
+                            option)
+
+        # Add a provider that has global options and verify that
+        # The new options appear.
+        domain.add_provider('krb5', 'auth')
+
+        backup_list = control_list[:]
+        control_list.extend(
+            ['krb5_kdcip',
+             'krb5_realm'])
+
+        options = domain.list_mandatory_options()
+
+        self.assertTrue(type(options) == dict,
+                        "Options should be a dictionary")
+
+        # Ensure that all of the expected defaults are there
+        for option in control_list:
+            self.assertTrue(option in options.keys(),
+                            "Option [%s] missing" %
+                            option)
+
+        # Ensure that there aren't any unexpected options listed
+        for option in options.keys():
+            self.assertTrue(option in control_list,
+                            'Option [%s] unexpectedly found' %
+                            option)
+
+        # Remove the auth domain and verify that the options
+        # revert to the backup_list
+        domain.remove_provider('auth')
+        options = domain.list_mandatory_options()
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")
@@ -930,9 +1057,7 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         control_list = [
             'config_file_version',
-            'services',
-            'debug_level',
-            'reconnection_retries']
+            'services']
         for option in control_list:
             self.assertTrue(sssdconfig.has_option('sssd', option),
                             "Option [%s] missing from [sssd]" %

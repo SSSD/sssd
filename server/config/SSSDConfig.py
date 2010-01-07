@@ -212,7 +212,8 @@ class SSSDConfigSchema(SSSDChangeConf):
         # Indexes
         PRIMARY_TYPE = 0
         SUBTYPE = 1
-        DEFAULT = 2
+        MANDATORY = 2
+        DEFAULT = 3
 
         # Parse values
         parsed_options = {}
@@ -223,24 +224,27 @@ class SSSDConfigSchema(SSSDChangeConf):
 
             primarytype = self.type_lookup[split_option[PRIMARY_TYPE]]
             subtype = self.type_lookup[split_option[SUBTYPE]]
+            mandatory = self.bool_lookup[split_option[MANDATORY]]
 
             if option_strings.has_key(option['name']):
                 desc = option_strings[option['name']]
             else:
                 desc = None
 
-            if optionlen == 2:
+            if optionlen == 3:
                 # This option has no defaults
                 parsed_options[option['name']] = \
                     (primarytype,
                      subtype,
+                     mandatory,
                      desc,
                      None)
-            elif optionlen == 3:
+            elif optionlen == 4:
                 if type(split_option[DEFAULT]) == primarytype:
                     parsed_options[option['name']] = \
                         (primarytype,
                          subtype,
+                         mandatory,
                          desc,
                          split_option[DEFAULT])
                 elif primarytype == list:
@@ -248,6 +252,7 @@ class SSSDConfigSchema(SSSDChangeConf):
                         parsed_options[option['name']] = \
                             (primarytype,
                              subtype,
+                             mandatory,
                              desc,
                              [split_option[DEFAULT]])
                     else:
@@ -257,12 +262,14 @@ class SSSDConfigSchema(SSSDChangeConf):
                                 parsed_options[option['name']] = \
                                     (primarytype,
                                      subtype,
+                                     mandatory,
                                      desc,
                                      [self.bool_lookup[split_option[DEFAULT].lower()]])
                             else:
                                 parsed_options[option['name']] = \
                                     (primarytype,
                                      subtype,
+                                     mandatory,
                                      desc,
                                      [subtype(split_option[DEFAULT])])
                         except ValueError, KeyError:
@@ -274,18 +281,20 @@ class SSSDConfigSchema(SSSDChangeConf):
                                 parsed_options[option['name']] = \
                                     (primarytype,
                                      subtype,
+                                     mandatory,
                                      desc,
                                      self.bool_lookup[split_option[DEFAULT].lower()])
                         else:
                             parsed_options[option['name']] = \
                                 (primarytype,
                                  subtype,
+                                 mandatory,
                                  desc,
                                  primarytype(split_option[DEFAULT]))
                     except ValueError, KeyError:
                         raise ParsingError
 
-            elif optionlen > 3:
+            elif optionlen > 4:
                 if (primarytype != list):
                     raise ParsingError
                 fixed_options = []
@@ -304,6 +313,7 @@ class SSSDConfigSchema(SSSDChangeConf):
                 parsed_options[option['name']] = \
                     (primarytype,
                      subtype,
+                     mandatory,
                      desc,
                      fixed_options)
             else:
@@ -326,9 +336,9 @@ class SSSDConfigSchema(SSSDChangeConf):
             raise NoSectionError(section)
 
         schema_options = self.get_options(section)
-        defaults = dict([(x,schema_options[x][3])
+        defaults = dict([(x,schema_options[x][4])
                          for x in schema_options.keys()
-                         if schema_options[x][3] != None])
+                         if schema_options[x][4] != None])
 
         return defaults
 
@@ -465,6 +475,35 @@ class SSSDService(SSSDConfigObject):
             self.options['config_file_version'] = 2
             self.hidden_options.append('config_file_version')
 
+    def list_options_with_mandatory(self):
+        """
+        List options for the service, including the mandatory flag.
+
+        === Returns ===
+        A dictionary of configurable options. This dictionary is keyed on the
+        option name with a tuple of the variable type, subtype ('None' if the
+        type is not  a collection type), whether it is mandatory, the
+        translated option description, and the default value (or 'None') as
+        the value.
+
+        Example:
+        { 'enumerate' :
+          (bool, None, False, u'Enable enumerating all users/groups', True) }
+
+        === Errors ===
+        No errors
+        """
+        options = {}
+
+        # Get the list of available options for all services
+        schema_options = self.schema.get_options('service')
+        options.update(schema_options)
+
+        schema_options = self.schema.get_options(self.name)
+        options.update(schema_options)
+
+        return options
+
     def list_options(self):
         """
         List all options that apply to this service
@@ -482,16 +521,43 @@ class SSSDService(SSSDConfigObject):
         === Errors ===
         No Errors
         """
-        options = {}
+        options = self.list_options_with_mandatory()
 
-        # Get the list of available options for all services
-        schema_options = self.schema.get_options('service')
-        options.update(schema_options)
+        # Filter out the mandatory field to maintain compatibility
+        # with older versions of the API
+        filtered_options = {}
+        for key in options.keys():
+            filtered_options[key] = (options[key][0], options[key][1], options[key][3], options[key][4])
 
-        schema_options = self.schema.get_options(self.name)
-        options.update(schema_options)
+        return filtered_options
 
-        return options
+    def list_mandatory_options(self):
+        """
+        List all mandatory options that apply to this service
+
+        === Returns ===
+        A dictionary of configurable options. This dictionary is keyed on the
+        option name with a tuple of the variable type, subtype ('None' if the
+        type is not  a collection type), the translated option description, and
+        the default value (or 'None') as the value.
+
+        Example:
+        { 'services' :
+          (list, str, u'SSSD Services to start', ['nss', 'pam']) }
+
+        === Errors ===
+        No Errors
+        """
+        options = self.list_options_with_mandatory()
+
+        # Filter out the mandatory field to maintain compatibility
+        # with older versions of the API
+        filtered_options = {}
+        for key in options.keys():
+            if options[key][2]:
+                filtered_options[key] = (options[key][0], options[key][1], options[key][3], options[key][4])
+
+        return filtered_options
 
     def set_option(self, optionname, value):
         """
@@ -636,19 +702,21 @@ class SSSDDomain(SSSDConfigObject):
         """
         self.active = bool(active)
 
-    def list_options(self):
+    def list_options_with_mandatory(self):
         """
-        List options available for the currently-configured providers.
+        List options for the currently-configured providers, including the
+        mandatory flag
 
         === Returns ===
         A dictionary of configurable options. This dictionary is keyed on the
         option name with a tuple of the variable type, subtype ('None' if the
-        type is not  a collection type), the translated option description, and
-        the default value (or 'None') as the value.
+        type is not  a collection type), whether it is mandatory, the
+        translated option description, and the default value (or 'None') as
+        the value.
 
         Example:
         { 'enumerate' :
-          (bool, None, u'Enable enumerating all users/groups', True) }
+          (bool, None, False, u'Enable enumerating all users/groups', True) }
 
         === Errors ===
         No errors
@@ -669,6 +737,61 @@ class SSSDDomain(SSSDConfigObject):
                                                      % (provider, providertype))
             options.update(schema_options)
         return options
+
+    def list_options(self):
+        """
+        List options available for the currently-configured providers.
+
+        === Returns ===
+        A dictionary of configurable options. This dictionary is keyed on the
+        option name with a tuple of the variable type, subtype ('None' if the
+        type is not  a collection type), the translated option description, and
+        the default value (or 'None') as the value.
+
+        Example:
+        { 'enumerate' :
+          (bool, None, u'Enable enumerating all users/groups', True) }
+
+        === Errors ===
+        No errors
+        """
+        options = self.list_options_with_mandatory()
+
+        # Filter out the mandatory field to maintain compatibility
+        # with older versions of the API
+        filtered_options = {}
+        for key in options.keys():
+            filtered_options[key] = (options[key][0], options[key][1], options[key][3], options[key][4])
+
+        return filtered_options
+
+    def list_mandatory_options(self):
+        """
+        List mandatory options for the currently-configured providers.
+
+        === Returns ===
+        A dictionary of configurable options. This dictionary is keyed on the
+        option name with a tuple of the variable type, subtype ('None' if the
+        type is not  a collection type), the translated option description, and
+        the default value (or 'None') as the value.
+
+        Example:
+        { 'enumerate' :
+          (bool, None, u'Enable enumerating all users/groups', True) }
+
+        === Errors ===
+        No errors
+        """
+        options = self.list_options_with_mandatory()
+
+        # Filter out the mandatory field to maintain compatibility
+        # with older versions of the API
+        filtered_options = {}
+        for key in options.keys():
+            if options[key][2]:
+                filtered_options[key] = (options[key][0], options[key][1], options[key][3], options[key][4])
+
+        return filtered_options
 
     def list_provider_options(self, provider, provider_type=None):
         """
