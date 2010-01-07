@@ -939,7 +939,7 @@ static void krb5_resolve_done(struct tevent_req *req)
                 DEBUG(1, ("pam_add_response failed.\n"));
             }
 
-            pam_status = PAM_SUCCESS;
+            pam_status = PAM_AUTHINFO_UNAVAIL;
             dp_err = DP_ERR_OFFLINE;
             goto done;
         }
