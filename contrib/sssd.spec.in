@@ -12,6 +12,8 @@ URL: http://www.freeipa.org/
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
+%define dhash_version 0.4.0
+
 ### Patches ###
 
 ### Dependencies ###
@@ -19,6 +21,7 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 Requires: libldb >= 0.9.3
 Requires: libtdb >= 1.1.3
 Requires: sssd-client = %{version}-%{release}
+Requires: libdhash = %{dhash_version}-%{release}
 Requires: cyrus-sasl-gssapi
 Requires(post): python
 Requires(preun):  initscripts chkconfig
@@ -76,6 +79,28 @@ Group: Applications/System
 Provides the libraries needed by the PAM and NSS stacks to connect to the SSSD
 service.
 
+%package -n libdhash
+Summary: Dynamic hash table
+Group: Development/Libraries
+Version: %{dhash_version}
+License: LGPLv3+
+
+%description -n libdhash
+A hash table which will dynamically resize to achieve optimal storage & access
+time properties
+
+%package -n libdhash-devel
+Summary: Development files for libdhash
+Group: Development/Libraries
+Version: %{dhash_version}
+Requires: libdhash = %{dhash_version}-%{release}
+License: LGPLv3+
+
+%description -n libdhash-devel
+A hash table which will dynamically resize to achieve optimal storage & access
+time properties
+
+
 %prep
 %setup -q
 
@@ -88,7 +113,8 @@ KRB5_LIBS=-lkrb5 \
     --with-pipe-path=%{pipepath} \
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
-    --enable-nsslibdir=/%{_lib}
+    --enable-nsslibdir=/%{_lib} \
+    --disable-static
 
 make %{?_smp_mflags}
 
@@ -96,6 +122,14 @@ make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 
 make install DESTDIR=$RPM_BUILD_ROOT
+
+# Remove the example files from the output directory
+# We will copy them directly from the source directory
+# for packaging
+rm -f \
+    $RPM_BUILD_ROOT/usr/share/doc/dhash/README \
+    $RPM_BUILD_ROOT/usr/share/doc/dhash/examples/dhash_example.c \
+    $RPM_BUILD_ROOT/usr/share/doc/dhash/examples/dhash_test.c
 
 # Prepare language files
 /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sss_daemon
@@ -111,6 +145,7 @@ install -m400 server/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/
 rm -f \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
     $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libdhash.la \
     $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
@@ -182,6 +217,21 @@ rm -rf $RPM_BUILD_ROOT
 /%{_lib}/security/pam_sss.so
 %{_mandir}/man8/pam_sss.8*
 
+%files -n libdhash
+%defattr(-,root,root,-)
+%doc common/dhash/COPYING
+%doc common/dhash/COPYING.LESSER
+%{_libdir}/libdhash.so.1
+%{_libdir}/libdhash.so.1.0.0
+
+%files -n libdhash-devel
+%defattr(-,root,root,-)
+%{_includedir}/dhash.h
+%{_libdir}/libdhash.so
+%{_libdir}/pkgconfig/dhash.pc
+%doc common/dhash/README
+%doc common/dhash/examples
+
 %post
 /sbin/ldconfig
 /sbin/chkconfig --add %{servicename}
@@ -205,6 +255,10 @@ fi
 %post client -p /sbin/ldconfig
 
 %postun client -p /sbin/ldconfig
+
+%post -n libdhash -p /sbin/ldconfig
+
+%postun -n libdhash -p /sbin/ldconfig
 
 %changelog
 * Mon Sep 28 2009 Sumit Bose <sbose@redhat.com> - 0.6.0-0

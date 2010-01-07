@@ -1,4 +1,4 @@
-AC_INIT([dhash], [0.3.3], [jdennis@redhat.com])
+AC_INIT([dhash], [0.4.0], [jdennis@redhat.com])
 AC_CONFIG_SRCDIR([dhash.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

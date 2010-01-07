@@ -145,11 +145,16 @@ INI_CFG_LIBS = \
     -L$(builddir)/../common/ini/.libs/ \
     -lini_config
 
-DHASH_CFLAGS = \
-    -I$(srcdir)/../common/dhash
-DHASH_LIBS = \
-    -L$(builddir)/../common/dhash/ \
-    -ldhash
+if HAVE_SYSTEM_DHASH
+    DHASH_CFLAGS = $(SYSTEM_DHASH_CFLAGS)
+    DHASH_LIBS = $(SYSTEM_DHASH_LIBS)
+else
+    DHASH_CFLAGS = \
+        -I$(srcdir)/../common/dhash
+    DHASH_LIBS = \
+        -L$(builddir)/../common/dhash/ \
+        -ldhash
+endif
 
 AM_CPPFLAGS = -Wall \
     -Iinclude \
