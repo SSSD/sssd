@@ -465,13 +465,14 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
     pam_reply(preq);
 }
 
+static void pam_cache_auth_done(struct tevent_req *req);
+
 static void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
     uint8_t *body;
     size_t blen;
     int ret;
-    int err = EOK;
     int32_t resp_c;
     int32_t resp_size;
     struct response_data *resp;
@@ -479,6 +480,9 @@ static void pam_reply(struct pam_auth_req *preq)
     struct timeval tv;
     struct tevent_timer *te;
     struct pam_data *pd;
+    struct tevent_req *req;
+    struct sysdb_ctx *sysdb;
+    struct pam_ctx *pctx;
 
     pd = preq->pd;
 
@@ -492,14 +496,25 @@ static void pam_reply(struct pam_auth_req *preq)
         if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
             /* do auth with offline credentials */
             pd->offline_auth = true;
-            preq->callback = pam_reply;
-            ret = pam_cache_auth(preq);
-            if (ret == EOK) {
-                return;
+
+            ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                          preq->domain, &sysdb);
+            if (ret != EOK) {
+                DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+                goto done;
             }
-            else {
+
+            pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
+
+            req = sysdb_cache_auth_send(preq, preq->cctx->ev, sysdb,
+                                        preq->domain, pd->user, pd->authtok,
+                                        pd->authtok_size, pctx->rctx->cdb);
+            if (req == NULL) {
                 DEBUG(1, ("Failed to setup offline auth"));
                 /* this error is not fatal, continue */
+            } else {
+                tevent_req_set_callback(req, pam_cache_auth_done, preq);
+                return;
             }
         }
     }
@@ -521,7 +536,6 @@ static void pam_reply(struct pam_auth_req *preq)
         if (ret != EOK) {
             DEBUG(1, ("gettimeofday failed [%d][%s].\n",
                       errno, strerror(errno)));
-            err = ret;
             goto done;
         }
         tv.tv_sec += pd->response_delay;
@@ -531,7 +545,6 @@ static void pam_reply(struct pam_auth_req *preq)
         te = tevent_add_timer(cctx->ev, cctx, tv, pam_reply_delay, preq);
         if (te == NULL) {
             DEBUG(1, ("Failed to add event pam_reply_delay.\n"));
-            err = ENOMEM;
             goto done;
         }
 
@@ -547,7 +560,6 @@ static void pam_reply(struct pam_auth_req *preq)
         NEED_CHECK_PROVIDER(preq->domain->provider)) {
         ret = set_last_login(preq);
         if (ret != EOK) {
-            err = ret;
             goto done;
         }
 
@@ -557,7 +569,6 @@ static void pam_reply(struct pam_auth_req *preq)
     ret = sss_packet_new(cctx->creq, 0, sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
     if (ret != EOK) {
-        err = ret;
         goto done;
     }
 
@@ -580,7 +591,6 @@ static void pam_reply(struct pam_auth_req *preq)
                                            resp_c * 2* sizeof(int32_t) +
                                            resp_size);
     if (ret != EOK) {
-        err = ret;
         goto done;
     }
 
@@ -608,6 +618,36 @@ static void pam_reply(struct pam_auth_req *preq)
 
 done:
     sss_cmd_done(cctx, preq);
+}
+
+static void pam_cache_auth_done(struct tevent_req *req)
+{
+    int ret;
+    struct pam_auth_req *preq = tevent_req_callback_data(req,
+                                                         struct pam_auth_req);
+
+    ret = sysdb_cache_auth_recv(req);
+    talloc_zfree(req);
+
+    switch (ret) {
+        case EOK:
+            preq->pd->pam_status = PAM_SUCCESS;
+            break;
+        case ENOENT:
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+            break;
+        case EINVAL:
+            preq->pd->pam_status = PAM_AUTH_ERR;
+            break;
+        case EACCES:
+            preq->pd->pam_status = PAM_PERM_DENIED;
+            break;
+        default:
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+
+    pam_reply(preq);
+    return;
 }
 
 static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,

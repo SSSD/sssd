@@ -4632,4 +4632,177 @@ int sysdb_delete_group_recv(struct tevent_req *req)
     return sysdb_op_default_recv(req);
 }
 
+/* ========= Authentication against cached password ============ */
 
+struct sysdb_cache_auth_state {
+    struct tevent_context *ev;
+    const char *name;
+    const uint8_t *authtok;
+    size_t authtok_size;
+    struct sss_domain_info *domain;
+    struct sysdb_ctx *sysdb;
+    struct confdb_ctx *cdb;
+};
+
+static void sysdb_cache_auth_get_attrs_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sysdb_ctx *sysdb,
+                                         struct sss_domain_info *domain,
+                                         const char *name,
+                                         const uint8_t *authtok,
+                                         size_t authtok_size,
+                                         struct confdb_ctx *cdb)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct sysdb_cache_auth_state *state;
+
+    if (name == NULL || *name == '\0') {
+        DEBUG(1, ("Missing user name.\n"));
+        return NULL;
+    }
+
+    if (cdb == NULL) {
+        DEBUG(1, ("Missing config db context.\n"));
+        return NULL;
+    }
+
+    if (sysdb == NULL) {
+        DEBUG(1, ("Missing sysdb db context.\n"));
+        return NULL;
+    }
+
+    static const char *attrs[] = {SYSDB_NAME,
+                                  SYSDB_CACHEDPWD,
+                                  SYSDB_DISABLED,
+                                  SYSDB_LAST_LOGIN,
+                                  SYSDB_LAST_ONLINE_AUTH,
+                                  "lastCachedPasswordChange",
+                                  "accountExpires",
+                                  "failedLoginAttempts",
+                                  "lastFailedLogin",
+                                  NULL};
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_cache_auth_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->name = name;
+    state->authtok = authtok;
+    state->authtok_size = authtok_size;
+    state->domain = domain;
+    state->sysdb = sysdb;
+    state->cdb = cdb;
+
+    subreq = sysdb_search_user_by_name_send(state, ev, sysdb, NULL, domain,
+                                            name, attrs);
+    if (subreq == NULL) {
+        DEBUG(1, ("sysdb_search_user_by_name_send failed.\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sysdb_cache_auth_get_attrs_done, req);
+
+    return req;
+}
+
+static void sysdb_cache_auth_get_attrs_done(struct tevent_req *subreq)
+{
+    struct ldb_message *ldb_msg;
+    const char *userhash;
+    char *comphash;
+    char *password = NULL;
+    int i;
+    int ret;
+    uint64_t lastLogin = 0;
+    int cred_expiration;
+
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+
+    struct sysdb_cache_auth_state *state = tevent_req_data(req,
+                                                 struct sysdb_cache_auth_state);
+
+    ret = sysdb_search_user_recv(subreq, state, &ldb_msg);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_search_user_by_name_send failed [%d][%s].\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ENOENT);
+        return;
+    }
+
+    /* Check offline_auth_cache_timeout */
+    lastLogin = ldb_msg_find_attr_as_uint64(ldb_msg,
+                                            SYSDB_LAST_ONLINE_AUTH,
+                                            0);
+
+    ret = confdb_get_int(state->cdb, state, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to read expiration time of offline credentials.\n"));
+        ret = EACCES;
+        goto done;
+    }
+    DEBUG(9, ("Offline credentials expiration is [%d] days.\n",
+              cred_expiration));
+
+    if (cred_expiration && lastLogin + (cred_expiration * 86400) < time(NULL)) {
+        DEBUG(4, ("Cached user entry is too old."));
+        ret = EACCES;
+        goto done;
+    }
+
+    /* TODO: verify user account (failed logins, disabled, expired ...) */
+
+    password = talloc_strndup(state, (const char *) state->authtok,
+                              state->authtok_size);
+    if (password == NULL) {
+        DEBUG(1, ("talloc_strndup failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    userhash = ldb_msg_find_attr_as_string(ldb_msg, SYSDB_CACHEDPWD, NULL);
+    if (userhash == NULL || *userhash == '\0') {
+        DEBUG(4, ("Cached credentials not available.\n"));
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = s3crypt_sha512(state, password, userhash, &comphash);
+    if (ret) {
+        DEBUG(4, ("Failed to create password hash.\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (strcmp(userhash, comphash) == 0) {
+        /* TODO: probable good point for audit logging */
+        DEBUG(4, ("Hashes do match!\n"));
+        ret = EOK;
+        goto done;
+    }
+
+    DEBUG(4, ("Authentication failed.\n"));
+    ret = EINVAL;
+
+done:
+    if (password) for (i = 0; password[i]; i++) password[i] = 0;
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    return;
+}
+
+int sysdb_cache_auth_recv(struct tevent_req *req) {
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}

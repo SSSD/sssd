@@ -542,6 +542,17 @@ struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
                                              const char *password);
 int sysdb_cache_password_recv(struct tevent_req *req);
 
+
+struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
+                                         struct tevent_context *ev,
+                                         struct sysdb_ctx *sysdb,
+                                         struct sss_domain_info *domain,
+                                         const char *name,
+                                         const uint8_t *authtok,
+                                         size_t authtok_size,
+                                         struct confdb_ctx *cdb);
+int sysdb_cache_auth_recv(struct tevent_req *req);
+
 struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
                                          struct sysdb_handle *handle,

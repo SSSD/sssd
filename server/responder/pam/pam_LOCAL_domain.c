@@ -58,23 +58,6 @@ struct LOCAL_request {
     struct pam_auth_req *preq;
 };
 
-static int authtok2str(const void *mem_ctx, uint8_t *src, const int src_size, char **dest)
-{
-    if ((src == NULL && src_size != 0) ||
-        (src != NULL && *src != '\0' && src_size == 0)) {
-        return EINVAL;
-    }
-
-    *dest = talloc_size(mem_ctx, src_size + 1);
-    if (*dest == NULL) {
-        return ENOMEM;
-    }
-    memcpy(*dest, src, src_size);
-    (*dest)[src_size]='\0';
-
-    return EOK;
-}
-
 static void prepare_reply(struct LOCAL_request *lreq)
 {
     struct pam_data *pd;
@@ -273,9 +256,10 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
 
     pd = lreq->preq->pd;
 
-    ret = authtok2str(lreq, pd->newauthtok, pd->newauthtok_size, &newauthtok);
-    NEQ_CHECK_OR_JUMP(ret, EOK, ("authtok2str failed.\n"),
-                      lreq->error, ret, done);
+    newauthtok = talloc_strndup(lreq, (char *) pd->newauthtok,
+                                pd->newauthtok_size);
+    NULL_CHECK_OR_JUMP(newauthtok, ("talloc_strndup failed.\n"), lreq->error,
+                       ENOMEM, done);
     memset(pd->newauthtok, 0, pd->newauthtok_size);
 
     if (strlen(newauthtok) == 0) {
@@ -375,9 +359,10 @@ static void local_handler_callback(void *pvt, int ldb_status,
                 DEBUG(4, ("allowing root to reset a password.\n"));
                 break;
             }
-            ret = authtok2str(lreq, pd->authtok, pd->authtok_size, &authtok);
-            NEQ_CHECK_OR_JUMP(ret, EOK, ("authtok2str failed.\n"),
-                              lreq->error, ret, done);
+            authtok = talloc_strndup(lreq, (char *) pd->authtok,
+                                     pd->authtok_size);
+            NULL_CHECK_OR_JUMP(authtok, ("talloc_strndup failed.\n"),
+                               lreq->error, ENOMEM, done);
             memset(pd->authtok, 0, pd->authtok_size);
 
             password = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_PWD, NULL);

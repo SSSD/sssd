@@ -2236,6 +2236,129 @@ START_TEST (test_sysdb_delete_custom)
 }
 END_TEST
 
+START_TEST (test_sysdb_cache_password)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->username = talloc_asprintf(data, "testuser%d", _i);
+
+    req = sysdb_cache_password_send(data, test_ctx->ev, test_ctx->sysdb, NULL,
+                                    test_ctx->domain, data->username,
+                                    data->username);
+    fail_unless(req != NULL, "sysdb_cache_password_send failed [%d].", ret);
+
+    tevent_req_set_callback(req, test_search_done, data);
+
+    ret = test_loop(data);
+    fail_unless(ret == EOK, "test_loop failed [%d].", ret);
+
+    ret = sysdb_cache_password_recv(req);
+    fail_unless(ret == EOK, "sysdb_cache_password request failed [%d].", ret);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+static void cached_authentication(const char *username, const char *password,
+                                  int expected_result)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->username = username;
+
+    req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
+                                test_ctx->domain, data->username,
+                                (const uint8_t *) password, strlen(password),
+                                test_ctx->confdb);
+    fail_unless(req != NULL, "sysdb_cache_password_send failed.");
+
+    tevent_req_set_callback(req, test_search_done, data);
+
+    ret = test_loop(data);
+    fail_unless(ret == EOK, "test_loop failed.");
+
+    ret = sysdb_cache_auth_recv(req);
+    fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
+                                        "return expected result [%d].",
+                                        expected_result);
+
+    talloc_free(test_ctx);
+}
+
+START_TEST (test_sysdb_cached_authentication_missing_password)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *username;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
+
+    username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
+    fail_unless(username != NULL, "talloc_asprintf failed.");
+
+    cached_authentication(username, "abc", ENOENT);
+
+    talloc_free(tmp_ctx);
+
+}
+END_TEST
+
+START_TEST (test_sysdb_cached_authentication_wrong_password)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *username;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
+
+    username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
+    fail_unless(username != NULL, "talloc_asprintf failed.");
+
+    cached_authentication(username, "abc", EINVAL);
+
+    talloc_free(tmp_ctx);
+
+}
+END_TEST
+
+START_TEST (test_sysdb_cached_authentication)
+{
+    TALLOC_CTX *tmp_ctx;
+    char *username;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed.");
+
+    username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
+    fail_unless(username != NULL, "talloc_asprintf failed.");
+
+    cached_authentication(username, username, EOK);
+
+    talloc_free(tmp_ctx);
+
+}
+END_TEST
+
 START_TEST (test_sysdb_prepare_asq_test_user)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -2953,6 +3076,18 @@ Suite *create_sysdb_suite(void)
 
     /* Add some members to the groups */
     tcase_add_loop_test(tc_sysdb, test_sysdb_add_group_member, 28010, 28020);
+
+    /* Authenticate with missing cached password */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_cached_authentication_missing_password,
+                        27010, 27011);
+
+    /* Add a cached password */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_cache_password, 27010, 27011);
+
+    /* Authenticate against cached password */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_cached_authentication_wrong_password,
+                        27010, 27011);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_cached_authentication, 27010, 27011);
 
     /* ASQ search test */
     tcase_add_loop_test(tc_sysdb, test_sysdb_prepare_asq_test_user, 28011, 28020);

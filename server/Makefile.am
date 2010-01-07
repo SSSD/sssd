@@ -343,7 +343,6 @@ sssd_nss_LDADD = \
 sssd_pam_SOURCES = \
     responder/pam/pam_LOCAL_domain.c \
     responder/pam/pamsrv.c \
-    responder/pam/pamsrv_cache.c \
     responder/pam/pamsrv_cmd.c \
     responder/pam/pamsrv_dp.c \
     $(SSSD_UTIL_OBJ) \
