@@ -408,12 +408,12 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
         }
 
         switch(type) {
-            case PAM_USER_INFO:
+            case PAM_SYSTEM_INFO:
                 if (buf[p + (len -1)] != '\0') {
                     D(("user info does not end with \\0."));
                     break;
                 }
-                logger(pamh, LOG_INFO, "user info: [%s]", &buf[p]);
+                logger(pamh, LOG_INFO, "system info: [%s]", &buf[p]);
                 break;
             case PAM_DOMAIN_NAME:
                 D(("domain name: [%s]", &buf[p]));

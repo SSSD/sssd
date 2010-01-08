@@ -169,7 +169,7 @@ enum sss_status {
 };
 
 enum response_type {
-    PAM_USER_INFO = 0x01,
+    PAM_SYSTEM_INFO = 0x01,
     PAM_DOMAIN_NAME,
     PAM_ENV_ITEM,    /* only pam environment */
     ENV_ITEM,        /* only user environment */
