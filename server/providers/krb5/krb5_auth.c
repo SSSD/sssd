@@ -66,7 +66,7 @@ static errno_t add_krb5_env(struct dp_option *opts, const char *ccname,
             ret = ENOMEM;
             goto done;
         }
-        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1,
+        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env)+1,
                                (uint8_t *) env);
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
@@ -82,7 +82,7 @@ static errno_t add_krb5_env(struct dp_option *opts, const char *ccname,
             ret = ENOMEM;
             goto done;
         }
-        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1,
+        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env)+1,
                                (uint8_t *) env);
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
@@ -98,7 +98,7 @@ static errno_t add_krb5_env(struct dp_option *opts, const char *ccname,
             ret = ENOMEM;
             goto done;
         }
-        ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(env)+1,
+        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env)+1,
                                (uint8_t *) env);
         if (ret != EOK) {
             DEBUG(1, ("pam_add_response failed.\n"));
@@ -945,7 +945,7 @@ static void krb5_resolve_done(struct tevent_req *req)
                 goto done;
             }
 
-            ret = pam_add_response(pd, PAM_ENV_ITEM, strlen(msg) + 1,
+            ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(msg) + 1,
                                    (uint8_t *) msg);
             if (ret != EOK) {
                 DEBUG(1, ("pam_add_response failed.\n"));

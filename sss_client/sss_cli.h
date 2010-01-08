@@ -137,20 +137,20 @@ enum sss_authtok_type {
     SSS_AUTHTOK_TYPE_PASSWORD =  0x0001,
 };
 
-#define START_OF_PAM_REQUEST 0x4d415049
-#define END_OF_PAM_REQUEST 0x4950414d
+#define SSS_START_OF_PAM_REQUEST 0x4d415049
+#define SSS_END_OF_PAM_REQUEST 0x4950414d
 
 enum pam_item_type {
-    PAM_ITEM_EMPTY = 0x0000,
-    PAM_ITEM_USER,
-    PAM_ITEM_SERVICE,
-    PAM_ITEM_TTY,
-    PAM_ITEM_RUSER,
-    PAM_ITEM_RHOST,
-    PAM_ITEM_AUTHTOK,
-    PAM_ITEM_NEWAUTHTOK,
-    PAM_ITEM_CLI_LOCALE,
-    PAM_ITEM_CLI_PID,
+    SSS_PAM_ITEM_EMPTY = 0x0000,
+    SSS_PAM_ITEM_USER,
+    SSS_PAM_ITEM_SERVICE,
+    SSS_PAM_ITEM_TTY,
+    SSS_PAM_ITEM_RUSER,
+    SSS_PAM_ITEM_RHOST,
+    SSS_PAM_ITEM_AUTHTOK,
+    SSS_PAM_ITEM_NEWAUTHTOK,
+    SSS_PAM_ITEM_CLI_LOCALE,
+    SSS_PAM_ITEM_CLI_PID,
 };
 
 #define SSS_NSS_MAX_ENTRIES 256
@@ -169,11 +169,11 @@ enum sss_status {
 };
 
 enum response_type {
-    PAM_SYSTEM_INFO = 0x01,
-    PAM_DOMAIN_NAME,
-    PAM_ENV_ITEM,    /* only pam environment */
-    ENV_ITEM,        /* only user environment */
-    ALL_ENV_ITEM,    /* pam and user environment */
+    SSS_PAM_SYSTEM_INFO = 0x01,
+    SSS_PAM_DOMAIN_NAME,
+    SSS_PAM_ENV_ITEM,    /* only pam environment */
+    SSS_ENV_ITEM,        /* only user environment */
+    SSS_ALL_ENV_ITEM,    /* pam and user environment */
 };
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,

@@ -189,7 +189,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
     int len;
     uint8_t *buf;
     int rp;
-    uint32_t terminator = END_OF_PAM_REQUEST;
+    uint32_t terminator = SSS_END_OF_PAM_REQUEST;
 
     len = sizeof(uint32_t) +
           2*sizeof(uint32_t) + pi->pam_user_size +
@@ -215,30 +215,31 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
     }
 
     rp = 0;
-    ((uint32_t *)(&buf[rp]))[0] = START_OF_PAM_REQUEST;
+    ((uint32_t *)(&buf[rp]))[0] = SSS_START_OF_PAM_REQUEST;
     rp += sizeof(uint32_t);
 
-    rp += add_string_item(PAM_ITEM_USER, pi->pam_user, pi->pam_user_size,
+    rp += add_string_item(SSS_PAM_ITEM_USER, pi->pam_user, pi->pam_user_size,
                           &buf[rp]);
 
-    rp += add_string_item(PAM_ITEM_SERVICE, pi->pam_service,
+    rp += add_string_item(SSS_PAM_ITEM_SERVICE, pi->pam_service,
                           pi->pam_service_size, &buf[rp]);
 
-    rp += add_string_item(PAM_ITEM_TTY, pi->pam_tty, pi->pam_tty_size,
+    rp += add_string_item(SSS_PAM_ITEM_TTY, pi->pam_tty, pi->pam_tty_size,
                           &buf[rp]);
 
-    rp += add_string_item(PAM_ITEM_RUSER, pi->pam_ruser, pi->pam_ruser_size,
+    rp += add_string_item(SSS_PAM_ITEM_RUSER, pi->pam_ruser, pi->pam_ruser_size,
                           &buf[rp]);
 
-    rp += add_string_item(PAM_ITEM_RHOST, pi->pam_rhost, pi->pam_rhost_size,
+    rp += add_string_item(SSS_PAM_ITEM_RHOST, pi->pam_rhost, pi->pam_rhost_size,
                           &buf[rp]);
 
-    rp += add_uint32_t_item(PAM_ITEM_CLI_PID, (uint32_t) pi->cli_pid, &buf[rp]);
+    rp += add_uint32_t_item(SSS_PAM_ITEM_CLI_PID, (uint32_t) pi->cli_pid,
+                            &buf[rp]);
 
-    rp += add_authtok_item(PAM_ITEM_AUTHTOK, pi->pam_authtok_type,
+    rp += add_authtok_item(SSS_PAM_ITEM_AUTHTOK, pi->pam_authtok_type,
                            pi->pam_authtok, pi->pam_authtok_size, &buf[rp]);
 
-    rp += add_authtok_item(PAM_ITEM_NEWAUTHTOK, pi->pam_newauthtok_type,
+    rp += add_authtok_item(SSS_PAM_ITEM_NEWAUTHTOK, pi->pam_newauthtok_type,
                            pi->pam_newauthtok, pi->pam_newauthtok_size,
                            &buf[rp]);
 
@@ -264,9 +265,9 @@ static int null_strcmp(const char *s1, const char *s2) {
 }
 
 enum {
-    PAM_CONV_DONE = 0,
-    PAM_CONV_STD,
-    PAM_CONV_REENTER,
+    SSS_PAM_CONV_DONE = 0,
+    SSS_PAM_CONV_STD,
+    SSS_PAM_CONV_REENTER,
 };
 
 static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
@@ -275,7 +276,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                                char **answer)
 {
     int ret;
-    int state = PAM_CONV_STD;
+    int state = SSS_PAM_CONV_STD;
     struct pam_conv *conv;
     struct pam_message *mesg[1];
     struct pam_response *resp=NULL;
@@ -298,7 +299,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
         }
 
         mesg[0]->msg_style = msg_style;
-        if (state == PAM_CONV_REENTER) {
+        if (state == SSS_PAM_CONV_REENTER) {
             mesg[0]->msg = reenter_msg;
         } else {
             mesg[0]->msg = msg;
@@ -319,7 +320,7 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
                 return PAM_SYSTEM_ERR;
             }
 
-            if (state == PAM_CONV_REENTER) {
+            if (state == SSS_PAM_CONV_REENTER) {
                 if (null_strcmp(*answer, resp[0].resp) != 0) {
                     logger(pamh, LOG_NOTICE, "Passwords do not match.");
                     _pam_overwrite((void *)resp[0].resp);
@@ -358,12 +359,12 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
             resp = NULL;
         }
 
-        if (reenter_msg != NULL && state == PAM_CONV_STD) {
-            state = PAM_CONV_REENTER;
+        if (reenter_msg != NULL && state == SSS_PAM_CONV_STD) {
+            state = SSS_PAM_CONV_REENTER;
         } else {
-            state = PAM_CONV_DONE;
+            state = SSS_PAM_CONV_DONE;
         }
-    } while (state != PAM_CONV_DONE);
+    } while (state != SSS_PAM_CONV_DONE);
 
     return PAM_SUCCESS;
 }
@@ -408,26 +409,26 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
         }
 
         switch(type) {
-            case PAM_SYSTEM_INFO:
+            case SSS_PAM_SYSTEM_INFO:
                 if (buf[p + (len -1)] != '\0') {
                     D(("user info does not end with \\0."));
                     break;
                 }
                 logger(pamh, LOG_INFO, "system info: [%s]", &buf[p]);
                 break;
-            case PAM_DOMAIN_NAME:
+            case SSS_PAM_DOMAIN_NAME:
                 D(("domain name: [%s]", &buf[p]));
                 break;
-            case ENV_ITEM:
-            case PAM_ENV_ITEM:
-            case ALL_ENV_ITEM:
+            case SSS_ENV_ITEM:
+            case SSS_PAM_ENV_ITEM:
+            case SSS_ALL_ENV_ITEM:
                 if (buf[p + (len -1)] != '\0') {
                     D(("env item does not end with \\0."));
                     break;
                 }
 
                 D(("env item: [%s]", &buf[p]));
-                if (type == PAM_ENV_ITEM || type == ALL_ENV_ITEM) {
+                if (type == SSS_PAM_ENV_ITEM || type == SSS_ALL_ENV_ITEM) {
                     ret = pam_putenv(pamh, (char *)&buf[p]);
                     if (ret != PAM_SUCCESS) {
                         D(("pam_putenv failed."));
@@ -435,7 +436,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                     }
                 }
 
-                if (type == ENV_ITEM || type == ALL_ENV_ITEM) {
+                if (type == SSS_ENV_ITEM || type == SSS_ALL_ENV_ITEM) {
                     env_item = strdup((char *)&buf[p]);
                     if (env_item == NULL) {
                         D(("strdup failed"));

@@ -96,10 +96,10 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
     uint32_t size;
     char *pam_user;
     int ret;
-    uint32_t terminator = END_OF_PAM_REQUEST;
+    uint32_t terminator = SSS_END_OF_PAM_REQUEST;
 
     if (blen < 4*sizeof(uint32_t)+2 ||
-        ((uint32_t *)body)[0] != START_OF_PAM_REQUEST ||
+        ((uint32_t *)body)[0] != SSS_START_OF_PAM_REQUEST ||
         memcmp(&body[blen - sizeof(uint32_t)], &terminator, sizeof(uint32_t)) != 0) {
         DEBUG(1, ("Received data is invalid.\n"));
         return EINVAL;
@@ -112,7 +112,7 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
         if (c > blen) return EINVAL;
 
         switch(type) {
-            case PAM_ITEM_USER:
+            case SSS_PAM_ITEM_USER:
                 ret = extract_string(&pam_user, body, blen, &c);
                 if (ret != EOK) return ret;
 
@@ -120,39 +120,39 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
                                      &pd->domain, &pd->user);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_SERVICE:
+            case SSS_PAM_ITEM_SERVICE:
                 ret = extract_string(&pd->service, body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_TTY:
+            case SSS_PAM_ITEM_TTY:
                 ret = extract_string(&pd->tty, body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_RUSER:
+            case SSS_PAM_ITEM_RUSER:
                 ret = extract_string(&pd->ruser, body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_RHOST:
+            case SSS_PAM_ITEM_RHOST:
                 ret = extract_string(&pd->rhost, body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_CLI_PID:
+            case SSS_PAM_ITEM_CLI_PID:
                 ret = extract_uint32_t(&pd->cli_pid,
                                        body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_AUTHTOK:
+            case SSS_PAM_ITEM_AUTHTOK:
                 ret = extract_authtok(&pd->authtok_type, &pd->authtok_size,
                                       &pd->authtok, body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case PAM_ITEM_NEWAUTHTOK:
+            case SSS_PAM_ITEM_NEWAUTHTOK:
                 ret = extract_authtok(&pd->newauthtok_type,
                                       &pd->newauthtok_size,
                                       &pd->newauthtok, body, blen, &c);
                 if (ret != EOK) return ret;
                 break;
-            case END_OF_PAM_REQUEST:
+            case SSS_END_OF_PAM_REQUEST:
                 if (c != blen) return EINVAL;
                 break;
             default:
@@ -574,7 +574,7 @@ static void pam_reply(struct pam_auth_req *preq)
     }
 
     if (pd->domain != NULL) {
-        pam_add_response(pd, PAM_DOMAIN_NAME, strlen(pd->domain)+1,
+        pam_add_response(pd, SSS_PAM_DOMAIN_NAME, strlen(pd->domain)+1,
                          (uint8_t *) pd->domain);
     }
 
@@ -671,7 +671,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     size_t blen;
     int timeout;
     int ret;
-    uint32_t terminator = END_OF_PAM_REQUEST;
+    uint32_t terminator = SSS_END_OF_PAM_REQUEST;
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
         return ENOMEM;

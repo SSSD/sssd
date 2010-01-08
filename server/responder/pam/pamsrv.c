@@ -43,8 +43,8 @@
 #include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
 
-#define PAM_SBUS_SERVICE_VERSION 0x0001
-#define PAM_SBUS_SERVICE_NAME "pam"
+#define SSS_PAM_SBUS_SERVICE_VERSION 0x0001
+#define SSS_PAM_SBUS_SERVICE_NAME "pam"
 
 static int service_reload(DBusMessage *message, struct sbus_connection *conn);
 
@@ -142,8 +142,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            SSS_PAM_SOCKET_NAME,
                            SSS_PAM_PRIV_SOCKET_NAME,
                            CONFDB_PAM_CONF_ENTRY,
-                           PAM_SBUS_SERVICE_NAME,
-                           PAM_SBUS_SERVICE_VERSION,
+                           SSS_PAM_SBUS_SERVICE_NAME,
+                           SSS_PAM_SBUS_SERVICE_VERSION,
                            &monitor_pam_interface,
                            "PAM", &pam_dp_interface,
                            &pctx->rctx);

@@ -300,7 +300,7 @@ static struct response *prepare_response_message(struct krb5_req *kr,
 
     if (kerr == 0) {
         if(kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
-            ret = pack_response_packet(resp, PAM_SUCCESS, PAM_SYSTEM_INFO,
+            ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_SYSTEM_INFO,
                                        "success");
         } else {
             if (kr->ccname == NULL) {
@@ -314,7 +314,7 @@ static struct response *prepare_response_message(struct krb5_req *kr,
                 return NULL;
             }
 
-            ret = pack_response_packet(resp, PAM_SUCCESS, PAM_ENV_ITEM, msg);
+            ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_ENV_ITEM, msg);
             talloc_zfree(msg);
         }
     } else {
@@ -324,7 +324,8 @@ static struct response *prepare_response_message(struct krb5_req *kr,
             return NULL;
         }
 
-        ret = pack_response_packet(resp, pam_status, PAM_SYSTEM_INFO, krb5_msg);
+        ret = pack_response_packet(resp, pam_status, SSS_PAM_SYSTEM_INFO,
+                                   krb5_msg);
         sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
     }
 
