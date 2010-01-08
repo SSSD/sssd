@@ -41,6 +41,11 @@ See dhash_example.c for an illustration of how one might use the API. It does no
 represent complete API coverage nor the optimal way to do things in all cases,
 it is just a general example.
 
+Copyright 2009-1010 John Dennis
+This program is distributed under the terms of the GNU Lesser General Public
+License (LGPL). See the included COPYING and COPYING.lesser files for the
+terms of this license.
+
 #endif
 
 /*****************************************************************************/
