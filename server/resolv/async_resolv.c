@@ -62,12 +62,19 @@ struct fd_watch {
 };
 
 struct resolv_ctx {
+    /* Contexts are linked so we can keep track of them and re-create
+     * the ares channels in all of them at once if we need to. */
+    struct resolv_ctx *prev;
+    struct resolv_ctx *next;
+
     struct tevent_context *ev_ctx;
 
     ares_channel channel;
     /* List of file descriptors that are watched by tevent. */
     struct fd_watch *fds;
 };
+
+struct resolv_ctx *context_list;
 
 static int
 return_code(int ares_code)
@@ -207,6 +214,8 @@ fd_event_close(struct resolv_ctx *ctx, int s)
 static int
 resolv_ctx_destructor(struct resolv_ctx *ctx)
 {
+    DLIST_REMOVE(context_list, ctx);
+
     if (ctx->channel == NULL) {
         DEBUG(1, ("Ares channel already destroyed?\n"));
         return -1;
@@ -218,13 +227,44 @@ resolv_ctx_destructor(struct resolv_ctx *ctx)
     return 0;
 }
 
+static int
+recreate_ares_channel(struct resolv_ctx *ctx)
+{
+    int ret;
+    ares_channel new_channel;
+    ares_channel old_channel;
+    struct ares_options options;
+
+    DEBUG(4, ("Initializing new c-ares channel\n"));
+    /* FIXME: the options would contain
+     * the nameservers to contact, the domains
+     * to search, timeout... => get from confdb
+     */
+    options.sock_state_cb = fd_event;
+    options.sock_state_cb_data = ctx;
+    ret = ares_init_options(&new_channel, &options, ARES_OPT_SOCK_STATE_CB);
+    if (ret != ARES_SUCCESS) {
+        DEBUG(1, ("Failed to initialize ares channel: %s\n",
+                  resolv_strerror(ret)));
+        return return_code(ret);
+    }
+
+    old_channel = ctx->channel;
+    ctx->channel = new_channel;
+    if (old_channel != NULL) {
+        DEBUG(4, ("Destroying the old c-ares channel\n"));
+        ares_destroy(old_channel);
+    }
+
+    return EOK;
+}
+
 int
 resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
             struct resolv_ctx **ctxp)
 {
     int ret;
     struct resolv_ctx *ctx;
-    struct ares_options options;
 
     ctx = talloc_zero(mem_ctx, struct resolv_ctx);
     if (ctx == NULL)
@@ -232,20 +272,12 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 
     ctx->ev_ctx = ev_ctx;
 
-    /* FIXME: the options would contain
-     * the nameservers to contact, the domains
-     * to search, timeout... => get from confdb
-     */
-    options.sock_state_cb = fd_event;
-    options.sock_state_cb_data = ctx;
-    ret = ares_init_options(&ctx->channel, &options, ARES_OPT_SOCK_STATE_CB);
-    if (ret != ARES_SUCCESS) {
-        DEBUG(1, ("Failed to initialize ares channel: %s\n",
-                  resolv_strerror(ret)));
-        ret = return_code(ret);
+    ret = recreate_ares_channel(ctx);
+    if (ret != EOK) {
         goto done;
     }
 
+    DLIST_ADD(context_list, ctx);
     talloc_set_destructor(ctx, resolv_ctx_destructor);
 
     *ctxp = ctx;
@@ -254,6 +286,17 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 done:
     talloc_free(ctx);
     return ret;
+}
+
+void
+resolv_reread_configuration(void)
+{
+    struct resolv_ctx *ctx;
+
+    DEBUG(4, ("Recreating all c-ares channels\n"));
+    DLIST_FOR_EACH(ctx, context_list) {
+        recreate_ares_channel(ctx);
+    }
 }
 
 struct hostent *
@@ -328,6 +371,7 @@ struct gethostbyname_state {
     struct hostent *hostent;
     int status;
     int timeouts;
+    int retrying;
 };
 
 static void
@@ -358,6 +402,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->hostent = NULL;
     state->status = 0;
     state->timeouts = 0;
+    state->retrying = 0;
 
     /* We need to have a wrapper around ares_gethostbyname(), because
      * ares_gethostbyname() can in some cases call it's callback immediately.
@@ -378,6 +423,13 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
 {
     struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
+
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+        state->retrying = 1;
+        ares_gethostbyname(state->resolv_ctx->channel, state->name,
+                           state->family, resolv_gethostbyname_done, req);
+        return;
+    }
 
     if (hostent != NULL) {
         state->hostent = resolv_copy_hostent(req, hostent);
@@ -521,6 +573,7 @@ struct getsrv_state {
     struct ares_srv_reply *reply_list;
     int status;
     int timeouts;
+    int retrying;
 };
 
 static void
@@ -550,6 +603,7 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->reply_list = NULL;
     state->status = 0;
     state->timeouts = 0;
+    state->retrying = 0;
 
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
@@ -569,6 +623,13 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     struct getsrv_state *state = tevent_req_data(req, struct getsrv_state);
     int ret;
     struct ares_srv_reply *reply_list;
+
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+        state->retrying = 1;
+        ares_query(state->resolv_ctx->channel, state->query,
+                   ns_c_in, ns_t_srv, resolv_getsrv_done, req);
+        return;
+    }
 
     state->status = status;
     state->timeouts = timeouts;
@@ -712,6 +773,7 @@ struct gettxt_state {
     struct ares_txt_reply *reply_list;
     int status;
     int timeouts;
+    int retrying;
 };
 
 static void
@@ -741,7 +803,7 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     state->reply_list = NULL;
     state->status = 0;
     state->timeouts = 0;
-
+    state->retrying = 0;
 
     subreq = tevent_wakeup_send(req, ev, tv);
     if (subreq == NULL) {
@@ -761,6 +823,13 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     struct gettxt_state *state = tevent_req_data(req, struct gettxt_state);
     int ret;
     struct ares_txt_reply *reply_list;
+
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+        state->retrying = 1;
+        ares_query(state->resolv_ctx->channel, state->query,
+                   ns_c_in, ns_t_txt, resolv_gettxt_done, req);
+        return;
+    }
 
     state->status = status;
     state->timeouts = timeouts;

@@ -49,6 +49,8 @@ struct resolv_ctx;
 int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
                 struct resolv_ctx **ctxp);
 
+void resolv_reread_configuration(void);
+
 const char *resolv_strerror(int ares_code);
 
 struct hostent *resolv_copy_hostent(TALLOC_CTX *mem_ctx,

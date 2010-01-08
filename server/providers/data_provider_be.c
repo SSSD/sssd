@@ -51,9 +51,12 @@
 #define ACCESS_DENY "deny"
 #define NO_PROVIDER "none"
 
+static int data_provider_res_init(DBusMessage *message,
+                                  struct sbus_connection *conn);
+
 struct sbus_method monitor_be_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
+    { MON_CLI_METHOD_RES_INIT, data_provider_res_init },
     { NULL, NULL }
 };
 
@@ -1195,3 +1198,10 @@ int main(int argc, const char *argv[])
     return 0;
 }
 
+static int data_provider_res_init(DBusMessage *message,
+                                  struct sbus_connection *conn)
+{
+    resolv_reread_configuration();
+
+    return monitor_common_res_init(message, conn);
+}
