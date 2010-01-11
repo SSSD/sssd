@@ -734,7 +734,7 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
                 return mbof_next_add(addop->next);
             }
             else if (add_ctx->muops) {
-                ret = mbof_add_muop(add_ctx);
+                return mbof_add_muop(add_ctx);
             }
             else {
                 /* that was the last entry, get out */
