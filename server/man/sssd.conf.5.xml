@@ -192,6 +192,17 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>debug_timestamps (bool)</term>
+                    <listitem>
+                        <para>
+                            Add a timestamp to the debug messages
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>reconnection_retries (integer)</term>
                     <listitem>
                         <para>
