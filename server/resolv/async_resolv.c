@@ -68,13 +68,18 @@ struct resolv_ctx {
     struct resolv_ctx *next;
 
     struct tevent_context *ev_ctx;
-
     ares_channel channel;
+
     /* List of file descriptors that are watched by tevent. */
     struct fd_watch *fds;
 
     /* Time in milliseconds before canceling a DNS request */
     int timeout;
+
+    /* The timeout watcher periodically calls ares_process_fd() to check
+     * if our pending requests didn't timeout. */
+    int pending_requests;
+    struct tevent_timer *timeout_watcher;
 };
 
 struct resolv_ctx *context_list;
@@ -121,6 +126,73 @@ fd_input_available(struct tevent_context *ev, struct tevent_fd *fde,
     ares_process_fd(watch->ctx->channel, watch->fd, watch->fd);
 }
 
+static void
+check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
+                  struct timeval current_time, void *private_data);
+
+static void
+add_timeout_timer(struct tevent_context *ev, struct resolv_ctx *ctx)
+{
+    struct timeval tv = { 0 };
+    struct timeval *tvp;
+
+    tvp = ares_timeout(ctx->channel, NULL, &tv);
+
+    if (tvp == NULL) {
+        tvp = &tv;
+    }
+
+    /* Enforce a minimum of 1 second. */
+    if (tvp->tv_sec < 1) {
+        tv = tevent_timeval_current_ofs(1, 0);
+    } else {
+        tv = tevent_timeval_current_ofs(tvp->tv_sec, tvp->tv_usec);
+    }
+
+    ctx->timeout_watcher = tevent_add_timer(ev, ctx, tv, check_fd_timeouts,
+                                            ctx);
+    if (ctx->timeout_watcher == NULL) {
+        DEBUG(1, ("Out of memory\n"));
+    }
+}
+
+static void
+check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
+                  struct timeval current_time, void *private_data)
+{
+    struct resolv_ctx *ctx = private_data;
+
+    DEBUG(9, ("Checking for DNS timeouts\n"));
+    ares_process_fd(ctx->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+    add_timeout_timer(ev, ctx);
+}
+
+static void
+schedule_timeout_watcher(struct tevent_context *ev, struct resolv_ctx *ctx)
+{
+    ctx->pending_requests++;
+    if (ctx->timeout_watcher) {
+        return;
+    }
+
+    DEBUG(9, ("Scheduling DNS timeout watcher\n"));
+    add_timeout_timer(ev, ctx);
+}
+
+static void
+unschedule_timeout_watcher(struct resolv_ctx *ctx)
+{
+    if (ctx->pending_requests <= 0) {
+        DEBUG(1, ("Pending DNS requests mismatch\n"));
+        return;
+    }
+
+    ctx->pending_requests--;
+    if (ctx->pending_requests == 0) {
+        DEBUG(9, ("Unscheduling DNS timeout watcher\n"));
+        talloc_zfree(ctx->timeout_watcher);
+    }
+}
 
 static void fd_event_add(struct resolv_ctx *ctx, int s);
 static void fd_event_write(struct resolv_ctx *ctx, int s);
@@ -423,6 +495,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         return NULL;
     }
     tevent_req_set_callback(subreq, ares_gethostbyname_wakeup, req);
+    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
@@ -439,6 +512,8 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
                            state->family, resolv_gethostbyname_done, req);
         return;
     }
+
+    unschedule_timeout_watcher(state->resolv_ctx);
 
     if (hostent != NULL) {
         state->hostent = resolv_copy_hostent(req, hostent);
@@ -621,6 +696,7 @@ resolv_getsrv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         return NULL;
     }
     tevent_req_set_callback(subreq, ares_getsrv_wakeup, req);
+    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
@@ -639,6 +715,8 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
                    ns_c_in, ns_t_srv, resolv_getsrv_done, req);
         return;
     }
+
+    unschedule_timeout_watcher(state->resolv_ctx);
 
     state->status = status;
     state->timeouts = timeouts;
@@ -821,6 +899,7 @@ resolv_gettxt_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         return NULL;
     }
     tevent_req_set_callback(subreq, ares_gettxt_wakeup, req);
+    schedule_timeout_watcher(ev, ctx);
 
     return req;
 }
@@ -839,6 +918,8 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
                    ns_c_in, ns_t_txt, resolv_gettxt_done, req);
         return;
     }
+
+    unschedule_timeout_watcher(state->resolv_ctx);
 
     state->status = status;
     state->timeouts = timeouts;
