@@ -26,17 +26,16 @@
                 <refentrytitle>sssd</refentrytitle>
                 <manvolnum>8</manvolnum>
             </citerefentry>.
-            For detailed syntax reference, please refer to
+            Refer to the <quote>FILE FORMAT</quote> section of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> manual page, section <quote>FILE FORMAT</quote>
+            </citerefentry> manual page for detailed syntax information.</para>
+        <para>
+            You can configure SSSD to use more than one LDAP domain.
         </para>
         <para>
-            There can be more than one LDAP domain configured with SSSD.
-        </para>
-        <para>
-            If you want to authenticate against an LDAP server TLS/SSL is
+            If you want to authenticate against an LDAP server then TLS/SSL is
             required. <command>sssd</command> <emphasis>does not</emphasis>
             support authentication over an unencrypted channel. If the LDAP
             server is used only as an identify provider, an encrypted channel
@@ -47,12 +46,12 @@
     <refsect1 id='file-format'>
         <title>CONFIGURATION OPTIONS</title>
         <para>
-            All the common configuration options for SSSD domains apply
-            for LDAP domains, too. See the
+            All of the common configuration options that apply to SSSD domains also apply
+            to LDAP domains. Refer to the <quote>DOMAIN SECTIONS</quote> section of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry> manual page, section <quote>DOMAIN SECTIONS</quote>
+            </citerefentry> manual page for full details.
 
             <variablelist>
                 <varlistentry>
@@ -60,9 +59,8 @@
                     <listitem>
                         <para>
                             Specifies the list of URIs of the LDAP servers to which
-                            SSSD should connect in the order of preference. For more
-                            information on failover and server redundancy, see the
-                            <quote>FAILOVER</quote> section.
+                            SSSD should connect in the order of preference. Refer to the
+                            <quote>FAILOVER</quote> section for more information on failover and server redundancy.
                         </para>
                         <para>
                             Default: ldap://localhost
@@ -86,21 +84,20 @@
                         <para>
                             Specifies the Schema Type in use on the target LDAP
                             server.
-                            Depending on the selected schema the default
+                            Depending on the selected schema, the default
                             attribute names retrieved from the servers may vary.
-                            Also the way some attributes are handled may differ.
+                            The way that some attributes are handled may also differ.
 
-                            There are currently 2 schema types supported:
+                            Two schema types are currently supported:
                             rfc2307
                             rfc2307bis
 
-                            The main difference between these 2 schema types is
-                            how group memberships are recorder in the server.
-                            With rfc2307 group members are listed by name in an
-                            attribute called <emphasis>memberUid</emphasis>.
-                            With rfc2307bis grpoup members are listed by DN and
-                            stored in an attribute called
-                            <emphasis>member</emphasis>.
+                            The main difference between these two schema types is
+                            how group memberships are recorded in the server.
+                            With rfc2307, group members are listed by name in the
+                            <emphasis>memberUid</emphasis> attribute.
+                            With rfc2307bis, group members are listed by DN and
+                            stored in the <emphasis>member</emphasis> attribute.
 
                         </para>
                         <para>
@@ -124,8 +121,7 @@
                     <listitem>
                         <para>
                             The type of the authentication token of the
-                            default bind DN. So far "password" is the only
-                            supported value.
+                            default bind DN. The only currently supported value is "password".
                         </para>
                     </listitem>
                 </varlistentry>
@@ -135,7 +131,7 @@
                     <listitem>
                         <para>
                             The authentication token of the default bind DN.
-                            So far only a clear text password is supported.
+                            Only clear text passwords are currently supported.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -170,7 +166,7 @@
                     <term>ldap_user_name (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to
+                            The LDAP attribute that corresponds to the
                             user's login name.
                         </para>
                         <para>
@@ -183,7 +179,7 @@
                     <term>ldap_user_uid_number (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to
+                            The LDAP attribute that corresponds to the
                             user's id.
                         </para>
                         <para>
@@ -196,7 +192,7 @@
                     <term>ldap_user_gid_number (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to
+                            The LDAP attribute that corresponds to the
                             user's primary group id.
                         </para>
                         <para>
@@ -209,7 +205,7 @@
                     <term>ldap_user_gecos (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to
+                            The LDAP attribute that corresponds to the
                             user's gecos field.
                         </para>
                         <para>
@@ -222,8 +218,8 @@
                     <term>ldap_user_home_directory (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that contains the name of the
-                            home directory of a user.
+                            The LDAP attribute that contains the name of the user's
+                            home directory.
                         </para>
                         <para>
                             Default: homeDirectory
@@ -235,7 +231,7 @@
                     <term>ldap_user_shell (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that contains the path of the
+                            The LDAP attribute that contains the path to the
                             user's default shell.
                         </para>
                         <para>
@@ -249,7 +245,7 @@
                     <listitem>
                         <para>
                             The LDAP attribute that contains the UUID/GUID of
-                            a LDAP user object.
+                            an LDAP user object.
                         </para>
                         <para>
                             Default: nsUniqueId
@@ -261,8 +257,8 @@
                     <term>ldap_user_principal (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that contains the Kerberos
-                            User Principle Name (UPN) of the user.
+                            The LDAP attribute that contains the user's Kerberos
+                            User Principle Name (UPN).
                         </para>
                         <para>
                             Default: krbPrincipalName
@@ -275,10 +271,10 @@
                     <listitem>
                         <para>
                             Some directory servers, for example Active Directory,
-                            might deliver the realm part of the UPN lower case
-                            which may cause the authentication to fail. Set this
-                            option to a non-zero value, if you want to use an
-                            upper case realm.
+                            might deliver the realm part of the UPN in lower case,
+                            which might cause the authentication to fail. Set this
+                            option to a non-zero value if you want to use an
+                            upper-case realm.
                         </para>
                         <para>
                             Default: false
@@ -290,8 +286,8 @@
                     <term>ldap_user_fullname (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to
-                            full name of the user.
+                            The LDAP attribute that corresponds to the
+                            user's full name.
                         </para>
                         <para>
                             Default: cn
@@ -303,7 +299,7 @@
                     <term>ldap_user_member_of (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that list the user's
+                            The LDAP attribute that lists the user's
                             group memberships.
                         </para>
                         <para>
@@ -355,7 +351,7 @@
                     <term>ldap_group_gid_number (string)</term>
                     <listitem>
                         <para>
-                            The LDAP attribute that corresponds to
+                            The LDAP attribute that corresponds to the
                             group's id.
                         </para>
                         <para>
@@ -369,7 +365,7 @@
                     <listitem>
                         <para>
                             The LDAP attribute that contains the names of
-                            the members of the group.
+                            the group's members.
                         </para>
                         <para>
                             Default: memberuid (rfc2307) / member (rfc2307bis)
@@ -382,7 +378,7 @@
                     <listitem>
                         <para>
                             The LDAP attribute that contains the UUID/GUID of
-                            a LDAP group object.
+                            an LDAP group object.
                         </para>
                         <para>
                             Default: nsUniqueId
@@ -423,7 +419,7 @@
                             Specifies a timeout (in seconds) after which
                             calls to synchronous LDAP APIs will abort if no
                             response is received. Also controls the timeout
-                            when communicating to KDC in case of SASL bind.
+                            when communicating with the KDC in case of SASL bind.
                         </para>
                         <para>
                             Default: 5
@@ -478,12 +474,12 @@
                     <listitem>
                         <para>
                             Specifies the file that contains certificates for
-                            all of the Certificate Authorities
+                            all of the Certificate Authorities that
                             <command>sssd</command> will recognize.
                         </para>
                         <para>
                             Default: use OpenLDAP defaults, typically in
-                            /etc/openldap/ldap.conf
+                            <filename>/etc/openldap/ldap.conf</filename>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -496,12 +492,12 @@
                             Certificate Authority certificates in separate
                             individual files. Typically the file names need to
                             be the hash of the certificate followed by '.0'.
-                            If available <command>cacertdir_rehash</command>
+                            If available, <command>cacertdir_rehash</command>
                             can be used to create the correct names.
                         </para>
                         <para>
                             Default: use OpenLDAP defaults, typically in
-                            /etc/openldap/ldap.conf
+                            <filename>/etc/openldap/ldap.conf</filename>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -511,7 +507,7 @@
                     <listitem>
                         <para>
                             Specifies that the id_provider connection must also
-                            use tls to protect the channel.
+                            use <systemitem class="protocol">tls</systemitem> to protect the channel.
                         </para>
                         <para>
                             Default: false
@@ -523,7 +519,7 @@
                     <term>ldap_sasl_mech (string)</term>
                     <listitem>
                         <para>
-                            Specify the sasl mechanism to use.
+                            Specify the SASL mechanism to use.
                             Currently only GSSAPI is tested and supported.
                         </para>
                         <para>
@@ -536,8 +532,8 @@
                     <term>ldap_sasl_authid (string)</term>
                     <listitem>
                         <para>
-                            Specify the sasl authorization id to use.
-                            When GSSAPI is used, this represents the kerberos
+                            Specify the SASL authorization id to use.
+                            When GSSAPI is used, this represents the Kerberos
                             principal used for authentication to the directory.
                         </para>
                         <para>
@@ -550,10 +546,10 @@
                     <term>ldap_krb5_keytab (string)</term>
                     <listitem>
                         <para>
-                            Specify keytab to use when using SASL/GSSAPI.
+                            Specify the keytab to use when using SASL/GSSAPI.
                         </para>
                         <para>
-                            Default: System keytab, normally /etc/krb5.keytab
+                            Default: System keytab, normally <filename>/etc/krb5.keytab</filename>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -563,8 +559,8 @@
                     <listitem>
                         <para>
                             Specifies that the id_provider should init
-                            kerberos credentials (TGT).
-                            This action is perfromed only if SASL is used and
+                            Kerberos credentials (TGT).
+                            This action is performed only if SASL is used and
                             the mechanism selected is GSSAPI.
                         </para>
                         <para>
@@ -577,10 +573,10 @@
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
-                            Specify the kerberos REALM (for SASL/GSSAPI auth).
+                            Specify the Kerberos REALM (for SASL/GSSAPI auth).
                         </para>
                         <para>
-                            Default: System defaults, see /etc/krb5.conf
+                            Default: System defaults, see <filename>/etc/krb5.conf</filename>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -594,21 +590,21 @@
                             are allowed:
                         </para>
                         <para>
-                            <emphasis>none</emphasis> No evaluation on the
-                            client side. This option cannot disable server side
+                            <emphasis>none</emphasis> - No evaluation on the
+                            client side. This option cannot disable server-side
                             password policies.
                         </para>
                         <para>
-                            <emphasis>shadow</emphasis> use
+                            <emphasis>shadow</emphasis> - Use
                             <citerefentry><refentrytitle>shadow</refentrytitle>
                             <manvolnum>5</manvolnum></citerefentry> style
-                            attributes to evaluate if the password is expired.
-                            Please note that the current version of sssd cannot
+                            attributes to evaluate if the password has expired.
+                            Note that the current version of sssd cannot
                             update this attribute during a password change.
                         </para>
                         <para>
-                            <emphasis>mit_kerberos</emphasis> use the attributes
-                            used by MIT Kerberos to evaluate if the password is
+                            <emphasis>mit_kerberos</emphasis> - Use the attributes
+                            used by MIT Kerberos to determine if the password has
                             expired. Use chpass_provider=krb5 to update these
                             attributes when the password is changed.
                         </para>
@@ -628,7 +624,7 @@
         <title>EXAMPLE</title>
         <para>
             The following example assumes that SSSD is correctly
-            configured and LDAP is set set one of the domains in the
+            configured and LDAP is set to one of the domains in the
             <replaceable>[domains]</replaceable> section.
         </para>
         <para>
@@ -648,8 +644,8 @@
     <refsect1 id='notes'>
         <title>NOTES</title>
         <para>
-            Description of some of the configuration options in this manual
-            page is based on <citerefentry>
+            The descriptions of some of the configuration options in this manual
+            page are based on the <citerefentry>
                 <refentrytitle>ldap.conf</refentrytitle>
                 <manvolnum>5</manvolnum>
             </citerefentry> manual page from the OpenLDAP 2.4 distribution.

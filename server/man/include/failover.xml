@@ -34,8 +34,9 @@
             currently hard coded to 30 seconds.
         </para>
         <para>
-            If there are no more servers to try, the back end as a whole
-            switches to offline mode for a certain period of time.
+            If there are no more machines to try, the back end as a whole
+            switches to offline mode, and then attempts to reconnect
+            every 30 seconds.
         </para>
     </refsect2>
 </refsect1>
