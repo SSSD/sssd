@@ -7,18 +7,18 @@
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
 
     <refmeta>
-        <refentrytitle>sss_groupadd</refentrytitle>
+        <refentrytitle>sss_groupshow</refentrytitle>
         <manvolnum>8</manvolnum>
     </refmeta>
 
     <refnamediv id='name'>
-        <refname>sss_groupadd</refname>
-        <refpurpose>create a new group</refpurpose>
+        <refname>sss_groupshow</refname>
+        <refpurpose>print properties of a group</refpurpose>
     </refnamediv>
 
     <refsynopsisdiv id='synopsis'>
         <cmdsynopsis>
-            <command>sss_groupadd</command>
+            <command>sss_groupshow</command>
             <arg choice='opt'>
                 <replaceable>options</replaceable>
             </arg>
@@ -29,27 +29,15 @@
     <refsect1 id='description'>
         <title>DESCRIPTION</title>
         <para>
-            <command>sss_groupadd</command> creates a new group. These groups are compatible
-            with POSIX groups, with the additional feature that they can contain other groups
-            as members.
+            <command>sss_groupshow</command> displays information about a group
+            identified by its name <replaceable>GROUP</replaceable>. The information
+            include the group ID number, members of the group and the parent group.
         </para>
     </refsect1>
 
     <refsect1 id='options'>
         <title>OPTIONS</title>
         <variablelist remap='IP'>
-            <varlistentry>
-                <term>
-                    <option>-g</option>,<option>--gid</option>
-                    <replaceable>GID</replaceable>
-                </term>
-                <listitem>
-                    <para>
-                        Set the GID of the group to the value of <replaceable>GID</replaceable>.
-                        If not given, it is chosen automatically.
-                    </para>
-                </listitem>
-            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
     </refsect1>
@@ -58,13 +46,10 @@
         <title>SEE ALSO</title>
         <para>
             <citerefentry>
-                <refentrytitle>sss_groupdel</refentrytitle><manvolnum>8</manvolnum>
+                <refentrytitle>sss_groupadd</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>,
-            <citerefentry>
-                <refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>

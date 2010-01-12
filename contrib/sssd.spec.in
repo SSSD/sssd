@@ -144,6 +144,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_groupadd
 %{_sbindir}/sss_groupdel
 %{_sbindir}/sss_groupmod
+%{_sbindir}/sss_groupshow
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so
@@ -166,6 +167,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*
 %{_mandir}/man8/sss_groupmod.8*
+%{_mandir}/man8/sss_groupshow.8*
 %{_mandir}/man8/sss_useradd.8*
 %{_mandir}/man8/sss_userdel.8*
 %{_mandir}/man8/sss_usermod.8*

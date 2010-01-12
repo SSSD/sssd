@@ -92,6 +92,9 @@
                 <refentrytitle>sss_groupmod</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>
+                <refentrytitle>sss_groupshow</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>,
+            <citerefentry>
                 <refentrytitle>sss_useradd</refentrytitle><manvolnum>8</manvolnum>
             </citerefentry>,
             <citerefentry>

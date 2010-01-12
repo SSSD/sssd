@@ -49,7 +49,8 @@ sbin_PROGRAMS = \
     sss_groupadd \
     sss_groupdel \
     sss_usermod \
-    sss_groupmod
+    sss_groupmod \
+    sss_groupshow
 
 sssdlibexec_PROGRAMS = \
     sssd_nss \
@@ -413,6 +414,13 @@ sss_groupmod_SOURCES = \
 sss_groupmod_LDADD = \
     $(TOOLS_LIBS)
 
+sss_groupshow_SOURCES = \
+    tools/sss_groupshow.c \
+    $(SSSD_UTIL_OBJ) \
+    $(SSSD_TOOLS_OBJ)
+sss_groupshow_LDADD = \
+    $(TOOLS_LIBS)
+
 #################
 # Feature Tests #
 #################
@@ -747,7 +755,8 @@ XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
 		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
 		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5 \
-		man/sssd-ipa.5 man/sssd_krb5_locator_plugin.8
+		man/sssd-ipa.5 man/sssd_krb5_locator_plugin.8 \
+		man/sss_groupshow.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
