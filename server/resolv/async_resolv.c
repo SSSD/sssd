@@ -472,7 +472,7 @@ ares_gethostbyname_wakeup(struct tevent_req *req);
 
 struct tevent_req *
 resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
-                          struct resolv_ctx *ctx, const char *name, int family)
+                          struct resolv_ctx *ctx, const char *name)
 {
     struct tevent_req *req, *subreq;
     struct gethostbyname_state *state;
@@ -491,7 +491,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     state->resolv_ctx = ctx;
     state->name = name;
-    state->family = family;
+    state->family = AF_INET;
     state->hostent = NULL;
     state->status = 0;
     state->timeouts = 0;
@@ -511,6 +511,9 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     return req;
 }
+
+static void
+resolv_gethostbyname6_done(void *arg, int status, int timeouts, struct hostent *hostent);
 
 static void
 resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *hostent)
@@ -540,10 +543,61 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
     state->status = status;
     state->timeouts = timeouts;
 
-    if (status != ARES_SUCCESS)
+    if (status != ARES_SUCCESS) {
+        if (status == ARES_ENOTFOUND || status == ARES_ENODATA) {
+            /* IPv4 failure. Try IPv6 */
+            state->family = AF_INET6;
+            state->retrying = 0;
+            state->timeouts = 0;
+            DEBUG(4, ("Trying to resolve AAAA record of '%s'\n",
+                      state->name));
+            ares_gethostbyname(state->resolv_ctx->channel, state->name,
+                               state->family, resolv_gethostbyname6_done,
+                               req);
+            return;
+        }
+
+        /* Any other error indicates a server error,
+         * so don't bother trying again
+         */
         tevent_req_error(req, return_code(status));
-    else
+    }
+    else {
         tevent_req_done(req);
+    }
+}
+
+static void
+resolv_gethostbyname6_done(void *arg, int status, int timeouts, struct hostent *hostent)
+{
+    struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
+    struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
+
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+        state->retrying = 1;
+        ares_gethostbyname(state->resolv_ctx->channel, state->name,
+                           state->family, resolv_gethostbyname6_done, req);
+        return;
+    }
+
+    if (hostent != NULL) {
+        state->hostent = resolv_copy_hostent(req, hostent);
+        if (state->hostent == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    } else {
+        state->hostent = NULL;
+    }
+    state->status = status;
+    state->timeouts = timeouts;
+
+    if (status != ARES_SUCCESS) {
+        tevent_req_error(req, return_code(status));
+    }
+    else {
+        tevent_req_done(req);
+    }
 }
 
 int

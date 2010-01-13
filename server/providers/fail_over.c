@@ -497,9 +497,8 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     switch (get_server_status(server)) {
     case SERVER_NAME_NOT_RESOLVED: /* Request name resolution. */
-        /* TODO: Enable IPv6. */
         subreq = resolv_gethostbyname_send(server->common, ev, resolv,
-                                           server->common->name, AF_INET);
+                                           server->common->name);
         if (subreq == NULL) {
             ret = ENOMEM;
             goto done;

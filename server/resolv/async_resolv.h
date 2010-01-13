@@ -60,8 +60,7 @@ struct hostent *resolv_copy_hostent(TALLOC_CTX *mem_ctx,
 struct tevent_req *resolv_gethostbyname_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct resolv_ctx *ctx,
-                                            const char *name,
-                                            int family);
+                                            const char *name);
 
 int resolv_gethostbyname_recv(struct tevent_req *req,
                               TALLOC_CTX *mem_ctx,
