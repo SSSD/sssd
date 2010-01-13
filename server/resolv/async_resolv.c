@@ -72,6 +72,9 @@ struct resolv_ctx {
     ares_channel channel;
     /* List of file descriptors that are watched by tevent. */
     struct fd_watch *fds;
+
+    /* Time in milliseconds before canceling a DNS request */
+    int timeout;
 };
 
 struct resolv_ctx *context_list;
@@ -242,7 +245,12 @@ recreate_ares_channel(struct resolv_ctx *ctx)
      */
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
-    ret = ares_init_options(&new_channel, &options, ARES_OPT_SOCK_STATE_CB);
+    options.timeout = ctx->timeout * 1000;
+    options.tries = 1;
+    ret = ares_init_options(&new_channel, &options,
+                            ARES_OPT_SOCK_STATE_CB |
+                            ARES_OPT_TIMEOUTMS |
+                            ARES_OPT_TRIES);
     if (ret != ARES_SUCCESS) {
         DEBUG(1, ("Failed to initialize ares channel: %s\n",
                   resolv_strerror(ret)));
@@ -261,7 +269,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
 
 int
 resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-            struct resolv_ctx **ctxp)
+            int timeout, struct resolv_ctx **ctxp)
 {
     int ret;
     struct resolv_ctx *ctx;
@@ -271,6 +279,7 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
         return ENOMEM;
 
     ctx->ev_ctx = ev_ctx;
+    ctx->timeout = timeout;
 
     ret = recreate_ares_channel(ctx);
     if (ret != EOK) {

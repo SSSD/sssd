@@ -73,7 +73,7 @@ static int setup_resolv_test(struct resolv_test_ctx **ctx)
         return EFAULT;
     }
 
-    ret = resolv_init(test_ctx, test_ctx->ev, &test_ctx->resolv);
+    ret = resolv_init(test_ctx, test_ctx->ev, 5, &test_ctx->resolv);
     if (ret != EOK) {
         fail("Could not init resolv context");
         talloc_free(test_ctx);
