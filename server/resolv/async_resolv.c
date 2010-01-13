@@ -195,7 +195,6 @@ unschedule_timeout_watcher(struct resolv_ctx *ctx)
 }
 
 static void fd_event_add(struct resolv_ctx *ctx, int s);
-static void fd_event_write(struct resolv_ctx *ctx, int s);
 static void fd_event_close(struct resolv_ctx *ctx, int s);
 
 /*
@@ -214,11 +213,6 @@ fd_event(void *data, int s, int fd_read, int fd_write)
     if (fd_read == 0 && fd_write == 0) {
         fd_event_close(ctx, s);
         return;
-    }
-
-    /* If ares needs to write to a descriptor */
-    if (fd_write == 1) {
-        fd_event_write(ctx, s);
     }
 
     /* Are we already watching this file descriptor? */
@@ -257,17 +251,6 @@ fd_event_add(struct resolv_ctx *ctx, int s)
         return;
     }
     DLIST_ADD(ctx->fds, watch);
-}
-
-static void
-fd_event_write(struct resolv_ctx *ctx, int s)
-{
-    if (ctx->channel == NULL) {
-        DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
-        return;
-    }
-    /* do not allow any read. */
-    ares_process_fd(ctx->channel, ARES_SOCKET_BAD, s);
 }
 
 static void
