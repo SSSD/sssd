@@ -272,6 +272,8 @@ fd_event_close(struct resolv_ctx *ctx, int s)
 static int
 resolv_ctx_destructor(struct resolv_ctx *ctx)
 {
+    ares_channel channel;
+
     DLIST_REMOVE(context_list, ctx);
 
     if (ctx->channel == NULL) {
@@ -279,8 +281,11 @@ resolv_ctx_destructor(struct resolv_ctx *ctx)
         return -1;
     }
 
-    ares_destroy(ctx->channel);
+    /* Set ctx->channel to NULL first, so that callbacks that get
+     * ARES_EDESTRUCTION won't retry. */
+    channel = ctx->channel;
     ctx->channel = NULL;
+    ares_destroy(channel);
 
     return 0;
 }
@@ -489,7 +494,8 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
     struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
 
-    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION
+            && state->resolv_ctx->channel != NULL) {
         state->retrying = 1;
         ares_gethostbyname(state->resolv_ctx->channel, state->name,
                            state->family, resolv_gethostbyname_done, req);
@@ -692,7 +698,8 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     int ret;
     struct ares_srv_reply *reply_list;
 
-    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION
+            && state->resolv_ctx->channel != NULL) {
         state->retrying = 1;
         ares_query(state->resolv_ctx->channel, state->query,
                    ns_c_in, ns_t_srv, resolv_getsrv_done, req);
@@ -895,7 +902,8 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     int ret;
     struct ares_txt_reply *reply_list;
 
-    if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
+    if (state->retrying == 0 && status == ARES_EDESTRUCTION
+            && state->resolv_ctx->channel != NULL) {
         state->retrying = 1;
         ares_query(state->resolv_ctx->channel, state->query,
                    ns_c_in, ns_t_txt, resolv_gettxt_done, req);
