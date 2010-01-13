@@ -47,7 +47,7 @@
 struct resolv_ctx;
 
 int resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
-                struct resolv_ctx **ctxp);
+                int timeout, struct resolv_ctx **ctxp);
 
 void resolv_reread_configuration(void);
 

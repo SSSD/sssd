@@ -66,7 +66,7 @@ int be_init_failover(struct be_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = resolv_init(ctx, ctx->ev, &ctx->be_fo->resolv);
+    ret = resolv_init(ctx, ctx->ev, 5, &ctx->be_fo->resolv);
     if (ret != EOK) {
         talloc_zfree(ctx->be_fo);
         return ret;
