@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2009-12-11 08:16-0500\n"
-"PO-Revision-Date: 2009-11-24 20:27+0100\n"
+"PO-Revision-Date: 2010-01-05 22:53+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
 "MIME-Version: 1.0\n"
@@ -352,9 +352,8 @@ msgstr "Proszę podać grupę do usunięcia\n"
 
 #: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
 #: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
-#, fuzzy
 msgid "Error initializing the tools - no local domain\n"
-msgstr "Błąd podczas inicjowania narzędzi\n"
+msgstr "Błąd podczas inicjowania narzędzi - brak lokalnej domeny\n"
 
 #: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
 #: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
