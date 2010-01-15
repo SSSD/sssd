@@ -31,8 +31,7 @@
         <para>
             <command>sss_groupdel</command> deletes a group
             identified by its name <replaceable>GROUP</replaceable>
-            from the system. Deleting a non-existent group is a no-op and
-            will not be reported as an error.
+            from the system.
         </para>
     </refsect1>
 
