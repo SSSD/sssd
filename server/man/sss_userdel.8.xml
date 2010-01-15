@@ -31,8 +31,7 @@
         <para>
             <command>sss_userdel</command> deletes a user
             identified by login name <replaceable>LOGIN</replaceable>
-            from the system. Deleting a non-existent user is a no-op and
-            will not be reported as an error.
+            from the system.
         </para>
     </refsect1>
 
