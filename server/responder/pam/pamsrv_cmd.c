@@ -687,7 +687,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     if (blen >= sizeof(uint32_t) &&
         ((uint32_t *)(&body[blen - sizeof(uint32_t)]))[0] != END_OF_PAM_REQUEST) {
         DEBUG(1, ("Received data not terminated.\n"));
-        talloc_free(preq);
         ret = EINVAL;
         goto done;
     }
@@ -711,7 +710,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             ret = EINVAL;
     }
     if (ret != EOK) {
-        talloc_free(preq);
         ret = EINVAL;
         goto done;
     }
@@ -722,7 +720,6 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
             if (strcasecmp(dom->name, pd->domain) == 0) break;
         }
         if (!dom) {
-            talloc_free(preq);
             ret = ENOENT;
             goto done;
         }
