@@ -13,5 +13,7 @@ AC_CONFIG_SUBDIRS([replace common server sss_client])
 AC_SUBST([PRERELEASE_VERSION],
          PRERELEASE_VERSION_NUMBER)
 
+AM_CONDITIONAL([GIT_CHECKOUT], [git log -1 &>/dev/null])
+
 AC_CONFIG_FILES([Makefile contrib/sssd.spec])
 AC_OUTPUT
