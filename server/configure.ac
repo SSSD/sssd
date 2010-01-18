@@ -11,9 +11,12 @@ AC_DEFUN([SMB_MODULE_DEFAULT], [echo -n ""])
 AC_DEFUN([SMB_LIBRARY_ENABLE], [echo -n ""])
 AC_DEFUN([SMB_EXT_LIB], [echo -n ""])
 AC_DEFUN([SMB_ENABLE], [echo -n ""])
+
+m4_include([../version.m4])
 AC_INIT([sss_daemon],
-        m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
+        VERSION_NUMBER,
         [sssd-devel@lists.fedorahosted.org])
+
 CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 
 AC_CONFIG_SRCDIR([conf_macros.m4])
