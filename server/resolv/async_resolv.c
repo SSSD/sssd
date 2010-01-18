@@ -160,11 +160,23 @@ static void
 check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
                   struct timeval current_time, void *private_data)
 {
-    struct resolv_ctx *ctx = private_data;
+    struct resolv_ctx *ctx = talloc_get_type(private_data, struct resolv_ctx);
 
     DEBUG(9, ("Checking for DNS timeouts\n"));
+
+    /* NULLify the timeout_watcher so we don't
+     * free it in the _done() function if it
+     * gets called. Now that we're already in
+     * the handler, tevent will take care of
+     * freeing it when it returns.
+     */
+    ctx->timeout_watcher = NULL;
+
     ares_process_fd(ctx->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
-    add_timeout_timer(ev, ctx);
+
+    if (ctx->pending_requests > 0) {
+        add_timeout_timer(ev, ctx);
+    }
 }
 
 static void
