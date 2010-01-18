@@ -26,6 +26,14 @@ rpms: dist-gzip rpmroot
 	cd $(RPMBUILD); \
 	rpmbuild --define "_topdir $(RPMBUILD)" -ba SPECS/sssd.spec
 
+if GIT_CHECKOUT
+prerelease-rpms:
+	cp $(srcdir)/version.m4 $(srcdir)/version.m4.orig
+	sed -e "s/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.*\])/m4_define(\[PRERELEASE_VERSION_NUMBER\], \[.`date +%Y%m%d`git`git log -1 --pretty=format:%h`\])/" < $(srcdir)/version.m4.orig > $(srcdir)/version.m4
+	$(MAKE) rpms
+	mv $(srcdir)/version.m4.orig $(srcdir)/version.m4
+endif
+
 # make srpms will use the old digest algorithm to be compatible
 # with RHEL5
 srpms: dist-gzip rpmroot
