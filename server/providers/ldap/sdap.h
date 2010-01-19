@@ -53,11 +53,25 @@ struct sdap_op {
     struct sdap_msg *last;
 };
 
+struct fd_event_item {
+    struct fd_event_item *prev;
+    struct fd_event_item *next;
+
+    int fd;
+    struct tevent_fd *fde;
+};
+
+struct ldap_cb_data {
+    struct sdap_handle *sh;
+    struct tevent_context *ev;
+    struct fd_event_item *fd_list;
+};
+
 struct sdap_handle {
     LDAP *ldap;
     bool connected;
 
-    struct tevent_fd *fde;
+    struct ldap_conncb *conncb;
 
     struct sdap_op *ops;
 };

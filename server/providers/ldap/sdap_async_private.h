@@ -26,8 +26,11 @@
 
 void make_realm_upper_case(const char *upn);
 struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx);
-int sdap_install_ldap_callbacks(struct sdap_handle *sh,
-                                struct tevent_context *ev);
+
+int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
+                           struct sockaddr *addr, struct ldap_conncb *ctx);
+void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
+                                    struct ldap_conncb *ctx);
 
 int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
                 struct sdap_handle *sh, int msgid,

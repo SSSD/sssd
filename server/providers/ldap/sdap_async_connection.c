@@ -56,6 +56,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     int lret;
     int ret = EOK;
     int msgid;
+    struct ldap_cb_data *cb_data;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -108,6 +109,34 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+    /* add connection callback */
+    state->sh->conncb = talloc_zero(state->sh, struct ldap_conncb);
+    if (state->sh->conncb == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    cb_data = talloc_zero(state->sh->conncb, struct ldap_cb_data);
+    if (cb_data == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    cb_data->sh = state->sh;
+    cb_data->ev = state->ev;
+
+    state->sh->conncb->lc_add = sdap_ldap_connect_callback_add;
+    state->sh->conncb->lc_del = sdap_ldap_connect_callback_del;
+    state->sh->conncb->lc_arg = cb_data;
+
+    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_CONNECT_CB,
+                           state->sh->conncb);
+    if (lret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to set connection callback\n"));
+        goto fail;
+    }
+
     /* if we do not use start_tls the connection is not really connected yet
      * just fake an async procedure and leave connection to the bind call */
     if (!use_start_tls) {
@@ -124,8 +153,6 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
 
     state->sh->connected = true;
-    ret = sdap_install_ldap_callbacks(state->sh, state->ev);
-    if (ret) goto fail;
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, ev, state->sh, msgid,
@@ -297,8 +324,6 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
 
     if (!sh->connected) {
         sh->connected = true;
-        ret = sdap_install_ldap_callbacks(sh, ev);
-        if (ret) goto fail;
     }
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
@@ -464,8 +489,6 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
 
     if (!sh->connected) {
         sh->connected = true;
-        ret = sdap_install_ldap_callbacks(sh, ev);
-        if (ret) goto fail;
     }
 
     tevent_req_post(req, ev);
@@ -889,7 +912,6 @@ static void sdap_cli_rootdse_step(struct tevent_req *req)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
-    int ret;
 
     subreq = sdap_get_rootdse_send(state, state->ev, state->opts, state->sh);
     if (!subreq) {
@@ -903,10 +925,6 @@ static void sdap_cli_rootdse_step(struct tevent_req *req)
      * so we need to set up the callbacks or we will never get notified
      * of a reply */
         state->sh->connected = true;
-        ret = sdap_install_ldap_callbacks(state->sh, state->ev);
-        if (ret) {
-            tevent_req_error(req, ret);
-        }
     }
 }
 
