@@ -474,7 +474,7 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    address = talloc_asprintf(service, srvaddr->h_name);
+    address = talloc_asprintf(service, "%s", srvaddr->h_name);
     if (!address) {
         DEBUG(1, ("Failed to copy address ...\n"));
         return;
