@@ -410,7 +410,7 @@
                             before asking the backend again
                         </para>
                         <para>
-                            Default: 600
+                            Default: 5400
                         </para>
                     </listitem>
                 </varlistentry>

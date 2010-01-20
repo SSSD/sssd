@@ -143,16 +143,19 @@ int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
 
 struct global_cleanup_state {
     struct tevent_context *ev;
-    struct sdap_id_ctx *ctx;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
 };
 
 static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
-                                          struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx);
+                                             struct tevent_context *ev,
+                                             struct sysdb_ctx *sysdb,
+                                             struct sss_domain_info *domain);
 static void ldap_id_cleanup_users_done(struct tevent_req *subreq);
 static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,
-                                          struct sdap_id_ctx *ctx);
+                                          struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *domain);
 static void ldap_id_cleanup_groups_done(struct tevent_req *subreq);
 
 struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
@@ -166,9 +169,10 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->ev = ev;
-    state->ctx = ctx;
+    state->sysdb = ctx->be->sysdb;
+    state->domain = ctx->be->domain;
 
-    subreq = cleanup_users_send(state, ev, ctx);
+    subreq = cleanup_users_send(state, ev, state->sysdb, state->domain);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -199,8 +203,10 @@ static void ldap_id_cleanup_users_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
 
-    subreq = cleanup_groups_send(state, state->ev, state->ctx);
+    subreq = cleanup_groups_send(state, state->ev,
+                                 state->sysdb, state->domain);
     if (!subreq) {
+        err = ENOMEM;
         goto fail;
     }
     tevent_req_set_callback(subreq, ldap_id_cleanup_groups_done, req);
@@ -208,22 +214,8 @@ static void ldap_id_cleanup_users_done(struct tevent_req *subreq)
     return;
 
 fail:
-    if (err) {
-        DEBUG(9, ("User cleanup failed with: (%d)[%s]\n",
-                  (int)err, strerror(err)));
-
-        if (sdap_check_gssapi_reconnect(state->ctx)) {
-            talloc_zfree(state->ctx->gsh);
-            subreq = cleanup_users_send(state, state->ev, state->ctx);
-            if (subreq != NULL) {
-                tevent_req_set_callback(subreq, ldap_id_cleanup_users_done, req);
-                return;
-            }
-        }
-        sdap_mark_offline(state->ctx);
-    }
-
-    DEBUG(1, ("Failed to cleanup users, retrying later!\n"));
+    DEBUG(1, ("Failed to cleanup users (%d [%s]), retrying later!\n",
+              (int)err, strerror(err)));
     tevent_req_done(req);
 }
 
@@ -231,8 +223,6 @@ static void ldap_id_cleanup_groups_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct global_cleanup_state *state = tevent_req_data(req,
-                                                 struct global_cleanup_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
@@ -250,16 +240,6 @@ static void ldap_id_cleanup_groups_done(struct tevent_req *subreq)
     return;
 
 fail:
-    /* check if credentials are expired otherwise go offline on failures */
-    if (sdap_check_gssapi_reconnect(state->ctx)) {
-        talloc_zfree(state->ctx->gsh);
-        subreq = cleanup_groups_send(state, state->ev, state->ctx);
-        if (subreq != NULL) {
-            tevent_req_set_callback(subreq, ldap_id_cleanup_groups_done, req);
-            return;
-        }
-    }
-    sdap_mark_offline(state->ctx);
     DEBUG(1, ("Failed to cleanup groups (%d [%s]), retrying later!\n",
               (int)err, strerror(err)));
     tevent_req_done(req);
@@ -270,7 +250,6 @@ fail:
 
 struct cleanup_users_state {
     struct tevent_context *ev;
-    struct sdap_id_ctx *ctx;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
@@ -282,12 +261,13 @@ struct cleanup_users_state {
 };
 
 static void cleanup_users_process(struct tevent_req *subreq);
-static void cleanup_users_update(struct tevent_req *req);
-static void cleanup_users_up_done(struct tevent_req *subreq);
+static void cleanup_users_delete(struct tevent_req *req);
+static void cleanup_users_delete_done(struct tevent_req *subreq);
 
 static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
                                              struct tevent_context *ev,
-                                             struct sdap_id_ctx *ctx)
+                                             struct sysdb_ctx *sysdb,
+                                             struct sss_domain_info *domain)
 {
     struct tevent_req *req, *subreq;
     struct cleanup_users_state *state;
@@ -301,9 +281,8 @@ static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
     }
 
     state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = ctx->be->sysdb;
-    state->domain = ctx->be->domain;
+    state->sysdb = sysdb;
+    state->domain = domain;
     state->msgs = NULL;
     state->count = 0;
     state->cur = 0;
@@ -355,35 +334,36 @@ static void cleanup_users_process(struct tevent_req *subreq)
         tevent_req_done(req);
     }
 
-    cleanup_users_update(req);
+    cleanup_users_delete(req);
 }
 
-static void cleanup_users_update(struct tevent_req *req)
+static void cleanup_users_delete(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct cleanup_users_state *state = tevent_req_data(req,
                                                struct cleanup_users_state);
-    const char *str;
+    const char *name;
 
-    str = ldb_msg_find_attr_as_string(state->msgs[state->cur],
+    name = ldb_msg_find_attr_as_string(state->msgs[state->cur],
                                       SYSDB_NAME, NULL);
-    if (!str) {
+    if (!name) {
         DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
                   ldb_dn_get_linearized(state->msgs[state->cur]->dn)));
         tevent_req_error(req, EFAULT);
         return;
     }
 
-    subreq = users_get_send(state, state->ev, state->ctx,
-                            str, BE_FILTER_NAME, BE_ATTR_CORE);
+    subreq = sysdb_delete_user_send(state, state->ev,
+                                    state->sysdb, NULL,
+                                    state->domain, name, 0);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, cleanup_users_up_done, req);
+    tevent_req_set_callback(subreq, cleanup_users_delete_done, req);
 }
 
-static void cleanup_users_up_done(struct tevent_req *subreq)
+static void cleanup_users_delete_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -391,21 +371,18 @@ static void cleanup_users_up_done(struct tevent_req *subreq)
                                                struct cleanup_users_state);
     int ret;
 
-    ret = users_get_recv(subreq);
+    ret = sysdb_delete_user_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(2, ("User check returned: %d(%s)\n",
+        DEBUG(2, ("User delete returned %d (%s)\n",
                   ret, strerror(ret)));
-    }
-
-    /* if the entry doesn't need to be purged, remove it from the list */
-    if (ret != ENOENT) {
-        talloc_zfree(state->msgs[state->cur]);
+        tevent_req_error(req, ret);
+        return;
     }
 
     state->cur++;
     if (state->cur < state->count) {
-        cleanup_users_update(req);
+        cleanup_users_delete(req);
         return;
     }
 
@@ -416,7 +393,6 @@ static void cleanup_users_up_done(struct tevent_req *subreq)
 
 struct cleanup_groups_state {
     struct tevent_context *ev;
-    struct sdap_id_ctx *ctx;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
@@ -428,12 +404,13 @@ struct cleanup_groups_state {
 };
 
 static void cleanup_groups_process(struct tevent_req *subreq);
-static void cleanup_groups_update(struct tevent_req *req);
-static void cleanup_groups_up_done(struct tevent_req *subreq);
+static void cleanup_groups_delete(struct tevent_req *req);
+static void cleanup_groups_delete_done(struct tevent_req *subreq);
 
 static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
-                                              struct sdap_id_ctx *ctx)
+                                              struct sysdb_ctx *sysdb,
+                                              struct sss_domain_info *domain)
 {
     struct tevent_req *req, *subreq;
     struct cleanup_groups_state *state;
@@ -447,9 +424,8 @@ static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
     }
 
     state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = ctx->be->sysdb;
-    state->domain = ctx->be->domain;
+    state->sysdb = sysdb;
+    state->domain = domain;
     state->msgs = NULL;
     state->count = 0;
     state->cur = 0;
@@ -501,35 +477,36 @@ static void cleanup_groups_process(struct tevent_req *subreq)
         tevent_req_done(req);
     }
 
-    cleanup_groups_update(req);
+    cleanup_groups_delete(req);
 }
 
-static void cleanup_groups_update(struct tevent_req *req)
+static void cleanup_groups_delete(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct cleanup_groups_state *state = tevent_req_data(req,
                                                struct cleanup_groups_state);
-    const char *str;
+    const char *name;
 
-    str = ldb_msg_find_attr_as_string(state->msgs[state->cur],
+    name = ldb_msg_find_attr_as_string(state->msgs[state->cur],
                                       SYSDB_NAME, NULL);
-    if (!str) {
+    if (!name) {
         DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
                   ldb_dn_get_linearized(state->msgs[state->cur]->dn)));
         tevent_req_error(req, EFAULT);
         return;
     }
 
-    subreq = groups_get_send(state, state->ev, state->ctx,
-                             str, BE_FILTER_NAME, BE_ATTR_CORE);
+    subreq = sysdb_delete_group_send(state, state->ev,
+                                     state->sysdb, NULL,
+                                     state->domain, name, 0);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, cleanup_groups_up_done, req);
+    tevent_req_set_callback(subreq, cleanup_groups_delete_done, req);
 }
 
-static void cleanup_groups_up_done(struct tevent_req *subreq)
+static void cleanup_groups_delete_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -537,16 +514,17 @@ static void cleanup_groups_up_done(struct tevent_req *subreq)
                                                struct cleanup_groups_state);
     int ret;
 
-    ret = groups_get_recv(subreq);
+    ret = sysdb_delete_group_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        DEBUG(2, ("User check returned: %d(%s)\n",
-                  ret, strerror(ret)));
+        DEBUG(2, ("Group delete returned %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
     }
 
     state->cur++;
     if (state->cur < state->count) {
-        cleanup_groups_update(req);
+        cleanup_groups_delete(req);
         return;
     }
 
