@@ -115,6 +115,7 @@ option_strings = {
     'krb5_realm' : _('Kerberos realm'),
     'ldap_krb5_keytab' : _('Kerberos service keytab'),
     'ldap_krb5_init_creds' : _('Use Kerberos auth for LDAP connection'),
+    'ldap_referrals' : _('Follow LDAP referrals'),
 
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),

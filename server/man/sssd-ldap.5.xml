@@ -614,6 +614,19 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_referrals (boolean)</term>
+                    <listitem>
+                        <para>
+                            Specifies whether automatic referral chasing should
+                            be enabled.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

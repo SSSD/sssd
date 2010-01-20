@@ -57,6 +57,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     int ret = EOK;
     int msgid;
     struct ldap_cb_data *cb_data;
+    bool ldap_referrals;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
     if (!req) return NULL;
@@ -106,6 +107,16 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     if (lret != LDAP_OPT_SUCCESS) {
         DEBUG(1, ("Failed to set default timeout to %d\n",
                   dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT)));
+        goto fail;
+    }
+
+    /* Set Referral chasing */
+    ldap_referrals = dp_opt_get_bool(opts->basic, SDAP_REFERRALS);
+    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_REFERRALS,
+                           (ldap_referrals ? LDAP_OPT_ON : LDAP_OPT_OFF));
+    if (lret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to set referral chasing to %s\n",
+                  (ldap_referrals ? "LDAP_OPT_ON" : "LDAP_OPT_OFF")));
         goto fail;
     }
 
