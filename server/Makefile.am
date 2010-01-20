@@ -636,7 +636,8 @@ libsss_krb5_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(DHASH_CFLAGS)
 libsss_krb5_la_LIBADD = \
-    $(DHASH_LIBS)
+    $(DHASH_LIBS) \
+    $(KRB5_LIBS)
 libsss_krb5_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
