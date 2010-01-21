@@ -56,7 +56,7 @@ int sss_cmd_get_version(struct cli_ctx *cctx)
 
         sss_packet_get_body(cctx->creq->in, &req_body, &req_blen);
         if (req_blen == sizeof(uint32_t)) {
-            client_version = (uint32_t ) *req_body;
+            memcpy(&client_version, req_body, sizeof(uint32_t));
             DEBUG(5, ("Received client version [%d].\n", client_version));
 
             i=0;

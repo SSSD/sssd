@@ -37,12 +37,12 @@ static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_
 
     if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
 
-    data_size = ((uint32_t *)&body[*c])[0];
+    memcpy(&data_size, &body[*c], sizeof(uint32_t));
     *c += sizeof(uint32_t);
     if (data_size < sizeof(uint32_t) || (*c)+(data_size) > blen) return EINVAL;
     *size = data_size - sizeof(uint32_t);
 
-    *type = ((uint32_t *)&body[*c])[0];
+    memcpy(type, &body[*c], sizeof(uint32_t));
     *c += sizeof(uint32_t);
 
     *tok = body+(*c);
@@ -58,7 +58,7 @@ static int extract_string(char **var, uint8_t *body, size_t blen, size_t *c) {
 
     if (blen-(*c) < sizeof(uint32_t)+1) return EINVAL;
 
-    size = ((uint32_t *)&body[*c])[0];
+    memcpy(&size, &body[*c], sizeof(uint32_t));
     *c += sizeof(uint32_t);
     if (*c+size > blen) return EINVAL;
 
@@ -78,10 +78,10 @@ static int extract_uint32_t(uint32_t *var, uint8_t *body, size_t blen, size_t *c
 
     if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
 
-    size = ((uint32_t *)&body[*c])[0];
+    memcpy(&size, &body[*c], sizeof(uint32_t));
     *c += sizeof(uint32_t);
 
-    *var = ((uint32_t *)&body[*c])[0];
+    memcpy(var, &body[*c], sizeof(uint32_t));
     *c += sizeof(uint32_t);
 
     return EOK;
@@ -96,17 +96,18 @@ static int pam_parse_in_data_v2(struct sss_names_ctx *snctx,
     uint32_t size;
     char *pam_user;
     int ret;
+    uint32_t terminator = END_OF_PAM_REQUEST;
 
     if (blen < 4*sizeof(uint32_t)+2 ||
         ((uint32_t *)body)[0] != START_OF_PAM_REQUEST ||
-        ((uint32_t *)(&body[blen - sizeof(uint32_t)]))[0] != END_OF_PAM_REQUEST) {
+        memcmp(&body[blen - sizeof(uint32_t)], &terminator, sizeof(uint32_t)) != 0) {
         DEBUG(1, ("Received data is invalid.\n"));
         return EINVAL;
     }
 
     c = sizeof(uint32_t);
     do {
-        type = ((uint32_t *)&body[c])[0];
+        memcpy(&type, &body[c], sizeof(uint32_t));
         c += sizeof(uint32_t);
         if (c > blen) return EINVAL;
 
@@ -630,6 +631,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     size_t blen;
     int timeout;
     int ret;
+    uint32_t terminator = END_OF_PAM_REQUEST;
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
         return ENOMEM;
@@ -645,7 +647,7 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 
     sss_packet_get_body(cctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t) &&
-        ((uint32_t *)(&body[blen - sizeof(uint32_t)]))[0] != END_OF_PAM_REQUEST) {
+        memcmp(&body[blen - sizeof(uint32_t)], &terminator, sizeof(uint32_t)) != 0) {
         DEBUG(1, ("Received data not terminated.\n"));
         ret = EINVAL;
         goto done;
