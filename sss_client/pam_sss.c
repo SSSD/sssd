@@ -105,16 +105,20 @@ static size_t add_authtok_item(enum pam_item_type type,
                                const char *tok, const size_t size,
                                uint8_t *buf) {
     size_t rp=0;
+    uint32_t c;
 
     if (tok == NULL) return 0;
 
-    ((uint32_t *)(&buf[rp]))[0] = type;
+    c = type;
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf[rp]))[0] = size + sizeof(uint32_t);
+    c = size + sizeof(uint32_t);
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf[rp]))[0] = authtok_type;
+    c = authtok_type;
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
     memcpy(&buf[rp], tok, size);
@@ -127,15 +131,18 @@ static size_t add_authtok_item(enum pam_item_type type,
 static size_t add_uint32_t_item(enum pam_item_type type, const uint32_t val,
                                 uint8_t *buf) {
     size_t rp=0;
+    uint32_t c;
 
-
-    ((uint32_t *)(&buf[rp]))[0] = type;
+    c = type;
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf[rp]))[0] = sizeof(uint32_t);
+    c = sizeof(uint32_t);
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf[rp]))[0] = val;
+    c = val;
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
     return rp;
@@ -144,13 +151,16 @@ static size_t add_uint32_t_item(enum pam_item_type type, const uint32_t val,
 static size_t add_string_item(enum pam_item_type type, const char *str,
                            const size_t size, uint8_t *buf) {
     size_t rp=0;
+    uint32_t c;
 
     if (str == NULL || *str == '\0') return 0;
 
-    ((uint32_t *)(&buf[rp]))[0] = type;
+    c = type;
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf[rp]))[0] = size;
+    c = size;
+    memcpy(&buf[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
     memcpy(&buf[rp], str, size);
@@ -179,6 +189,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
     int len;
     uint8_t *buf;
     int rp;
+    uint32_t terminator = END_OF_PAM_REQUEST;
 
     len = sizeof(uint32_t) +
           2*sizeof(uint32_t) + pi->pam_user_size +
@@ -231,7 +242,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
                            pi->pam_newauthtok, pi->pam_newauthtok_size,
                            &buf[rp]);
 
-    ((uint32_t *)(&buf[rp]))[0] = END_OF_PAM_REQUEST;
+    memcpy(&buf[rp], &terminator, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
     if (rp != len) {
@@ -362,43 +373,43 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
     int ret;
     size_t p=0;
     char *env_item;
-    int32_t *c;
-    int32_t *type;
-    int32_t *len;
-    int32_t *pam_status;
+    int32_t c;
+    int32_t type;
+    int32_t len;
+    int32_t pam_status;
 
     if (buflen < (2*sizeof(int32_t))) {
         D(("response buffer is too small"));
         return PAM_BUF_ERR;
     }
 
-    pam_status = ((int32_t *)(buf+p));
+    memcpy(&pam_status, buf+p, sizeof(int32_t));
     p += sizeof(int32_t);
 
 
-    c = ((int32_t *)(buf+p));
+    memcpy(&c, buf+p, sizeof(int32_t));
     p += sizeof(int32_t);
 
-    while(*c>0) {
+    while(c>0) {
         if (buflen < (p+2*sizeof(int32_t))) {
             D(("response buffer is too small"));
             return PAM_BUF_ERR;
         }
 
-        type = ((int32_t *)(buf+p));
+        memcpy(&type, buf+p, sizeof(int32_t));
         p += sizeof(int32_t);
 
-        len = ((int32_t *)(buf+p));
+        memcpy(&len, buf+p, sizeof(int32_t));
         p += sizeof(int32_t);
 
-        if (buflen < (p + *len)) {
+        if (buflen < (p + len)) {
             D(("response buffer is too small"));
             return PAM_BUF_ERR;
         }
 
-        switch(*type) {
+        switch(type) {
             case PAM_USER_INFO:
-                if (buf[p + (*len -1)] != '\0') {
+                if (buf[p + (len -1)] != '\0') {
                     D(("user info does not end with \\0."));
                     break;
                 }
@@ -410,13 +421,13 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
             case ENV_ITEM:
             case PAM_ENV_ITEM:
             case ALL_ENV_ITEM:
-                if (buf[p + (*len -1)] != '\0') {
+                if (buf[p + (len -1)] != '\0') {
                     D(("env item does not end with \\0."));
                     break;
                 }
 
                 D(("env item: [%s]", &buf[p]));
-                if (*type == PAM_ENV_ITEM || *type == ALL_ENV_ITEM) {
+                if (type == PAM_ENV_ITEM || type == ALL_ENV_ITEM) {
                     ret = pam_putenv(pamh, (char *)&buf[p]);
                     if (ret != PAM_SUCCESS) {
                         D(("pam_putenv failed."));
@@ -424,7 +435,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                     }
                 }
 
-                if (*type == ENV_ITEM || *type == ALL_ENV_ITEM) {
+                if (type == ENV_ITEM || type == ALL_ENV_ITEM) {
                     env_item = strdup((char *)&buf[p]);
                     if (env_item == NULL) {
                         D(("strdup failed"));
@@ -438,9 +449,9 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                 }
                 break;
         }
-        p += *len;
+        p += len;
 
-        --(*c);
+        --c;
     }
 
     return PAM_SUCCESS;
