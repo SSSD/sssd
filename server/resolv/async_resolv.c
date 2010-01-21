@@ -59,6 +59,7 @@ struct fd_watch {
 
     int fd;
     struct resolv_ctx *ctx;
+    struct tevent_fd *fde;
 };
 
 struct resolv_ctx {
@@ -123,7 +124,13 @@ fd_input_available(struct tevent_context *ev, struct tevent_fd *fde,
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
         return;
     }
-    ares_process_fd(watch->ctx->channel, watch->fd, watch->fd);
+
+    if (flags & TEVENT_FD_READ) {
+        ares_process_fd(watch->ctx->channel, watch->fd, ARES_SOCKET_BAD);
+    }
+    if (flags & TEVENT_FD_WRITE) {
+        ares_process_fd(watch->ctx->channel, ARES_SOCKET_BAD, watch->fd);
+    }
 }
 
 static void
@@ -206,7 +213,7 @@ unschedule_timeout_watcher(struct resolv_ctx *ctx)
     }
 }
 
-static void fd_event_add(struct resolv_ctx *ctx, int s);
+static void fd_event_add(struct resolv_ctx *ctx, int s, int flags);
 static void fd_event_close(struct resolv_ctx *ctx, int s);
 
 /*
@@ -220,6 +227,7 @@ fd_event(void *data, int s, int fd_read, int fd_write)
 {
     struct resolv_ctx *ctx = talloc_get_type(data, struct resolv_ctx);
     struct fd_watch *watch;
+    int flags;
 
     /* The socket is about to get closed. */
     if (fd_read == 0 && fd_write == 0) {
@@ -227,23 +235,26 @@ fd_event(void *data, int s, int fd_read, int fd_write)
         return;
     }
 
+    flags = fd_read ? TEVENT_FD_READ : 0;
+    flags |= fd_write ? TEVENT_FD_WRITE : 0;
+
     /* Are we already watching this file descriptor? */
     watch = ctx->fds;
     while (watch) {
         if (watch->fd == s) {
+            tevent_fd_set_flags(watch->fde, flags);
             return;
         }
         watch = watch->next;
     }
 
-    fd_event_add(ctx, s);
+    fd_event_add(ctx, s, flags);
 }
 
 static void
-fd_event_add(struct resolv_ctx *ctx, int s)
+fd_event_add(struct resolv_ctx *ctx, int s, int flags)
 {
     struct fd_watch *watch;
-    struct tevent_fd *fde;
 
     /* The file descriptor is new, register it with tevent. */
     watch = talloc(ctx, struct fd_watch);
@@ -256,8 +267,9 @@ fd_event_add(struct resolv_ctx *ctx, int s)
     watch->fd = s;
     watch->ctx = ctx;
 
-    fde = tevent_add_fd(ctx->ev_ctx, watch, s, TEVENT_FD_READ, fd_input_available, watch);
-    if (fde == NULL) {
+    watch->fde = tevent_add_fd(ctx->ev_ctx, watch, s, flags,
+                               fd_input_available, watch);
+    if (watch->fde == NULL) {
         DEBUG(1, ("tevent_add_fd() failed\n"));
         talloc_free(watch);
         return;
