@@ -130,6 +130,15 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
         return ret;
     }
 
+    val[0] = "TRUE";
+    ret = confdb_add_param(test_ctx->confdb, true,
+                           "config/domain/LOCAL", "cache_credentials", val);
+    if (ret != EOK) {
+        fail("Could not initialize LOCAL domain");
+        talloc_free(test_ctx);
+        return ret;
+    }
+
     ret = confdb_get_domain(test_ctx->confdb, "local", &test_ctx->domain);
     if (ret != EOK) {
         fail("Could not retrieve LOCAL domain");

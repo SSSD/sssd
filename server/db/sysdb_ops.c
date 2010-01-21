@@ -4674,6 +4674,11 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    if (!domain->cache_credentials) {
+        DEBUG(3, ("Cached credentials not available.\n"));
+        return NULL;
+    }
+
     static const char *attrs[] = {SYSDB_NAME,
                                   SYSDB_CACHEDPWD,
                                   SYSDB_DISABLED,
