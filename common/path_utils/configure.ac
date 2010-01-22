@@ -1,4 +1,4 @@
-AC_INIT([path_utils], [0.1], [jdennis@redhat.com])
+AC_INIT([path_utils], [0.2.0], [jdennis@redhat.com])
 AC_CONFIG_SRCDIR([path_utils.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
