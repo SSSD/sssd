@@ -1,3 +1,10 @@
+#if 0
+Copyright 2009-1010 John Dennis
+This program is distributed under the terms of the GNU Lesser General Public
+License (LGPL). See the included COPYING and COPYING.LESSER files for the
+terms of this license.
+#endif
+
 #ifndef PATH_UTILS_H
 #define PATH_UTILS_H
 
