@@ -23,7 +23,6 @@
 #ifndef COLLECTION_TOOLS_H
 #define COLLECTION_TOOLS_H
 
-#include "trace.h"
 #include "collection.h"
 
 #ifdef  HAVE_TRACE
