@@ -1,9 +1,22 @@
-#if 0
-Copyright 2009-1010 John Dennis
-This program is distributed under the terms of the GNU Lesser General Public
-License (LGPL). See the included COPYING and COPYING.LESSER files for the
-terms of this license.
-#endif
+/*
+    Authors:
+        John Dennis <jdennis.redhat.com>
+
+    Copyright (C) 2009 Red Hat
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef PATH_UTILS_H
 #define PATH_UTILS_H
