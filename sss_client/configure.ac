@@ -1,6 +1,7 @@
 AC_PREREQ(2.50)
+m4_include([../version.m4])
 AC_INIT([sss_client],
-        m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
+        VERSION_NUMBER,
         [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([common.c])
 AC_CONFIG_HEADER(config.h)

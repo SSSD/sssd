@@ -1,5 +1,6 @@
+m4_include([../version.m4])
 AC_INIT([sssd_libs],
-        m4_esyscmd([cat ../VERSION |head -n1 | tr -d '\n']),
+        VERSION_NUMBER,
         [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([README])
 AC_CONFIG_AUX_DIR([build])
