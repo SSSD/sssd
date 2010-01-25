@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-11-18 07:19-0500\n"
+"POT-Creation-Date: 2010-01-25 13:15-0500\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Marina Latini <deneb.alphacygni@gmail.com>\n"
 "Language-Team: Italian <fedora-trans-it@redhat.com>\n"
@@ -18,22 +18,22 @@ msgstr ""
 "X-Poedit-Country: ITALY\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: pam_sss.c:322
+#: pam_sss.c:333
 msgid "Passwords do not match"
 msgstr "Le password non coincidono"
 
-#: pam_sss.c:598
+#: pam_sss.c:609
 msgid "Password: "
 msgstr "Password: "
 
-#: pam_sss.c:630
+#: pam_sss.c:641
 msgid "New Password: "
 msgstr "Nuova password: "
 
-#: pam_sss.c:631
+#: pam_sss.c:642
 msgid "Reenter new Password: "
 msgstr "reinserire la nuova password: "
 
-#: pam_sss.c:835
+#: pam_sss.c:846
 msgid "Password has expired."
 msgstr "La password è scaduta."

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_client 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-11-18 07:19-0500\n"
+"POT-Creation-Date: 2010-01-25 13:15-0500\n"
 "PO-Revision-Date: 2009-12-08 15:37-0300\n"
 "Last-Translator: Domingo Becker <domingobecker@gmail.com>\n"
 "Language-Team: Transifex Spanish\n"
@@ -17,22 +17,22 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-Language: Spanish\n"
 
-#: pam_sss.c:322
+#: pam_sss.c:333
 msgid "Passwords do not match"
 msgstr "Las contraseñas no coinciden"
 
-#: pam_sss.c:598
+#: pam_sss.c:609
 msgid "Password: "
 msgstr "Contraseña: "
 
-#: pam_sss.c:630
+#: pam_sss.c:641
 msgid "New Password: "
 msgstr "Nueva contraseña: "
 
-#: pam_sss.c:631
+#: pam_sss.c:642
 msgid "Reenter new Password: "
 msgstr "Reingrese la contraseña nueva:"
 
-#: pam_sss.c:835
+#: pam_sss.c:846
 msgid "Password has expired."
 msgstr "La contraseña ha expirado."

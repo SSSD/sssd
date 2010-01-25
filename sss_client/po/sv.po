@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_client\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2009-11-18 07:19-0500\n"
+"POT-Creation-Date: 2010-01-25 13:15-0500\n"
 "PO-Revision-Date: 2009-12-09 20:52+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -15,22 +15,22 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: pam_sss.c:322
+#: pam_sss.c:333
 msgid "Passwords do not match"
 msgstr "Lösenorden stämmer inte överens"
 
-#: pam_sss.c:598
+#: pam_sss.c:609
 msgid "Password: "
 msgstr "Lösenord: "
 
-#: pam_sss.c:630
+#: pam_sss.c:641
 msgid "New Password: "
 msgstr "Nytt lösenord: "
 
-#: pam_sss.c:631
+#: pam_sss.c:642
 msgid "Reenter new Password: "
 msgstr "Skriv det nya lösenordet igen: "
 
-#: pam_sss.c:835
+#: pam_sss.c:846
 msgid "Password has expired."
 msgstr "Lösenordet har gått ut."
