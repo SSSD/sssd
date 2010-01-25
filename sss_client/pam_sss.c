@@ -581,15 +581,52 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
         pam_status = ret;
         goto done;
     }
-    logger(pamh, (pam_status == PAM_SUCCESS ? LOG_INFO : LOG_NOTICE),
-           "authentication %s; logname=%s uid=%d euid=%d tty=%s ruser=%s "
-           "rhost=%s user=%s",
-           pam_status == PAM_SUCCESS ? "success" : "failure",
-           pi->login_name, getuid(), geteuid(), pi->pam_tty, pi->pam_ruser,
-           pi->pam_rhost, pi->pam_user);
-    if (pam_status != PAM_SUCCESS) {
-           logger(pamh, LOG_NOTICE, "received for user %s: %d (%s)",
-                  pi->pam_user, pam_status, pam_strerror(pamh,pam_status));
+
+    switch (task) {
+        case SSS_PAM_AUTHENTICATE:
+            logger(pamh, (pam_status == PAM_SUCCESS ? LOG_INFO : LOG_NOTICE),
+                   "authentication %s; logname=%s uid=%lu euid=%d tty=%s "
+                   "ruser=%s rhost=%s user=%s",
+                   pam_status == PAM_SUCCESS ? "success" : "failure",
+                   pi->login_name, getuid(), (unsigned long) geteuid(),
+                   pi->pam_tty, pi->pam_ruser, pi->pam_rhost, pi->pam_user);
+            if (pam_status != PAM_SUCCESS) {
+                   logger(pamh, LOG_NOTICE, "received for user %s: %d (%s)",
+                          pi->pam_user, pam_status,
+                          pam_strerror(pamh,pam_status));
+            }
+            break;
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+            if (pam_status != PAM_SUCCESS) {
+                   logger(pamh, LOG_NOTICE,
+                          "Authentication failed for user %s: %d (%s)",
+                          pi->pam_user, pam_status,
+                          pam_strerror(pamh,pam_status));
+            }
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            if (pam_status != PAM_SUCCESS) {
+                   logger(pamh, LOG_NOTICE,
+                          "Password change failed for user %s: %d (%s)",
+                          pi->pam_user, pam_status,
+                          pam_strerror(pamh,pam_status));
+            }
+            break;
+        case SSS_PAM_ACCT_MGMT:
+            if (pam_status != PAM_SUCCESS) {
+                   logger(pamh, LOG_NOTICE,
+                          "Access denied for user %s: %d (%s)",
+                          pi->pam_user, pam_status,
+                          pam_strerror(pamh,pam_status));
+            }
+            break;
+        case SSS_PAM_SETCRED:
+        case SSS_PAM_OPEN_SESSION:
+        case SSS_PAM_CLOSE_SESSION:
+            break;
+        default:
+            D(("Illegal task [%d]", task));
+            return PAM_SYSTEM_ERR;
     }
 
 done:
