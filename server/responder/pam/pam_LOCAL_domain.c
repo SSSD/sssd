@@ -164,7 +164,7 @@ static void do_successful_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    ret = sysdb_attrs_add_long(lreq->mod_attrs, "failedLoginAttempts", 0L);
+    ret = sysdb_attrs_add_long(lreq->mod_attrs, SYSDB_FAILED_LOGIN_ATTEMPTS, 0L);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
@@ -199,16 +199,17 @@ static void do_failed_login(struct LOCAL_request *lreq)
                        lreq->error, ENOMEM, done);
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
-                               "lastFailedLogin", (long)time(NULL));
+                               SYSDB_LAST_FAILED_LOGIN, (long)time(NULL));
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
     failedLoginAttempts = ldb_msg_find_attr_as_int(lreq->res->msgs[0],
-                                                   "failedLoginAttempts", 0);
+                                                   SYSDB_FAILED_LOGIN_ATTEMPTS,
+                                                   0);
     failedLoginAttempts++;
 
     ret = sysdb_attrs_add_long(lreq->mod_attrs,
-                               "failedLoginAttempts",
+                               SYSDB_FAILED_LOGIN_ATTEMPTS,
                                (long)failedLoginAttempts);
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
@@ -436,10 +437,10 @@ int LOCAL_pam_handler(struct pam_auth_req *preq)
                                   SYSDB_LAST_LOGIN,
                                   "lastPasswordChange",
                                   "accountExpires",
-                                  "failedLoginAttempts",
+                                  SYSDB_FAILED_LOGIN_ATTEMPTS,
                                   "passwordHint",
                                   "passwordHistory",
-                                  "lastFailedLogin",
+                                  SYSDB_LAST_FAILED_LOGIN,
                                   NULL};
 
     DEBUG(4, ("LOCAL pam handler.\n"));

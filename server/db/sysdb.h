@@ -22,6 +22,7 @@
 #ifndef __SYS_DB_H__
 #define __SYS_DB_H__
 
+#include "util/util.h"
 #include "confdb/confdb.h"
 #include <tevent.h>
 
@@ -66,6 +67,8 @@
 #define SYSDB_LAST_LOGIN "lastLogin"
 #define SYSDB_LAST_ONLINE_AUTH "lastOnlineAuth"
 #define SYSDB_USERPIC "userPicture"
+#define SYSDB_LAST_FAILED_LOGIN "lastFailedLogin"
+#define SYSDB_FAILED_LOGIN_ATTEMPTS "failedLoginAttempts"
 
 #define SYSDB_LAST_UPDATE "lastUpdate"
 #define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
@@ -543,6 +546,9 @@ struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
 int sysdb_cache_password_recv(struct tevent_req *req);
 
 
+errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
+                                    struct ldb_message *ldb_msg,
+                                    uint32_t *failed_login_attempts);
 struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
                                          struct sysdb_ctx *sysdb,

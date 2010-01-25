@@ -338,10 +338,44 @@
                     <listitem>
                         <para>
                             If the authentication provider is offline, how
-                            long should we allow cached logins (in days).
+                            long should we allow cached logins (in days since
+                            the last successful online login).
                         </para>
                         <para>
                             Default: 0 (No limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>offline_failed_login_attempts (integer)</term>
+                    <listitem>
+                        <para>
+                            If the authentication provider is offline, how
+                            many failed login attempts are allowed.
+                        </para>
+                        <para>
+                            Default: 0 (No limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>offline_failed_login_delay (integer)</term>
+                    <listitem>
+                        <para>
+                            The time in minutes which has to pass after
+                            offline_failed_login_attempts has been reached
+                            before a new login attempt is possible.
+                        </para>
+                        <para>
+                            If set to 0 the user cannot authenticate offline if
+                            offline_failed_login_attempts has been reached. Only
+                            a successful online authentication can enable
+                            enable offline authentication again.
+                        </para>
+                        <para>
+                            Default: 5
                         </para>
                     </listitem>
                 </varlistentry>

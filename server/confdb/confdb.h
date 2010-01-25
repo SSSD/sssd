@@ -65,6 +65,10 @@
 /* PAM */
 #define CONFDB_PAM_CONF_ENTRY "config/pam"
 #define CONFDB_PAM_CRED_TIMEOUT "offline_credentials_expiration"
+#define CONFDB_PAM_FAILED_LOGIN_ATTEMPTS "offline_failed_login_attempts"
+#define CONFDB_DEFAULT_PAM_FAILED_LOGIN_ATTEMPTS 0
+#define CONFDB_PAM_FAILED_LOGIN_DELAY "offline_failed_login_delay"
+#define CONFDB_DEFAULT_PAM_FAILED_LOGIN_DELAY 5
 
 /* Data Provider */
 #define CONFDB_DP_CONF_ENTRY "config/dp"

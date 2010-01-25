@@ -75,7 +75,8 @@ if HAVE_CHECK
         files-tests \
         refcount-tests \
         fail_over-tests \
-        find_uid-tests
+        find_uid-tests \
+        auth-tests
 endif
 
 check_PROGRAMS = \
@@ -574,6 +575,16 @@ find_uid_tests_CFLAGS = \
 find_uid_tests_LDADD = \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
+    $(CHECK_LIBS)
+
+auth_tests_SOURCES = \
+    tests/auth-tests.c \
+    $(SSSD_UTIL_OBJ)
+auth_tests_CFLAG = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+auth_tests_LDADD = \
+    $(SSSD_LIBS) \
     $(CHECK_LIBS)
 
 endif
