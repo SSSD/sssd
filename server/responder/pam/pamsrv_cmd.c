@@ -33,7 +33,7 @@
 static void pam_reply(struct pam_auth_req *preq);
 
 static int extract_authtok(uint32_t *type, uint32_t *size, uint8_t **tok, uint8_t *body, size_t blen, size_t *c) {
-    size_t data_size;
+    uint32_t data_size;
 
     if (blen-(*c) < 2*sizeof(uint32_t)) return EINVAL;
 
