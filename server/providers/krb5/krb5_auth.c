@@ -301,6 +301,7 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     size_t rp;
     const char *keytab;
     uint32_t validate;
+    uint32_t c = 0;
 
     keytab = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_KEYTAB);
     if (keytab == NULL) {
@@ -331,47 +332,50 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     }
 
     rp = 0;
-    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->cmd;
+    memcpy(&buf->data[rp], &kr->pd->cmd, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->pw_uid;
+    memcpy(&buf->data[rp], &kr->pd->pw_uid, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->gr_gid;
+    memcpy(&buf->data[rp], &kr->pd->gr_gid, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = validate;
+    memcpy(&buf->data[rp], &validate, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = kr->is_offline;
+    memcpy(&buf->data[rp], &kr->is_offline, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(kr->pd->upn);
+    c = (uint32_t) strlen(kr->pd->upn);
+    memcpy(&buf->data[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    memcpy(&buf->data[rp], kr->pd->upn, strlen(kr->pd->upn));
-    rp += strlen(kr->pd->upn);
+    memcpy(&buf->data[rp], kr->pd->upn, c);
+    rp += c;
 
-    ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(kr->ccname);
+    c = (uint32_t) strlen(kr->ccname);
+    memcpy(&buf->data[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    memcpy(&buf->data[rp], kr->ccname, strlen(kr->ccname));
+    memcpy(&buf->data[rp], kr->ccname, c);
     rp += strlen(kr->ccname);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = (uint32_t) strlen(keytab);
+    c = (uint32_t) strlen(keytab);
+    memcpy(&buf->data[rp], &c, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
-    memcpy(&buf->data[rp], keytab, strlen(keytab));
+    memcpy(&buf->data[rp], keytab, c);
     rp += strlen(keytab);
 
-    ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->authtok_size;
+    memcpy(&buf->data[rp], &kr->pd->authtok_size, sizeof(uint32_t));
     rp += sizeof(uint32_t);
 
     memcpy(&buf->data[rp], kr->pd->authtok, kr->pd->authtok_size);
     rp += kr->pd->authtok_size;
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-        ((uint32_t *)(&buf->data[rp]))[0] = kr->pd->newauthtok_size;
+        memcpy(&buf->data[rp], &kr->pd->newauthtok_size, sizeof(uint32_t));
         rp += sizeof(uint32_t);
 
         memcpy(&buf->data[rp], kr->pd->newauthtok, kr->pd->newauthtok_size);

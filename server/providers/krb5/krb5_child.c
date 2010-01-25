@@ -260,6 +260,7 @@ static errno_t pack_response_packet(struct response *resp, int status, int type,
 {
     int len;
     int p=0;
+    int32_t c;
 
     len = strlen(data)+1;
     if ((3*sizeof(int32_t) + len +1) > resp->max_size) {
@@ -267,13 +268,16 @@ static errno_t pack_response_packet(struct response *resp, int status, int type,
         return ENOMEM;
     }
 
-    ((int32_t *)(&resp->buf[p]))[0] = status;
+    c = status;
+    memcpy(&resp->buf[p], &c, sizeof(int32_t));
     p += sizeof(int32_t);
 
-    ((int32_t *)(&resp->buf[p]))[0] = type;
+    c = type;
+    memcpy(&resp->buf[p], &c, sizeof(int32_t));
     p += sizeof(int32_t);
 
-    ((int32_t *)(&resp->buf[p]))[0] = len;
+    c = len;
+    memcpy(&resp->buf[p], &c, sizeof(int32_t));
     p += sizeof(int32_t);
 
     memcpy(&resp->buf[p], data, len);
@@ -695,28 +699,27 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     uint32_t len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    pd->cmd = *((uint32_t *)(buf + p));
+    memcpy(&pd->cmd, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    pd->pw_uid = *((uint32_t *)(buf + p));
+    memcpy(&pd->pw_uid, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    pd->gr_gid = *((uint32_t *)(buf + p));
+    memcpy(&pd->gr_gid, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    *validate = *((uint32_t *)(buf + p));
+    memcpy(validate, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = *((uint32_t *)(buf + p));
-    *offline = len;
+    memcpy(offline, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = *((uint32_t *)(buf + p));
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + len ) > size) return EINVAL;
@@ -725,7 +728,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     p += len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = *((uint32_t *)(buf + p));
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + len ) > size) return EINVAL;
@@ -734,7 +737,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     p += len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = *((uint32_t *)(buf + p));
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + len ) > size) return EINVAL;
@@ -743,7 +746,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     p += len;
 
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = *((uint32_t *)(buf + p));
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + len) > size) return EINVAL;
@@ -754,7 +757,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
         if ((p + sizeof(uint32_t)) > size) return EINVAL;
-        len = *((uint32_t *)(buf + p));
+        memcpy(&len, buf + p, sizeof(uint32_t));
         p += sizeof(uint32_t);
 
         if ((p + len) > size) return EINVAL;

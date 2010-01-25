@@ -168,36 +168,39 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
     /* realm */
     if (realm_str) {
         len = strlen(realm_str);
-        ((uint32_t *)(&buf->data[rp]))[0] = len;
+        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
         rp += sizeof(uint32_t);
         memcpy(&buf->data[rp], realm_str, len);
         rp += len;
     } else {
-        ((uint32_t *)(&buf->data[rp]))[0] = 0;
+        len = 0;
+        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
         rp += sizeof(uint32_t);
     }
 
     /* principal */
     if (princ_str) {
         len = strlen(princ_str);
-        ((uint32_t *)(&buf->data[rp]))[0] = len;
+        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
         rp += sizeof(uint32_t);
         memcpy(&buf->data[rp], princ_str, len);
         rp += len;
     } else {
-        ((uint32_t *)(&buf->data[rp]))[0] = 0;
+        len = 0;
+        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
         rp += sizeof(uint32_t);
     }
 
     /* keytab */
     if (keytab_name) {
         len = strlen(keytab_name);
-        ((uint32_t *)(&buf->data[rp]))[0] = len;
+        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
         rp += sizeof(uint32_t);
         memcpy(&buf->data[rp], keytab_name, len);
         rp += len;
     } else {
-        ((uint32_t *)(&buf->data[rp]))[0] = 0;
+        len = 0;
+        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
         rp += sizeof(uint32_t);
     }
 
@@ -214,14 +217,14 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
     uint32_t res;
     char *ccn;
 
-    /* operatoin result code */
+    /* operation result code */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    res = *((uint32_t *)(buf + p));
+    memcpy(&res, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     /* ccache name size */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = *((uint32_t *)(buf + p));
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     if ((p + len ) > size) return EINVAL;

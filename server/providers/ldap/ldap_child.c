@@ -54,7 +54,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         DEBUG(1, ("Error: buffer too big!\n"));
         return EINVAL;
     }
-    len = ((uint32_t *)(buf + p))[0];
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     DEBUG(7, ("realm_str size: %d\n", len));
@@ -68,7 +68,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     /* princ_str size and length */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf + p))[0];
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     DEBUG(7, ("princ_str size: %d\n", len));
@@ -82,7 +82,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 
     /* keytab_name size and length */
     if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    len = ((uint32_t *)(buf + p))[0];
+    memcpy(&len, buf + p, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     DEBUG(7, ("keytab_name size: %d\n", len));
@@ -101,16 +101,19 @@ static int pack_buffer(struct response *r, int result, const char *msg)
 {
     int len;
     int p = 0;
+    uint32_t c;
 
     len = strlen(msg);
     r->size = 2 * sizeof(uint32_t) + len;
 
     /* result */
-    ((uint32_t *)(&r->buf[p]))[0] = result;
+    c = result;
+    memcpy(&r->buf[p], &c, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     /* message size */
-    ((uint32_t *)(&r->buf[p]))[0] = len;
+    c = len;
+    memcpy(&r->buf[p], &c, sizeof(uint32_t));
     p += sizeof(uint32_t);
 
     /* message itself */
