@@ -41,6 +41,7 @@
 #define MON_CLI_METHOD_RELOAD "reloadConfig"
 #define MON_CLI_METHOD_SHUTDOWN "shutDown"
 #define MON_CLI_METHOD_RES_INIT "resInit"
+#define MON_CLI_METHOD_OFFLINE "goOffline" /* Applicable only to providers */
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 

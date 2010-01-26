@@ -858,6 +858,10 @@ static int service_signal_dns_reload(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_METHOD_RES_INIT);
 }
+static int service_signal_offline(struct mt_svc *svc)
+{
+    return service_signal(svc, MON_CLI_METHOD_OFFLINE);
+}
 
 static int check_domain_ranges(struct sss_domain_info *domains)
 {
@@ -1489,6 +1493,7 @@ static void monitor_quit(struct tevent_context *ev,
                          void *siginfo,
                          void *private_data)
 {
+    DEBUG(8, ("Received shutdown command\n"));
     monitor_cleanup();
 
 #if HAVE_GETPGRP
@@ -1499,6 +1504,29 @@ static void monitor_quit(struct tevent_context *ev,
 #endif
 
     exit(0);
+}
+
+static void signal_offline(struct tevent_context *ev,
+                           struct tevent_signal *se,
+                           int signum,
+                           int count,
+                           void *siginfo,
+                           void *private_data)
+{
+    struct mt_ctx *monitor;
+    struct mt_svc *cur_svc;
+
+    monitor = talloc_get_type(private_data, struct mt_ctx);
+
+    DEBUG(8, ("Signaling providers to go offline immediately.\n"));
+
+    /* Signal all providers to immediately go offline */
+    for(cur_svc = monitor->svc_list; cur_svc; cur_svc = cur_svc->next) {
+        /* Don't signal services, only providers */
+        if (cur_svc->provider) {
+            service_signal_offline(cur_svc);
+        }
+    }
 }
 
 int read_config_file(const char *config_file)
@@ -2094,6 +2122,14 @@ int monitor_process_init(struct mt_ctx *ctx,
     /* Set up an event handler for a SIGTERM */
     tes = tevent_add_signal(ctx->ev, ctx, SIGTERM, 0,
                             monitor_quit, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
+    /* Handle SIGUSR1 (tell all providers to go offline) */
+    BlockSignals(false, SIGUSR1);
+    tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
+                            signal_offline, ctx);
     if (tes == NULL) {
         return EIO;
     }

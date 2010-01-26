@@ -53,10 +53,13 @@
 
 static int data_provider_res_init(DBusMessage *message,
                                   struct sbus_connection *conn);
+static int data_provider_go_offline(DBusMessage *message,
+                                    struct sbus_connection *conn);
 
 struct sbus_method monitor_be_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, data_provider_res_init },
+    { MON_CLI_METHOD_OFFLINE, data_provider_go_offline },
     { NULL, NULL }
 };
 
@@ -1018,12 +1021,24 @@ done:
     return ret;
 }
 
+static void signal_be_offline(struct tevent_context *ev,
+                              struct tevent_signal *se,
+                              int signum,
+                              int count,
+                              void *siginfo,
+                              void *private_data)
+{
+    struct be_ctx *ctx = talloc_get_type(private_data, struct be_ctx);
+    be_mark_offline(ctx);
+}
+
 int be_process_init(TALLOC_CTX *mem_ctx,
                     const char *be_domain,
                     struct tevent_context *ev,
                     struct confdb_ctx *cdb)
 {
     struct be_ctx *ctx;
+    struct tevent_signal *tes;
     int ret;
 
     ctx = talloc_zero(mem_ctx, struct be_ctx);
@@ -1118,6 +1133,14 @@ int be_process_init(TALLOC_CTX *mem_ctx,
                   "from provider [%s].\n", ctx->bet_info[BET_CHPASS].mod_name));
     }
 
+    /* Handle SIGUSR1 to force offline behavior */
+    BlockSignals(false, SIGUSR1);
+    tes = tevent_add_signal(ctx->ev, ctx, SIGUSR1, 0,
+                            signal_be_offline, ctx);
+    if (tes == NULL) {
+        return EIO;
+    }
+
     return EOK;
 }
 
@@ -1204,4 +1227,13 @@ static int data_provider_res_init(DBusMessage *message,
     resolv_reread_configuration();
 
     return monitor_common_res_init(message, conn);
+}
+
+static int data_provider_go_offline(DBusMessage *message,
+                                    struct sbus_connection *conn)
+{
+    struct be_ctx *be_ctx;
+    be_ctx = talloc_get_type(sbus_conn_get_private_data(conn), struct be_ctx);
+    be_mark_offline(be_ctx);
+    return monitor_common_pong(message, conn);
 }
