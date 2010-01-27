@@ -29,9 +29,18 @@
 #include "ldb_errors.h"
 #include "config.h"
 
+/**
+ * @defgroup sss_confdb The ConfDB API
+ * The ConfDB is an interface for data providers to
+ * access the configuration information provided in
+ * the sssd.conf
+ * @{
+ */
+
 #define CONFDB_FILE "config.ldb"
 #define CONFDB_DEFAULT_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
 #define SSSD_MIN_ID 1000
+
 
 /* Configuration options */
 
@@ -116,6 +125,10 @@
 struct confdb_ctx;
 struct config_file_ctx;
 
+/**
+ * Data structure storing all of the basic features
+ * of a domain.
+ */
 struct sss_domain_info {
     char *name;
     char *provider;
@@ -131,44 +144,221 @@ struct sss_domain_info {
     struct sss_domain_info *next;
 };
 
+/**
+ * Initialize the connection to the ConfDB
+ *
+ * @param[in]  mem_ctx The parent memory context for the confdb_ctx
+ * @param[out] cdb_ctx The newly-created connection object
+ * @param[in]  confdb_location The absolute path to the ConfDB file on the
+ *             filesystem
+ *
+ * @return 0 - Connection succeeded and cdb_ctx was populated
+ * @return ENOMEM - There was not enough memory to create the cdb_ctx
+ * @return EIO - There was an I/O error communicating with the ConfDB file
+ */
+int confdb_init(TALLOC_CTX *mem_ctx,
+                struct confdb_ctx **cdb_ctx,
+                char *confdb_location);
+
+/**
+ * Get a domain object for the named domain
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] name The name of the domain to retrieve
+ * @param[out] domain A pointer to a domain object for the domain given by
+ *                    name
+ *
+ * @return 0 - Lookup succeeded and domain was populated
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return ENOENT - The named domain does not exist or is not set active
+ */
+int confdb_get_domain(struct confdb_ctx *cdb,
+                      const char *name,
+                      struct sss_domain_info **domain);
+
+/**
+ * Get a null-terminated linked-list of active domain objects
+ * @param[in] cdb The connection object to the confdb
+ * @param[out] domains A pointer to the first entry of a linked-list of domain
+ *                     objects
+ *
+ * @return 0 - Lookup succeeded and all active domains are in the list
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return ENOENT - No active domains are configured
+ */
+int confdb_get_domains(struct confdb_ctx *cdb,
+                       struct sss_domain_info **domains);
+
+
+/**
+ * @brief Add an arbitrary parameter to the confdb.
+ *
+ * This is mostly useful
+ * for testing, as they will not persist between SSSD restarts. For
+ * persistence, make changes to the sssd.conf file.
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] replace If replace is set to true, pre-existing values will be
+ *                    overwritten.
+ *                    If it is false, the provided values will be added to the
+ *                    attribute.
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[in] values A null-terminated array of values to add to the attribute
+ *
+ * @return 0 - Successfully added the provided value(s)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed
+ * @return EIO - An I/O error occurred communicating with the ConfDB
+ */
 int confdb_add_param(struct confdb_ctx *cdb,
                      bool replace,
                      const char *section,
                      const char *attribute,
                      const char **values);
 
-
+/**
+ * @brief Retrieve all values for an attribute
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] mem_ctx The parent memory context for the value list
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[out] values A null-terminated array of cstrings containing all
+ *                    values for this attribute
+ *
+ * @return 0 - Successfully retrieved the value(s)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ */
 int confdb_get_param(struct confdb_ctx *cdb,
                      TALLOC_CTX *mem_ctx,
                      const char *section,
                      const char *attribute,
                      char ***values);
 
+/**
+ * @brief Convenience function to retrieve a single-valued attribute as a
+ * string
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] ctx The parent memory context for the returned string
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[in] defstr If not NULL, the string to use if the attribute does not
+ *                   exist in the ConfDB
+ * @param[out] result A pointer to the retrieved (or default) string
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed, or the attribute was not
+ *                  single-valued.
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ */
 int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                       const char *section, const char *attribute,
                       const char *defstr, char **result);
 
+/**
+ * @brief Convenience function to retrieve a single-valued attribute as an
+ * integer
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] ctx The parent memory context for the returned string
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[in] defval If not NULL, the integer to use if the attribute does not
+ *                   exist in the ConfDB
+ * @param[out] result A pointer to the retrieved (or default) integer
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed, or the attribute was not
+ *                  single-valued.
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ * @return ERANGE - The value stored in the ConfDB was outside the range
+ *                  [INT_MIN..INT_MAX]
+ */
 int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                    const char *section, const char *attribute,
                    int defval, int *result);
 
+/**
+ * @brief Convenience function to retrieve a single-valued attribute as a
+ * boolean
+ *
+ * This function will read (in a case-insensitive manner) a "true" or "false"
+ * value from the ConfDB and convert it to an integral bool value.
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] ctx The parent memory context for the returned string
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[in] defval If not NULL, the boolean state to use if the attribute
+ *                   does not exist in the ConfDB
+ * @param[out] result A pointer to the retrieved (or default) bool
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed, the attribute was not
+ *                  single-valued, or the value was not a boolean.
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ */
 int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                     const char *section, const char *attribute,
                     bool defval, bool *result);
 
+/**
+ * @brief Convenience function to retrieve a single-valued attribute as a
+ * null-terminated array of strings
+ *
+ * This function will automatically split a comma-separated string in an
+ * attribute into a null-terminated array of strings. This is useful for
+ * storing and retrieving ordered lists, as ConfDB multivalued attributes do
+ * not guarantee retrieval order.
+ *
+ * @param[in] cdb The connection object to the confdb
+ * @param[in] ctx The parent memory context for the returned string
+ * @param[in] section The ConfDB section to update. This is constructed from
+ *                    the format of the sssd.conf file. All sections start
+ *                    with 'config/'. Subsections are separated by slashes.
+ *                    e.g. [domain/LDAP] in sssd.conf would translate to
+ *                    config/domain/LDAP
+ * @param[in] attribute The name of the attribute to update
+ * @param[out] result A pointer to the retrieved array of strings
+ *
+ * @return 0 - Successfully retrieved the entry (or used the default)
+ * @return ENOMEM - There was insufficient memory to complete the operation
+ * @return EINVAL - The section could not be parsed, or the attribute was not
+ *                  single-valued.
+ * @return ENOENT - The attribute was not found.
+ * @return EIO - An I/O error occurred while communicating with the ConfDB
+ */
 int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
                               const char *section, const char *attribute,
                               char ***result);
-
-int confdb_init(TALLOC_CTX *mem_ctx,
-                struct confdb_ctx **cdb_ctx,
-                char *confdb_location);
-
-int confdb_get_domain(struct confdb_ctx *cdb,
-                      const char *name,
-                      struct sss_domain_info **domain);
-
-int confdb_get_domains(struct confdb_ctx *cdb,
-                       struct sss_domain_info **domains);
-
+/**
+ * @}
+ */
 #endif

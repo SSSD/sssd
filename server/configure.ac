@@ -122,7 +122,11 @@ PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
 if test x$have_check = x; then
     AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
 fi
+
+AC_PATH_PROG([DOXYGEN], [doxygen], [false])
+AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
+
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
 
-AC_CONFIG_FILES([Makefile po/Makefile.in])
+AC_CONFIG_FILES([Makefile doxy.config po/Makefile.in])
 AC_OUTPUT

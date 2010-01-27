@@ -4,6 +4,8 @@ topdir=.
 # Some old versions of automake don't define builddir
 builddir ?= .
 
+DOXYGEN = @DOXYGEN@
+
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 ldblibdir = @ldblibdir@
@@ -860,6 +862,14 @@ installsssddirs::
     $(DESTDIR)$(logpath) \
     $(DESTDIR)$(pubconfpath)
 
+if HAVE_DOXYGEN
+docs:
+	$(DOXYGEN) doxy.config
+else
+docs:
+	@echo "Doxygen not installed, cannot generate documentation"
+	@exit 1
+endif
 all-local:
 	cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config
 
@@ -869,15 +879,18 @@ install-exec-hook: installsssddirs
 	else \
 		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/config/.files; \
 	fi
+	mkdir -p doc $(DESTDIR)/$(docdir); cp -a doc $(DESTDIR)/$(docdir)/
 
 uninstall-hook:
 	if [ -f $(abs_builddir)/config/.files ]; then \
 	    cat $(abs_builddir)/config/.files | xargs -iq rm -f $(DESTDIR)/q; \
 	    rm $(abs_builddir)/config/.files ; \
 	fi
+	rm -Rf $(DESTDIR)/$(docdir)/doc
 
 clean-local:
 	cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config clean --all
+	rm -Rf doc
 
 CLEANFILES = *.X */*.X */*/*.X
 

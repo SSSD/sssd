@@ -57,3 +57,5 @@ tests: all
 		$(MAKE) -C $$subdir $@; \
 	done
 
+docs:
+	$(MAKE) -C server $@
