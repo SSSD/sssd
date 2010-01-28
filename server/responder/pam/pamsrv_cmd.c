@@ -626,13 +626,31 @@ static void pam_cache_auth_done(struct tevent_req *req)
     int ret;
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
+    const uint32_t resp_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
+    const size_t resp_len = sizeof(uint32_t) + sizeof(long long);
+    uint8_t *resp;
+    time_t expire_date = 0;
+    long long dummy;
 
-    ret = sysdb_cache_auth_recv(req);
+    ret = sysdb_cache_auth_recv(req, &expire_date);
     talloc_zfree(req);
 
     switch (ret) {
         case EOK:
             preq->pd->pam_status = PAM_SUCCESS;
+            resp = talloc_size(preq->pd, resp_len);
+            if (resp == NULL) {
+                DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
+            } else {
+                memcpy(resp, &resp_type, sizeof(uint32_t));
+                dummy = (long long) expire_date;
+                memcpy(resp+sizeof(uint32_t), &dummy, sizeof(long long));
+                ret = pam_add_response(preq->pd, SSS_PAM_USER_INFO, resp_len,
+                                       (const uint8_t *) resp);
+                if (ret != EOK) {
+                    DEBUG(1, ("pam_add_response failed.\n"));
+                }
+            }
             break;
         case ENOENT:
             preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;

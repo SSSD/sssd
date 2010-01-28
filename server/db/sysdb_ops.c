@@ -4648,6 +4648,7 @@ struct sysdb_cache_auth_state {
     struct sysdb_attrs *update_attrs;
     bool authentication_successful;
     struct sysdb_handle *handle;
+    time_t expire_date;
 };
 
 errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
@@ -4766,6 +4767,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
     state->update_attrs = NULL;
     state->authentication_successful = false;
     state->handle = NULL;
+    state->expire_date = -1;
 
     subreq = sysdb_search_user_by_name_send(state, ev, sysdb, NULL, domain,
                                             name, attrs);
@@ -4821,10 +4823,16 @@ static void sysdb_cache_auth_get_attrs_done(struct tevent_req *subreq)
     DEBUG(9, ("Offline credentials expiration is [%d] days.\n",
               cred_expiration));
 
-    if (cred_expiration && lastLogin + (cred_expiration * 86400) < time(NULL)) {
-        DEBUG(4, ("Cached user entry is too old.\n"));
-        ret = EACCES;
-        goto done;
+    if (cred_expiration) {
+        state->expire_date = lastLogin + (cred_expiration * 86400);
+        if (state->expire_date < time(NULL)) {
+            DEBUG(4, ("Cached user entry is too old.\n"));
+            state->expire_date = 0;
+            ret = EACCES;
+            goto done;
+        }
+    } else {
+        state->expire_date = 0;
     }
 
     ret = check_failed_login_attempts(state, state->cdb, ldb_msg,
@@ -5026,9 +5034,11 @@ static void sysdb_cache_auth_done(struct tevent_req *subreq)
     return;
 }
 
-int sysdb_cache_auth_recv(struct tevent_req *req) {
+int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date) {
     struct sysdb_cache_auth_state *state = tevent_req_data(req,
                                                  struct sysdb_cache_auth_state);
+    *expire_date = state->expire_date;
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return (state->authentication_successful ? EOK : EINVAL);

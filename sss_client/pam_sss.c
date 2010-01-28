@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <syslog.h>
+#include <time.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
@@ -369,6 +370,79 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
     return PAM_SUCCESS;
 }
 
+static int user_info_offline_auth(pam_handle_t *pamh, size_t buflen,
+                                  uint8_t *buf)
+{
+    int ret;
+    long long expire_date;
+    struct tm tm;
+    char expire_str[128];
+    char user_msg[256];
+
+    expire_str[0] = '\0';
+
+    if (buflen != sizeof(uint32_t) + sizeof(long long)) {
+        D(("User info response data has the wrong size"));
+        return PAM_BUF_ERR;
+    }
+
+    memcpy(&expire_date, buf + sizeof(uint32_t), sizeof(long long));
+
+    if (expire_date > 0) {
+        if (localtime_r((time_t *) &expire_date, &tm) != NULL) {
+            ret = strftime(expire_str, sizeof(expire_str), "%c", &tm);
+            if (ret == 0) {
+                D(("strftime failed."));
+                expire_str[0] = '\0';
+            }
+        } else {
+            D(("localtime_r failed"));
+        }
+    }
+
+    ret = snprintf(user_msg, sizeof(user_msg), "%s%s%s.",
+               _("Offline authentication"),
+              expire_str[0] ? _(", your cached password will expire at: ") : "",
+              expire_str[0] ? expire_str : "");
+    if (ret < 0 || ret >= sizeof(user_msg)) {
+        D(("snprintf failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, user_msg, NULL, NULL);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
+static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
+                                   uint8_t *buf)
+{
+    int ret;
+    uint32_t type;
+
+    if (buflen < sizeof(uint32_t)) {
+        D(("User info response data is too short"));
+        return PAM_BUF_ERR;
+    }
+
+    memcpy(&type, buf, sizeof(uint32_t));
+
+    switch(type) {
+        case SSS_PAM_USER_INFO_OFFLINE_AUTH:
+            ret = user_info_offline_auth(pamh, buflen, buf);
+            break;
+        default:
+            D(("Unknown user info type [%d]", type));
+            ret = PAM_SYSTEM_ERR;
+    }
+
+    return ret;
+}
+
 static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
 {
     int ret;
@@ -449,6 +523,14 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                     }
                 }
                 break;
+            case SSS_PAM_USER_INFO:
+                ret = eval_user_info_response(pamh, len, &buf[p]);
+                if (ret != PAM_SUCCESS) {
+                    D(("eval_user_info_response failed"));
+                }
+                break;
+            default:
+                D(("Unknown response type [%d]", type));
         }
         p += len;
 

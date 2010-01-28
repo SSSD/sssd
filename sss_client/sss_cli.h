@@ -174,6 +174,11 @@ enum response_type {
     SSS_PAM_ENV_ITEM,    /* only pam environment */
     SSS_ENV_ITEM,        /* only user environment */
     SSS_ALL_ENV_ITEM,    /* pam and user environment */
+    SSS_PAM_USER_INFO
+};
+
+enum user_info_type {
+    SSS_PAM_USER_INFO_OFFLINE_AUTH = 0x01
 };
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,

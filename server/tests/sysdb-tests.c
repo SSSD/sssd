@@ -2278,13 +2278,17 @@ START_TEST (test_sysdb_cache_password)
 }
 END_TEST
 
-static void cached_authentication(const char *username, const char *password,
-                                  int expected_result)
+static void cached_authentication_without_expiration(const char *username,
+                                                     const char *password,
+                                                     int expected_result)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
     struct tevent_req *req;
     int ret;
+    time_t expire_date;
+    const char *val[2];
+    val[1] = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2294,6 +2298,15 @@ static void cached_authentication(const char *username, const char *password,
     data->ctx = test_ctx;
     data->ev = test_ctx->ev;
     data->username = username;
+
+    val[0] = "0";
+    ret = confdb_add_param(test_ctx->confdb, true, CONFDB_PAM_CONF_ENTRY,
+                           CONFDB_PAM_CRED_TIMEOUT, val);
+    if (ret != EOK) {
+        fail("Could not initialize provider");
+        talloc_free(test_ctx);
+        return;
+    }
 
     req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
                                 test_ctx->domain, data->username,
@@ -2306,10 +2319,85 @@ static void cached_authentication(const char *username, const char *password,
     ret = test_loop(data);
     fail_unless(ret == EOK, "test_loop failed.");
 
-    ret = sysdb_cache_auth_recv(req);
+    ret = sysdb_cache_auth_recv(req, &expire_date);
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
                                         "return expected result [%d].",
                                         expected_result);
+
+    fail_unless(expire_date == 0, "Wrong expire date, expected [%d], got [%d]",
+                                  0, expire_date);
+
+    talloc_free(test_ctx);
+}
+
+static void cached_authentication_with_expiration(const char *username,
+                                                  const char *password,
+                                                  int expected_result)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+    time_t expire_date;
+    const char *val[2];
+    val[1] = NULL;
+    time_t now;
+    time_t expected_expire_date;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->username = username;
+
+    val[0] = "1";
+    ret = confdb_add_param(test_ctx->confdb, true, CONFDB_PAM_CONF_ENTRY,
+                           CONFDB_PAM_CRED_TIMEOUT, val);
+    if (ret != EOK) {
+        fail("Could not initialize provider");
+        talloc_free(test_ctx);
+        return;
+    }
+
+    now = time(NULL);
+    expected_expire_date = now + (24 * 60 * 60);
+    DEBUG(9, ("Setting SYSDB_LAST_ONLINE_AUTH to [%lld].\n", (long long) now));
+
+    data->attrs = sysdb_new_attrs(data);
+    ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    fail_unless(req != NULL, "sysdb_transaction_send failed.");
+
+    tevent_req_set_callback(req, test_set_user_attr, data);
+
+    ret = test_loop(data);
+    fail_unless(ret == EOK, "Could not modify user %s", data->username);
+    talloc_zfree(req);
+
+    data->finished = false;
+    req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
+                                test_ctx->domain, data->username,
+                                (const uint8_t *) password, strlen(password),
+                                test_ctx->confdb);
+    fail_unless(req != NULL, "sysdb_cache_password_send failed.");
+
+    tevent_req_set_callback(req, test_search_done, data);
+
+    ret = test_loop(data);
+    fail_unless(ret == EOK, "test_loop failed.");
+
+    ret = sysdb_cache_auth_recv(req, &expire_date);
+    fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
+                                        "return expected result [%d], got [%d].",
+                                        expected_result, ret);
+
+    fail_unless(expire_date == expected_expire_date,
+                "Wrong expire date, expected [%d], got [%d]",
+                expected_expire_date, expire_date);
 
     talloc_free(test_ctx);
 }
@@ -2325,7 +2413,8 @@ START_TEST (test_sysdb_cached_authentication_missing_password)
     username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
     fail_unless(username != NULL, "talloc_asprintf failed.");
 
-    cached_authentication(username, "abc", ENOENT);
+    cached_authentication_without_expiration(username, "abc", ENOENT);
+    cached_authentication_with_expiration(username, "abc", ENOENT);
 
     talloc_free(tmp_ctx);
 
@@ -2343,7 +2432,8 @@ START_TEST (test_sysdb_cached_authentication_wrong_password)
     username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
     fail_unless(username != NULL, "talloc_asprintf failed.");
 
-    cached_authentication(username, "abc", EINVAL);
+    cached_authentication_without_expiration(username, "abc", EINVAL);
+    cached_authentication_with_expiration(username, "abc", EINVAL);
 
     talloc_free(tmp_ctx);
 
@@ -2361,7 +2451,8 @@ START_TEST (test_sysdb_cached_authentication)
     username = talloc_asprintf(tmp_ctx, "testuser%d", _i);
     fail_unless(username != NULL, "talloc_asprintf failed.");
 
-    cached_authentication(username, username, EOK);
+    cached_authentication_without_expiration(username, username, EOK);
+    cached_authentication_with_expiration(username, username, EOK);
 
     talloc_free(tmp_ctx);
 
