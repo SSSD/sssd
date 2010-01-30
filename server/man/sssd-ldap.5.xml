@@ -651,7 +651,7 @@
     id_provider = ldap
     auth_provider = ldap
     ldap_uri = ldap://ldap.mydomain.org
-    ldap_user_search_base = dc=mydomain,dc=org
+    ldap_search_base = dc=mydomain,dc=org
     ldap_tls_reqcert = demand
     cache_credentials = true
     enumerate = true
@@ -675,6 +675,9 @@
         <para>
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>

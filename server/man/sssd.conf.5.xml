@@ -245,7 +245,7 @@
                     <term>enum_cache_timeout (integer)</term>
                     <listitem>
                         <para>
-                            How long should nss_sss cache enumerations
+                            How many seconds should nss_sss cache enumerations
                             (requests for info about all users)
                         </para>
                         <para>
@@ -440,8 +440,8 @@
                     <term>entry_cache_timeout (integer)</term>
                     <listitem>
                         <para>
-                            How long should nss_sss consider entries valid
-                            before asking the backend again
+                            How many seconds should nss_sss consider
+                            entries valid before asking the backend again
                         </para>
                         <para>
                             Default: 600
@@ -454,18 +454,6 @@
                         <para>
                             Determines if user credentials are also cached
                             in the local LDB cache
-                        </para>
-                        <para>
-                            Default: FALSE
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                    <term>store_legacy_passwords (bool)</term>
-                    <listitem>
-                        <para>
-                            Whether to also store passwords in a legacy domain
                         </para>
                         <para>
                             Default: FALSE
@@ -757,10 +745,9 @@
             documentation on configuring domains for more details.
 <programlisting>
 [sssd]
-domains = LOCAL
+domains = LDAP
 services = nss, pam
 config_file_version = 2
-sbus_timeout = 30
 
 [nss]
 filter_groups = root
@@ -768,11 +755,18 @@ filter_users = root
 
 [pam]
 
-[domain/LOCAL]
-id_provider = local
-min_id = 1000
-max_id = 5000
-default_shell = /bin/ksh
+[domain/LDAP]
+id_provider = ldap
+ldap_uri = ldap://ldap.example.com
+ldap_search_base = dc=example,dc=com
+
+auth_provider = krb5
+krb5_kdcip = kerberos.example.com
+krb5_realm = EXAMPLE.COM
+cache_credentials = true
+
+min_id = 10000
+max_id = 20000
 enumerate = true
 </programlisting>
         </para>
@@ -781,9 +775,6 @@ enumerate = true
     <refsect1 id='see_also'>
         <title>SEE ALSO</title>
         <para>
-            <citerefentry>
-                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
-            </citerefentry>,
             <citerefentry>
                 <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
             </citerefentry>,
