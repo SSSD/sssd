@@ -133,12 +133,17 @@ dist_noinst_DATA = \
 ###############################
 # Global compilation settings #
 ###############################
-COLLECTION_CFLAGS = \
-    -I$(srcdir)/../common/collection \
-    -I$(srcdir)/../common/trace
-COLLECTION_LIBS = \
-    -L$(builddir)/../common/collection/.libs/ \
-    -lcollection
+
+if HAVE_SYSTEM_COLLECTION
+    COLLECTION_CFLAGS = $(SYSTEM_COLLECTION_CFLAGS)
+    COLLECTION_LIBS = $(SYSTEM_COLLECTION_LIBS)
+else
+    COLLECTION_CFLAGS = \
+        -I$(srcdir)/../common/collection
+    COLLECTION_LIBS = \
+        -L$(builddir)/../common/collection \
+        -lcollection
+endif
 
 INI_CFG_CFLAGS = \
     -I$(srcdir)/../common/ini
