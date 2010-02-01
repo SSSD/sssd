@@ -1610,7 +1610,7 @@ static char **get_str_cfg_array(struct collection_item *item,
     }
     else {
         strncpy(locsep, sep, 3);
-        locsep[4] = '\0';
+        locsep[3] = '\0';
         lensep = strlen(locsep) + 1;
     }
 
