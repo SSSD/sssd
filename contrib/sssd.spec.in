@@ -13,6 +13,7 @@ Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 %define dhash_version 0.4.0
+%define path_utils_version 0.2.0
 
 ### Patches ###
 
@@ -100,6 +101,24 @@ License: LGPLv3+
 A hash table which will dynamically resize to achieve optimal storage & access
 time properties
 
+%package -n libpath_utils
+Summary: Filesystem Path Utilities
+Group: Development/Libraries
+Version: %{path_utils_version}
+License: LGPLv3+
+
+%description -n libpath_utils
+Utility functions to manipulate filesystem pathnames
+
+%package -n libpath_utils-devel
+Summary: Development files for libpath_utils
+Group: Development/Libraries
+Version: %{path_utils_version}
+Requires: libpath_utils = %{path_utils_version}-%{release}
+License: LGPLv3+
+
+%description -n libpath_utils-devel
+Utility functions to manipulate filesystem pathnames
 
 %prep
 %setup -q
@@ -146,6 +165,7 @@ rm -f \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
     $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
     $RPM_BUILD_ROOT/%{_libdir}/libdhash.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libpath_utils.la \
     $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
@@ -232,6 +252,20 @@ rm -rf $RPM_BUILD_ROOT
 %doc common/dhash/README
 %doc common/dhash/examples
 
+%files -n libpath_utils
+%defattr(-,root,root,-)
+%doc common/path_utils/COPYING
+%doc common/path_utils/COPYING.LESSER
+%{_libdir}/libpath_utils.so.1
+%{_libdir}/libpath_utils.so.1.0.0
+
+%files -n libpath_utils-devel
+%defattr(-,root,root,-)
+%{_includedir}/path_utils.h
+%{_libdir}/libpath_utils.so
+%{_libdir}/pkgconfig/path_utils.pc
+%doc common/path_utils/README
+
 %post
 /sbin/ldconfig
 /sbin/chkconfig --add %{servicename}
@@ -259,6 +293,9 @@ fi
 %post -n libdhash -p /sbin/ldconfig
 
 %postun -n libdhash -p /sbin/ldconfig
+
+%post -n libpath_utils -p /sbin/ldconfig
+%postun -n libpath_utils -p /sbin/ldconfig
 
 %changelog
 * Mon Sep 28 2009 Sumit Bose <sbose@redhat.com> - 0.6.0-0
