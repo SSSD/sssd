@@ -1,6 +1,5 @@
-m4_include([../../version.m4])
-AC_INIT([sssd_libs],
-        VERSION_NUMBER,
+AC_INIT([ref_array],
+        0.1.0,
         [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([ref_array.c])
 AC_CONFIG_AUX_DIR([build])

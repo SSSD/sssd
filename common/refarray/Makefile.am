@@ -16,15 +16,18 @@ ACLOCAL_AMFLAGS = -I m4
 
 # Set up the pkg-config file
 pkgconfigdir = $(libdir)/pkgconfig
-dist_noinst_DATA = \
-    ref_array.pc \
-    m4
+pkgconfig_DATA = ref_array.pc
+
+dist_noinst_DATA = m4
+
+dist_include_HEADERS = ref_array.h
 
 # Build library
-noinst_LTLIBRARIES = libref_array.la
+lib_LTLIBRARIES = libref_array.la
 libref_array_la_SOURCES = \
-    ref_array.c \
-    ref_array.h
+    ref_array.c
+libref_array_la_LDFLAGS = \
+    -version-info 1:0:0
 
 # Build unit test
 check_PROGRAMS = ref_array_ut

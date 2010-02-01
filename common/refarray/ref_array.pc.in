@@ -4,7 +4,7 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: @PACKAGE_NAME@
-Description: Reference library
+Description: A dynamically-growing, reference-counted array
 Version: @PACKAGE_VERSION@
 Libs: -L${libdir} -lref_array
 Cflags: -I${includedir}
