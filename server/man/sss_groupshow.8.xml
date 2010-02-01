@@ -31,13 +31,23 @@
         <para>
             <command>sss_groupshow</command> displays information about a group
             identified by its name <replaceable>GROUP</replaceable>. The information
-            include the group ID number, members of the group and the parent group.
+            includes the group ID number, members of the group and the parent group.
         </para>
     </refsect1>
 
     <refsect1 id='options'>
         <title>OPTIONS</title>
         <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-R</option>,<option>--recursive</option>
+                </term>
+                <listitem>
+                    <para>
+                        Also print indirect group members in a tree-like hierarchy.
+                    </para>
+                </listitem>
+            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
     </refsect1>
