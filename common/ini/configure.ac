@@ -1,4 +1,4 @@
-AC_INIT([ini_config],[0.3.3],[sssd-devel@lists.fedorahosted.org])
+AC_INIT([ini_config],[0.4.0],[sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([ini_config.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

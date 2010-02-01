@@ -145,11 +145,16 @@ else
         -lcollection
 endif
 
-INI_CFG_CFLAGS = \
-    -I$(srcdir)/../common/ini
-INI_CFG_LIBS = \
-    -L$(builddir)/../common/ini/.libs/ \
-    -lini_config
+if HAVE_SYSTEM_INI_CONFIG
+    INI_CFG_CFLAGS = $(SYSTEM_INI_CONFIG_CFLAGS)
+    INI_CFG_LIBS = $(SYSTEM_INI_CONFIG_LIBS)
+else
+    INI_CFG_CFLAGS = \
+        -I$(srcdir)/../common/ini
+    INI_CFG_LIBS = \
+        -L$(builddir)/../common/ini/ \
+        -lini_config
+endif
 
 if HAVE_SYSTEM_DHASH
     DHASH_CFLAGS = $(SYSTEM_DHASH_CFLAGS)
