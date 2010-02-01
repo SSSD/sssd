@@ -16,6 +16,7 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 %define path_utils_version 0.2.0
 %define collection_version 0.4.0
 %define ini_config_version 0.4.0
+%define refarray_version 0.1.0
 
 ### Patches ###
 
@@ -167,6 +168,25 @@ License: LGPLv3+
 Library to process config files in INI format into a libcollection data
 structure
 
+%package -n libref_array
+Summary: A refcounted array for C
+Group: Development/Libraries
+Version: %{refarray_version}
+License: LGPLv3+
+
+%description -n libref_array
+A dynamically-growing, reference-counted array
+
+%package -n libref_array-devel
+Summary: Development files for libref_array
+Group: Development/Libraries
+Version: %{refarray_version}
+Requires: libref_array = %{refarray_version}-%{release}
+License: LGPLv3+
+
+%description -n libref_array-devel
+A dynamically-growing, reference-counted array
+
 %prep
 %setup -q
 
@@ -215,6 +235,7 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/libpath_utils.la \
     $RPM_BUILD_ROOT/%{_libdir}/libcollection.la \
     $RPM_BUILD_ROOT/%{_libdir}/libini_config.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libref_array.la \
     $RPM_BUILD_ROOT/%{_libdir}/ldb/memberof.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
@@ -344,6 +365,21 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/pkgconfig/ini_config.pc
 %doc common/ini/README
 
+%files -n libref_array
+%defattr(-,root,root,-)
+%doc common/refarray/COPYING
+%doc common/refarray/COPYING.LESSER
+%{_libdir}/libref_array.so.1
+%{_libdir}/libref_array.so.1.0.0
+
+%files -n libref_array-devel
+%defattr(-,root,root,-)
+%{_includedir}/ref_array.h
+%{_libdir}/libref_array.so
+%{_libdir}/pkgconfig/ref_array.pc
+%doc common/refarray/README
+
+
 %post
 /sbin/ldconfig
 /sbin/chkconfig --add %{servicename}
@@ -380,6 +416,9 @@ fi
 
 %post -n libini_config -p /sbin/ldconfig
 %postun -n libini_config -p /sbin/ldconfig
+
+%post -n libref_array -p /sbin/ldconfig
+%postun -n libref_array -p /sbin/ldconfig
 
 %changelog
 * Mon Sep 28 2009 Sumit Bose <sbose@redhat.com> - 0.6.0-0
