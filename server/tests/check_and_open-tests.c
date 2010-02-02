@@ -32,7 +32,8 @@
 
 #define SUFFIX ".symlink"
 
-char filename[] = "check_and_open-tests-XXXXXX";
+#define FILENAME_TEMPLATE "check_and_open-tests-XXXXXX"
+char *filename;
 uid_t uid;
 gid_t gid;
 mode_t mode;
@@ -42,6 +43,8 @@ void setup_check_and_open(void)
 {
     int ret;
 
+    filename = strdup(FILENAME_TEMPLATE);
+    fail_unless(filename != NULL, "strdup failed");
     ret = mkstemp(filename);
     fail_unless(ret != -1, "mkstemp failed [%d][%s]", errno, strerror(errno));
     close(ret);
@@ -63,6 +66,7 @@ void teardown_check_and_open(void)
 
     fail_unless(filename != NULL, "unknown filename");
     ret = unlink(filename);
+    free(filename);
     fail_unless(ret == 0, "unlink failed [%d][%s]", errno, strerror(errno));
 }
 

@@ -92,6 +92,7 @@ void free_talloc_context(void)
     int ret;
     fail_unless(tmp_ctx != NULL, "Talloc context already freed.");
     ret = talloc_free(tmp_ctx);
+    tmp_ctx = NULL;
     fail_unless(ret == 0, "Connot free talloc context.");
 }
 
