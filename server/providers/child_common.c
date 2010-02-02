@@ -297,7 +297,7 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
     bool child_debug_timestamps = debug_timestamps;
 
     if (child_debug_to_file) argc++;
-    if (child_debug_timestamps) argc++;
+    if (!child_debug_timestamps) argc++;
 
     /* program name, debug_level,
      * debug_to_file, debug_timestamps
@@ -326,8 +326,8 @@ static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,
         }
     }
 
-    if (child_debug_timestamps) {
-        argv[--argc] = talloc_strdup(argv, "--debug-timestamps");
+    if (!child_debug_timestamps) {
+        argv[--argc] = talloc_strdup(argv, "--debug-timestamps=0");
         if (argv[argc] == NULL) {
             ret = ENOMEM;
             goto fail;

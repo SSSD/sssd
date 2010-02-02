@@ -198,7 +198,7 @@
                             Add a timestamp to the debug messages
                         </para>
                         <para>
-                            Default: false
+                            Default: true
                         </para>
                     </listitem>
                 </varlistentry>

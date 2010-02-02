@@ -1046,7 +1046,7 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
                                        SSSD_LIBEXEC_PATH,
                                        svc->name, debug_level,
                                        (debug_timestamps?
-                                              " --debug-timestamps":""),
+                                              "": " --debug-timestamps=0"),
                                        (debug_to_file ?
                                               " --debug-to-files":""));
         if (!svc->command) {
@@ -1171,7 +1171,7 @@ static int get_provider_config(struct mt_ctx *ctx, const char *name,
         svc->command = talloc_asprintf(svc,
                             "%s/sssd_be -d %d%s%s --domain %s",
                             SSSD_LIBEXEC_PATH, debug_level,
-                            (debug_timestamps?" --debug-timestamps":""),
+                            (debug_timestamps?"": " --debug-timestamps=0"),
                             (debug_to_file?" --debug-to-files":""),
                             svc->name);
         if (!svc->command) {

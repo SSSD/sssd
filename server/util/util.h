@@ -60,8 +60,8 @@ errno_t set_debug_file_from_fd(const int fd);
 		 "Debug level", NULL}, \
                 {"debug-to-files", 'f', POPT_ARG_NONE, &debug_to_file, 0, \
                  "Send the debug output to files instead of stderr", NULL }, \
-		{"debug-timestamps", 0, POPT_ARG_NONE, &debug_timestamps, 0, \
-		 "Add debug timestamps", NULL},
+        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0, \
+         "Add debug timestamps", NULL},
 
 /** \def DEBUG(level, body)
     \brief macro to generate debug messages

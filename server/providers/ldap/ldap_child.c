@@ -325,7 +325,7 @@ int main(int argc, const char *argv[])
         POPT_AUTOHELP
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
          "Debug level", NULL},
-        {"debug-timestamps", 0, POPT_ARG_NONE, &debug_timestamps, 0,
+        {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
          "Add debug timestamps", NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
          "Add debug timestamps", NULL},
