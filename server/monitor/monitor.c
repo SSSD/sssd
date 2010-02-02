@@ -2537,11 +2537,11 @@ int main(int argc, const char *argv[])
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         {"daemon", 'D', POPT_ARG_NONE, &opt_daemon, 0, \
-         "Become a daemon (default)", NULL }, \
+         _("Become a daemon (default)"), NULL }, \
         {"interactive", 'i', POPT_ARG_NONE, &opt_interactive, 0, \
-         "Run interactive (not a daemon)", NULL}, \
+         _("Run interactive (not a daemon)"), NULL}, \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
-         "Specify a non-default config file", NULL}, \
+         _("Specify a non-default config file"), NULL}, \
         { NULL }
     };
 

@@ -324,11 +324,11 @@ int main(int argc, const char *argv[])
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         {"debug-level", 'd', POPT_ARG_INT, &debug_level, 0,
-         "Debug level", NULL},
+         _("Debug level"), NULL},
         {"debug-timestamps", 0, POPT_ARG_INT, &debug_timestamps, 0,
-         "Add debug timestamps", NULL},
+         _("Add debug timestamps"), NULL},
         {"debug-fd", 0, POPT_ARG_INT, &debug_fd, 0,
-         "Add debug timestamps", NULL},
+         _("An open file descriptor for the debug logs"), NULL},
         POPT_TABLEEND
     };
 

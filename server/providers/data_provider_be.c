@@ -1158,7 +1158,7 @@ int main(int argc, const char *argv[])
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
         {"domain", 0, POPT_ARG_STRING, &be_domain, 0,
-         "Domain of the information provider (mandatory)", NULL },
+         _("Domain of the information provider (mandatory)"), NULL },
         POPT_TABLEEND
     };
 
