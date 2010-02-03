@@ -62,7 +62,7 @@ setup_test(void)
     struct test_ctx *ctx;
     int ret;
 
-    ctx = talloc_zero(NULL, struct test_ctx);
+    ctx = talloc_zero(global_talloc_context, struct test_ctx);
     fail_if(ctx == NULL, "Could not allocate memory for test context");
 
     ctx->ev = tevent_context_init(ctx);

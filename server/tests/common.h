@@ -3,6 +3,8 @@
 
 #include <talloc.h>
 
+TALLOC_CTX *global_talloc_context;
+
 #define check_leaks(ctx, bytes) _check_leaks((ctx), (bytes), __location__)
 void _check_leaks(TALLOC_CTX *ctx,
                   size_t bytes,

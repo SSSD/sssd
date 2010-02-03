@@ -47,7 +47,7 @@ _check_leaks(TALLOC_CTX *ctx, size_t bytes, const char *location)
     bytes_allocated = talloc_total_size(ctx);
     if (bytes_allocated != bytes) {
         fprintf(stderr, "Leak report for %s:\n", location);
-        talloc_report_full(NULL, stderr);
+        talloc_report_full(ctx, stderr);
         fail("%s: memory leaks detected, %d bytes still allocated",
              location, bytes_allocated - bytes);
     }
@@ -91,14 +91,17 @@ void
 leak_check_setup(void)
 {
     talloc_enable_null_tracking();
+    global_talloc_context = talloc_new(NULL);
+    fail_unless(global_talloc_context != NULL, "talloc_new failed");
+    check_leaks_push(global_talloc_context);
 }
 
 void
 leak_check_teardown(void)
 {
+    check_leaks_pop(global_talloc_context);
     if (snapshot_stack != NULL) {
         fail("Exiting with a non-empty stack");
     }
-    talloc_free(talloc_autofree_context());
-    check_leaks(NULL, 0);
+    check_leaks(global_talloc_context, 0);
 }

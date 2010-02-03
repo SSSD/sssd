@@ -60,7 +60,7 @@ static int setup_resolv_test(struct resolv_test_ctx **ctx)
     struct resolv_test_ctx *test_ctx;
     int ret;
 
-    test_ctx = talloc_zero(NULL, struct resolv_test_ctx);
+    test_ctx = talloc_zero(global_talloc_context, struct resolv_test_ctx);
     if (test_ctx == NULL) {
         fail("Could not allocate memory for test context");
         return ENOMEM;
@@ -109,7 +109,7 @@ START_TEST(test_copy_hostent)
             sizeof(addr_1), addr_list
     };
 
-    ctx = talloc_new(NULL);
+    ctx = talloc_new(global_talloc_context);
     fail_if(ctx == NULL);
 
     check_leaks_push(ctx);
