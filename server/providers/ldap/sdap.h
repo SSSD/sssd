@@ -71,7 +71,11 @@ struct sdap_handle {
     LDAP *ldap;
     bool connected;
 
+#ifdef HAVE_LDAP_CONNCB
     struct ldap_conncb *conncb;
+#else
+    struct tevent_fd *fde;
+#endif
 
     struct sdap_op *ops;
 };

@@ -44,6 +44,10 @@ SAVE_LIBS=$LIBS
 CFLAGS="$CFLAGS $OPENLDAP_CFLAGS"
 LIBS="$LIBS $OPENLDAP_LIBS"
 AC_CHECK_FUNCS([ldap_control_create])
+AC_CHECK_MEMBERS([struct ldap_conncb.lc_arg],
+                 [AC_DEFINE([HAVE_LDAP_CONNCB], [1],
+                     [Define if LDAP connection callbacks are available])],
+                 [], [[#include <ldap.h>]])
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 

@@ -97,8 +97,12 @@ static void sdap_handle_release(struct sdap_handle *sh)
     if (sh->connected) {
         struct sdap_op *op;
 
+#ifdef HAVE_LDAP_CONNCB
         /* remove all related fd events from the event loop */
         talloc_zfree(sh->conncb->lc_arg);
+#else
+        talloc_zfree(sh->fde);
+#endif
 
         while (sh->ops) {
             op = sh->ops;
@@ -111,7 +115,9 @@ static void sdap_handle_release(struct sdap_handle *sh)
         if (sh->ldap) {
             ldap_unbind_ext(sh->ldap, NULL, NULL);
         }
+#ifdef HAVE_LDAP_CONNCB
         talloc_zfree(sh->conncb);
+#endif
         sh->connected = false;
         sh->ldap = NULL;
         sh->ops = NULL;
@@ -330,6 +336,7 @@ static void sdap_process_next_reply(struct tevent_context *ev,
     op->callback(op, op->list, EOK, op->data);
 }
 
+#ifdef HAVE_LDAP_CONNCB
 int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
                            struct sockaddr *addr, struct ldap_conncb *ctx)
 {
@@ -403,6 +410,43 @@ void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
 
     return;
 }
+
+#else
+
+static int get_fd_from_ldap(LDAP *ldap, int *fd)
+{
+    int ret;
+
+    ret = ldap_get_option(ldap, LDAP_OPT_DESC, fd);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to get fd from ldap!!\n"));
+        *fd = -1;
+        return EIO;
+    }
+
+    return EOK;
+}
+
+int sdap_install_ldap_callbacks(struct sdap_handle *sh,
+                                struct tevent_context *ev)
+{
+    int fd;
+    int ret;
+
+    ret = get_fd_from_ldap(sh->ldap, &fd);
+    if (ret) return ret;
+
+    sh->fde = tevent_add_fd(ev, sh, fd, TEVENT_FD_READ, sdap_ldap_result, sh);
+    if (!sh->fde) return ENOMEM;
+
+    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
+              sh, (int)sh->connected, sh->ops, sh->fde, sh->ldap));
+
+    return EOK;
+}
+
+#endif
+
 
 /* ==LDAP-Operations-Helpers============================================== */
 

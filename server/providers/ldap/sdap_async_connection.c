@@ -56,7 +56,6 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     int lret;
     int ret = EOK;
     int msgid;
-    struct ldap_cb_data *cb_data;
     bool ldap_referrals;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
@@ -120,6 +119,9 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
+#ifdef HAVE_LDAP_CONNCB
+    struct ldap_cb_data *cb_data;
+
     /* add connection callback */
     state->sh->conncb = talloc_zero(state->sh, struct ldap_conncb);
     if (state->sh->conncb == NULL) {
@@ -147,6 +149,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         DEBUG(1, ("Failed to set connection callback\n"));
         goto fail;
     }
+#endif
 
     /* if we do not use start_tls the connection is not really connected yet
      * just fake an async procedure and leave connection to the bind call */
@@ -164,6 +167,10 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     }
 
     state->sh->connected = true;
+#ifndef HAVE_LDAP_CONNCB
+    ret = sdap_install_ldap_callbacks(state->sh, state->ev);
+    if (ret) goto fail;
+#endif
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, ev, state->sh, msgid,
@@ -335,6 +342,10 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
 
     if (!sh->connected) {
         sh->connected = true;
+#ifndef HAVE_LDAP_CONNCB
+        ret = sdap_install_ldap_callbacks(sh, ev);
+        if (ret) goto fail;
+#endif
     }
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
@@ -500,6 +511,10 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
 
     if (!sh->connected) {
         sh->connected = true;
+#ifndef HAVE_LDAP_CONNCB
+        ret = sdap_install_ldap_callbacks(sh, ev);
+        if (ret) goto fail;
+#endif
     }
 
     tevent_req_post(req, ev);
@@ -936,6 +951,14 @@ static void sdap_cli_rootdse_step(struct tevent_req *req)
      * so we need to set up the callbacks or we will never get notified
      * of a reply */
         state->sh->connected = true;
+#ifndef HAVE_LDAP_CONNCB
+        int ret;
+
+        ret = sdap_install_ldap_callbacks(state->sh, state->ev);
+        if (ret) {
+            tevent_req_error(req, ret);
+        }
+#endif
     }
 }
 
