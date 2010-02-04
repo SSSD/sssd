@@ -103,12 +103,23 @@ endif
 
 noinst_LTLIBRARIES = \
     libsss_crypt.la
+
+if HAVE_NSS
+    SSS_CRYPT_SOURCES = util/nss_sha512crypt.c
+    SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
+    SSS_CRYPT_LIBS = $(NSS_LIBS)
+else
+    SSS_CRYPT_SOURCES = util/crypto_sha512crypt.c
+    SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
+    SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
+endif
+
 libsss_crypt_la_SOURCES = \
-    util/nss_sha512crypt.c
+    $(SSS_CRYPT_SOURCES)
 libsss_crypt_la_CPPFLAGS = \
-    $(NSS_CFLAGS)
+    $(SSS_CRYPT_CFLAGS)
 libsss_crypt_la_LIBADD = \
-    $(NSS_LIBS)
+    $(SSS_CRYPT_LIBS)
 
 if BUILD_PYTHON_BINDINGS
 pyexec_LTLIBRARIES = \
@@ -254,8 +265,8 @@ SSSD_LIBS = \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(REPLACE_LIBS) \
-    libsss_crypt.la \
-    $(NSS_LIBS)
+    $(SSS_CRYPT_LIBS) \
+    libsss_crypt.la
 
 PYTHON_BINDINGS_LIBS = \
     $(TALLOC_LIBS) \
@@ -265,7 +276,7 @@ PYTHON_BINDINGS_LIBS = \
     $(DBUS_LIBS) \
     $(REPLACE_LIBS) \
     $(PCRE_LIBS) \
-    $(NSS_LIBS) \
+    $(SSS_CRYPT_LIBS) \
     libsss_crypt.la
 
 TOOLS_LIBS = \
@@ -287,7 +298,7 @@ endif
 
 dist_noinst_HEADERS = \
     monitor/monitor.h \
-    util/nss_sha512crypt.h \
+    util/sha512crypt.h \
     util/dlinklist.h \
     util/util.h \
     util/strtonum.h \

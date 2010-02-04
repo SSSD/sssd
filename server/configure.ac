@@ -77,6 +77,7 @@ m4_include([external/docbook.m4])
 m4_include([external/sizes.m4])
 m4_include([external/python.m4])
 m4_include([external/selinux.m4])
+m4_include([external/crypto.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
@@ -94,8 +95,6 @@ if test x$has_dbus != xno; then
                             [Define if dbus_watch_get_unix_fd exists]))
     LDFLAGS="$SAFE_LDFLAGS"
 fi
-
-PKG_CHECK_MODULES([NSS],[nss])
 
 if test x$HAVE_MANPAGES != x; then
     CHECK_XML_TOOLS
