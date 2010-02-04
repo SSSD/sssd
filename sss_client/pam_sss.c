@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <syslog.h>
 #include <time.h>
 
