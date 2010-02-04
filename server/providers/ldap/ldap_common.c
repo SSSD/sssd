@@ -217,6 +217,18 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
+
+#ifndef HAVE_LDAP_CONNCB
+    bool ldap_referrals;
+
+    ldap_referrals = dp_opt_get_bool(opts->basic, SDAP_REFERRALS);
+    if (ldap_referrals) {
+        DEBUG(1, ("LDAP referrals are not supported, because the LDAP library "
+                  "is too old, see sssd-ldap(5) for details.\n"));
+        ret = dp_opt_set_bool(opts->basic, SDAP_REFERRALS, false);
+    }
+#endif
+
     /* schema type */
     schema = dp_opt_get_string(opts->basic, SDAP_SCHEMA);
     if (strcasecmp(schema, "rfc2307") == 0) {
