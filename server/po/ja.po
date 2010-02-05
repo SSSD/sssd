@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon_ja\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-01-04 13:38-0500\n"
+"POT-Creation-Date: 2010-02-05 09:37-0500\n"
 "PO-Revision-Date: 2009-11-18 09:48+1000\n"
 "Last-Translator: Noriko Mizumoto <noriko@fedoraproject.org>\n"
 "Language-Team: Japanese <fedora-trans-ja@redhat.com>\n"
@@ -93,247 +93,261 @@ msgstr ""
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
 
-#: config/SSSDConfig.py:66
-msgid "Identity provider"
+#: config/SSSDConfig.py:64
+msgid "How many failed logins attempts are allowed when offline"
 msgstr ""
 
-#: config/SSSDConfig.py:67
-msgid "Authentication provider"
+#: config/SSSDConfig.py:65
+msgid ""
+"How long (minutes) to deny login after offline_failed_login_attempts has "
+"been reached"
 msgstr ""
 
 #: config/SSSDConfig.py:68
-msgid "Access control provider"
+msgid "Identity provider"
 msgstr ""
 
 #: config/SSSDConfig.py:69
+msgid "Authentication provider"
+msgstr ""
+
+#: config/SSSDConfig.py:70
+msgid "Access control provider"
+msgstr ""
+
+#: config/SSSDConfig.py:71
 msgid "Password change provider"
 msgstr ""
 
-#: config/SSSDConfig.py:72
+#: config/SSSDConfig.py:74
 msgid "Minimum user ID"
 msgstr ""
 
-#: config/SSSDConfig.py:73
+#: config/SSSDConfig.py:75
 msgid "Maximum user ID"
 msgstr ""
 
-#: config/SSSDConfig.py:74
+#: config/SSSDConfig.py:76
 msgid "Ping timeout before restarting domain"
 msgstr ""
 
-#: config/SSSDConfig.py:75
+#: config/SSSDConfig.py:77
 msgid "Enable enumerating all users/groups"
 msgstr ""
 
-#: config/SSSDConfig.py:76
+#: config/SSSDConfig.py:78
 msgid "Cache credentials for offline login"
 msgstr ""
 
-#: config/SSSDConfig.py:77
+#: config/SSSDConfig.py:79
 msgid "Store password hashes"
 msgstr ""
 
-#: config/SSSDConfig.py:78
+#: config/SSSDConfig.py:80
 msgid "Display users/groups in fully-qualified form"
 msgstr ""
 
-#: config/SSSDConfig.py:79
+#: config/SSSDConfig.py:81
 msgid "Entry cache timeout length (seconds)"
 msgstr ""
 
-#: config/SSSDConfig.py:82
+#: config/SSSDConfig.py:84
 msgid "IPA domain"
 msgstr ""
 
-#: config/SSSDConfig.py:83
+#: config/SSSDConfig.py:85
 msgid "IPA server address"
 msgstr ""
 
-#: config/SSSDConfig.py:84
+#: config/SSSDConfig.py:86
 msgid "IPA client hostname"
 msgstr ""
 
-#: config/SSSDConfig.py:87 config/SSSDConfig.py:114
+#: config/SSSDConfig.py:89 config/SSSDConfig.py:116
 msgid "Kerberos server address"
 msgstr ""
 
-#: config/SSSDConfig.py:88 config/SSSDConfig.py:115
+#: config/SSSDConfig.py:90 config/SSSDConfig.py:117
 msgid "Kerberos realm"
 msgstr ""
 
-#: config/SSSDConfig.py:89
+#: config/SSSDConfig.py:91
 msgid "Authentication timeout"
 msgstr ""
 
-#: config/SSSDConfig.py:92
+#: config/SSSDConfig.py:94
 msgid "Directory to store credential caches"
 msgstr ""
 
-#: config/SSSDConfig.py:93
+#: config/SSSDConfig.py:95
 msgid "Location of the user's credential cache"
 msgstr ""
 
-#: config/SSSDConfig.py:94
+#: config/SSSDConfig.py:96
 msgid "Location of the keytab to validate credentials"
 msgstr ""
 
-#: config/SSSDConfig.py:95
+#: config/SSSDConfig.py:97
 msgid "Enable credential validation"
 msgstr ""
 
-#: config/SSSDConfig.py:98
+#: config/SSSDConfig.py:100
 msgid "The principal of the change password service"
 msgstr ""
 
-#: config/SSSDConfig.py:101
+#: config/SSSDConfig.py:103
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr ""
 
-#: config/SSSDConfig.py:102
+#: config/SSSDConfig.py:104
 msgid "The default base DN"
 msgstr ""
 
-#: config/SSSDConfig.py:103
+#: config/SSSDConfig.py:105
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr ""
 
-#: config/SSSDConfig.py:104
+#: config/SSSDConfig.py:106
 msgid "The default bind DN"
 msgstr ""
 
-#: config/SSSDConfig.py:105
+#: config/SSSDConfig.py:107
 msgid "The type of the authentication token of the default bind DN"
 msgstr ""
 
-#: config/SSSDConfig.py:106
+#: config/SSSDConfig.py:108
 msgid "The authentication token of the default bind DN"
 msgstr ""
 
-#: config/SSSDConfig.py:107
+#: config/SSSDConfig.py:109
 msgid "Length of time to attempt connection"
 msgstr ""
 
-#: config/SSSDConfig.py:108
+#: config/SSSDConfig.py:110
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr ""
 
-#: config/SSSDConfig.py:109
+#: config/SSSDConfig.py:111
 msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 
-#: config/SSSDConfig.py:110
+#: config/SSSDConfig.py:112
 msgid "file that contains CA certificates"
 msgstr ""
 
-#: config/SSSDConfig.py:111
+#: config/SSSDConfig.py:113
 msgid "Require TLS certificate verification"
 msgstr ""
 
-#: config/SSSDConfig.py:112
+#: config/SSSDConfig.py:114
 msgid "Specify the sasl mechanism to use"
 msgstr ""
 
-#: config/SSSDConfig.py:113
+#: config/SSSDConfig.py:115
 msgid "Specify the sasl authorization id to use"
 msgstr ""
 
-#: config/SSSDConfig.py:116
+#: config/SSSDConfig.py:118
 msgid "Kerberos service keytab"
 msgstr ""
 
-#: config/SSSDConfig.py:117
+#: config/SSSDConfig.py:119
 msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
 #: config/SSSDConfig.py:120
-msgid "Length of time to wait for a search request"
-msgstr ""
-
-#: config/SSSDConfig.py:121
-msgid "Length of time between enumeration updates"
-msgstr ""
-
-#: config/SSSDConfig.py:122
-msgid "Require TLS for ID lookups, false"
+msgid "Follow LDAP referrals"
 msgstr ""
 
 #: config/SSSDConfig.py:123
-msgid "Base DN for user lookups"
+msgid "Length of time to wait for a search request"
 msgstr ""
 
 #: config/SSSDConfig.py:124
-msgid "Scope of user lookups"
+msgid "Length of time between enumeration updates"
 msgstr ""
 
 #: config/SSSDConfig.py:125
-msgid "Filter for user lookups"
+msgid "Require TLS for ID lookups, false"
 msgstr ""
 
 #: config/SSSDConfig.py:126
-msgid "Objectclass for users"
+msgid "Base DN for user lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:127
-msgid "Username attribute"
+msgid "Scope of user lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:128
-msgid "UID attribute"
+msgid "Filter for user lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:129
-msgid "Primary GID attribute"
+msgid "Objectclass for users"
 msgstr ""
 
 #: config/SSSDConfig.py:130
-msgid "GECOS attribute"
+msgid "Username attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:131
-msgid "Home directory attribute"
+msgid "UID attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:132
-msgid "Shell attribute"
+msgid "Primary GID attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:133
-msgid "UUID attribute"
+msgid "GECOS attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:134
-msgid "User principal attribute (for Kerberos)"
+msgid "Home directory attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:135
-msgid "Full Name"
+msgid "Shell attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:136
-msgid "memberOf attribute"
+msgid "UUID attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:137
-msgid "Modification time attribute"
+msgid "User principal attribute (for Kerberos)"
+msgstr ""
+
+#: config/SSSDConfig.py:138
+msgid "Full Name"
+msgstr ""
+
+#: config/SSSDConfig.py:139
+msgid "memberOf attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:140
-msgid "Policy to evaluate the password expiration"
+msgid "Modification time attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:143
+msgid "Policy to evaluate the password expiration"
+msgstr ""
+
+#: config/SSSDConfig.py:146
 msgid "Default shell, /bin/bash"
 msgstr ""
 
-#: config/SSSDConfig.py:144
+#: config/SSSDConfig.py:147
 msgid "Base for home directories"
 msgstr ""
 
-#: config/SSSDConfig.py:147
+#: config/SSSDConfig.py:150
 msgid "The name of the NSS library to use"
 msgstr ""
 
-#: config/SSSDConfig.py:150
+#: config/SSSDConfig.py:153
 msgid "PAM stack to use"
 msgstr ""
 
