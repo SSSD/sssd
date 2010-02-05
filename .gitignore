@@ -2,6 +2,7 @@
 configure
 config.log
 config.status
+config.rpath
 config.h
 config.h.in
 cscope.out
@@ -12,6 +13,8 @@ Makefile.in.in
 *.so.[0-9].[0-9].[0-9]
 *.a
 *.l[oa]
+*.py[oc]
+*.pydevproject
 .deps
 .libs
 *.html
