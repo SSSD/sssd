@@ -29,6 +29,8 @@
 #include "util/dlinklist.h"
 #include "util/util.h"
 
+TALLOC_CTX *global_talloc_context = NULL;
+
 struct size_snapshot {
     struct size_snapshot *prev;
     struct size_snapshot *next;
