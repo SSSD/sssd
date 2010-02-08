@@ -626,18 +626,22 @@ static void pam_cache_auth_done(struct tevent_req *req)
     int ret;
     struct pam_auth_req *preq = tevent_req_callback_data(req,
                                                          struct pam_auth_req);
-    const uint32_t resp_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
-    const size_t resp_len = sizeof(uint32_t) + sizeof(long long);
+    uint32_t resp_type;
+    size_t resp_len;
     uint8_t *resp;
     time_t expire_date = 0;
+    time_t delayed_until = -1;
     long long dummy;
 
-    ret = sysdb_cache_auth_recv(req, &expire_date);
+    ret = sysdb_cache_auth_recv(req, &expire_date, &delayed_until);
     talloc_zfree(req);
 
     switch (ret) {
         case EOK:
             preq->pd->pam_status = PAM_SUCCESS;
+
+            resp_type = SSS_PAM_USER_INFO_OFFLINE_AUTH;
+            resp_len = sizeof(uint32_t) + sizeof(long long);
             resp = talloc_size(preq->pd, resp_len);
             if (resp == NULL) {
                 DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
@@ -660,6 +664,23 @@ static void pam_cache_auth_done(struct tevent_req *req)
             break;
         case EACCES:
             preq->pd->pam_status = PAM_PERM_DENIED;
+            if (delayed_until >= 0) {
+                resp_type = SSS_PAM_USER_INFO_OFFLINE_AUTH_DELAYED;
+                resp_len = sizeof(uint32_t) + sizeof(long long);
+                resp = talloc_size(preq->pd, resp_len);
+                if (resp == NULL) {
+                    DEBUG(1, ("talloc_size failed, cannot prepare user info.\n"));
+                } else {
+                    memcpy(resp, &resp_type, sizeof(uint32_t));
+                    dummy = (long long) delayed_until;
+                    memcpy(resp+sizeof(uint32_t), &dummy, sizeof(long long));
+                    ret = pam_add_response(preq->pd, SSS_PAM_USER_INFO, resp_len,
+                                           (const uint8_t *) resp);
+                    if (ret != EOK) {
+                        DEBUG(1, ("pam_add_response failed.\n"));
+                    }
+                }
+            }
             break;
         default:
             preq->pd->pam_status = PAM_SYSTEM_ERR;

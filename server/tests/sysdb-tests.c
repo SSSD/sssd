@@ -2287,6 +2287,7 @@ static void cached_authentication_without_expiration(const char *username,
     struct tevent_req *req;
     int ret;
     time_t expire_date;
+    time_t delayed_until;
     const char *val[2];
     val[1] = NULL;
 
@@ -2319,13 +2320,16 @@ static void cached_authentication_without_expiration(const char *username,
     ret = test_loop(data);
     fail_unless(ret == EOK, "test_loop failed.");
 
-    ret = sysdb_cache_auth_recv(req, &expire_date);
+    ret = sysdb_cache_auth_recv(req, &expire_date, &delayed_until);
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
                                         "return expected result [%d].",
                                         expected_result);
 
     fail_unless(expire_date == 0, "Wrong expire date, expected [%d], got [%d]",
                                   0, expire_date);
+
+    fail_unless(delayed_until == -1, "Wrong delay, expected [%d], got [%d]",
+                                  -1, delayed_until);
 
     talloc_free(test_ctx);
 }
@@ -2343,6 +2347,7 @@ static void cached_authentication_with_expiration(const char *username,
     val[1] = NULL;
     time_t now;
     time_t expected_expire_date;
+    time_t delayed_until;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2390,7 +2395,7 @@ static void cached_authentication_with_expiration(const char *username,
     ret = test_loop(data);
     fail_unless(ret == EOK, "test_loop failed.");
 
-    ret = sysdb_cache_auth_recv(req, &expire_date);
+    ret = sysdb_cache_auth_recv(req, &expire_date, &delayed_until);
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
                                         "return expected result [%d], got [%d].",
                                         expected_result, ret);
@@ -2398,6 +2403,9 @@ static void cached_authentication_with_expiration(const char *username,
     fail_unless(expire_date == expected_expire_date,
                 "Wrong expire date, expected [%d], got [%d]",
                 expected_expire_date, expire_date);
+
+    fail_unless(delayed_until == -1, "Wrong delay, expected [%d], got [%d]",
+                                  -1, delayed_until);
 
     talloc_free(test_ctx);
 }

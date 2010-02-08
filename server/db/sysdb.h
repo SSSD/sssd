@@ -548,7 +548,8 @@ int sysdb_cache_password_recv(struct tevent_req *req);
 
 errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,
-                                    uint32_t *failed_login_attempts);
+                                    uint32_t *failed_login_attempts,
+                                    time_t *delayed_until);
 struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
                                          struct sysdb_ctx *sysdb,
@@ -557,7 +558,8 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
                                          const uint8_t *authtok,
                                          size_t authtok_size,
                                          struct confdb_ctx *cdb);
-int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date);
+int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
+                          time_t *delayed_until);
 
 struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,

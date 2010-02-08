@@ -4649,17 +4649,21 @@ struct sysdb_cache_auth_state {
     bool authentication_successful;
     struct sysdb_handle *handle;
     time_t expire_date;
+    time_t delayed_until;
 };
 
 errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,
-                                    uint32_t *failed_login_attempts)
+                                    uint32_t *failed_login_attempts,
+                                    time_t *delayed_until)
 {
     int ret;
     int allowed_failed_login_attempts;
     int failed_login_delay;
     time_t last_failed_login;
+    time_t end;
 
+    *delayed_until = -1;
     *failed_login_attempts = ldb_msg_find_attr_as_uint(ldb_msg,
                                                 SYSDB_FAILED_LOGIN_ATTEMPTS, 0);
     last_failed_login = (time_t) ldb_msg_find_attr_as_int64(ldb_msg,
@@ -4687,11 +4691,17 @@ errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
 
     if (allowed_failed_login_attempts) {
         if (*failed_login_attempts >= allowed_failed_login_attempts) {
-            if (failed_login_delay &&
-                last_failed_login + (failed_login_delay * 60) < time(NULL)) {
-                DEBUG(7, ("failed_login_delay has passed, "
-                          "resetting failed_login_attempts.\n"));
-                *failed_login_attempts = 0;
+            if (failed_login_delay) {
+                end = last_failed_login + (failed_login_delay * 60);
+                if (end < time(NULL)) {
+                    DEBUG(7, ("failed_login_delay has passed, "
+                              "resetting failed_login_attempts.\n"));
+                    *failed_login_attempts = 0;
+                } else {
+                    DEBUG(7, ("login delayed until %lld.\n", (long long) end));
+                    *delayed_until = end;
+                    return EACCES;
+                }
             } else {
                 DEBUG(4, ("Too many failed logins.\n"));
                 return EACCES;
@@ -4768,6 +4778,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
     state->authentication_successful = false;
     state->handle = NULL;
     state->expire_date = -1;
+    state->delayed_until = -1;
 
     subreq = sysdb_search_user_by_name_send(state, ev, sysdb, NULL, domain,
                                             name, attrs);
@@ -4836,7 +4847,8 @@ static void sysdb_cache_auth_get_attrs_done(struct tevent_req *subreq)
     }
 
     ret = check_failed_login_attempts(state, state->cdb, ldb_msg,
-                                      &failed_login_attempts);
+                                      &failed_login_attempts,
+                                      &state->delayed_until);
     if (ret != EOK) {
         goto done;
     }
@@ -5034,10 +5046,12 @@ static void sysdb_cache_auth_done(struct tevent_req *subreq)
     return;
 }
 
-int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date) {
+int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
+                          time_t *delayed_until) {
     struct sysdb_cache_auth_state *state = tevent_req_data(req,
                                                  struct sysdb_cache_auth_state);
     *expire_date = state->expire_date;
+    *delayed_until = state->delayed_until;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

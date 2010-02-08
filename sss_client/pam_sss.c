@@ -290,6 +290,12 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
          msg_style == PAM_PROMPT_ECHO_ON) &&
         (msg == NULL || answer == NULL)) return PAM_SYSTEM_ERR;
 
+    if (msg_style == PAM_TEXT_INFO || msg_style == PAM_ERROR_MSG) {
+        logger(pamh, LOG_INFO, "User %s message: %s",
+                               msg_style == PAM_TEXT_INFO ? "info" : "error",
+                               msg);
+    }
+
     ret=pam_get_item(pamh, PAM_CONV, (const void **) &conv);
     if (ret != PAM_SUCCESS) return ret;
 
@@ -419,6 +425,56 @@ static int user_info_offline_auth(pam_handle_t *pamh, size_t buflen,
     return PAM_SUCCESS;
 }
 
+static int user_info_offline_auth_delayed(pam_handle_t *pamh, size_t buflen,
+                                  uint8_t *buf)
+{
+    int ret;
+    long long delayed_until;
+    struct tm tm;
+    char delay_str[128];
+    char user_msg[256];
+
+    delay_str[0] = '\0';
+
+    if (buflen != sizeof(uint32_t) + sizeof(long long)) {
+        D(("User info response data has the wrong size"));
+        return PAM_BUF_ERR;
+    }
+
+    memcpy(&delayed_until, buf + sizeof(uint32_t), sizeof(long long));
+
+    if (delayed_until <= 0) {
+        D(("User info response data has an invalid value"));
+        return PAM_BUF_ERR;
+    }
+
+    if (localtime_r((time_t *) &delayed_until, &tm) != NULL) {
+        ret = strftime(delay_str, sizeof(delay_str), "%c", &tm);
+        if (ret == 0) {
+            D(("strftime failed."));
+            delay_str[0] = '\0';
+        }
+    } else {
+        D(("localtime_r failed"));
+    }
+
+    ret = snprintf(user_msg, sizeof(user_msg), "%s%s.",
+                   _("Offline authentication, authentication is denied until: "),
+                   delay_str);
+    if (ret < 0 || ret >= sizeof(user_msg)) {
+        D(("snprintf failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, user_msg, NULL, NULL);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
                                    uint8_t *buf)
 {
@@ -435,6 +491,9 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
     switch(type) {
         case SSS_PAM_USER_INFO_OFFLINE_AUTH:
             ret = user_info_offline_auth(pamh, buflen, buf);
+            break;
+        case SSS_PAM_USER_INFO_OFFLINE_AUTH_DELAYED:
+            ret = user_info_offline_auth_delayed(pamh, buflen, buf);
             break;
         default:
             D(("Unknown user info type [%d]", type));

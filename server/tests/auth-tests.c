@@ -157,7 +157,8 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
                                  int offline_failed_login_attempts,
                                  int offline_failed_login_delay,
                                  int expected_result,
-                                 int expected_counter)
+                                 int expected_counter,
+                                 time_t expected_delay)
 {
     struct sysdb_test_ctx *test_ctx;
     int ret;
@@ -165,6 +166,7 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
     val[1] = NULL;
     struct ldb_message *ldb_msg;
     uint32_t returned_failed_login_attempts;
+    time_t delayed_until;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -193,48 +195,57 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
     fail_unless(ret == EOK, "ldb_msg_add_string failed");
 
     ret = check_failed_login_attempts(test_ctx, test_ctx->confdb, ldb_msg,
-                                      &returned_failed_login_attempts);
+                                      &returned_failed_login_attempts,
+                                      &delayed_until);
     fail_unless(ret == expected_result,
                 "check_failed_login_attempts returned wrong error code, "
-                "excected [%d], got [%d]", expected_result, ret);
+                "expected [%d], got [%d]", expected_result, ret);
+
     fail_unless(returned_failed_login_attempts == expected_counter,
                 "check_failed_login_attempts returned wrong number of failed "
-                "login attempts, excected [%d], got [%d]",
+                "login attempts, expected [%d], got [%d]",
                 expected_counter, failed_login_attempts);
+
+    fail_unless(delayed_until == expected_delay,
+                "check_failed_login_attempts wrong delay, "
+                "expected [%d], got [%d]",
+                expected_delay, delayed_until);
 
     talloc_free(test_ctx);
 }
 
 START_TEST(test_failed_login_attempts)
 {
+    time_t now;
 
     /* if offline_failed_login_attempts == 0 a login is never denied */
-    do_failed_login_test(0,          0, 0, 5, EOK, 0);
-    do_failed_login_test(0, time(NULL), 0, 5, EOK, 0);
-    do_failed_login_test(2,          0, 0, 5, EOK, 2);
-    do_failed_login_test(2, time(NULL), 0, 5, EOK, 2);
+    do_failed_login_test(0,          0, 0, 5, EOK, 0, -1);
+    do_failed_login_test(0, time(NULL), 0, 5, EOK, 0, -1);
+    do_failed_login_test(2,          0, 0, 5, EOK, 2, -1);
+    do_failed_login_test(2, time(NULL), 0, 5, EOK, 2, -1);
 
-    do_failed_login_test(0,          0, 0, 0, EOK, 0);
-    do_failed_login_test(0, time(NULL), 0, 0, EOK, 0);
-    do_failed_login_test(2,          0, 0, 0, EOK, 2);
-    do_failed_login_test(2, time(NULL), 0, 0, EOK, 2);
+    do_failed_login_test(0,          0, 0, 0, EOK, 0, -1);
+    do_failed_login_test(0, time(NULL), 0, 0, EOK, 0, -1);
+    do_failed_login_test(2,          0, 0, 0, EOK, 2, -1);
+    do_failed_login_test(2, time(NULL), 0, 0, EOK, 2, -1);
 
     /* if offline_failed_login_attempts != 0 and
      * offline_failed_login_delay == 0 a login is denied if the number of
      * failed attempts >= offline_failed_login_attempts */
-    do_failed_login_test(0,          0, 2, 0, EOK, 0);
-    do_failed_login_test(0, time(NULL), 2, 0, EOK, 0);
-    do_failed_login_test(2,          0, 2, 0, EACCES, 2);
-    do_failed_login_test(2, time(NULL), 2, 0, EACCES, 2);
+    do_failed_login_test(0,          0, 2, 0, EOK, 0, -1);
+    do_failed_login_test(0, time(NULL), 2, 0, EOK, 0, -1);
+    do_failed_login_test(2,          0, 2, 0, EACCES, 2, -1);
+    do_failed_login_test(2, time(NULL), 2, 0, EACCES, 2, -1);
 
     /* if offline_failed_login_attempts != 0 and
      * offline_failed_login_delay != 0 a login is denied only if the number of
      * failed attempts >= offline_failed_login_attempts AND the last failed
      * login attempt is not longer than offline_failed_login_delay ago */
-    do_failed_login_test(0,          0, 2, 5, EOK, 0);
-    do_failed_login_test(0, time(NULL), 2, 5, EOK, 0);
-    do_failed_login_test(2,          0, 2, 5, EOK, 0);
-    do_failed_login_test(2, time(NULL), 2, 5, EACCES, 2);
+    do_failed_login_test(0,          0, 2, 5, EOK, 0, -1);
+    do_failed_login_test(0, time(NULL), 2, 5, EOK, 0, -1);
+    do_failed_login_test(2,          0, 2, 5, EOK, 0, -1);
+    now = time(NULL);
+    do_failed_login_test(2, now, 2, 5, EACCES, 2, (now + 5 * 60));
 
 }
 END_TEST
