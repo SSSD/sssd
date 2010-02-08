@@ -6,9 +6,9 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-02-05 09:37-0500\n"
-"PO-Revision-Date: 2009-10-23 22:10+0200\n"
+"PO-Revision-Date: 2010-02-06 01:00+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
-"Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
+"Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -19,11 +19,11 @@ msgstr "Hasła nie zgadzają się"
 
 #: pam_sss.c:405
 msgid "Offline authentication"
-msgstr ""
+msgstr "Uwierzytelnienie w trybie offline"
 
 #: pam_sss.c:406
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 
 #: pam_sss.c:730
 msgid "Password: "

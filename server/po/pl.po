@@ -6,9 +6,9 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-02-05 09:37-0500\n"
-"PO-Revision-Date: 2010-01-05 22:53+0100\n"
+"PO-Revision-Date: 2010-02-06 01:03+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
-"Language-Team: Polish <fedora-trans-pl@redhat.com>\n"
+"Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -93,13 +93,15 @@ msgstr ""
 
 #: config/SSSDConfig.py:64
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "Ile nieudanych prób zalogowania jest dozwolonych w trybie offline"
 
 #: config/SSSDConfig.py:65
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Ile czasu (minut) nie pozwalać na zalogowanie po osiągnięciu "
+"offline_failed_login_attempts"
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
@@ -256,7 +258,7 @@ msgstr "Używa uwierzytelniania Kerberos dla połączenia LDAP"
 
 #: config/SSSDConfig.py:120
 msgid "Follow LDAP referrals"
-msgstr ""
+msgstr "Podąża za odsyłaniami LDAP"
 
 #: config/SSSDConfig.py:123
 msgid "Length of time to wait for a search request"
