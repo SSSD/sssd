@@ -579,6 +579,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
                       result_string.length, result_string.data));
         }
 
+        pam_status = PAM_AUTHTOK_ERR;
         goto sendresponse;
     }
 

@@ -179,7 +179,8 @@ enum response_type {
 
 enum user_info_type {
     SSS_PAM_USER_INFO_OFFLINE_AUTH = 0x01,
-    SSS_PAM_USER_INFO_OFFLINE_AUTH_DELAYED
+    SSS_PAM_USER_INFO_OFFLINE_AUTH_DELAYED,
+    SSS_PAM_USER_INFO_OFFLINE_CHPASS
 };
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,

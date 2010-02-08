@@ -772,7 +772,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         if (pw_expire_type == PWEXPIRE_SHADOW) {
 /* TODO: implement async ldap modify request */
             DEBUG(1, ("Changing shadow password attributes not implemented.\n"));
-            state->pd->pam_status = PAM_SYSTEM_ERR;
+            state->pd->pam_status = PAM_MODULE_UNKNOWN;
             goto done;
         } else {
             subreq = sdap_exop_modify_passwd_send(state,
@@ -791,7 +791,9 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
             return;
         }
         break;
-
+    case SDAP_AUTH_FAILED:
+        state->pd->pam_status = PAM_AUTH_ERR;
+        break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
@@ -821,7 +823,7 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
         dp_err = DP_ERR_OK;
         break;
     default:
-        state->pd->pam_status = PAM_SYSTEM_ERR;
+        state->pd->pam_status = PAM_AUTHTOK_ERR;
     }
 
 done:
