@@ -347,6 +347,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %{_includedir}/collection.h
 %{_includedir}/collection_tools.h
+%{_includedir}/collection_queue.h
+%{_includedir}/collection_stack.h
 %{_libdir}/libcollection.so
 %{_libdir}/pkgconfig/collection.pc
 %doc common/collection/README

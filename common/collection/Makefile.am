@@ -20,7 +20,9 @@ dist_pkgconfig_DATA = collection.pc
 
 dist_include_HEADERS = \
     collection.h \
-    collection_tools.h
+    collection_tools.h \
+    collection_queue.h \
+    collection_stack.h
 
 dist_noinst_DATA = m4
 
@@ -35,8 +37,6 @@ libcollection_la_SOURCES = \
     collection_cmp.c \
     collection_iter.c \
     collection_priv.h \
-    collection_queue.h \
-    collection_stack.h \
     ../trace/trace.h
 libcollection_la_LDFLAGS = \
     -version-info 1:0:0
