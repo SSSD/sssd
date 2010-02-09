@@ -23,6 +23,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* for struct ucred */
+#define _GNU_SOURCE
+
 #include <nss.h>
 #include <security/pam_modules.h>
 #include <errno.h>
@@ -36,6 +39,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
+
+#include "config.h"
 #include "sss_cli.h"
 
 /* common functions */
@@ -48,6 +53,104 @@ static void sss_cli_close_socket(void)
         close(sss_cli_sd);
         sss_cli_sd = -1;
     }
+}
+
+static int exchange_credentials(void)
+{
+#ifdef HAVE_UCRED
+    int ret;
+    struct msghdr msg;
+    struct cmsghdr *cmsg;
+    struct iovec iov;
+    char dummy='a';
+    char buf[CMSG_SPACE(sizeof(struct ucred))];
+    struct ucred *creds;
+    int enable = 1;
+    struct pollfd pfd;
+
+    ret = setsockopt(sss_cli_sd, SOL_SOCKET, SO_PASSCRED, &enable, sizeof(int));
+    if (ret == -1) {
+        return errno;
+    }
+
+    iov.iov_base = &dummy;
+    iov.iov_len = 1;
+
+    memset(&msg, 0, sizeof(msg));
+
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    msg.msg_control = buf;
+    msg.msg_controllen = sizeof(buf);
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level = SOL_SOCKET;
+    cmsg->cmsg_type = SCM_CREDENTIALS;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(struct ucred));
+
+    creds = (struct ucred *) CMSG_DATA(cmsg);
+
+    creds->uid = geteuid();
+    creds->gid = getegid();
+    creds->pid = getpid();
+
+    msg.msg_controllen = cmsg->cmsg_len;
+
+    pfd.fd = sss_cli_sd;
+    pfd.events = POLLOUT;
+    ret = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+    if (ret != 1 || !(pfd.revents & POLLOUT) ) {
+        return errno;
+    }
+
+    ret = sendmsg(sss_cli_sd, &msg, 0);
+    if (ret == -1) {
+        return errno;
+    }
+
+    memset(&msg, 0, sizeof(msg));
+
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    msg.msg_control = buf;
+    msg.msg_controllen = sizeof(buf);
+
+    pfd.fd = sss_cli_sd;
+    pfd.events = POLLIN;
+    ret = poll(&pfd, 1, SSS_CLI_SOCKET_TIMEOUT);
+
+    if (ret != 1 || !(pfd.revents & POLLIN) ) {
+        return errno;
+    }
+
+    ret = recvmsg(sss_cli_sd, &msg, 0);
+    if (ret == -1) {
+        return errno;
+    }
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+
+    if (msg.msg_controllen != 0 && cmsg->cmsg_level == SOL_SOCKET &&
+                                   cmsg->cmsg_type == SCM_CREDENTIALS) {
+        creds = (struct ucred *) CMSG_DATA(cmsg);
+        if (creds->uid != 0 || creds->gid!= 0) {
+            return SSS_STATUS_UNAVAIL;
+        }
+    }
+
+    return SSS_STATUS_SUCCESS;
+
+#else
+
+    return SSS_STATUS_SUCCESS;
+
+#endif
 }
 
 /* Requests:
@@ -599,9 +702,10 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
 
     sss_cli_sd = mysd;
 
-    if (sss_nss_check_version(socket_name) == NSS_STATUS_SUCCESS) {
-        return SSS_STATUS_SUCCESS;
-    }
+    if (exchange_credentials() == SSS_STATUS_SUCCESS)
+        if (sss_nss_check_version(socket_name) == NSS_STATUS_SUCCESS) {
+            return SSS_STATUS_SUCCESS;
+        }
 
     sss_cli_close_socket();
     *errnop = EFAULT;
@@ -653,12 +757,22 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         if (ret != 0) return PAM_SERVICE_ERR;
         if ( ! (stat_buf.st_uid == 0 &&
                 stat_buf.st_gid == 0 &&
-                (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
+                S_ISSOCK(stat_buf.st_mode) &&
+                (stat_buf.st_mode & ~S_IFMT) == 0600 )) {
             return PAM_SERVICE_ERR;
         }
 
         ret = sss_cli_check_socket(errnop, SSS_PAM_PRIV_SOCKET_NAME);
     } else {
+        ret = stat(SSS_PAM_SOCKET_NAME, &stat_buf);
+        if (ret != 0) return PAM_SERVICE_ERR;
+        if ( ! (stat_buf.st_uid == 0 &&
+                stat_buf.st_gid == 0 &&
+                S_ISSOCK(stat_buf.st_mode) &&
+                (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
+            return PAM_SERVICE_ERR;
+        }
+
         ret = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
     }
     if (ret != NSS_STATUS_SUCCESS) {
