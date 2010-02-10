@@ -261,27 +261,16 @@ static errno_t pack_response_packet(struct response *resp, int status, int type,
                                     size_t len, const uint8_t *data)
 {
     int p=0;
-    int32_t c;
 
     if ((3*sizeof(int32_t) + len +1) > resp->max_size) {
         DEBUG(1, ("response message too big.\n"));
         return ENOMEM;
     }
 
-    c = status;
-    memcpy(&resp->buf[p], &c, sizeof(int32_t));
-    p += sizeof(int32_t);
-
-    c = type;
-    memcpy(&resp->buf[p], &c, sizeof(int32_t));
-    p += sizeof(int32_t);
-
-    c = len;
-    memcpy(&resp->buf[p], &c, sizeof(int32_t));
-    p += sizeof(int32_t);
-
-    memcpy(&resp->buf[p], data, len);
-    p += len;
+    COPY_INT32_VALUE(&resp->buf[p], status, p);
+    COPY_INT32_VALUE(&resp->buf[p], type, p);
+    COPY_INT32_VALUE(&resp->buf[p], len, p);
+    COPY_MEM(&resp->buf[p], data, p, len);
 
     resp->size = p;
 
@@ -740,57 +729,31 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     size_t p = 0;
     uint32_t len;
 
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&pd->cmd, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
+    COPY_UINT32_CHECK(&pd->cmd, buf + p, p, size);
+    COPY_UINT32_CHECK(&pd->pw_uid, buf + p, p, size);
+    COPY_UINT32_CHECK(&pd->gr_gid, buf + p, p, size);
+    COPY_UINT32_CHECK(validate, buf + p, p, size);
+    COPY_UINT32_CHECK(offline, buf + p, p, size);
 
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&pd->pw_uid, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&pd->gr_gid, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(validate, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(offline, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&len, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
+    COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len ) > size) return EINVAL;
     pd->upn = talloc_strndup(pd, (char *)(buf + p), len);
     if (pd->upn == NULL) return ENOMEM;
     p += len;
 
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&len, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
+    COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len ) > size) return EINVAL;
     *ccname = talloc_strndup(pd, (char *)(buf + p), len);
     if (*ccname == NULL) return ENOMEM;
     p += len;
 
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&len, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
+    COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len ) > size) return EINVAL;
     *keytab = talloc_strndup(pd, (char *)(buf + p), len);
     if (*keytab == NULL) return ENOMEM;
     p += len;
 
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&len, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
-
+    COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len) > size) return EINVAL;
     pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
     if (pd->authtok == NULL) return ENOMEM;
@@ -798,9 +761,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     p += len;
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        if ((p + sizeof(uint32_t)) > size) return EINVAL;
-        memcpy(&len, buf + p, sizeof(uint32_t));
-        p += sizeof(uint32_t);
+        COPY_UINT32_CHECK(&len, buf + p, p, size);
 
         if ((p + len) > size) return EINVAL;
         pd->newauthtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);

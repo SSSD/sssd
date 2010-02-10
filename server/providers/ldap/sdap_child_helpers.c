@@ -135,7 +135,6 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 {
     struct io_buffer *buf;
     size_t rp;
-    int len;
 
     buf = talloc(mem_ctx, struct io_buffer);
     if (buf == NULL) {
@@ -167,41 +166,26 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 
     /* realm */
     if (realm_str) {
-        len = strlen(realm_str);
-        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
-        rp += sizeof(uint32_t);
-        memcpy(&buf->data[rp], realm_str, len);
-        rp += len;
+        COPY_UINT32_VALUE(&buf->data[rp], strlen(realm_str), rp);
+        COPY_MEM(&buf->data[rp], realm_str, rp, strlen(realm_str));
     } else {
-        len = 0;
-        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
-        rp += sizeof(uint32_t);
+        COPY_UINT32_VALUE(&buf->data[rp], 0, rp);
     }
 
     /* principal */
     if (princ_str) {
-        len = strlen(princ_str);
-        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
-        rp += sizeof(uint32_t);
-        memcpy(&buf->data[rp], princ_str, len);
-        rp += len;
+        COPY_UINT32_VALUE(&buf->data[rp], strlen(princ_str), rp);
+        COPY_MEM(&buf->data[rp], princ_str, rp, strlen(princ_str));
     } else {
-        len = 0;
-        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
-        rp += sizeof(uint32_t);
+        COPY_UINT32_VALUE(&buf->data[rp], 0, rp);
     }
 
     /* keytab */
     if (keytab_name) {
-        len = strlen(keytab_name);
-        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
-        rp += sizeof(uint32_t);
-        memcpy(&buf->data[rp], keytab_name, len);
-        rp += len;
+        COPY_UINT32_VALUE(&buf->data[rp], strlen(keytab_name), rp);
+        COPY_MEM(&buf->data[rp], keytab_name, rp, strlen(realm_str));
     } else {
-        len = 0;
-        memcpy(&buf->data[rp], &len, sizeof(uint32_t));
-        rp += sizeof(uint32_t);
+        COPY_UINT32_VALUE(&buf->data[rp], 0, rp);
     }
 
     *io_buf = buf;
@@ -218,14 +202,10 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
     char *ccn;
 
     /* operation result code */
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&res, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
+    COPY_UINT32_CHECK(&res, buf + p, p, size);
 
     /* ccache name size */
-    if ((p + sizeof(uint32_t)) > size) return EINVAL;
-    memcpy(&len, buf + p, sizeof(uint32_t));
-    p += sizeof(uint32_t);
+    COPY_UINT32_CHECK(&len, buf + p, p, size);
 
     if ((p + len ) > size) return EINVAL;
 
