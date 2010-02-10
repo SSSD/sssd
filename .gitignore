@@ -50,10 +50,13 @@ sss_groupmod
 sss_useradd
 sss_userdel
 sss_usermod
+sss_groupshow
 sssd
 sssd_be
 sssd_dp
 sssd_nss
 sssd_pam
+krb5_child
+ldap_child
 *~
 
