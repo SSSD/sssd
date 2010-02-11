@@ -757,13 +757,15 @@ static void print_group_info(struct group_info *g, int level)
     printf(_("%sMember users: "), padding);
     if (g->user_members) {
         for (i=0; g->user_members[i]; ++i) {
-            printf("%s:", g->user_members[i]);
+            printf("%s%s", i>0 ? "," : "",
+                           g->user_members[i]);
         }
     }
     printf(_("\n%sIs a member of: "), padding);
     if (g->memberofs) {
         for (i=0; g->memberofs[i]; ++i) {
-            printf("%s:", g->memberofs[i]);
+            printf("%s%s", i>0 ? "," : "",
+                           g->memberofs[i]);
         }
     }
     printf(_("\n%sMember groups: "), padding);
@@ -928,7 +930,8 @@ int main(int argc, const char **argv)
     } else {
         if (state->root->group_members) {
             for (i=0; state->root->group_members[i]; ++i) {
-                printf("%s:", state->root->group_members[i]->name);
+                printf("%s%s", i>0 ? "," : "",
+                               state->root->group_members[i]->name);
             }
         }
         printf("\n");
