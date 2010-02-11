@@ -62,7 +62,9 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_krb5_keytab", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_krb5_init_creds", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     /* use the same parm name as the krb5 module so we set it only once */
-    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING },
+    { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE }
 };
 
 struct sdap_attr_map ipa_attr_map[] = {
@@ -215,7 +217,7 @@ done:
 /* the following define is used to keep track of * the options in the ldap
  * module, so that if they change and ipa is not updated correspondingly
  * this will trigger a runtime abort error */
-#define IPA_OPTS_BASIC_TEST 30
+#define IPA_OPTS_BASIC_TEST 31
 
 int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
