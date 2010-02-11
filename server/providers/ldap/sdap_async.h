@@ -94,8 +94,9 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
                                                 char *user_dn,
                                                 char *password,
                                                 char *new_password);
-int sdap_exop_modify_passwd_recv(struct tevent_req *req,
-                                 enum sdap_result *result);
+int sdap_exop_modify_passwd_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
+                                 enum sdap_result *result,
+                                 char **user_error_msg);
 
 struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,

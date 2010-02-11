@@ -530,6 +530,7 @@ struct sdap_exop_modify_passwd_state {
     struct sdap_op *op;
 
     int result;
+    char *user_error_message;
 };
 
 static void sdap_exop_modify_passwd_done(struct sdap_op *op,
@@ -556,6 +557,7 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->sh = sh;
+    state->user_error_message = NULL;
 
     ber = ber_alloc_t( LBER_USE_DER );
     if (ber == NULL) {
@@ -626,7 +628,7 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
-    char *errmsg;
+    char *errmsg = NULL;
     int ret;
     LDAPControl **response_controls = NULL;
     int c;
@@ -673,12 +675,20 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
         }
     }
 
+    if (state->result != LDAP_SUCCESS) {
+        state->user_error_message = talloc_strdup(state, errmsg);
+        if (state->user_error_message == NULL) {
+            DEBUG(1, ("talloc_strdup failed.\n"));
+        }
+    }
+
     DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
               ldap_err2string(state->result), state->result, errmsg));
 
     ret = LDAP_SUCCESS;
 done:
     ldap_controls_free(response_controls);
+    ldap_memfree(errmsg);
 
     if (ret == LDAP_SUCCESS) {
         tevent_req_done(req);
@@ -688,12 +698,15 @@ done:
 }
 
 int sdap_exop_modify_passwd_recv(struct tevent_req *req,
-                                 enum sdap_result *result)
+                                 TALLOC_CTX * mem_ctx,
+                                 enum sdap_result *result,
+                                 char **user_error_message)
 {
     struct sdap_exop_modify_passwd_state *state = tevent_req_data(req,
                                          struct sdap_exop_modify_passwd_state);
 
     *result = SDAP_ERROR;
+    *user_error_message = talloc_steal(mem_ctx, state->user_error_message);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 

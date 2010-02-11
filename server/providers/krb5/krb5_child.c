@@ -30,6 +30,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/user_info_msg.h"
 #include "providers/child_common.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_auth.h"
@@ -256,13 +257,12 @@ static struct response *init_response(TALLOC_CTX *mem_ctx) {
     return r;
 }
 
-static errno_t pack_response_packet(struct response *resp, int status, int type, const char *data)
+static errno_t pack_response_packet(struct response *resp, int status, int type,
+                                    size_t len, const uint8_t *data)
 {
-    int len;
     int p=0;
     int32_t c;
 
-    len = strlen(data)+1;
     if ((3*sizeof(int32_t) + len +1) > resp->max_size) {
         DEBUG(1, ("response message too big.\n"));
         return ENOMEM;
@@ -289,12 +289,16 @@ static errno_t pack_response_packet(struct response *resp, int status, int type,
 }
 
 static struct response *prepare_response_message(struct krb5_req *kr,
-                                        krb5_error_code kerr, int pam_status)
+                                                 krb5_error_code kerr,
+                                                 char *user_error_message,
+                                                 int pam_status)
 {
     char *msg = NULL;
     const char *krb5_msg = NULL;
     int ret;
     struct response *resp;
+    size_t user_resp_len;
+    uint8_t *user_resp;
 
     resp = init_response(kr);
     if (resp == NULL) {
@@ -305,7 +309,8 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     if (kerr == 0) {
         if(kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
             ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_SYSTEM_INFO,
-                                       "success");
+                                       strlen("success") + 1,
+                                       (const uint8_t *) "success");
         } else {
             if (kr->ccname == NULL) {
                 DEBUG(1, ("Error obtaining ccname.\n"));
@@ -318,19 +323,43 @@ static struct response *prepare_response_message(struct krb5_req *kr,
                 return NULL;
             }
 
-            ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_ENV_ITEM, msg);
+            ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_ENV_ITEM,
+                                       strlen(msg) + 1, (uint8_t *) msg);
             talloc_zfree(msg);
         }
     } else {
-        krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
-        if (krb5_msg == NULL) {
-            DEBUG(1, ("sss_krb5_get_error_message failed.\n"));
-            return NULL;
+
+        if (user_error_message != NULL) {
+            ret = pack_user_info_chpass_error(kr, user_error_message,
+                                              &user_resp_len, &user_resp);
+            if (ret != EOK) {
+                DEBUG(1, ("pack_user_info_chpass_error failed.\n"));
+                talloc_zfree(user_error_message);
+            } else {
+                ret = pack_response_packet(resp, pam_status, SSS_PAM_USER_INFO,
+                                           user_resp_len, user_resp);
+                if (ret != EOK) {
+                    DEBUG(1, ("pack_response_packet failed.\n"));
+                    talloc_zfree(user_error_message);
+                }
+            }
         }
 
-        ret = pack_response_packet(resp, pam_status, SSS_PAM_SYSTEM_INFO,
-                                   krb5_msg);
-        sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
+        if (user_error_message == NULL) {
+            krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
+            if (krb5_msg == NULL) {
+                DEBUG(1, ("sss_krb5_get_error_message failed.\n"));
+                return NULL;
+            }
+
+            ret = pack_response_packet(resp, pam_status, SSS_PAM_SYSTEM_INFO,
+                                       strlen(krb5_msg) + 1,
+                                       (const uint8_t *) krb5_msg);
+            sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
+        } else {
+
+        }
+
     }
 
     if (ret != EOK) {
@@ -341,14 +370,15 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     return resp;
 }
 
-static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
+static errno_t sendresponse(int fd, krb5_error_code kerr,
+                            char *user_error_message, int pam_status,
                             struct krb5_req *kr)
 {
     struct response *resp;
     size_t written;
     int ret;
 
-    resp = prepare_response_message(kr, kerr, pam_status);
+    resp = prepare_response_message(kr, kerr, user_error_message, pam_status);
     if (resp == NULL) {
         DEBUG(1, ("prepare_response_message failed.\n"));
         return ENOMEM;
@@ -522,6 +552,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     int result_code = -1;
     krb5_data result_code_string;
     krb5_data result_string;
+    char *user_error_message = NULL;
 
     pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
                               kr->pd->authtok_size);
@@ -576,11 +607,22 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         if (result_code_string.length > 0) {
             DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
                       result_code_string.length, result_code_string.data));
+            user_error_message = talloc_strndup(kr->pd, result_code_string.data,
+                                                result_code_string.length);
+            if (user_error_message == NULL) {
+                DEBUG(1, ("talloc_strndup failed.\n"));
+            }
         }
 
         if (result_string.length > 0) {
             DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
                       result_string.length, result_string.data));
+            talloc_free(user_error_message);
+            user_error_message = talloc_strndup(kr->pd, result_string.data,
+                                                result_string.length);
+            if (user_error_message == NULL) {
+                DEBUG(1, ("talloc_strndup failed.\n"));
+            }
         }
 
         pam_status = PAM_AUTHTOK_ERR;
@@ -602,7 +644,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     }
 
 sendresponse:
-    ret = sendresponse(fd, kerr, pam_status, kr);
+    ret = sendresponse(fd, kerr, user_error_message, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }
@@ -664,7 +706,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     }
 
 sendresponse:
-    ret = sendresponse(fd, kerr, pam_status, kr);
+    ret = sendresponse(fd, kerr, NULL, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }
@@ -683,7 +725,7 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
         pam_status = PAM_SYSTEM_ERR;
     }
 
-    ret = sendresponse(fd, ret, pam_status, kr);
+    ret = sendresponse(fd, ret, NULL, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }

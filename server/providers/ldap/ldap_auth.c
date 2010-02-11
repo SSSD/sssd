@@ -40,6 +40,7 @@
 #include <security/pam_modules.h>
 
 #include "util/util.h"
+#include "util/user_info_msg.h"
 #include "db/sysdb.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
@@ -809,8 +810,11 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
     enum sdap_result result;
     int dp_err = DP_ERR_FATAL;
     int ret;
+    char *user_error_message = NULL;
+    size_t msg_len;
+    uint8_t *msg;
 
-    ret = sdap_exop_modify_passwd_recv(req, &result);
+    ret = sdap_exop_modify_passwd_recv(req, state, &result, &user_error_message);
     talloc_zfree(req);
     if (ret) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -824,6 +828,19 @@ static void sdap_pam_chpass_done(struct tevent_req *req)
         break;
     default:
         state->pd->pam_status = PAM_AUTHTOK_ERR;
+        if (user_error_message != NULL) {
+            ret = pack_user_info_chpass_error(state->pd, user_error_message,
+                                              &msg_len, &msg);
+            if (ret != EOK) {
+                DEBUG(1, ("pack_user_info_chpass_error failed.\n"));
+            } else {
+                ret = pam_add_response(state->pd, SSS_PAM_USER_INFO, msg_len,
+                                       msg);
+                if (ret != EOK) {
+                    DEBUG(1, ("pam_add_response failed.\n"));
+                }
+            }
+        }
     }
 
 done:
