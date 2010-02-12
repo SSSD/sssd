@@ -1188,7 +1188,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
             if (ret != LDB_SUCCESS) {
                 DEBUG(0, ("WARNING: Could not remove entry %s,"
                           " from old ldb file! (%d [%s])\n",
-                          ldb_dn_get_linearized(msg->dn),
+                          ldb_dn_get_linearized(orig_dn),
                           ret, ldb_errstring(ldb)));
             }
         }
@@ -1200,21 +1200,21 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
         if (ret != LDB_SUCCESS) {
             DEBUG(9, ("WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
-                      ldb_dn_get_linearized(msg->dn),
+                      ldb_dn_get_linearized(groups_dn),
                       ret, ldb_errstring(ldb)));
         }
         ret = ldb_delete(ldb, users_dn);
         if (ret != LDB_SUCCESS) {
             DEBUG(9, ("WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
-                      ldb_dn_get_linearized(msg->dn),
+                      ldb_dn_get_linearized(users_dn),
                       ret, ldb_errstring(ldb)));
         }
         ret = ldb_delete(ldb, domain_dn);
         if (ret != LDB_SUCCESS) {
             DEBUG(9, ("WARNING: Could not remove entry %s,"
                       " from old ldb file! (%d [%s])\n",
-                      ldb_dn_get_linearized(msg->dn),
+                      ldb_dn_get_linearized(domain_dn),
                       ret, ldb_errstring(ldb)));
         }
 

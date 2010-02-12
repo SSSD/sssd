@@ -184,7 +184,7 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     DIR *proc_dir = NULL;
     struct dirent *dirent;
     int ret;
-    pid_t pid;
+    pid_t pid = -1;
     uid_t uid;
 
     hash_key_t key;

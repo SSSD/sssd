@@ -779,7 +779,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
     struct tevent_req *req;
     krb5_error_code kerr;
     int ret;
-    struct pam_data *pd;
+    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
     int pam_status=PAM_SYSTEM_ERR;
     int dp_err = DP_ERR_FATAL;
     const char *ccache_file = NULL;
@@ -791,7 +791,6 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         goto failed;
     }
 
-    pd = kr->pd;
     krb5_ctx = kr->krb5_ctx;
 
     if (err != LDB_SUCCESS) {
@@ -999,8 +998,8 @@ static void krb5_child_done(struct tevent_req *req)
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
     int ret;
-    uint8_t *buf;
-    ssize_t len;
+    uint8_t *buf = NULL;
+    ssize_t len = -1;
     ssize_t pref_len;
     int p;
     int32_t *msg_status;

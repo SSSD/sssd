@@ -487,6 +487,7 @@ static void pam_reply(struct pam_auth_req *preq)
     uint32_t user_info_type;
 
     pd = preq->pd;
+    cctx = preq->cctx;
 
     DEBUG(4, ("pam_reply get called.\n"));
 
@@ -547,8 +548,6 @@ static void pam_reply(struct pam_auth_req *preq)
                 pd->pam_status = PAM_MODULE_UNKNOWN;
         }
     }
-
-    cctx = preq->cctx;
 
     if (pd->response_delay > 0) {
         ret = gettimeofday(&tv, NULL);

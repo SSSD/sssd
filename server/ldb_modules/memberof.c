@@ -1922,7 +1922,7 @@ static int mbof_del_mod_entry(struct mbof_del_operation *delop)
     struct ldb_request *mod_req;
     struct ldb_message *msg;
     struct ldb_message_element *el;
-    struct ldb_dn **diff;
+    struct ldb_dn **diff = NULL;
     const char *name;
     const char *val;
     int i, j, k;
