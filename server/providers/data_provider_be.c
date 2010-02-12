@@ -309,8 +309,9 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     dbus_bool_t dbret;
     void *user_data;
     uint32_t type;
-    char *attrs, *filter;
-    int attr_type, filter_type;
+    char *filter;
+    int filter_type;
+    uint32_t attr_type;
     char *filter_val;
     int ret;
     dbus_uint16_t err_maj;
@@ -328,7 +329,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
 
     ret = dbus_message_get_args(message, &dbus_error,
                                 DBUS_TYPE_UINT32, &type,
-                                DBUS_TYPE_STRING, &attrs,
+                                DBUS_TYPE_UINT32, &attr_type,
                                 DBUS_TYPE_STRING, &filter,
                                 DBUS_TYPE_INVALID);
     if (!ret) {
@@ -337,7 +338,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         return EIO;
     }
 
-    DEBUG(4, ("Got request for [%u][%s][%s]\n", type, attrs, filter));
+    DEBUG(4, ("Got request for [%u][%d][%s]\n", type, attr_type, filter));
 
     reply = dbus_message_new_method_return(message);
     if (!reply) return ENOMEM;
@@ -372,20 +373,13 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
          */
     }
 
-    if (attrs) {
-        if (strcmp(attrs, "core") == 0) attr_type = BE_ATTR_CORE;
-        else if (strcmp(attrs, "membership") == 0) attr_type = BE_ATTR_MEM;
-        else if (strcmp(attrs, "all") == 0) attr_type = BE_ATTR_ALL;
-        else {
-            err_maj = DP_ERR_FATAL;
-            err_min = EINVAL;
-            err_msg = "Invalid Attrs Parameter";
-            goto done;
-        }
-    } else {
+    if ((attr_type != BE_ATTR_CORE) &&
+        (attr_type != BE_ATTR_MEM) &&
+        (attr_type != BE_ATTR_ALL)) {
+        /* Unrecognized attr type */
         err_maj = DP_ERR_FATAL;
         err_min = EINVAL;
-        err_msg = "Missing Attrs Parameter";
+        err_msg = "Invalid Attrs Parameter";
         goto done;
     }
 
@@ -430,7 +424,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
         goto done;
     }
     req->entry_type = type;
-    req->attr_type = attr_type;
+    req->attr_type = (int)attr_type;
     req->filter_type = filter_type;
     req->filter_value = talloc_strdup(req, filter_val);
 

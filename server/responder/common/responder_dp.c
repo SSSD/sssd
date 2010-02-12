@@ -418,7 +418,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
     dbus_bool_t dbret;
     struct sss_dp_callback *cb;
     struct sss_dp_req *sdp_req;
-    const char *attrs = "core";
+    uint32_t attrs = BE_ATTR_CORE;
     struct be_conn *be_conn;
     int ret;
 
@@ -444,12 +444,12 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
         return ENOMEM;
     }
 
-    DEBUG(4, ("Sending request for [%s][%u][%s][%s]\n",
+    DEBUG(4, ("Sending request for [%s][%u][%d][%s]\n",
               domain, be_type, attrs, filter));
 
     dbret = dbus_message_append_args(msg,
                                      DBUS_TYPE_UINT32, &be_type,
-                                     DBUS_TYPE_STRING, &attrs,
+                                     DBUS_TYPE_UINT32, &attrs,
                                      DBUS_TYPE_STRING, &filter,
                                      DBUS_TYPE_INVALID);
     if (!dbret) {
