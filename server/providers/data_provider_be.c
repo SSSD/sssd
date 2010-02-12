@@ -487,6 +487,7 @@ static void be_pam_handler_callback(struct be_req *req,
     dbret = dp_pack_pam_response(reply, pd);
     if (!dbret) {
         DEBUG(1, ("Failed to generate dbus reply\n"));
+        dbus_message_unref(reply);
         return;
     }
 
@@ -614,6 +615,7 @@ done:
     if (!ret) {
         DEBUG(1, ("Failed to generate dbus reply\n"));
         talloc_free(be_req);
+        dbus_message_unref(reply);
         return EIO;
     }
 

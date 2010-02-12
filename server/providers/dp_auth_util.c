@@ -125,27 +125,83 @@ bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbu
 
 bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
 {
-    int ret;
+    dbus_bool_t dbret;
     struct response_data *resp;
+    DBusMessageIter iter;
+    DBusMessageIter array_iter;
+    DBusMessageIter struct_iter;
+    DBusMessageIter data_iter;
 
-    ret = dbus_message_append_args(msg,
-                                   DBUS_TYPE_UINT32, &(pd->pam_status),
-                                   DBUS_TYPE_STRING, &(pd->domain),
-                                   DBUS_TYPE_INVALID);
-    if (!ret) return ret;
+    dbus_message_iter_init_append(msg, &iter);
+
+    /* Append the PAM status */
+    dbret = dbus_message_iter_append_basic(&iter,
+                                   DBUS_TYPE_UINT32, &(pd->pam_status));
+    if (!dbret) {
+        return false;
+    }
+
+    /* Append the domain */
+    dbret = dbus_message_iter_append_basic(&iter,
+                                   DBUS_TYPE_STRING, &(pd->domain));
+    if (!dbret) {
+        return false;
+    }
+
+    /* Create an array of response structures */
+    dbret = dbus_message_iter_open_container(&iter,
+                                             DBUS_TYPE_ARRAY, "(uay)",
+                                             &array_iter);
+    if (!dbret) {
+        return false;
+    }
 
     resp = pd->resp_list;
     while (resp != NULL) {
-        ret=dbus_message_append_args(msg,
-                                 DBUS_TYPE_UINT32, &(resp->type),
-                                 DBUS_TYPE_UINT32, &(resp->len),
-                                 DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                    &(resp->data),
-                                    resp->len,
-                                 DBUS_TYPE_INVALID);
-        if (!ret) return ret;
+        /* Create a DBUS struct */
+        dbret = dbus_message_iter_open_container(&array_iter,
+                                                 DBUS_TYPE_STRUCT, NULL,
+                                                 &struct_iter);
+        if (!dbret) {
+            return false;
+        }
+
+        /* Add the response type */
+        dbret = dbus_message_iter_append_basic(&struct_iter,
+                                               DBUS_TYPE_UINT32,
+                                               &(resp->type));
+        if (!dbret) {
+            return false;
+        }
+
+        /* Add the response message */
+        dbret = dbus_message_iter_open_container(&struct_iter,
+                                                 DBUS_TYPE_ARRAY, "y",
+                                                 &data_iter);
+        if (!dbret) {
+            return false;
+        }
+        dbret = dbus_message_iter_append_fixed_array(&data_iter,
+                       DBUS_TYPE_BYTE, &(resp->data), resp->len);
+        if (!dbret) {
+            return false;
+        }
+        dbret = dbus_message_iter_close_container(&struct_iter, &data_iter);
+        if (!dbret) {
+            return false;
+        }
 
         resp = resp->next;
+        dbret = dbus_message_iter_close_container(&array_iter, &struct_iter);
+        if (!dbret) {
+            return false;
+        }
+    }
+
+    /* Close the struct array */
+    dbret = dbus_message_iter_close_container(&iter, &array_iter);
+    if (!dbret) {
+        return false;
     }
 
     return true;
@@ -154,10 +210,11 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
 bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
 {
     DBusMessageIter iter;
+    DBusMessageIter array_iter;
+    DBusMessageIter struct_iter;
     DBusMessageIter sub_iter;
     int type;
     int len;
-    int len_msg;
     const uint8_t *data;
 
     if (!dbus_message_iter_init(msg, &iter)) {
@@ -182,44 +239,59 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
     }
     dbus_message_iter_get_basic(&iter, &(pd->domain));
 
-    while(dbus_message_iter_next(&iter)) {
-        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-            DEBUG(1, ("pam response format error.\n"));
-            return false;
-        }
-        dbus_message_iter_get_basic(&iter, &type);
+    if (!dbus_message_iter_next(&iter)) {
+        DEBUG(1, ("pam response has too few arguments.\n"));
+        return false;
+    }
 
-        if (!dbus_message_iter_next(&iter)) {
-            DEBUG(1, ("pam response format error.\n"));
-            return false;
-        }
+    /* After this point will be an array of pam data */
+    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY) {
+        DEBUG(1, ("pam response format error.\n"));
+        DEBUG(1, ("Type was %c\n", (char)dbus_message_iter_get_arg_type(&iter)));
+        return false;
+    }
 
-        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_UINT32) {
-            DEBUG(1, ("pam response format error.\n"));
-            return false;
-        }
-        dbus_message_iter_get_basic(&iter, &len);
+    if (dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_STRUCT) {
+        DEBUG(1, ("pam response format error.\n"));
+        return false;
+    }
 
-        if (!dbus_message_iter_next(&iter)) {
-            DEBUG(1, ("pam response format error.\n"));
-            return false;
-        }
-
-        if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_ARRAY ||
-            dbus_message_iter_get_element_type(&iter) != DBUS_TYPE_BYTE) {
+    dbus_message_iter_recurse(&iter, &array_iter);
+    while (dbus_message_iter_get_arg_type(&array_iter) != DBUS_TYPE_INVALID) {
+        /* Read in a pam data struct */
+        if (dbus_message_iter_get_arg_type(&array_iter) != DBUS_TYPE_STRUCT) {
             DEBUG(1, ("pam response format error.\n"));
             return false;
         }
 
-        dbus_message_iter_recurse(&iter, &sub_iter);
-        dbus_message_iter_get_fixed_array(&sub_iter, &data, &len_msg);
-        if (len != len_msg) {
+        dbus_message_iter_recurse(&array_iter,  &struct_iter);
+
+        /* PAM data struct contains a type and a byte-array of data */
+
+        /* Get the pam data type */
+        if (dbus_message_iter_get_arg_type(&struct_iter) != DBUS_TYPE_UINT32) {
             DEBUG(1, ("pam response format error.\n"));
             return false;
         }
+        dbus_message_iter_get_basic(&struct_iter, &type);
+
+        if (!dbus_message_iter_next(&struct_iter)) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+
+        /* Get the byte array */
+        if (dbus_message_iter_get_arg_type(&struct_iter) != DBUS_TYPE_ARRAY ||
+            dbus_message_iter_get_element_type(&struct_iter) != DBUS_TYPE_BYTE) {
+            DEBUG(1, ("pam response format error.\n"));
+            return false;
+        }
+
+        dbus_message_iter_recurse(&struct_iter, &sub_iter);
+        dbus_message_iter_get_fixed_array(&sub_iter, &data, &len);
 
         pam_add_response(pd, type, len, data);
-
+        dbus_message_iter_next(&array_iter);
     }
 
     return true;
