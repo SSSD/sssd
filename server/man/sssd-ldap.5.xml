@@ -623,7 +623,7 @@
                         </para>
                         <para>
                             Please note that sssd only supports referral chasing
-                            when it is compiled with OpenLDAP version 2.4.12 or
+                            when it is compiled with OpenLDAP version 2.4.13 or
                             higher.
                         </para>
                         <para>

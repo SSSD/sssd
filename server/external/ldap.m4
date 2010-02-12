@@ -45,9 +45,19 @@ CFLAGS="$CFLAGS $OPENLDAP_CFLAGS"
 LIBS="$LIBS $OPENLDAP_LIBS"
 AC_CHECK_FUNCS([ldap_control_create])
 AC_CHECK_MEMBERS([struct ldap_conncb.lc_arg],
-                 [AC_DEFINE([HAVE_LDAP_CONNCB], [1],
+                 [AC_RUN_IFELSE(
+                   [AC_LANG_PROGRAM(
+                     [[ #include <ldap.h> ]],
+                     [[
+                       struct ldap_conncb cb;
+                       return ldap_set_option(NULL, LDAP_OPT_CONNECT_CB, &cb);
+                     ]] )],
+                   [AC_DEFINE([HAVE_LDAP_CONNCB], [1],
                      [Define if LDAP connection callbacks are available])],
+                   [AC_MSG_WARN([Found broken callback implementation])],
+                   [])],
                  [], [[#include <ldap.h>]])
+
 CFLAGS=$SAVE_CFLAGS
 LIBS=$SAVE_LIBS
 
