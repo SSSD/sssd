@@ -72,7 +72,8 @@ if HAVE_CHECK
         refcount-tests \
         fail_over-tests \
         find_uid-tests \
-        auth-tests
+        auth-tests \
+        ipa_ldap_opt-tests
 endif
 
 check_PROGRAMS = \
@@ -484,6 +485,7 @@ krb5_utils_tests_LDADD = \
     $(CARES_LIBS) \
     $(CHECK_LIBS)
 
+
 check_and_open_tests_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
     tests/check_and_open-tests.c \
@@ -599,6 +601,14 @@ auth_tests_CFLAG = \
     $(CHECK_CFLAGS)
 auth_tests_LDADD = \
     $(SSSD_LIBS) \
+    $(CHECK_LIBS)
+
+ipa_ldap_opt_tests_SOURCES = \
+    tests/ipa_ldap_opt-tests.c
+ipa_ldap_opt_tests_CFLAG = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+ipa_ldap_opt_tests_LDADD = \
     $(CHECK_LIBS)
 
 endif

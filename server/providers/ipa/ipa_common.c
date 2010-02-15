@@ -214,11 +214,6 @@ done:
     return ret;
 }
 
-/* the following define is used to keep track of * the options in the ldap
- * module, so that if they change and ipa is not updated correspondingly
- * this will trigger a runtime abort error */
-#define IPA_OPTS_BASIC_TEST 31
-
 int ipa_get_id_options(struct ipa_options *ipa_opts,
                        struct confdb_ctx *cdb,
                        const char *conf_path,
