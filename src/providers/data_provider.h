@@ -56,7 +56,76 @@
 #define DP_METHOD_REGISTER "RegisterService"
 #define DP_METHOD_ONLINE "getOnline"
 #define DP_METHOD_GETACCTINFO "getAccountInfo"
+/**
+ * @defgroup pamHandler PAM DBUS request
+ * @ingroup sss_pam
+ *
+ * The PAM responder send all the data it has received from the PAM client to
+ * the authentication backend with a DBUS message.
+ *
+ * As a response it expects basically a PAM return value (see pam(3) for
+ * details) and the name of the domain. The backend may send any number of
+ * additional messages (see ...) which are forwarded by the PAM responder to
+ * the PAM client.
+ * @{
+ */
+
+/** Then pamHandler Request
+ *
+ * The following two functions can help you to pack and unpack the DBUS
+ * message for a PAM request. If it is necessary to create the DBUS message by
+ * hand it must have the following elements:
+ *
+ * @param DBUS_TYPE_INT32 PAM Command, see #sss_cli_command for allowed values
+ * @param DBUS_TYPE_STRING Name of the Domain
+ * @param DBUS_TYPE_STRING User name, this value is send by the PAM client and
+ * contains the value of the PAM item PAM_USER
+ * @param DBUS_TYPE_STRING Service name, this value is send by the PAM client
+ * and contains the value of the PAM item PAM_SERVICE
+ * @param DBUS_TYPE_STRING TTY name this value is send by the PAM client and
+ * contains the value of the PAM item PAM_TTY
+ * @param DBUS_TYPE_STRING Remote user, this value is send by the PAM client
+ * and contains the value of the PAM item PAM_RUSER
+ * @param DBUS_TYPE_STRING Remote host, this value is send by the PAM client
+ * and contains the value of the PAM item PAM_RHOST
+ * @param DBUS_TYPE_UINT32 Type of the authentication token, see #sss_authtok_type
+ * for allowed values
+ * @param DBUS_TYPE_ARRAY__(BYTE) Authentication token, DBUS array which
+ * contains the authentication token, it is not required that passwords have a
+ * trailing \\0, this value is send by the PAM client and contains the value of
+ * the PAM item PAM_AUTHTOK or PAM_OLDAUTHTOK if the PAM command is
+ * #SSS_PAM_CHAUTHTOK or #SSS_PAM_CHAUTHTOK_PRELIM
+ * @param DBUS_TYPE_UINT32 Type of the new authentication token, see
+ * #sss_authtok_type for allowed values
+ * @param DBUS_TYPE_ARRAY__(BYTE) New authentication token, DBUS array which
+ * contains the new authentication token for a password change, it is not
+ * required that passwords have a trailing \\0, this value is send by the PAM
+ * client and contains the value of the PAM item PAM_AUTHTOK if the PAM
+ * command is #SSS_PAM_CHAUTHTOK or #SSS_PAM_CHAUTHTOK_PRELIM
+ * @param DBUS_TYPE_INT32 Privileged flag is set to a non-zero value if the
+ * PAM client connected to the PAM responder via the privileged pipe, i.e. if
+ * the PAM client is running with root privileges
+ * @param DBUS_TYPE_UINT32
+ *
+ * @retval DBUS_TYPE_UINT32 PAM return value, PAM_AUTHINFO_UNAVAIL is used to
+ * indicate that the provider is offline and that the PAM responder should try
+ * a chached authentication, for all other return value see the man pages for
+ * the corresponding PAM service functions
+ * @retval DBUS_TYPE_STRING Domain Name
+ * @retval DBUS_TYPE_ARRAY__(STRUCT) (optional) Zero more more additional
+ * messages, here the DBUS_TYPE_STRUCT is build of a DBUS_TYPE_UINT32 holding
+ * an identifier (see #response_type) and DBUS_TYPE_G_BYTE_ARRAY with the data
+ * of the message.
+ */
+
+
 #define DP_METHOD_PAMHANDLER "pamHandler"
+
+/**
+ * @}
+ */ /* end of group pamHandler */
+
+
 
 #define DP_ERR_OK 0
 #define DP_ERR_OFFLINE 1

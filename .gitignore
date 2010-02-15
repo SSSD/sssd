@@ -6,6 +6,7 @@ config.rpath
 config.h
 config.h.in
 cscope.out
+doxy.config
 Makefile
 Makefile.in
 Makefile.in.in
