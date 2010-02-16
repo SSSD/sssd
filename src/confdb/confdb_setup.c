@@ -285,7 +285,8 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     tmp_ctx = talloc_new(cdb);
     if (tmp_ctx == NULL) return ENOMEM;
 
-    ret = check_and_open_readonly(config_file, &fd, 0, 0, (S_IRUSR|S_IWUSR));
+    ret = check_and_open_readonly(config_file, &fd, 0, 0, (S_IRUSR|S_IWUSR),
+                                  CHECK_REG);
     if (ret != EOK) {
         DEBUG(1, ("Permission check on config file failed.\n"));
         talloc_zfree(tmp_ctx);

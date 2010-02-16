@@ -33,6 +33,7 @@
 #include <time.h>
 #include <pcre.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include "config.h"
 
@@ -247,8 +248,22 @@ int sss_parse_name(TALLOC_CTX *memctx,
 int backup_file(const char *src, int dbglvl);
 
 /* from check_and_open.c */
+enum check_file_type {
+    CHECK_DONT_CHECK_FILE_TYPE = -1,
+    CHECK_REG,
+    CHECK_DIR,
+    CHECK_CHR,
+    CHECK_BLK,
+    CHECK_FIFO,
+    CHECK_LNK,
+    CHECK_SOCK
+};
+errno_t check_file(const char *filename, const int uid, const int gid,
+                   const int mode, enum check_file_type type,
+                   struct stat *caller_stat_buf);
 errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
-                               const gid_t gid, const mode_t mode);
+                               const gid_t gid, const mode_t mode,
+                               enum check_file_type type);
 
 /* from util.c */
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,

@@ -29,8 +29,85 @@
 
 #include "util/util.h"
 
+errno_t check_file(const char *filename, const int uid, const int gid,
+                   const int mode, enum check_file_type type,
+                   struct stat *caller_stat_buf)
+{
+    int ret;
+    struct stat local_stat_buf;
+    struct stat *stat_buf;
+    bool type_check;
+
+    if (caller_stat_buf == NULL) {
+        stat_buf = &local_stat_buf;
+    } else {
+        stat_buf = caller_stat_buf;
+    }
+
+    ret = lstat(filename, stat_buf);
+    if (ret == -1) {
+        DEBUG(1, ("lstat for [%s] failed: [%d][%s].\n", filename, errno,
+                                                        strerror(errno)));
+        return errno;
+    }
+
+    switch (type) {
+        case CHECK_DONT_CHECK_FILE_TYPE:
+            type_check = true;
+            break;
+        case CHECK_REG:
+            type_check = S_ISREG(stat_buf->st_mode);
+            break;
+        case CHECK_DIR:
+            type_check = S_ISDIR(stat_buf->st_mode);
+            break;
+        case CHECK_CHR:
+            type_check = S_ISCHR(stat_buf->st_mode);
+            break;
+        case CHECK_BLK:
+            type_check = S_ISBLK(stat_buf->st_mode);
+            break;
+        case CHECK_FIFO:
+            type_check = S_ISFIFO(stat_buf->st_mode);
+            break;
+        case CHECK_LNK:
+            type_check = S_ISLNK(stat_buf->st_mode);
+            break;
+        case CHECK_SOCK:
+            type_check = S_ISSOCK(stat_buf->st_mode);
+            break;
+        default:
+            DEBUG(1, ("Unsupprted file type.\n"));
+            return EINVAL;
+    }
+
+    if (!type_check) {
+        DEBUG(1, ("File [%s] is not the right type.\n", filename));
+        return EINVAL;
+    }
+
+    if (mode >= 0 && (stat_buf->st_mode & ~S_IFMT) != mode) {
+        DEBUG(1, ("File [%s] has the wrong mode [%.7o], expected [%.7o].\n",
+                  filename, (stat_buf->st_mode & ~S_IFMT), mode));
+        return EINVAL;
+    }
+
+    if (uid >= 0 && stat_buf->st_uid != uid) {
+        DEBUG(1, ("File [%s] must be owned by uid [%d].\n", filename, uid));
+        return EINVAL;
+    }
+
+    if (gid >= 0 && stat_buf->st_gid != gid) {
+        DEBUG(1, ("File [%s] must be owned by gid [%d].\n", filename, gid));
+        return EINVAL;
+    }
+
+    return EOK;
+}
+
 errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
-                               const gid_t gid, const mode_t mode)
+                               const gid_t gid, const mode_t mode,
+                               enum check_file_type type)
 {
     int ret;
     struct stat stat_buf;
@@ -38,28 +115,10 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
 
     *fd = -1;
 
-    ret = lstat(filename, &stat_buf);
-    if (ret == -1) {
-        DEBUG(1, ("lstat for [%s] failed: [%d][%s].\n", filename, errno,
-                                                        strerror(errno)));
-        return errno;
-    }
-
-    if (!S_ISREG(stat_buf.st_mode)) {
-        DEBUG(1, ("File [%s] is not a regular file.\n", filename));
-        return EINVAL;
-    }
-
-    if ((stat_buf.st_mode & ~S_IFMT) != mode) {
-        DEBUG(1, ("File [%s] has the wrong mode [%.7o], expected [%.7o].\n",
-                  filename, (stat_buf.st_mode & ~S_IFMT), mode));
-        return EINVAL;
-    }
-
-    if (stat_buf.st_uid != uid || stat_buf.st_gid != gid) {
-        DEBUG(1, ("File [%s] must be owned by uid [%d] and gid [%d].\n",
-                  filename, uid, gid));
-        return EINVAL;
+    ret = check_file(filename, uid, gid, mode, type, &stat_buf);
+    if (ret != EOK) {
+        DEBUG(1, ("check_file failed.\n"));
+        return ret;
     }
 
     *fd = open(filename, O_RDONLY);

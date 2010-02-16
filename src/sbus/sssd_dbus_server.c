@@ -19,6 +19,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include "tevent.h"
 #include "util/util.h"
 #include "dbus/dbus.h"
@@ -95,6 +98,9 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
     DBusError dbus_error;
     dbus_bool_t dbret;
     char *tmp;
+    int ret;
+    char *filename;
+    struct stat stat_buf;
 
     *_server = NULL;
 
@@ -106,6 +112,27 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
                  dbus_error.name, dbus_error.message));
         if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
         return EIO;
+    }
+
+    filename = strchr(address, '/');
+    if (filename == NULL) {
+        DEBUG(1, ("Unexpected dbus address [%s].\n", address));
+        return EIO;
+    }
+
+    ret = check_file(filename, 0, 0, -1, CHECK_SOCK, &stat_buf);
+    if (ret != EOK) {
+        DEBUG(1, ("check_file failed for [%s].\n", filename));
+        return EIO;
+    }
+
+    if ((stat_buf.st_mode & ~S_IFMT) != 0600) {
+        ret = chmod(filename, 0600);
+        if (ret != EOK) {
+            DEBUG(1, ("chmod failed for [%s]: [%d][%s].\n", filename, errno,
+                                                         strerror(errno)));
+            return EIO;
+        }
     }
 
     tmp = dbus_server_get_address(dbus_server);

@@ -74,7 +74,7 @@ START_TEST(test_wrong_filename)
 {
     int ret;
 
-    ret = check_and_open_readonly("/bla/bla/bla", &fd, uid, gid, mode);
+    ret = check_and_open_readonly("/bla/bla/bla", &fd, uid, gid, mode, CHECK_REG);
     fail_unless(ret == ENOENT,
                 "check_and_open_readonly succeeded on non-existing file");
     fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
@@ -99,7 +99,7 @@ START_TEST(test_symlink)
     ret = symlink(filename, newpath);
     fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(ret));
 
-    ret = check_and_open_readonly(newpath, &fd, uid, gid, mode);
+    ret = check_and_open_readonly(newpath, &fd, uid, gid, mode, CHECK_REG);
     unlink(newpath);
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded on symlink");
@@ -111,7 +111,7 @@ START_TEST(test_not_regular_file)
 {
     int ret;
 
-    ret = check_and_open_readonly("/dev/null", &fd, uid, gid, mode);
+    ret = check_and_open_readonly("/dev/null", &fd, uid, gid, mode, CHECK_REG);
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded on non-regular file");
     fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
@@ -122,7 +122,7 @@ START_TEST(test_wrong_uid)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid+1, gid, mode);
+    ret = check_and_open_readonly(filename, &fd, uid+1, gid, mode, CHECK_REG);
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded with wrong uid");
     fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
@@ -133,7 +133,7 @@ START_TEST(test_wrong_gid)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid, gid+1, mode);
+    ret = check_and_open_readonly(filename, &fd, uid, gid+1, mode, CHECK_REG);
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded with wrong gid");
     fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
@@ -144,7 +144,8 @@ START_TEST(test_wrong_permission)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid, gid, (mode|S_IWOTH));
+    ret = check_and_open_readonly(filename, &fd, uid, gid, (mode|S_IWOTH),
+                                  CHECK_REG);
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded with wrong mode");
     fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
@@ -155,7 +156,7 @@ START_TEST(test_ok)
 {
     int ret;
 
-    ret = check_and_open_readonly(filename, &fd, uid, gid, mode);
+    ret = check_and_open_readonly(filename, &fd, uid, gid, mode, CHECK_REG);
     fail_unless(ret == EOK,
                 "check_and_open_readonly failed");
     fail_unless(fd >= 0,
@@ -169,7 +170,7 @@ START_TEST(test_write)
     ssize_t size;
     errno_t my_errno;
 
-    ret = check_and_open_readonly(filename, &fd, uid, gid, mode);
+    ret = check_and_open_readonly(filename, &fd, uid, gid, mode, CHECK_REG);
     fail_unless(ret == EOK,
                 "check_and_open_readonly failed");
     fail_unless(fd >= 0,

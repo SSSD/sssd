@@ -33,10 +33,23 @@ int sbus_client_init(TALLOC_CTX *mem_ctx,
 {
     struct sbus_connection *conn = NULL;
     int ret;
+    char *filename;
 
     /* Validate input */
     if (server_address == NULL) {
         return EINVAL;
+    }
+
+    filename = strchr(server_address, '/');
+    if (filename == NULL) {
+        DEBUG(1, ("Unexpected dbus address [%s].\n", server_address));
+        return EIO;
+    }
+
+    ret = check_file(filename, 0, 0, 0600, CHECK_SOCK, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("check_file failed for [%s].\n", filename));
+        return EIO;
     }
 
     ret = sbus_new_connection(mem_ctx, ev, server_address, intf, &conn);
