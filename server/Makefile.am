@@ -36,12 +36,6 @@ if HAVE_GCC
                  -Werror-implicit-function-declaration
 endif
 
-REPLACE_CFLAGS = \
-    -I $(srcdir)/../replace
-REPLACE_LIBS = \
-    -L$(builddir)/../replace \
-    -lreplace
-
 ACLOCAL_AMFLAGS = -I m4 -I .
 
 sbin_PROGRAMS = \
@@ -193,7 +187,6 @@ AM_CPPFLAGS = -Wall \
     $(LDB_CFLAGS) \
     $(DBUS_CFLAGS) \
     $(PCRE_CFLAGS) \
-    $(REPLACE_CFLAGS) \
     $(COLLECTION_CFLAGS) \
     $(INI_CFG_CFLAGS) \
     $(DHASH_CFLAGS) \
@@ -266,7 +259,6 @@ SSSD_LIBS = \
     $(INI_CFG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-    $(REPLACE_LIBS) \
     $(SSS_CRYPT_LIBS) \
     libsss_crypt.la
 
@@ -276,7 +268,6 @@ PYTHON_BINDINGS_LIBS = \
     $(POPT_LIBS) \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
-    $(REPLACE_LIBS) \
     $(PCRE_LIBS) \
     $(SSS_CRYPT_LIBS) \
     libsss_crypt.la
@@ -291,7 +282,6 @@ TOOLS_LIBS = \
     $(INI_CFG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
-    $(REPLACE_LIBS) \
     libsss_crypt.la
 
 if BUILD_SELINUX
