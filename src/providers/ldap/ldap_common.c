@@ -62,7 +62,8 @@ struct dp_option default_basic_opts[] = {
     /* use the same parm name as the krb5 module so we set it only once */
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING },
-    { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE }
+    { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER }
 };
 
 struct sdap_attr_map generic_attr_map[] = {
@@ -166,6 +167,8 @@ int ldap_get_options(TALLOC_CTX *memctx,
     char *schema;
     const char *pwd_policy;
     int ret;
+    int account_cache_expiration;
+    int offline_credentials_expiration;
 
     opts = talloc_zero(memctx, struct sdap_options);
     if (!opts) return ENOMEM;
@@ -213,6 +216,48 @@ int ldap_get_options(TALLOC_CTX *memctx,
         strcasecmp(pwd_policy, PWD_POL_OPT_SHADOW) != 0 &&
         strcasecmp(pwd_policy, PWD_POL_OPT_MIT) != 0) {
         DEBUG(1, ("Unsupported password policy [%s].\n", pwd_policy));
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* account_cache_expiration must be >= than offline_credentials_expiration */
+    ret = confdb_get_int(cdb, memctx, CONFDB_PAM_CONF_ENTRY,
+                         CONFDB_PAM_CRED_TIMEOUT, 0,
+                         &offline_credentials_expiration);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot get value of %s from confdb \n",
+                  CONFDB_PAM_CRED_TIMEOUT));
+        goto done;
+    }
+
+    account_cache_expiration = dp_opt_get_int(opts->basic,
+                                              SDAP_ACCOUNT_CACHE_EXPIRATION);
+
+    /* account cache_expiration must not be smaller than
+     * offline_credentials_expiration to prevent deleting entries that
+     * still contain credentials valid for offline login.
+     *
+     * offline_credentials_expiration == 0 is a special case that says
+     * that the cached credentials are valid forever. Therefore, the cached
+     * entries must not be purged from cache.
+     */
+    if (!offline_credentials_expiration && account_cache_expiration) {
+        DEBUG(1, ("Conflicting values for options %s (unlimited) "
+                  "and %s (%d)\n",
+                  opts->basic[SDAP_ACCOUNT_CACHE_EXPIRATION].opt_name,
+                  CONFDB_PAM_CRED_TIMEOUT,
+                  offline_credentials_expiration));
+        ret = EINVAL;
+        goto done;
+    }
+    if (offline_credentials_expiration && account_cache_expiration &&
+        offline_credentials_expiration >= account_cache_expiration) {
+        DEBUG(1, ("Value of %s (now %d) must be larger "
+                  "than value of %s (now %d)\n",
+                  opts->basic[SDAP_ACCOUNT_CACHE_EXPIRATION].opt_name,
+                  account_cache_expiration,
+                  CONFDB_PAM_CRED_TIMEOUT,
+                  offline_credentials_expiration));
         ret = EINVAL;
         goto done;
     }

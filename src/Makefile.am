@@ -664,6 +664,7 @@ dist_noinst_DATA += \
 # Plugin Libraries #
 ####################
 libsss_ldap_la_SOURCES = \
+    util/find_uid.c \
     providers/child_common.c \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \

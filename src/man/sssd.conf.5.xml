@@ -460,6 +460,21 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>account_cache_expiration (integer)</term>
+                    <listitem>
+                        <para>
+                            Number of days entries are left in cache after
+                            last successful login before being removed during
+                            a cleanup of the cache. 0 means keep forever.
+                            The value of this parameter must be bigger than
+                            offline_credentials_expiration.
+                        </para>
+                        <para>
+                            Default: 0 (unlimited)
+                        </para>
+                    </listitem>
+                </varlistentry>
 
                 <varlistentry>
                     <term>id_provider (string)</term>
