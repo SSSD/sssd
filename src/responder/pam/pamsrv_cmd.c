@@ -417,6 +417,11 @@ static errno_t set_last_login(struct pam_auth_req *preq)
         goto fail;
     }
 
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_LOGIN, time(NULL));
+    if (ret != EOK) {
+        goto fail;
+    }
+
     ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list, preq->domain,
                                   &dbctx);
     if (ret != EOK) {
