@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-02-05 09:37-0500\n"
+"POT-Creation-Date: 2010-02-17 09:21-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -644,4 +644,48 @@ msgstr ""
 
 #: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
+msgstr ""
+
+#: sss_client/pam_sss.c:342
+msgid "Passwords do not match"
+msgstr ""
+
+#: sss_client/pam_sss.c:411
+msgid "Offline authentication"
+msgstr ""
+
+#: sss_client/pam_sss.c:412
+msgid ", your cached password will expire at: "
+msgstr ""
+
+#: sss_client/pam_sss.c:462
+msgid "Offline authentication, authentication is denied until: "
+msgstr ""
+
+#: sss_client/pam_sss.c:489
+msgid "System is offline, password change not possible"
+msgstr ""
+
+#: sss_client/pam_sss.c:519
+msgid "Password change failed. "
+msgstr ""
+
+#: sss_client/pam_sss.c:520
+msgid "Server message: "
+msgstr ""
+
+#: sss_client/pam_sss.c:855
+msgid "Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:887
+msgid "New Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:888
+msgid "Reenter new Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:1092
+msgid "Password has expired."
 msgstr ""

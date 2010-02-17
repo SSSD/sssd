@@ -219,7 +219,6 @@ rm -f \
 
 # Prepare language files
 /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sss_daemon
-/usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sss_client
 
 # Copy default sssd.conf file
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/sssd
@@ -301,7 +300,7 @@ rm -rf $RPM_BUILD_ROOT
 %{python_sitelib}/*.py*
 
 
-%files client -f sss_client.lang
+%files client
 %defattr(-,root,root,-)
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so

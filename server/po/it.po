@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-02-05 09:37-0500\n"
+"POT-Creation-Date: 2010-02-17 09:21-0500\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Marina Latini <deneb.alphacygni@gmail.com>\n"
 "Language-Team: Italian <fedora-trans-it@redhat.com>\n"
@@ -655,3 +655,48 @@ msgstr "Impossibile modificare l'utente - utente già membro di gruppi?\n"
 #: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Errore della transazione. Impossibile modificare l'utente.\n"
+
+#: sss_client/pam_sss.c:342
+msgid "Passwords do not match"
+msgstr "Le password non coincidono"
+
+#: sss_client/pam_sss.c:411
+msgid "Offline authentication"
+msgstr ""
+
+#: sss_client/pam_sss.c:412
+msgid ", your cached password will expire at: "
+msgstr ""
+
+#: sss_client/pam_sss.c:462
+msgid "Offline authentication, authentication is denied until: "
+msgstr ""
+
+#: sss_client/pam_sss.c:489
+msgid "System is offline, password change not possible"
+msgstr ""
+
+#: sss_client/pam_sss.c:519
+#, fuzzy
+msgid "Password change failed. "
+msgstr "La password è scaduta."
+
+#: sss_client/pam_sss.c:520
+msgid "Server message: "
+msgstr ""
+
+#: sss_client/pam_sss.c:855
+msgid "Password: "
+msgstr "Password: "
+
+#: sss_client/pam_sss.c:887
+msgid "New Password: "
+msgstr "Nuova password: "
+
+#: sss_client/pam_sss.c:888
+msgid "Reenter new Password: "
+msgstr "reinserire la nuova password: "
+
+#: sss_client/pam_sss.c:1092
+msgid "Password has expired."
+msgstr "La password è scaduta."
