@@ -43,6 +43,19 @@ AC_CHECK_TYPES([errno_t], [], [], [[#include <errno.h>]])
 m4_include([build_macros.m4])
 BUILD_WITH_SHARED_BUILD_DIR
 
+#Check for PAM headers
+AC_CHECK_HEADERS([security/pam_appl.h security/pam_misc.h security/pam_modules.h],
+    [AC_CHECK_LIB(pam, pam_get_item, [ PAM_LIBS="-lpam" ], [AC_MSG_ERROR([PAM must support pam_get_item])])],
+    [AC_MSG_ERROR([PAM development libraries not installed])]
+)
+
+#Set the NSS library install path
+AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nsslibdir],
+                                        [Where to install nss libraries ($libdir)])],
+              [nsslibdir=$enableval],
+              [nsslibdir=$libdir])
+AC_SUBST(nsslibdir)
+
 m4_include(conf_macros.m4)
 WITH_DB_PATH
 WITH_PLUGIN_PATH

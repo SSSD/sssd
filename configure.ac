@@ -8,7 +8,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_INSTALL
 
-AC_CONFIG_SUBDIRS([common server sss_client])
+AC_CONFIG_SUBDIRS([common server])
 
 AC_SUBST([PRERELEASE_VERSION],
          PRERELEASE_VERSION_NUMBER)

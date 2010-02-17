@@ -34,7 +34,7 @@
 #include "dbus/dbus.h"
 #include "sbus/sssd_dbus.h"
 #include "sbus/sbus_client.h"
-#include "../sss_client/sss_cli.h"
+#include "sss_client/sss_cli.h"
 
 #define DATA_PROVIDER_VERSION 0x0001
 #define DATA_PROVIDER_SERVICE_NAME "dp"

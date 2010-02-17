@@ -17,6 +17,8 @@ sssdapiplugindir = $(sssdconfdir)/sssd.api.d
 dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 localedir = @localedir@
+nsslibdir = @nsslibdir@
+pamlibdir = $(nsslibdir)/security
 
 dbpath = @dbpath@
 pluginpath = @pluginpath@
@@ -179,6 +181,7 @@ AM_CPPFLAGS = -Wall \
     -Iinclude \
     -I.. \
     -I$(srcdir)/include \
+    -I$(srcdir)/sss_client \
     -Iinclude \
     -I. \
     $(POPT_CFLAGS) \
@@ -619,6 +622,42 @@ stress_tests_SOURCES = \
 stress_tests_LDADD = \
     $(SSSD_LIBS)
 
+noinst_PROGRAMS = pam_test_client
+pam_test_client_SOURCES = sss_client/pam_test_client.c
+pam_test_client_LDFLAGS = -lpam -lpam_misc
+
+####################
+# Client Libraries #
+####################
+
+nsslib_LTLIBRARIES = libnss_sss.la
+libnss_sss_la_SOURCES = \
+    sss_client/common.c \
+    sss_client/passwd.c \
+    sss_client/group.c \
+    sss_client/sss_cli.h
+libnss_sss_la_LDFLAGS = \
+    -module \
+    -version-info 2:0:0 \
+    -Wl,--version-script,$(srcdir)/sss_client/sss_nss.exports
+
+pamlib_LTLIBRARIES = pam_sss.la
+pam_sss_la_SOURCES = \
+    sss_client/pam_sss.c \
+    sss_client/common.c \
+    sss_client/sss_cli.h \
+    sss_client/sss_pam_macros.h
+
+pam_sss_la_LDFLAGS = \
+    -lpam \
+    -module \
+    -avoid-version \
+    -Wl,--version-script,$(srcdir)/sss_client/sss_pam.exports
+
+dist_noinst_DATA += \
+    sss_client/sss_nss.exports \
+    sss_client/sss_pam.exports
+
 ####################
 # Plugin Libraries #
 ####################
@@ -799,7 +838,7 @@ dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
 		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
 		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5 \
 		man/sssd-ipa.5 man/sssd_krb5_locator_plugin.8 \
-		man/sss_groupshow.8
+		man/sss_groupshow.8 sss_client/man/pam_sss.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
@@ -880,6 +919,11 @@ install-exec-hook: installsssddirs
 		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/config/.files; \
 	fi
 	mkdir -p doc $(DESTDIR)/$(docdir); cp -a doc $(DESTDIR)/$(docdir)/
+
+install-data-hook:
+	rm $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2 \
+       $(DESTDIR)/$(nsslibdir)/libnss_sss.so
+	mv $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2.0.0 $(DESTDIR)/$(nsslibdir)/libnss_sss.so.2
 
 uninstall-hook:
 	if [ -f $(abs_builddir)/config/.files ]; then \

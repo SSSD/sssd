@@ -9,3 +9,8 @@ tools/tools_util.h
 tools/sss_useradd.c
 tools/sss_groupadd.c
 tools/sss_usermod.c
+sss_client/common.c
+sss_client/group.c
+sss_client/pam_sss.c
+sss_client/pam_test_client.c
+sss_client/passwd.c
