@@ -1,4 +1,4 @@
-SUBDIRS = replace common server sss_client
+SUBDIRS = common server sss_client
 
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb
 

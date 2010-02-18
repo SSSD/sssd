@@ -42,16 +42,9 @@ Internal Library Requirements
 sssd provides several required libraries within its source tree:
 collection
 ini_config
-libreplace
 
 Compiling sssd internal libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd replace;
-autoreconf -i -f && \
-./configure && \
-make;
-popd
-
 pushd common;
 autoreconf -i -f && \
 ./configure --enable-static --disable-shared && \
@@ -97,4 +90,4 @@ Now you can call pam_test_client:
 ./pam_test_client [auth|chau|acct|setc|open|clos] username@domain
 
 ~~~~~
-Simo and Steve (Last updated for 0.4.0)
+Simo and Steve (Last updated for 1.1.0)
