@@ -390,6 +390,8 @@ dist_noinst_DATA += \
     examples/sssdproxytest \
     examples/sudo \
     providers/sssd_be.exports \
+    sss_client/COPYING \
+    sss_client/COPYING.LESSER \
     m4
 
 ######################
