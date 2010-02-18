@@ -316,7 +316,7 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
         return ENOMEM;
     }
 
-    buf->size = 9*sizeof(uint32_t) + strlen(kr->pd->upn) + strlen(kr->ccname) +
+    buf->size = 9*sizeof(uint32_t) + strlen(kr->upn) + strlen(kr->ccname) +
                 strlen(keytab) +
                 kr->pd->authtok_size;
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
@@ -332,13 +332,13 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
 
     rp = 0;
     COPY_UINT32(&buf->data[rp], &kr->pd->cmd, rp);
-    COPY_UINT32(&buf->data[rp], &kr->pd->pw_uid, rp);
-    COPY_UINT32(&buf->data[rp], &kr->pd->gr_gid, rp);
+    COPY_UINT32(&buf->data[rp], &kr->uid, rp);
+    COPY_UINT32(&buf->data[rp], &kr->gid, rp);
     COPY_UINT32(&buf->data[rp], &validate, rp);
     COPY_UINT32(&buf->data[rp], &kr->is_offline, rp);
 
-    COPY_UINT32_VALUE(&buf->data[rp], strlen(kr->pd->upn), rp);
-    COPY_MEM(&buf->data[rp], kr->pd->upn, rp, strlen(kr->pd->upn));
+    COPY_UINT32_VALUE(&buf->data[rp], strlen(kr->upn), rp);
+    COPY_MEM(&buf->data[rp], kr->upn, rp, strlen(kr->upn));
 
     COPY_UINT32_VALUE(&buf->data[rp], strlen(kr->ccname), rp);
     COPY_MEM(&buf->data[rp], kr->ccname, rp, strlen(kr->ccname));
@@ -516,7 +516,7 @@ static errno_t fork_child(struct krb5child_req *kr)
          * ccache file. In this case we can drop the privileges, too. */
         if (!dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ||
             kr->pd->authtok_size == 0) {
-            ret = become_user(kr->pd->pw_uid, kr->pd->gr_gid);
+            ret = become_user(kr->uid, kr->gid);
             if (ret != EOK) {
                 DEBUG(1, ("become_user failed.\n"));
                 return ret;
@@ -718,7 +718,7 @@ void krb5_pam_handler(struct be_req *be_req)
         goto done;
     }
 
-    attrs = talloc_array(be_req, const char *, 4);
+    attrs = talloc_array(be_req, const char *, 6);
     if (attrs == NULL) {
         goto done;
     }
@@ -726,7 +726,9 @@ void krb5_pam_handler(struct be_req *be_req)
     attrs[0] = SYSDB_UPN;
     attrs[1] = SYSDB_HOMEDIR;
     attrs[2] = SYSDB_CCACHE_FILE;
-    attrs[3] = NULL;
+    attrs[3] = SYSDB_UIDNUM;
+    attrs[4] = SYSDB_GIDNUM;
+    attrs[5] = NULL;
 
     ret = sysdb_get_user_attr(be_req, be_req->be_ctx->sysdb,
                               be_req->be_ctx->domain, pd->user, attrs,
@@ -753,7 +755,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
     krb5_error_code kerr;
     int ret;
     struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
-    int pam_status=PAM_SYSTEM_ERR;
+    int pam_status = PAM_SYSTEM_ERR;
     int dp_err = DP_ERR_FATAL;
     const char *ccache_file = NULL;
     const char *realm;
@@ -784,15 +786,15 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         break;
 
     case 1:
-        pd->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
-        if (pd->upn == NULL) {
+        kr->upn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_UPN, NULL);
+        if (kr->upn == NULL) {
             /* NOTE: this is a hack, works only in some environments */
-            pd->upn = talloc_asprintf(be_req, "%s@%s", pd->user, realm);
-            if (pd->upn == NULL) {
+            kr->upn = talloc_asprintf(be_req, "%s@%s", pd->user, realm);
+            if (kr->upn == NULL) {
                 DEBUG(1, ("failed to build simple upn.\n"));
                 goto failed;
             }
-            DEBUG(9, ("Using simple UPN [%s].\n", pd->upn));
+            DEBUG(9, ("Using simple UPN [%s].\n", kr->upn));
         }
 
         kr->homedir = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR,
@@ -801,18 +803,30 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
             DEBUG(4, ("Home directory for user [%s] not known.\n", pd->user));
         }
 
+        kr->uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
+        if (kr->uid == 0) {
+            DEBUG(4, ("UID for user [%s] not known.\n", pd->user));
+            goto failed;
+        }
+
+        kr->gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
+        if (kr->gid == 0) {
+            DEBUG(4, ("GID for user [%s] not known.\n", pd->user));
+            goto failed;
+        }
+
         ccache_file = ldb_msg_find_attr_as_string(res->msgs[0],
                                                   SYSDB_CCACHE_FILE,
                                                   NULL);
         if (ccache_file != NULL) {
-            ret = check_if_ccache_file_is_used(pd->pw_uid, ccache_file,
+            ret = check_if_ccache_file_is_used(kr->uid, ccache_file,
                                                &kr->active_ccache_present);
             if (ret != EOK) {
                 DEBUG(1, ("check_if_ccache_file_is_used failed.\n"));
                 goto failed;
             }
 
-            kerr = check_for_valid_tgt(ccache_file, realm, pd->upn,
+            kerr = check_for_valid_tgt(ccache_file, realm, kr->upn,
                                        &kr->valid_tgt_present);
             if (kerr != 0) {
                 DEBUG(1, ("check_for_valid_tgt failed.\n"));

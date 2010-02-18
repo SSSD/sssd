@@ -112,10 +112,6 @@ struct pam_data {
     bool offline_auth;
     bool last_auth_saved;
     int priv;
-    uid_t pw_uid;
-    gid_t gr_gid;
-
-    const char *upn;
 };
 
 /* from dp_auth_util.c */

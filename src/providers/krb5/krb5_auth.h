@@ -48,6 +48,9 @@ struct krb5child_req {
 
     const char *ccname;
     const char *homedir;
+    const char *upn;
+    uid_t uid;
+    gid_t gid;
     bool is_offline;
     struct fo_server *srv;
     bool active_ccache_present;

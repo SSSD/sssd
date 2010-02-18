@@ -64,8 +64,8 @@ void setup_talloc_context(void)
     fail_unless(pd != NULL, "Cannot create krb5_ctx structure.");
 
     pd->user = discard_const(USERNAME);
-    pd->pw_uid = atoi(UID);
-    pd->upn = PRINCIPLE_NAME;
+    kr->uid = atoi(UID);
+    kr->upn = PRINCIPLE_NAME;
     pd->cli_pid = atoi(PID);
 
     krb5_ctx->opts = talloc_zero_array(tmp_ctx, struct dp_option, KRB5_OPTS);

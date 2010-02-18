@@ -35,8 +35,6 @@ void pam_print_data(int l, struct pam_data *pd)
     DEBUG(l, ("newauthtok type: %d\n", pd->newauthtok_type));
     DEBUG(l, ("newauthtok size: %d\n", pd->newauthtok_size));
     DEBUG(l, ("priv: %d\n", pd->priv));
-    DEBUG(l, ("pw_uid: %d\n", pd->pw_uid));
-    DEBUG(l, ("gr_gid: %d\n", pd->gr_gid));
     DEBUG(l, ("cli_pid: %d\n", pd->cli_pid));
 }
 
@@ -86,8 +84,6 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
                                        &(pd->newauthtok),
                                        pd->newauthtok_size,
                                    DBUS_TYPE_INT32, &(pd->priv),
-                                   DBUS_TYPE_INT32, &(pd->pw_uid),
-                                   DBUS_TYPE_INT32, &(pd->gr_gid),
                                    DBUS_TYPE_UINT32, &(pd->cli_pid),
                                    DBUS_TYPE_INVALID);
 
@@ -115,8 +111,6 @@ bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbu
                                     &(pd->newauthtok),
                                     &(pd->newauthtok_size),
                                 DBUS_TYPE_INT32, &(pd->priv),
-                                DBUS_TYPE_INT32, &(pd->pw_uid),
-                                DBUS_TYPE_INT32, &(pd->gr_gid),
                                 DBUS_TYPE_UINT32, &(pd->cli_pid),
                                 DBUS_TYPE_INVALID);
 

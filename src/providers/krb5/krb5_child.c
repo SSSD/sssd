@@ -89,6 +89,10 @@ struct krb5_req {
     char *ccname;
     char *keytab;
     bool validate;
+
+    const char *upn;
+    uid_t uid;
+    gid_t gid;
 };
 
 static krb5_context krb5_error_ctx;
@@ -507,7 +511,7 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
         /* We drop root privileges which were needed to read the keytab file
          * for the validation validation of the credentials here to run the
          * ccache I/O operations with user privileges. */
-        ret = become_user(kr->pd->pw_uid, kr->pd->gr_gid);
+        ret = become_user(kr->uid, kr->gid);
         if (ret != EOK) {
             DEBUG(1, ("become_user failed.\n"));
             return ret;
@@ -723,34 +727,35 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
 }
 
 static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
-                             char **ccname, char **keytab, uint32_t *validate,
-                             uint32_t *offline)
+                             struct krb5_req *kr, uint32_t *offline)
 {
     size_t p = 0;
     uint32_t len;
+    uint32_t validate;
 
     COPY_UINT32_CHECK(&pd->cmd, buf + p, p, size);
-    COPY_UINT32_CHECK(&pd->pw_uid, buf + p, p, size);
-    COPY_UINT32_CHECK(&pd->gr_gid, buf + p, p, size);
-    COPY_UINT32_CHECK(validate, buf + p, p, size);
+    COPY_UINT32_CHECK(&kr->uid, buf + p, p, size);
+    COPY_UINT32_CHECK(&kr->gid, buf + p, p, size);
+    COPY_UINT32_CHECK(&validate, buf + p, p, size);
+    kr->validate = (validate == 0) ? false : true;
     COPY_UINT32_CHECK(offline, buf + p, p, size);
 
     COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len ) > size) return EINVAL;
-    pd->upn = talloc_strndup(pd, (char *)(buf + p), len);
-    if (pd->upn == NULL) return ENOMEM;
+    kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
+    if (kr->upn == NULL) return ENOMEM;
     p += len;
 
     COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len ) > size) return EINVAL;
-    *ccname = talloc_strndup(pd, (char *)(buf + p), len);
-    if (*ccname == NULL) return ENOMEM;
+    kr->ccname = talloc_strndup(pd, (char *)(buf + p), len);
+    if (kr->ccname == NULL) return ENOMEM;
     p += len;
 
     COPY_UINT32_CHECK(&len, buf + p, p, size);
     if ((p + len ) > size) return EINVAL;
-    *keytab = talloc_strndup(pd, (char *)(buf + p), len);
-    if (*keytab == NULL) return ENOMEM;
+    kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
+    if (kr->keytab == NULL) return ENOMEM;
     p += len;
 
     COPY_UINT32_CHECK(&len, buf + p, p, size);
@@ -804,19 +809,9 @@ static int krb5_cleanup(void *ptr)
     return EOK;
 }
 
-static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
-                      uint32_t offline, struct krb5_req **krb5_req)
+static int krb5_setup(struct krb5_req *kr, uint32_t offline)
 {
-    struct krb5_req *kr = NULL;
     krb5_error_code kerr = 0;
-
-    kr = talloc_zero(pd, struct krb5_req);
-    if (kr == NULL) {
-        DEBUG(1, ("talloc failed.\n"));
-        kerr = ENOMEM;
-        goto failed;
-    }
-    talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
 
     kr->krb5_ctx = talloc_zero(kr, struct krb5_child_ctx);
     if (kr->krb5_ctx == NULL) {
@@ -829,7 +824,7 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
     if (kr->krb5_ctx->changepw_principle == NULL) {
         DEBUG(1, ("Cannot read [%s] from environment.\n",
                   SSSD_KRB5_CHANGEPW_PRINCIPLE));
-        if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+        if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
             goto failed;
         }
     }
@@ -839,9 +834,7 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
         DEBUG(2, ("Cannot read [%s] from environment.\n", SSSD_KRB5_REALM));
     }
 
-    kr->pd = pd;
-
-    switch(pd->cmd) {
+    switch(kr->pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
             /* If we are offline, we need to create an empty ccache file */
             if (offline) {
@@ -855,7 +848,7 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
             kr->child_req = changepw_child;
             break;
         default:
-            DEBUG(1, ("PAM command [%d] not supported.\n", pd->cmd));
+            DEBUG(1, ("PAM command [%d] not supported.\n", kr->pd->cmd));
             kerr = EINVAL;
             goto failed;
     }
@@ -866,7 +859,7 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
         goto failed;
     }
 
-    kerr = krb5_parse_name(kr->ctx, user_princ_str, &kr->princ);
+    kerr = krb5_parse_name(kr->ctx, kr->upn, &kr->princ);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto failed;
@@ -904,11 +897,9 @@ static int krb5_setup(struct pam_data *pd, const char *user_princ_str,
  *  krb5_get_init_creds_opt_set_pa
  */
 
-    *krb5_req = kr;
     return EOK;
 
 failed:
-    talloc_free(kr);
 
     return kerr;
 }
@@ -920,9 +911,6 @@ int main(int argc, const char *argv[])
     ssize_t len = 0;
     struct pam_data *pd = NULL;
     struct krb5_req *kr = NULL;
-    char *ccname;
-    char *keytab;
-    uint32_t validate;
     uint32_t offline;
     int opt;
     poptContext pc;
@@ -997,20 +985,25 @@ int main(int argc, const char *argv[])
     }
     close(STDIN_FILENO);
 
-    ret = unpack_buffer(buf, len, pd, &ccname, &keytab, &validate, &offline);
+    kr = talloc_zero(pd, struct krb5_req);
+    if (kr == NULL) {
+        DEBUG(1, ("talloc failed.\n"));
+        goto fail;
+    }
+    talloc_set_destructor((TALLOC_CTX *) kr, krb5_cleanup);
+    kr->pd = pd;
+
+    ret = unpack_buffer(buf, len, pd, kr, &offline);
     if (ret != EOK) {
         DEBUG(1, ("unpack_buffer failed.\n"));
         goto fail;
     }
 
-    ret = krb5_setup(pd, pd->upn, offline, &kr);
+    ret = krb5_setup(kr, offline);
     if (ret != EOK) {
         DEBUG(1, ("krb5_setup failed.\n"));
         goto fail;
     }
-    kr->ccname = ccname;
-    kr->keytab = keytab;
-    kr->validate = (validate == 0) ? false : true;
 
     ret = kr->child_req(STDOUT_FILENO, kr);
     if (ret != EOK) {

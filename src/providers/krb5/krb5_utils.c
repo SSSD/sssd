@@ -74,21 +74,21 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                                                 kr->pd->user);
                 break;
             case 'U':
-                if (kr->pd->pw_uid <= 0) {
+                if (kr->uid <= 0) {
                     DEBUG(1, ("Cannot expand uid template "
                               "because uid is invalid.\n"));
                     return NULL;
                 }
                 result = talloc_asprintf_append(result, "%s%d", p,
-                                                kr->pd->pw_uid);
+                                                kr->uid);
                 break;
             case 'p':
-                if (kr->pd->upn == NULL) {
+                if (kr->upn == NULL) {
                     DEBUG(1, ("Cannot expand user principle name template "
                               "because upn is empty.\n"));
                     return NULL;
                 }
-                result = talloc_asprintf_append(result, "%s%s", p, kr->pd->upn);
+                result = talloc_asprintf_append(result, "%s%s", p, kr->upn);
                 break;
             case '%':
                 result = talloc_asprintf_append(result, "%s%%", p);
