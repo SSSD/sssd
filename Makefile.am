@@ -1,4 +1,4 @@
-SUBDIRS = common server
+SUBDIRS = common src
 
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb
 
@@ -58,4 +58,4 @@ tests: all
 	done
 
 docs:
-	$(MAKE) -C server $@
+	$(MAKE) -C src $@

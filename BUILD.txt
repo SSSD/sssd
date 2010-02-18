@@ -17,7 +17,7 @@ yum install openldap-devel gettext libtool pcre-devel c-ares-devel \
     dbus-devel libxslt-devel docbook-style-xsl krb5-devel \
     docbook-style-xsl libxml2 pam-devel nss-devel libtevent \
     libtevent-devel libtdb libtdb-devel libtalloc libtalloc-devel \
-    libldb libldb-devel cvs popt-devel
+    libldb libldb-devel cvs popt-devel c-ares-devel
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 How to build everything in one go (Preferred approach)
@@ -42,32 +42,21 @@ Internal Library Requirements
 sssd provides several required libraries within its source tree:
 collection
 ini_config
+dhash
+refarray
+path_utils
 
 Compiling sssd internal libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 pushd common;
 autoreconf -i -f && \
-./configure --enable-static --disable-shared && \
+./configure --disable-static --enable-shared && \
 make;
 popd
 
-This will build the libraries statically for linking into the sssd. Currently
-the sssd build system does not support dynamically linking. (The external API
-for collection and ini_config is not yet ready for general consumption).
-
 Compiling sssd with system installed libraries
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pushd server; \
-autoreconf -i -f && \
-./configure && \
-make; \
-popd
-
-Compiling client libraries
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-The nss and pam client do not require any additional dependencies.
-
-pushd sss_client; \
+pushd src; \
 autoreconf -i -f && \
 ./configure && \
 make; \
