@@ -6,8 +6,7 @@ Version: @PACKAGE_VERSION@
 Release: 0@PRERELEASE_VERSION@%{?dist}
 Group: Applications/System
 Summary: System Security Services Daemon
-# The entire source code is GPLv3+ except replace/ which is LGPLv3+
-License: GPLv3+ and LGPLv3+
+License: GPLv3+
 URL: http://fedorahosted.org/sssd/
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
@@ -80,6 +79,7 @@ services for projects like FreeIPA.
 %package client
 Summary: SSSD Client libraries for NSS and PAM
 Group: Applications/System
+License: LGPLv3+
 
 %description client
 Provides the libraries needed by the PAM and NSS stacks to connect to the SSSD
@@ -302,6 +302,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files client
 %defattr(-,root,root,-)
+%doc sss_client/COPYING sss_client/COPYING.LESSER
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
 %{_mandir}/man8/pam_sss.8*
