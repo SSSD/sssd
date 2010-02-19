@@ -1092,7 +1092,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
     int ret;
     char *password = NULL;
 
-    if (pd->cmd == SSS_PAM_AUTHENTICATE) {
+    if (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) {
         ret = add_krb5_env(krb5_ctx->opts, kr->ccname, pd);
         if (ret != EOK) {
             DEBUG(1, ("add_krb5_env failed.\n"));
