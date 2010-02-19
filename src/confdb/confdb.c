@@ -521,6 +521,7 @@ int confdb_init(TALLOC_CTX *mem_ctx,
 {
     struct confdb_ctx *cdb;
     int ret = EOK;
+    mode_t old_umask;
 
     cdb = talloc_zero(mem_ctx, struct confdb_ctx);
     if (!cdb)
@@ -552,7 +553,10 @@ int confdb_init(TALLOC_CTX *mem_ctx,
         return EIO;
     }
 
+    old_umask = umask(0177);
+
     ret = ldb_connect(cdb->ldb, confdb_location, 0, NULL);
+    umask(old_umask);
     if (ret != LDB_SUCCESS) {
         DEBUG(0, ("Unable to open config database [%s]\n",
                   confdb_location));
