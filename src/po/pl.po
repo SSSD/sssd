@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-02-17 09:21-0500\n"
-"PO-Revision-Date: 2010-02-06 01:03+0100\n"
+"PO-Revision-Date: 2010-02-19 15:36+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -687,19 +687,19 @@ msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 #: sss_client/pam_sss.c:462
 msgid "Offline authentication, authentication is denied until: "
 msgstr ""
+"Uwierzytelnianie w trybie offline, uwierzytelnianie jest zabronione do: "
 
 #: sss_client/pam_sss.c:489
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "System jest w trybie offline, zmiana hasła nie jest możliwa"
 
 #: sss_client/pam_sss.c:519
-#, fuzzy
 msgid "Password change failed. "
-msgstr "Dostawca zmiany hasła"
+msgstr "Zmiana hasła nie powiodła się. "
 
 #: sss_client/pam_sss.c:520
 msgid "Server message: "
-msgstr ""
+msgstr "Komunikat serwera: "
 
 #: sss_client/pam_sss.c:855
 msgid "Password: "
