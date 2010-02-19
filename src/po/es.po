@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-02-17 09:21-0500\n"
-"PO-Revision-Date: 2009-12-11 12:00-0300\n"
+"PO-Revision-Date: 2010-02-19 09:41-0300\n"
 "Last-Translator: Domingo Becker <domingobecker@gmail.com>\n"
 "Language-Team: Transifex Spanish\n"
 "MIME-Version: 1.0\n"
@@ -102,12 +102,15 @@ msgstr ""
 #: config/SSSDConfig.py:64
 msgid "How many failed logins attempts are allowed when offline"
 msgstr ""
+"Cuantos intentos de ingreso fallidos se permiten cuando está desconectado"
 
 #: config/SSSDConfig.py:65
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Cuántos minutos se denegará el ingreso después de que se alcance el máximo "
+"de ingresos fallidos offline_failed_login_attempts"
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
@@ -263,7 +266,7 @@ msgstr "Usar auth Kerberos para la conexión LDAP"
 
 #: config/SSSDConfig.py:120
 msgid "Follow LDAP referrals"
-msgstr ""
+msgstr "Seguir referencias LDAP"
 
 #: config/SSSDConfig.py:123
 msgid "Length of time to wait for a search request"
@@ -373,9 +376,8 @@ msgstr "Especifique el grupo a borrar\n"
 
 #: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
 #: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
-#, fuzzy
 msgid "Error initializing the tools - no local domain\n"
-msgstr "Error al inicializar las herramientas\n"
+msgstr "Error al inicializar las herramientas -  no hay dominio local\n"
 
 #: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
 #: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
@@ -680,28 +682,27 @@ msgstr "Las contraseñas no coinciden"
 
 #: sss_client/pam_sss.c:411
 msgid "Offline authentication"
-msgstr ""
+msgstr "Autenticación fuera de línea."
 
 #: sss_client/pam_sss.c:412
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", su contraseña cacheada vencerá el:"
 
 #: sss_client/pam_sss.c:462
 msgid "Offline authentication, authentication is denied until: "
-msgstr ""
+msgstr "Autenticación fuera de línea, la autenticación se deniega hasta:"
 
 #: sss_client/pam_sss.c:489
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "El sistema está fuera de línea, no se puede cambiar la contraseña"
 
 #: sss_client/pam_sss.c:519
-#, fuzzy
 msgid "Password change failed. "
-msgstr "Proveedor de cambio de contraseña"
+msgstr "Falló el cambio de contraseña."
 
 #: sss_client/pam_sss.c:520
 msgid "Server message: "
-msgstr ""
+msgstr "Mensaje del servidor:"
 
 #: sss_client/pam_sss.c:855
 msgid "Password: "
