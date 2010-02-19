@@ -601,7 +601,7 @@ find_uid_tests_LDADD = \
 auth_tests_SOURCES = \
     tests/auth-tests.c \
     $(SSSD_UTIL_OBJ)
-auth_tests_CFLAG = \
+auth_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 auth_tests_LDADD = \
@@ -610,7 +610,7 @@ auth_tests_LDADD = \
 
 ipa_ldap_opt_tests_SOURCES = \
     tests/ipa_ldap_opt-tests.c
-ipa_ldap_opt_tests_CFLAG = \
+ipa_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 ipa_ldap_opt_tests_LDADD = \
