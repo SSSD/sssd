@@ -200,7 +200,8 @@ KRB5_LIBS=-lkrb5 \
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
     --enable-nsslibdir=/%{_lib} \
-    --disable-static
+    --disable-static \
+    --disable-rpath
 
 make %{?_smp_mflags}
 
