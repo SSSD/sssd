@@ -114,14 +114,6 @@
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
 #define CONFDB_PROXY_PAM_TARGET "proxy_pam_target"
 
-/* KRB5 Provider */
-#define CONFDB_KRB5_KDCIP "krb5_kdcip"
-#define CONFDB_KRB5_REALM "krb5_realm"
-#define CONFDB_KRB5_CCACHEDIR "krb5_ccachedir"
-#define CONFDB_KRB5_CCNAME_TMPL "krb5_ccname_template"
-#define CONFDB_KRB5_CHANGEPW_PRINC "krb5_changepw_principal"
-#define CONFDB_KRB5_AUTH_TIMEOUT "krb5_auth_timeout"
-
 struct confdb_ctx;
 struct config_file_ctx;
 
