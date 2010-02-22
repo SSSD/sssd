@@ -57,10 +57,18 @@ struct hostent *resolv_copy_hostent(TALLOC_CTX *mem_ctx,
                                     struct hostent *src);
 
 /** Get host by name **/
+enum restrict_family {
+    IPV4_ONLY,
+    IPV4_FIRST,
+    IPV6_ONLY,
+    IPV6_FIRST
+};
+
 struct tevent_req *resolv_gethostbyname_send(TALLOC_CTX *mem_ctx,
                                             struct tevent_context *ev,
                                             struct resolv_ctx *ctx,
-                                            const char *name);
+                                            const char *name,
+                                            enum restrict_family family_order);
 
 int resolv_gethostbyname_recv(struct tevent_req *req,
                               TALLOC_CTX *mem_ctx,

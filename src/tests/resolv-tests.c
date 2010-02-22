@@ -178,7 +178,8 @@ START_TEST(test_resolv_localhost)
     }
 
     check_leaks_push(test_ctx);
-    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_FIRST);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -232,7 +233,8 @@ START_TEST(test_resolv_negative)
     }
 
     check_leaks_push(test_ctx);
-    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_FIRST);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -292,6 +294,9 @@ static void test_internet(struct tevent_req *req)
                       srvptr->host));
         }
         break;
+    default:
+        recv_status = EINVAL;
+        break;
     }
     talloc_zfree(req);
     fail_if(recv_status != EOK, "The recv function failed: %d", recv_status);
@@ -322,7 +327,8 @@ START_TEST(test_resolv_internet)
     test_ctx->tested_function = TESTING_HOSTNAME;
 
     check_leaks_push(test_ctx);
-    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_FIRST);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         ret = ENOMEM;
@@ -425,7 +431,8 @@ START_TEST(test_resolv_free_context)
         return;
     }
 
-    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_FIRST);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");
@@ -484,7 +491,8 @@ START_TEST(test_resolv_free_req)
     }
 
     check_leaks_push(test_ctx);
-    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev, test_ctx->resolv, hostname);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_FIRST);
     DEBUG(7, ("Sent resolv_gethostbyname\n"));
     if (req == NULL) {
         fail("Error calling resolv_gethostbyname_send");

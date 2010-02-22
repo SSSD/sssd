@@ -45,8 +45,7 @@ struct fo_ctx {
     struct fo_service *service_list;
     struct server_common *server_common_list;
 
-    /* Settings. */
-    time_t retry_timeout;
+    struct fo_options *opts;
 };
 
 struct fo_service {
@@ -99,7 +98,7 @@ struct status {
 };
 
 struct fo_ctx *
-fo_context_init(TALLOC_CTX *mem_ctx, time_t retry_timeout)
+fo_context_init(TALLOC_CTX *mem_ctx, struct fo_options *opts)
 {
     struct fo_ctx *ctx;
 
@@ -108,11 +107,17 @@ fo_context_init(TALLOC_CTX *mem_ctx, time_t retry_timeout)
         DEBUG(1, ("No memory\n"));
         return NULL;
     }
+    ctx->opts = talloc_zero(ctx, struct fo_options);
+    if (ctx->opts == NULL) {
+        DEBUG(1, ("No memory\n"));
+        return NULL;
+    }
 
-    ctx->retry_timeout = retry_timeout;
+    ctx->opts->retry_timeout = opts->retry_timeout;
+    ctx->opts->family_order  = opts->family_order;
 
     DEBUG(3, ("Created new fail over context, retry timeout is %d\n",
-              retry_timeout));
+              ctx->opts->retry_timeout));
     return ctx;
 }
 
@@ -166,7 +171,7 @@ get_server_status(struct fo_server *server)
     DEBUG(7, ("Status of server '%s' is '%s'\n", SERVER_NAME(server),
               str_server_status(server->common->server_status)));
 
-    timeout = server->service->ctx->retry_timeout;
+    timeout = server->service->ctx->opts->retry_timeout;
     if (timeout != 0 && server->common->server_status == SERVER_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server->common, tv) > timeout) {
@@ -193,7 +198,7 @@ get_port_status(struct fo_server *server)
     DEBUG(7, ("Port status of port %d for server '%s' is '%s'\n", server->port,
               SERVER_NAME(server), str_port_status(server->port_status)));
 
-    timeout = server->service->ctx->retry_timeout;
+    timeout = server->service->ctx->opts->retry_timeout;
     if (timeout != 0 && server->port_status == PORT_NOT_WORKING) {
         gettimeofday(&tv, NULL);
         if (STATUS_DIFF(server, tv) > timeout) {
@@ -467,7 +472,8 @@ static void fo_resolve_service_done(struct tevent_req *subreq);
 
 struct tevent_req *
 fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
-                        struct resolv_ctx *resolv, struct fo_service *service)
+                        struct resolv_ctx *resolv, struct fo_ctx *ctx,
+                        struct fo_service *service)
 {
     int ret;
     struct fo_server *server;
@@ -498,7 +504,8 @@ fo_resolve_service_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     switch (get_server_status(server)) {
     case SERVER_NAME_NOT_RESOLVED: /* Request name resolution. */
         subreq = resolv_gethostbyname_send(server->common, ev, resolv,
-                                           server->common->name);
+                                           server->common->name,
+                                           ctx->opts->family_order);
         if (subreq == NULL) {
             ret = ENOMEM;
             goto done;

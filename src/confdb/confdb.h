@@ -100,6 +100,7 @@
 #define CONFDB_DOMAIN_MPG "magic_private_groups"
 #define CONFDB_DOMAIN_FQ "use_fully_qualified_names"
 #define CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT "entry_cache_timeout"
+#define CONFDB_DOMAIN_FAMILY_ORDER "lookup_family_order"
 
 /* Local Provider */
 #define CONFDB_LOCAL_DEFAULT_SHELL   "default_shell"

@@ -60,6 +60,7 @@ static struct test_ctx *
 setup_test(void)
 {
     struct test_ctx *ctx;
+    struct fo_options fopts;
     int ret;
 
     ctx = talloc_zero(global_talloc_context, struct test_ctx);
@@ -77,7 +78,10 @@ setup_test(void)
         fail("Could not init resolv context");
     }
 
-    ctx->fo_ctx = fo_context_init(ctx, 5 * 60);
+    fopts.retry_timeout = 30;
+    fopts.family_order  = IPV4_FIRST;
+
+    ctx->fo_ctx = fo_context_init(ctx, &fopts);
     if (ctx->fo_ctx == NULL) {
         talloc_free(ctx);
         fail("Could not init fail over context");
@@ -198,7 +202,9 @@ _get_request(struct test_ctx *test_ctx, struct fo_service *service,
     task->location = location;
     test_ctx->tasks++;
 
-    req = fo_resolve_service_send(test_ctx, test_ctx->ev, test_ctx->resolv, service);
+    req = fo_resolve_service_send(test_ctx, test_ctx->ev,
+                                  test_ctx->resolv,
+                                  test_ctx->fo_ctx, service);
     fail_if(req == NULL, "%s: fo_resolve_service_send() failed", location);
 
     tevent_req_set_callback(req, test_resolve_service_callback, task);

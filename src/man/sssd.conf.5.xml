@@ -589,6 +589,34 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>lookup_family_order (string)</term>
+                    <listitem>
+                        <para>
+                            Provides the ability to select preferred address family
+                            to use when performing DNS lookups.
+                        </para>
+                        <para>
+                            Supported values:
+                        </para>
+                        <para>
+                            ipv4_first: Try looking up IPv4 address, if that fails, try IPv6
+                        </para>
+                        <para>
+                            ipv4_only: Only attempt to resolve hostnames to IPv4 addresses.
+                        </para>
+                        <para>
+                            ipv6_first: Try looking up IPv6 address, if that fails, try IPv4
+                        </para>
+                        <para>
+                            ipv6_only: Only attempt to resolve hostnames to IPv6 addresses.
+                        </para>
+                        <para>
+                            Default: ipv4_first
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

@@ -28,9 +28,10 @@
 #include <stdbool.h>
 #include <talloc.h>
 
+#include "resolv/async_resolv.h"
+
 /* Some forward declarations that don't have to do anything with fail over. */
 struct hostent;
-struct resolv_ctx;
 struct tevent_context;
 struct tevent_req;
 
@@ -53,12 +54,26 @@ struct fo_service;
 struct fo_server;
 
 /*
- * Create a new fail over context. The 'retry_timeout' argument specifies the
+ * Failover settings.
+ *
+ * The 'retry_timeout' member specifies the
  * duration in seconds of how long a server or port will be considered
  * non-working after being marked as such.
+ *
+ * The family_order member specifies the order of address families to
+ * try when looking up the service.
+ */
+struct fo_options {
+    time_t retry_timeout;
+    enum restrict_family family_order;
+};
+
+/*
+ * Create a new fail over context based on options passed in the
+ * opts parameter
  */
 struct fo_ctx *fo_context_init(TALLOC_CTX *mem_ctx,
-                               time_t retry_timeout);
+                               struct fo_options *opts);
 
 /*
  * Create a new service structure for 'ctx', saving it to the location pointed
@@ -94,6 +109,7 @@ int fo_add_server(struct fo_service *service,
 struct tevent_req *fo_resolve_service_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct resolv_ctx *resolv,
+                                           struct fo_ctx *ctx,
                                            struct fo_service *service);
 
 int fo_resolve_service_recv(struct tevent_req *req,

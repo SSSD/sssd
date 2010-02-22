@@ -53,9 +53,47 @@ struct be_failover_ctx {
     struct be_svc_data *svcs;
 };
 
+static int be_fo_get_options(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
+                             struct fo_options *opts)
+{
+    char *str_opt;
+    int ret;
+
+    /* todo get timeout from configuration */
+    opts->retry_timeout = 30;
+
+    ret = confdb_get_string(ctx->cdb, mem_ctx, ctx->conf_path,
+                            CONFDB_DOMAIN_FAMILY_ORDER,
+                            "ipv4_first", &str_opt);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    DEBUG(7, ("Lookup order: %s\n", str_opt));
+
+    if (strcasecmp(str_opt, "ipv4_first") == 0) {
+        opts->family_order = IPV4_FIRST;
+    } else if (strcasecmp(str_opt, "ipv4_only") == 0) {
+        opts->family_order = IPV4_ONLY;
+    } else if (strcasecmp(str_opt, "ipv6_first") == 0) {
+        opts->family_order = IPV6_FIRST;
+    } else if (strcasecmp(str_opt, "ipv6_only") == 0) {
+        opts->family_order = IPV6_ONLY;
+    } else {
+        DEBUG(1, ("Unknown value for option %s: %s\n",
+                  CONFDB_DOMAIN_FAMILY_ORDER, str_opt));
+        talloc_free(str_opt);
+        return EINVAL;
+    }
+
+    talloc_free(str_opt);
+    return EOK;
+}
+
 int be_init_failover(struct be_ctx *ctx)
 {
     int ret;
+    struct fo_options fopts;
 
     if (ctx->be_fo != NULL) {
         return EOK;
@@ -72,8 +110,13 @@ int be_init_failover(struct be_ctx *ctx)
         return ret;
     }
 
-    /* todo get timeout from configuration */
-    ctx->be_fo->fo_ctx = fo_context_init(ctx->be_fo, 30);
+    ret = be_fo_get_options(ctx->be_fo, ctx, &fopts);
+    if (ret != EOK) {
+        talloc_zfree(ctx->be_fo);
+        return ret;
+    }
+
+    ctx->be_fo->fo_ctx = fo_context_init(ctx->be_fo, &fopts);
     if (!ctx->be_fo->fo_ctx) {
         talloc_zfree(ctx->be_fo);
         return ENOMEM;
@@ -250,7 +293,9 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
     state->attempts = 0;
 
     subreq = fo_resolve_service_send(state, ev,
-                                     ctx->be_fo->resolv, svc->fo_service);
+                                     ctx->be_fo->resolv,
+                                     ctx->be_fo->fo_ctx,
+                                     svc->fo_service);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -305,6 +350,7 @@ static void be_resolve_server_done(struct tevent_req *subreq)
         DEBUG(6, ("Trying with the next one!\n"));
         subreq = fo_resolve_service_send(state, state->ev,
                                          state->ctx->be_fo->resolv,
+                                         state->ctx->be_fo->fo_ctx,
                                          state->svc->fo_service);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);

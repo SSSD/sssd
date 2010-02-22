@@ -79,6 +79,7 @@ option_strings = {
     'store_legacy_passwords' : _('Store password hashes'),
     'use_fully_qualified_names' : _('Display users/groups in fully-qualified form'),
     'entry_cache_timeout' : _('Entry cache timeout length (seconds)'),
+    'lookup_family_order' : _('Restrict or prefer a specific address family when performing DNS lookups'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

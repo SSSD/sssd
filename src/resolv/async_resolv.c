@@ -459,6 +459,8 @@ struct gethostbyname_state {
     /* Part of the query. */
     const char *name;
     int family;
+    /* In which order to use IPv4, or v6 */
+    enum restrict_family family_order;
     /* These are returned by ares. The hostent struct will be freed
      * when the user callback returns. */
     struct hostent *hostent;
@@ -472,13 +474,12 @@ ares_gethostbyname_wakeup(struct tevent_req *req);
 
 struct tevent_req *
 resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
-                          struct resolv_ctx *ctx, const char *name)
+                          struct resolv_ctx *ctx, const char *name,
+                          enum restrict_family family_order)
 {
     struct tevent_req *req, *subreq;
     struct gethostbyname_state *state;
     struct timeval tv = { 0, 0 };
-
-    DEBUG(4, ("Trying to resolve A record of '%s'\n", name));
 
     if (ctx->channel == NULL) {
         DEBUG(1, ("Invalid ares channel - this is likely a bug\n"));
@@ -491,11 +492,16 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 
     state->resolv_ctx = ctx;
     state->name = name;
-    state->family = AF_INET;
     state->hostent = NULL;
     state->status = 0;
     state->timeouts = 0;
     state->retrying = 0;
+    state->family_order = family_order;
+    state->family = (family_order < IPV6_ONLY) ? AF_INET : AF_INET6;
+
+    DEBUG(4, ("Trying to resolve %s record of '%s'\n",
+              state->family == AF_INET ? "A" : "AAAA",
+              state->name));
 
     /* We need to have a wrapper around ares_gethostbyname(), because
      * ares_gethostbyname() can in some cases call it's callback immediately.
@@ -513,7 +519,7 @@ resolv_gethostbyname_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
 }
 
 static void
-resolv_gethostbyname6_done(void *arg, int status, int timeouts, struct hostent *hostent);
+resolv_gethostbyname_next_done(void *arg, int status, int timeouts, struct hostent *hostent);
 
 static void
 resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *hostent)
@@ -545,14 +551,22 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
 
     if (status != ARES_SUCCESS) {
         if (status == ARES_ENOTFOUND || status == ARES_ENODATA) {
-            /* IPv4 failure. Try IPv6 */
-            state->family = AF_INET6;
+            if (state->family_order == IPV4_FIRST) {
+                state->family = AF_INET6;
+            } else if (state->family_order == IPV6_FIRST) {
+                state->family = AF_INET;
+            } else {
+                tevent_req_error(req, return_code(status));
+                return;
+            }
+
             state->retrying = 0;
             state->timeouts = 0;
-            DEBUG(4, ("Trying to resolve AAAA record of '%s'\n",
+            DEBUG(4, ("Trying to resolve %s record of '%s'\n",
+                      state->family == AF_INET ? "A" : "AAAA",
                       state->name));
             ares_gethostbyname(state->resolv_ctx->channel, state->name,
-                               state->family, resolv_gethostbyname6_done,
+                               state->family, resolv_gethostbyname_next_done,
                                req);
             return;
         }
@@ -568,7 +582,7 @@ resolv_gethostbyname_done(void *arg, int status, int timeouts, struct hostent *h
 }
 
 static void
-resolv_gethostbyname6_done(void *arg, int status, int timeouts, struct hostent *hostent)
+resolv_gethostbyname_next_done(void *arg, int status, int timeouts, struct hostent *hostent)
 {
     struct tevent_req *req = talloc_get_type(arg, struct tevent_req);
     struct gethostbyname_state *state = tevent_req_data(req, struct gethostbyname_state);
@@ -576,7 +590,7 @@ resolv_gethostbyname6_done(void *arg, int status, int timeouts, struct hostent *
     if (state->retrying == 0 && status == ARES_EDESTRUCTION) {
         state->retrying = 1;
         ares_gethostbyname(state->resolv_ctx->channel, state->name,
-                           state->family, resolv_gethostbyname6_done, req);
+                           state->family, resolv_gethostbyname_next_done, req);
         return;
     }
 
