@@ -198,7 +198,7 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
                             DBusError *dbus_error);
 
 int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
-                      const char *name, const char *domain);
+                      const char *name);
 
 /* from dp_sbus.c */
 int dp_get_sbus_address(TALLOC_CTX *mem_ctx,

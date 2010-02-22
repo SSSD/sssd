@@ -654,7 +654,6 @@ static int client_registration(DBusMessage *message,
     DBusError dbus_error;
     dbus_uint16_t cli_ver;
     char *cli_name;
-    char *cli_domain;
     dbus_bool_t dbret;
     void *data;
 
@@ -674,7 +673,6 @@ static int client_registration(DBusMessage *message,
     dbret = dbus_message_get_args(message, &dbus_error,
                                   DBUS_TYPE_UINT16, &cli_ver,
                                   DBUS_TYPE_STRING, &cli_name,
-                                  DBUS_TYPE_STRING, &cli_domain,
                                   DBUS_TYPE_INVALID);
     if (!dbret) {
         DEBUG(1, ("Failed to parse message, killing connection\n"));

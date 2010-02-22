@@ -351,7 +351,7 @@ static int sss_dp_init(struct resp_ctx *rctx,
     /* Identify ourselves to the DP */
     ret = dp_common_send_id(be_conn->conn,
                             DATA_PROVIDER_VERSION,
-                            cli_name, domain->name);
+                            cli_name);
     if (ret != EOK) {
         DEBUG(0, ("Failed to identify to the DP!\n"));
         return ret;

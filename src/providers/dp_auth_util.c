@@ -354,7 +354,7 @@ done:
 }
 
 int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
-                      const char *name, const char *domain)
+                      const char *name)
 {
     DBusPendingCall *pending_reply;
     DBusConnection *dbus_conn;
@@ -373,13 +373,12 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
         return ENOMEM;
     }
 
-    DEBUG(4, ("Sending ID to DP: (%d,%s,%s)\n",
-              version, name, domain));
+    DEBUG(4, ("Sending ID to DP: (%d,%s)\n",
+              version, name));
 
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_UINT16, &version,
                                    DBUS_TYPE_STRING, &name,
-                                   DBUS_TYPE_STRING, &domain,
                                    DBUS_TYPE_INVALID);
     if (!ret) {
         DEBUG(1, ("Failed to build message\n"));

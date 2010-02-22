@@ -240,7 +240,7 @@ static void nss_dp_reconnect_init(struct sbus_connection *conn,
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
                                 DATA_PROVIDER_VERSION,
-                                "NSS", be_conn->domain->name);
+                                "NSS");
         /* all fine */
         if (ret == EOK) return;
     }

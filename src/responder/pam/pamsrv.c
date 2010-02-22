@@ -98,7 +98,7 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
         /* Identify ourselves to the data provider */
         ret = dp_common_send_id(be_conn->conn,
                                 DATA_PROVIDER_VERSION,
-                                "PAM", be_conn->domain->name);
+                                "PAM");
         /* all fine */
         if (ret == EOK) return;
     }
