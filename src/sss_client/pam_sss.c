@@ -46,6 +46,8 @@
 #define FLAGS_FORWARD_PASS   (1 << 1)
 #define FLAGS_USE_AUTHTOK    (1 << 2)
 
+#define PWEXP_FLAG "pam_sss:password_expired_flag"
+
 struct pam_items {
     const char* pam_service;
     const char* pam_user;
@@ -101,6 +103,11 @@ static void logger(pam_handle_t *pamh, int level, const char *fmt, ...) {
     va_end(ap);
 }
 
+static void free_exp_data(pam_handle_t *pamh, void *ptr, int err)
+{
+    free(ptr);
+    ptr = NULL;
+}
 
 static size_t add_authtok_item(enum pam_item_type type,
                                enum sss_authtok_type authtok_type,
@@ -847,13 +854,13 @@ done:
     return pam_status;
 }
 
-static int prompt_password(pam_handle_t *pamh, struct pam_items *pi)
+static int prompt_password(pam_handle_t *pamh, struct pam_items *pi,
+                           const char *prompt)
 {
     int ret;
     char *answer = NULL;
 
-    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, _("Password: "),
-                              NULL, &answer);
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_OFF, prompt, NULL, &answer);
     if (ret != PAM_SUCCESS) {
         D(("do_pam_conversation failed."));
         return ret;
@@ -943,7 +950,7 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
         }
         pi->pam_authtok_size = strlen(pi->pam_authtok);
     } else {
-        ret = prompt_password(pamh, pi);
+        ret = prompt_password(pamh, pi, _("Password: "));
         if (ret != PAM_SUCCESS) {
             D(("failed to get password from user"));
             return ret;
@@ -973,7 +980,7 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
      * pam_sss work e.g. with pam_cracklib */
     if (pam_flags & PAM_PRELIM_CHECK) {
         if (getuid() != 0 && !(flags & FLAGS_USE_FIRST_PASS)) {
-            ret = prompt_password(pamh, pi);
+            ret = prompt_password(pamh, pi, _("Current Password: "));
             if (ret != PAM_SUCCESS) {
                 D(("failed to get password from user"));
                 return ret;
@@ -1040,6 +1047,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     int ret;
     struct pam_items pi;
     uint32_t flags = 0;
+    int *exp_data;
 
     bindtextdomain(PACKAGE, LOCALEDIR);
 
@@ -1052,7 +1060,6 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
         D(("get items returned error: %s", pam_strerror(pamh,ret)));
         return ret;
     }
-
 
     switch(task) {
         case SSS_PAM_AUTHENTICATE:
@@ -1086,24 +1093,30 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     ret = send_and_receive(pamh, &pi, task);
 
-    if (ret == PAM_AUTHTOK_EXPIRED && task == SSS_PAM_AUTHENTICATE) {
+/* We allow sssd to send the return code PAM_NEW_AUTHTOK_REQD during
+ * authentication, see sss_cli.h for details */
+    if (ret == PAM_NEW_AUTHTOK_REQD && task == SSS_PAM_AUTHENTICATE) {
         D(("Authtoken expired, trying to change it"));
-        ret = do_pam_conversation(pamh, PAM_ERROR_MSG,
-                                  _("Password has expired."), NULL, NULL);
-        if (ret != PAM_SUCCESS) {
-            D(("do_pam_conversation failed."));
-            return PAM_SYSTEM_ERR;
-        }
 
-        pi.pamstack_oldauthtok = pi.pam_authtok;
-        ret = get_authtok_for_password_change(pamh, &pi, flags, pam_flags);
+        exp_data = malloc(sizeof(int));
+        if (exp_data == NULL) {
+            D(("malloc failed."));
+            return PAM_BUF_ERR;
+        }
+        *exp_data = 1;
+        ret = pam_set_data(pamh, PWEXP_FLAG, exp_data, free_exp_data);
         if (ret != PAM_SUCCESS) {
-            D(("failed to get tokens for password change: %s",
-               pam_strerror(pamh, ret)));
+            D(("pam_set_data failed."));
             return ret;
         }
 
-        ret = send_and_receive(pamh, &pi, SSS_PAM_CHAUTHTOK);
+        return PAM_SUCCESS;
+    }
+
+    if (ret == PAM_SUCCESS && task == SSS_PAM_ACCT_MGMT &&
+        pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
+                                                                  PAM_SUCCESS) {
+            return PAM_NEW_AUTHTOK_REQD;
     }
 
     overwrite_and_free_authtoks(&pi);

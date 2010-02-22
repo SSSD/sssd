@@ -983,7 +983,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         state->pd->pam_status = PAM_ACCT_EXPIRED;
         break;
     case SDAP_AUTH_PW_EXPIRED:
-        state->pd->pam_status = PAM_AUTHTOK_EXPIRED;
+        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
     default:
         state->pd->pam_status = PAM_SYSTEM_ERR;

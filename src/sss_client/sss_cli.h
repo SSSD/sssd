@@ -144,7 +144,26 @@ enum sss_cli_command {
 
 /* PAM related calls */
     SSS_PAM_AUTHENTICATE     = 0x00F1, /**< see pam_sm_authenticate(3) for
-                                        * details */
+                                        * details.
+                                        *
+                                        * Additionally we allow sssd to send
+                                        * the return code PAM_NEW_AUTHTOK_REQD
+                                        * during authentication if the
+                                        * authentication was successful but
+                                        * the authentication token is expired.
+                                        * To meet the standards of libpam we
+                                        * return PAM_SUCCESS for
+                                        * authentication and set a flag so
+                                        * that the account management module
+                                        * can return PAM_NEW_AUTHTOK_REQD if
+                                        * sssd return success for account
+                                        * management. We do this to reduce the
+                                        * communication with external servers,
+                                        * because there are cases, e.g.
+                                        * Kerberos authentication, where the
+                                        * information that the password is
+                                        * expired is already available during
+                                        * authentication. */
     SSS_PAM_SETCRED          = 0x00F2, /**< see pam_sm_setcred(3) for
                                         * details */
     SSS_PAM_ACCT_MGMT        = 0x00F3, /**< see pam_sm_acct_mgmt(3) for
