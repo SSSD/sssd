@@ -60,7 +60,7 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
 {
     int ret;
 
-    if (pd->user == NULL || pd->domain == NULL) return false;
+    if (pd->user == NULL) return false;
     if (pd->service == NULL) pd->service = talloc_strdup(pd, "");
     if (pd->tty == NULL) pd->tty = talloc_strdup(pd, "");
     if (pd->ruser == NULL) pd->ruser = talloc_strdup(pd, "");
@@ -69,7 +69,6 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
 
     ret = dbus_message_append_args(msg,
                                    DBUS_TYPE_INT32,  &(pd->cmd),
-                                   DBUS_TYPE_STRING, &(pd->domain),
                                    DBUS_TYPE_STRING, &(pd->user),
                                    DBUS_TYPE_STRING, &(pd->service),
                                    DBUS_TYPE_STRING, &(pd->tty),
@@ -96,7 +95,6 @@ bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbu
 
     ret = dbus_message_get_args(msg, dbus_error,
                                 DBUS_TYPE_INT32,  &(pd->cmd),
-                                DBUS_TYPE_STRING, &(pd->domain),
                                 DBUS_TYPE_STRING, &(pd->user),
                                 DBUS_TYPE_STRING, &(pd->service),
                                 DBUS_TYPE_STRING, &(pd->tty),
@@ -131,13 +129,6 @@ bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)
     /* Append the PAM status */
     dbret = dbus_message_iter_append_basic(&iter,
                                    DBUS_TYPE_UINT32, &(pd->pam_status));
-    if (!dbret) {
-        return false;
-    }
-
-    /* Append the domain */
-    dbret = dbus_message_iter_append_basic(&iter,
-                                   DBUS_TYPE_STRING, &(pd->domain));
     if (!dbret) {
         return false;
     }
@@ -221,17 +212,6 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
         return false;
     }
     dbus_message_iter_get_basic(&iter, &(pd->pam_status));
-
-    if (!dbus_message_iter_next(&iter)) {
-        DEBUG(1, ("pam response has too few arguments.\n"));
-        return false;
-    }
-
-    if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_STRING) {
-        DEBUG(1, ("pam response format error.\n"));
-        return false;
-    }
-    dbus_message_iter_get_basic(&iter, &(pd->domain));
 
     if (!dbus_message_iter_next(&iter)) {
         DEBUG(1, ("pam response has too few arguments.\n"));

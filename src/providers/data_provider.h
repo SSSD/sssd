@@ -63,10 +63,9 @@
  * The PAM responder send all the data it has received from the PAM client to
  * the authentication backend with a DBUS message.
  *
- * As a response it expects basically a PAM return value (see pam(3) for
- * details) and the name of the domain. The backend may send any number of
- * additional messages (see ...) which are forwarded by the PAM responder to
- * the PAM client.
+ * As a response it expects a PAM return value (see pam(3) for details).
+ * The backend may send any number of additional messages (see ...) which are
+ * forwarded by the PAM responder to the PAM client.
  * @{
  */
 
@@ -77,7 +76,6 @@
  * hand it must have the following elements:
  *
  * @param DBUS_TYPE_INT32 PAM Command, see #sss_cli_command for allowed values
- * @param DBUS_TYPE_STRING Name of the Domain
  * @param DBUS_TYPE_STRING User name, this value is send by the PAM client and
  * contains the value of the PAM item PAM_USER
  * @param DBUS_TYPE_STRING Service name, this value is send by the PAM client
@@ -111,8 +109,7 @@
  * indicate that the provider is offline and that the PAM responder should try
  * a chached authentication, for all other return value see the man pages for
  * the corresponding PAM service functions
- * @retval DBUS_TYPE_STRING Domain Name
- * @retval DBUS_TYPE_ARRAY__(STRUCT) (optional) Zero more more additional
+ * @retval DBUS_TYPE_ARRAY__(STRUCT) Zero or more additional getAccountInfo
  * messages, here the DBUS_TYPE_STRUCT is build of a DBUS_TYPE_UINT32 holding
  * an identifier (see #response_type) and DBUS_TYPE_G_BYTE_ARRAY with the data
  * of the message.
