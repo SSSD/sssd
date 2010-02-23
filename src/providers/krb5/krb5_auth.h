@@ -26,12 +26,16 @@
 #ifndef __KRB5_AUTH_H__
 #define __KRB5_AUTH_H__
 
+#include <pcre.h>
+
 #include "util/sss_krb5.h"
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
 
 #define CCACHE_ENV_NAME "KRB5CCNAME"
 #define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
+
+#define ILLEGAL_PATH_PATTERN "//|/\\./|/\\.\\./"
 
 typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
 
@@ -87,6 +91,8 @@ struct krb5_ctx {
     struct dp_option *opts;
     struct krb5_service *service;
     int child_debug_fd;
+
+    pcre *illegal_path_re;
 };
 
 void krb5_pam_handler(struct be_req *be_req);

@@ -881,6 +881,7 @@ static void krb5_resolve_done(struct tevent_req *req)
     struct be_req *be_req = kr->req;
     char *msg;
     size_t offset = 0;
+    bool private_path = false;
 
     ret = be_resolve_server_recv(req, &kr->srv);
     talloc_zfree(req);
@@ -916,10 +917,18 @@ static void krb5_resolve_done(struct tevent_req *req)
             }
             kr->ccname = expand_ccname_template(kr, kr,
                                           dp_opt_get_cstring(kr->krb5_ctx->opts,
-                                                             KRB5_CCNAME_TMPL)
-                                    );
+                                                             KRB5_CCNAME_TMPL),
+                                                true, &private_path);
             if (kr->ccname == NULL) {
                 DEBUG(1, ("expand_ccname_template failed.\n"));
+                goto done;
+            }
+
+            ret = create_ccache_dir(kr, kr->ccname,
+                                    kr->krb5_ctx->illegal_path_re,
+                                    kr->uid, kr->gid, private_path);
+            if (ret != EOK) {
+                DEBUG(1, ("create_ccache_dir failed.\n"));
                 goto done;
             }
     }
