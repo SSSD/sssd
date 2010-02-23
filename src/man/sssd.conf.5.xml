@@ -431,7 +431,7 @@
                             FALSE = No enumerations for this domain
                         </para>
                         <para>
-                            Default: TRUE
+                            Default: FALSE
                         </para>
                     </listitem>
                 </varlistentry>
