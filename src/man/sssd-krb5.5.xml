@@ -102,7 +102,17 @@
                     <term>krb5_ccachedir (string)</term>
                     <listitem>
                         <para>
-                            Directory to store credential caches.
+                            Directory to store credential caches. All the
+                            substitution sequences of krb5_ccname_template can
+                            be used here, too, except %d and %P. If the
+                            directory does not exist it will be created. If %u,
+                            %U, %p or %h are used a private directory belonging
+                            to the user is created. Otherwise a public directory
+                            with restricted deletion flag (aka sticky bit, see
+                            <citerefentry>
+                                <refentrytitle>chmod</refentrytitle>
+                                <manvolnum>1</manvolnum>
+                            </citerefentry> for details) is created.
                         </para>
                         <para>
                             Default: /tmp

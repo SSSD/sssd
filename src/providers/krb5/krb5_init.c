@@ -53,6 +53,9 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     FILE *debug_filep;
     const char *krb5_servers;
     const char *krb5_realm;
+    const char *errstr;
+    int errval;
+    int errpos;
 
     if (krb5_options == NULL) {
         krb5_options = talloc_zero(bectx, struct krb5_options);
@@ -133,6 +136,15 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
 
         v = fcntl(ctx->child_debug_fd, F_GETFD, 0);
         fcntl(ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
+    }
+
+    ctx->illegal_path_re = pcre_compile2(ILLEGAL_PATH_PATTERN, 0,
+                                         &errval, &errstr, &errpos, NULL);
+    if (ctx->illegal_path_re == NULL) {
+        DEBUG(1, ("Invalid Regular Expression pattern at position %d. "
+                  "(Error: %d [%s])\n", errpos, errval, errstr));
+        ret = EFAULT;
+        goto fail;
     }
 
     *ops = &krb5_auth_ops;

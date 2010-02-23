@@ -47,7 +47,6 @@ errno_t check_and_export_options(struct dp_option *opts,
     char *value;
     const char *realm;
     const char *dummy;
-    struct stat stat_buf;
     char **list;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
@@ -81,18 +80,6 @@ errno_t check_and_export_options(struct dp_option *opts,
                       "using kerberos defaults from /etc/krb5.conf"));
         }
         talloc_free(list);
-    }
-
-    dummy = dp_opt_get_cstring(opts, KRB5_CCACHEDIR);
-    ret = lstat(dummy, &stat_buf);
-    if (ret != EOK) {
-        DEBUG(1, ("lstat for [%s] failed: [%d][%s].\n", dummy, errno,
-                  strerror(errno)));
-        return ret;
-    }
-    if ( !S_ISDIR(stat_buf.st_mode) ) {
-        DEBUG(1, ("Value of krb5ccache_dir [%s] is not a directory.\n", dummy));
-        return EINVAL;
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_CCNAME_TMPL);

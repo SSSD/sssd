@@ -32,8 +32,12 @@
 #include "providers/data_provider.h"
 
 char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
-                             const char *template);
+                             const char *template, bool file_mode,
+                             bool *private_path);
 
 errno_t become_user(uid_t uid, gid_t gid);
 
+errno_t create_ccache_dir(TALLOC_CTX *mem_ctx, const char *filename,
+                          pcre *illegal_re, uid_t uid, gid_t gid,
+                          bool private_path);
 #endif /* __KRB5_UTILS_H__ */
