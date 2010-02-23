@@ -93,7 +93,7 @@ static void ldap_id_cleanup_timeout(struct tevent_context *ev,
     DEBUG(1, ("Cleanup timed out! Timeout too small? (%ds)!\n", delay));
 
     tv = tevent_timeval_current_ofs(delay, 0);
-    ldap_id_enumerate_set_timer(ctx, tv);
+    ldap_id_cleanup_set_timer(ctx, tv);
 
     talloc_zfree(req);
 }
@@ -117,7 +117,7 @@ static void ldap_id_cleanup_reschedule(struct tevent_req *req)
 
     delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
     tv = tevent_timeval_add(&tv, delay, 0);
-    ldap_id_enumerate_set_timer(ctx, tv);
+    ldap_id_cleanup_set_timer(ctx, tv);
 }
 
 
