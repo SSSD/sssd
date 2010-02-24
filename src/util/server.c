@@ -284,6 +284,17 @@ int die_if_parent_died(void)
     return EOK;
 }
 
+static void te_server_hup(struct tevent_context *ev,
+                          struct tevent_signal *se,
+                          int signum,
+                          int count,
+                          void *siginfo,
+                          void *private_data)
+{
+    DEBUG(1, ("Received SIGHUP. Rotating logfiles.\n"));
+    rotate_debug_files();
+}
+
 int server_setup(const char *name, int flags,
                  const char *conf_entry,
                  struct main_context **main_ctx)
@@ -295,6 +306,7 @@ int server_setup(const char *name, int flags,
     int ret = EOK;
     bool dt;
     bool dl;
+    struct tevent_signal *tes;
 
     debug_prg_name = strdup(name);
     if (!debug_prg_name) {
@@ -390,6 +402,13 @@ int server_setup(const char *name, int flags,
         return ret;
     }
     if (dl) debug_to_file = 1;
+
+    /* before opening the log file set up log rotation */
+    tes = tevent_add_signal(ctx->event_ctx, ctx, SIGHUP, 0,
+                            te_server_hup, NULL);
+    if (tes == NULL) {
+        return EIO;
+    }
 
     /* open log file if told so */
     if (debug_to_file) {

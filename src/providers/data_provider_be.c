@@ -60,6 +60,7 @@ struct sbus_method monitor_be_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
     { MON_CLI_METHOD_RES_INIT, data_provider_res_init },
     { MON_CLI_METHOD_OFFLINE, data_provider_go_offline },
+    { MON_CLI_METHOD_ROTATE, monitor_common_rotate_logs },
     { NULL, NULL }
 };
 

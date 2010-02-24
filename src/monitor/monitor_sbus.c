@@ -193,3 +193,16 @@ int monitor_common_res_init(DBusMessage *message,
     return monitor_common_pong(message, conn);
 }
 
+int monitor_common_rotate_logs(DBusMessage *message,
+                               struct sbus_connection *conn)
+{
+    int ret;
+
+    ret = rotate_debug_files();
+    if (ret) {
+        DEBUG(1, ("Could not rotate debug files!\n"));
+        return ret;
+    }
+
+    return monitor_common_pong(message, conn);
+}

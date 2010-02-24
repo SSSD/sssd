@@ -742,6 +742,10 @@ static int service_signal_offline(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_METHOD_OFFLINE);
 }
+static int service_signal_rotate(struct mt_svc *svc)
+{
+    return service_signal(svc, MON_CLI_METHOD_ROTATE);
+}
 
 static int check_domain_ranges(struct sss_domain_info *domains)
 {
@@ -1103,11 +1107,14 @@ static void monitor_hup(struct tevent_context *ev,
                         void *private_data)
 {
     struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
+    struct mt_svc *cur_svc;
 
     DEBUG(1, ("Received SIGHUP.\n"));
-    /* Right now this function doesn't do anything.
-     * It will handle logrotate HUPs soon.
-     */
+
+    /* Signal all services to rotate debug files */
+    for(cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
+        service_signal_rotate(cur_svc);
+    }
 }
 
 static int monitor_cleanup(void)
