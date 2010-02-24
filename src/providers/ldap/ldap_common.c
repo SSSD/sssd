@@ -251,7 +251,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
     if (offline_credentials_expiration && account_cache_expiration &&
-        offline_credentials_expiration >= account_cache_expiration) {
+        offline_credentials_expiration > account_cache_expiration) {
         DEBUG(1, ("Value of %s (now %d) must be larger "
                   "than value of %s (now %d)\n",
                   opts->basic[SDAP_ACCOUNT_CACHE_EXPIRATION].opt_name,

@@ -467,8 +467,8 @@
                             Number of days entries are left in cache after
                             last successful login before being removed during
                             a cleanup of the cache. 0 means keep forever.
-                            The value of this parameter must be bigger than
-                            offline_credentials_expiration.
+                            The value of this parameter must be greater than or
+                            equal to offline_credentials_expiration.
                         </para>
                         <para>
                             Default: 0 (unlimited)
