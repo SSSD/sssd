@@ -389,6 +389,7 @@ dist_noinst_DATA += \
     examples/sssd.conf \
     examples/sssdproxytest \
     examples/sudo \
+    examples/logrotate \
     providers/sssd_be.exports \
     sss_client/COPYING \
     sss_client/COPYING.LESSER \
