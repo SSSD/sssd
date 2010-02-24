@@ -152,3 +152,16 @@ int open_debug_file(void)
 {
     return open_debug_file_ex(NULL, NULL);
 }
+
+int rotate_debug_files(void)
+{
+    int ret;
+
+    if (!debug_to_file) return EOK;
+
+    ret = fclose(debug_file);
+    if (ret) return ret;
+    debug_file = NULL;
+
+    return open_debug_file();
+}

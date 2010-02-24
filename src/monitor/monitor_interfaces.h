@@ -41,6 +41,7 @@
 #define MON_CLI_METHOD_SHUTDOWN "shutDown"
 #define MON_CLI_METHOD_RES_INIT "resInit"
 #define MON_CLI_METHOD_OFFLINE "goOffline" /* Applicable only to providers */
+#define MON_CLI_METHOD_ROTATE "rotateLogs"
 
 #define SSSD_SERVICE_PIPE "private/sbus-monitor"
 
@@ -51,4 +52,6 @@ int monitor_common_pong(DBusMessage *message,
                         struct sbus_connection *conn);
 int monitor_common_res_init(DBusMessage *message,
                             struct sbus_connection *conn);
+int monitor_common_rotate_logs(DBusMessage *message,
+                               struct sbus_connection *conn);
 

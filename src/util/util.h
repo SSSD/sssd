@@ -201,6 +201,7 @@ void ldb_debug_messages(void *context, enum ldb_debug_level level,
                         const char *fmt, va_list ap);
 int open_debug_file_ex(const char *filename, FILE **filep);
 int open_debug_file(void);
+int rotate_debug_files(void);
 
 /* from server.c */
 struct main_context {
