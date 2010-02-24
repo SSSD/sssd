@@ -230,6 +230,10 @@ install -m600 src/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.con
 install -m400 src/config/etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
 install -m400 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
 
+# Copy default logrotate file
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
+install -m644 src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
+
 # Remove .la files created by libtool
 rm -f \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
@@ -284,6 +288,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(700,root,root) %dir %{_sysconfdir}/sssd
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
+%config(noreplace) %{_sysconfdir}/logrotate.d/sssd
 %config %{_sysconfdir}/sssd/sssd.api.conf
 %attr(700,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
 %config %{_sysconfdir}/sssd/sssd.api.d/

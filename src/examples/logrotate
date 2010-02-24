@@ -1,0 +1,11 @@
+/var/log/sssd/*.log {
+    weekly
+    missingok
+    notifempty
+    sharedscripts
+    rotate 2
+    compress
+    postrotate
+        /bin/kill -HUP `cat /var/run/sssd.pid  2>/dev/null`  2> /dev/null || true
+    endscript
+}
