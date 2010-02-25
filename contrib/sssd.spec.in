@@ -253,6 +253,7 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_krb5.la \
     $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ipa.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_simple.la \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
     $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
 
@@ -301,6 +302,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*
 %{_mandir}/man5/sssd-ldap.5*
+%{_mandir}/man5/sssd-simple.5*
 %{_mandir}/man8/sssd.8*
 %{_mandir}/man8/sss_groupadd.8*
 %{_mandir}/man8/sss_groupdel.8*

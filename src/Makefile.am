@@ -75,7 +75,8 @@ if HAVE_CHECK
         fail_over-tests \
         find_uid-tests \
         auth-tests \
-        ipa_ldap_opt-tests
+        ipa_ldap_opt-tests \
+        simple_access-tests
 endif
 
 check_PROGRAMS = \
@@ -90,7 +91,8 @@ sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
     libsss_krb5.la \
     libsss_proxy.la \
-    libsss_ipa.la
+    libsss_ipa.la \
+    libsss_simple.la
 
 ldblib_LTLIBRARIES = \
     memberof.la
@@ -324,6 +326,7 @@ dist_noinst_HEADERS = \
     providers/fail_over.h \
     providers/providers.h \
     providers/child_common.h \
+    providers/simple/simple_access.h \
     providers/krb5/krb5_auth.h \
     providers/krb5/krb5_common.h \
     providers/krb5/krb5_utils.h \
@@ -635,6 +638,17 @@ ipa_ldap_opt_tests_LDADD = \
     $(CHECK_LIBS) \
     libsss_test_common.la
 
+simple_access_tests_SOURCES = \
+    tests/simple_access-tests.c \
+    providers/simple/simple_access.c \
+    $(SSSD_UTIL_OBJ)
+simple_access_tests_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+simple_access_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
+
 endif
 
 stress_tests_SOURCES = \
@@ -718,6 +732,16 @@ libsss_proxy_la_CFLAGS = \
 libsss_proxy_la_LIBADD = \
     $(PAM_LIBS)
 libsss_proxy_la_LDFLAGS = \
+    -version-info 1:0:0 \
+    -module
+
+libsss_simple_la_SOURCES = \
+    providers/simple/simple_access.c
+libsss_simple_la_CFLAGS = \
+    $(AM_CFLAGS)
+libsss_simple_la_LIBADD = \
+    $(PAM_LIBS)
+libsss_simple_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
 
@@ -860,8 +884,8 @@ XSLTPROC_FLAGS = --catalogs --xinclude --nonet
 dist_man_MANS = man/sss_useradd.8 man/sss_userdel.8 man/sss_usermod.8 \
 		man/sss_groupadd.8 man/sss_groupdel.8 man/sss_groupmod.8 \
 		man/sssd.8 man/sssd.conf.5 man/sssd-ldap.5 man/sssd-krb5.5 \
-		man/sssd-ipa.5 man/sssd_krb5_locator_plugin.8 \
-		man/sss_groupshow.8 man/pam_sss.8
+		man/sssd-ipa.5 man/sssd-simple.5 \
+		man/sssd_krb5_locator_plugin.8 man/sss_groupshow.8 man/pam_sss.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
@@ -901,7 +925,8 @@ dist_sssdapiplugin_DATA = \
     config/etc/sssd.api.d/sssd-krb5.conf \
     config/etc/sssd.api.d/sssd-ldap.conf \
     config/etc/sssd.api.d/sssd-local.conf \
-    config/etc/sssd.api.d/sssd-proxy.conf
+    config/etc/sssd.api.d/sssd-proxy.conf \
+    config/etc/sssd.api.d/sssd-simple.conf
 
 installsssddirs::
 	mkdir -p \

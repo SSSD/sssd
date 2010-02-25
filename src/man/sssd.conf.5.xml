@@ -565,6 +565,13 @@
                             <quote>deny</quote> always deny access.
                         </para>
                         <para>
+                            <quote>simple</quote> access control based on access
+                            or deny lists. See <citerefentry>
+                            <refentrytitle>sssd-simple</refentrytitle>
+                            <manvolnum>5</manvolnum></citerefentry> for more
+                            information on configuring the simple access module.
+                        </para>
+                        <para>
                             Default: <quote>permit</quote>
                         </para>
                     </listitem>
