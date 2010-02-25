@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-02-17 09:21-0500\n"
+"POT-Creation-Date: 2010-02-25 11:08-0500\n"
 "PO-Revision-Date: 2009-12-30 17:58+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -151,203 +151,214 @@ msgstr "Visa användare/grupper i fullständigt kvalificerat format"
 msgid "Entry cache timeout length (seconds)"
 msgstr "Tidsgränslängd för postcache (sekunder)"
 
-#: config/SSSDConfig.py:84
+#: config/SSSDConfig.py:82
+msgid ""
+"Restrict or prefer a specific address family when performing DNS lookups"
+msgstr ""
+
+#: config/SSSDConfig.py:83
+#, fuzzy
+msgid "How long to keep cached entries after last successful login (days)"
+msgstr ""
+"Hur länge sparade inloggningar tillåts mellan online-inloggningar (dagar)"
+
+#: config/SSSDConfig.py:86
 msgid "IPA domain"
 msgstr "IPA-domän"
 
-#: config/SSSDConfig.py:85
+#: config/SSSDConfig.py:87
 msgid "IPA server address"
 msgstr "IPA-serveradress"
 
-#: config/SSSDConfig.py:86
+#: config/SSSDConfig.py:88
 msgid "IPA client hostname"
 msgstr "IPA-klienvärdnamn"
 
-#: config/SSSDConfig.py:89 config/SSSDConfig.py:116
+#: config/SSSDConfig.py:91 config/SSSDConfig.py:118
 msgid "Kerberos server address"
 msgstr "Kerberosserveradress"
 
-#: config/SSSDConfig.py:90 config/SSSDConfig.py:117
+#: config/SSSDConfig.py:92 config/SSSDConfig.py:119
 msgid "Kerberos realm"
 msgstr "Kerberosrike"
 
-#: config/SSSDConfig.py:91
+#: config/SSSDConfig.py:93
 msgid "Authentication timeout"
 msgstr "Autentiseringstidsgräns"
 
-#: config/SSSDConfig.py:94
+#: config/SSSDConfig.py:96
 msgid "Directory to store credential caches"
 msgstr "Katalog att lagra kreditiv-cachar i"
 
-#: config/SSSDConfig.py:95
+#: config/SSSDConfig.py:97
 msgid "Location of the user's credential cache"
 msgstr "Plats för användarens kreditiv-cache"
 
-#: config/SSSDConfig.py:96
+#: config/SSSDConfig.py:98
 msgid "Location of the keytab to validate credentials"
 msgstr "Plats för nyckeltabellen för att validera kreditiv"
 
-#: config/SSSDConfig.py:97
+#: config/SSSDConfig.py:99
 msgid "Enable credential validation"
 msgstr "Aktivera validering av kreditiv"
 
-#: config/SSSDConfig.py:100
+#: config/SSSDConfig.py:102
 msgid "The principal of the change password service"
 msgstr "Huvudmannen för tjänsten att ändra lösenord"
 
-#: config/SSSDConfig.py:103
+#: config/SSSDConfig.py:105
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, URI:n för LDAP-servern"
 
-#: config/SSSDConfig.py:104
+#: config/SSSDConfig.py:106
 msgid "The default base DN"
 msgstr "Standard bas-DN"
 
-#: config/SSSDConfig.py:105
+#: config/SSSDConfig.py:107
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "Schematypen som används i LDAP-servern, rfc2307"
 
-#: config/SSSDConfig.py:106
+#: config/SSSDConfig.py:108
 msgid "The default bind DN"
 msgstr "Standard bindnings-DN"
 
-#: config/SSSDConfig.py:107
+#: config/SSSDConfig.py:109
 msgid "The type of the authentication token of the default bind DN"
 msgstr "Typen på autenticerings-token för standard bindnings-DN"
 
-#: config/SSSDConfig.py:108
+#: config/SSSDConfig.py:110
 msgid "The authentication token of the default bind DN"
 msgstr "Autenticerings-token för standard bindnings-DN"
 
-#: config/SSSDConfig.py:109
+#: config/SSSDConfig.py:111
 msgid "Length of time to attempt connection"
 msgstr "Tidslängd att försöka ansluta"
 
-#: config/SSSDConfig.py:110
+#: config/SSSDConfig.py:112
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Tidslängd att försök synkrona LDAP-operationer"
 
-#: config/SSSDConfig.py:111
+#: config/SSSDConfig.py:113
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "Tidslängd mellan försök att återansluta under frånkoppling"
 
-#: config/SSSDConfig.py:112
+#: config/SSSDConfig.py:114
 msgid "file that contains CA certificates"
 msgstr "fil som innehåller CA-certifikat"
 
-#: config/SSSDConfig.py:113
+#: config/SSSDConfig.py:115
 msgid "Require TLS certificate verification"
 msgstr "Kräv TLS-certifikatverifiering"
 
-#: config/SSSDConfig.py:114
+#: config/SSSDConfig.py:116
 msgid "Specify the sasl mechanism to use"
 msgstr "Ange sasl-mekanismen att använda"
 
-#: config/SSSDConfig.py:115
+#: config/SSSDConfig.py:117
 msgid "Specify the sasl authorization id to use"
 msgstr "Ange sasl-auktorisering-id att använda"
 
-#: config/SSSDConfig.py:118
+#: config/SSSDConfig.py:120
 msgid "Kerberos service keytab"
 msgstr "Kerberostjänstens nyckeltabell"
 
-#: config/SSSDConfig.py:119
+#: config/SSSDConfig.py:121
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
-#: config/SSSDConfig.py:120
+#: config/SSSDConfig.py:122
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: config/SSSDConfig.py:123
+#: config/SSSDConfig.py:125
 msgid "Length of time to wait for a search request"
 msgstr "Tidslängd att vänta på en sökbegäran"
 
-#: config/SSSDConfig.py:124
+#: config/SSSDConfig.py:126
 msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
-#: config/SSSDConfig.py:125
+#: config/SSSDConfig.py:127
 msgid "Require TLS for ID lookups, false"
 msgstr "Kräv TLS för ID-uppslagningar, falsk"
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:128
 msgid "Base DN for user lookups"
 msgstr "Bas-DN för användaruppslagningar"
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:129
 msgid "Scope of user lookups"
 msgstr "Omfång av användaruppslagningar"
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:130
 msgid "Filter for user lookups"
 msgstr "Filter för användaruppslagningar"
 
-#: config/SSSDConfig.py:129
+#: config/SSSDConfig.py:131
 msgid "Objectclass for users"
 msgstr "Objektklass för användare"
 
-#: config/SSSDConfig.py:130
+#: config/SSSDConfig.py:132
 msgid "Username attribute"
 msgstr "Användarnamnsattribut"
 
-#: config/SSSDConfig.py:131
+#: config/SSSDConfig.py:133
 msgid "UID attribute"
 msgstr "UID-attribut"
 
-#: config/SSSDConfig.py:132
+#: config/SSSDConfig.py:134
 msgid "Primary GID attribute"
 msgstr "Primärt GID-attribut"
 
-#: config/SSSDConfig.py:133
+#: config/SSSDConfig.py:135
 msgid "GECOS attribute"
 msgstr "GECOS-attribut"
 
-#: config/SSSDConfig.py:134
+#: config/SSSDConfig.py:136
 msgid "Home directory attribute"
 msgstr "Hemkatalogattribut"
 
-#: config/SSSDConfig.py:135
+#: config/SSSDConfig.py:137
 msgid "Shell attribute"
 msgstr "Skalattribut"
 
-#: config/SSSDConfig.py:136
+#: config/SSSDConfig.py:138
 msgid "UUID attribute"
 msgstr "UUID-attribut"
 
-#: config/SSSDConfig.py:137
+#: config/SSSDConfig.py:139
 msgid "User principal attribute (for Kerberos)"
 msgstr "Användarens huvudmansattribut (för Kerberos)"
 
-#: config/SSSDConfig.py:138
+#: config/SSSDConfig.py:140
 msgid "Full Name"
 msgstr "Fullständigt namn"
 
-#: config/SSSDConfig.py:139
+#: config/SSSDConfig.py:141
 msgid "memberOf attribute"
 msgstr "medlemAv-attribut"
 
-#: config/SSSDConfig.py:140
+#: config/SSSDConfig.py:142
 msgid "Modification time attribute"
 msgstr "Modifieringstidsattribut"
 
-#: config/SSSDConfig.py:143
+#: config/SSSDConfig.py:145
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy för att utvärdera utgång av lösenord"
 
-#: config/SSSDConfig.py:146
+#: config/SSSDConfig.py:148
 msgid "Default shell, /bin/bash"
 msgstr "Standardskal, /bin/bash"
 
-#: config/SSSDConfig.py:147
+#: config/SSSDConfig.py:149
 msgid "Base for home directories"
 msgstr "Bas för hemkataloger"
 
-#: config/SSSDConfig.py:150
+#: config/SSSDConfig.py:152
 msgid "The name of the NSS library to use"
 msgstr "Namnet på NSS-biblioteket att använda"
 
-#: config/SSSDConfig.py:153
+#: config/SSSDConfig.py:155
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
@@ -665,47 +676,51 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra användaren.\n"
 
-#: sss_client/pam_sss.c:342
+#: sss_client/pam_sss.c:349
 msgid "Passwords do not match"
 msgstr "Lösenorden stämmer inte överens"
 
-#: sss_client/pam_sss.c:411
+#: sss_client/pam_sss.c:418
 msgid "Offline authentication"
 msgstr ""
 
-#: sss_client/pam_sss.c:412
+#: sss_client/pam_sss.c:419
 msgid ", your cached password will expire at: "
 msgstr ""
 
-#: sss_client/pam_sss.c:462
+#: sss_client/pam_sss.c:469
 msgid "Offline authentication, authentication is denied until: "
 msgstr ""
 
-#: sss_client/pam_sss.c:489
+#: sss_client/pam_sss.c:496
 msgid "System is offline, password change not possible"
 msgstr ""
 
-#: sss_client/pam_sss.c:519
+#: sss_client/pam_sss.c:526
 #, fuzzy
 msgid "Password change failed. "
 msgstr "Leverantör av lösenordsändringar"
 
-#: sss_client/pam_sss.c:520
+#: sss_client/pam_sss.c:527
 msgid "Server message: "
 msgstr ""
 
-#: sss_client/pam_sss.c:855
-msgid "Password: "
-msgstr "Lösenord: "
-
-#: sss_client/pam_sss.c:887
+#: sss_client/pam_sss.c:894
 msgid "New Password: "
 msgstr "Nytt lösenord: "
 
-#: sss_client/pam_sss.c:888
+#: sss_client/pam_sss.c:895
 msgid "Reenter new Password: "
 msgstr "Skriv det nya lösenordet igen: "
 
-#: sss_client/pam_sss.c:1092
-msgid "Password has expired."
-msgstr "Lösenordet har gått ut."
+#: sss_client/pam_sss.c:953
+msgid "Password: "
+msgstr "Lösenord: "
+
+#: sss_client/pam_sss.c:983
+#, fuzzy
+msgid "Current Password: "
+msgstr "Nytt lösenord: "
+
+#~ msgid "Password has expired."
+#~ msgstr "Lösenordet har gått ut."
