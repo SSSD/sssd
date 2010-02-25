@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-simple</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-simple</refname>
+        <refpurpose>the configuration file for SSSD's 'simple' access-control
+            provider</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the simple
+            access-control provider for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the
+            <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The simple access provider grants or denies access based on an
+            access or deny list of user names. Here to following rules apply:
+            <itemizedlist>
+                <listitem>
+                    <para>If both lists are empty, access is granted</para>
+                </listitem>
+                <listitem>
+                    <para>If simple_allow_users is set, only users from this
+                        list are allowed access.</para>
+                    <para>This setting supersedes the simple_deny_users list
+                        (which would be redundant).</para>
+                </listitem>
+                <listitem>
+                    <para>If the simple_allow_users list is empty, users are
+                        allowed access unless they appear in the
+                        simple_deny_users list</para>
+                </listitem>
+            </itemizedlist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='file-format'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for details on the configuration of an
+            SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>simple_allow_users (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of users who are allowed to log
+                            in.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>simple_deny_users (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of users who are rejected if
+                            simple_allow_users is not set.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+        <para>
+            Please note that it is an configuration error if both,
+            simple_allow_users and simple_deny_users, are defined.
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and example.com is one of the domains in the
+            <replaceable>[sssd]</replaceable> section. This examples shows only
+            the simple access provider-specific options.
+        </para>
+        <para>
+<programlisting>
+    [domain/example.com]
+    access_provider = simple
+    simple_allow_users = user1, user2
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='see_also'>
+        <title>SEE ALSO</title>
+        <para>
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum>
+            </citerefentry>
+        </para>
+    </refsect1>
+</refentry>
+</reference>

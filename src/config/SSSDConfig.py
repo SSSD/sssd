@@ -144,6 +144,10 @@ option_strings = {
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
 
+    # [provider/simple/access]
+    'simple_allow_users' : _('Comma separated list of allowed users'),
+    'simple_deny_users' : _('Comma separated list of prohibited users'),
+
     # [provider/local/id]
     'default_shell' : _('Default shell, /bin/bash'),
     'base_directory' : _('Base for home directories'),

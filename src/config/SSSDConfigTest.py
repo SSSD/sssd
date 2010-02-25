@@ -629,6 +629,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'ldap': ['id', 'auth', 'chpass'],
             'krb5': ['auth', 'chpass'],
             'proxy': ['id', 'auth'],
+            'simple': ['access'],
             'permit': ['access'],
             'deny': ['access']}
 
