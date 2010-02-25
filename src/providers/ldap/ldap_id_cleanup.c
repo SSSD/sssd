@@ -277,7 +277,7 @@ static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
     struct cleanup_users_state *state;
     static const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     time_t now = time(NULL);
-    char *subfilter;
+    char *subfilter = NULL;
     int account_cache_expiration;
 
     req = tevent_req_create(memctx, &state, struct cleanup_users_state);
@@ -297,12 +297,6 @@ static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
                                            SDAP_ACCOUNT_CACHE_EXPIRATION);
     DEBUG(9, ("Cache expiration is set to %d days\n",
               account_cache_expiration));
-
-    if (!subfilter) {
-        DEBUG(2, ("Failed to build filter\n"));
-        talloc_zfree(req);
-        return NULL;
-    }
 
     if (account_cache_expiration > 0) {
         subfilter = talloc_asprintf(state,
