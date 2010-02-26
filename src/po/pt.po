@@ -1,19 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
+# Rui Gouveia <rui.gouveia@gmail.com>, 2010.
 msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-02-25 11:08-0500\n"
-"PO-Revision-Date: 2009-12-08 18:06+0100\n"
-"Last-Translator: Rui Gouveia <rui.gouveia@globaltek.pt>\n"
-"Language-Team: PT <fedora-trans-pt@redhat.com>\n"
+"PO-Revision-Date: 2010-02-23 13:59+0100\n"
+"Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
+"Language-Team: fedora-trans-pt@redhat.com\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: pt\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Virtaal 0.5.2\n"
 "X-Poedit-Language: Portuguese\n"
 "X-Poedit-Country: PORTUGAL\n"
 
@@ -98,12 +100,15 @@ msgstr ""
 #: config/SSSDConfig.py:64
 msgid "How many failed logins attempts are allowed when offline"
 msgstr ""
+"Quantas tentativas falhadas de inicio de sessão são permitidas quando offline"
 
 #: config/SSSDConfig.py:65
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Quanto tempo (minutos) para negar a sessão após "
+"offline_failed_login_attempts ter sido atingido"
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
@@ -271,7 +276,7 @@ msgstr "Utilizar autenticação Kerberos para ligações LDAP"
 
 #: config/SSSDConfig.py:122
 msgid "Follow LDAP referrals"
-msgstr ""
+msgstr "Seguir os referrals LDAP"
 
 #: config/SSSDConfig.py:125
 msgid "Length of time to wait for a search request"
@@ -381,9 +386,8 @@ msgstr "Especifique grupo a remover\n"
 
 #: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
 #: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
-#, fuzzy
 msgid "Error initializing the tools - no local domain\n"
-msgstr "Erro ao inicializar a ferramenta\n"
+msgstr "Erro ao inicializar as ferramentas - não existe domínio local\n"
 
 #: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
 #: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
@@ -684,28 +688,27 @@ msgstr "Senhas não coincidem"
 
 #: sss_client/pam_sss.c:418
 msgid "Offline authentication"
-msgstr ""
+msgstr "Autenticação offline"
 
 #: sss_client/pam_sss.c:419
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", a sua senha guardada em cache irá expirar em: "
 
 #: sss_client/pam_sss.c:469
 msgid "Offline authentication, authentication is denied until: "
-msgstr ""
+msgstr "Autenticação offline, a autenticação é negada até: "
 
 #: sss_client/pam_sss.c:496
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "O sistema está offline, a mudança de senha não é possível"
 
 #: sss_client/pam_sss.c:526
-#, fuzzy
 msgid "Password change failed. "
-msgstr "Fornecedor de Alteração de Senha"
+msgstr "Alteração da senha falhou."
 
 #: sss_client/pam_sss.c:527
 msgid "Server message: "
-msgstr ""
+msgstr "Mensagem do Servidor: "
 
 #: sss_client/pam_sss.c:894
 msgid "New Password: "
