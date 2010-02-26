@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-02-25 11:08-0500\n"
-"PO-Revision-Date: 2010-02-19 15:36+0100\n"
+"PO-Revision-Date: 2010-02-25 20:14+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -155,13 +155,14 @@ msgstr "Czas oczekiwania pamięci podręcznej wpisów (sekundy)"
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
+"Ogranicza lub preferuje podaną rodzinę adresów podczas wykonywania "
+"wyszukiwań DNS"
 
 #: config/SSSDConfig.py:83
-#, fuzzy
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
-"Jak długo umożliwiać logowania w pamięci podręcznej między logowaniami w "
-"trybie online (dni)"
+"Jak długo utrzymywać wpisy logowania w pamięci podręcznej po ostatnim udanym "
+"zalogowaniu (dni)"
 
 #: config/SSSDConfig.py:86
 msgid "IPA domain"
@@ -726,9 +727,5 @@ msgid "Password: "
 msgstr "Hasło: "
 
 #: sss_client/pam_sss.c:983
-#, fuzzy
 msgid "Current Password: "
-msgstr "Nowe hasło: "
-
-#~ msgid "Password has expired."
-#~ msgstr "Hasło wygasło."
+msgstr "Bieżące hasło: "
