@@ -974,7 +974,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
     }
 
 #ifdef SYSDB_TEST
-    ldb_set_modules_dir(ldb, "./.libs");
+    ldb_set_modules_dir(ctx->ldb, ABS_BUILD_DIR"/.libs");
 #endif
 
     ret = ldb_connect(ldb, ldb_file, 0, NULL);
@@ -1542,7 +1542,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     }
 
 #ifdef SYSDB_TEST
-    ldb_set_modules_dir(ctx->ldb, "./.libs");
+    ldb_set_modules_dir(ctx->ldb, ABS_BUILD_DIR"/.libs");
 #endif
 
     ret = ldb_connect(ctx->ldb, ctx->ldb_file, 0, NULL);

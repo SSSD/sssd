@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 
 #include "util/util.h"
+#include "tests/common.h"
 
 #define SUFFIX ".symlink"
 
@@ -208,6 +209,9 @@ Suite *check_and_open_suite (void)
 int main(void)
 {
   int number_failed;
+
+  tests_set_cwd();
+
   Suite *s = check_and_open_suite ();
   SRunner *sr = srunner_create (s);
   /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

@@ -205,3 +205,15 @@ AC_DEFUN([WITH_SELINUX],
     AM_CONDITIONAL([BUILD_SELINUX], [test x"$with_selinux" = xyes])
   ])
 
+AC_DEFUN([WITH_TEST_DIR],
+  [ AC_ARG_WITH([test-dir],
+                [AC_HELP_STRING([--with-test-dir=PATH],
+                                [Directory used for make check temporary files [$builddir]]
+                               )
+                ]
+               )
+    TEST_DIR=$with_test_dir
+    AC_SUBST(TEST_DIR)
+    AC_DEFINE_UNQUOTED(TEST_DIR, "$with_test_dir", [Directory used for 'make check' temporary files])
+  ])
+

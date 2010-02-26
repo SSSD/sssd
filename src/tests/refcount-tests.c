@@ -220,6 +220,8 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
     debug_level = debug;
 
+    tests_set_cwd();
+
     suite = create_suite();
     sr = srunner_create(suite);
     srunner_set_fork_status(sr, CK_FORK);

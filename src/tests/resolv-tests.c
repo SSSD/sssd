@@ -595,6 +595,8 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
     debug_level = debug;
 
+    tests_set_cwd();
+
     resolv_suite = create_resolv_suite();
     sr = srunner_create(resolv_suite);
     /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

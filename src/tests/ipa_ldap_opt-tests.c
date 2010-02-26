@@ -27,6 +27,7 @@
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap.h"
+#include "tests/common.h"
 
 START_TEST(test_check_num_opts)
 {
@@ -49,6 +50,9 @@ Suite *ipa_ldap_opt_suite (void)
 int main(void)
 {
     int number_failed;
+
+    tests_set_cwd();
+
     Suite *s = ipa_ldap_opt_suite ();
     SRunner *sr = srunner_create (s);
     /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

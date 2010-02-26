@@ -450,6 +450,15 @@ sss_groupshow_LDADD = \
 # Feature Tests #
 #################
 if HAVE_CHECK
+noinst_LTLIBRARIES += \
+    libsss_test_common.la
+
+libsss_test_common_la_SOURCES = \
+    tests/common.c
+libsss_test_common_la_LIBADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS)
+
 sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
 sysdb_tests_SOURCES = \
@@ -461,7 +470,8 @@ sysdb_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 sysdb_tests_LDADD = \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 strtonum_tests_SOURCES = \
     tests/strtonum-tests.c \
@@ -472,7 +482,8 @@ strtonum_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 strtonum_tests_LDADD = \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 krb5_utils_tests_SOURCES = \
     tests/krb5_utils-tests.c \
@@ -488,7 +499,8 @@ krb5_utils_tests_CFLAGS = \
 krb5_utils_tests_LDADD = \
     $(SSSD_LIBS)\
     $(CARES_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 
 check_and_open_tests_SOURCES = \
@@ -499,12 +511,14 @@ check_and_open_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 check_and_open_tests_LDADD = \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 FILES_TESTS_LIBS = \
     $(CHECK_LIBS) \
     $(POPT_LIBS) \
-    $(TALLOC_LIBS)
+    $(TALLOC_LIBS) \
+    libsss_test_common.la
 if BUILD_SELINUX
     FILES_TESTS_LIBS += $(SELINUX_LIBS)
 endif
@@ -518,7 +532,8 @@ files_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 files_tests_LDADD = \
-    $(FILES_TESTS_LIBS)
+    $(FILES_TESTS_LIBS) \
+    libsss_test_common.la
 
 SSSD_RESOLV_TESTS_OBJ = \
     $(SSSD_RESOLV_OBJ)
@@ -531,7 +546,6 @@ endif
 
 resolv_tests_SOURCES = \
     tests/resolv-tests.c \
-    tests/common.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESOLV_TESTS_OBJ)
 resolv_tests_CFLAGS = \
@@ -541,22 +555,22 @@ resolv_tests_CFLAGS = \
 resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    $(CARES_LIBS)
+    $(CARES_LIBS) \
+    libsss_test_common.la
 
 refcount_tests_SOURCES = \
     tests/refcount-tests.c \
-    tests/common.c \
     $(CHECK_OBJ) \
     $(SSSD_UTIL_OBJ)
 refcount_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 refcount_tests_LDADD = \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 fail_over_tests_SOURCES = \
     tests/fail_over-tests.c \
-    tests/common.c \
     $(SSSD_FAILOVER_OBJ) \
     $(CHECK_OBJ) \
     $(SSSD_UTIL_OBJ)
@@ -565,12 +579,12 @@ fail_over_tests_CFLAGS = \
 fail_over_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
-    $(CARES_LIBS)
+    $(CARES_LIBS) \
+    libsss_test_common.la
 
 ipa_timerules_tests_SOURCES = \
     providers/ipa/ipa_timerules.c \
     tests/ipa_timerules-tests.c \
-    tests/common.c \
     $(SSSD_DEBUG_OBJ)
 ipa_timerules_tests_CFLAGS = \
     $(AM_CFLAGS) \
@@ -582,7 +596,8 @@ ipa_timerules_tests_LDADD = \
     $(POPT_LIBS) \
     $(PCRE_LIBS) \
     $(TALLOC_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 find_uid_tests_SOURCES = \
     tests/find_uid-tests.c \
@@ -596,7 +611,8 @@ find_uid_tests_CFLAGS = \
 find_uid_tests_LDADD = \
     $(TALLOC_LIBS) \
     $(DHASH_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 auth_tests_SOURCES = \
     tests/auth-tests.c \
@@ -606,7 +622,8 @@ auth_tests_CFLAGS = \
     $(CHECK_CFLAGS)
 auth_tests_LDADD = \
     $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 ipa_ldap_opt_tests_SOURCES = \
     tests/ipa_ldap_opt-tests.c
@@ -614,7 +631,8 @@ ipa_ldap_opt_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 ipa_ldap_opt_tests_LDADD = \
-    $(CHECK_LIBS)
+    $(CHECK_LIBS) \
+    libsss_test_common.la
 
 endif
 
@@ -622,7 +640,8 @@ stress_tests_SOURCES = \
     tests/stress-tests.c \
     $(SSSD_UTIL_OBJ)
 stress_tests_LDADD = \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    libsss_test_common.la
 
 noinst_PROGRAMS = pam_test_client
 pam_test_client_SOURCES = sss_client/pam_test_client.c

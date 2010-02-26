@@ -27,9 +27,9 @@
 
 #include "tests/common.h"
 #include "util/dlinklist.h"
-#include "util/util.h"
 
 TALLOC_CTX *global_talloc_context = NULL;
+#include "util/util.h"
 
 struct size_snapshot {
     struct size_snapshot *prev;
@@ -106,4 +106,20 @@ leak_check_teardown(void)
         fail("Exiting with a non-empty stack");
     }
     check_leaks(global_talloc_context, 0);
+}
+
+void
+tests_set_cwd(void)
+{
+    int ret;
+
+    ret = chdir(TEST_DIR);
+    if (ret == -1) {
+        if (strlen(TEST_DIR)) {
+            fprintf(stderr,
+                    "Could not chdir to [%s].\n"
+                    "Attempting to continue with current dir\n",
+                    TEST_DIR);
+        }
+    }
 }

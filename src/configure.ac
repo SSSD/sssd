@@ -65,6 +65,7 @@ WITH_PUBCONF_PATH
 WITH_PIPE_PATH
 WITH_INIT_DIR
 WITH_SHADOW_UTILS_PATH
+WITH_TEST_DIR
 WITH_MANPAGES
 WITH_XML_CATALOG
 WITH_KRB5_PLUGIN_PATH
@@ -140,6 +141,9 @@ AC_PATH_PROG([DOXYGEN], [doxygen], [false])
 AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
 AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
+
+abs_build_dir=`pwd`
+AC_DEFINE_UNQUOTED([ABS_BUILD_DIR], ["$abs_build_dir"], [Absolute path to the build directory])
 
 AC_CONFIG_FILES([Makefile doxy.config po/Makefile.in])
 AC_OUTPUT

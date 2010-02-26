@@ -29,6 +29,7 @@
 #include <check.h>
 
 #include "util/find_uid.h"
+#include "tests/common.h"
 
 
 START_TEST(test_check_if_uid_is_active_success)
@@ -115,6 +116,9 @@ int main(void)
 {
     debug_level = 255;
     int number_failed;
+
+    tests_set_cwd();
+
     Suite *s = find_uid_suite ();
     SRunner *sr = srunner_create (s);
     /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

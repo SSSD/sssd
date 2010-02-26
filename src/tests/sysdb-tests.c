@@ -29,6 +29,7 @@
 #include "util/util.h"
 #include "confdb/confdb_setup.h"
 #include "db/sysdb_private.h"
+#include "tests/common.h"
 
 #define TESTS_PATH "tests_sysdb"
 #define TEST_CONF_FILE "tests_conf.ldb"
@@ -3296,6 +3297,8 @@ int main(int argc, const char *argv[]) {
         }
     }
     poptFreeContext(pc);
+
+    tests_set_cwd();
 
     ret = unlink(TESTS_PATH"/"LOCAL_SYSDB_FILE);
     if (ret != EOK && errno != ENOENT) {

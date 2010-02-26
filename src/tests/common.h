@@ -42,4 +42,6 @@ void _check_leaks_pop(TALLOC_CTX *ctx, const char *location);
 void leak_check_setup(void);
 void leak_check_teardown(void);
 
+void tests_set_cwd(void);
+
 #endif /* !__TESTS_COMMON_H__ */

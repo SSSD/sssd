@@ -569,6 +569,8 @@ int main(int argc, const char *argv[])
     }
     debug_level = debug;
 
+    tests_set_cwd();
+
     timelib_suite = create_timelib_suite();
     sr = srunner_create(timelib_suite);
     /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

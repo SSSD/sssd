@@ -34,6 +34,7 @@
 #include "config.h"
 #include "tools/tools_util.h"
 #include "util/util.h"
+#include "tests/common.h"
 
 static char tpl_dir[] = "file-tests-dir-XXXXXX";
 static char *dir_path;
@@ -311,6 +312,8 @@ int main(int argc, char *argv[])
     }
     poptFreeContext(pc);
     debug_level = debug;
+
+    tests_set_cwd();
 
     Suite *s = files_suite();
     SRunner *sr = srunner_create(s);

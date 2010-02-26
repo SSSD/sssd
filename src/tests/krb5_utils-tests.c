@@ -27,6 +27,7 @@
 
 #include "providers/krb5/krb5_utils.h"
 #include "providers/krb5/krb5_auth.h"
+#include "tests/common.h"
 
 #define BASE "/abc/def"
 
@@ -296,6 +297,9 @@ Suite *krb5_utils_suite (void)
 int main(void)
 {
   int number_failed;
+
+  tests_set_cwd();
+
   Suite *s = krb5_utils_suite ();
   SRunner *sr = srunner_create (s);
   /* If CK_VERBOSITY is set, use that, otherwise it defaults to CK_NORMAL */

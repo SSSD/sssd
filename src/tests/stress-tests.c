@@ -30,6 +30,7 @@
 #include <errno.h>
 
 #include "util/util.h"
+#include "tests/common.h"
 
 #define DEFAULT_START   10
 #define DEFAULT_STOP    20
@@ -246,6 +247,8 @@ int main(int argc, const char *argv[])
         }
     }
     poptFreeContext(pc);
+
+    tests_set_cwd();
 
     verbose = pc_verbosity;
 

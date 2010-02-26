@@ -25,6 +25,7 @@
 #include <popt.h>
 #include "util/util.h"
 #include "util/strtonum.h"
+#include "tests/common.h"
 
 /********************
  * Utility routines *
@@ -444,6 +445,8 @@ int main(int argc, const char *argv[]) {
         }
     }
     poptFreeContext(pc);
+
+    tests_set_cwd();
 
     strtonum_suite = create_strtonum_suite();
     sr = srunner_create(strtonum_suite);
