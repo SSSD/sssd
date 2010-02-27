@@ -1517,6 +1517,10 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     ctx->ev = ev;
     ctx->domain = domain;
 
+    /* FIXME: TEMPORARY
+     * remove once sysdb code is all converted to synchronous */
+    tevent_loop_allow_nesting(ctx->ev);
+
     /* The local provider s the only true MPG,
      * for the other domains, the provider actually unrolls MPGs */
     if (strcasecmp(domain->provider, "local") == 0) {
