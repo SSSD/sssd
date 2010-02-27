@@ -273,56 +273,6 @@ int sysdb_delete_entry(struct sysdb_ctx *ctx,
     }
 }
 
-static
-struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct sysdb_handle *handle,
-                                           struct ldb_dn *dn,
-                                           bool ignore_not_found)
-{
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
-    struct ldb_request *ldbreq;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = ignore_not_found;
-    state->ldbreply = NULL;
-
-    ret = ldb_build_del_req(&ldbreq, handle->ctx->ldb, state, dn,
-                            NULL, NULL, NULL, NULL);
-
-    if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("LDB Error: %s(%d)\nError Message: [%s]\n",
-                  ldb_strerror(ret), ret, ldb_errstring(handle->ctx->ldb)));
-        ERROR_OUT(ret, sysdb_error_to_errno(ret), fail);
-    }
-
-    subreq = sldb_request_send(state, ev, handle->ctx->ldb, ldbreq);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_op_default_done, req);
-
-    return req;
-
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static
-int sysdb_delete_entry_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
-}
-
 /* =Remove-Subentries-From-Sysdb=============================================== */
 
 struct sysdb_delete_recursive_state {
@@ -3740,93 +3690,50 @@ int sysdb_store_custom_recv(struct tevent_req *req)
 
 /* = Custom Delete======================================= */
 
-struct sysdb_delete_custom_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-
-    const char *object_name;
-    const char *subtree_name;
-    struct ldb_dn *dn;
-};
-static void sysdb_delete_custom_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_delete_custom_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *object_name,
-                                             const char *subtree_name)
+int sysdb_delete_custom(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *ctx,
+                        struct sss_domain_info *domain,
+                        const char *object_name,
+                        const char *subtree_name)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_delete_custom_state *state;
+    TALLOC_CTX *tmpctx;
+    struct ldb_dn *dn;
     int ret;
 
-    if (object_name == NULL || subtree_name == NULL) return NULL;
-
-    if (handle == NULL) {
-        DEBUG(1, ("Sysdb context not available.\n"));
-        return NULL;
+    if (object_name == NULL || subtree_name == NULL) {
+        return EINVAL;
     }
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_store_custom_state);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->object_name = object_name;
-    state->subtree_name = subtree_name;
-    state->dn = sysdb_custom_dn(handle->ctx, state, domain->name, object_name,
-                                 subtree_name);
-    if (state->dn == NULL) {
+    dn = sysdb_custom_dn(ctx, tmpctx, domain->name, object_name, subtree_name);
+    if (dn == NULL) {
         DEBUG(1, ("sysdb_custom_dn failed.\n"));
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
-    subreq = sysdb_delete_entry_send(state, state->ev, state->handle,
-                                     state->dn, true);
-    if (!subreq) {
-        DEBUG(1, ("sysdb_delete_entry_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_custom_done, req);
+    ret = ldb_delete(ctx->ldb, dn);
 
-    return req;
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
+    switch (ret) {
+    case LDB_SUCCESS:
+    case LDB_ERR_NO_SUCH_OBJECT:
+        ret = EOK;
+        break;
 
-static void sysdb_delete_custom_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    default:
+        DEBUG(1, ("LDB Error: %s(%d)\nError Message: [%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        ret = sysdb_error_to_errno(ret);
+        break;
     }
 
-    tevent_req_done(req);
-    return;
-}
-
-int sysdb_delete_custom_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
+done:
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* = ASQ search request ======================================== */

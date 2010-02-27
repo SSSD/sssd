@@ -867,8 +867,6 @@ static void test_search_done(struct tevent_req *req)
     return;
 }
 
-static void test_delete_custom_done(struct tevent_req *subreq);
-
 static void test_delete_custom(struct tevent_req *subreq)
 {
     struct test_data *data = tevent_req_callback_data(subreq,
@@ -882,22 +880,8 @@ static void test_delete_custom(struct tevent_req *subreq)
     }
 
 
-    subreq = sysdb_delete_custom_send(data, data->ev, data->handle,
-                                       data->ctx->domain, CUSTOM_TEST_OBJECT,
-                                       CUSTOM_TEST_CONTAINER);
-    if (!subreq) {
-        return test_return(data, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, test_delete_custom_done, data);
-}
-
-static void test_delete_custom_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_delete_custom_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_delete_custom(data, data->ctx->sysdb, data->ctx->domain,
+                              CUSTOM_TEST_OBJECT, CUSTOM_TEST_CONTAINER);
 
     return test_return(data, ret);
 }

@@ -588,13 +588,11 @@ int sysdb_search_custom_recv(struct tevent_req *req,
                               size_t *msgs_count,
                               struct ldb_message ***msg);
 
-struct tevent_req *sysdb_delete_custom_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *object_name,
-                                             const char *subtree_name);
-int sysdb_delete_custom_recv(struct tevent_req *req);
+int sysdb_delete_custom(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *ctx,
+                        struct sss_domain_info *domain,
+                        const char *object_name,
+                        const char *subtree_name);
 
 struct tevent_req *sysdb_asq_search_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
