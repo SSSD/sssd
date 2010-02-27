@@ -2082,7 +2082,7 @@ static void get_group_from_gid_send_del_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     int ret;
 
-    ret = sysdb_delete_entry_recv(subreq);
+    ret = sysdb_delete_group_recv(subreq);
     talloc_zfree(subreq);
     if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
