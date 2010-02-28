@@ -625,358 +625,166 @@ int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
 
 /* =Get-New-ID============================================================ */
 
-struct sysdb_get_new_id_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-
+int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *ctx,
+                     struct sss_domain_info *domain,
+                     uint32_t *_id)
+{
+    TALLOC_CTX *tmpctx;
+    const char *attrs_1[] = { SYSDB_NEXTID, NULL };
+    const char *attrs_2[] = { SYSDB_UIDNUM, SYSDB_GIDNUM, NULL };
     struct ldb_dn *base_dn;
-    struct ldb_message *base;
-
-    struct ldb_message **v_msgs;
-    int v_count;
-
-    uint32_t new_id;
-};
-
-static void sysdb_get_new_id_base(struct tevent_req *subreq);
-static void sysdb_get_new_id_verify(struct tevent_req *subreq);
-static void sysdb_get_new_id_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_get_new_id_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain)
-{
-    struct tevent_req *req, *subreq;
-    struct sysdb_get_new_id_state *state;
-    static const char *attrs[] = { SYSDB_NEXTID, NULL };
-    struct ldb_request *ldbreq;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_get_new_id_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->base = NULL;
-    state->v_msgs = NULL;
-    state->v_count = 0;
-    state->new_id = 0;
-
-    state->base_dn = sysdb_domain_dn(handle->ctx, state, domain->name);
-    if (!state->base_dn) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-
-    ret = ldb_build_search_req(&ldbreq, handle->ctx->ldb, state,
-                               state->base_dn, LDB_SCOPE_BASE,
-                               SYSDB_NEXTID_FILTER, attrs,
-                               NULL, NULL, NULL, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
-                  ldb_strerror(ret), ret, ldb_errstring(handle->ctx->ldb)));
-        ERROR_OUT(ret, sysdb_error_to_errno(ret), fail);
-    }
-
-    subreq = sldb_request_send(state, ev, handle->ctx->ldb, ldbreq);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_get_new_id_base, req);
-
-    return req;
-
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_get_new_id_base(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                 struct tevent_req);
-    struct sysdb_get_new_id_state *state = tevent_req_data(req,
-                                                 struct sysdb_get_new_id_state);
-    static const char *attrs[] = { SYSDB_UIDNUM, SYSDB_GIDNUM, NULL };
-    struct ldb_reply *ldbreply;
-    struct ldb_request *ldbreq;
     char *filter;
+    uint32_t new_id = 0;
+    struct ldb_message **msgs;
+    size_t count;
+    struct ldb_message *msg;
+    uint32_t id;
     int ret;
+    int i;
 
-    ret = sldb_request_recv(subreq, state, &ldbreply);
-    if (ret) {
-        talloc_zfree(subreq);
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    switch (ldbreply->type) {
-    case LDB_REPLY_ENTRY:
-        if (state->base) {
-            DEBUG(1, ("More than one reply for a base search ?! "
-                      "DB seems corrupted, aborting.\n"));
-            tevent_req_error(req, EFAULT);
-            return;
+    base_dn = sysdb_domain_dn(ctx, tmpctx, domain->name);
+    if (!base_dn) {
+        talloc_zfree(tmpctx);
+        return ENOMEM;
+    }
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret) {
+        talloc_zfree(tmpctx);
+        ret = sysdb_error_to_errno(ret);
+        return ret;
+    }
+
+    ret = sysdb_search_entry(tmpctx, ctx, base_dn, LDB_SCOPE_BASE,
+                             SYSDB_NEXTID_FILTER, attrs_1, &count, &msgs);
+    switch (ret) {
+    case EOK:
+        new_id = get_attr_as_uint32(msgs[0], SYSDB_NEXTID);
+        if (new_id == (uint32_t)(-1)) {
+            DEBUG(1, ("Invalid Next ID in domain %s\n", domain->name));
+            ret = ERANGE;
+            goto done;
         }
 
-        state->base = talloc_move(state, &ldbreply->message);
-        if (!state->base) {
-            DEBUG(6, ("Error: Out of memory!\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+        if (new_id < domain->id_min) {
+            new_id = domain->id_min;
         }
 
-        /* just return, wait for a LDB_REPLY_DONE entry */
-        talloc_zfree(ldbreply);
-        return;
+        if ((domain->id_max != 0) && (new_id > domain->id_max)) {
+            DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
+                      new_id, domain->id_max));
+            ret = ERANGE;
+            goto done;
+        }
+        break;
 
-    case LDB_REPLY_DONE:
+    case ENOENT:
+        /* looks like the domain is not initialized yet, use min_id */
+        new_id = domain->id_min;
         break;
 
     default:
-        /* unexpected stuff */
-        DEBUG(6, ("Error: Unknown error\n"));
-        tevent_req_error(req, EIO);
-        talloc_zfree(ldbreply);
-        return;
+        goto done;
     }
-
-    talloc_zfree(subreq);
-
-    if (state->base) {
-        state->new_id = get_attr_as_uint32(state->base, SYSDB_NEXTID);
-        if (state->new_id == (uint32_t)(-1)) {
-            DEBUG(1, ("Invalid Next ID in domain %s\n", state->domain->name));
-            tevent_req_error(req, ERANGE);
-            return;
-        }
-
-        if (state->new_id < state->domain->id_min) {
-            state->new_id = state->domain->id_min;
-        }
-
-        if ((state->domain->id_max != 0) &&
-            (state->new_id > state->domain->id_max)) {
-            DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
-                      state->new_id, state->domain->id_max));
-            tevent_req_error(req, ERANGE);
-            return;
-        }
-
-    } else {
-        /* looks like the domain is not initialized yet, use min_id */
-        state->new_id = state->domain->id_min;
-    }
+    talloc_zfree(msgs);
+    count = 0;
 
     /* verify the id is actually really free.
      * search all entries with id >= new_id and < max_id */
-    if (state->domain->id_max) {
-        filter = talloc_asprintf(state,
+    if (domain->id_max) {
+        filter = talloc_asprintf(tmpctx,
                                  "(|(&(%s>=%u)(%s<=%u))(&(%s>=%u)(%s<=%u)))",
-                                 SYSDB_UIDNUM, state->new_id,
-                                 SYSDB_UIDNUM, state->domain->id_max,
-                                 SYSDB_GIDNUM, state->new_id,
-                                 SYSDB_GIDNUM, state->domain->id_max);
+                                 SYSDB_UIDNUM, new_id,
+                                 SYSDB_UIDNUM, domain->id_max,
+                                 SYSDB_GIDNUM, new_id,
+                                 SYSDB_GIDNUM, domain->id_max);
     }
     else {
-        filter = talloc_asprintf(state,
+        filter = talloc_asprintf(tmpctx,
                                  "(|(%s>=%u)(%s>=%u))",
-                                 SYSDB_UIDNUM, state->new_id,
-                                 SYSDB_GIDNUM, state->new_id);
+                                 SYSDB_UIDNUM, new_id,
+                                 SYSDB_GIDNUM, new_id);
     }
     if (!filter) {
         DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
-    ret = ldb_build_search_req(&ldbreq, state->handle->ctx->ldb, state,
-                               state->base_dn, LDB_SCOPE_SUBTREE,
-                               filter, attrs,
-                               NULL, NULL, NULL, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build search request: %s(%d)[%s]\n",
-                  ldb_strerror(ret), ret,
-                  ldb_errstring(state->handle->ctx->ldb)));
-        tevent_req_error(req, sysdb_error_to_errno(ret));
-        return;
-    }
-
-    subreq = sldb_request_send(state, state->ev,
-                               state->handle->ctx->ldb, ldbreq);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_get_new_id_verify, req);
-
-    return;
-}
-
-static void sysdb_get_new_id_verify(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct sysdb_get_new_id_state *state = tevent_req_data(req,
-                                                 struct sysdb_get_new_id_state);
-    struct ldb_reply *ldbreply;
-    struct ldb_request *ldbreq;
-    struct ldb_message *msg;
-    int ret, i;
-
-    ret = sldb_request_recv(subreq, state, &ldbreply);
-    if (ret) {
-        talloc_zfree(subreq);
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    switch (ldbreply->type) {
-    case LDB_REPLY_ENTRY:
-        state->v_msgs = talloc_realloc(state, state->v_msgs,
-                                       struct ldb_message *,
-                                       state->v_count + 2);
-        if (!state->v_msgs) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+    ret = sysdb_search_entry(tmpctx, ctx, base_dn, LDB_SCOPE_SUBTREE,
+                             filter, attrs_2, &count, &msgs);
+    switch (ret) {
+    /* if anything was found, find the maximum and increment past it */
+    case EOK:
+        for (i = 0; i < count; i++) {
+            id = get_attr_as_uint32(msgs[i], SYSDB_UIDNUM);
+            if (id != (uint32_t)(-1)) {
+                if (id > new_id) new_id = id;
+            }
+            id = get_attr_as_uint32(msgs[i], SYSDB_GIDNUM);
+            if (id != (uint32_t)(-1)) {
+                if (id > new_id) new_id = id;
+            }
         }
 
-        state->v_msgs[state->v_count] = talloc_move(state, &ldbreply->message);
-        if (!state->v_msgs[state->v_count]) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+        new_id++;
+
+        /* check again we are not falling out of range */
+        if ((domain->id_max != 0) && (new_id > domain->id_max)) {
+            DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
+                      new_id, domain->id_max));
+            ret = ERANGE;
+            goto done;
         }
-        state->v_count++;
+        break;
 
-        /* just return, wait for a LDB_REPLY_DONE entry */
-        talloc_zfree(ldbreply);
-        return;
-
-    case LDB_REPLY_DONE:
+    case ENOENT:
         break;
 
     default:
-        /* unexpected stuff */
-        DEBUG(6, ("Error: Unknown error\n"));
-        tevent_req_error(req, EIO);
-        talloc_zfree(ldbreply);
-        return;
+        goto done;
     }
 
-    talloc_zfree(subreq);
-
-    /* if anything was found, find the maximum and increment past it */
-    if (state->v_count) {
-        uint32_t id;
-
-        for (i = 0; i < state->v_count; i++) {
-            id = get_attr_as_uint32(state->v_msgs[i], SYSDB_UIDNUM);
-            if (id != (uint32_t)(-1)) {
-                if (id > state->new_id) state->new_id = id;
-            }
-            id = get_attr_as_uint32(state->v_msgs[i], SYSDB_GIDNUM);
-            if (id != (uint32_t)(-1)) {
-                if (id > state->new_id) state->new_id = id;
-            }
-        }
-
-        state->new_id++;
-
-        /* check again we are not falling out of range */
-        if ((state->domain->id_max != 0) &&
-            (state->new_id > state->domain->id_max)) {
-            DEBUG(0, ("Failed to allocate new id, out of range (%u/%u)\n",
-                      state->new_id, state->domain->id_max));
-            tevent_req_error(req, ERANGE);
-            return;
-        }
-
-        talloc_zfree(state->v_msgs);
-        state->v_count = 0;
-    }
+    talloc_zfree(msgs);
+    count = 0;
 
     /* finally store the new next id */
-    msg = ldb_msg_new(state);
+    msg = ldb_msg_new(tmpctx);
     if (!msg) {
         DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
-    msg->dn = state->base_dn;
+    msg->dn = base_dn;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_REPLACE,
-                    SYSDB_NEXTID, state->new_id + 1);
+                    SYSDB_NEXTID, new_id + 1);
+    if (ret) {
+        goto done;
+    }
+
+    ret = ldb_modify(ctx->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
+
+    *_id = new_id;
+
+done:
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(ctx->ldb);
+    } else {
+        ldb_transaction_cancel(ctx->ldb);
+    }
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
     }
-
-    ret = ldb_build_mod_req(&ldbreq, state->handle->ctx->ldb, state, msg,
-                            NULL, NULL, NULL, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build modify request: %s(%d)[%s]\n",
-                  ldb_strerror(ret), ret,
-                  ldb_errstring(state->handle->ctx->ldb)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sldb_request_send(state, state->ev,
-                               state->handle->ctx->ldb, ldbreq);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_get_new_id_done, req);
-}
-
-static void sysdb_get_new_id_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct sysdb_get_new_id_state *state = tevent_req_data(req,
-                                                 struct sysdb_get_new_id_state);
-    struct ldb_reply *ldbreply;
-    int ret;
-
-    ret = sldb_request_recv(subreq, state, &ldbreply);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (ldbreply->type != LDB_REPLY_DONE) {
-        DEBUG(6, ("Error: %d (%s)\n", EIO, strerror(EIO)));
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_get_new_id_recv(struct tevent_req *req, uint32_t *id)
-{
-    struct sysdb_get_new_id_state *state = tevent_req_data(req,
-                                                 struct sysdb_get_new_id_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *id = state->new_id;
-
-    return EOK;
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 
@@ -1104,8 +912,6 @@ struct sysdb_add_user_state {
 };
 
 static void sysdb_add_user_basic_done(struct tevent_req *subreq);
-static void sysdb_add_user_get_id_done(struct tevent_req *subreq);
-static int sysdb_add_user_set_attrs(struct sysdb_add_user_state *state);
 
 struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
@@ -1208,6 +1014,9 @@ static void sysdb_add_user_basic_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sysdb_add_user_state *state = tevent_req_data(req,
                                             struct sysdb_add_user_state);
+    struct sysdb_attrs *id_attrs;
+    uint32_t id;
+    time_t now;
     int ret;
 
     ret = sysdb_add_basic_user_recv(subreq);
@@ -1219,46 +1028,12 @@ static void sysdb_add_user_basic_done(struct tevent_req *subreq)
     }
 
     if (state->uid == 0) {
-        subreq = sysdb_get_new_id_send(state,
-                                       state->ev, state->handle,
-                                       state->domain);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_get_new_id(state, state->handle->ctx, state->domain, &id);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, sysdb_add_user_get_id_done, req);
-        return;
-    }
 
-    ret = sysdb_add_user_set_attrs(state);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_add_user_state *state = tevent_req_data(req,
-                                            struct sysdb_add_user_state);
-    struct sysdb_attrs *id_attrs;
-    uint32_t id;
-    int ret;
-
-    ret = sysdb_get_new_id_recv(subreq, &id);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->uid == 0) {
         id_attrs = sysdb_new_attrs(state);
         if (!id_attrs) {
             DEBUG(6, ("Error: Out of memory\n"));
@@ -1291,7 +1066,35 @@ static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_add_user_set_attrs(state);
+    if (!state->attrs) {
+        state->attrs = sysdb_new_attrs(state);
+        if (!state->attrs) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+    }
+
+    now = time(NULL);
+
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
+                                 ((state->cache_timeout) ?
+                                  (now + state->cache_timeout) : 0));
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_set_user_attr(state, state->handle->ctx,
+                               state->domain, state->name,
+                               state->attrs, SYSDB_MOD_REP);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
@@ -1299,35 +1102,6 @@ static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
     }
 
     tevent_req_done(req);
-}
-
-static int sysdb_add_user_set_attrs(struct sysdb_add_user_state *state)
-{
-    time_t now = time(NULL);
-    int ret;
-
-    if (!state->attrs) {
-        state->attrs = sysdb_new_attrs(state);
-        if (!state->attrs) {
-            return ENOMEM;
-        }
-    }
-
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) {
-        return ret;
-    }
-
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
-                                 ((state->cache_timeout) ?
-                                  (now + state->cache_timeout) : 0));
-    if (ret) {
-        return ret;
-    }
-
-    return sysdb_set_user_attr(state, state->handle->ctx,
-                               state->domain, state->name,
-                               state->attrs, SYSDB_MOD_REP);
 }
 
 int sysdb_add_user_recv(struct tevent_req *req)
@@ -1428,8 +1202,6 @@ struct sysdb_add_group_state {
 };
 
 static void sysdb_add_group_basic_done(struct tevent_req *subreq);
-static void sysdb_add_group_get_id_done(struct tevent_req *subreq);
-static void sysdb_add_group_set_attrs(struct tevent_req *req);
 
 struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
@@ -1508,6 +1280,8 @@ static void sysdb_add_group_basic_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sysdb_add_group_state *state = tevent_req_data(req,
                                            struct sysdb_add_group_state);
+    uint32_t id;
+    time_t now;
     int ret;
 
     ret = sysdb_add_basic_group_recv(subreq);
@@ -1519,38 +1293,12 @@ static void sysdb_add_group_basic_done(struct tevent_req *subreq)
     }
 
     if (state->gid == 0) {
-        subreq = sysdb_get_new_id_send(state,
-                                       state->ev, state->handle,
-                                       state->domain);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_get_new_id(state, state->handle->ctx, state->domain, &id);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, sysdb_add_group_get_id_done, req);
-        return;
-    }
 
-    sysdb_add_group_set_attrs(req);
-}
-
-static void sysdb_add_group_get_id_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_add_group_state *state = tevent_req_data(req,
-                                           struct sysdb_add_group_state);
-    uint32_t id;
-    int ret;
-
-    ret = sysdb_get_new_id_recv(subreq, &id);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->gid == 0) {
         if (!state->attrs) {
             state->attrs = sysdb_new_attrs(state);
             if (!state->attrs) {
@@ -1568,16 +1316,6 @@ static void sysdb_add_group_get_id_done(struct tevent_req *subreq)
         }
     }
 
-    sysdb_add_group_set_attrs(req);
-}
-
-static void sysdb_add_group_set_attrs(struct tevent_req *req)
-{
-    struct sysdb_add_group_state *state = tevent_req_data(req,
-                                           struct sysdb_add_group_state);
-    time_t now = time(NULL);
-    int ret;
-
     if (!state->attrs) {
         state->attrs = sysdb_new_attrs(state);
         if (!state->attrs) {
@@ -1586,6 +1324,8 @@ static void sysdb_add_group_set_attrs(struct tevent_req *req)
             return;
         }
     }
+
+    now = time(NULL);
 
     ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
     if (ret) {

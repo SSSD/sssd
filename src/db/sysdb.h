@@ -405,11 +405,10 @@ int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
                          int mod_op);
 
 /* Allocate a new id */
-struct tevent_req *sysdb_get_new_id_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain);
-int sysdb_get_new_id_recv(struct tevent_req *req, uint32_t *id);
+int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *ctx,
+                     struct sss_domain_info *domain,
+                     uint32_t *id);
 
 /* Add user (only basic attrs and w/o checks) */
 struct tevent_req *sysdb_add_basic_user_send(TALLOC_CTX *mem_ctx,
