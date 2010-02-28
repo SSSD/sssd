@@ -886,7 +886,6 @@ static void test_delete_custom(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_search_all_users_done(struct tevent_req *subreq);
 static void test_search_all_users(struct tevent_req *subreq)
 {
     struct test_data *data = tevent_req_callback_data(subreq,
@@ -906,28 +905,12 @@ static void test_search_all_users(struct tevent_req *subreq)
         return test_return(data, ENOMEM);
     }
 
-    subreq = sysdb_search_entry_send(data, data->ev, data->handle,
-                                     base_dn, LDB_SCOPE_SUBTREE,
-                                     "objectClass=user", data->attrlist);
-    if (!subreq) {
-        return test_return(data, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, test_search_all_users_done, data);
+    ret = sysdb_search_entry(data, data->ctx->sysdb, base_dn,
+                             LDB_SCOPE_SUBTREE, "objectClass=user",
+                             data->attrlist, &data->msgs_count, &data->msgs);
+
+    return test_return(data, ret);
 }
-
-static void test_search_all_users_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_search_entry_recv(subreq, data, &data->msgs_count, &data->msgs);
-    talloc_zfree(subreq);
-
-    test_return(data, ret);
-    return;
-}
-
-static void test_delete_recursive_done(struct tevent_req *subreq);
 
 static void test_delete_recursive(struct tevent_req *subreq)
 {
@@ -948,22 +931,8 @@ static void test_delete_recursive(struct tevent_req *subreq)
         return test_return(data, ENOMEM);
     }
 
-    subreq = sysdb_delete_recursive_send(data, data->ev, data->handle, dn,
-                                         false);
-    if (!subreq) {
-        return test_return(data, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, test_delete_recursive_done, data);
-}
-
-static void test_delete_recursive_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_delete_recursive_recv(subreq);
-    talloc_zfree(subreq);
-    fail_unless(ret == EOK, "sysdb_delete_recursive_recv returned [%d]", ret);
+    ret = sysdb_delete_recursive(data, data->ctx->sysdb, dn, false);
+    fail_unless(ret == EOK, "sysdb_delete_recursive returned [%d]", ret);
     return test_return(data, ret);
 }
 

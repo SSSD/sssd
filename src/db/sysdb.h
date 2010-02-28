@@ -336,25 +336,20 @@ int sysdb_delete_entry(struct sysdb_ctx *ctx,
                        bool ignore_not_found);
 
 
-struct tevent_req *sysdb_delete_recursive_send(TALLOC_CTX *mem_ctx,
-                                               struct tevent_context *ev,
-                                               struct sysdb_handle *handle,
-                                               struct ldb_dn *dn,
-                                               bool ignore_not_found);
-int sysdb_delete_recursive_recv(struct tevent_req *req);
+int sysdb_delete_recursive(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *ctx,
+                           struct ldb_dn *dn,
+                           bool ignore_not_found);
 
 /* Search Entry */
-struct tevent_req *sysdb_search_entry_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct sysdb_handle *handle,
-                                           struct ldb_dn *base_dn,
-                                           int scope,
-                                           const char *filter,
-                                           const char **attrs);
-int sysdb_search_entry_recv(struct tevent_req *req,
-                            TALLOC_CTX *mem_ctx,
-                            size_t *msgs_size,
-                            struct ldb_message ***msgs);
+int sysdb_search_entry(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *ctx,
+                       struct ldb_dn *base_dn,
+                       int scope,
+                       const char *filter,
+                       const char **attrs,
+                       size_t *msgs_count,
+                       struct ldb_message ***msgs);
 
 /* Search User (by uid or name) */
 struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,

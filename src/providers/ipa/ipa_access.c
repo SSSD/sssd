@@ -823,7 +823,6 @@ struct hbac_get_rules_state {
 static void hbac_get_rules_connect_done(struct tevent_req *subreq);
 static void hbac_rule_get_done(struct tevent_req *subreq);
 static void hbac_rule_sysdb_transaction_started(struct tevent_req *subreq);
-static void hbac_rule_sysdb_delete_done(struct tevent_req *subreq);
 static void hbac_rule_store_prepare(struct tevent_req *req);
 static void hbac_rule_store_done(struct tevent_req *subreq);
 
@@ -1112,38 +1111,19 @@ static void hbac_rule_sysdb_transaction_started(struct tevent_req *subreq)
         ret = ENOMEM;
         goto fail;
     }
-    subreq = sysdb_delete_recursive_send(state, state->ev, state->handle,
-                                         hbac_base_dn, true);
-    if (subreq == NULL) {
+    ret = sysdb_delete_recursive(state, state->sysdb, hbac_base_dn, true);
+    if (ret) {
         DEBUG(1, ("sysdb_delete_recursive_send failed.\n"));
-        ret = ENOMEM;
         goto fail;
     }
-    tevent_req_set_callback(subreq, hbac_rule_sysdb_delete_done, req);
+
+    state->current_item = 0;
+    hbac_rule_store_prepare(req);
     return;
 
 fail:
     tevent_req_error(req, ret);
     return;
-}
-
-static void hbac_rule_sysdb_delete_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct hbac_get_rules_state *state = tevent_req_data(req,
-                                                     struct hbac_get_rules_state);
-    int ret;
-
-    ret = sysdb_delete_recursive_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->current_item = 0;
-    hbac_rule_store_prepare(req);
 }
 
 static void hbac_rule_store_prepare(struct tevent_req *req)

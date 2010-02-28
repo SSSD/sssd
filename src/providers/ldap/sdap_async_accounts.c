@@ -624,18 +624,6 @@ int sdap_get_users_recv(struct tevent_req *req,
 
 /* ==Group-Parsing Routines=============================================== */
 
-struct sdap_orig_entry_state {
-    int done;
-};
-
-static void sdap_find_entry_by_origDN_done(struct tevent_req *req)
-{
-    struct sdap_orig_entry_state *state = tevent_req_callback_data(req,
-                                               struct sdap_orig_entry_state);
-    state->done = 1;
-}
-
-/* WARNING: this is a sync routine for now */
 static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
                                      struct sysdb_handle *handle,
@@ -643,49 +631,35 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
                                      const char *orig_dn,
                                      char **localdn)
 {
-    struct tevent_req *req;
-    struct sdap_orig_entry_state *state;
-    static const char *attrs[] = { NULL };
+    TALLOC_CTX *tmpctx;
+    const char *no_attrs[] = { NULL };
     struct ldb_dn *base_dn;
     char *filter;
     struct ldb_message **msgs;
     size_t num_msgs;
     int ret;
 
-    state = talloc_zero(memctx, struct sdap_orig_entry_state);
-    if (!state) {
-        ret = ENOMEM;
-        goto done;
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    filter = talloc_asprintf(state, "%s=%s", SYSDB_ORIG_DN, orig_dn);
+    filter = talloc_asprintf(tmpctx, "%s=%s", SYSDB_ORIG_DN, orig_dn);
     if (!filter) {
         ret = ENOMEM;
         goto done;
     }
 
     base_dn = sysdb_domain_dn(sysdb_handle_get_ctx(handle),
-                              state, domain->name);
+                              tmpctx, domain->name);
     if (!base_dn) {
         ret = ENOMEM;
         goto done;
     }
 
-    req = sysdb_search_entry_send(state, ev, handle, base_dn,
-                                  LDB_SCOPE_SUBTREE, filter, attrs);
-    if (!req) {
-        ret = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(req, sdap_find_entry_by_origDN_done, state);
-
-    /* WARNING: SYNC LOOP HERE */
-    tevent_loop_allow_nesting(ev);
-    while (state->done == 0) {
-        tevent_loop_once(ev);
-    }
-
-    ret = sysdb_search_entry_recv(req, state, &num_msgs, &msgs);
+    ret = sysdb_search_entry(tmpctx, sysdb_handle_get_ctx(handle),
+                             base_dn, LDB_SCOPE_SUBTREE, filter, no_attrs,
+                             &num_msgs, &msgs);
     if (ret) {
         goto done;
     }
@@ -703,7 +677,7 @@ static int sdap_find_entry_by_origDN(TALLOC_CTX *memctx,
     ret = EOK;
 
 done:
-    talloc_zfree(state);
+    talloc_zfree(tmpctx);
     return ret;
 }
 
