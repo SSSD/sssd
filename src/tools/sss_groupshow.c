@@ -274,7 +274,6 @@ struct group_show_state {
     bool recursive;
 };
 
-static void group_show_root_done(struct tevent_req *subreq);
 static void group_show_recurse_done(struct tevent_req *subreq);
 static void group_show_trim_done(struct tevent_req *subreq);
 
@@ -305,55 +304,32 @@ struct tevent_req *group_show_send(TALLOC_CTX *mem_ctx,
                                    bool   recursive,
                                    const char *name)
 {
-    struct group_show_state *search_state = NULL;
+    struct group_show_state *state = NULL;
     struct tevent_req *subreq = NULL;
     struct tevent_req *req = NULL;
     static const char *attrs[] = GROUP_SHOW_ATTRS;
-
-    req = tevent_req_create(mem_ctx, &search_state, struct group_show_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    search_state->ev = ev;
-    search_state->sysdb = sysdb;
-    search_state->handle = handle;
-    search_state->domain = domain;
-    search_state->recursive = recursive;
-
-    /* First, search for the root group */
-    subreq = sysdb_search_group_by_name_send(search_state,
-                                             search_state->ev,
-                                             search_state->sysdb,
-                                             search_state->handle,
-                                             search_state->domain,
-                                             name, attrs);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, group_show_root_done, req);
-
-    return req;
-}
-
-static void group_show_root_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct group_show_state *state = tevent_req_data(req,
-                                                     struct group_show_state);
-    int ret;
-    int i;
     struct ldb_message *msg = NULL;
     const char **group_members = NULL;
     int nmembers = 0;
+    int ret;
+    int i;
 
-    ret = sysdb_search_group_recv(subreq, state, &msg);
-    talloc_zfree(subreq);
+    req = tevent_req_create(mem_ctx, &state, struct group_show_state);
+    if (req == NULL) {
+        return NULL;
+    }
+    state->ev = ev;
+    state->sysdb = sysdb;
+    state->handle = handle;
+    state->domain = domain;
+    state->recursive = recursive;
+
+    /* First, search for the root group */
+    ret = sysdb_search_group_by_name(state, state->sysdb,
+                                     state->domain, name, attrs, &msg);
     if (ret) {
         DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     ret = process_group(state,
@@ -363,8 +339,7 @@ static void group_show_root_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(2, ("Group processing failed: %s (%d)\n",
                    strerror(ret), ret));
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     if (state->recursive == false) {
@@ -376,22 +351,22 @@ static void group_show_root_done(struct tevent_req *subreq)
                 state->root->group_members[i] = talloc_zero(state->root,
                                                             struct group_info);
                 if (!state->root->group_members) {
-                    tevent_req_error(req, ENOMEM);
-                    return;
+                    ret = ENOMEM;
+                    goto done;
                 }
                 state->root->group_members[i]->name = talloc_strdup(state->root,
                                                                 group_members[i]);
                 if (!state->root->group_members[i]->name) {
-                    tevent_req_error(req, ENOMEM);
-                    return;
+                    ret = ENOMEM;
+                    goto done;
                 }
             }
             state->root->group_members[nmembers] = NULL;
         }
 
         if (state->root->memberofs == NULL) {
-            tevent_req_done(req);
-            return;
+            ret = EOK;
+            goto done;
         }
 
         /* if not recursive, only show the direct parent */
@@ -400,16 +375,17 @@ static void group_show_root_done(struct tevent_req *subreq)
                                                state->domain, state->root->name,
                                                state->root->memberofs);
         if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto done;
         }
         tevent_req_set_callback(subreq, group_show_trim_done, req);
-        return;
+
+        return req;
     }
 
     if (group_members == NULL) {
-        tevent_req_done(req);
-        return;
+        ret = EOK;
+        goto done;
     }
 
     subreq = group_show_recurse_send(state->root, state,
@@ -417,10 +393,21 @@ static void group_show_root_done(struct tevent_req *subreq)
                                      group_members,
                                      nmembers);
     if (!subreq) {
-        tevent_req_error(req, ret);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
     tevent_req_set_callback(subreq, group_show_recurse_done, req);
+
+    return req;
+
+done:
+    if (ret) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+    tevent_req_post(req, ev);
+    return req;
 }
 
 static void group_show_trim_done(struct tevent_req *subreq)
@@ -644,9 +631,8 @@ struct group_show_recurse {
 
 static int  group_show_recurse_search(struct tevent_req *,
                                       struct group_show_recurse *);
-static void group_show_recurse_next(struct tevent_req *);
 static void group_show_recurse_level_done(struct tevent_req *);
-static void group_show_recurse_cont(struct tevent_req *);
+static int group_show_recurse_cont(struct tevent_req *);
 
 struct tevent_req *group_show_recurse_send(TALLOC_CTX *mem_ctx,
                                            struct group_show_state *state,
@@ -656,6 +642,7 @@ struct tevent_req *group_show_recurse_send(TALLOC_CTX *mem_ctx,
 {
     struct tevent_req *req = NULL;
     struct group_show_recurse *recurse_state = NULL;
+    int ret;
 
     req = tevent_req_create(mem_ctx, &recurse_state, struct group_show_recurse);
     if (req == NULL) {
@@ -675,9 +662,14 @@ struct tevent_req *group_show_recurse_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    if (group_show_recurse_search(req, recurse_state) != EOK) {
-        talloc_zfree(req);
-        return NULL;
+    ret = group_show_recurse_search(req, recurse_state);
+    if (ret == ENOENT) {
+        tevent_req_done(req);
+        tevent_req_post(req, state->ev);
+    }
+    if (ret) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, state->ev);
     }
 
     return req;
@@ -686,8 +678,13 @@ struct tevent_req *group_show_recurse_send(TALLOC_CTX *mem_ctx,
 static int group_show_recurse_search(struct tevent_req *req,
                                      struct group_show_recurse *recurse_state)
 {
+    struct tevent_req *subreq;
     static const char *attrs[] = GROUP_SHOW_ATTRS;
-    struct tevent_req *subreq = NULL;
+    struct ldb_message *msg;
+    const char **group_members = NULL;
+    int nmembers = 0;
+    int ret;
+
 
     /* Skip circular groups */
     if (strcmp(recurse_state->names[recurse_state->current],
@@ -696,39 +693,14 @@ static int group_show_recurse_search(struct tevent_req *req,
         return EOK;
     }
 
-    subreq = sysdb_search_group_by_name_send(recurse_state->state,
-                                             recurse_state->state->ev,
-                                             recurse_state->state->sysdb,
-                                             recurse_state->state->handle,
-                                             recurse_state->state->domain,
-                                             recurse_state->names[recurse_state->current],
-                                             attrs);
-    if (!subreq) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(subreq, group_show_recurse_next, req);
-
-    return EOK;
-}
-
-static void group_show_recurse_next(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct group_show_recurse *recurse_state = tevent_req_data(req,
-                                                      struct group_show_recurse);
-    const char **group_members = NULL;
-    int nmembers = 0;
-    struct ldb_message *msg = NULL;
-    int ret;
-    struct tevent_req *recurse_req = NULL;
-
-    ret = sysdb_search_group_recv(subreq, recurse_state, &msg);
-    talloc_zfree(subreq);
+    ret = sysdb_search_group_by_name(recurse_state->state,
+                                     recurse_state->state->sysdb,
+                                     recurse_state->state->domain,
+                                     recurse_state->names[recurse_state->current],
+                                     attrs, &msg);
     if (ret) {
         DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
-        tevent_req_error(req, EIO);
-        return;
+        return EIO;
     }
 
     ret = process_group(recurse_state->state->root,
@@ -742,41 +714,39 @@ static void group_show_recurse_next(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(2, ("Group processing failed: %s (%d)\n",
                    strerror(ret), ret));
-        tevent_req_error(req, ret);
-        return;
+        return ret;
     }
 
     /* descend to another level */
     if (nmembers > 0) {
-        recurse_req = group_show_recurse_send(recurse_state,
-                                        recurse_state->state,
-                                        recurse_state->groups[recurse_state->current],
-                                        group_members, nmembers);
-        if (!recurse_req) {
-            tevent_req_error(req, ENOMEM);
-            return;
+        subreq = group_show_recurse_send(recurse_state,
+                                         recurse_state->state,
+                                         recurse_state->groups[recurse_state->current],
+                                         group_members, nmembers);
+        if (!subreq) {
+            return ENOMEM;
         }
         /* to free group_members in the callback */
-        group_members = talloc_move(recurse_req, &group_members);
-        tevent_req_set_callback(recurse_req, group_show_recurse_level_done, req);
-        return;
+        group_members = talloc_move(subreq, &group_members);
+        tevent_req_set_callback(subreq, group_show_recurse_level_done, req);
+        return EOK;
     }
 
     /* Move to next group in the same level */
-    group_show_recurse_cont(req);
+    return group_show_recurse_cont(req);
 }
 
-static void group_show_recurse_level_done(struct tevent_req *recurse_req)
+static void group_show_recurse_level_done(struct tevent_req *subreq)
 {
     int ret;
-    struct tevent_req *req = tevent_req_callback_data(recurse_req,
+    struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct group_show_recurse *recurse_state = tevent_req_data(recurse_req,
+    struct group_show_recurse *recurse_state = tevent_req_data(subreq,
                                                       struct group_show_recurse);
 
-    ret = group_show_recurse_recv(recurse_state->state->root, recurse_req,
+    ret = group_show_recurse_recv(recurse_state->state->root, subreq,
                                   &recurse_state->parent->group_members);
-    talloc_zfree(recurse_req);
+    talloc_zfree(subreq);
     if (ret) {
         DEBUG(2, ("Recursive search failed: %s (%d)\n", strerror(ret), ret));
         tevent_req_error(req, EIO);
@@ -784,28 +754,30 @@ static void group_show_recurse_level_done(struct tevent_req *recurse_req)
     }
 
     /* Move to next group on the upper level */
-    group_show_recurse_cont(req);
-}
-
-static void group_show_recurse_cont(struct tevent_req *req)
-{
-    struct group_show_recurse *recurse_state = tevent_req_data(req,
-                                                      struct group_show_recurse);
-    int ret;
-
-    recurse_state->current++;
-    if (recurse_state->names[recurse_state->current] == NULL) {
-        recurse_state->groups[recurse_state->current] = NULL; /* Sentinel */
+    ret = group_show_recurse_cont(req);
+    if (ret == ENOENT) {
         tevent_req_done(req);
         return;
     }
-
-    /* examine next group on the same level */
-    ret = group_show_recurse_search(req, recurse_state);
-    if (ret != EOK) {
+    if (ret) {
         tevent_req_error(req, ret);
         return;
     }
+}
+
+static int group_show_recurse_cont(struct tevent_req *req)
+{
+    struct group_show_recurse *state = tevent_req_data(req,
+                                            struct group_show_recurse);
+
+    state->current++;
+    if (state->names[state->current] == NULL) {
+        state->groups[state->current] = NULL; /* Sentinel */
+        return ENOENT;
+    }
+
+    /* examine next group on the same level */
+    return group_show_recurse_search(req, state);
 }
 
 static int group_show_recurse_recv(TALLOC_CTX *mem_ctx,

@@ -2804,7 +2804,6 @@ START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -2824,42 +2823,29 @@ START_TEST (test_sysdb_memberof_check_memberuid_without_group_5)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
-                                         data->ctx->domain,
-                                         _i + MBO_GROUP_BASE,
-                                         data->attrlist);
-    if (!req) {
-        ret = ENOMEM;
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->ctx->domain, _i + MBO_GROUP_BASE,
+                                    data->attrlist, &data->msg);
+    if (_i == 5) {
+        fail_unless(ret == ENOENT,
+                    "sysdb_search_group_by_gid found "
+                    "already deleted group");
+        if (ret == ENOENT) ret = EOK;
+
+        fail_if(ret != EOK, "Could not check group %d", data->gid);
+    } else {
+        fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+        fail_unless(data->msg->num_elements == 1,
+                    "Wrong number of results, expected [1] got [%d]",
+                    data->msg->num_elements);
+        fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                    "Wrong attribute name");
+        fail_unless(data->msg->elements[0].num_values == ((_i + 1) % 6),
+                    "Wrong number of attribute values, "
+                    "expected [%d] got [%d]", ((_i + 1) % 6),
+                    data->msg->elements[0].num_values);
     }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(req, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_group_recv(req, data, &data->msg);
-        talloc_zfree(req);
-        if (_i == 5) {
-            fail_unless(ret == ENOENT,
-                        "sysdb_search_group_by_gid_send found "
-                        "already deleted group");
-            ret = EOK;
-        } else {
-            fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
-
-            fail_unless(data->msg->num_elements == 1,
-                        "Wrong number of results, expected [1] got [%d]",
-                        data->msg->num_elements);
-            fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
-                        "Wrong attribute name");
-            fail_unless(data->msg->elements[0].num_values == ((_i + 1) % 6),
-                        "Wrong number of attribute values, "
-                        "expected [%d] got [%d]", ((_i + 1) % 6),
-                        data->msg->elements[0].num_values);
-        }
-    }
-
-    fail_if(ret != EOK, "Could not check group %d", data->gid);
 
     talloc_free(test_ctx);
 }
@@ -2869,7 +2855,6 @@ START_TEST (test_sysdb_memberof_check_memberuid)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -2889,34 +2874,20 @@ START_TEST (test_sysdb_memberof_check_memberuid)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
-                                         data->ctx->domain,
-                                         _i + MBO_GROUP_BASE,
-                                         data->attrlist);
-    if (!req) {
-        ret = ENOMEM;
-    }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(req, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_group_recv(req, data, &data->msg);
-        talloc_zfree(req);
-        fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
-
-        fail_unless(data->msg->num_elements == 1,
-                    "Wrong number of results, expected [1] got [%d]",
-                    data->msg->num_elements);
-        fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
-                    "Wrong attribute name");
-        fail_unless(data->msg->elements[0].num_values == _i + 1,
-                    "Wrong number of attribute values, expected [%d] got [%d]",
-                    _i + 1, data->msg->elements[0].num_values);
-    }
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->ctx->domain, _i + MBO_GROUP_BASE,
+                                    data->attrlist, &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    fail_unless(data->msg->num_elements == 1,
+                "Wrong number of results, expected [1] got [%d]",
+                data->msg->num_elements);
+    fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                "Wrong attribute name");
+    fail_unless(data->msg->elements[0].num_values == _i + 1,
+                "Wrong number of attribute values, expected [%d] got [%d]",
+                _i + 1, data->msg->elements[0].num_values);
 
     talloc_free(test_ctx);
 }
@@ -2926,7 +2897,6 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -2946,34 +2916,20 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
-                                         data->ctx->domain,
-                                         _i + MBO_GROUP_BASE,
-                                         data->attrlist);
-    if (!req) {
-        ret = ENOMEM;
-    }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(req, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_group_recv(req, data, &data->msg);
-        talloc_zfree(req);
-        fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
-
-        fail_unless(data->msg->num_elements == 1,
-                    "Wrong number of results, expected [1] got [%d]",
-                    data->msg->num_elements);
-        fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
-                    "Wrong attribute name");
-        fail_unless(data->msg->elements[0].num_values == 10,
-                    "Wrong number of attribute values, expected [%d] got [%d]",
-                    10, data->msg->elements[0].num_values);
-    }
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->ctx->domain, _i + MBO_GROUP_BASE,
+                                    data->attrlist, &data->msg);
 
     fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+    fail_unless(data->msg->num_elements == 1,
+                "Wrong number of results, expected [1] got [%d]",
+                data->msg->num_elements);
+    fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                "Wrong attribute name");
+    fail_unless(data->msg->elements[0].num_values == 10,
+                "Wrong number of attribute values, expected [%d] got [%d]",
+                10, data->msg->elements[0].num_values);
 
     talloc_free(test_ctx);
 }
@@ -2983,7 +2939,6 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -3003,41 +2958,29 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
     data->attrlist[0] = "memberuid";
     data->attrlist[1] = NULL;
 
-    req = sysdb_search_group_by_gid_send(data, data->ev, test_ctx->sysdb, NULL,
-                                         data->ctx->domain,
-                                         _i + MBO_GROUP_BASE,
-                                         data->attrlist);
-    if (!req) {
-        ret = ENOMEM;
+    ret = sysdb_search_group_by_gid(data, test_ctx->sysdb,
+                                    data->ctx->domain, _i + MBO_GROUP_BASE,
+                                    data->attrlist, &data->msg);
+
+    if (_i == 5) {
+        fail_unless(ret == ENOENT,
+                    "sysdb_search_group_by_gid_send found "
+                    "already deleted group");
+        if (ret == ENOENT) ret = EOK;
+
+        fail_if(ret != EOK, "Could not check group %d", data->gid);
+    } else {
+        fail_if(ret != EOK, "Could not check group %d", data->gid);
+
+        fail_unless(data->msg->num_elements == 1,
+                    "Wrong number of results, expected [1] got [%d]",
+                    data->msg->num_elements);
+        fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
+                    "Wrong attribute name");
+        fail_unless(data->msg->elements[0].num_values == ((_i + 5) % 10),
+                    "Wrong number of attribute values, expected [%d] got [%d]",
+                    ((_i + 5) % 10), data->msg->elements[0].num_values);
     }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(req, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_group_recv(req, data, &data->msg);
-        talloc_zfree(req);
-        if (_i == 5) {
-            fail_unless(ret == ENOENT,
-                        "sysdb_search_group_by_gid_send found "
-                        "already deleted group");
-            ret = EOK;
-        } else {
-            fail_unless(ret == EOK, "sysdb_search_group_by_gid_send failed");
-
-            fail_unless(data->msg->num_elements == 1,
-                        "Wrong number of results, expected [1] got [%d]",
-                        data->msg->num_elements);
-            fail_unless(strcmp(data->msg->elements[0].name, "memberuid") == 0,
-                        "Wrong attribute name");
-            fail_unless(data->msg->elements[0].num_values == ((_i + 5) % 10),
-                        "Wrong number of attribute values, expected [%d] got [%d]",
-                        ((_i + 5) % 10), data->msg->elements[0].num_values);
-        }
-    }
-
-    fail_if(ret != EOK, "Could not check group %d", data->gid);
 
     talloc_free(test_ctx);
 }
