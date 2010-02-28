@@ -822,90 +822,48 @@ static int group_show_recurse_recv(TALLOC_CTX *mem_ctx,
 }
 
 /*==================Get info about MPG================================= */
-struct group_show_mpg_state {
-    struct ldb_context *ldb;
+
+static int group_show_mpg(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
+                          const char *name,
+                          struct group_info **res)
+{
+    const char *attrs[] = GROUP_SHOW_MPG_ATTRS;
+    struct ldb_message *msg;
     struct group_info *info;
-};
-
-static void group_show_mpg_done(struct tevent_req *);
-
-struct tevent_req *group_show_mpg_send(TALLOC_CTX *mem_ctx,
-                                       struct tevent_context *ev,
-                                       struct sysdb_ctx *sysdb,
-                                       struct sysdb_handle *handle,
-                                       struct sss_domain_info *domain,
-                                       const char *name)
-{
-    struct tevent_req *req = NULL;
-    struct tevent_req *subreq = NULL;
-    struct group_show_mpg_state *state;
-    static const char *mpg_attrs[] = GROUP_SHOW_MPG_ATTRS;
-
-    req = tevent_req_create(mem_ctx, &state, struct group_show_mpg_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ldb = sysdb_ctx_get_ldb(sysdb);
-
-    subreq = sysdb_search_user_by_name_send(mem_ctx, ev, sysdb, handle,
-                                            domain, name, mpg_attrs);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, group_show_mpg_done, req);
-
-    return req;
-}
-
-static void group_show_mpg_done(struct tevent_req *subreq)
-{
     int ret;
-    struct ldb_message *msg = NULL;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct group_show_mpg_state *state = tevent_req_data(req,
-                                                      struct group_show_mpg_state);
 
-    ret = sysdb_search_user_recv(subreq, req, &msg);
-    talloc_zfree(subreq);
+    info = talloc_zero(mem_ctx, struct group_info);
+    if (!info) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_search_user_by_name(info, sysdb,
+                                    domain, name, attrs, &msg);
     if (ret) {
         DEBUG(2, ("Search failed: %s (%d)\n", strerror(ret), ret));
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    state->info = talloc_zero(state, struct group_info);
-    if (!state->info) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    state->info->name = talloc_strdup(state->info,
-                                      ldb_msg_find_attr_as_string(msg,
-                                                                  SYSDB_NAME,
-                                                                  NULL));
-    state->info->gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
-    if (state->info->gid == 0 || state->info->name == NULL) {
+    info->name = talloc_strdup(info,
+                               ldb_msg_find_attr_as_string(msg,
+                                                           SYSDB_NAME, NULL));
+    info->gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+    if (info->gid == 0 || info->name == NULL) {
         DEBUG(3, ("No name or no GID?\n"));
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto fail;
     }
-    state->info->mpg = true;
+    info->mpg = true;
 
-    tevent_req_done(req);
-}
-
-static int group_show_mpg_recv(TALLOC_CTX *mem_ctx,
-                               struct tevent_req *req,
-                               struct group_info **res)
-{
-    struct group_show_mpg_state *state = tevent_req_data(req,
-                                                      struct group_show_mpg_state);
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-    *res = talloc_move(mem_ctx, &state->info);
-
+    *res = info;
     return EOK;
+
+fail:
+    talloc_zfree(info);
+    return ret;
 }
 
 /*==================The main program=================================== */
@@ -923,19 +881,6 @@ static void sss_group_show_done(struct tevent_req *req)
                                                    struct sss_groupshow_state);
 
     ret = group_show_recv(sss_state, req, &sss_state->root);
-    talloc_zfree(req);
-
-    sss_state->ret = ret;
-    sss_state->done = true;
-}
-
-static void sss_group_show_mpg_done(struct tevent_req *req)
-{
-    int ret;
-    struct sss_groupshow_state *sss_state = tevent_req_callback_data(req,
-                                                   struct sss_groupshow_state);
-
-    ret = group_show_mpg_recv(sss_state, req, &sss_state->root);
     talloc_zfree(req);
 
     sss_state->ret = ret;
@@ -1093,18 +1038,8 @@ int main(int argc, const char **argv)
         state->done = false;
         state->ret  = EOK;
 
-        req = group_show_mpg_send(tctx, tctx->ev, tctx->sysdb, tctx->handle,
-                                  tctx->local, tctx->octx->name);
-        if (!req) {
-            ERROR("Cannot initiate search\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-        }
-        tevent_req_set_callback(req, sss_group_show_mpg_done, state);
-        while (!state->done) {
-            tevent_loop_once(tctx->ev);
-        }
-        ret = state->ret;
+        ret = group_show_mpg(tctx, tctx->sysdb, tctx->local,
+                             tctx->octx->name, &state->root);
     }
 
     /* Process result */

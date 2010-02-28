@@ -352,23 +352,19 @@ int sysdb_search_entry(TALLOC_CTX *mem_ctx,
                        struct ldb_message ***msgs);
 
 /* Search User (by uid or name) */
-struct tevent_req *sysdb_search_user_by_name_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_ctx *sysdb,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  const char *name,
-                                                  const char **attrs);
-struct tevent_req *sysdb_search_user_by_uid_send(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 struct sysdb_ctx *sysdb,
-                                                 struct sysdb_handle *handle,
-                                                 struct sss_domain_info *domain,
-                                                 uid_t uid,
-                                                 const char **attrs);
-int sysdb_search_user_recv(struct tevent_req *req,
-                           TALLOC_CTX *mem_ctx,
-                           struct ldb_message **msg);
+int sysdb_search_user_by_name(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *ctx,
+                              struct sss_domain_info *domain,
+                              const char *name,
+                              const char **attrs,
+                              struct ldb_message **msg);
+
+int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
+                             struct sysdb_ctx *ctx,
+                             struct sss_domain_info *domain,
+                             uid_t uid,
+                             const char **attrs,
+                             struct ldb_message **msg);
 
 /* Search Group (gy gid or name) */
 struct tevent_req *sysdb_search_group_by_name_send(TALLOC_CTX *mem_ctx,

@@ -110,7 +110,6 @@ struct hbac_get_user_info_state {
     const char **groups;
 };
 
-static void search_user_done(struct tevent_req *subreq);
 static void search_groups_done(struct tevent_req *subreq);
 
 struct tevent_req *hbac_get_user_info_send(TALLOC_CTX *memctx,
@@ -122,7 +121,9 @@ struct tevent_req *hbac_get_user_info_send(TALLOC_CTX *memctx,
     struct tevent_req *subreq = NULL;
     struct hbac_get_user_info_state *state;
     int ret;
-    const char **attrs;
+    static const char *attrs[] = { SYSDB_ORIG_DN, NULL };
+    struct ldb_message *user_msg;
+    const char *dummy;
 
     req = tevent_req_create(memctx, &state, struct hbac_get_user_info_state);
     if (req == NULL) {
@@ -139,50 +140,10 @@ struct tevent_req *hbac_get_user_info_send(TALLOC_CTX *memctx,
     state->groups_count = 0;
     state->groups = NULL;
 
-    attrs = talloc_array(state, const char *, 2);
-    if (attrs == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    attrs[0] = SYSDB_ORIG_DN;
-    attrs[1] = NULL;
-
-    subreq = sysdb_search_user_by_name_send(state, ev, be_ctx->sysdb, NULL,
-                                            be_ctx->domain, user, attrs);
-    if (subreq == NULL) {
-        DEBUG(1, ("sysdb_search_user_by_name_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    tevent_req_set_callback(subreq, search_user_done, req);
-
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void search_user_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct hbac_get_user_info_state *state = tevent_req_data(req,
-                                               struct hbac_get_user_info_state);
-    int ret;
-    const char **attrs;
-    const char *dummy;
-    struct ldb_message *user_msg;
-
-
-    ret = sysdb_search_user_recv(subreq, state, &user_msg);
-    talloc_zfree(subreq);
+    ret = sysdb_search_user_by_name(state, be_ctx->sysdb,
+                                    be_ctx->domain, user, attrs, &user_msg);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
     DEBUG(9, ("Found user info for user [%s].\n", state->user));
@@ -191,25 +152,16 @@ static void search_user_done(struct tevent_req *subreq)
     if (dummy == NULL) {
         DEBUG(1, ("Original DN of user [%s] not available.\n", state->user));
         ret = EINVAL;
-        goto failed;
+        goto fail;
     }
     state->user_orig_dn = talloc_strdup(state, dummy);
     if (state->user_dn == NULL) {
         DEBUG(1, ("talloc_strdup failed.\n"));
         ret = ENOMEM;
-        goto failed;
+        goto fail;
     }
     DEBUG(9, ("Found original DN [%s] for user [%s].\n", state->user_orig_dn,
                                                          state->user));
-
-    attrs = talloc_array(state, const char *, 2);
-    if (attrs == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
-        ret = ENOMEM;
-        goto failed;
-    }
-    attrs[0] = SYSDB_ORIG_DN;
-    attrs[1] = NULL;
 
     subreq = sysdb_asq_search_send(state, state->ev, state->be_ctx->sysdb, NULL,
                                    state->be_ctx->domain, state->user_dn, NULL,
@@ -217,15 +169,16 @@ static void search_user_done(struct tevent_req *subreq)
     if (subreq == NULL) {
         DEBUG(1, ("sysdb_asq_search_send failed.\n"));
         ret = ENOMEM;
-        goto failed;
+        goto fail;
     }
-
     tevent_req_set_callback(subreq, search_groups_done, req);
-    return;
 
-failed:
+    return req;
+
+fail:
     tevent_req_error(req, ret);
-    return;
+    tevent_req_post(req, ev);
+    return req;
 }
 
 static void search_groups_done(struct tevent_req *subreq)
