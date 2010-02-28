@@ -293,110 +293,6 @@ static int remove_from_groups_recv(struct tevent_req *req)
 }
 
 /*
- * Add a user
- */
-struct user_add_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-
-    struct ops_ctx *data;
-};
-
-static void user_add_to_group_done(struct tevent_req *groupreq);
-static void user_add_done(struct tevent_req *subreq);
-
-static struct tevent_req *user_add_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sysdb_handle *handle,
-                                        struct ops_ctx *data)
-{
-    struct user_add_state *state = NULL;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-
-    req = tevent_req_create(mem_ctx, &state, struct user_add_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-
-    subreq = sysdb_add_user_send(state, state->ev, state->handle,
-                                 state->data->domain, state->data->name,
-                                 state->data->uid, state->data->gid,
-                                 state->data->gecos, state->data->home,
-                                 state->data->shell, NULL, 0);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, user_add_done, req);
-    return req;
-}
-
-static void user_add_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct user_add_state *state = tevent_req_data(req,
-                                                   struct user_add_state);
-    int ret;
-    struct ldb_dn *member_dn;
-    struct tevent_req *groupreq;
-
-    ret = sysdb_add_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->data->addgroups) {
-        member_dn = sysdb_user_dn(state->sysdb, state,
-                                  state->data->domain->name,
-                                  state->data->name);
-        if (!member_dn) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        groupreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                      state->handle, state->data, member_dn);
-        tevent_req_set_callback(groupreq, user_add_to_group_done, req);
-        return;
-    }
-
-    return tevent_req_done(req);
-}
-
-static void user_add_to_group_done(struct tevent_req *groupreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(groupreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = add_to_groups_recv(groupreq);
-    talloc_zfree(groupreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
-static int user_add_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
-}
-
-/*
  * Modify a user
  */
 struct user_mod_state {
@@ -1049,23 +945,42 @@ int useradd(TALLOC_CTX *mem_ctx,
     int ret;
     struct tevent_req *req;
     struct sync_op_res *res = NULL;
+    struct ldb_dn *member_dn;
 
     res = talloc_zero(mem_ctx, struct sync_op_res);
     if (!res) {
         return ENOMEM;
     }
 
-    req = user_add_send(res, ev, sysdb, handle, data);
-    if (!req) {
-        return ENOMEM;
+    ret = sysdb_add_user(res, sysdb,
+                         data->domain, data->name, data->uid, data->gid,
+                         data->gecos, data->home, data->shell, NULL, 0);
+    if (ret) {
+        goto done;
     }
-    tevent_req_set_callback(req, useradd_done, res);
 
-    SYNC_LOOP(res, ret);
+    if (data->addgroups) {
+        member_dn = sysdb_user_dn(sysdb, res,
+                                  data->domain->name, data->name);
+        if (!member_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        req = add_to_groups_send(res, ev, sysdb, handle, data, member_dn);
+        if (!req) {
+            ret = ENOMEM;
+            goto done;
+        }
+        tevent_req_set_callback(req, useradd_done, res);
+
+        SYNC_LOOP(res, ret);
+    }
 
     flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
     flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
+done:
     talloc_free(res);
     return ret;
 }
@@ -1076,7 +991,7 @@ static void useradd_done(struct tevent_req *req)
     struct sync_op_res *res = tevent_req_callback_data(req,
                                                        struct sync_op_res);
 
-    ret = user_add_recv(req);
+    ret = add_to_groups_recv(req);
     talloc_free(req);
     if (ret) {
         DEBUG(2, ("Adding user failed: %s (%d)\n", strerror(ret), ret));

@@ -411,30 +411,26 @@ int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
                      uint32_t *id);
 
 /* Add user (only basic attrs and w/o checks) */
-struct tevent_req *sysdb_add_basic_user_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *name,
-                                             uid_t uid, gid_t gid,
-                                             const char *gecos,
-                                             const char *homedir,
-                                             const char *shell);
-int sysdb_add_basic_user_recv(struct tevent_req *req);
+int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *ctx,
+                         struct sss_domain_info *domain,
+                         const char *name,
+                         uid_t uid, gid_t gid,
+                         const char *gecos,
+                         const char *homedir,
+                         const char *shell);
 
 /* Add user (all checks) */
-struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
-                                       struct tevent_context *ev,
-                                       struct sysdb_handle *handle,
-                                       struct sss_domain_info *domain,
-                                       const char *name,
-                                       uid_t uid, gid_t gid,
-                                       const char *gecos,
-                                       const char *homedir,
-                                       const char *shell,
-                                       struct sysdb_attrs *attrs,
-                                       int cache_timeout);
-int sysdb_add_user_recv(struct tevent_req *req);
+int sysdb_add_user(TALLOC_CTX *mem_ctx,
+                   struct sysdb_ctx *ctx,
+                   struct sss_domain_info *domain,
+                   const char *name,
+                   uid_t uid, gid_t gid,
+                   const char *gecos,
+                   const char *homedir,
+                   const char *shell,
+                   struct sysdb_attrs *attrs,
+                   int cache_timeout);
 
 /* Add group (only basic attrs and w/o checks) */
 struct tevent_req *sysdb_add_basic_group_send(TALLOC_CTX *mem_ctx,
@@ -468,19 +464,17 @@ int sysdb_set_group_gid(struct sysdb_handle *handle,
                         const char *name, gid_t gid,
                         sysdb_callback_t fn, void *pvt);
 
-struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain,
-                                         const char *name,
-                                         const char *pwd,
-                                         uid_t uid, gid_t gid,
-                                         const char *gecos,
-                                         const char *homedir,
-                                         const char *shell,
-                                         struct sysdb_attrs *attrs,
-                                         uint64_t cache_timeout);
-int sysdb_store_user_recv(struct tevent_req *req);
+int sysdb_store_user(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *ctx,
+                     struct sss_domain_info *domain,
+                     const char *name,
+                     const char *pwd,
+                     uid_t uid, gid_t gid,
+                     const char *gecos,
+                     const char *homedir,
+                     const char *shell,
+                     struct sysdb_attrs *attrs,
+                     uint64_t cache_timeout);
 
 struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,

@@ -345,7 +345,8 @@ static int proxy_default_recv(struct tevent_req *req)
 /* =Getpwnam-wrapper======================================================*/
 
 static void get_pw_name_process(struct tevent_req *subreq);
-static void get_pw_name_add_done(struct tevent_req *subreq);
+static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain, const char *name);
 
 static struct tevent_req *get_pw_name_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
@@ -389,7 +390,6 @@ static void get_pw_name_process(struct tevent_req *subreq)
     enum nss_status status;
     char *buffer;
     size_t buflen;
-    bool delete_user = false;
     int ret;
 
     DEBUG(7, ("Searching user by name (%s)\n", state->name));
@@ -423,7 +423,12 @@ static void get_pw_name_process(struct tevent_req *subreq)
     case NSS_STATUS_NOTFOUND:
 
         DEBUG(7, ("User %s not found.\n", state->name));
-        delete_user = true;
+        ret = delete_user(state, state->sysdb,
+                          state->domain, state->name);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
         break;
 
     case NSS_STATUS_SUCCESS:
@@ -437,28 +442,32 @@ static void get_pw_name_process(struct tevent_req *subreq)
         if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
             OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                          state->name));
-            delete_user = true;
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                      state->name));
+            ret = delete_user(state, state->sysdb,
+                              state->domain, state->name);
+            if (ret) {
+                tevent_req_error(req, ret);
+                return;
+            }
             break;
         }
 
-        subreq = sysdb_store_user_send(state, state->ev, state->handle,
-                                       state->domain,
-                                       state->pwd->pw_name,
-                                       state->pwd->pw_passwd,
-                                       state->pwd->pw_uid,
-                                       state->pwd->pw_gid,
-                                       state->pwd->pw_gecos,
-                                       state->pwd->pw_dir,
-                                       state->pwd->pw_shell,
-                                       NULL, ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_store_user(state, state->sysdb,
+                               state->domain,
+                               state->pwd->pw_name,
+                               state->pwd->pw_passwd,
+                               state->pwd->pw_uid,
+                               state->pwd->pw_gid,
+                               state->pwd->pw_gecos,
+                               state->pwd->pw_dir,
+                               state->pwd->pw_shell,
+                               NULL, ctx->entry_cache_timeout);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_pw_name_add_done, req);
-        return;
+        break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -466,55 +475,7 @@ static void get_pw_name_process(struct tevent_req *subreq)
         return;
 
     default:
-        break;
-    }
-
-    if (delete_user) {
-        struct ldb_dn *dn;
-
-        DEBUG(7, ("User %s does not exist (or is invalid) on remote server,"
-                  " deleting!\n", state->name));
-
-        dn = sysdb_user_dn(state->sysdb, state,
-                           state->domain->name, state->name);
-        if (!dn) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        ret = sysdb_delete_entry(state->sysdb, dn, true);
-        if (ret) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, proxy_default_done, req);
-        return;
-    }
-
-    DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-              state->name, status));
-    tevent_req_error(req, EIO);
-}
-
-static void get_pw_name_add_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = sysdb_store_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
     subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
@@ -523,6 +484,28 @@ static void get_pw_name_add_done(struct tevent_req *subreq)
         return;
     }
     tevent_req_set_callback(subreq, proxy_default_done, req);
+    return;
+
+fail:
+    DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
+              state->name, status));
+    tevent_req_error(req, EIO);
+}
+
+static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain, const char *name)
+{
+    struct ldb_dn *dn;
+
+    DEBUG(7, ("User %s does not exist (or is invalid) on remote server,"
+              " deleting!\n", name));
+
+    dn = sysdb_user_dn(sysdb, mem_ctx, domain->name, name);
+    if (!dn) {
+        return ENOMEM;
+    }
+
+    return sysdb_delete_entry(sysdb, dn, true);
 }
 
 /* =Getpwuid-wrapper======================================================*/
@@ -572,7 +555,7 @@ static void get_pw_uid_process(struct tevent_req *subreq)
     enum nss_status status;
     char *buffer;
     size_t buflen;
-    bool delete_user = false;
+    bool del_user = false;
     int ret;
 
     DEBUG(7, ("Searching user by uid (%d)\n", state->uid));
@@ -607,7 +590,7 @@ static void get_pw_uid_process(struct tevent_req *subreq)
     case NSS_STATUS_NOTFOUND:
 
         DEBUG(7, ("User %d not found.\n", state->uid));
-        delete_user = true;
+        del_user = true;
         break;
 
     case NSS_STATUS_SUCCESS:
@@ -621,28 +604,27 @@ static void get_pw_uid_process(struct tevent_req *subreq)
         if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
             OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                          state->name));
-            delete_user = true;
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                      state->pwd->pw_name));
+            del_user = true;
             break;
         }
 
-        subreq = sysdb_store_user_send(state, state->ev, state->handle,
-                                       state->domain,
-                                       state->pwd->pw_name,
-                                       state->pwd->pw_passwd,
-                                       state->pwd->pw_uid,
-                                       state->pwd->pw_gid,
-                                       state->pwd->pw_gecos,
-                                       state->pwd->pw_dir,
-                                       state->pwd->pw_shell,
-                                       NULL, ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_store_user(state, state->sysdb,
+                               state->domain,
+                               state->pwd->pw_name,
+                               state->pwd->pw_passwd,
+                               state->pwd->pw_uid,
+                               state->pwd->pw_gid,
+                               state->pwd->pw_gecos,
+                               state->pwd->pw_dir,
+                               state->pwd->pw_shell,
+                               NULL, ctx->entry_cache_timeout);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_pw_name_add_done, req);
-        return;
+        break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -656,7 +638,7 @@ static void get_pw_uid_process(struct tevent_req *subreq)
         return;
     }
 
-    if (delete_user) {
+    if (del_user) {
         DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", state->uid));
 
@@ -669,7 +651,15 @@ static void get_pw_uid_process(struct tevent_req *subreq)
             return;
         }
         tevent_req_set_callback(subreq, get_pw_uid_remove_done, req);
+        return;
     }
+
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, proxy_default_done, req);
 }
 
 static void get_pw_uid_remove_done(struct tevent_req *subreq)
@@ -708,8 +698,6 @@ struct enum_users_state {
 
     size_t buflen;
     char *buffer;
-
-    bool in_transaction;
 };
 
 static void enum_users_process(struct tevent_req *subreq);
@@ -748,8 +736,6 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    state->in_transaction = false;
-
     status = ctx->ops.setpwent();
     if (status != NSS_STATUS_SUCCESS) {
         tevent_req_error(req, EIO);
@@ -782,23 +768,11 @@ static void enum_users_process(struct tevent_req *subreq)
     char *newbuf;
     int ret;
 
-    if (!state->in_transaction) {
-        ret = sysdb_transaction_recv(subreq, state, &state->handle);
-        if (ret) {
-            goto fail;
-        }
-        talloc_zfree(subreq);
-
-        state->in_transaction = true;
-    } else {
-        ret = sysdb_store_user_recv(subreq);
-        if (ret) {
-            /* Do not fail completely on errors.
-             * Just report the failure to save and go on */
-            DEBUG(2, ("Failed to store user. Ignoring.\n"));
-        }
-        talloc_zfree(subreq);
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    if (ret) {
+        goto fail;
     }
+    talloc_zfree(subreq);
 
 again:
     /* always zero out the pwd structure */
@@ -850,28 +824,29 @@ again:
         if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
             OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                          state->pwd->pw_name));
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                      state->pwd->pw_name));
 
             goto again; /* skip */
         }
 
-        subreq = sysdb_store_user_send(state, state->ev, state->handle,
-                                       state->domain,
-                                       state->pwd->pw_name,
-                                       state->pwd->pw_passwd,
-                                       state->pwd->pw_uid,
-                                       state->pwd->pw_gid,
-                                       state->pwd->pw_gecos,
-                                       state->pwd->pw_dir,
-                                       state->pwd->pw_shell,
-                                       NULL, ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
+        ret = sysdb_store_user(state, state->sysdb,
+                               state->domain,
+                               state->pwd->pw_name,
+                               state->pwd->pw_passwd,
+                               state->pwd->pw_uid,
+                               state->pwd->pw_gid,
+                               state->pwd->pw_gecos,
+                               state->pwd->pw_dir,
+                               state->pwd->pw_shell,
+                               NULL, ctx->entry_cache_timeout);
+        if (ret) {
+            /* Do not fail completely on errors.
+             * Just report the failure to save and go on */
+            DEBUG(2, ("Failed to store user %s. Ignoring.\n",
+                      state->pwd->pw_name));
         }
-        tevent_req_set_callback(subreq, enum_users_process, req);
-        return;
+        goto again; /* next */
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -1542,7 +1517,7 @@ fail:
 /* =Initgroups-wrapper====================================================*/
 
 static void get_initgr_process(struct tevent_req *subreq);
-static void get_initgr_groups_process(struct tevent_req *subreq);
+static void get_initgr_groups_process(struct tevent_req *req);
 static void get_initgr_groups_done(struct tevent_req *subreq);
 static struct tevent_req *get_groups_by_gid_send(TALLOC_CTX *mem_ctx,
                                                  struct tevent_context *ev,
@@ -1605,7 +1580,6 @@ static void get_initgr_process(struct tevent_req *subreq)
     enum nss_status status;
     char *buffer;
     size_t buflen;
-    bool delete_user = false;
     int ret;
 
     ret = sysdb_transaction_recv(subreq, state, &state->handle);
@@ -1636,7 +1610,13 @@ static void get_initgr_process(struct tevent_req *subreq)
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        delete_user = true;
+        DEBUG(7, ("User %s not found.\n", state->name));
+        ret = delete_user(state, state->sysdb,
+                          state->domain, state->name);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
         break;
 
     case NSS_STATUS_SUCCESS:
@@ -1646,27 +1626,33 @@ static void get_initgr_process(struct tevent_req *subreq)
         if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
             OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-                DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                          state->name));
-            delete_user = true;
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
+                      state->name));
+            ret = delete_user(state, state->sysdb,
+                              state->domain, state->name);
+            if (ret) {
+                tevent_req_error(req, ret);
+                return;
+            }
             break;
         }
 
-        subreq = sysdb_store_user_send(state, state->ev, state->handle,
-                                       state->domain,
-                                       state->pwd->pw_name,
-                                       state->pwd->pw_passwd,
-                                       state->pwd->pw_uid,
-                                       state->pwd->pw_gid,
-                                       state->pwd->pw_gecos,
-                                       state->pwd->pw_dir,
-                                       state->pwd->pw_shell,
-                                       NULL, ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_store_user(state, state->sysdb,
+                               state->domain,
+                               state->pwd->pw_name,
+                               state->pwd->pw_passwd,
+                               state->pwd->pw_uid,
+                               state->pwd->pw_gid,
+                               state->pwd->pw_gecos,
+                               state->pwd->pw_dir,
+                               state->pwd->pw_shell,
+                               NULL, ctx->entry_cache_timeout);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_initgr_groups_process, req);
+
+        get_initgr_groups_process(req);
         return;
 
     case NSS_STATUS_UNAVAIL:
@@ -1675,43 +1661,26 @@ static void get_initgr_process(struct tevent_req *subreq)
         return;
 
     default:
-        break;
+        goto fail;
     }
 
-    if (delete_user) {
-        struct ldb_dn *dn;
-
-        dn = sysdb_user_dn(state->sysdb, state,
-                           state->domain->name, state->name);
-        if (!dn) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-
-        ret = sysdb_delete_entry(state->sysdb, dn, true);
-        if (ret) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, proxy_default_done, req);
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
         return;
     }
+    tevent_req_set_callback(subreq, proxy_default_done, req);
+    return;
 
+fail:
     DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
               state->name, status));
     tevent_req_error(req, EIO);
 }
 
-static void get_initgr_groups_process(struct tevent_req *subreq)
+static void get_initgr_groups_process(struct tevent_req *req)
 {
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
+    struct tevent_req *subreq;
     struct proxy_state *state = tevent_req_data(req,
                                                 struct proxy_state);
     struct proxy_ctx *ctx = state->ctx;
@@ -1722,13 +1691,6 @@ static void get_initgr_groups_process(struct tevent_req *subreq)
     long int num_gids;
     gid_t *gids;
     int ret;
-
-    ret = sysdb_store_user_recv(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    talloc_zfree(subreq);
 
     num_gids = 0;
     limit = 4096;

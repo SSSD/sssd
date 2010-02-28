@@ -25,34 +25,19 @@
 
 /* ==Save-User-Entry====================================================== */
 
-struct sdap_save_user_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sdap_options *opts;
+/* FIXME: support storing additional attributes */
 
-    struct sss_domain_info *dom;
-
-    const char *name;
-    struct sysdb_attrs *attrs;
-    char *timestamp;
-};
-
-static void sdap_save_user_done(struct tevent_req *subreq);
-
-    /* FIXME: support storing additional attributes */
-
-static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
-                                              struct tevent_context *ev,
-                                              struct sysdb_handle *handle,
-                                              struct sdap_options *opts,
-                                              struct sss_domain_info *dom,
-                                              struct sysdb_attrs *attrs,
-                                              bool is_initgr)
+static int sdap_save_user(TALLOC_CTX *memctx,
+                          struct sysdb_ctx *ctx,
+                          struct sdap_options *opts,
+                          struct sss_domain_info *dom,
+                          struct sysdb_attrs *attrs,
+                          bool is_initgr,
+                          char **_timestamp)
 {
-    struct tevent_req *req, *subreq;
-    struct sdap_save_user_state *state;
     struct ldb_message_element *el;
     int ret;
+    const char *name;
     const char *pwd;
     const char *gecos;
     const char *homedir;
@@ -65,58 +50,49 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     int i;
     char *val = NULL;
     int cache_timeout;
+    char *timestamp = NULL;
 
     DEBUG(9, ("Save user\n"));
 
-    req = tevent_req_create(memctx, &state, struct sdap_save_user_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->dom = dom;
-    state->opts = opts;
-    state->attrs = attrs;
-    state->timestamp = NULL;
-
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_NAME].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) {
         ret = EINVAL;
         goto fail;
     }
-    state->name = (const char *)el->values[0].data;
+    name = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_PWD].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) pwd = NULL;
     else pwd = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_GECOS].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) gecos = NULL;
     else gecos = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_HOME].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) homedir = NULL;
     else homedir = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_SHELL].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) shell = NULL;
     else shell = (const char *)el->values[0].data;
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_UID].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) {
         DEBUG(1, ("no uid provided for [%s] in domain [%s].\n",
-                  state->name, dom->name));
+                  name, dom->name));
         ret = EINVAL;
         goto fail;
     }
@@ -131,17 +107,17 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     /* check that the uid is valid for this domain */
     if (OUT_OF_ID_RANGE(uid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      state->name));
+                      name));
         ret = EINVAL;
         goto fail;
     }
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_GID].sys_name, &el);
     if (ret) goto fail;
     if (el->num_values == 0) {
         DEBUG(1, ("no gid provided for [%s] in domain [%s].\n",
-                  state->name, dom->name));
+                  name, dom->name));
         ret = EINVAL;
         goto fail;
     }
@@ -156,26 +132,26 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     /* check that the gid is valid for this domain */
     if (OUT_OF_ID_RANGE(gid, dom->id_min, dom->id_max)) {
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      state->name));
+                      name));
         ret = EINVAL;
         goto fail;
     }
 
-    user_attrs = sysdb_new_attrs(state);
+    user_attrs = sysdb_new_attrs(memctx);
     if (user_attrs == NULL) {
         ret = ENOMEM;
         goto fail;
     }
 
-    ret = sysdb_attrs_get_el(state->attrs, SYSDB_ORIG_DN, &el);
+    ret = sysdb_attrs_get_el(attrs, SYSDB_ORIG_DN, &el);
     if (ret) {
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("Original DN is not available for [%s].\n", state->name));
+        DEBUG(7, ("Original DN is not available for [%s].\n", name));
     } else {
         DEBUG(7, ("Adding original DN [%s] to attributes of [%s].\n",
-                  el->values[0].data, state->name));
+                  el->values[0].data, name));
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_DN,
                                      (const char *) el->values[0].data);
         if (ret) {
@@ -183,16 +159,16 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_attrs_get_el(state->attrs, SYSDB_MEMBEROF, &el);
+    ret = sysdb_attrs_get_el(attrs, SYSDB_MEMBEROF, &el);
     if (ret) {
         goto fail;
     }
     if (el->num_values == 0) {
         DEBUG(7, ("Original memberOf is not available for [%s].\n",
-                  state->name));
+                  name));
     } else {
         DEBUG(7, ("Adding original memberOf attributes to [%s].\n",
-                  state->name));
+                  name));
         for (i = 0; i < el->num_values; i++) {
             ret = sysdb_attrs_add_string(user_attrs, SYSDB_ORIG_MEMBEROF,
                                          (const char *) el->values[i].data);
@@ -202,14 +178,14 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         }
     }
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                       opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name, &el);
     if (ret) {
         goto fail;
     }
     if (el->num_values == 0) {
         DEBUG(7, ("Original mod-Timestamp is not available for [%s].\n",
-                  state->name));
+                  name));
     } else {
         ret = sysdb_attrs_add_string(user_attrs,
                           opts->user_map[SDAP_AT_USER_MODSTAMP].sys_name,
@@ -217,21 +193,20 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         if (ret) {
             goto fail;
         }
-        state->timestamp = talloc_strdup(state,
-                                         (const char*)el->values[0].data);
-        if (!state->timestamp) {
+        timestamp = talloc_strdup(memctx, (const char*)el->values[0].data);
+        if (!timestamp) {
             ret = ENOMEM;
             goto fail;
         }
     }
 
-    ret = sysdb_attrs_get_el(state->attrs,
+    ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_PRINC].sys_name, &el);
     if (ret) {
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("User principle is not available for [%s].\n", state->name));
+        DEBUG(7, ("User principle is not available for [%s].\n", name));
     } else {
         upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
         if (!upn) {
@@ -242,7 +217,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
             make_realm_upper_case(upn);
         }
         DEBUG(7, ("Adding user principle [%s] to attributes of [%s].\n",
-                  upn, state->name));
+                  upn, name));
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {
             goto fail;
@@ -250,7 +225,7 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
     }
 
     for (i = SDAP_FIRST_EXTRA_USER_AT; i < SDAP_OPTS_USER; i++) {
-        ret = sysdb_attrs_get_el(state->attrs, opts->user_map[i].sys_name, &el);
+        ret = sysdb_attrs_get_el(attrs, opts->user_map[i].sys_name, &el);
         if (ret) {
             goto fail;
         }
@@ -282,58 +257,22 @@ static struct tevent_req *sdap_save_user_send(TALLOC_CTX *memctx,
         }
     }
 
-    DEBUG(6, ("Storing info for user %s\n", state->name));
+    DEBUG(6, ("Storing info for user %s\n", name));
 
-    subreq = sysdb_store_user_send(state, state->ev, state->handle,
-                                   state->dom, state->name, pwd,
-                                   uid, gid, gecos, homedir, shell,
-                                   user_attrs, cache_timeout);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, sdap_save_user_done, req);
+    ret = sysdb_store_user(memctx, ctx, dom,
+                           name, pwd, uid, gid, gecos, homedir, shell,
+                           user_attrs, cache_timeout);
+    if (ret) goto fail;
 
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sdap_save_user_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_save_user_state *state = tevent_req_data(req,
-                                            struct sdap_save_user_state);
-    int ret;
-
-    ret = sysdb_store_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(2, ("Failed to save user %s\n", state->name));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static int sdap_save_user_recv(struct tevent_req *req,
-                               TALLOC_CTX *mem_ctx, char **timestamp)
-{
-    struct sdap_save_user_state *state = tevent_req_data(req,
-                                            struct sdap_save_user_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    if (timestamp) {
-        *timestamp = talloc_steal(mem_ctx, state->timestamp);
+    if (_timestamp) {
+        *_timestamp = timestamp;
     }
 
     return EOK;
+
+fail:
+    DEBUG(2, ("Failed to save user %s\n", name));
+    return ret;
 }
 
 
@@ -347,7 +286,6 @@ struct sdap_save_users_state {
 
     struct sysdb_attrs **users;
     int count;
-    int cur;
 
     struct sysdb_handle *handle;
 
@@ -355,8 +293,6 @@ struct sdap_save_users_state {
 };
 
 static void sdap_save_users_trans(struct tevent_req *subreq);
-static void sdap_save_users_store(struct tevent_req *req);
-static void sdap_save_users_process(struct tevent_req *subreq);
 struct tevent_req *sdap_save_users_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
                                          struct sss_domain_info *dom,
@@ -377,7 +313,6 @@ struct tevent_req *sdap_save_users_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->users = users;
     state->count = num_users;
-    state->cur = 0;
     state->handle = NULL;
     state->higher_timestamp = NULL;
 
@@ -396,7 +331,9 @@ static void sdap_save_users_trans(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_save_users_state *state;
+    char *timestamp;
     int ret;
+    int i;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_save_users_state);
@@ -408,73 +345,44 @@ static void sdap_save_users_trans(struct tevent_req *subreq)
         return;
     }
 
-    sdap_save_users_store(req);
-}
+    for (i = 0; i < state->count; i++) {
+        timestamp = NULL;
 
-static void sdap_save_users_store(struct tevent_req *req)
-{
-    struct tevent_req *subreq;
-    struct sdap_save_users_state *state;
+        ret = sdap_save_user(state, state->sysdb,
+                             state->opts, state->dom,
+                             state->users[i],
+                             false, &timestamp);
 
-    state = tevent_req_data(req, struct sdap_save_users_state);
+        /* Do not fail completely on errors.
+         * Just report the failure to save and go on */
+        if (ret) {
+            DEBUG(2, ("Failed to store user %d. Ignoring.\n", i));
+        } else {
+            DEBUG(9, ("User %d processed!\n", i));
+        }
 
-    subreq = sdap_save_user_send(state, state->ev, state->handle,
-                                  state->opts, state->dom,
-                                  state->users[state->cur], false);
+        if (timestamp) {
+            if (state->higher_timestamp) {
+                if (strcmp(timestamp, state->higher_timestamp) > 0) {
+                    talloc_zfree(state->higher_timestamp);
+                    state->higher_timestamp = timestamp;
+                } else {
+                    talloc_zfree(timestamp);
+                }
+            } else {
+                state->higher_timestamp = timestamp;
+            }
+        }
+    }
+
+    subreq = sysdb_transaction_commit_send(state, state->ev,
+                                           state->handle);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sdap_save_users_process, req);
-}
-
-static void sdap_save_users_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req;
-    struct sdap_save_users_state *state;
-    char *timestamp = NULL;
-    int ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_save_users_state);
-
-    ret = sdap_save_user_recv(subreq, state, &timestamp);
-    talloc_zfree(subreq);
-
-    /* Do not fail completely on errors.
-     * Just report the failure to save and go on */
-    if (ret) {
-        DEBUG(2, ("Failed to store user %d. Ignoring.\n", state->cur));
-    } else {
-        DEBUG(9, ("User %d processed!\n", state->cur));
-    }
-
-    if (timestamp) {
-        if (state->higher_timestamp) {
-            if (strcmp(timestamp, state->higher_timestamp) > 0) {
-                talloc_zfree(state->higher_timestamp);
-                state->higher_timestamp = timestamp;
-            } else {
-                talloc_zfree(timestamp);
-            }
-        } else {
-            state->higher_timestamp = timestamp;
-        }
-    }
-
-    state->cur++;
-    if (state->cur < state->count) {
-        sdap_save_users_store(req);
-    } else {
-        subreq = sysdb_transaction_commit_send(state, state->ev,
-                                               state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        /* sysdb_transaction_complete will call tevent_req_done(req) */
-        tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
-    }
+    /* sysdb_transaction_complete will call tevent_req_done(req) */
+    tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
 }
 
 static int sdap_save_users_recv(struct tevent_req *req,
@@ -1780,7 +1688,6 @@ struct sdap_get_initgr_state {
 
 static void sdap_get_initgr_user(struct tevent_req *subreq);
 static void sdap_get_initgr_store(struct tevent_req *subreq);
-static void sdap_get_initgr_commit(struct tevent_req *subreq);
 static void sdap_get_initgr_process(struct tevent_req *subreq);
 static void sdap_get_initgr_done(struct tevent_req *subreq);
 
@@ -1903,32 +1810,15 @@ static void sdap_get_initgr_store(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sdap_save_user_send(state, state->ev, state->handle,
-                                 state->opts, state->dom,
-                                 state->orig_user, true);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sdap_get_initgr_commit, req);
-}
-
-static void sdap_get_initgr_commit(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sdap_get_initgr_state *state = tevent_req_data(req,
-                                               struct sdap_get_initgr_state);
-    int ret;
-
-    DEBUG(9, ("Commit change\n"));
-
-    ret = sdap_save_user_recv(subreq, NULL, NULL);
-    talloc_zfree(subreq);
+    ret = sdap_save_user(state, state->sysdb,
+                         state->opts, state->dom,
+                         state->orig_user, true, NULL);
     if (ret) {
         tevent_req_error(req, ret);
         return;
     }
+
+    DEBUG(9, ("Commit change\n"));
 
     subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
     if (!subreq) {

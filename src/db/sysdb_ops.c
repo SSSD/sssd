@@ -790,52 +790,40 @@ done:
 
 /* =Add-Basic-User-NO-CHECKS============================================== */
 
-struct tevent_req *sysdb_add_basic_user_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *name,
-                                             uid_t uid, gid_t gid,
-                                             const char *gecos,
-                                             const char *homedir,
-                                             const char *shell)
+int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *ctx,
+                         struct sss_domain_info *domain,
+                         const char *name,
+                         uid_t uid, gid_t gid,
+                         const char *gecos,
+                         const char *homedir,
+                         const char *shell)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
-    struct ldb_request *ldbreq;
     struct ldb_message *msg;
     int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = false;
-    state->ldbreply = NULL;
-
-    msg = ldb_msg_new(state);
+    msg = ldb_msg_new(mem_ctx);
     if (!msg) {
-        ERROR_OUT(ret, ENOMEM, fail);
+        return ENOMEM;
     }
 
     /* user dn */
-    msg->dn = sysdb_user_dn(handle->ctx, msg, domain->name, name);
+    msg->dn = sysdb_user_dn(ctx, msg, domain->name, name);
     if (!msg->dn) {
-        ERROR_OUT(ret, ENOMEM, fail);
+        ERROR_OUT(ret, ENOMEM, done);
     }
 
     ret = add_string(msg, LDB_FLAG_MOD_ADD, "objectClass", SYSDB_USER_CLASS);
-    if (ret) goto fail;
+    if (ret) goto done;
 
     ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
-    if (ret) goto fail;
+    if (ret) goto done;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_UIDNUM, (unsigned long)uid);
-    if (ret) goto fail;
+    if (ret) goto done;
 
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_GIDNUM, (unsigned long)gid);
-    if (ret) goto fail;
+    if (ret) goto done;
 
     /* We set gecos to be the same as fullname on user creation,
      * But we will not enforce coherency after that, it's up to
@@ -843,270 +831,164 @@ struct tevent_req *sysdb_add_basic_user_send(TALLOC_CTX *mem_ctx,
      * one of the 2 */
     if (gecos && *gecos) {
         ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_FULLNAME, gecos);
-        if (ret) goto fail;
+        if (ret) goto done;
         ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_GECOS, gecos);
-        if (ret) goto fail;
+        if (ret) goto done;
     }
 
     if (homedir && *homedir) {
         ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_HOMEDIR, homedir);
-        if (ret) goto fail;
+        if (ret) goto done;
     }
 
     if (shell && *shell) {
         ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_SHELL, shell);
-        if (ret) goto fail;
+        if (ret) goto done;
     }
 
     /* creation time */
     ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
                     (unsigned long)time(NULL));
-    if (ret) goto fail;
+    if (ret) goto done;
 
+    ret = ldb_add(ctx->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
 
-    ret = ldb_build_add_req(&ldbreq, handle->ctx->ldb, state, msg,
-                            NULL, NULL, NULL, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build modify request: %s(%d)[%s]\n",
-                  ldb_strerror(ret), ret, ldb_errstring(handle->ctx->ldb)));
-        ERROR_OUT(ret, sysdb_error_to_errno(ret), fail);
+done:
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
     }
-
-    subreq = sldb_request_send(state, ev, handle->ctx->ldb, ldbreq);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_op_default_done, req);
-
-    return req;
-
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-int sysdb_add_basic_user_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+    talloc_zfree(msg);
+    return ret;
 }
 
 
 /* =Add-User-Function===================================================== */
 
-struct sysdb_add_user_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-
-    const char *name;
-    uid_t uid;
-    gid_t gid;
-    const char *gecos;
-    const char *homedir;
-    const char *shell;
-    struct sysdb_attrs *attrs;
-
-    int cache_timeout;
-};
-
-static void sysdb_add_user_basic_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
-                                       struct tevent_context *ev,
-                                       struct sysdb_handle *handle,
-                                       struct sss_domain_info *domain,
-                                       const char *name,
-                                       uid_t uid, gid_t gid,
-                                       const char *gecos,
-                                       const char *homedir,
-                                       const char *shell,
-                                       struct sysdb_attrs *attrs,
-                                       int cache_timeout)
+int sysdb_add_user(TALLOC_CTX *mem_ctx,
+                   struct sysdb_ctx *ctx,
+                   struct sss_domain_info *domain,
+                   const char *name,
+                   uid_t uid, gid_t gid,
+                   const char *gecos,
+                   const char *homedir,
+                   const char *shell,
+                   struct sysdb_attrs *attrs,
+                   int cache_timeout)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_add_user_state *state;
+    TALLOC_CTX *tmpctx;
     struct ldb_message *msg;
+    struct sysdb_attrs *id_attrs;
+    uint32_t id;
+    time_t now;
     int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_add_user_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->name = name;
-    state->uid = uid;
-    state->gid = gid;
-    state->gecos = gecos;
-    state->homedir = homedir;
-    state->shell = shell;
-    state->attrs = attrs;
-    state->cache_timeout = cache_timeout;
-
-    if (handle->ctx->mpg) {
+    if (ctx->mpg) {
         if (gid != 0) {
             DEBUG(0, ("Cannot add user with arbitrary GID in MPG domain!\n"));
-            ERROR_OUT(ret, EINVAL, fail);
+            return EINVAL;
         }
-        state->gid = state->uid;
+        gid = uid;
     }
 
     if (domain->id_max != 0 && uid != 0 &&
         (uid < domain->id_min || uid > domain->id_max)) {
         DEBUG(2, ("Supplied uid [%d] is not in the allowed range [%d-%d].\n",
                   uid, domain->id_min, domain->id_max));
-        ERROR_OUT(ret, ERANGE, fail);
+        return ERANGE;
     }
 
     if (domain->id_max != 0 && gid != 0 &&
         (gid < domain->id_min || gid > domain->id_max)) {
         DEBUG(2, ("Supplied gid [%d] is not in the allowed range [%d-%d].\n",
                   gid, domain->id_min, domain->id_max));
-        ERROR_OUT(ret, ERANGE, fail);
+        return ERANGE;
     }
 
-    if (handle->ctx->mpg) {
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    if (ctx->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
          * Don't worry about users, if we try to add a user with the same
          * name the operation will fail */
 
-        ret = sysdb_search_group_by_name(state, handle->ctx,
+        ret = sysdb_search_group_by_name(tmpctx, ctx,
                                          domain, name, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
-            goto fail;
+            goto done;
         }
     }
 
     /* check no other user with the same uid exist */
-    if (state->uid != 0) {
-        ret = sysdb_search_user_by_uid(state, handle->ctx,
+    if (uid != 0) {
+        ret = sysdb_search_user_by_uid(tmpctx, ctx,
                                        domain, uid, NULL, &msg);
         if (ret != ENOENT) {
             if (ret == EOK) ret = EEXIST;
-            goto fail;
+            goto done;
         }
     }
 
     /* try to add the user */
-    subreq = sysdb_add_basic_user_send(state, ev, handle,
-                                       domain, name, uid, gid,
-                                       gecos, homedir, shell);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_add_user_basic_done, req);
-    return req;
+    ret = sysdb_add_basic_user(tmpctx, ctx,
+                               domain, name, uid, gid,
+                               gecos, homedir, shell);
+    if (ret) goto done;
 
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
+    if (uid == 0) {
+        ret = sysdb_get_new_id(tmpctx, ctx, domain, &id);
+        if (ret) goto done;
 
-static void sysdb_add_user_basic_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_add_user_state *state = tevent_req_data(req,
-                                            struct sysdb_add_user_state);
-    struct sysdb_attrs *id_attrs;
-    uint32_t id;
-    time_t now;
-    int ret;
-
-    ret = sysdb_add_basic_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->uid == 0) {
-        ret = sysdb_get_new_id(state, state->handle->ctx, state->domain, &id);
-        if (ret) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        id_attrs = sysdb_new_attrs(state);
+        id_attrs = sysdb_new_attrs(tmpctx);
         if (!id_attrs) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto done;
         }
         ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_UIDNUM, id);
-        if (ret) {
-            DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-            tevent_req_error(req, ret);
-            return;
-        }
-        if (state->handle->ctx->mpg) {
+        if (ret) goto done;
+
+        if (ctx->mpg) {
             ret = sysdb_attrs_add_uint32(id_attrs, SYSDB_GIDNUM, id);
-            if (ret) {
-                DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-                tevent_req_error(req, ret);
-                return;
-            }
+            if (ret) goto done;
         }
 
-        ret = sysdb_set_user_attr(state, state->handle->ctx,
-                                  state->domain, state->name,
-                                  id_attrs, SYSDB_MOD_REP);
-        if (ret) {
-            tevent_req_error(req, ret);
-        } else {
-            tevent_req_done(req);
-        }
-        return;
+        ret = sysdb_set_user_attr(tmpctx, ctx,
+                                  domain, name, id_attrs, SYSDB_MOD_REP);
+        goto done;
     }
 
-    if (!state->attrs) {
-        state->attrs = sysdb_new_attrs(state);
-        if (!state->attrs) {
-            tevent_req_error(req, ENOMEM);
-            return;
+    if (!attrs) {
+        attrs = sysdb_new_attrs(tmpctx);
+        if (!attrs) {
+            ret = ENOMEM;
+            goto done;
         }
     }
 
     now = time(NULL);
 
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) goto done;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 ((cache_timeout) ?
+                                  (now + cache_timeout) : 0));
+    if (ret) goto done;
+
+    ret = sysdb_set_user_attr(tmpctx, ctx,
+                              domain, name, attrs, SYSDB_MOD_REP);
+
+done:
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
     }
-
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
-                                 ((state->cache_timeout) ?
-                                  (now + state->cache_timeout) : 0));
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = sysdb_set_user_attr(state, state->handle->ctx,
-                               state->domain, state->name,
-                               state->attrs, SYSDB_MOD_REP);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_add_user_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 
@@ -1441,174 +1323,104 @@ int sysdb_mod_group_member_recv(struct tevent_req *req)
 /* if one of the basic attributes is empty ("") as opposed to NULL,
  * this will just remove it */
 
-struct sysdb_store_user_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-
-    const char *name;
-    uid_t uid;
-    gid_t gid;
-    const char *gecos;
-    const char *homedir;
-    const char *shell;
-    struct sysdb_attrs *attrs;
-
-    uint64_t cache_timeout;
-};
-
-static void sysdb_store_user_add_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain,
-                                         const char *name,
-                                         const char *pwd,
-                                         uid_t uid, gid_t gid,
-                                         const char *gecos,
-                                         const char *homedir,
-                                         const char *shell,
-                                         struct sysdb_attrs *attrs,
-                                         uint64_t cache_timeout)
+int sysdb_store_user(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *ctx,
+                     struct sss_domain_info *domain,
+                     const char *name,
+                     const char *pwd,
+                     uid_t uid, gid_t gid,
+                     const char *gecos,
+                     const char *homedir,
+                     const char *shell,
+                     struct sysdb_attrs *attrs,
+                     uint64_t cache_timeout)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_store_user_state *state;
+    TALLOC_CTX *tmpctx;
     struct ldb_message *msg;
     time_t now;
     int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_store_user_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->name = name;
-    state->uid = uid;
-    state->gid = gid;
-    state->gecos = gecos;
-    state->homedir = homedir;
-    state->shell = shell;
-    state->attrs = attrs;
-    state->cache_timeout = cache_timeout;
-
-    if (pwd && (domain->legacy_passwords || !*pwd)) {
-        ret = sysdb_attrs_add_string(state->attrs, SYSDB_PWD, pwd);
-        if (ret) goto fail;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    ret = sysdb_search_user_by_name(state, handle->ctx,
+    if (pwd && (domain->legacy_passwords || !*pwd)) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_PWD, pwd);
+        if (ret) goto done;
+    }
+
+    ret = sysdb_search_user_by_name(tmpctx, ctx,
                                     domain, name, NULL, &msg);
     if (ret && ret != ENOENT) {
-        goto fail;
+        goto done;
     }
 
     if (ret == ENOENT) {
         /* users doesn't exist, turn into adding a user */
-        subreq = sysdb_add_user_send(state, state->ev, state->handle,
-                                     state->domain, state->name,
-                                     state->uid, state->gid,
-                                     state->gecos, state->homedir,
-                                     state->shell, state->attrs,
-                                     state->cache_timeout);
-        if (!subreq) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        tevent_req_set_callback(subreq, sysdb_store_user_add_done, req);
-
-        return req;
+        ret = sysdb_add_user(tmpctx, ctx, domain, name, uid, gid,
+                             gecos, homedir, shell, attrs, cache_timeout);
+        goto done;
     }
 
     /* the user exists, let's just replace attributes when set */
-    if (!state->attrs) {
-        state->attrs = sysdb_new_attrs(state);
-        if (!state->attrs) {
+    if (!attrs) {
+        attrs = sysdb_new_attrs(tmpctx);
+        if (!attrs) {
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
     }
 
-    if (state->uid) {
-        ret = sysdb_attrs_add_uint32(state->attrs, SYSDB_UIDNUM, state->uid);
-        if (ret) goto fail;
+    if (uid) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_UIDNUM, uid);
+        if (ret) goto done;
     }
 
-    if (state->gid) {
-        ret = sysdb_attrs_add_uint32(state->attrs, SYSDB_GIDNUM, state->gid);
-        if (ret) goto fail;
+    if (gid) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, gid);
+        if (ret) goto done;
     }
 
-    if (state->uid && !state->gid && state->handle->ctx->mpg) {
-        ret = sysdb_attrs_add_uint32(state->attrs, SYSDB_GIDNUM, state->uid);
-        if (ret) goto fail;
+    if (uid && !gid && ctx->mpg) {
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, uid);
+        if (ret) goto done;
     }
 
-    if (state->gecos) {
-        ret = sysdb_attrs_add_string(state->attrs, SYSDB_GECOS, state->gecos);
-        if (ret) goto fail;
+    if (gecos) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_GECOS, gecos);
+        if (ret) goto done;
     }
 
-    if (state->homedir) {
-        ret = sysdb_attrs_add_string(state->attrs,
-                                     SYSDB_HOMEDIR, state->homedir);
-        if (ret) goto fail;
+    if (homedir) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_HOMEDIR, homedir);
+        if (ret) goto done;
     }
 
-    if (state->shell) {
-        ret = sysdb_attrs_add_string(state->attrs, SYSDB_SHELL, state->shell);
-        if (ret) goto fail;
+    if (shell) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_SHELL, shell);
+        if (ret) goto done;
     }
 
     now = time(NULL);
 
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
-    if (ret) goto fail;
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) goto done;
 
-    ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
-                                 ((state->cache_timeout) ?
-                                  (now + state->cache_timeout) : 0));
-    if (ret) goto fail;
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 ((cache_timeout) ?
+                                  (now + cache_timeout) : 0));
+    if (ret) goto done;
 
-    ret = sysdb_set_user_attr(state, state->handle->ctx,
-                              state->domain, state->name,
-                              state->attrs, SYSDB_MOD_REP);
-    if (ret) {
-        goto fail;
-    }
+    ret = sysdb_set_user_attr(tmpctx, ctx,
+                              domain, name, attrs, SYSDB_MOD_REP);
 
-    tevent_req_done(req);
-    tevent_req_post(req, ev);
-    return req;
-
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_store_user_add_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_add_user_recv(subreq);
-    talloc_zfree(subreq);
+done:
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
     }
-
-    tevent_req_done(req);
-}
-
-int sysdb_store_user_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* =Store-Group-(Native/Legacy)-(replaces-existing-data)================== */

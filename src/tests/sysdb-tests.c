@@ -223,8 +223,6 @@ fail:
     data->finished = true;
 }
 
-static void test_add_user_done(struct tevent_req *subreq);
-
 static void test_add_user(struct tevent_req *subreq)
 {
     struct test_data *data = tevent_req_callback_data(subreq,
@@ -242,34 +240,17 @@ static void test_add_user(struct tevent_req *subreq)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    subreq = sysdb_add_user_send(data, data->ev, data->handle,
-                                 data->ctx->domain, data->username,
-                                 data->uid, 0,
-                                 gecos, homedir, "/bin/bash",
-                                 NULL, 0);
-    if (!subreq) {
-        return test_return(data, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, test_add_user_done, data);
-}
-
-static void test_add_user_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_add_user_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_add_user(data, data->handle->ctx,
+                         data->ctx->domain, data->username,
+                         data->uid, 0, gecos, homedir, "/bin/bash",
+                         NULL, 0);
 
     return test_return(data, ret);
 }
 
-static void test_store_user_done(struct tevent_req *subreq);
-
 static void test_store_user(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     char *homedir;
     char *gecos;
     int ret;
@@ -282,26 +263,11 @@ static void test_store_user(struct tevent_req *req)
     homedir = talloc_asprintf(data, "/home/testuser%d", data->uid);
     gecos = talloc_asprintf(data, "Test User %d", data->uid);
 
-    subreq = sysdb_store_user_send(data, data->ev, data->handle,
-                                  data->ctx->domain, data->username, "x",
-                                  data->uid, 0,
-                                  gecos, homedir,
-                                  data->shell ? data->shell : "/bin/bash",
-                                  NULL, -1);
-    if (!subreq) {
-        test_return(data, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, test_store_user_done, data);
-}
-
-static void test_store_user_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_store_user_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_store_user(data, data->handle->ctx,
+                           data->ctx->domain, data->username, "x",
+                           data->uid, 0, gecos, homedir,
+                           data->shell ? data->shell : "/bin/bash",
+                           NULL, -1);
 
     return test_return(data, ret);
 }
