@@ -433,22 +433,18 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
                    int cache_timeout);
 
 /* Add group (only basic attrs and w/o checks) */
-struct tevent_req *sysdb_add_basic_group_send(TALLOC_CTX *mem_ctx,
-                                              struct tevent_context *ev,
-                                              struct sysdb_handle *handle,
-                                              struct sss_domain_info *domain,
-                                              const char *name, gid_t gid);
-int sysdb_add_basic_group_recv(struct tevent_req *req);
+int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,
+                          struct sysdb_ctx *ctx,
+                          struct sss_domain_info *domain,
+                          const char *name, gid_t gid);
 
 /* Add group (all checks) */
-struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sysdb_handle *handle,
-                                        struct sss_domain_info *domain,
-                                        const char *name, gid_t gid,
-                                        struct sysdb_attrs *attrs,
-                                        int cache_timeout);
-int sysdb_add_group_recv(struct tevent_req *req);
+int sysdb_add_group(TALLOC_CTX *mem_ctx,
+                    struct sysdb_ctx *ctx,
+                    struct sss_domain_info *domain,
+                    const char *name, gid_t gid,
+                    struct sysdb_attrs *attrs,
+                    int cache_timeout);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
 struct tevent_req *sysdb_mod_group_member_send(TALLOC_CTX *mem_ctx,
@@ -476,15 +472,13 @@ int sysdb_store_user(TALLOC_CTX *mem_ctx,
                      struct sysdb_attrs *attrs,
                      uint64_t cache_timeout);
 
-struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sysdb_handle *handle,
-                                          struct sss_domain_info *domain,
-                                          const char *name,
-                                          gid_t gid,
-                                          struct sysdb_attrs *attrs,
-                                          uint64_t cache_timeout);
-int sysdb_store_group_recv(struct tevent_req *req);
+int sysdb_store_group(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *ctx,
+                      struct sss_domain_info *domain,
+                      const char *name,
+                      gid_t gid,
+                      struct sysdb_attrs *attrs,
+                      uint64_t cache_timeout);
 
 struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,

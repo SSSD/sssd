@@ -885,7 +885,6 @@ fail:
     } while(0)
 
 static void get_gr_name_process(struct tevent_req *subreq);
-static void get_gr_name_add_done(struct tevent_req *subreq);
 
 static struct tevent_req *get_gr_name_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
@@ -1022,18 +1021,17 @@ again:
             members = NULL;
         }
 
-        subreq = sysdb_store_group_send(state, state->ev, state->handle,
-                                        state->domain,
-                                        state->grp->gr_name,
-                                        state->grp->gr_gid,
-                                        members,
-                                        ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_store_group(state, state->sysdb,
+                                state->domain,
+                                state->grp->gr_name,
+                                state->grp->gr_gid,
+                                members,
+                                ctx->entry_cache_timeout);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_gr_name_add_done, req);
-        return;
+        break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -1041,7 +1039,7 @@ again:
         return;
 
     default:
-        break;
+        goto fail;
     }
 
     if (delete_group) {
@@ -1062,34 +1060,6 @@ again:
             tevent_req_error(req, ret);
             return;
         }
-
-        subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, proxy_default_done, req);
-        return;
-    }
-
-    DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
-              state->name, status));
-    tevent_req_error(req, EIO);
-}
-
-static void get_gr_name_add_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = sysdb_store_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
     }
 
     subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
@@ -1098,6 +1068,12 @@ static void get_gr_name_add_done(struct tevent_req *subreq)
         return;
     }
     tevent_req_set_callback(subreq, proxy_default_done, req);
+    return;
+
+fail:
+    DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
+              state->name, status));
+    tevent_req_error(req, EIO);
 }
 
 /* =Getgrgid-wrapper======================================================*/
@@ -1238,18 +1214,17 @@ again:
             members = NULL;
         }
 
-        subreq = sysdb_store_group_send(state, state->ev, state->handle,
-                                        state->domain,
-                                        state->grp->gr_name,
-                                        state->grp->gr_gid,
-                                        members,
-                                        ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_store_group(state, state->sysdb,
+                                state->domain,
+                                state->grp->gr_name,
+                                state->grp->gr_gid,
+                                members,
+                                ctx->entry_cache_timeout);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_gr_name_add_done, req);
-        return;
+        break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -1277,7 +1252,15 @@ again:
             return;
         }
         tevent_req_set_callback(subreq, get_gr_gid_remove_done, req);
+        return;
     }
+
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, proxy_default_done, req);
 }
 
 static void get_gr_gid_remove_done(struct tevent_req *subreq)
@@ -1316,8 +1299,6 @@ struct enum_groups_state {
 
     size_t buflen;
     char *buffer;
-
-    bool in_transaction;
 };
 
 static void enum_groups_process(struct tevent_req *subreq);
@@ -1356,8 +1337,6 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    state->in_transaction = false;
-
     status = ctx->ops.setgrent();
     if (status != NSS_STATUS_SUCCESS) {
         tevent_req_error(req, EIO);
@@ -1391,24 +1370,12 @@ static void enum_groups_process(struct tevent_req *subreq)
     char *newbuf;
     int ret;
 
-    if (!state->in_transaction) {
-        ret = sysdb_transaction_recv(subreq, state, &state->handle);
-        if (ret) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        talloc_zfree(subreq);
-
-        state->in_transaction = true;
-    } else {
-        ret = sysdb_store_group_recv(subreq);
-        if (ret) {
-            /* Do not fail completely on errors.
-             * Just report the failure to save and go on */
-            DEBUG(2, ("Failed to store group. Ignoring.\n"));
-        }
-        talloc_zfree(subreq);
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
     }
+    talloc_zfree(subreq);
 
 again:
     /* always zero out the grp structure */
@@ -1484,18 +1451,18 @@ again:
             members = NULL;
         }
 
-        subreq = sysdb_store_group_send(state, state->ev, state->handle,
-                                       state->domain,
-                                       state->grp->gr_name,
-                                       state->grp->gr_gid,
-                                       members,
-                                       ctx->entry_cache_timeout);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
+        ret = sysdb_store_group(state, state->sysdb,
+                                state->domain,
+                                state->grp->gr_name,
+                                state->grp->gr_gid,
+                                members,
+                                ctx->entry_cache_timeout);
+        if (ret) {
+            /* Do not fail completely on errors.
+             * Just report the failure to save and go on */
+            DEBUG(2, ("Failed to store group. Ignoring.\n"));
         }
-        tevent_req_set_callback(subreq, enum_groups_process, req);
-        return;
+        goto again; /* next */
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
@@ -1535,7 +1502,6 @@ static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
                                                   gid_t gid);
 static int get_group_from_gid_recv(struct tevent_req *req);
 static void get_group_from_gid_send_del_done(struct tevent_req *subreq);
-static void get_group_from_gid_send_add_done(struct tevent_req *subreq);
 
 
 static struct tevent_req *get_initgr_send(TALLOC_CTX *mem_ctx,
@@ -1953,17 +1919,17 @@ again:
             members = NULL;
         }
 
-        subreq = sysdb_store_group_send(state, state->ev, state->handle,
-                                        state->domain,
-                                        state->grp->gr_name,
-                                        state->grp->gr_gid,
-                                        members,
-                                        ctx->entry_cache_timeout);
-        if (!subreq) {
-            ret = ENOMEM;
+        ret = sysdb_store_group(state, state->sysdb,
+                                state->domain,
+                                state->grp->gr_name,
+                                state->grp->gr_gid,
+                                members,
+                                ctx->entry_cache_timeout);
+        if (ret) {
             goto fail;
         }
-        tevent_req_set_callback(subreq, get_group_from_gid_send_add_done, req);
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -1996,22 +1962,6 @@ fail:
     tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
-}
-
-static void get_group_from_gid_send_add_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_store_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
 }
 
 static void get_group_from_gid_send_del_done(struct tevent_req *subreq)

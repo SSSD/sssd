@@ -393,13 +393,10 @@ static void test_remove_nonexistent_user_done(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_add_group_done(struct tevent_req *subreq);
-
 static void test_add_group(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req,
                                                       struct test_data);
-    struct tevent_req *subreq;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -407,32 +404,16 @@ static void test_add_group(struct tevent_req *req)
         return test_return(data, ret);
     }
 
-    subreq = sysdb_add_group_send(data, data->ev, data->handle,
-                                  data->ctx->domain, data->groupname,
-                                  data->gid, NULL, 0);
-    if (!subreq) {
-        test_return(data, ret);
-    }
-    tevent_req_set_callback(subreq, test_add_group_done, data);
-}
-
-static void test_add_group_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_add_group_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_add_group(data, data->handle->ctx,
+                          data->ctx->domain, data->groupname,
+                          data->gid, NULL, 0);
 
     return test_return(data, ret);
 }
 
-static void test_store_group_done(struct tevent_req *subreq);
-
 static void test_store_group(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -440,22 +421,9 @@ static void test_store_group(struct tevent_req *req)
         return test_return(data, ret);
     }
 
-    subreq = sysdb_store_group_send(data, data->ev, data->handle,
-                                    data->ctx->domain, data->groupname,
-                                    data->gid, NULL, -1);
-    if (!subreq) {
-        test_return(data, ret);
-    }
-    tevent_req_set_callback(subreq, test_store_group_done, data);
-}
-
-static void test_store_group_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_store_group_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_store_group(data, data->handle->ctx,
+                            data->ctx->domain, data->groupname,
+                            data->gid, NULL, -1);
 
     return test_return(data, ret);
 }
@@ -887,11 +855,9 @@ static void test_delete_recursive(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_memberof_store_group_done(struct tevent_req *subreq);
 static void test_memberof_store_group(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     int ret;
     struct sysdb_attrs *attrs = NULL;
     char *member;
@@ -918,22 +884,9 @@ static void test_memberof_store_group(struct tevent_req *req)
         }
     }
 
-    subreq = sysdb_store_group_send(data, data->ev, data->handle,
-                                    data->ctx->domain, data->groupname,
-                                    data->gid, attrs, -1);
-    if (!subreq) {
-        test_return(data, ret);
-    }
-    tevent_req_set_callback(subreq, test_memberof_store_group_done, data);
-}
-
-static void test_memberof_store_group_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_store_group_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_store_group(data, data->handle->ctx,
+                            data->ctx->domain, data->groupname,
+                            data->gid, attrs, -1);
 
     return test_return(data, ret);
 }

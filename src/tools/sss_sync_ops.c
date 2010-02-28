@@ -540,72 +540,6 @@ static int user_mod_recv(struct tevent_req *req)
 }
 
 /*
- * Add a group
- */
-struct group_add_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-    struct sysdb_attrs *attrs;
-
-    struct ops_ctx *data;
-};
-
-static void group_add_done(struct tevent_req *subreq);
-
-static struct tevent_req *group_add_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_ctx *sysdb,
-                                         struct sysdb_handle *handle,
-                                         struct ops_ctx *data)
-{
-    struct group_add_state *state = NULL;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-
-    req = tevent_req_create(mem_ctx, &state, struct group_add_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-
-    subreq = sysdb_add_group_send(state, state->ev, state->handle,
-                                  state->data->domain, state->data->name,
-                                  state->data->gid, NULL, 0);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, group_add_done, req);
-    return req;
-}
-
-static void group_add_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_add_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    return tevent_req_done(req);
-}
-
-static int group_add_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
-}
-
-/*
  * Modify a group
  */
 struct group_mod_state {
@@ -1083,8 +1017,6 @@ static void usermod_done(struct tevent_req *req)
 /*
  * Public interface for adding groups
  */
-static void groupadd_done(struct tevent_req *);
-
 int groupadd(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
@@ -1092,42 +1024,14 @@ int groupadd(TALLOC_CTX *mem_ctx,
             struct ops_ctx *data)
 {
     int ret;
-    struct tevent_req *req;
-    struct sync_op_res *res = NULL;
 
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
-        return ENOMEM;
+    ret = sysdb_add_group(mem_ctx, sysdb,
+                          data->domain, data->name,
+                          data->gid, NULL, 0);
+    if (ret == EOK) {
+        flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
     }
-
-    req = group_add_send(res, ev, sysdb, handle, data);
-    if (!req) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req, groupadd_done, res);
-
-    SYNC_LOOP(res, ret);
-
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
-
-    talloc_free(res);
     return ret;
-}
-
-static void groupadd_done(struct tevent_req *req)
-{
-    int ret;
-    struct sync_op_res *res = tevent_req_callback_data(req,
-                                                       struct sync_op_res);
-
-    ret = group_add_recv(req);
-    talloc_free(req);
-    if (ret) {
-        DEBUG(2, ("Adding group failed: %s (%d)\n", strerror(ret), ret));
-    }
-
-    res->done = true;
-    res->error = ret;
 }
 
 /*
