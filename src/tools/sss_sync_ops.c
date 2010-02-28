@@ -488,7 +488,6 @@ static int usermod_build_attrs(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void user_mod_attr_done(struct tevent_req *attrreq);
 static void user_mod_attr_wakeup(struct tevent_req *subreq);
 static void user_mod_rm_group_done(struct tevent_req *groupreq);
 static void user_mod_add_group_done(struct tevent_req *groupreq);
@@ -553,18 +552,17 @@ static void user_mod_attr_wakeup(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct user_mod_state *state = tevent_req_data(req,
                                                    struct user_mod_state);
-    struct tevent_req *attrreq, *groupreq;
+    struct tevent_req *groupreq;
+    int ret;
 
     if (state->attrs->num != 0) {
-        attrreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                           state->data->domain, state->data->name,
-                                           state->attrs, SYSDB_MOD_REP);
-        if (!attrreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_set_user_attr(state, sysdb_handle_get_ctx(state->handle),
+                                  state->data->domain, state->data->name,
+                                  state->attrs, SYSDB_MOD_REP);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(attrreq, user_mod_attr_done, req);
-        return;
     }
 
     if (state->data->rmgroups != NULL) {
@@ -591,47 +589,6 @@ static void user_mod_attr_wakeup(struct tevent_req *subreq)
 
     /* No changes to be made, mark request as done */
     tevent_req_done(req);
-}
-
-static void user_mod_attr_done(struct tevent_req *attrreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(attrreq,
-                                                      struct tevent_req);
-    struct user_mod_state *state = tevent_req_data(req,
-                                                   struct user_mod_state);
-    int ret;
-    struct tevent_req *groupreq;
-
-    ret = sysdb_set_user_attr_recv(attrreq);
-    talloc_zfree(attrreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->data->rmgroups != NULL) {
-        groupreq = remove_from_groups_send(state, state->ev, state->sysdb,
-                                           state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(groupreq, user_mod_rm_group_done, req);
-        return;
-    }
-
-    if (state->data->addgroups != NULL) {
-        groupreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                      state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(groupreq, user_mod_add_group_done, req);
-        return;
-    }
-
-    return tevent_req_done(req);
 }
 
 static void user_mod_rm_group_done(struct tevent_req *groupreq)
@@ -766,7 +723,6 @@ struct group_mod_state {
     struct ops_ctx *data;
 };
 
-static void group_mod_attr_done(struct tevent_req *);
 static void group_mod_attr_wakeup(struct tevent_req *);
 static void group_mod_add_group_done(struct tevent_req *groupreq);
 static void group_mod_rm_group_done(struct tevent_req *groupreq);
@@ -817,7 +773,6 @@ static void group_mod_attr_wakeup(struct tevent_req *subreq)
     struct group_mod_state *state = tevent_req_data(req,
                                                     struct group_mod_state);
     struct sysdb_attrs *attrs;
-    struct tevent_req *attrreq;
     struct tevent_req *groupreq;
     int ret;
 
@@ -833,16 +788,13 @@ static void group_mod_attr_wakeup(struct tevent_req *subreq)
             return;
         }
 
-        attrreq = sysdb_set_group_attr_send(state, state->ev, state->handle,
-                                            state->data->domain, state->data->name,
-                                            attrs, SYSDB_MOD_REP);
-        if (!attrreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_set_group_attr(state, sysdb_handle_get_ctx(state->handle),
+                                   state->data->domain, state->data->name,
+                                   attrs, SYSDB_MOD_REP);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-
-        tevent_req_set_callback(attrreq, group_mod_attr_done, req);
-        return;
     }
 
     if (state->data->rmgroups != NULL) {
@@ -869,47 +821,6 @@ static void group_mod_attr_wakeup(struct tevent_req *subreq)
 
     /* No changes to be made, mark request as done */
     tevent_req_done(req);
-}
-
-static void group_mod_attr_done(struct tevent_req *attrreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(attrreq,
-                                                      struct tevent_req);
-    struct group_mod_state *state = tevent_req_data(req,
-                                                    struct group_mod_state);
-    int ret;
-    struct tevent_req *groupreq;
-
-    ret = sysdb_set_group_attr_recv(attrreq);
-    talloc_zfree(attrreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->data->rmgroups != NULL) {
-        groupreq = remove_from_groups_send(state, state->ev, state->sysdb,
-                                           state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(groupreq, group_mod_rm_group_done, req);
-        return;
-    }
-
-    if (state->data->addgroups != NULL) {
-        groupreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                      state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(groupreq, group_mod_add_group_done, req);
-        return;
-    }
-
-    return tevent_req_done(req);
 }
 
 static void group_mod_rm_group_done(struct tevent_req *groupreq)

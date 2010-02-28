@@ -538,45 +538,30 @@ done:
 
 /* =Replace-Attributes-On-Entry=========================================== */
 
-struct tevent_req *sysdb_set_entry_attr_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct ldb_dn *entry_dn,
-                                             struct sysdb_attrs *attrs,
-                                             int mod_op)
+int sysdb_set_entry_attr(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *ctx,
+                         struct ldb_dn *entry_dn,
+                         struct sysdb_attrs *attrs,
+                         int mod_op)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
-    struct ldb_request *ldbreq;
     struct ldb_message *msg;
     int i, ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = false;
-    state->ldbreply = NULL;
-
-    if (!entry_dn) {
-        ERROR_OUT(ret, EINVAL, fail);
+    if (!entry_dn || attrs->num == 0) {
+        return EINVAL;
     }
 
-    if (attrs->num == 0) {
-        ERROR_OUT(ret, EINVAL, fail);
-    }
-
-    msg = ldb_msg_new(state);
+    msg = ldb_msg_new(mem_ctx);
     if (!msg) {
-        ERROR_OUT(ret, ENOMEM, fail);
+        return ENOMEM;
     }
 
     msg->dn = entry_dn;
 
     msg->elements = talloc_array(msg, struct ldb_message_element, attrs->num);
     if (!msg->elements) {
-        ERROR_OUT(ret, ENOMEM, fail);
+        ret = ENOMEM;
+        goto fail;
     }
 
     for (i = 0; i < attrs->num; i++) {
@@ -586,168 +571,55 @@ struct tevent_req *sysdb_set_entry_attr_send(TALLOC_CTX *mem_ctx,
 
     msg->num_elements = attrs->num;
 
-    ret = ldb_build_mod_req(&ldbreq, handle->ctx->ldb, state, msg,
-                           NULL, NULL, NULL, NULL);
-    if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build modify request: %s(%d)[%s]\n",
-                  ldb_strerror(ret), ret, ldb_errstring(handle->ctx->ldb)));
-        ERROR_OUT(ret, sysdb_error_to_errno(ret), fail);
-    }
-
-    subreq = sldb_request_send(state, ev, handle->ctx->ldb, ldbreq);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_op_default_done, req);
-
-    return req;
+    ret = ldb_modify(ctx->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
 
 fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-int sysdb_set_entry_attr_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_zfree(msg);
+    return ret;
 }
 
 
 /* =Replace-Attributes-On-User============================================ */
 
-static void sysdb_set_user_attr_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_set_user_attr_send(TALLOC_CTX *mem_ctx,
-                                            struct tevent_context *ev,
-                                            struct sysdb_handle *handle,
-                                            struct sss_domain_info *domain,
-                                            const char *name,
-                                            struct sysdb_attrs *attrs,
-                                            int mod_op)
+int sysdb_set_user_attr(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *ctx,
+                        struct sss_domain_info *domain,
+                        const char *name,
+                        struct sysdb_attrs *attrs,
+                        int mod_op)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
     struct ldb_dn *dn;
-    int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = false;
-    state->ldbreply = NULL;
-
-    dn = sysdb_user_dn(handle->ctx, state, domain->name, name);
+    dn = sysdb_user_dn(ctx, mem_ctx, domain->name, name);
     if (!dn) {
-        ERROR_OUT(ret, ENOMEM, fail);
+        return ENOMEM;
     }
 
-    subreq = sysdb_set_entry_attr_send(state, ev, handle, dn, attrs, mod_op);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_set_user_attr_done, req);
-
-    return req;
-
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_set_user_attr_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_entry_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_set_user_attr_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+    return sysdb_set_entry_attr(mem_ctx, ctx, dn, attrs, mod_op);
 }
 
 
 /* =Replace-Attributes-On-Group=========================================== */
 
-static void sysdb_set_group_attr_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_set_group_attr_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *name,
-                                             struct sysdb_attrs *attrs,
-                                             int mod_op)
+int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *ctx,
+                         struct sss_domain_info *domain,
+                         const char *name,
+                         struct sysdb_attrs *attrs,
+                         int mod_op)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_op_state *state;
     struct ldb_dn *dn;
-    int ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_op_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ignore_not_found = false;
-    state->ldbreply = NULL;
-
-    dn = sysdb_group_dn(handle->ctx, state, domain->name, name);
+    dn = sysdb_group_dn(ctx, mem_ctx, domain->name, name);
     if (!dn) {
-        ERROR_OUT(ret, ENOMEM, fail);
+        return ENOMEM;
     }
 
-    subreq = sysdb_set_entry_attr_send(state, ev, handle, dn, attrs, mod_op);
-    if (!subreq) {
-        ERROR_OUT(ret, ENOMEM, fail);
-    }
-    tevent_req_set_callback(subreq, sysdb_set_group_attr_done, req);
-
-    return req;
-
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_set_group_attr_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_entry_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_set_group_attr_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+    return sysdb_set_entry_attr(mem_ctx, ctx, dn, attrs, mod_op);
 }
 
 
@@ -1233,9 +1105,7 @@ struct sysdb_add_user_state {
 
 static void sysdb_add_user_basic_done(struct tevent_req *subreq);
 static void sysdb_add_user_get_id_done(struct tevent_req *subreq);
-static void sysdb_add_user_set_id_done(struct tevent_req *subreq);
-static void sysdb_add_user_set_attrs(struct tevent_req *req);
-static void sysdb_add_user_set_attrs_done(struct tevent_req *subreq);
+static int sysdb_add_user_set_attrs(struct sysdb_add_user_state *state);
 
 struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
@@ -1361,7 +1231,14 @@ static void sysdb_add_user_basic_done(struct tevent_req *subreq)
         return;
     }
 
-    sysdb_add_user_set_attrs(req);
+    ret = sysdb_add_user_set_attrs(state);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
 }
 
 static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
@@ -1403,102 +1280,54 @@ static void sysdb_add_user_get_id_done(struct tevent_req *subreq)
             }
         }
 
-        subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                          state->domain, state->name,
-                                          id_attrs, SYSDB_MOD_REP);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+        ret = sysdb_set_user_attr(state, state->handle->ctx,
+                                  state->domain, state->name,
+                                  id_attrs, SYSDB_MOD_REP);
+        if (ret) {
+            tevent_req_error(req, ret);
+        } else {
+            tevent_req_done(req);
         }
-        tevent_req_set_callback(subreq, sysdb_add_user_set_id_done, req);
         return;
     }
 
-    sysdb_add_user_set_attrs(req);
-}
-
-static void sysdb_add_user_set_id_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_add_user_state *state = tevent_req_data(req,
-                                            struct sysdb_add_user_state);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_add_user_set_attrs(state);
     if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
         return;
-    }
-
-    if (state->attrs) {
     }
 
     tevent_req_done(req);
 }
 
-static void sysdb_add_user_set_attrs(struct tevent_req *req)
+static int sysdb_add_user_set_attrs(struct sysdb_add_user_state *state)
 {
-    struct sysdb_add_user_state *state = tevent_req_data(req,
-                                            struct sysdb_add_user_state);
-    struct tevent_req *subreq;
     time_t now = time(NULL);
     int ret;
 
     if (!state->attrs) {
         state->attrs = sysdb_new_attrs(state);
         if (!state->attrs) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+            return ENOMEM;
         }
     }
 
     ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_LAST_UPDATE, now);
     if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+        return ret;
     }
 
     ret = sysdb_attrs_add_time_t(state->attrs, SYSDB_CACHE_EXPIRE,
                                  ((state->cache_timeout) ?
                                   (now + state->cache_timeout) : 0));
     if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
+        return ret;
     }
 
-    subreq = sysdb_set_user_attr_send(state, state->ev,
-                                      state->handle, state->domain,
-                                      state->name, state->attrs,
-                                      SYSDB_MOD_REP);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_add_user_set_attrs_done, req);
-}
-
-static void sysdb_add_user_set_attrs_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
+    return sysdb_set_user_attr(state, state->handle->ctx,
+                               state->domain, state->name,
+                               state->attrs, SYSDB_MOD_REP);
 }
 
 int sysdb_add_user_recv(struct tevent_req *req)
@@ -1601,7 +1430,6 @@ struct sysdb_add_group_state {
 static void sysdb_add_group_basic_done(struct tevent_req *subreq);
 static void sysdb_add_group_get_id_done(struct tevent_req *subreq);
 static void sysdb_add_group_set_attrs(struct tevent_req *req);
-static void sysdb_add_group_set_attrs_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
@@ -1747,7 +1575,6 @@ static void sysdb_add_group_set_attrs(struct tevent_req *req)
 {
     struct sysdb_add_group_state *state = tevent_req_data(req,
                                            struct sysdb_add_group_state);
-    struct tevent_req *subreq;
     time_t now = time(NULL);
     int ret;
 
@@ -1776,26 +1603,9 @@ static void sysdb_add_group_set_attrs(struct tevent_req *req)
         return;
     }
 
-    subreq = sysdb_set_group_attr_send(state, state->ev,
-                                       state->handle, state->domain,
-                                       state->name, state->attrs,
-                                       SYSDB_MOD_REP);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_add_group_set_attrs_done, req);
-}
-
-static void sysdb_add_group_set_attrs_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_group_attr_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_set_group_attr(state, state->handle->ctx,
+                               state->domain, state->name,
+                               state->attrs, SYSDB_MOD_REP);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
@@ -1908,7 +1718,6 @@ struct sysdb_store_user_state {
 };
 
 static void sysdb_store_user_add_done(struct tevent_req *subreq);
-static void sysdb_store_user_attr_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
@@ -2022,16 +1831,15 @@ struct tevent_req *sysdb_store_user_send(TALLOC_CTX *mem_ctx,
                                   (now + state->cache_timeout) : 0));
     if (ret) goto fail;
 
-    subreq = sysdb_set_user_attr_send(state, state->ev,
-                                      state->handle, state->domain,
-                                      state->name, state->attrs,
-                                      SYSDB_MOD_REP);
-    if (!subreq) {
-        ret = ENOMEM;
+    ret = sysdb_set_user_attr(state, state->handle->ctx,
+                              state->domain, state->name,
+                              state->attrs, SYSDB_MOD_REP);
+    if (ret) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, sysdb_store_user_attr_done, req);
 
+    tevent_req_done(req);
+    tevent_req_post(req, ev);
     return req;
 
 fail:
@@ -2048,23 +1856,6 @@ static void sysdb_store_user_add_done(struct tevent_req *subreq)
     int ret;
 
     ret = sysdb_add_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static void sysdb_store_user_attr_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
@@ -2098,7 +1889,6 @@ struct sysdb_store_group_state {
 };
 
 static void sysdb_store_group_add_done(struct tevent_req *subreq);
-static void sysdb_store_group_attr_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
@@ -2181,16 +1971,15 @@ struct tevent_req *sysdb_store_group_send(TALLOC_CTX *mem_ctx,
                                   (now + state->cache_timeout) : 0));
     if (ret) goto fail;
 
-    subreq = sysdb_set_group_attr_send(state, state->ev,
-                                       state->handle, state->domain,
-                                       state->name, state->attrs,
-                                       SYSDB_MOD_REP);
-    if (!subreq) {
-        ret = ENOMEM;
+    ret = sysdb_set_group_attr(state, state->handle->ctx,
+                               state->domain, state->name,
+                               state->attrs, SYSDB_MOD_REP);
+    if (ret) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, sysdb_store_group_attr_done, req);
 
+    tevent_req_done(req);
+    tevent_req_post(req, ev);
     return req;
 
 fail:
@@ -2207,23 +1996,6 @@ static void sysdb_store_group_add_done(struct tevent_req *subreq)
     int ret;
 
     ret = sysdb_add_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static void sysdb_store_group_attr_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_set_group_attr_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
@@ -2402,7 +2174,6 @@ struct sysdb_cache_pw_state {
 };
 
 static void sysdb_cache_password_trans(struct tevent_req *subreq);
-static void sysdb_cache_password_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,
@@ -2459,13 +2230,15 @@ struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
         state->handle = handle;
         state->commit = false;
 
-        subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                          state->domain, state->username,
-                                          state->attrs, SYSDB_MOD_REP);
-        if (!subreq) {
-            ERROR_OUT(ret, ENOMEM, fail);
+        ret = sysdb_set_user_attr(state, state->handle->ctx,
+                                  state->domain, state->username,
+                                  state->attrs, SYSDB_MOD_REP);
+        if (ret) {
+            goto fail;
         }
-        tevent_req_set_callback(subreq, sysdb_cache_password_done, req);
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+
     } else {
         state->commit = true;
 
@@ -2502,46 +2275,22 @@ static void sysdb_cache_password_trans(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                      state->domain, state->username,
-                                      state->attrs, SYSDB_MOD_REP);
+    ret = sysdb_set_user_attr(state, state->handle->ctx,
+                              state->domain, state->username,
+                              state->attrs, SYSDB_MOD_REP);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_transaction_commit_send(state, state->ev,
+                                           state->handle);
     if (!subreq) {
         DEBUG(6, ("Error: Out of memory\n"));
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sysdb_cache_password_done, req);
-}
-
-static void sysdb_cache_password_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct sysdb_cache_pw_state *state = tevent_req_data(req,
-                                                  struct sysdb_cache_pw_state);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->commit) {
-        subreq = sysdb_transaction_commit_send(state, state->ev,
-                                               state->handle);
-        if (!subreq) {
-            DEBUG(6, ("Error: Out of memory\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
-        return;
-    }
-
-    tevent_req_done(req);
+    tevent_req_set_callback(subreq, sysdb_transaction_complete, req);
 }
 
 int sysdb_cache_password_recv(struct tevent_req *req)
@@ -3817,7 +3566,6 @@ errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
 }
 
 static void sysdb_cache_auth_transaction_start_done(struct tevent_req *subreq);
-static void sysdb_cache_auth_attr_update_done(struct tevent_req *subreq);
 static void sysdb_cache_auth_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
@@ -4046,42 +3794,16 @@ static void sysdb_cache_auth_transaction_start_done(struct tevent_req *subreq)
     }
 
 
-    subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                      state->domain, state->name,
-                                      state->update_attrs,
-                                      LDB_FLAG_MOD_REPLACE);
-    if (subreq == NULL) {
-        DEBUG(1, ("sysdb_set_user_attr_send failed.\n"));
-        goto done;
-    }
-    tevent_req_set_callback(subreq, sysdb_cache_auth_attr_update_done,
-                            req);
-    return;
-
-done:
-    if (state->authentication_successful) {
-        tevent_req_done(req);
-    } else {
-        tevent_req_error(req, EINVAL);
-    }
-    return;
-}
-
-static void sysdb_cache_auth_attr_update_done(struct tevent_req *subreq)
-{
-    int ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-
-    struct sysdb_cache_auth_state *state = tevent_req_data(req,
-                                                 struct sysdb_cache_auth_state);
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
+    ret = sysdb_set_user_attr(state, state->handle->ctx,
+                              state->domain, state->name,
+                              state->update_attrs,
+                              LDB_FLAG_MOD_REPLACE);
+    if (ret) {
         DEBUG(1, ("sysdb_set_user_attr request failed [%d][%s].\n",
                   ret, strerror(ret)));
-        goto done;
+        if (!state->authentication_successful) {
+            goto done;
+        }
     }
 
     subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);

@@ -86,12 +86,10 @@ static void set_user_attr_done(struct tevent_req *req)
     prepare_reply(lreq);
 }
 
-static void set_user_attr_req_done(struct tevent_req *subreq);
 static void set_user_attr_req(struct tevent_req *req)
 {
     struct LOCAL_request *lreq = tevent_req_callback_data(req,
                                                           struct LOCAL_request);
-    struct tevent_req *subreq;
     int ret;
 
     DEBUG(4, ("entering set_user_attr_req\n"));
@@ -102,28 +100,10 @@ static void set_user_attr_req(struct tevent_req *req)
         return prepare_reply(lreq);
     }
 
-    subreq = sysdb_set_user_attr_send(lreq, lreq->ev, lreq->handle,
-                                      lreq->preq->domain,
-                                      lreq->preq->pd->user,
-                                      lreq->mod_attrs, SYSDB_MOD_REP);
-    if (!subreq) {
-        /* cancel transaction */
-        talloc_zfree(lreq->handle);
-        lreq->error = ret;
-        return prepare_reply(lreq);
-    }
-    tevent_req_set_callback(subreq, set_user_attr_req_done, lreq);
-}
-
-static void set_user_attr_req_done(struct tevent_req *subreq)
-{
-    struct LOCAL_request *lreq = tevent_req_callback_data(subreq,
-                                                          struct LOCAL_request);
-    struct tevent_req *req;
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_set_user_attr(lreq, sysdb_handle_get_ctx(lreq->handle),
+                              lreq->preq->domain,
+                              lreq->preq->pd->user,
+                              lreq->mod_attrs, SYSDB_MOD_REP);
 
     DEBUG(4, ("set_user_attr_callback, status [%d][%s]\n", ret, strerror(ret)));
 

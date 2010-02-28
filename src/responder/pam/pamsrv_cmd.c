@@ -285,7 +285,6 @@ struct set_last_login_state {
 };
 
 static void set_last_login_trans_done(struct tevent_req *subreq);
-static void set_last_login_attrs_done(struct tevent_req *subreq);
 static void set_last_login_done(struct tevent_req *subreq);
 
 static struct tevent_req *set_last_login_send(TALLOC_CTX *memctx,
@@ -336,26 +335,9 @@ static void set_last_login_trans_done(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                      state->dom, state->username,
-                                      state->attrs, SYSDB_MOD_REP);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, set_last_login_attrs_done, req);
-}
-
-static void set_last_login_attrs_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct set_last_login_state *state = tevent_req_data(req,
-                                                struct set_last_login_state);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_set_user_attr(state, sysdb_handle_get_ctx(state->handle),
+                              state->dom, state->username,
+                              state->attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(4, ("set_user_attr_callback, status [%d][%s]\n",
                   ret, strerror(ret)));

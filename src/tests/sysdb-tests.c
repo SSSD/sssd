@@ -686,11 +686,9 @@ static void test_enumpwent(void *pvt, int error, struct ldb_result *res)
     data->error = EOK;
 }
 
-static void test_set_user_attr_done(struct tevent_req *subreq);
 static void test_set_user_attr(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -698,22 +696,9 @@ static void test_set_user_attr(struct tevent_req *req)
         return test_return(data, ret);
     }
 
-    subreq = sysdb_set_user_attr_send(data, data->ev, data->handle,
-                                      data->ctx->domain, data->username,
-                                      data->attrs, SYSDB_MOD_REP);
-    if (!subreq) return test_return(data, ENOMEM);
-
-    tevent_req_set_callback(subreq, test_set_user_attr_done, data);
-}
-
-static void test_set_user_attr_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_set_user_attr(data, data->handle->ctx,
+                              data->ctx->domain, data->username,
+                              data->attrs, SYSDB_MOD_REP);
 
     return test_return(data, ret);
 }

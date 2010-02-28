@@ -382,33 +382,27 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               struct ldb_message **msg);
 
 /* Replace entry attrs */
-struct tevent_req *sysdb_set_entry_attr_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct ldb_dn *entry_dn,
-                                             struct sysdb_attrs *attrs,
-                                             int mod_op);
-int sysdb_set_entry_attr_recv(struct tevent_req *req);
+int sysdb_set_entry_attr(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *ctx,
+                         struct ldb_dn *entry_dn,
+                         struct sysdb_attrs *attrs,
+                         int mod_op);
 
 /* Replace user attrs */
-struct tevent_req *sysdb_set_user_attr_send(TALLOC_CTX *mem_ctx,
-                                            struct tevent_context *ev,
-                                            struct sysdb_handle *handle,
-                                            struct sss_domain_info *domain,
-                                            const char *name,
-                                            struct sysdb_attrs *attrs,
-                                            int mod_op);
-int sysdb_set_user_attr_recv(struct tevent_req *req);
+int sysdb_set_user_attr(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *ctx,
+                        struct sss_domain_info *domain,
+                        const char *name,
+                        struct sysdb_attrs *attrs,
+                        int mod_op);
 
 /* Replace group attrs */
-struct tevent_req *sysdb_set_group_attr_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *name,
-                                             struct sysdb_attrs *attrs,
-                                             int mod_op);
-int sysdb_set_group_attr_recv(struct tevent_req *req);
+int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *ctx,
+                         struct sss_domain_info *domain,
+                         const char *name,
+                         struct sysdb_attrs *attrs,
+                         int mod_op);
 
 /* Allocate a new id */
 struct tevent_req *sysdb_get_new_id_send(TALLOC_CTX *mem_ctx,

@@ -184,7 +184,6 @@ struct krb5_save_ccname_state {
 };
 
 static void krb5_save_ccname_trans(struct tevent_req *subreq);
-static void krb5_set_user_attr_done(struct tevent_req *subreq);
 
 static struct tevent_req *krb5_save_ccname_send(TALLOC_CTX *mem_ctx,
                                                 struct tevent_context *ev,
@@ -251,27 +250,9 @@ static void krb5_save_ccname_trans(struct tevent_req *subreq)
         return;
     }
 
-    subreq = sysdb_set_user_attr_send(state, state->ev, state->handle,
-                                      state->domain, state->name,
-                                      state->attrs, SYSDB_MOD_REP);
-    if (subreq == NULL) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, krb5_set_user_attr_done, req);
-}
-
-static void krb5_set_user_attr_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct krb5_save_ccname_state *state = tevent_req_data(req,
-                                                 struct krb5_save_ccname_state);
-    int ret;
-
-    ret = sysdb_set_user_attr_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_set_user_attr(state, sysdb_handle_get_ctx(state->handle),
+                              state->domain, state->name,
+                              state->attrs, SYSDB_MOD_REP);
     if (ret != EOK) {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
         tevent_req_error(req, ret);
@@ -1191,7 +1172,7 @@ static void krb5_save_ccname_done(struct tevent_req *req)
         }
     }
 
-    ret = sysdb_set_user_attr_recv(req);
+    ret = krb5_save_ccname_recv(req);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(1, ("Saving ccache name failed.\n"));
