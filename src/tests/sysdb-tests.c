@@ -662,12 +662,9 @@ static void test_get_user_attr(void *pvt, int error, struct ldb_result *res)
     }
 }
 
-static void test_add_group_member_done(struct tevent_req *subreq);
-
 static void test_add_group_member(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     const char *username;
     int ret;
 
@@ -681,31 +678,16 @@ static void test_add_group_member(struct tevent_req *req)
         test_return(data, ENOMEM);
     }
 
-    subreq = sysdb_add_group_member_send(data, data->ev,
-                                         data->handle, data->ctx->domain,
-                                         data->groupname, username);
-    if (!subreq) {
-        test_return(data, ENOMEM);
-    }
-
-    tevent_req_set_callback(subreq, test_add_group_member_done, data);
-}
-
-static void test_add_group_member_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret = sysdb_add_group_member_recv(subreq);
+    ret = sysdb_add_group_member(data, data->handle->ctx,
+                                 data->ctx->domain,
+                                 data->groupname, username);
 
     test_return(data, ret);
 }
 
-static void test_remove_group_member_done(struct tevent_req *subreq);
-
 static void test_remove_group_member(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     const char *username;
     int ret;
 
@@ -719,21 +701,9 @@ static void test_remove_group_member(struct tevent_req *req)
         test_return(data, ENOMEM);
     }
 
-    subreq = sysdb_remove_group_member_send(data, data->ev,
-                                            data->handle, data->ctx->domain,
-                                            data->groupname, username);
-    if (!subreq) {
-        test_return(data, ENOMEM);
-    }
-
-    tevent_req_set_callback(subreq, test_remove_group_member_done, data);
-}
-
-static void test_remove_group_member_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret = sysdb_remove_group_member_recv(subreq);
+    ret = sysdb_remove_group_member(data, data->handle->ctx,
+                                    data->ctx->domain,
+                                    data->groupname, username);
 
     test_return(data, ret);
 }

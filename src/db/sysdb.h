@@ -447,13 +447,11 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
                     int cache_timeout);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
-struct tevent_req *sysdb_mod_group_member_send(TALLOC_CTX *mem_ctx,
-                                               struct tevent_context *ev,
-                                               struct sysdb_handle *handle,
-                                               struct ldb_dn *member_dn,
-                                               struct ldb_dn *group_dn,
-                                               int mod_op);
-int sysdb_mod_group_member_recv(struct tevent_req *req);
+int sysdb_mod_group_member(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *ctx,
+                           struct ldb_dn *member_dn,
+                           struct ldb_dn *group_dn,
+                           int mod_op);
 
 int sysdb_set_group_gid(struct sysdb_handle *handle,
                         struct sss_domain_info *domain,
@@ -480,21 +478,17 @@ int sysdb_store_group(TALLOC_CTX *mem_ctx,
                       struct sysdb_attrs *attrs,
                       uint64_t cache_timeout);
 
-struct tevent_req *sysdb_add_group_member_send(TALLOC_CTX *mem_ctx,
-                                               struct tevent_context *ev,
-                                               struct sysdb_handle *handle,
-                                               struct sss_domain_info *domain,
-                                               const char *group,
-                                               const char *member);
-int sysdb_add_group_member_recv(struct tevent_req *req);
+int sysdb_add_group_member(TALLOC_CTX *mem_ctx,
+                           struct sysdb_ctx *ctx,
+                           struct sss_domain_info *domain,
+                           const char *group,
+                           const char *user);
 
-struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct sss_domain_info *domain,
-                                                  const char *group,
-                                                  const char *member);
-int sysdb_remove_group_member_recv(struct tevent_req *req);
+int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
+                              struct sysdb_ctx *ctx,
+                              struct sss_domain_info *domain,
+                              const char *group,
+                              const char *user);
 
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.

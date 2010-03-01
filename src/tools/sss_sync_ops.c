@@ -67,230 +67,56 @@ static int sync_ops_recv(struct tevent_req *req)
 }
 
 /*
- * Generic add member to group
+ * Generic modify groups member
  */
-struct add_to_groups_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-
-    int cur;
-    struct ops_ctx *data;
-    struct ldb_dn *member_dn;
-};
-
-static void add_to_groups_done(struct tevent_req *subreq);
-
-static struct tevent_req *add_to_groups_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_ctx *sysdb,
-                                             struct sysdb_handle *handle,
-                                             struct ops_ctx *data,
-                                             struct ldb_dn *member_dn)
+static int mod_groups_member(TALLOC_CTX *mem_ctx,
+                             struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
+                             char **grouplist,
+                             struct ldb_dn *member_dn,
+                             int optype)
 {
-    struct add_to_groups_state *state;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
+    TALLOC_CTX *tmpctx;
     struct ldb_dn *parent_dn;
-
-    req = tevent_req_create(mem_ctx, &state, struct add_to_groups_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-    state->member_dn = member_dn;
-    state->cur = 0;
-
-    parent_dn = sysdb_group_dn(state->sysdb, state,
-                               state->data->domain->name,
-                               state->data->addgroups[state->cur]);
-    if (!parent_dn) {
-        return NULL;
-    }
-
-    subreq = sysdb_mod_group_member_send(state,
-                                         state->ev,
-                                         state->handle,
-                                         member_dn,
-                                         parent_dn,
-                                         LDB_FLAG_MOD_ADD);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, add_to_groups_done, req);
-    return req;
-}
-
-static void add_to_groups_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct add_to_groups_state *state = tevent_req_data(req,
-                                                struct add_to_groups_state);
     int ret;
-    struct ldb_dn *parent_dn;
-    struct tevent_req *next_group_req;
+    int i;
 
-    ret = sysdb_mod_group_member_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    /* go on to next group */
-    state->cur++;
+/* FIXME: add transaction around loop */
+    for (i = 0; grouplist[i]; i++) {
 
-    /* check if we added all of them */
-    if (state->data->addgroups[state->cur] == NULL) {
-        tevent_req_done(req);
-        return;
+        parent_dn = sysdb_group_dn(sysdb, tmpctx,
+                                   domain->name,
+                                   grouplist[i]);
+        if (!parent_dn) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_mod_group_member(tmpctx, sysdb,
+                                     member_dn, parent_dn, optype);
+        if (ret) {
+            goto done;
+        }
     }
 
-    /* if not, schedule a new addition */
-    parent_dn = sysdb_group_dn(state->sysdb, state,
-                               state->data->domain->name,
-                               state->data->addgroups[state->cur]);
-    if (!parent_dn) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
+    ret = EOK;
 
-    next_group_req = sysdb_mod_group_member_send(state,
-                                                 state->ev,
-                                                 state->handle,
-                                                 state->member_dn,
-                                                 parent_dn,
-                                                 LDB_FLAG_MOD_ADD);
-    if (!next_group_req) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(next_group_req, add_to_groups_done, req);
+done:
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
-static int add_to_groups_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
-}
-
-/*
- * Generic remove member from group
- */
-struct remove_from_groups_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-
-    int cur;
-    struct ops_ctx *data;
-    struct ldb_dn *member_dn;
-};
-
-static void remove_from_groups_done(struct tevent_req *subreq);
-
-static struct tevent_req *remove_from_groups_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_ctx *sysdb,
-                                                  struct sysdb_handle *handle,
-                                                  struct ops_ctx *data,
-                                                  struct ldb_dn *member_dn)
-{
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct ldb_dn *parent_dn;
-    struct remove_from_groups_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct remove_from_groups_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-    state->member_dn = member_dn;
-    state->cur = 0;
-
-    parent_dn = sysdb_group_dn(state->sysdb, state,
-                               state->data->domain->name,
-                               state->data->rmgroups[state->cur]);
-    if (!parent_dn) {
-        return NULL;
-    }
-
-    subreq = sysdb_mod_group_member_send(state,
-                                         state->ev,
-                                         state->handle,
-                                         state->member_dn,
-                                         parent_dn,
-                                         LDB_FLAG_MOD_DELETE);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, remove_from_groups_done, req);
-    return req;
-}
-
-static void remove_from_groups_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct remove_from_groups_state *state = tevent_req_data(req,
-                                                struct remove_from_groups_state);
-    int ret;
-    struct ldb_dn *parent_dn;
-    struct tevent_req *next_group_req;
-
-    ret = sysdb_mod_group_member_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    /* go on to next group */
-    state->cur++;
-
-    /* check if we removed all of them */
-    if (state->data->rmgroups[state->cur] == NULL) {
-        tevent_req_done(req);
-        return;
-    }
-
-    /* if not, schedule a new removal */
-    parent_dn = sysdb_group_dn(state->sysdb, state,
-                               state->data->domain->name,
-                               state->data->rmgroups[state->cur]);
-    if (!parent_dn) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    next_group_req = sysdb_mod_group_member_send(state,
-                                                 state->ev,
-                                                 state->handle,
-                                                 state->member_dn,
-                                                 parent_dn,
-                                                 LDB_FLAG_MOD_DELETE);
-    if (!next_group_req) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(next_group_req, remove_from_groups_done, req);
-}
-
-static int remove_from_groups_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
-}
+#define add_to_groups(memctx, sysdb, data, member_dn) \
+    mod_groups_member(memctx, sysdb, data->domain, \
+                      data->addgroups, member_dn, LDB_FLAG_MOD_ADD)
+#define remove_from_groups(memctx, sysdb, data, member_dn) \
+    mod_groups_member(memctx, sysdb, data->domain, \
+                      data->rmgroups, member_dn, LDB_FLAG_MOD_DELETE)
 
 /*
  * Modify a user
@@ -385,8 +211,6 @@ static int usermod_build_attrs(TALLOC_CTX *mem_ctx,
 }
 
 static void user_mod_attr_wakeup(struct tevent_req *subreq);
-static void user_mod_rm_group_done(struct tevent_req *groupreq);
-static void user_mod_add_group_done(struct tevent_req *groupreq);
 
 static struct tevent_req *user_mod_send(TALLOC_CTX *mem_ctx,
                                         struct tevent_context *ev,
@@ -448,7 +272,6 @@ static void user_mod_attr_wakeup(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct user_mod_state *state = tevent_req_data(req,
                                                    struct user_mod_state);
-    struct tevent_req *groupreq;
     int ret;
 
     if (state->attrs->num != 0) {
@@ -462,76 +285,24 @@ static void user_mod_attr_wakeup(struct tevent_req *subreq)
     }
 
     if (state->data->rmgroups != NULL) {
-        groupreq = remove_from_groups_send(state, state->ev, state->sysdb,
-                                           state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = remove_from_groups(state, state->sysdb,
+                                 state->data, state->member_dn);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(groupreq, user_mod_rm_group_done, req);
-        return;
     }
 
     if (state->data->addgroups != NULL) {
-        groupreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                      state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = add_to_groups(state, state->sysdb,
+                            state->data, state->member_dn);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(groupreq, user_mod_add_group_done, req);
-        return;
-    }
-
-    /* No changes to be made, mark request as done */
-    tevent_req_done(req);
-}
-
-static void user_mod_rm_group_done(struct tevent_req *groupreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(groupreq,
-                                                      struct tevent_req);
-    struct user_mod_state *state = tevent_req_data(req,
-                                                   struct user_mod_state);
-    int ret;
-    struct tevent_req *addreq;
-
-    ret = remove_from_groups_recv(groupreq);
-    talloc_zfree(groupreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->data->addgroups != NULL) {
-        addreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                    state->handle, state->data, state->member_dn);
-        if (!addreq) {
-            tevent_req_error(req, ENOMEM);
-        }
-        tevent_req_set_callback(addreq, user_mod_add_group_done, req);
-        return;
     }
 
     tevent_req_done(req);
-    return;
-}
-
-static void user_mod_add_group_done(struct tevent_req *groupreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(groupreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = add_to_groups_recv(groupreq);
-    talloc_zfree(groupreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
 }
 
 static int user_mod_recv(struct tevent_req *req)
@@ -554,8 +325,6 @@ struct group_mod_state {
 };
 
 static void group_mod_attr_wakeup(struct tevent_req *);
-static void group_mod_add_group_done(struct tevent_req *groupreq);
-static void group_mod_rm_group_done(struct tevent_req *groupreq);
 
 static struct tevent_req *group_mod_send(TALLOC_CTX *mem_ctx,
                                          struct tevent_context *ev,
@@ -603,7 +372,6 @@ static void group_mod_attr_wakeup(struct tevent_req *subreq)
     struct group_mod_state *state = tevent_req_data(req,
                                                     struct group_mod_state);
     struct sysdb_attrs *attrs;
-    struct tevent_req *groupreq;
     int ret;
 
     if (state->data->gid != 0) {
@@ -628,76 +396,24 @@ static void group_mod_attr_wakeup(struct tevent_req *subreq)
     }
 
     if (state->data->rmgroups != NULL) {
-        groupreq = remove_from_groups_send(state, state->ev, state->sysdb,
-                                           state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = remove_from_groups(state, state->sysdb,
+                                 state->data, state->member_dn);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(groupreq, group_mod_rm_group_done, req);
-        return;
     }
 
     if (state->data->addgroups != NULL) {
-        groupreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                      state->handle, state->data, state->member_dn);
-        if (!groupreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = add_to_groups(state, state->sysdb,
+                            state->data, state->member_dn);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(groupreq, group_mod_add_group_done, req);
-        return;
-    }
-
-    /* No changes to be made, mark request as done */
-    tevent_req_done(req);
-}
-
-static void group_mod_rm_group_done(struct tevent_req *groupreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(groupreq,
-                                                      struct tevent_req);
-    struct group_mod_state *state = tevent_req_data(req,
-                                                    struct group_mod_state);
-    int ret;
-    struct tevent_req *addreq;
-
-    ret = remove_from_groups_recv(groupreq);
-    talloc_zfree(groupreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    if (state->data->addgroups != NULL) {
-        addreq = add_to_groups_send(state, state->ev, state->sysdb,
-                                    state->handle, state->data, state->member_dn);
-        if (!addreq) {
-            tevent_req_error(req, ENOMEM);
-        }
-        tevent_req_set_callback(addreq, group_mod_add_group_done, req);
-        return;
     }
 
     tevent_req_done(req);
-    return;
-}
-
-static void group_mod_add_group_done(struct tevent_req *groupreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(groupreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = add_to_groups_recv(groupreq);
-    talloc_zfree(groupreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
 }
 
 static int group_mod_recv(struct tevent_req *req)
@@ -868,8 +584,6 @@ done:
 /*
  * Public interface for adding users
  */
-static void useradd_done(struct tevent_req *);
-
 int useradd(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
@@ -877,16 +591,8 @@ int useradd(TALLOC_CTX *mem_ctx,
             struct ops_ctx *data)
 {
     int ret;
-    struct tevent_req *req;
-    struct sync_op_res *res = NULL;
-    struct ldb_dn *member_dn;
 
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_add_user(res, sysdb,
+    ret = sysdb_add_user(mem_ctx, sysdb,
                          data->domain, data->name, data->uid, data->gid,
                          data->gecos, data->home, data->shell, NULL, 0);
     if (ret) {
@@ -894,45 +600,26 @@ int useradd(TALLOC_CTX *mem_ctx,
     }
 
     if (data->addgroups) {
-        member_dn = sysdb_user_dn(sysdb, res,
+        struct ldb_dn *member_dn;
+
+        member_dn = sysdb_user_dn(sysdb, mem_ctx,
                                   data->domain->name, data->name);
         if (!member_dn) {
             ret = ENOMEM;
             goto done;
         }
 
-        req = add_to_groups_send(res, ev, sysdb, handle, data, member_dn);
-        if (!req) {
-            ret = ENOMEM;
+        ret = add_to_groups(mem_ctx, sysdb, data, member_dn);
+        if (ret) {
             goto done;
         }
-        tevent_req_set_callback(req, useradd_done, res);
-
-        SYNC_LOOP(res, ret);
     }
 
     flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
     flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
 done:
-    talloc_free(res);
     return ret;
-}
-
-static void useradd_done(struct tevent_req *req)
-{
-    int ret;
-    struct sync_op_res *res = tevent_req_callback_data(req,
-                                                       struct sync_op_res);
-
-    ret = add_to_groups_recv(req);
-    talloc_free(req);
-    if (ret) {
-        DEBUG(2, ("Adding user failed: %s (%d)\n", strerror(ret), ret));
-    }
-
-    res->done = true;
-    res->error = ret;
 }
 
 /*
