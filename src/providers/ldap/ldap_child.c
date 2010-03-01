@@ -51,7 +51,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     DEBUG(7, ("total buffer size: %d\n", size));
 
     /* realm_str size and length */
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
     DEBUG(7, ("realm_str size: %d\n", len));
     if (len) {
@@ -63,7 +63,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     }
 
     /* princ_str size and length */
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
     DEBUG(7, ("princ_str size: %d\n", len));
     if (len) {
@@ -75,7 +75,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     }
 
     /* keytab_name size and length */
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
     DEBUG(7, ("keytab_name size: %d\n", len));
     if (len) {
@@ -92,19 +92,19 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
 static int pack_buffer(struct response *r, int result, const char *msg)
 {
     int len;
-    int p = 0;
+    size_t p = 0;
 
     len = strlen(msg);
     r->size = 2 * sizeof(uint32_t) + len;
 
     /* result */
-    COPY_UINT32_VALUE(&r->buf[p], result, p);
+    SAFEALIGN_SET_UINT32(&r->buf[p], result, &p);
 
     /* message size */
-    COPY_UINT32_VALUE(&r->buf[p], len, p);
+    SAFEALIGN_SET_UINT32(&r->buf[p], len, &p);
 
     /* message itself */
-    COPY_MEM(&r->buf[p], msg, p, len);
+    safealign_memcpy(&r->buf[p], msg, len, &p);
 
     return EOK;
 }

@@ -166,26 +166,26 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 
     /* realm */
     if (realm_str) {
-        COPY_UINT32_VALUE(&buf->data[rp], strlen(realm_str), rp);
-        COPY_MEM(&buf->data[rp], realm_str, rp, strlen(realm_str));
+        SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(realm_str), &rp);
+        safealign_memcpy(&buf->data[rp], realm_str, strlen(realm_str), &rp);
     } else {
-        COPY_UINT32_VALUE(&buf->data[rp], 0, rp);
+        SAFEALIGN_SET_UINT32(&buf->data[rp], 0, &rp);
     }
 
     /* principal */
     if (princ_str) {
-        COPY_UINT32_VALUE(&buf->data[rp], strlen(princ_str), rp);
-        COPY_MEM(&buf->data[rp], princ_str, rp, strlen(princ_str));
+        SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(princ_str), &rp);
+        safealign_memcpy(&buf->data[rp], princ_str, strlen(princ_str), &rp);
     } else {
-        COPY_UINT32_VALUE(&buf->data[rp], 0, rp);
+        SAFEALIGN_SET_UINT32(&buf->data[rp], 0, &rp);
     }
 
     /* keytab */
     if (keytab_name) {
-        COPY_UINT32_VALUE(&buf->data[rp], strlen(keytab_name), rp);
-        COPY_MEM(&buf->data[rp], keytab_name, rp, strlen(realm_str));
+        SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(keytab_name), &rp);
+        safealign_memcpy(&buf->data[rp], keytab_name, strlen(realm_str), &rp);
     } else {
-        COPY_UINT32_VALUE(&buf->data[rp], 0, rp);
+        SAFEALIGN_SET_UINT32(&buf->data[rp], 0, &rp);
     }
 
     *io_buf = buf;
@@ -202,10 +202,10 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
     char *ccn;
 
     /* operation result code */
-    COPY_UINT32_CHECK(&res, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&res, buf + p, size, &p);
 
     /* ccache name size */
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
     if ((p + len ) > size) return EINVAL;
 

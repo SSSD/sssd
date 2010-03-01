@@ -163,26 +163,35 @@ errno_t set_debug_file_from_fd(const int fd);
 #define OUT_OF_ID_RANGE(id, min, max) \
     (id == 0 || (min && (id < min)) || (max && (id > max)))
 
-#define COPY_MEM(to, from, ptr, size) do { \
-    memcpy(to, from, size);                \
-    ptr += size;                           \
+static inline void
+safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
+{
+    memcpy(dest, src, n);
+    if (counter) {
+        *counter += n;
+    }
+}
+
+#define SAFEALIGN_SET_VALUE(dest, value, type, pctr) do { \
+    type CV_MACRO_val = (type)(value); \
+    safealign_memcpy(dest, &CV_MACRO_val, sizeof(type), pctr); \
 } while(0)
 
-#define COPY_TYPE(to, from, ptr, type) COPY_MEM(to, from, ptr, sizeof(type))
+#define SAFEALIGN_COPY_UINT32(dest, src, pctr) \
+    safealign_memcpy(dest, src, sizeof(uint32_t), pctr)
 
-#define COPY_VALUE(to, value, ptr, type) do { \
-    type CV_MACRO_val = (type) value;         \
-    COPY_TYPE(to, &CV_MACRO_val, ptr, type);  \
-} while(0)
+#define SAFEALIGN_SET_UINT32(dest, value, pctr) \
+    SAFEALIGN_SET_VALUE(dest, value, uint32_t, pctr)
 
-#define COPY_UINT32(to, from, ptr) COPY_TYPE(to, from, ptr, uint32_t)
-#define COPY_UINT32_VALUE(to, value, ptr) COPY_VALUE(to, value, ptr, uint32_t)
-#define COPY_INT32(to, from, ptr) COPY_TYPE(to, from, ptr, int32_t)
-#define COPY_INT32_VALUE(to, value, ptr) COPY_VALUE(to, value, ptr, int32_t)
+#define SAFEALIGN_COPY_INT32(dest, src, pctr) \
+    safealign_memcpy(dest, src, sizeof(int32_t), pctr)
 
-#define COPY_UINT32_CHECK(to, from, ptr, size) do {     \
-    if ((ptr + sizeof(uint32_t)) > size) return EINVAL; \
-    COPY_UINT32(to, from, ptr);                         \
+#define SAFEALIGN_SET_INT32(dest, value, pctr) \
+    SAFEALIGN_SET_VALUE(dest, value, int32_t, pctr)
+
+#define SAFEALIGN_COPY_UINT32_CHECK(dest, src, len, pctr) do { \
+    if ((*(pctr) + sizeof(uint32_t)) > (len)) return EINVAL; \
+    safealign_memcpy(dest, src, sizeof(uint32_t), pctr); \
 } while(0)
 
 #include "util/dlinklist.h"

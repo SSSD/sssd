@@ -331,28 +331,29 @@ errno_t create_send_buffer(struct krb5child_req *kr, struct io_buffer **io_buf)
     }
 
     rp = 0;
-    COPY_UINT32(&buf->data[rp], &kr->pd->cmd, rp);
-    COPY_UINT32(&buf->data[rp], &kr->uid, rp);
-    COPY_UINT32(&buf->data[rp], &kr->gid, rp);
-    COPY_UINT32(&buf->data[rp], &validate, rp);
-    COPY_UINT32(&buf->data[rp], &kr->is_offline, rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->pd->cmd, &rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->uid, &rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->gid, &rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &validate, &rp);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->is_offline, &rp);
 
-    COPY_UINT32_VALUE(&buf->data[rp], strlen(kr->upn), rp);
-    COPY_MEM(&buf->data[rp], kr->upn, rp, strlen(kr->upn));
+    SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(kr->upn), &rp);
+    safealign_memcpy(&buf->data[rp], kr->upn, strlen(kr->upn), &rp);
 
-    COPY_UINT32_VALUE(&buf->data[rp], strlen(kr->ccname), rp);
-    COPY_MEM(&buf->data[rp], kr->ccname, rp, strlen(kr->ccname));
+    SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(kr->ccname), &rp);
+    safealign_memcpy(&buf->data[rp], kr->ccname, strlen(kr->ccname), &rp);
 
-    COPY_UINT32_VALUE(&buf->data[rp], strlen(keytab), rp);
-    COPY_MEM(&buf->data[rp], keytab, rp, strlen(keytab));
+    SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(keytab), &rp);
+    safealign_memcpy(&buf->data[rp], keytab, strlen(keytab), &rp);
 
-    COPY_UINT32(&buf->data[rp], &kr->pd->authtok_size, rp);
-    COPY_MEM(&buf->data[rp], kr->pd->authtok, rp, kr->pd->authtok_size);
+    SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->pd->authtok_size, &rp);
+    safealign_memcpy(&buf->data[rp], kr->pd->authtok,
+                     kr->pd->authtok_size, &rp);
 
     if (kr->pd->cmd == SSS_PAM_CHAUTHTOK) {
-        COPY_UINT32(&buf->data[rp], &kr->pd->newauthtok_size, rp);
-        COPY_MEM(&buf->data[rp], kr->pd->newauthtok,
-                 rp, kr->pd->newauthtok_size);
+        SAFEALIGN_COPY_UINT32(&buf->data[rp], &kr->pd->newauthtok_size, &rp);
+        safealign_memcpy(&buf->data[rp], kr->pd->newauthtok,
+                         kr->pd->newauthtok_size, &rp);
     }
 
     *io_buf = buf;

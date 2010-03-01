@@ -264,17 +264,17 @@ static struct response *init_response(TALLOC_CTX *mem_ctx) {
 static errno_t pack_response_packet(struct response *resp, int status, int type,
                                     size_t len, const uint8_t *data)
 {
-    int p=0;
+    size_t p = 0;
 
     if ((3*sizeof(int32_t) + len +1) > resp->max_size) {
         DEBUG(1, ("response message too big.\n"));
         return ENOMEM;
     }
 
-    COPY_INT32_VALUE(&resp->buf[p], status, p);
-    COPY_INT32_VALUE(&resp->buf[p], type, p);
-    COPY_INT32_VALUE(&resp->buf[p], len, p);
-    COPY_MEM(&resp->buf[p], data, p, len);
+    SAFEALIGN_SET_INT32(&resp->buf[p], status, &p);
+    SAFEALIGN_SET_INT32(&resp->buf[p], type, &p);
+    SAFEALIGN_SET_INT32(&resp->buf[p], len, &p);
+    safealign_memcpy(&resp->buf[p], data, len, &p);
 
     resp->size = p;
 
@@ -733,32 +733,32 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     uint32_t len;
     uint32_t validate;
 
-    COPY_UINT32_CHECK(&pd->cmd, buf + p, p, size);
-    COPY_UINT32_CHECK(&kr->uid, buf + p, p, size);
-    COPY_UINT32_CHECK(&kr->gid, buf + p, p, size);
-    COPY_UINT32_CHECK(&validate, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&pd->cmd, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&kr->uid, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&kr->gid, buf + p, size, &p);
+    SAFEALIGN_COPY_UINT32_CHECK(&validate, buf + p, size, &p);
     kr->validate = (validate == 0) ? false : true;
-    COPY_UINT32_CHECK(offline, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(offline, buf + p, size, &p);
 
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     if ((p + len ) > size) return EINVAL;
     kr->upn = talloc_strndup(pd, (char *)(buf + p), len);
     if (kr->upn == NULL) return ENOMEM;
     p += len;
 
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     if ((p + len ) > size) return EINVAL;
     kr->ccname = talloc_strndup(pd, (char *)(buf + p), len);
     if (kr->ccname == NULL) return ENOMEM;
     p += len;
 
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     if ((p + len ) > size) return EINVAL;
     kr->keytab = talloc_strndup(pd, (char *)(buf + p), len);
     if (kr->keytab == NULL) return ENOMEM;
     p += len;
 
-    COPY_UINT32_CHECK(&len, buf + p, p, size);
+    SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
     if ((p + len) > size) return EINVAL;
     pd->authtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
     if (pd->authtok == NULL) return ENOMEM;
@@ -766,7 +766,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size, struct pam_data *pd,
     p += len;
 
     if (pd->cmd == SSS_PAM_CHAUTHTOK) {
-        COPY_UINT32_CHECK(&len, buf + p, p, size);
+        SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
 
         if ((p + len) > size) return EINVAL;
         pd->newauthtok = (uint8_t *)talloc_strndup(pd, (char *)(buf + p), len);
