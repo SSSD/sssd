@@ -115,7 +115,6 @@ failed:
     return PAM_CONV_ERR;
 }
 
-static void proxy_pam_handler_cache_done(struct tevent_req *treq);
 static void proxy_reply(struct be_req *req, int dp_err,
                         int error, const char *errstr);
 
@@ -249,7 +248,6 @@ static void proxy_pam_handler(struct be_req *req) {
     pd->pam_status = pam_status;
 
     if (cache_auth_data) {
-        struct tevent_req *subreq;
         char *password;
 
         password = talloc_size(req, auth_data->authtok_size + 1);
@@ -261,36 +259,19 @@ static void proxy_pam_handler(struct be_req *req) {
         password[auth_data->authtok_size] = '\0';
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        subreq = sysdb_cache_password_send(req, req->be_ctx->ev,
-                                           req->be_ctx->sysdb, NULL,
-                                           req->be_ctx->domain,
-                                           pd->user, password);
-        if (!subreq) {
-            /* password caching failures are not fatal errors */
-            return proxy_reply(req, DP_ERR_OK, EOK, NULL);
+        ret = sysdb_cache_password(req, req->be_ctx->sysdb,
+                                   req->be_ctx->domain,
+                                   pd->user, password);
+
+        /* password caching failures are not fatal errors */
+        /* so we just log it any return */
+        if (ret) {
+            DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
+                      ret, strerror(ret)));
         }
-        tevent_req_set_callback(subreq, proxy_pam_handler_cache_done, req);
     }
 
     proxy_reply(req, DP_ERR_OK, EOK, NULL);
-}
-
-static void proxy_pam_handler_cache_done(struct tevent_req *subreq)
-{
-    struct be_req *req = tevent_req_callback_data(subreq, struct be_req);
-    int ret;
-
-    /* password caching failures are not fatal errors */
-    ret = sysdb_cache_password_recv(subreq);
-    talloc_zfree(subreq);
-
-    /* so we just log it any return */
-    if (ret) {
-        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-    }
-
-    return proxy_reply(req, DP_ERR_OK, EOK, NULL);
 }
 
 static void proxy_reply(struct be_req *req, int dp_err,

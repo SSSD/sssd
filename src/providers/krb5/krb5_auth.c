@@ -662,7 +662,6 @@ static void krb5_resolve_kpasswd_done(struct tevent_req *req);
 static void krb5_find_ccache_step(struct krb5child_req *kr);
 static void krb5_save_ccname_done(struct tevent_req *req);
 static void krb5_child_done(struct tevent_req *req);
-static void krb5_pam_handler_cache_done(struct tevent_req *treq);
 
 void krb5_pam_handler(struct be_req *be_req)
 {
@@ -1189,7 +1188,8 @@ static void krb5_save_ccname_done(struct tevent_req *req)
     if (be_req->be_ctx->domain->cache_credentials == TRUE) {
 
         /* password caching failures are not fatal errors */
-        pd->pam_status = PAM_SUCCESS;
+        pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
 
         switch(pd->cmd) {
             case SSS_PAM_AUTHENTICATE:
@@ -1218,16 +1218,13 @@ static void krb5_save_ccname_done(struct tevent_req *req)
 
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        req = sysdb_cache_password_send(be_req, be_req->be_ctx->ev,
-                                        be_req->be_ctx->sysdb, NULL,
-                                        be_req->be_ctx->domain, pd->user,
-                                        password);
-        if (req == NULL) {
-            DEBUG(2, ("cache_password_send failed, offline auth may not work.\n"));
-            goto failed;
+        ret = sysdb_cache_password(be_req, be_req->be_ctx->sysdb,
+                                   be_req->be_ctx->domain, pd->user,
+                                   password);
+        if (ret) {
+            DEBUG(2, ("Failed to cache password, offline auth may not work."
+                      " (%d)[%s]!?\n", ret, strerror(ret)));
         }
-        tevent_req_set_callback(req, krb5_pam_handler_cache_done, be_req);
-        return;
     }
 
     pam_status = PAM_SUCCESS;
@@ -1238,24 +1235,6 @@ failed:
 
     pd->pam_status = pam_status;
     krb_reply(be_req, dp_err, pd->pam_status);
-}
-
-static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
-{
-    struct be_req *be_req = tevent_req_callback_data(subreq, struct be_req);
-    int ret;
-
-    /* password caching failures are not fatal errors */
-    ret = sysdb_cache_password_recv(subreq);
-    talloc_zfree(subreq);
-
-    /* so we just log it any return */
-    if (ret) {
-        DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
-                  ret, strerror(ret)));
-    }
-
-    krb_reply(be_req, DP_ERR_OK, PAM_SUCCESS);
 }
 
 static void krb_reply(struct be_req *req, int dp_err, int result)

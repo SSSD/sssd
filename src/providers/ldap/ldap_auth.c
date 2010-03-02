@@ -899,7 +899,6 @@ struct sdap_pam_auth_state {
 };
 
 static void sdap_pam_auth_done(struct tevent_req *req);
-static void sdap_password_cache_done(struct tevent_req *req);
 
 void sdap_pam_auth_handler(struct be_req *breq)
 {
@@ -965,7 +964,6 @@ static void sdap_pam_auth_done(struct tevent_req *req)
 {
     struct sdap_pam_auth_state *state =
                     tevent_req_callback_data(req, struct sdap_pam_auth_state);
-    struct tevent_req *subreq;
     enum sdap_result result;
     enum pwexpire pw_expire_type;
     void *pw_expire_data;
@@ -1059,43 +1057,24 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         }
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        subreq = sysdb_cache_password_send(state,
-                                           state->breq->be_ctx->ev,
-                                           state->breq->be_ctx->sysdb,
-                                           NULL,
-                                           state->breq->be_ctx->domain,
-                                           state->username, password);
+        ret = sysdb_cache_password(state,
+                                   state->breq->be_ctx->sysdb,
+                                   state->breq->be_ctx->domain,
+                                   state->username, password);
 
         /* password caching failures are not fatal errors */
-        if (!subreq) {
-            DEBUG(2, ("Failed to cache password for %s\n", state->username));
-            goto done;
+        if (!ret) {
+            DEBUG(2, ("Failed to cache password for %s\n",
+                      state->username));
+        } else {
+            DEBUG(4, ("Password successfully cached for %s\n",
+                      state->username));
         }
-
-        tevent_req_set_callback(subreq, sdap_password_cache_done, state);
-        return;
+        goto done;
     }
 
 done:
     sdap_pam_auth_reply(state->breq, dp_err, state->pd->pam_status);
-}
-
-static void sdap_password_cache_done(struct tevent_req *subreq)
-{
-    struct sdap_pam_auth_state *state = tevent_req_callback_data(subreq,
-                                                struct sdap_pam_auth_state);
-    int ret;
-
-    ret = sysdb_cache_password_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        /* password caching failures are not fatal errors */
-        DEBUG(2, ("Failed to cache password for %s\n", state->username));
-    } else {
-        DEBUG(4, ("Password successfully cached for %s\n", state->username));
-    }
-
-    sdap_pam_auth_reply(state->breq, DP_ERR_OK, state->pd->pam_status);
 }
 
 static void sdap_pam_auth_reply(struct be_req *req, int dp_err, int result)

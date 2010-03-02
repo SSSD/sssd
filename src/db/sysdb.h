@@ -495,15 +495,11 @@ int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
  * If you are not in a transaction pass NULL in handle and provide sysdb,
  * in this case a transaction will be automatically started and the
  * function will be completely wrapped in it's own sysdb transaction */
-struct tevent_req *sysdb_cache_password_send(TALLOC_CTX *mem_ctx,
-                                             struct tevent_context *ev,
-                                             struct sysdb_ctx *sysdb,
-                                             struct sysdb_handle *handle,
-                                             struct sss_domain_info *domain,
-                                             const char *username,
-                                             const char *password);
-int sysdb_cache_password_recv(struct tevent_req *req);
-
+int sysdb_cache_password(TALLOC_CTX *mem_ctx,
+                         struct sysdb_ctx *sysdb,
+                         struct sss_domain_info *domain,
+                         const char *username,
+                         const char *password);
 
 errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,

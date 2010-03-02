@@ -2043,7 +2043,6 @@ START_TEST (test_sysdb_cache_password)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
 
     /* Setup */
@@ -2055,17 +2054,10 @@ START_TEST (test_sysdb_cache_password)
     data->ev = test_ctx->ev;
     data->username = talloc_asprintf(data, "testuser%d", _i);
 
-    req = sysdb_cache_password_send(data, test_ctx->ev, test_ctx->sysdb, NULL,
-                                    test_ctx->domain, data->username,
-                                    data->username);
-    fail_unless(req != NULL, "sysdb_cache_password_send failed [%d].", ret);
+    ret = sysdb_cache_password(data, test_ctx->sysdb,
+                               test_ctx->domain, data->username,
+                               data->username);
 
-    tevent_req_set_callback(req, test_search_done, data);
-
-    ret = test_loop(data);
-    fail_unless(ret == EOK, "test_loop failed [%d].", ret);
-
-    ret = sysdb_cache_password_recv(req);
     fail_unless(ret == EOK, "sysdb_cache_password request failed [%d].", ret);
 
     talloc_free(test_ctx);
