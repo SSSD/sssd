@@ -283,6 +283,8 @@ struct hbac_get_host_info_state {
 };
 
 static void hbac_get_host_info_connect_done(struct tevent_req *subreq);
+static void hbac_get_host_memberof(struct tevent_req *req,
+                                   struct ldb_message **msgs);
 static void hbac_get_host_memberof_done(struct tevent_req *subreq);
 static void hbac_get_host_info_sysdb_transaction_started(struct tevent_req *subreq);
 static void hbac_get_host_info_store_prepare(struct tevent_req *req);
@@ -369,18 +371,19 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->host_attrs[6] = NULL;
 
     if (offline) {
-        subreq = sysdb_search_custom_send(state, state->ev, state->sysdb, NULL,
-                                          state->sdap_ctx->be->domain,
-                                          state->host_filter, HBAC_HOSTS_SUBDIR,
-                                          state->host_attrs);
-        if (subreq == NULL) {
-            DEBUG(1, ("sysdb_search_custom_send.\n"));
-            ret = ENOMEM;
+        struct ldb_message **msgs;
+
+        ret = sysdb_search_custom(state, state->sysdb,
+                                  state->sdap_ctx->be->domain,
+                                  state->host_filter, HBAC_HOSTS_SUBDIR,
+                                  state->host_attrs,
+                                  &state->host_reply_count, &msgs);
+        if (ret) {
+            DEBUG(1, ("sysdb_search_custom failed.\n"));
             goto fail;
         }
-
-        tevent_req_set_callback(subreq, hbac_get_host_memberof_done, req);
-
+        hbac_get_host_memberof(req, msgs);
+        tevent_req_post(req, ev);
         return req;
     }
 
@@ -474,24 +477,30 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
     struct hbac_get_host_info_state *state = tevent_req_data(req,
                                                struct hbac_get_host_info_state);
     int ret;
-    int i;
-    int v;
-    struct ldb_message_element *el;
-    struct hbac_host_info **hhi;
-    struct ldb_message **msgs;
 
-    if (state->offline) {
-        ret = sysdb_search_custom_recv(subreq, state, &state->host_reply_count,
-                                       &msgs);
-    } else {
-        ret = sdap_get_generic_recv(subreq, state, &state->host_reply_count,
-                                    &state->host_reply_list);
-    }
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->host_reply_count,
+                                &state->host_reply_list);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
+
+    hbac_get_host_memberof(req, NULL);
+}
+
+static void hbac_get_host_memberof(struct tevent_req *req,
+                                   struct ldb_message **msgs)
+{
+    struct hbac_get_host_info_state *state =
+                    tevent_req_data(req, struct hbac_get_host_info_state);
+    struct tevent_req *subreq;
+    int ret;
+    int i;
+    int v;
+    struct ldb_message_element *el;
+    struct hbac_host_info **hhi;
 
     if (state->host_reply_count == 0) {
         DEBUG(1, ("No hosts not found in IPA server.\n"));
@@ -774,6 +783,8 @@ struct hbac_get_rules_state {
 };
 
 static void hbac_get_rules_connect_done(struct tevent_req *subreq);
+static void hbac_rule_get(struct tevent_req *req,
+                          struct ldb_message **msgs);
 static void hbac_rule_get_done(struct tevent_req *subreq);
 static void hbac_rule_sysdb_transaction_started(struct tevent_req *subreq);
 static void hbac_rule_store_prepare(struct tevent_req *req);
@@ -877,18 +888,19 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     DEBUG(9, ("HBAC rule filter: [%s].\n", state->hbac_filter));
 
     if (offline) {
-        subreq = sysdb_search_custom_send(state, state->ev, state->sysdb, NULL,
-                                          state->sdap_ctx->be->domain,
-                                          state->hbac_filter, HBAC_RULES_SUBDIR,
-                                          state->hbac_attrs);
-        if (subreq == NULL) {
-            DEBUG(1, ("sysdb_search_custom_send failed.\n"));
-            ret = ENOMEM;
+        struct ldb_message **msgs;
+
+        ret = sysdb_search_custom(state, state->sysdb,
+                                  state->sdap_ctx->be->domain,
+                                  state->hbac_filter, HBAC_RULES_SUBDIR,
+                                  state->hbac_attrs,
+                                  &state->hbac_reply_count, &msgs);
+        if (ret) {
+            DEBUG(1, ("sysdb_search_custom failed.\n"));
             goto fail;
         }
-
-        tevent_req_set_callback(subreq, hbac_rule_get_done, req);
-
+        hbac_rule_get(req, msgs);
+        tevent_req_post(req, ev);
         return req;
     }
 
@@ -981,22 +993,28 @@ static void hbac_rule_get_done(struct tevent_req *subreq)
     struct hbac_get_rules_state *state = tevent_req_data(req,
                                                      struct hbac_get_rules_state);
     int ret;
-    int i;
-    struct ldb_message_element *el;
-    struct ldb_message **msgs;
 
-    if (state->offline) {
-        ret = sysdb_search_custom_recv(subreq, state, &state->hbac_reply_count,
-                                       &msgs);
-    } else {
-        ret = sdap_get_generic_recv(subreq, state, &state->hbac_reply_count,
-                                    &state->hbac_reply_list);
-    }
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->hbac_reply_count,
+                                &state->hbac_reply_list);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
+
+    hbac_rule_get(req, NULL);
+}
+
+static void hbac_rule_get(struct tevent_req *req,
+                          struct ldb_message **msgs)
+{
+    struct hbac_get_rules_state *state =
+                        tevent_req_data(req, struct hbac_get_rules_state);
+    struct tevent_req *subreq;
+    int ret;
+    int i;
+    struct ldb_message_element *el;
 
     if (state->offline) {
         ret = msgs2attrs_array(state, state->hbac_reply_count, msgs,

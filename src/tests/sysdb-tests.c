@@ -1751,7 +1751,6 @@ START_TEST (test_sysdb_search_custom_by_name)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *subreq;
     int ret;
     char *object_name;
 
@@ -1774,43 +1773,31 @@ START_TEST (test_sysdb_search_custom_by_name)
     object_name = talloc_asprintf(data, "%s_%d", CUSTOM_TEST_OBJECT, 29010);
     fail_unless(object_name != NULL, "talloc_asprintf failed");
 
-    subreq = sysdb_search_custom_by_name_send(data, data->ev,
-                                               data->ctx->sysdb, NULL,
-                                               data->ctx->domain,
-                                               object_name,
-                                               CUSTOM_TEST_CONTAINER,
-                                               data->attrlist);
-    if (!subreq) {
-        ret = ENOMEM;
-    }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_custom_recv(subreq, data, &data->msgs_count,
-                                       &data->msgs);
-        talloc_zfree(subreq);
-        fail_unless(ret == EOK, "sysdb_search_custom_by_name_send failed");
-
-        fail_unless(data->msgs_count == 1,
-                    "Wrong number of objects, exptected [1] got [%d]",
-                    data->msgs_count);
-        fail_unless(data->msgs[0]->num_elements == 1,
-                    "Wrong number of results, expected [1] got [%d]",
-                    data->msgs[0]->num_elements);
-        fail_unless(strcmp(data->msgs[0]->elements[0].name, TEST_ATTR_NAME) == 0,
-                    "Wrong attribute name");
-        fail_unless(data->msgs[0]->elements[0].num_values == 1,
-                    "Wrong number of attribute values");
-        fail_unless(strncmp((const char *)data->msgs[0]->elements[0].values[0].data,
-                            TEST_ATTR_VALUE,
-                            data->msgs[0]->elements[0].values[0].length) == 0,
-                    "Wrong attribute value");
-    }
+    ret = sysdb_search_custom_by_name(data, data->ctx->sysdb,
+                                      data->ctx->domain,
+                                      object_name,
+                                      CUSTOM_TEST_CONTAINER,
+                                      data->attrlist,
+                                      &data->msgs_count,
+                                      &data->msgs);
 
     fail_if(ret != EOK, "Could not search custom object");
+
+    fail_unless(data->msgs_count == 1,
+                "Wrong number of objects, exptected [1] got [%d]",
+                data->msgs_count);
+    fail_unless(data->msgs[0]->num_elements == 1,
+                "Wrong number of results, expected [1] got [%d]",
+                data->msgs[0]->num_elements);
+    fail_unless(strcmp(data->msgs[0]->elements[0].name, TEST_ATTR_NAME) == 0,
+                "Wrong attribute name");
+    fail_unless(data->msgs[0]->elements[0].num_values == 1,
+                "Wrong number of attribute values");
+    fail_unless(strncmp((const char *)data->msgs[0]->elements[0].values[0].data,
+                        TEST_ATTR_VALUE,
+                        data->msgs[0]->elements[0].values[0].length) == 0,
+                "Wrong attribute value");
+
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1875,7 +1862,6 @@ START_TEST (test_sysdb_search_custom_update)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *subreq;
     int ret;
     char *object_name;
     struct ldb_message_element *el;
@@ -1900,52 +1886,44 @@ START_TEST (test_sysdb_search_custom_update)
     object_name = talloc_asprintf(data, "%s_%d", CUSTOM_TEST_OBJECT, 29010);
     fail_unless(object_name != NULL, "talloc_asprintf failed");
 
-    subreq = sysdb_search_custom_by_name_send(data, data->ev,
-                                               data->ctx->sysdb, NULL,
-                                               data->ctx->domain,
-                                               object_name,
-                                               CUSTOM_TEST_CONTAINER,
-                                               data->attrlist);
-    if (!subreq) {
-        ret = ENOMEM;
-    }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_custom_recv(subreq, data, &data->msgs_count,
-                                       &data->msgs);
-        talloc_zfree(subreq);
-        fail_unless(ret == EOK, "sysdb_search_custom_by_name_send failed");
-
-        fail_unless(data->msgs_count == 1,
-                    "Wrong number of objects, exptected [1] got [%d]",
-                    data->msgs_count);
-        fail_unless(data->msgs[0]->num_elements == 2,
-                    "Wrong number of results, expected [2] got [%d]",
-                    data->msgs[0]->num_elements);
-
-        el = ldb_msg_find_element(data->msgs[0], TEST_ATTR_NAME);
-        fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_NAME);
-        fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
-                    "of attribute values for [%s]", el->num_values, TEST_ATTR_NAME);
-        fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_UPDATE_VALUE,
-                    el->values[0].length) == 0,
-                    "Wrong attribute value");
-
-        el = ldb_msg_find_element(data->msgs[0], TEST_ATTR_ADD_NAME);
-        fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_ADD_NAME);
-        fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
-                    "of attribute values for [%s]", el->num_values, TEST_ATTR_ADD_NAME);
-        fail_unless(strncmp((const char *) el->values[0].data, TEST_ATTR_ADD_VALUE,
-                    el->values[0].length) == 0,
-                    "Wrong attribute value");
-
-    }
+    ret = sysdb_search_custom_by_name(data, data->ctx->sysdb,
+                                      data->ctx->domain,
+                                      object_name,
+                                      CUSTOM_TEST_CONTAINER,
+                                      data->attrlist,
+                                      &data->msgs_count,
+                                      &data->msgs);
 
     fail_if(ret != EOK, "Could not search custom object");
+
+    fail_unless(data->msgs_count == 1,
+                "Wrong number of objects, exptected [1] got [%d]",
+                data->msgs_count);
+    fail_unless(data->msgs[0]->num_elements == 2,
+                "Wrong number of results, expected [2] got [%d]",
+                data->msgs[0]->num_elements);
+
+    el = ldb_msg_find_element(data->msgs[0], TEST_ATTR_NAME);
+    fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_NAME);
+    fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
+                "of attribute values for [%s]", el->num_values,
+                TEST_ATTR_NAME);
+    fail_unless(strncmp((const char *) el->values[0].data,
+                TEST_ATTR_UPDATE_VALUE,
+                el->values[0].length) == 0,
+                "Wrong attribute value");
+
+    el = ldb_msg_find_element(data->msgs[0], TEST_ATTR_ADD_NAME);
+    fail_unless(el != NULL, "Attribute [%s] not found", TEST_ATTR_ADD_NAME);
+    fail_unless(el->num_values == 1, "Wrong number ([%d] instead of 1) "
+                "of attribute values for [%s]", el->num_values,
+                TEST_ATTR_ADD_NAME);
+    fail_unless(strncmp((const char *) el->values[0].data,
+                TEST_ATTR_ADD_VALUE,
+                el->values[0].length) == 0,
+                "Wrong attribute value");
+
+
     talloc_free(test_ctx);
 }
 END_TEST
@@ -1954,7 +1932,6 @@ START_TEST (test_sysdb_search_custom)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *subreq;
     int ret;
     const char *filter = "(distinguishedName=*)";
 
@@ -1975,32 +1952,20 @@ START_TEST (test_sysdb_search_custom)
     data->attrlist[1] = TEST_ATTR_ADD_NAME;
     data->attrlist[2] = NULL;
 
-    subreq = sysdb_search_custom_send(data, data->ev,
-                                               data->ctx->sysdb, NULL,
-                                               data->ctx->domain,
-                                               filter,
-                                               CUSTOM_TEST_CONTAINER,
-                                               data->attrlist);
-    if (!subreq) {
-        ret = ENOMEM;
-    }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(subreq, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_search_custom_recv(subreq, data, &data->msgs_count,
-                                       &data->msgs);
-        talloc_zfree(subreq);
-        fail_unless(ret == EOK, "sysdb_search_custom_send failed");
-
-        fail_unless(data->msgs_count == 10,
-                    "Wrong number of objects, exptected [10] got [%d]",
-                    data->msgs_count);
-    }
+    ret = sysdb_search_custom(data, data->ctx->sysdb,
+                              data->ctx->domain,
+                              filter,
+                              CUSTOM_TEST_CONTAINER,
+                              data->attrlist,
+                              &data->msgs_count,
+                              &data->msgs);
 
     fail_if(ret != EOK, "Could not search custom object");
+
+    fail_unless(data->msgs_count == 10,
+                "Wrong number of objects, exptected [10] got [%d]",
+                data->msgs_count);
+
     talloc_free(test_ctx);
 }
 END_TEST
