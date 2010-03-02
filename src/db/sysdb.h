@@ -516,14 +516,12 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
 int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
                           time_t *delayed_until);
 
-struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain,
-                                         const char *object_name,
-                                         const char *subtree_name,
-                                         struct sysdb_attrs *attrs);
-int sysdb_store_custom_recv(struct tevent_req *req);
+int sysdb_store_custom(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *ctx,
+                       struct sss_domain_info *domain,
+                       const char *object_name,
+                       const char *subtree_name,
+                       struct sysdb_attrs *attrs);
 
 int sysdb_search_custom(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,

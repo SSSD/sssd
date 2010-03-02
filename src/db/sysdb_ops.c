@@ -1637,112 +1637,75 @@ done:
 
 /* =Custom Store (replaces-existing-data)================== */
 
-struct sysdb_store_custom_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-
-    const char *object_name;
-    const char *subtree_name;
-    struct ldb_dn *dn;
-    struct sysdb_attrs *attrs;
-    struct ldb_message *msg;
-};
-
-static void sysdb_store_custom_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain,
-                                         const char *object_name,
-                                         const char *subtree_name,
-                                         struct sysdb_attrs *attrs)
+int sysdb_store_custom(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *ctx,
+                       struct sss_domain_info *domain,
+                       const char *object_name,
+                       const char *subtree_name,
+                       struct sysdb_attrs *attrs)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_store_custom_state *state;
-    int ret;
-    const char **search_attrs;
-    int i;
+    TALLOC_CTX *tmpctx;
+    const char *search_attrs[] = { "*", NULL };
     size_t resp_count = 0;
     struct ldb_message **resp;
     struct ldb_message *msg;
-    struct ldb_request *ldbreq;
     struct ldb_message_element *el;
     bool add_object = false;
+    int ret;
+    int i;
 
-    if (object_name == NULL || subtree_name == NULL) return NULL;
-
-    if (handle == NULL) {
-        DEBUG(1, ("Sysdb context not available.\n"));
-        return NULL;
+    if (object_name == NULL || subtree_name == NULL) {
+        return EINVAL;
     }
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_store_custom_state);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret) {
+        return sysdb_error_to_errno(ret);
     }
 
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->object_name = object_name;
-    state->subtree_name = subtree_name;
-    state->attrs = attrs;
-    state->msg = NULL;
-    state->dn = sysdb_custom_dn(handle->ctx, state, domain->name, object_name,
-                                 subtree_name);
-    if (state->dn == NULL) {
-        DEBUG(1, ("sysdb_custom_dn failed.\n"));
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
-    search_attrs = talloc_array(state, const char *, 2);
-    if (search_attrs == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    search_attrs[0] = "*";
-    search_attrs[1] = NULL;
-
-    ret = sysdb_search_custom_by_name(state, state->handle->ctx,
-                                      state->domain,
-                                      state->object_name,
-                                      state->subtree_name,
-                                      search_attrs,
-                                      &resp_count, &resp);
+    ret = sysdb_search_custom_by_name(tmpctx, ctx,
+                                      domain, object_name, subtree_name,
+                                      search_attrs, &resp_count, &resp);
     if (ret != EOK && ret != ENOENT) {
-        goto fail;
+        goto done;
     }
 
     if (ret == ENOENT) {
        add_object = true;
     }
 
-    msg = ldb_msg_new(state);
+    msg = ldb_msg_new(tmpctx);
     if (msg == NULL) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
-    msg->dn = state->dn;
+    msg->dn = sysdb_custom_dn(ctx, tmpctx,
+                              domain->name, object_name, subtree_name);
+    if (!msg->dn) {
+        DEBUG(1, ("sysdb_custom_dn failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
 
-    msg->elements = talloc_array(msg, struct ldb_message_element,
-                                 state->attrs->num);
+    msg->elements = talloc_array(msg, struct ldb_message_element, attrs->num);
     if (!msg->elements) {
         ret = ENOMEM;
-        goto fail;
+        goto done;
     }
 
-    for (i = 0; i < state->attrs->num; i++) {
-        msg->elements[i] = state->attrs->a[i];
+    for (i = 0; i < attrs->num; i++) {
+        msg->elements[i] = attrs->a[i];
         if (add_object) {
             msg->elements[i].flags = LDB_FLAG_MOD_ADD;
         } else {
-            el = ldb_msg_find_element(resp[0], state->attrs->a[i].name);
+            el = ldb_msg_find_element(resp[0], attrs->a[i].name);
             if (el == NULL) {
                 msg->elements[i].flags = LDB_FLAG_MOD_ADD;
             } else {
@@ -1750,61 +1713,28 @@ struct tevent_req *sysdb_store_custom_send(TALLOC_CTX *mem_ctx,
             }
         }
     }
-    msg->num_elements = state->attrs->num;
+    msg->num_elements = attrs->num;
 
     if (add_object) {
-        ret = ldb_build_add_req(&ldbreq, state->handle->ctx->ldb, state, msg,
-                                NULL, NULL, NULL, NULL);
+        ret = ldb_add(ctx->ldb, msg);
     } else {
-        ret = ldb_build_mod_req(&ldbreq, state->handle->ctx->ldb, state, msg,
-                                NULL, NULL, NULL, NULL);
+        ret = ldb_modify(ctx->ldb, msg);
     }
     if (ret != LDB_SUCCESS) {
-        DEBUG(1, ("Failed to build request: %s(%d)[%s]\n",
-                  ldb_strerror(ret), ret,
-                  ldb_errstring(state->handle->ctx->ldb)));
+        DEBUG(1, ("Failed to store custmo entry: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
         ret = sysdb_error_to_errno(ret);
-        goto fail;
     }
 
-    subreq = sldb_request_send(state, state->ev, state->handle->ctx->ldb,
-                               ldbreq);
-    if (!subreq) {
-        ret = ENOMEM;
-        goto fail;
+done:
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        ldb_transaction_cancel(ctx->ldb);
+    } else {
+        ret = ldb_transaction_commit(ctx->ldb);
     }
-    tevent_req_set_callback(subreq, sysdb_store_custom_done, req);
-
-    return req;
-fail:
-    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_store_custom_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_op_default_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
-}
-
-int sysdb_store_custom_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* = Custom Delete======================================= */

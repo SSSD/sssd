@@ -708,8 +708,6 @@ static void test_remove_group_member(struct tevent_req *req)
     test_return(data, ret);
 }
 
-static void test_store_custom_done(struct tevent_req *subreq);
-
 static void test_store_custom(struct tevent_req *subreq)
 {
     struct test_data *data = tevent_req_callback_data(subreq,
@@ -728,22 +726,9 @@ static void test_store_custom(struct tevent_req *subreq)
         return test_return(data, ENOMEM);
     }
 
-    subreq = sysdb_store_custom_send(data, data->ev, data->handle,
-                                 data->ctx->domain, object_name,
-                                 CUSTOM_TEST_CONTAINER, data->attrs);
-    if (!subreq) {
-        return test_return(data, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, test_store_custom_done, data);
-}
-
-static void test_store_custom_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
-    int ret;
-
-    ret = sysdb_store_custom_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_store_custom(data, data->handle->ctx,
+                             data->ctx->domain, object_name,
+                             CUSTOM_TEST_CONTAINER, data->attrs);
 
     return test_return(data, ret);
 }
