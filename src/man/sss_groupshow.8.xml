@@ -45,6 +45,8 @@
                 <listitem>
                     <para>
                         Also print indirect group members in a tree-like hierarchy.
+                        Note that this also affects printing parent groups - without
+                        <option>R</option>, only the direct parent will be printed.
                     </para>
                 </listitem>
             </varlistentry>
