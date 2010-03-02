@@ -47,11 +47,8 @@
 
 #define DEFAULT_PWFIELD "*"
 
-static int service_reload(DBusMessage *message, struct sbus_connection *conn);
-
 struct sbus_method monitor_nss_methods[] = {
     { MON_CLI_METHOD_PING, monitor_common_pong },
-    { MON_CLI_METHOD_RELOAD, service_reload },
     { MON_CLI_METHOD_RES_INIT, monitor_common_res_init },
     { NULL, NULL }
 };
@@ -63,17 +60,6 @@ struct sbus_interface monitor_nss_interface = {
     monitor_nss_methods,
     NULL
 };
-
-static int service_reload(DBusMessage *message, struct sbus_connection *conn)
-{
-    /* Monitor calls this function when we need to reload
-     * our configuration information. Perform whatever steps
-     * are needed to update the configuration objects.
-     */
-
-    /* Send an empty reply to acknowledge receipt */
-    return monitor_common_pong(message, conn);
-}
 
 static int nss_get_config(struct nss_ctx *nctx,
                           struct resp_ctx *rctx,

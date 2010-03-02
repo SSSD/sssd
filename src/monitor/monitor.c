@@ -143,12 +143,6 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name);
 
 static int mark_service_as_started(struct mt_svc *svc);
 
-#if 0
-static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
-                                 const char *filename);
-#endif
-
-static int update_monitor_config(struct mt_ctx *ctx);
 static int monitor_cleanup(void);
 
 /* dbus_get_monitor_version
@@ -643,93 +637,6 @@ static int monitor_kill_service (struct mt_svc *svc)
     return ret;
 }
 
-static void shutdown_reply(DBusPendingCall *pending, void *data)
-{
-    DBusMessage *reply;
-    int type;
-    struct mt_svc *svc = talloc_get_type(data, struct mt_svc);
-
-    reply = dbus_pending_call_steal_reply(pending);
-    if (!reply) {
-        /* reply should never be null. This function shouldn't be called
-         * until reply is valid or timeout has occurred. If reply is NULL
-         * here, something is seriously wrong and we should bail out.
-         */
-        DEBUG(0, ("A reply callback was called but no reply was received"
-                  " and no timeout occurred\n"));
-
-        /* Destroy this connection */
-        monitor_kill_service(svc);
-        goto done;
-    }
-
-    type = dbus_message_get_type(reply);
-    switch(type) {
-    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-        /* Ok, we received a confirmation of shutdown */
-        break;
-
-    default:
-        /* Something went wrong on the client side
-         * Time to forcibly kill the service
-         */
-        DEBUG(0, ("Received an error shutting down service.\n"));
-        monitor_kill_service(svc);
-    }
-
-    /* No matter what happened here, we need to free the service */
-    talloc_free(svc);
-
-done:
-    dbus_pending_call_unref(pending);
-    dbus_message_unref(reply);
-}
-
-/* monitor_shutdown_service
- * Orders a monitored service to shut down cleanly
- * This function will free the memory for svc once it
- * completes.
- */
-static int monitor_shutdown_service(struct mt_svc *svc)
-{
-    DBusConnection *dbus_conn;
-    DBusMessage *msg;
-    DBusPendingCall *pending_reply;
-    dbus_bool_t dbret;
-
-    /* Stop the service checker */
-
-    dbus_conn = sbus_get_connection(svc->conn);
-
-    /* Construct a shutdown message */
-    msg = dbus_message_new_method_call(NULL,
-                                       MONITOR_PATH,
-                                       MONITOR_INTERFACE,
-                                       MON_CLI_METHOD_SHUTDOWN);
-    if (!msg) {
-        DEBUG(0,("Out of memory?!\n"));
-        monitor_kill_service(svc);
-        talloc_free(svc);
-        return ENOMEM;
-    }
-
-    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
-                                            svc->mt_ctx->service_id_timeout);
-    if (!dbret || pending_reply == NULL) {
-        DEBUG(0, ("D-BUS send failed.\n"));
-        dbus_message_unref(msg);
-        monitor_kill_service(svc);
-        talloc_free(svc);
-        return EIO;
-    }
-
-    /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, shutdown_reply, svc, NULL);
-    dbus_message_unref(msg);
-
-    return EOK;
-}
-
 static void reload_reply(DBusPendingCall *pending, void *data)
 {
     DBusMessage *reply;
@@ -756,29 +663,6 @@ done:
     dbus_pending_call_unref(pending);
     dbus_message_unref(reply);
 }
-
-#if 0
-This function should be re-enabled once live configuration updates
-are working properly.
-
-static int monitor_signal_reconf(struct config_file_ctx *file_ctx,
-                                 const char *filename)
-{
-    int ret;
-    DEBUG(1, ("Configuration has changed. Reloading.\n"));
-
-    /* Update the confdb configuration */
-    ret = confdb_init_db(filename, file_ctx->mt_ctx->cdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Could not reload configuration!"));
-        kill(getpid(), SIGTERM);
-        return ret;
-    }
-
-    /* Update the monitor's configuration and signal children */
-    return update_monitor_config(file_ctx->mt_ctx);
-}
-#endif
 
 static int service_signal_dns_reload(struct mt_svc *svc);
 static int monitor_update_resolv(struct config_file_ctx *file_ctx,
@@ -850,10 +734,6 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
     return EOK;
 }
 
-static int service_signal_reload(struct mt_svc *svc)
-{
-    return service_signal(svc, MON_CLI_METHOD_RELOAD);
-}
 static int service_signal_dns_reload(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_METHOD_RES_INIT);
@@ -1215,236 +1095,6 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name)
     return ret;
 }
 
-static void remove_service(struct mt_ctx *ctx, const char *name)
-{
-    int ret;
-    struct mt_svc *cur_svc;
-
-    /* Locate the service object in the list */
-    cur_svc = ctx->svc_list;
-    while (cur_svc != NULL) {
-        if (strcasecmp(name, cur_svc->name) == 0)
-            break;
-        cur_svc = cur_svc->next;
-    }
-    if (cur_svc != NULL) {
-        /* Remove the service from the list */
-        DLIST_REMOVE(ctx->svc_list, cur_svc);
-
-        /* Shut it down */
-        ret = monitor_shutdown_service(cur_svc);
-        if (ret != EOK) {
-            DEBUG(0, ("Unable to shut down service [%s]!",
-                      name));
-            /* TODO: Handle this better */
-        }
-    }
-}
-
-static int update_monitor_config(struct mt_ctx *ctx)
-{
-    int ret, i, j;
-    struct mt_svc *cur_svc;
-    struct mt_svc *new_svc;
-    struct sss_domain_info *dom, *new_dom;
-    struct mt_ctx *new_config;
-
-    new_config = talloc_zero(NULL, struct mt_ctx);
-    if(!new_config) {
-        return ENOMEM;
-    }
-
-    new_config->ev = ctx->ev;
-    new_config->cdb = ctx->cdb;
-    ret = get_monitor_config(new_config);
-
-    ctx->service_id_timeout = new_config->service_id_timeout;
-
-    /* Compare the old and new active services */
-    /* Have any services been shut down? */
-    for (i = 0; ctx->services[i]; i++) {
-        /* Search for this service in the new config */
-        for (j = 0; new_config->services[j]; j++) {
-            if (strcasecmp(ctx->services[i], new_config->services[j]) == 0)
-                break;
-        }
-        if (new_config->services[j] == NULL) {
-            /* This service is no longer configured.
-             * Shut it down.
-             */
-            remove_service(ctx, ctx->services[i]);
-        }
-    }
-
-    /* Have any services been added or changed? */
-    for (i = 0; new_config->services[i]; i++) {
-        /* Search for this service in the old config */
-        for (j = 0; ctx->services[j]; j++) {
-            if (strcasecmp(new_config->services[i], ctx->services[j]) == 0)
-                break;
-        }
-
-        if (ctx->services[j] == NULL) {
-            /* New service added */
-            add_new_service(ctx, new_config->services[i]);
-        }
-        else {
-            /* Service already enabled, check for changes */
-            /* Locate the service object in the list */
-            cur_svc = ctx->svc_list;
-            for (cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
-                if (strcasecmp(ctx->services[i], cur_svc->name) == 0)
-                    break;
-            }
-            if (cur_svc == NULL) {
-                DEBUG(0, ("Service entry missing data\n"));
-                /* This shouldn't be possible, but if it happens
-                 * we'll throw an error
-                 */
-                talloc_free(new_config);
-                return EIO;
-            }
-
-            /* Read in the new configuration and compare it with the
-             * old one.
-             */
-            ret = get_service_config(ctx, new_config->services[i], &new_svc);
-            if (ret != EOK) {
-                DEBUG(0, ("Unable to determine if service has changed.\n"));
-                DEBUG(0, ("Disabling service [%s].\n",
-                          new_config->services[i]));
-                /* Not much we can do here, no way to know whether the
-                 * current configuration is safe, and restarting the
-                 * service won't work because the new startup requires
-                 * this function to work. The only safe thing to do
-                 * is stop the service.
-                 */
-                remove_service(ctx, new_config->services[i]);
-                continue;
-            }
-
-            if (strcmp(cur_svc->command, new_svc->command) != 0) {
-                /* The executable path has changed. We need to
-                 * restart the binary completely. If we send a
-                 * shutdown command, the monitor will automatically
-                 * reload the process with the new command.
-                 */
-                talloc_free(cur_svc->command);
-                talloc_steal(cur_svc, new_svc->command);
-                cur_svc->command = new_svc->command;
-
-                /* TODO: be more graceful about this */
-                monitor_kill_service(cur_svc);
-            }
-
-            cur_svc->ping_time = new_svc->ping_time;
-
-            talloc_free(new_svc);
-        }
-    }
-
-    /* Replace the old service list with the new one */
-    talloc_free(ctx->service_ctx);
-    ctx->service_ctx = talloc_steal(ctx, new_config->service_ctx);
-    ctx->services = new_config->services;
-
-    /* Compare data providers */
-    /* Have any providers been disabled? */
-    for (dom = ctx->domains; dom; dom = dom->next) {
-        for (new_dom = new_config->domains; new_dom; new_dom = new_dom->next) {
-            if (strcasecmp(dom->name, new_dom->name) == 0) break;
-        }
-        if (new_dom == NULL) {
-            /* This provider is no longer configured
-             * Shut it down
-             */
-            remove_service(ctx, dom->name);
-        }
-    }
-
-    /* Have we added or changed any providers? */
-    for (new_dom = new_config->domains; new_dom; new_dom = new_dom->next) {
-        /* Search for this service in the old config */
-        for (dom = ctx->domains; dom; dom = dom->next) {
-            if (strcasecmp(dom->name, new_dom->name) == 0) break;
-        }
-
-        if (dom == NULL) {
-            /* New provider added */
-            add_new_provider(ctx, new_dom->name);
-        }
-        else {
-            /* Provider is already in the list.
-             * Check for changes.
-             */
-            /* Locate the service object in the list */
-            cur_svc = ctx->svc_list;
-            while (cur_svc != NULL) {
-                if (strcasecmp(new_dom->name, cur_svc->name) == 0)
-                    break;
-                cur_svc = cur_svc->next;
-            }
-            if (cur_svc == NULL) {
-                DEBUG(0, ("Service entry missing data for [%s]\n", new_dom->name));
-                /* This shouldn't be possible
-                 */
-                talloc_free(new_config);
-                return EIO;
-            }
-
-            /* Read in the new configuration and compare it with
-             * the old one.
-             */
-            ret = get_provider_config(ctx, new_dom->name, &new_svc);
-            if (ret != EOK) {
-                DEBUG(0, ("Unable to determine if service has changed.\n"));
-                DEBUG(0, ("Disabling service [%s].\n",
-                          new_config->services[i]));
-                /* Not much we can do here, no way to know whether the
-                 * current configuration is safe, and restarting the
-                 * service won't work because the new startup requires
-                 * this function to work. The only safe thing to do
-                 * is stop the service.
-                 */
-                remove_service(ctx, dom->name);
-                continue;
-            }
-
-            if ((strcmp(cur_svc->command, new_svc->command) != 0) ||
-                (strcmp(cur_svc->provider, new_svc->provider) != 0)) {
-                /* The executable path or the provider has changed.
-                 * We need to restart the binary completely. If we
-                 * send a shutdown command, the monitor will
-                 * automatically reload the process with the new
-                 * command.
-                 */
-                talloc_free(cur_svc->command);
-                talloc_steal(cur_svc, new_svc->command);
-                cur_svc->command = new_svc->command;
-
-                /* TODO: be more graceful about this */
-                monitor_kill_service(cur_svc);
-            }
-
-            cur_svc->ping_time = new_svc->ping_time;
-        }
-
-    }
-
-    /* Replace the old domain list with the new one */
-    talloc_free(ctx->domain_ctx);
-    ctx->domain_ctx = talloc_steal(ctx, new_config->domain_ctx);
-    ctx->domains = new_config->domains;
-
-    /* Signal all services to reload their configuration */
-    for(cur_svc = ctx->svc_list; cur_svc; cur_svc = cur_svc->next) {
-        service_signal_reload(cur_svc);
-    }
-
-    talloc_free(new_config);
-    return EOK;
-}
-
 static void monitor_hup(struct tevent_context *ev,
                         struct tevent_signal *se,
                         int signum,
@@ -1454,8 +1104,10 @@ static void monitor_hup(struct tevent_context *ev,
 {
     struct mt_ctx *ctx = talloc_get_type(private_data, struct mt_ctx);
 
-    DEBUG(1, ("Received SIGHUP. Rereading configuration.\n"));
-    update_monitor_config(ctx);
+    DEBUG(1, ("Received SIGHUP.\n"));
+    /* Right now this function doesn't do anything.
+     * It will handle logrotate HUPs soon.
+     */
 }
 
 static int monitor_cleanup(void)
