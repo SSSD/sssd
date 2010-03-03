@@ -1805,110 +1805,62 @@ fail:
 
 /* =Delete-User-by-Name-OR-uid============================================ */
 
-struct sysdb_delete_user_state {
-    struct tevent_context *ev;
-    struct sss_domain_info *domain;
-
-    const char *name;
-    uid_t uid;
-
-    struct sysdb_handle *handle;
-};
-
-void sysdb_delete_user_check_handle(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_delete_user_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sysdb_ctx *sysdb,
-                                          struct sysdb_handle *handle,
-                                          struct sss_domain_info *domain,
-                                          const char *name, uid_t uid)
+int sysdb_delete_user(TALLOC_CTX *mem_ctx,
+                      struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *domain,
+                      const char *name, uid_t uid)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_delete_user_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_delete_user_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->name = name;
-    state->uid = uid;
-
-    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
-    if (!subreq) {
-        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
-        tevent_req_error(req, ENOMEM);
-        tevent_req_post(req, ev);
-        return req;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_user_check_handle, req);
-
-    return req;
-}
-
-void sysdb_delete_user_check_handle(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_delete_user_state *state = tevent_req_data(req,
-                                            struct sysdb_delete_user_state);
+    TALLOC_CTX *tmpctx;
     struct ldb_message *msg;
     int ret;
 
-    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    if (state->name) {
-        ret = sysdb_search_user_by_name(state, state->handle->ctx,
-                                        state->domain, state->name,
-                                        NULL, &msg);
+    if (name) {
+        ret = sysdb_search_user_by_name(tmpctx, sysdb,
+                                        domain, name, NULL, &msg);
     } else {
-        ret = sysdb_search_user_by_uid(state, state->handle->ctx,
-                                       state->domain, state->uid,
-                                       NULL, &msg);
+        ret = sysdb_search_user_by_uid(tmpctx, sysdb,
+                                       domain, uid, NULL, &msg);
     }
     if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    if (state->name && state->uid) {
+    if (name && uid) {
         /* verify name/gid match */
-        const char *name;
-        uint64_t uid;
+        const char *c_name;
+        uint64_t c_uid;
 
-        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
-        if (name == NULL || uid == 0) {
+        c_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        c_uid = ldb_msg_find_attr_as_uint64(msg, SYSDB_UIDNUM, 0);
+        if (c_name == NULL || c_uid == 0) {
             DEBUG(2, ("Attribute is missing but this should never happen!\n"));
-            tevent_req_error(req, EFAULT);
-            return;
+            ret = EFAULT;
+            goto fail;
         }
-        if (strcmp(state->name, name) || state->uid != uid) {
+        if (strcmp(name, c_name) || uid != c_uid) {
             /* this is not the entry we are looking for */
-            tevent_req_error(req, EINVAL);
-            return;
+            ret = EINVAL;
+            goto fail;
         }
     }
 
-    ret = sysdb_delete_entry(state->handle->ctx, msg->dn, false);
+    ret = sysdb_delete_entry(sysdb, msg->dn, false);
     if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    tevent_req_done(req);
-}
+    talloc_zfree(tmpctx);
+    return EOK;
 
-int sysdb_delete_user_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 

@@ -492,7 +492,6 @@ static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 /* =Getpwuid-wrapper======================================================*/
 
 static void get_pw_uid_process(struct tevent_req *subreq);
-static void get_pw_uid_remove_done(struct tevent_req *subreq);
 
 static struct tevent_req *get_pw_uid_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
@@ -623,39 +622,12 @@ static void get_pw_uid_process(struct tevent_req *subreq)
         DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", state->uid));
 
-        subreq = sysdb_delete_user_send(state, state->ev,
-                                        NULL, state->handle,
-                                        state->domain,
-                                        NULL, state->uid);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_delete_user(state, sysdb_handle_get_ctx(state->handle),
+                                state->domain, NULL, state->uid);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_pw_uid_remove_done, req);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-}
-
-static void get_pw_uid_remove_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = sysdb_delete_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
     }
 
     subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
