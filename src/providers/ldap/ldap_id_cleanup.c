@@ -262,23 +262,23 @@ struct cleanup_users_state {
     int cur;
 };
 
-static void cleanup_users_process(struct tevent_req *subreq);
 static int cleanup_users_logged_in(hash_table_t *table,
                                    const struct ldb_message *msg);
-static void cleanup_users_delete(struct tevent_req *req);
-static void cleanup_users_next(struct tevent_req *req);
+static int cleanup_users_delete(struct tevent_req *req);
+static int cleanup_users_next(struct tevent_req *req);
 static void cleanup_users_delete_done(struct tevent_req *subreq);
 
 static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
                                              struct tevent_context *ev,
                                              struct sdap_id_ctx *ctx)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct cleanup_users_state *state;
     static const char *attrs[] = { SYSDB_NAME, SYSDB_UIDNUM, NULL };
     time_t now = time(NULL);
     char *subfilter = NULL;
     int account_cache_expiration;
+    int ret;
 
     req = tevent_req_create(memctx, &state, struct cleanup_users_state);
     if (!req) {
@@ -317,45 +317,26 @@ static struct tevent_req *cleanup_users_send(TALLOC_CTX *memctx,
     }
     if (!subfilter) {
         DEBUG(2, ("Failed to build filter\n"));
-        talloc_zfree(req);
-        return NULL;
+        tevent_req_error(req,  ENOMEM);
+        goto done;
     }
 
-    subreq = sysdb_search_users_send(state, state->ev,
-                                     state->sysdb, NULL,
-                                     state->domain, subfilter, attrs);
-    if (!subreq) {
-        DEBUG(2, ("Failed to send entry search\n"));
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, cleanup_users_process, req);
-    return req;
-}
-
-static void cleanup_users_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct cleanup_users_state *state = tevent_req_data(req,
-                                               struct cleanup_users_state);
-    int ret;
-
-    ret = sysdb_search_users_recv(subreq, state, &state->count, &state->msgs);
-    talloc_zfree(subreq);
+    ret = sysdb_search_users(state, state->sysdb,
+                             state->domain, subfilter, attrs,
+                             &state->count, &state->msgs);
     if (ret) {
         if (ret == ENOENT) {
-            tevent_req_done(req);
-            return;
+            tevent_req_done(req);;
         }
         tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
     DEBUG(4, ("Found %d expired user entries!\n", state->count));
 
     if (state->count == 0) {
         tevent_req_done(req);
+        goto done;
     }
 
     ret = get_uid_table(state, &state->uid_table);
@@ -364,13 +345,22 @@ static void cleanup_users_process(struct tevent_req *subreq)
      */
     if (ret != EOK && ret != ENOSYS) {
         tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
-    cleanup_users_delete(req);
+    ret = cleanup_users_delete(req);
+    if (ret != 0) {
+        goto done;
+    }
+
+    return req;
+
+done:
+    tevent_req_post(req, ev);
+    return req;
 }
 
-static void cleanup_users_delete(struct tevent_req *req)
+static int cleanup_users_delete(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct cleanup_users_state *state = tevent_req_data(req,
@@ -384,7 +374,7 @@ static void cleanup_users_delete(struct tevent_req *req)
         DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
                   ldb_dn_get_linearized(state->msgs[state->cur]->dn)));
         tevent_req_error(req, EFAULT);
-        return;
+        return 1;
     }
 
     if (state->uid_table) {
@@ -392,11 +382,10 @@ static void cleanup_users_delete(struct tevent_req *req)
         if (ret == EOK) {
             /* If the user is logged in, proceed to the next one */
             DEBUG(5, ("User %s is still logged in, keeping his data\n", name));
-            cleanup_users_next(req);
-            return;
+            return cleanup_users_next(req);
         } else if (ret != ENOENT) {
             tevent_req_error(req, ret);
-            return;
+            return 1;
         }
     }
 
@@ -407,10 +396,10 @@ static void cleanup_users_delete(struct tevent_req *req)
                                     state->domain, name, 0);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
-        return;
+        return 1;
     }
     tevent_req_set_callback(subreq, cleanup_users_delete_done, req);
-    return;
+    return 0;
 }
 
 static int cleanup_users_logged_in(hash_table_t *table,
@@ -442,18 +431,18 @@ static int cleanup_users_logged_in(hash_table_t *table,
     return EIO;
 }
 
-static void cleanup_users_next(struct tevent_req *req)
+static int cleanup_users_next(struct tevent_req *req)
 {
     struct cleanup_users_state *state = tevent_req_data(req,
                                                struct cleanup_users_state);
 
     state->cur++;
     if (state->cur < state->count) {
-        cleanup_users_delete(req);
-        return;
+        return cleanup_users_delete(req);
     }
 
     tevent_req_done(req);
+    return 1;
 }
 
 static void cleanup_users_delete_done(struct tevent_req *subreq)
@@ -490,7 +479,6 @@ struct cleanup_groups_state {
 
 static void cleanup_groups_process(struct tevent_req *subreq);
 static void cleanup_groups_check_users(struct tevent_req *req);
-static void cleanup_groups_check_users_done(struct tevent_req *subreq);
 static void cleanup_groups_next(struct tevent_req *req);
 static void cleanup_groups_delete(struct tevent_req *req);
 static void cleanup_groups_delete_done(struct tevent_req *subreq);
@@ -572,9 +560,11 @@ static void cleanup_groups_check_users(struct tevent_req *req)
 {
     struct cleanup_groups_state *state = tevent_req_data(req,
                                                struct cleanup_groups_state);
-    struct tevent_req *subreq;
     const char *subfilter;
     const char *dn;
+    struct ldb_message **msgs;
+    size_t count;
+    int ret;
 
     dn = ldb_dn_get_linearized(state->msgs[state->cur]->dn);
     if (!dn) {
@@ -589,28 +579,8 @@ static void cleanup_groups_check_users(struct tevent_req *req)
         tevent_req_error(req, ENOMEM);
     }
 
-    subreq = sysdb_search_users_send(state, state->ev,
-                                     state->sysdb, NULL,
-                                     state->domain, subfilter, NULL);
-    if (!subreq) {
-        DEBUG(2, ("Failed to send entry search\n"));
-        tevent_req_error(req, ENOMEM);
-    }
-    tevent_req_set_callback(subreq, cleanup_groups_check_users_done, req);
-}
-
-static void cleanup_groups_check_users_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct cleanup_groups_state *state = tevent_req_data(req,
-                                               struct cleanup_groups_state);
-    int ret;
-    struct ldb_message **msgs;
-    size_t count;
-
-    ret = sysdb_search_users_recv(subreq, state, &count, &msgs);
-    talloc_zfree(subreq);
+    ret = sysdb_search_users(state, state->sysdb,
+                             state->domain, subfilter, NULL, &count, &msgs);
     if (ret != EOK) {
         if (ret == ENOENT) {
             cleanup_groups_delete(req);

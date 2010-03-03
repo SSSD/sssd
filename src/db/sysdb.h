@@ -557,15 +557,13 @@ int sysdb_asq_search(TALLOC_CTX *mem_ctx,
                      size_t *msgs_count,
                      struct ldb_message ***msgs);
 
-struct tevent_req *sysdb_search_users_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sysdb_handle *handle,
-                                           struct sss_domain_info *domain,
-                                           const char *sub_filter,
-                                           const char **attrs);
-int sysdb_search_users_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            size_t *msgs_count, struct ldb_message ***msgs);
+int sysdb_search_users(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
+                       const char *sub_filter,
+                       const char **attrs,
+                       size_t *msgs_count,
+                       struct ldb_message ***msgs);
 
 struct tevent_req *sysdb_delete_user_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,

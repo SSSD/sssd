@@ -1752,120 +1752,55 @@ fail:
 
 /* =Search-Users-with-Custom-Filter====================================== */
 
-struct sysdb_search_users_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-    const char *sub_filter;
-    const char **attrs;
-
-    struct ldb_message **msgs;
-    size_t msgs_count;
-};
-
-static void sysdb_search_users_check_handle(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_search_users_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sysdb_handle *handle,
-                                           struct sss_domain_info *domain,
-                                           const char *sub_filter,
-                                           const char **attrs)
+int sysdb_search_users(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
+                       const char *sub_filter,
+                       const char **attrs,
+                       size_t *msgs_count,
+                       struct ldb_message ***msgs)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_search_users_state *state;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_search_users_state);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
-    }
-
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->sub_filter = sub_filter;
-    state->attrs = attrs;
-
-    state->msgs_count = 0;
-    state->msgs = NULL;
-
-    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
-    if (!subreq) {
-        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, sysdb_search_users_check_handle, req);
-
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_search_users_check_handle(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_search_users_state *state = tevent_req_data(req,
-                                            struct sysdb_search_users_state);
+    TALLOC_CTX *tmpctx;
     struct ldb_dn *basedn;
     char *filter;
     int ret;
 
-    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    basedn = ldb_dn_new_fmt(state, state->handle->ctx->ldb,
-                            SYSDB_TMPL_USER_BASE, state->domain->name);
+    basedn = ldb_dn_new_fmt(tmpctx, sysdb->ldb,
+                            SYSDB_TMPL_USER_BASE, domain->name);
     if (!basedn) {
         DEBUG(2, ("Failed to build base dn\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto fail;
     }
 
-    filter = talloc_asprintf(state, "(&(%s)%s)",
-                             SYSDB_UC, state->sub_filter);
+    filter = talloc_asprintf(tmpctx, "(&(%s)%s)", SYSDB_UC, sub_filter);
     if (!filter) {
         DEBUG(2, ("Failed to build filter\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto fail;
     }
 
     DEBUG(6, ("Search users with filter: %s\n", filter));
 
-    ret = sysdb_search_entry(state, state->handle->ctx, basedn,
-                             LDB_SCOPE_SUBTREE, filter, state->attrs,
-                             &state->msgs_count, &state->msgs);
+    ret = sysdb_search_entry(mem_ctx, sysdb, basedn,
+                             LDB_SCOPE_SUBTREE, filter, attrs,
+                             msgs_count, msgs);
     if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    tevent_req_done(req);
-}
-
-int sysdb_search_users_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                            size_t *msgs_count, struct ldb_message ***msgs)
-{
-    struct sysdb_search_users_state *state = tevent_req_data(req,
-                                            struct sysdb_search_users_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *msgs_count = state->msgs_count;
-    *msgs = talloc_move(mem_ctx, &state->msgs);
-
+    talloc_zfree(tmpctx);
     return EOK;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* =Delete-User-by-Name-OR-uid============================================ */
