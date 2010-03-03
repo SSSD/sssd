@@ -2243,7 +2243,6 @@ START_TEST (test_sysdb_asq_search)
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     struct ldb_dn *user_dn;
     int ret;
     size_t msgs_count;
@@ -2270,46 +2269,34 @@ START_TEST (test_sysdb_asq_search)
     user_dn = sysdb_user_dn(data->ctx->sysdb, data, "LOCAL", ASQ_TEST_USER);
     fail_unless(user_dn != NULL, "sysdb_user_dn failed");
 
-    req = sysdb_asq_search_send(data, data->ev, test_ctx->sysdb, NULL,
-                                test_ctx->domain, user_dn, NULL, "memberof",
-                                data->attrlist);
-    if (!req) {
-        ret = ENOMEM;
-    }
-
-    if (ret == EOK) {
-        tevent_req_set_callback(req, test_search_done, data);
-
-        ret = test_loop(data);
-
-        ret = sysdb_asq_search_recv(req, data, &msgs_count, &msgs);
-        talloc_zfree(req);
-        fail_unless(ret == EOK, "sysdb_asq_search_send failed");
-
-        fail_unless(msgs_count == 10, "wrong number of results, "
-                                      "found [%d] expected [10]", msgs_count);
-
-        for (i = 0; i < msgs_count; i++) {
-            fail_unless(msgs[i]->num_elements == 1, "wrong number of elements, "
-                                         "found [%d] expected [1]",
-                                         msgs[i]->num_elements);
-
-            fail_unless(msgs[i]->elements[0].num_values == 1,
-                        "wrong number of values, found [%d] expected [1]",
-                        msgs[i]->elements[0].num_values);
-
-            gid_str = talloc_asprintf(data, "%d", 28010 + i);
-            fail_unless(gid_str != NULL, "talloc_asprintf failed.");
-            fail_unless(strncmp(gid_str,
-                                (const char *) msgs[i]->elements[0].values[0].data,
-                                msgs[i]->elements[0].values[0].length)  == 0,
-                                "wrong value, found [%.*s] expected [%s]",
-                                msgs[i]->elements[0].values[0].length,
-                                msgs[i]->elements[0].values[0].data, gid_str);
-        }
-    }
+    ret = sysdb_asq_search(data, test_ctx->sysdb,
+                           test_ctx->domain, user_dn, NULL, "memberof",
+                           data->attrlist, &msgs_count, &msgs);
 
     fail_if(ret != EOK, "Failed to send ASQ search request.\n");
+
+    fail_unless(msgs_count == 10, "wrong number of results, "
+                                  "found [%d] expected [10]", msgs_count);
+
+    for (i = 0; i < msgs_count; i++) {
+        fail_unless(msgs[i]->num_elements == 1, "wrong number of elements, "
+                                     "found [%d] expected [1]",
+                                     msgs[i]->num_elements);
+
+        fail_unless(msgs[i]->elements[0].num_values == 1,
+                    "wrong number of values, found [%d] expected [1]",
+                    msgs[i]->elements[0].num_values);
+
+        gid_str = talloc_asprintf(data, "%d", 28010 + i);
+        fail_unless(gid_str != NULL, "talloc_asprintf failed.");
+        fail_unless(strncmp(gid_str,
+                            (const char *) msgs[i]->elements[0].values[0].data,
+                            msgs[i]->elements[0].values[0].length)  == 0,
+                            "wrong value, found [%.*s] expected [%s]",
+                            msgs[i]->elements[0].values[0].length,
+                            msgs[i]->elements[0].values[0].data, gid_str);
+    }
+
     talloc_free(test_ctx);
 }
 END_TEST

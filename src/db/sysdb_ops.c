@@ -1786,97 +1786,30 @@ done:
 }
 
 /* = ASQ search request ======================================== */
-struct sysdb_asq_search_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-    struct ldb_dn *base_dn;
-    const char *asq_attribute;
-    const char **attrs;
-    const char *expression;
 
-    int msgs_count;
-    struct ldb_message **msgs;
-};
-
-void sysdb_asq_search_check_handle_done(struct tevent_req *subreq);
-static void sysdb_asq_search_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_asq_search_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_ctx *sysdb,
-                                         struct sysdb_handle *handle,
-                                         struct sss_domain_info *domain,
-                                         struct ldb_dn *base_dn,
-                                         const char *expression,
-                                         const char *asq_attribute,
-                                         const char **attrs)
+int sysdb_asq_search(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
+                     struct ldb_dn *base_dn,
+                     const char *expression,
+                     const char *asq_attribute,
+                     const char **attrs,
+                     size_t *msgs_count,
+                     struct ldb_message ***msgs)
 {
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct sysdb_asq_search_state *state;
-    int ret;
-
-    if (sysdb == NULL && handle == NULL) {
-        DEBUG(1, ("Sysdb context not available.\n"));
-        return NULL;
-    }
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_asq_search_state);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
-    }
-
-    state->ev = ev;
-    state->sysdb = (sysdb == NULL) ? handle->ctx : sysdb;
-    state->handle = handle;
-    state->domain = domain;
-    state->base_dn = base_dn;
-    state->expression = expression;
-    state->asq_attribute = asq_attribute;
-    state->attrs = attrs;
-
-    state->msgs_count = 0;
-    state->msgs = NULL;
-
-    subreq = sysdb_check_handle_send(state, state->ev, state->sysdb,
-                                     state->handle);
-    if (!subreq) {
-        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, sysdb_asq_search_check_handle_done, req);
-
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-void sysdb_asq_search_check_handle_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_asq_search_state *state = tevent_req_data(req,
-                                            struct sysdb_asq_search_state);
+    TALLOC_CTX *tmpctx;
     struct ldb_request *ldb_req;
     struct ldb_control **ctrl;
     struct ldb_asq_control *asq_control;
+    struct ldb_result *res;
     int ret;
 
-    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    ctrl = talloc_array(state, struct ldb_control *, 2);
+    ctrl = talloc_array(tmpctx, struct ldb_control *, 2);
     if (ctrl == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -1899,8 +1832,7 @@ void sysdb_asq_search_check_handle_done(struct tevent_req *subreq)
     }
 
     asq_control->request = 1;
-    asq_control->source_attribute = talloc_strdup(asq_control,
-                                                  state->asq_attribute);
+    asq_control->source_attribute = talloc_strdup(asq_control, asq_attribute);
     if (asq_control->source_attribute == NULL) {
         ret = ENOMEM;
         goto fail;
@@ -1908,93 +1840,39 @@ void sysdb_asq_search_check_handle_done(struct tevent_req *subreq)
     asq_control->src_attr_len = strlen(asq_control->source_attribute);
     ctrl[0]->data = asq_control;
 
-    ret = ldb_build_search_req(&ldb_req, state->handle->ctx->ldb, state,
-            state->base_dn, LDB_SCOPE_BASE,
-            state->expression, state->attrs, ctrl,
-            NULL, NULL, NULL);
+    res = talloc_zero(tmpctx, struct ldb_result);
+    if (!res) {
+        return ENOMEM;
+    }
+
+    ret = ldb_build_search_req(&ldb_req, sysdb->ldb, tmpctx,
+                               base_dn, LDB_SCOPE_BASE,
+                               expression, attrs, ctrl,
+                               res, ldb_search_default_callback, NULL);
     if (ret != LDB_SUCCESS) {
         ret = sysdb_error_to_errno(ret);
         goto fail;
     }
 
-    subreq = sldb_request_send(state, state->ev, state->handle->ctx->ldb,
-                               ldb_req);
-    if (!subreq) {
-        ret = ENOMEM;
+    ret = ldb_request(sysdb->ldb, ldb_req);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_wait(ldb_req->handle, LDB_WAIT_ALL);
+    }
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
         goto fail;
     }
 
-    tevent_req_set_callback(subreq, sysdb_asq_search_done, req);
-    return;
+    *msgs_count = res->count;
+    *msgs = talloc_move(mem_ctx, &res->msgs);
+
+    talloc_zfree(tmpctx);
+    return EOK;
 
 fail:
-    tevent_req_error(req, ret);
-    return;
-}
-
-static void sysdb_asq_search_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    struct sysdb_asq_search_state *state = tevent_req_data(req,
-                                                 struct sysdb_asq_search_state);
-    struct ldb_reply *ldbreply;
-    int ret;
-
-    ret = sldb_request_recv(subreq, state, &ldbreply);
-    /* DO NOT free the subreq here, the subrequest search is not
-     * finished until we get an ldbreply of type LDB_REPLY_DONE */
-    if (ret != EOK) {
-        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    switch (ldbreply->type) {
-        case LDB_REPLY_ENTRY:
-            state->msgs = talloc_realloc(state, state->msgs,
-                                         struct ldb_message *,
-                                         state->msgs_count + 2);
-            if (state->msgs == NULL) {
-                tevent_req_error(req, ENOMEM);
-                return;
-            }
-
-            state->msgs[state->msgs_count + 1] = NULL;
-
-            state->msgs[state->msgs_count] = talloc_steal(state->msgs,
-                                                          ldbreply->message);
-            state->msgs_count++;
-
-            talloc_zfree(ldbreply);
-            return;
-
-        case LDB_REPLY_DONE:
-            /* now it is safe to free the subrequest, the search is complete */
-            talloc_zfree(subreq);
-            break;
-
-        default:
-            DEBUG(1, ("Unknown ldb reply type [%d].\n", ldbreply->type));
-            tevent_req_error(req, EINVAL);
-            return;
-    }
-
-    tevent_req_done(req);
-}
-
-int sysdb_asq_search_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                          size_t *msgs_count, struct ldb_message ***msgs)
-{
-    struct sysdb_asq_search_state *state = tevent_req_data(req,
-                                              struct sysdb_asq_search_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *msgs_count = state->msgs_count;
-    *msgs = talloc_move(mem_ctx, &state->msgs);
-
-    return EOK;
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* =Search-Users-with-Custom-Filter====================================== */

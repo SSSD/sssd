@@ -98,170 +98,112 @@ static void ipa_access_reply(struct be_req *be_req, int pam_status)
     }
 }
 
-struct hbac_get_user_info_state {
-    struct tevent_context *ev;
-    struct be_ctx *be_ctx;;
-    struct sysdb_handle *handle;
 
-    const char *user;
-    const char *user_orig_dn;
-    struct ldb_dn *user_dn;
-    size_t groups_count;
-    const char **groups;
-};
-
-static void search_groups_done(struct tevent_req *subreq);
-
-struct tevent_req *hbac_get_user_info_send(TALLOC_CTX *memctx,
-                                           struct tevent_context *ev,
-                                           struct be_ctx *be_ctx,
-                                           const char *user)
+static int hbac_get_user_info(TALLOC_CTX *memctx,
+                              struct be_ctx *be_ctx,
+                              const char *user,
+                              const char **user_dn,
+                              size_t *groups_count,
+                              const char ***_groups)
 {
-    struct tevent_req *req = NULL;
-    struct tevent_req *subreq = NULL;
-    struct hbac_get_user_info_state *state;
-    int ret;
-    static const char *attrs[] = { SYSDB_ORIG_DN, NULL };
+    TALLOC_CTX *tmpctx;
+    const char *attrs[] = { SYSDB_ORIG_DN, NULL };
     struct ldb_message *user_msg;
-    const char *dummy;
+    const char *user_orig_dn;
+    struct ldb_message **msgs;
+    size_t count;
+    const char **groups;
+    int ret;
+    int i;
 
-    req = tevent_req_create(memctx, &state, struct hbac_get_user_info_state);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
+    tmpctx = talloc_new(memctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    state->ev = ev;
-    state->be_ctx = be_ctx;
-    state->handle = NULL;
-    state->user = user;
-    state->user_orig_dn = NULL;
-    state->user_dn = NULL;
-    state->groups_count = 0;
-    state->groups = NULL;
-
-    ret = sysdb_search_user_by_name(state, be_ctx->sysdb,
+    ret = sysdb_search_user_by_name(tmpctx, be_ctx->sysdb,
                                     be_ctx->domain, user, attrs, &user_msg);
     if (ret != EOK) {
         goto fail;
     }
 
-    DEBUG(9, ("Found user info for user [%s].\n", state->user));
-    state->user_dn = talloc_steal(state, user_msg->dn);
-    dummy = ldb_msg_find_attr_as_string(user_msg, SYSDB_ORIG_DN, NULL);
-    if (dummy == NULL) {
-        DEBUG(1, ("Original DN of user [%s] not available.\n", state->user));
+    DEBUG(9, ("Found user info for user [%s].\n", user));
+    user_orig_dn = ldb_msg_find_attr_as_string(user_msg, SYSDB_ORIG_DN, NULL);
+    if (user_orig_dn == NULL) {
+        DEBUG(1, ("Original DN of user [%s] not available.\n", user));
         ret = EINVAL;
         goto fail;
     }
-    state->user_orig_dn = talloc_strdup(state, dummy);
-    if (state->user_dn == NULL) {
-        DEBUG(1, ("talloc_strdup failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    DEBUG(9, ("Found original DN [%s] for user [%s].\n", state->user_orig_dn,
-                                                         state->user));
+    DEBUG(9, ("Found original DN [%s] for user [%s].\n",
+              user_orig_dn, user));
 
-    subreq = sysdb_asq_search_send(state, state->ev, state->be_ctx->sysdb, NULL,
-                                   state->be_ctx->domain, state->user_dn, NULL,
-                                   SYSDB_MEMBEROF, attrs);
-    if (subreq == NULL) {
-        DEBUG(1, ("sysdb_asq_search_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, search_groups_done, req);
-
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void search_groups_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct hbac_get_user_info_state *state = tevent_req_data(req,
-                                               struct hbac_get_user_info_state);
-    int ret;
-    int i;
-    struct ldb_message **msg;
-
-    ret = sysdb_asq_search_recv(subreq, state, &state->groups_count, &msg);
-    talloc_zfree(subreq);
+    ret = sysdb_asq_search(tmpctx, be_ctx->sysdb, be_ctx->domain,
+                           user_msg->dn, NULL, SYSDB_MEMBEROF, attrs,
+                           &count, &msgs);
     if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+        DEBUG(1, ("sysdb_asq_search on user %s failed.\n", user));
+        goto fail;
     }
 
-    if (state->groups_count == 0) {
-        tevent_req_done(req);
-        return;
+    if (count == 0) {
+        *user_dn = talloc_strdup(memctx, user_orig_dn);
+        if (*user_dn == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        *groups_count = 0;
+        *_groups = NULL;
+        talloc_zfree(tmpctx);
+        return EOK;
     }
 
-    state->groups = talloc_array(state, const char *, state->groups_count);
-    if (state->groups == NULL) {
+    groups = talloc_array(tmpctx, const char *, count);
+    if (groups == NULL) {
         DEBUG(1, ("talloc_groups failed.\n"));
         ret = ENOMEM;
-        goto failed;
+        goto fail;
     }
 
-    for(i = 0; i < state->groups_count; i++) {
-        if (msg[i]->num_elements != 1) {
+    for(i = 0; i < count; i++) {
+        if (msgs[i]->num_elements != 1) {
             DEBUG(1, ("Unexpected number of elements.\n"));
             ret = EINVAL;
-            goto failed;
+            goto fail;
         }
 
-        if (msg[i]->elements[0].num_values != 1) {
+        if (msgs[i]->elements[0].num_values != 1) {
             DEBUG(1, ("Unexpected number of values.\n"));
             ret = EINVAL;
-            goto failed;
+            goto fail;
         }
 
-        state->groups[i] = talloc_strndup(state->groups,
-                                          (const char *) msg[i]->elements[0].values[0].data,
-                                          msg[i]->elements[0].values[0].length);
-        if (state->groups[i] == NULL) {
+        groups[i] = talloc_strndup(groups,
+                        (const char *)msgs[i]->elements[0].values[0].data,
+                        msgs[i]->elements[0].values[0].length);
+        if (groups[i] == NULL) {
             DEBUG(1, ("talloc_strndup failed.\n"));
             ret = ENOMEM;
-            goto failed;
+            goto fail;
         }
 
-        DEBUG(9, ("Found group [%s].\n", state->groups[i]));
+        DEBUG(9, ("Found group [%s].\n", groups[i]));
     }
 
-    tevent_req_done(req);
-    return;
-
-failed:
-    talloc_free(state->groups);
-    tevent_req_error(req, ret);
-    return;
-}
-
-static int hbac_get_user_info_recv(struct tevent_req *req, TALLOC_CTX *memctx,
-                                   const char **user_dn, size_t *groups_count,
-                                   const char ***groups)
-{
-    struct hbac_get_user_info_state *state = tevent_req_data(req,
-                                               struct hbac_get_user_info_state);
-    int i;
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *user_dn = talloc_steal(memctx, state->user_orig_dn);
-    *groups_count = state->groups_count;
-    for (i = 0; i < state->groups_count; i++) {
-        talloc_steal(memctx, state->groups[i]);
+    *user_dn = talloc_strdup(memctx, user_orig_dn);
+    if (*user_dn == NULL) {
+        ret = ENOMEM;
+        goto fail;
     }
-    *groups = talloc_steal(memctx, state->groups);
+    *groups_count = count;
+    *_groups = talloc_steal(memctx, groups);
 
+    talloc_zfree(tmpctx);
     return EOK;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 
@@ -1505,7 +1447,6 @@ static int evaluate_ipa_hbac_rules(struct hbac_ctx *hbac_ctx,
 
 static void hbac_get_host_info_done(struct tevent_req *req);
 static void hbac_get_rules_done(struct tevent_req *req);
-static void hbac_get_user_info_done(struct tevent_req *req);
 
 void ipa_access_handler(struct be_req *be_req)
 {
@@ -1644,40 +1585,18 @@ static void hbac_get_rules_done(struct tevent_req *req)
     struct be_req *be_req = hbac_ctx->be_req;
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
+    bool access_allowed = false;
 
     ret = hbac_get_rules_recv(req, hbac_ctx, &hbac_ctx->hbac_rule_count,
                               &hbac_ctx->hbac_rule_list);
     talloc_zfree(req);
     if (ret != EOK) {
-        goto fail;
+        goto failed;
     }
 
-    req = hbac_get_user_info_send(hbac_ctx, be_req->be_ctx->ev, be_req->be_ctx,
-                                  pd->user);
-    if (req == NULL) {
-        DEBUG(1, ("hbac_get_user_info_send failed.\n"));
-        goto fail;
-    }
-
-    tevent_req_set_callback(req, hbac_get_user_info_done, hbac_ctx);
-    return;
-
-fail:
-    ipa_access_reply(be_req, pam_status);
-}
-
-static void hbac_get_user_info_done(struct tevent_req *req)
-{
-    struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
-    struct be_req *be_req = hbac_ctx->be_req;
-    int ret;
-    int pam_status = PAM_SYSTEM_ERR;
-    bool access_allowed = false;
-
-    ret = hbac_get_user_info_recv(req, hbac_ctx, &hbac_ctx->user_dn,
-                                  &hbac_ctx->groups_count,
-                                  &hbac_ctx->groups);
-    talloc_zfree(req);
+    ret = hbac_get_user_info(hbac_ctx, be_req->be_ctx,
+                             pd->user, &hbac_ctx->user_dn,
+                             &hbac_ctx->groups_count, &hbac_ctx->groups);
     if (ret != EOK) {
         goto failed;
     }
