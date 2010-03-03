@@ -305,7 +305,9 @@
                         <para>
                             Exclude certain users from being fetched from the sss
                             NSS database. This is particulary useful for system
-                            accounts.
+                            accounts. This option can also be set per-domain or
+                            include fully-qualified names to filter only users from
+                            the particular domain.
                         </para>
                         <para>
                             Default: root
