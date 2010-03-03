@@ -275,7 +275,6 @@ struct group_show_state {
 };
 
 static void group_show_recurse_done(struct tevent_req *subreq);
-static void group_show_trim_done(struct tevent_req *subreq);
 
 struct tevent_req *group_show_recurse_send(TALLOC_CTX *,
                                            struct group_show_state *,
@@ -285,16 +284,12 @@ struct tevent_req *group_show_recurse_send(TALLOC_CTX *,
 static int group_show_recurse_recv(TALLOC_CTX *, struct tevent_req *,
                                    struct group_info ***);
 
-static struct tevent_req *group_show_trim_memberof_send(TALLOC_CTX *mem_ctx,
-                                                struct tevent_context *ev,
-                                                struct sysdb_ctx *sysdb,
-                                                struct sysdb_handle *handle,
-                                                struct sss_domain_info *domain,
-                                                const char *name,
-                                                const char **memberofs);
-static int group_show_trim_memberof_recv(TALLOC_CTX *mem_ctx,
-                                         struct tevent_req *req,
-                                         const char ***direct);
+static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    const char *name,
+                                    const char **memberofs,
+                                    const char ***_direct);
 
 struct tevent_req *group_show_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,
@@ -370,17 +365,11 @@ struct tevent_req *group_show_send(TALLOC_CTX *mem_ctx,
         }
 
         /* if not recursive, only show the direct parent */
-        subreq = group_show_trim_memberof_send(state, state->ev,
-                                               state->sysdb, state->handle,
-                                               state->domain, state->root->name,
-                                               state->root->memberofs);
-        if (!subreq) {
-            ret = ENOMEM;
-            goto done;
-        }
-        tevent_req_set_callback(subreq, group_show_trim_done, req);
-
-        return req;
+        ret = group_show_trim_memberof(state, state->sysdb,
+                                       state->domain, state->root->name,
+                                       state->root->memberofs,
+                                       &state->root->memberofs);
+        goto done;
     }
 
     if (group_members == NULL) {
@@ -408,26 +397,6 @@ done:
     }
     tevent_req_post(req, ev);
     return req;
-}
-
-static void group_show_trim_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct group_show_state *state = tevent_req_data(req,
-                                                     struct group_show_state);
-    int ret;
-
-    ret = group_show_trim_memberof_recv(state->root, subreq,
-                                        &state->root->memberofs);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-    return;
 }
 
 static void group_show_recurse_done(struct tevent_req *subreq)
@@ -465,156 +434,71 @@ static int group_show_recv(TALLOC_CTX *mem_ctx,
 }
 
 /*=========Nonrecursive search should only show direct parent========== */
-struct group_show_trim_state {
-    const char *name;
+
+static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    const char *name,
+                                    const char **memberofs,
+                                    const char ***_direct)
+{
     struct ldb_dn *dn;
-
-    const char **all;
-    int  current;
-
-    const char **direct;
-    int ndirect;
-
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-    struct sss_domain_info *domain;
-};
-
-static int group_show_trim_memberof_next(struct tevent_req *req);
-static void group_show_trim_memberof_done(struct tevent_req *subreq);
-
-static struct tevent_req *group_show_trim_memberof_send(TALLOC_CTX *mem_ctx,
-                                                struct tevent_context *ev,
-                                                struct sysdb_ctx *sysdb,
-                                                struct sysdb_handle *handle,
-                                                struct sss_domain_info *domain,
-                                                const char *name,
-                                                const char **memberofs)
-{
-    struct tevent_req *req = NULL;
-    struct group_show_trim_state *state;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct group_show_trim_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->domain = domain;
-    state->name = name;
-    state->all = memberofs;
-
-    state->dn = sysdb_group_dn(state->sysdb, state,
-                               state->domain->name,
-                               state->name);
-    if (!state->dn) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    ret = group_show_trim_memberof_next(req);
-    if (ret) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    return req;
-}
-
-static int group_show_trim_memberof_next(struct tevent_req *req)
-{
-    const char *filter;
-    struct tevent_req *subreq = NULL;
-    struct group_show_trim_state *state = tevent_req_data(req,
-                                                 struct group_show_trim_state);
-
-    filter = talloc_asprintf(req, "(&(%s=%s)(%s=%s))",
-                             SYSDB_NAME, state->all[state->current],
-                             SYSDB_MEMBER, ldb_dn_get_linearized(state->dn));
-    if (!filter) {
-        return ENOMEM;
-    }
-
-    subreq = sysdb_search_groups_send(state, state->ev, state->sysdb,
-                                      state->handle, state->domain,
-                                      filter, NULL);
-    if (!subreq) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(subreq, group_show_trim_memberof_done, req);
-
-    return EOK;
-}
-
-static void group_show_trim_memberof_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                 struct tevent_req);
-    struct group_show_trim_state *state = tevent_req_data(req,
-                                                 struct group_show_trim_state);
-    int ret;
+    char *filter;
     struct ldb_message **msgs;
-    size_t count = 0;
-    const char *name;
+    size_t count;
+    const char **direct = NULL;
+    int ndirect = 0;
+    int ret;
+    int i;
 
-    ret = sysdb_search_groups_recv(subreq, state, &count, &msgs);
-    talloc_zfree(subreq);
-    /* ENOENT is OK, the group is just not a direct parent */
-    if (ret != EOK && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
+    dn = sysdb_group_dn(sysdb, mem_ctx, domain->name, name);
+    if (!dn) {
+        return ENOMEM;
     }
 
-    if (count > 0) {
-        name = ldb_msg_find_attr_as_string(msgs[0],
-                                           SYSDB_NAME, NULL);
-        if (!name) {
-            DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
-                  ldb_dn_get_linearized(msgs[0]->dn)));
-            tevent_req_error(req, EFAULT);
-            return;
+    for (i = 0; memberofs[i]; i++) {
+
+        filter = talloc_asprintf(mem_ctx, "(&(%s=%s)(%s=%s))",
+                                 SYSDB_NAME, memberofs[i],
+                                 SYSDB_MEMBER, ldb_dn_get_linearized(dn));
+        if (!filter) {
+            return ENOMEM;
         }
 
-        state->direct = talloc_realloc(state, state->direct,
-                                       const char *, state->ndirect+2);
-        if (!state->direct) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_search_groups(mem_ctx, sysdb,
+                                  domain, filter, NULL,
+                                  &count, &msgs);
+        /* ENOENT is OK, the group is just not a direct parent */
+        if (ret != EOK && ret != ENOENT) {
+            return ret;
         }
 
-        state->direct[state->ndirect] = talloc_strdup(state->direct, name);
-        if (!state->direct[state->ndirect]) {
-            tevent_req_error(req, ENOMEM);
-        }
+        if (count > 0) {
+            name = ldb_msg_find_attr_as_string(msgs[0],
+                                               SYSDB_NAME, NULL);
+            if (!name) {
+                DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
+                      ldb_dn_get_linearized(msgs[0]->dn)));
+                return EFAULT;
+            }
 
-        state->direct[state->ndirect+1] = NULL;
-        state->ndirect++;
+            direct = talloc_realloc(mem_ctx, direct,
+                                    const char *, ndirect + 2);
+            if (!direct) {
+                return ENOMEM;
+            }
+
+            direct[ndirect] = talloc_strdup(direct, name);
+            if (!direct[ndirect]) {
+                return ENOMEM;
+            }
+
+            direct[ndirect + 1] = NULL;
+            ndirect++;
+        }
     }
 
-    state->current++;
-    if (state->all[state->current] != NULL) {
-        ret = group_show_trim_memberof_next(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static int group_show_trim_memberof_recv(TALLOC_CTX *mem_ctx,
-                                         struct tevent_req *req,
-                                         const char ***direct)
-{
-    struct group_show_trim_state *state = tevent_req_data(req,
-                                                 struct group_show_trim_state);
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-    *direct = talloc_move(mem_ctx, &state->direct);
-
+    *_direct = direct;
     return EOK;
 }
 

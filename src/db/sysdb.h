@@ -570,15 +570,13 @@ int sysdb_delete_user(TALLOC_CTX *mem_ctx,
                       struct sss_domain_info *domain,
                       const char *name, uid_t uid);
 
-struct tevent_req *sysdb_search_groups_send(TALLOC_CTX *mem_ctx,
-                                            struct tevent_context *ev,
-                                            struct sysdb_ctx *sysdb,
-                                            struct sysdb_handle *handle,
-                                            struct sss_domain_info *domain,
-                                            const char *sub_filter,
-                                            const char **attrs);
-int sysdb_search_groups_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
-                             size_t *msgs_count, struct ldb_message ***msgs);
+int sysdb_search_groups(TALLOC_CTX *mem_ctx,
+                        struct sysdb_ctx *sysdb,
+                        struct sss_domain_info *domain,
+                        const char *sub_filter,
+                        const char **attrs,
+                        size_t *msgs_count,
+                        struct ldb_message ***msgs);
 
 int sysdb_delete_group(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *sysdb,

@@ -148,18 +148,16 @@ struct global_cleanup_state {
 };
 
 static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx);
-static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
-                                          struct tevent_context *ev,
-                                          struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain);
-static void ldap_id_cleanup_groups_done(struct tevent_req *subreq);
+static int cleanup_groups(TALLOC_CTX *memctx,
+                          struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain);
 
 struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
                                         struct tevent_context *ev,
                                         struct sdap_id_ctx *ctx)
 {
     struct global_cleanup_state *state;
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct global_cleanup_state);
@@ -175,49 +173,23 @@ struct tevent_req *ldap_id_cleanup_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    subreq = cleanup_groups_send(state, state->ev,
-                                 state->ctx->be->sysdb,
-                                 state->ctx->be->domain);
-    if (!subreq) {
-        ret = ENOMEM;
+    ret = cleanup_groups(state,
+                         state->ctx->be->sysdb,
+                         state->ctx->be->domain);
+    if (ret) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, ldap_id_cleanup_groups_done, req);
 
+    tevent_req_done(req);
+    tevent_req_post(req, ev);
     return req;
 
 fail:
-    DEBUG(1, ("Failed to cleanup users (%d [%s]), retrying later!\n",
+    DEBUG(1, ("Failed to cleanup caches (%d [%s]), retrying later!\n",
               (int)ret, strerror(ret)));
     tevent_req_done(req);
     tevent_req_post(req, ev);
     return req;
-}
-
-static void ldap_id_cleanup_groups_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    enum tevent_req_state tstate;
-    uint64_t err;
-
-    if (tevent_req_is_error(subreq, &tstate, &err)) {
-        if (tstate != TEVENT_REQ_USER_ERROR) {
-            err = EIO;
-        }
-        if (err != ENOENT) {
-            goto fail;
-        }
-    }
-    talloc_zfree(subreq);
-
-    tevent_req_done(req);
-    return;
-
-fail:
-    DEBUG(1, ("Failed to cleanup groups (%d [%s]), retrying later!\n",
-              (int)err, strerror(err)));
-    tevent_req_done(req);
 }
 
 
@@ -363,142 +335,94 @@ static int cleanup_users_logged_in(hash_table_t *table,
 
 /* ==Group-Cleanup-Process================================================ */
 
-struct cleanup_groups_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-
-    struct sysdb_handle *handle;
-
-    struct ldb_message **msgs;
-    size_t count;
-    int cur;
-};
-
-static void cleanup_groups_process(struct tevent_req *subreq);
-
-static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
-                                              struct tevent_context *ev,
-                                              struct sysdb_ctx *sysdb,
-                                              struct sss_domain_info *domain)
+static int cleanup_groups(TALLOC_CTX *memctx,
+                          struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain)
 {
-    struct tevent_req *req, *subreq;
-    struct cleanup_groups_state *state;
-    static const char *attrs[] = { SYSDB_NAME, NULL };
+    TALLOC_CTX *tmpctx;
+    const char *attrs[] = { SYSDB_NAME, NULL };
     time_t now = time(NULL);
     char *subfilter;
+    const char *dn;
+    struct ldb_message **msgs;
+    size_t count;
+    struct ldb_message **u_msgs;
+    size_t u_count;
+    int ret;
+    int i;
 
-    req = tevent_req_create(memctx, &state, struct cleanup_groups_state);
-    if (!req) {
-        return NULL;
+    tmpctx = talloc_new(memctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->msgs = NULL;
-    state->count = 0;
-    state->cur = 0;
-
-    subfilter = talloc_asprintf(state, "(&(!(%s=0))(%s<=%ld))",
+    subfilter = talloc_asprintf(tmpctx, "(&(!(%s=0))(%s<=%ld))",
                                 SYSDB_CACHE_EXPIRE,
                                 SYSDB_CACHE_EXPIRE, (long)now);
     if (!subfilter) {
         DEBUG(2, ("Failed to build filter\n"));
-        talloc_zfree(req);
-        return NULL;
+        ret = ENOMEM;
+        goto done;
     }
 
-    subreq = sysdb_search_groups_send(state, state->ev,
-                                      state->sysdb, NULL,
-                                      state->domain, subfilter, attrs);
-    if (!subreq) {
-        DEBUG(2, ("Failed to send entry search\n"));
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, cleanup_groups_process, req);
-
-    return req;
-}
-
-static void cleanup_groups_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct cleanup_groups_state *state = tevent_req_data(req,
-                                               struct cleanup_groups_state);
-    const char *subfilter;
-    const char *dn;
-    struct ldb_message **msgs;
-    size_t count;
-    int ret;
-    int i;
-
-    ret = sysdb_search_groups_recv(subreq, state, &state->count, &state->msgs);
-    talloc_zfree(subreq);
+    ret = sysdb_search_groups(tmpctx, sysdb,
+                              domain, subfilter, attrs, &count, &msgs);
     if (ret) {
         if (ret == ENOENT) {
-            tevent_req_done(req);
-            return;
+            ret = EOK;
         }
-        tevent_req_error(req, ret);
-        return;
+        goto done;
     }
 
-    DEBUG(4, ("Found %d expired group entries!\n", state->count));
+    DEBUG(4, ("Found %d expired group entries!\n", count));
 
-    if (state->count == 0) {
-        tevent_req_done(req);
-        return;
+    if (count == 0) {
+        ret = EOK;
+        goto done;
     }
 
-    for (i = 0; i < state->count; i++) {
-        dn = ldb_dn_get_linearized(state->msgs[i]->dn);
+    for (i = 0; i < count; i++) {
+        dn = ldb_dn_get_linearized(msgs[i]->dn);
         if (!dn) {
-            tevent_req_error(req, EINVAL);
-            return;
+            ret = EFAULT;
+            goto done;
         }
 
-        subfilter = talloc_asprintf(state, "(%s=%s)",
-                                    SYSDB_MEMBEROF, dn);
+        subfilter = talloc_asprintf(tmpctx, "(%s=%s)", SYSDB_MEMBEROF, dn);
         if (!subfilter) {
             DEBUG(2, ("Failed to build filter\n"));
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto done;
         }
 
-        ret = sysdb_search_users(state, state->sysdb,
-                                 state->domain, subfilter, NULL,
-                                 &count, &msgs);
+        ret = sysdb_search_users(tmpctx, sysdb,
+                                 domain, subfilter, NULL, &u_count, &u_msgs);
         if (ret == ENOENT) {
             const char *name;
 
-            name = ldb_msg_find_attr_as_string(state->msgs[i],
-                                               SYSDB_NAME, NULL);
+            name = ldb_msg_find_attr_as_string(msgs[i], SYSDB_NAME, NULL);
             if (!name) {
                 DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
-                          ldb_dn_get_linearized(state->msgs[i]->dn)));
-                tevent_req_error(req, EFAULT);
-                return;
+                          ldb_dn_get_linearized(msgs[i]->dn)));
+                ret = EFAULT;
+                goto done;
             }
 
             DEBUG(8, ("About to delete group %s\n", name));
-            ret = sysdb_delete_group(state, state->sysdb,
-                                     state->domain, name, 0);
+            ret = sysdb_delete_group(tmpctx, sysdb, domain, name, 0);
             if (ret) {
                 DEBUG(2, ("Group delete returned %d (%s)\n",
                           ret, strerror(ret)));
-                tevent_req_error(req, ret);
-                return;
+                goto done;
             }
         }
         if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
-        talloc_zfree(msgs);
+        talloc_zfree(u_msgs);
     }
 
-    tevent_req_done(req);
+done:
+    talloc_zfree(tmpctx);
+    return ret;
 }
