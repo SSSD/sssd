@@ -377,6 +377,7 @@ int server_setup(const char *name, int flags,
         return ret;
     }
     if (dt) debug_timestamps = 1;
+    else debug_timestamps = 0;
 
     /* same for debug to file */
     dl = (debug_to_file != 0);
