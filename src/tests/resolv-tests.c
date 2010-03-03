@@ -130,6 +130,72 @@ START_TEST(test_copy_hostent)
 }
 END_TEST
 
+static void test_ip_addr(struct tevent_req *req)
+{
+    int recv_status;
+    int status;
+    struct hostent *hostent;
+    int i;
+    struct resolv_test_ctx *test_ctx = tevent_req_callback_data(req,
+                                                                struct resolv_test_ctx);
+
+    test_ctx->done = true;
+
+    recv_status = resolv_gethostbyname_recv(req, test_ctx,
+                                            &status, NULL, &hostent);
+    talloc_zfree(req);
+    if (recv_status != EOK) {
+        DEBUG(2, ("resolv_gethostbyname_recv failed: %d\n", recv_status));
+        test_ctx->error = recv_status;
+        return;
+    }
+    DEBUG(7, ("resolv_gethostbyname_recv status: %d\n", status));
+
+    test_ctx->error = ENOENT;
+    for (i = 0; hostent->h_addr_list[i]; i++) {
+        char addr_buf[256];
+        inet_ntop(hostent->h_addrtype, hostent->h_addr_list[i], addr_buf, sizeof(addr_buf));
+
+        if (strcmp(addr_buf, "127.0.0.1") == 0) {
+            test_ctx->error = EOK;
+        }
+    }
+    talloc_free(hostent);
+}
+
+START_TEST(test_resolv_ip_addr)
+{
+    struct resolv_test_ctx *test_ctx;
+    int ret = EOK;
+    struct tevent_req *req;
+    const char *hostname = "127.0.0.1";
+
+    ret = setup_resolv_test(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up test");
+        return;
+    }
+
+    check_leaks_push(test_ctx);
+    req = resolv_gethostbyname_send(test_ctx, test_ctx->ev,
+                                    test_ctx->resolv, hostname, IPV4_ONLY);
+    DEBUG(7, ("Sent resolv_gethostbyname\n"));
+    if (req == NULL) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_ip_addr, test_ctx);
+        ret = test_loop(test_ctx);
+    }
+
+    check_leaks_pop(test_ctx);
+    fail_unless(ret == EOK);
+
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
 static void test_localhost(struct tevent_req *req)
 {
     int recv_status;
@@ -535,10 +601,11 @@ Suite *create_resolv_suite(void)
     tcase_add_checked_fixture(tc_resolv, leak_check_setup, leak_check_teardown);
     /* Do some testing */
     tcase_add_test(tc_resolv, test_copy_hostent);
-    tcase_add_test(tc_resolv, test_resolv_localhost);
-    tcase_add_test(tc_resolv, test_resolv_negative);
+    tcase_add_test(tc_resolv, test_resolv_ip_addr);
     if (use_net_test) {
         tcase_add_test(tc_resolv, test_resolv_internet);
+        tcase_add_test(tc_resolv, test_resolv_negative);
+        tcase_add_test(tc_resolv, test_resolv_localhost);
         if (txt_host != NULL) {
             tcase_add_test(tc_resolv, test_resolv_internet_txt);
         }
@@ -595,7 +662,10 @@ int main(int argc, const char *argv[])
     poptFreeContext(pc);
     debug_level = debug;
 
-    tests_set_cwd();
+    if (!use_net_test) {
+        printf("Network tests disabled. Rerun with the \"-n\" "
+               "option to run the full suite of tests\n");
+    }
 
     resolv_suite = create_resolv_suite();
     sr = srunner_create(resolv_suite);
