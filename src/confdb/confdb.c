@@ -517,7 +517,7 @@ done:
 
 int confdb_init(TALLOC_CTX *mem_ctx,
                 struct confdb_ctx **cdb_ctx,
-                char *confdb_location)
+                const char *confdb_location)
 {
     struct confdb_ctx *cdb;
     int ret = EOK;
