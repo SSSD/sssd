@@ -376,10 +376,6 @@ struct cleanup_groups_state {
 };
 
 static void cleanup_groups_process(struct tevent_req *subreq);
-static void cleanup_groups_check_users(struct tevent_req *req);
-static void cleanup_groups_next(struct tevent_req *req);
-static void cleanup_groups_delete(struct tevent_req *req);
-static void cleanup_groups_delete_done(struct tevent_req *subreq);
 
 static struct tevent_req *cleanup_groups_send(TALLOC_CTX *memctx,
                                               struct tevent_context *ev,
@@ -432,7 +428,12 @@ static void cleanup_groups_process(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct cleanup_groups_state *state = tevent_req_data(req,
                                                struct cleanup_groups_state);
+    const char *subfilter;
+    const char *dn;
+    struct ldb_message **msgs;
+    size_t count;
     int ret;
+    int i;
 
     ret = sysdb_search_groups_recv(subreq, state, &state->count, &state->msgs);
     talloc_zfree(subreq);
@@ -449,103 +450,55 @@ static void cleanup_groups_process(struct tevent_req *subreq)
 
     if (state->count == 0) {
         tevent_req_done(req);
-    }
-
-    cleanup_groups_check_users(req);
-}
-
-static void cleanup_groups_check_users(struct tevent_req *req)
-{
-    struct cleanup_groups_state *state = tevent_req_data(req,
-                                               struct cleanup_groups_state);
-    const char *subfilter;
-    const char *dn;
-    struct ldb_message **msgs;
-    size_t count;
-    int ret;
-
-    dn = ldb_dn_get_linearized(state->msgs[state->cur]->dn);
-    if (!dn) {
-        tevent_req_error(req, EINVAL);
         return;
     }
 
-    subfilter = talloc_asprintf(state, "(%s=%s)",
-                                SYSDB_MEMBEROF, dn);
-    if (!subfilter) {
-        DEBUG(2, ("Failed to build filter\n"));
-        tevent_req_error(req, ENOMEM);
-    }
-
-    ret = sysdb_search_users(state, state->sysdb,
-                             state->domain, subfilter, NULL, &count, &msgs);
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            cleanup_groups_delete(req);
+    for (i = 0; i < state->count; i++) {
+        dn = ldb_dn_get_linearized(state->msgs[i]->dn);
+        if (!dn) {
+            tevent_req_error(req, EINVAL);
             return;
         }
-        tevent_req_error(req, ret);
-        return;
-    }
 
-    cleanup_groups_next(req);
-}
+        subfilter = talloc_asprintf(state, "(%s=%s)",
+                                    SYSDB_MEMBEROF, dn);
+        if (!subfilter) {
+            DEBUG(2, ("Failed to build filter\n"));
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
 
-static void cleanup_groups_next(struct tevent_req *req)
-{
-    struct cleanup_groups_state *state = tevent_req_data(req,
-                                               struct cleanup_groups_state);
+        ret = sysdb_search_users(state, state->sysdb,
+                                 state->domain, subfilter, NULL,
+                                 &count, &msgs);
+        if (ret == ENOENT) {
+            const char *name;
 
-    state->cur++;
-    if (state->cur < state->count) {
-        cleanup_groups_check_users(req);
-        return;
+            name = ldb_msg_find_attr_as_string(state->msgs[i],
+                                               SYSDB_NAME, NULL);
+            if (!name) {
+                DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
+                          ldb_dn_get_linearized(state->msgs[i]->dn)));
+                tevent_req_error(req, EFAULT);
+                return;
+            }
+
+            DEBUG(8, ("About to delete group %s\n", name));
+            ret = sysdb_delete_group(state, state->sysdb,
+                                     state->domain, name, 0);
+            if (ret) {
+                DEBUG(2, ("Group delete returned %d (%s)\n",
+                          ret, strerror(ret)));
+                tevent_req_error(req, ret);
+                return;
+            }
+        }
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+        talloc_zfree(msgs);
     }
 
     tevent_req_done(req);
 }
-
-static void cleanup_groups_delete(struct tevent_req *req)
-{
-    struct tevent_req *subreq;
-    struct cleanup_groups_state *state = tevent_req_data(req,
-                                               struct cleanup_groups_state);
-    const char *name;
-
-    name = ldb_msg_find_attr_as_string(state->msgs[state->cur],
-                                      SYSDB_NAME, NULL);
-    if (!name) {
-        DEBUG(2, ("Entry %s has no Name Attribute ?!?\n",
-                  ldb_dn_get_linearized(state->msgs[state->cur]->dn)));
-        tevent_req_error(req, EFAULT);
-        return;
-    }
-
-    DEBUG(8, ("About to delete group %s\n", name));
-    subreq = sysdb_delete_group_send(state, state->ev,
-                                     state->sysdb, NULL,
-                                     state->domain, name, 0);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, cleanup_groups_delete_done, req);
-}
-
-static void cleanup_groups_delete_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(2, ("Group delete returned %d (%s)\n", ret, strerror(ret)));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    cleanup_groups_next(req);
-}
-

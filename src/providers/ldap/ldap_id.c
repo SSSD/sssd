@@ -248,7 +248,6 @@ struct groups_get_state {
 
 static void groups_get_connect_done(struct tevent_req *subreq);
 static void groups_get_done(struct tevent_req *subreq);
-static void groups_get_delete(struct tevent_req *subreq);
 
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
@@ -391,15 +390,13 @@ static void groups_get_done(struct tevent_req *subreq)
 
         switch (state->filter_type) {
         case BE_FILTER_NAME:
-            subreq = sysdb_delete_group_send(state, state->ev,
-                                            state->sysdb, NULL,
-                                            state->domain, state->name, 0);
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
+            ret = sysdb_delete_group(state, state->sysdb,
+                                     state->domain, state->name, 0);
+            if (ret) {
+                tevent_req_error(req, ret);
                 return;
             }
-            tevent_req_set_callback(subreq, groups_get_delete, req);
-            return;
+            break;
 
         case BE_FILTER_IDNUM:
             errno = 0;
@@ -409,38 +406,18 @@ static void groups_get_done(struct tevent_req *subreq)
                 return;
             }
 
-            subreq = sysdb_delete_group_send(state, state->ev,
-                                            state->sysdb, NULL,
-                                            state->domain, NULL, gid);
-            if (!subreq) {
-                tevent_req_error(req, ENOMEM);
+            ret = sysdb_delete_group(state, state->sysdb,
+                                     state->domain, NULL, gid);
+            if (ret) {
+                tevent_req_error(req, ret);
                 return;
             }
-            tevent_req_set_callback(subreq, groups_get_delete, req);
-            return;
+            break;
 
         default:
             tevent_req_error(req, EINVAL);
             return;
         }
-    }
-
-    tevent_req_done(req);
-}
-
-static void groups_get_delete(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct groups_get_state *state = tevent_req_data(req,
-                                                     struct groups_get_state);
-    int ret;
-
-    ret = sysdb_delete_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        DEBUG(2, ("Group (%s) delete returned %d (%s)\n",
-                  state->name, ret, strerror(ret)));
     }
 
     tevent_req_done(req);

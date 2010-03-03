@@ -306,12 +306,9 @@ static void test_remove_user_by_uid(struct tevent_req *req)
     return test_return(data, ret);
 }
 
-static void test_remove_nonexistent_group_done(struct tevent_req *subreq);
-
 static void test_remove_nonexistent_group(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -319,23 +316,8 @@ static void test_remove_nonexistent_group(struct tevent_req *req)
         return test_return(data, ret);
     }
 
-    subreq = sysdb_delete_group_send(data, data->ev,
-                                     NULL, data->handle,
-                                     data->ctx->domain,
-                                     NULL, data->uid);
-    if (!subreq) return test_return(data, ENOMEM);
-
-    tevent_req_set_callback(subreq, test_remove_nonexistent_group_done, data);
-}
-
-static void test_remove_nonexistent_group_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret;
-
-    ret = sysdb_delete_group_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_delete_group(data, data->handle->ctx,
+                             data->ctx->domain, NULL, data->uid);
 
     return test_return(data, ret);
 }
@@ -409,11 +391,9 @@ static void test_remove_group(struct tevent_req *req)
     return test_return(data, ret);
 }
 
-static void test_remove_group_by_gid_done(struct tevent_req *subreq);
 static void test_remove_group_by_gid(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -421,24 +401,11 @@ static void test_remove_group_by_gid(struct tevent_req *req)
         return test_return(data, ret);
     }
 
-    subreq = sysdb_delete_group_send(data, data->ev,
-                                     NULL, data->handle,
-                                     data->ctx->domain,
-                                     NULL, data->gid);
-    if (!subreq) return test_return(data, ENOMEM);
-
-    tevent_req_set_callback(subreq, test_remove_group_by_gid_done, data);
-}
-
-static void test_remove_group_by_gid_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret;
-
-    ret = sysdb_delete_group_recv(subreq);
-    if (ret == ENOENT) ret = EOK;
-    talloc_zfree(subreq);
+    ret = sysdb_delete_group(data, data->handle->ctx,
+                             data->ctx->domain, NULL, data->gid);
+    if (ret == ENOENT) {
+        ret = EOK;
+    }
 
     return test_return(data, ret);
 }

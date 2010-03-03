@@ -1032,7 +1032,6 @@ fail:
 /* =Getgrgid-wrapper======================================================*/
 
 static void get_gr_gid_process(struct tevent_req *subreq);
-static void get_gr_gid_remove_done(struct tevent_req *subreq);
 
 static struct tevent_req *get_gr_gid_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
@@ -1196,39 +1195,12 @@ again:
         DEBUG(7, ("Group %d does not exist (or is invalid) on remote server,"
                   " deleting!\n", state->gid));
 
-        subreq = sysdb_delete_group_send(state, state->ev,
-                                         NULL, state->handle,
-                                         state->domain,
-                                         NULL, state->gid);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
+        ret = sysdb_delete_group(state, state->sysdb,
+                                 state->domain, NULL, state->gid);
+        if (ret) {
+            tevent_req_error(req, ret);
             return;
         }
-        tevent_req_set_callback(subreq, get_gr_gid_remove_done, req);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-}
-
-static void get_gr_gid_remove_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = sysdb_delete_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
     }
 
     subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
@@ -1454,7 +1426,6 @@ static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
                                                   struct sss_domain_info *domain,
                                                   gid_t gid);
 static int get_group_from_gid_recv(struct tevent_req *req);
-static void get_group_from_gid_send_del_done(struct tevent_req *subreq);
 
 
 static struct tevent_req *get_initgr_send(TALLOC_CTX *mem_ctx,
@@ -1780,7 +1751,7 @@ static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
                                                   struct sss_domain_info *domain,
                                                   gid_t gid)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct proxy_state *state;
     struct sss_domain_info *dom = ctx->be->domain;
     enum nss_status status;
@@ -1881,8 +1852,6 @@ again:
         if (ret) {
             goto fail;
         }
-        tevent_req_done(req);
-        tevent_req_post(req, ev);
         break;
 
     case NSS_STATUS_UNAVAIL:
@@ -1898,39 +1867,21 @@ again:
     }
 
     if (delete_group) {
-        subreq = sysdb_delete_group_send(state, state->ev,
-                                         NULL, state->handle,
-                                         state->domain,
-                                         NULL, state->gid);
-        if (!subreq) {
-            ret = ENOMEM;
+        ret = sysdb_delete_group(state, state->sysdb,
+                                 state->domain, NULL, state->gid);
+        if (ret) {
             goto fail;
         }
-        tevent_req_set_callback(subreq, get_group_from_gid_send_del_done, req);
     }
 
+    tevent_req_done(req);
+    tevent_req_post(req, ev);
     return req;
 
 fail:
     tevent_req_error(req, ret);
     tevent_req_post(req, ev);
     return req;
-}
-
-static void get_group_from_gid_send_del_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
 }
 
 static int get_group_from_gid_recv(struct tevent_req *req)

@@ -74,15 +74,6 @@ static uint32_t get_attr_as_uint32(struct ldb_message *msg, const char *attr)
 
 #define ERROR_OUT(v, r, l) do { v = r; goto l; } while(0);
 
-/* =Standard-Sysdb-Operations-utility-functions=========================== */
-
-static int sysdb_op_default_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
 
 /* =Remove-Entry-From-Sysdb=============================================== */
 
@@ -1984,110 +1975,62 @@ int sysdb_search_groups_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 /* =Delete-Group-by-Name-OR-gid=========================================== */
 
-struct sysdb_delete_group_state {
-    struct tevent_context *ev;
-    struct sss_domain_info *domain;
-
-    const char *name;
-    gid_t gid;
-
-    struct sysdb_handle *handle;
-};
-
-void sysdb_delete_group_check_handle(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_delete_group_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sysdb_ctx *sysdb,
-                                          struct sysdb_handle *handle,
-                                          struct sss_domain_info *domain,
-                                          const char *name, gid_t gid)
+int sysdb_delete_group(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *domain,
+                       const char *name, gid_t gid)
 {
-    struct tevent_req *req, *subreq;
-    struct sysdb_delete_group_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_delete_group_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->domain = domain;
-    state->name = name;
-    state->gid = gid;
-
-    subreq = sysdb_check_handle_send(state, ev, sysdb, handle);
-    if (!subreq) {
-        DEBUG(1, ("sysdb_check_handle_send failed.\n"));
-        tevent_req_error(req, ENOMEM);
-        tevent_req_post(req, ev);
-        return req;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_group_check_handle, req);
-
-    return req;
-}
-
-void sysdb_delete_group_check_handle(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct sysdb_delete_group_state *state = tevent_req_data(req,
-                                           struct sysdb_delete_group_state);
+    TALLOC_CTX *tmpctx;
     struct ldb_message *msg;
     int ret;
 
-    ret = sysdb_check_handle_recv(subreq, state, &state->handle);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    if (state->name) {
-        ret = sysdb_search_group_by_name(state, state->handle->ctx,
-                                         state->domain, state->name,
-                                         NULL, &msg);
+    if (name) {
+        ret = sysdb_search_group_by_name(tmpctx, sysdb,
+                                         domain, name, NULL, &msg);
     } else {
-        ret = sysdb_search_group_by_gid(state, state->handle->ctx,
-                                        state->domain, state->gid,
-                                        NULL, &msg);
+        ret = sysdb_search_group_by_gid(tmpctx, sysdb,
+                                        domain, gid, NULL, &msg);
     }
     if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    if (state->name && state->gid) {
+    if (name && gid) {
         /* verify name/gid match */
-        const char *name;
-        uint64_t gid;
+        const char *c_name;
+        uint64_t c_gid;
 
-        name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
-        gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
-        if (name == NULL || gid == 0) {
+        c_name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
+        c_gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
+        if (c_name == NULL || c_gid == 0) {
             DEBUG(2, ("Attribute is missing but this should never happen!\n"));
-            tevent_req_error(req, EFAULT);
-            return;
+            ret = EFAULT;
+            goto fail;
         }
-        if (strcmp(state->name, name) || state->gid != gid) {
+        if (strcmp(name, c_name) || gid != c_gid) {
             /* this is not the entry we are looking for */
-            tevent_req_error(req, EINVAL);
-            return;
+            ret = EINVAL;
+            goto fail;
         }
     }
 
-    ret = sysdb_delete_entry(state->handle->ctx, msg->dn, false);
+    ret = sysdb_delete_entry(sysdb, msg->dn, false);
     if (ret) {
-        tevent_req_error(req, ret);
-        return;
+        goto fail;
     }
 
-    tevent_req_done(req);
-}
+    talloc_zfree(tmpctx);
+    return EOK;
 
-int sysdb_delete_group_recv(struct tevent_req *req)
-{
-    return sysdb_op_default_recv(req);
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* ========= Authentication against cached password ============ */
