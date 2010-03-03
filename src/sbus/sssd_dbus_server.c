@@ -165,7 +165,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
                                             sbus_toggle_watch,
                                             server, NULL);
     if (!dbret) {
-        DEBUG(4, ("Error setting up D-BUS server watch functions"));
+        DEBUG(4, ("Error setting up D-BUS server watch functions\n"));
         talloc_free(server);
         return EIO;
     }
@@ -177,7 +177,7 @@ int sbus_new_server(TALLOC_CTX *mem_ctx,
                                               sbus_toggle_timeout,
                                               server, NULL);
     if (!dbret) {
-        DEBUG(4,("Error setting up D-BUS server timeout functions"));
+        DEBUG(4,("Error setting up D-BUS server timeout functions\n"));
         dbus_server_set_watch_functions(server->dbus.server,
                                         NULL, NULL, NULL, NULL, NULL);
         talloc_free(server);

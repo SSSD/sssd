@@ -207,7 +207,7 @@ int confdb_add_param(struct confdb_ctx *cdb,
 done:
     talloc_free(tmp_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to add [%s] to [%s], error [%d] (%s)",
+        DEBUG(1, ("Failed to add [%s] to [%s], error [%d] (%s)\n",
                   attribute, section, ret, strerror(ret)));
     }
     return ret;
@@ -283,7 +283,7 @@ int confdb_get_param(struct confdb_ctx *cdb,
 done:
     talloc_free(tmp_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)",
+        DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)\n",
                   attribute, section, ret, strerror(ret)));
     }
     return ret;
@@ -333,7 +333,7 @@ int confdb_get_string(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
 failed:
     talloc_free(values);
-    DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)",
+    DEBUG(1, ("Failed to get [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;
 }
@@ -381,7 +381,7 @@ int confdb_get_int(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
 failed:
     talloc_free(values);
-    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
+    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;
 }
@@ -424,7 +424,7 @@ long confdb_get_long(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
 failed:
     talloc_free(values);
-    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
+    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;
 }
@@ -473,7 +473,7 @@ int confdb_get_bool(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 
 failed:
     talloc_free(values);
-    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)",
+    DEBUG(1, ("Failed to read [%s] from [%s], error [%d] (%s)\n",
               attribute, section, ret, strerror(ret)));
     return ret;
 }
@@ -509,7 +509,7 @@ int confdb_get_string_as_list(struct confdb_ctx *cdb, TALLOC_CTX *ctx,
 done:
     talloc_free(values);
     if (ret != EOK && ret != ENOENT) {
-        DEBUG(2, ("Failed to get [%s] from [%s], error [%d] (%s)",
+        DEBUG(2, ("Failed to get [%s] from [%s], error [%d] (%s)\n",
                   attribute, section, ret, strerror(ret)));
     }
     return ret;

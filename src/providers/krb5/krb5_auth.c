@@ -135,7 +135,7 @@ static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
     filename = ccname + offset;
 
     if (filename[0] != '/') {
-        DEBUG(1, ("Only absolute path names are allowed"));
+        DEBUG(1, ("Only absolute path names are allowed.\n"));
         return EINVAL;
     }
 

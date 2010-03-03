@@ -344,7 +344,7 @@ static int mark_service_as_started(struct mt_svc *svc)
         /* check if all providers are up */
         for (iter = ctx->svc_list; iter; iter = iter->next) {
             if (iter->provider && !iter->svc_started) {
-                DEBUG(5, ("Still waiting on %s provider.", iter->name));
+                DEBUG(5, ("Still waiting on %s provider.\n", iter->name));
                 break;
             }
         }
@@ -1311,7 +1311,7 @@ static void config_file_changed(struct tevent_context *ev,
 
     te = tevent_add_timer(ev, ev, tv, process_config_file, file_ctx);
     if (!te) {
-        DEBUG(0, ("Unable to queue config file update! Exiting."));
+        DEBUG(0, ("Unable to queue config file update! Exiting.\n"));
         kill(getpid(), SIGTERM);
         return;
     }
@@ -1533,7 +1533,7 @@ static void poll_config_file(struct tevent_context *ev,
     file_ctx->timer = tevent_add_timer(ev, file_ctx->parent_ctx, tv,
                              poll_config_file, file_ctx);
     if (!file_ctx->timer) {
-        DEBUG(0, ("Error: Config file no longer monitored for changes!"));
+        DEBUG(0, ("Error: Config file no longer monitored for changes!\n"));
     }
 }
 

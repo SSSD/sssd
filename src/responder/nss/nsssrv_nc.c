@@ -141,7 +141,7 @@ static int nss_ncache_set_str(struct nss_nc_ctx *ctx,
 
     ret = tdb_store(ctx->tdb, key, data, TDB_REPLACE);
     if (ret != 0) {
-        DEBUG(1, ("Negative cache failed to set entry: [%s]",
+        DEBUG(1, ("Negative cache failed to set entry: [%s]\n",
                   tdb_errorstr(ctx->tdb)));
         ret = EFAULT;
     }

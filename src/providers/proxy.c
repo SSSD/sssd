@@ -224,7 +224,7 @@ static void proxy_pam_handler(struct be_req *req) {
                 }
                 break;
             default:
-                DEBUG(1, ("unknown PAM call"));
+                DEBUG(1, ("unknown PAM call\n"));
                 pam_status=PAM_ABORT;
         }
 

@@ -75,13 +75,13 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 }
 
 #define NSS_CMD_FATAL_ERROR(cctx) do { \
-    DEBUG(1,("Fatal error, killing connection!")); \
+    DEBUG(1,("Fatal error, killing connection!\n")); \
     talloc_free(cctx); \
     return; \
 } while(0)
 
 #define NSS_CMD_FATAL_ERROR_CODE(cctx, ret) do { \
-    DEBUG(1,("Fatal error, killing connection!")); \
+    DEBUG(1,("Fatal error, killing connection!\n")); \
     talloc_free(cctx); \
     return ret; \
 } while(0)

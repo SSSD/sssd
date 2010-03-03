@@ -366,7 +366,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
         value.ptr = sdp_req;
         hret = hash_enter(dp_requests, &key, &value);
         if (hret != HASH_SUCCESS) {
-            DEBUG(0, ("Could not store request query (%s)",
+            DEBUG(0, ("Could not store request query (%s)\n",
                       hash_error_string(hret)));
             talloc_zfree(sdp_req);
             ret = EIO;
@@ -379,7 +379,7 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
         sdp_req->tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
                                         sdp_req_timeout, sdp_req);
         if (!sdp_req->tev) {
-            DEBUG(0, ("Out of Memory!?"));
+            DEBUG(0, ("Out of Memory!?\n"));
             talloc_zfree(sdp_req);
             ret = ENOMEM;
             goto done;
@@ -498,7 +498,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                          sss_dp_send_acct_callback,
                                          sdp_req, NULL);
     if (!dbret) {
-        DEBUG(0, ("Could not queue up pending request!"));
+        DEBUG(0, ("Could not queue up pending request!\n"));
         talloc_zfree(sdp_req);
         dbus_pending_call_cancel(pending_reply);
         dbus_message_unref(msg);

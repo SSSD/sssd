@@ -172,7 +172,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     rootdir = opendir(root);
     if (rootdir == NULL) {
         ret = errno;
-        DEBUG(1, ("Cannot open directory %s [%d][%s]",
+        DEBUG(1, ("Cannot open directory %s [%d][%s]\n",
                   root, ret, strerror(ret)));
         goto fail;
     }

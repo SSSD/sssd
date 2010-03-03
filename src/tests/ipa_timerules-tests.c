@@ -56,10 +56,10 @@ int str2time_t(const char *fmt, const char *str, time_t *out)
     if(!err || err[0] != '\0')
         return EINVAL;
 
-    DEBUG(9, ("after strptime: %s", asctime(&stm)));
+    DEBUG(9, ("after strptime: %s\n", asctime(&stm)));
     stm.tm_isdst = -1;
     *out = mktime(&stm);
-    DEBUG(9, ("after mktime: %s", ctime(out)));
+    DEBUG(9, ("after mktime: %s\n", ctime(out)));
     return (*out == -1) ? EINVAL : EOK;
 }
 

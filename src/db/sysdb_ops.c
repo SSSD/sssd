@@ -147,7 +147,7 @@ static int sldb_request_callback(struct ldb_request *ldbreq,
     int err;
 
     if (!ldbreply) {
-        DEBUG(6, ("Error: Missing ldbreply"));
+        DEBUG(6, ("Error: Missing ldbreply\n"));
         ERROR_OUT(err, EIO, fail);
     }
 
@@ -1314,7 +1314,7 @@ static void sysdb_get_new_id_base(struct tevent_req *subreq)
     case LDB_REPLY_ENTRY:
         if (state->base) {
             DEBUG(1, ("More than one reply for a base search ?! "
-                      "DB seems corrupted, aborting."));
+                      "DB seems corrupted, aborting.\n"));
             tevent_req_error(req, EFAULT);
             return;
         }

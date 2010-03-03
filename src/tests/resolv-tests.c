@@ -211,7 +211,7 @@ static void test_negative(struct tevent_req *req)
                                              &status, NULL, &hostent);
      talloc_zfree(req);
      if (recv_status == EOK) {
-         DEBUG(7, ("resolv_gethostbyname_recv succeeded in a negative test"));
+         DEBUG(7, ("resolv_gethostbyname_recv succeeded in a negative test\n"));
          return;
      }
 

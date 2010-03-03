@@ -265,7 +265,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
 
     if (strlen(newauthtok) == 0) {
         /* TODO: should we allow null passwords via a config option ? */
-        DEBUG(1, ("Empty passwords are not allowed!"));
+        DEBUG(1, ("Empty passwords are not allowed!\n"));
         ret = EINVAL;
         goto done;
     }

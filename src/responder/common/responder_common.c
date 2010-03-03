@@ -207,7 +207,7 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
     len = sizeof(cctx->addr);
     cctx->cfd = accept(rctx->priv_lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
-        DEBUG(1, ("Accept failed [%s]", strerror(errno)));
+        DEBUG(1, ("Accept failed [%s]\n", strerror(errno)));
         talloc_free(cctx);
         return;
     }
@@ -260,7 +260,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     len = sizeof(cctx->addr);
     cctx->cfd = accept(rctx->lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
-        DEBUG(1, ("Accept failed [%s]", strerror(errno)));
+        DEBUG(1, ("Accept failed [%s]\n", strerror(errno)));
         talloc_free(cctx);
         return;
     }

@@ -1629,7 +1629,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     while ((ldif = ldb_ldif_read_string(ctx->ldb, &base_ldif))) {
         ret = ldb_add(ctx->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {
-            DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+            DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
                       ret, ldb_errstring(ctx->ldb), domain->name));
             ret = EIO;
             goto done;
@@ -1657,7 +1657,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* do a synchronous add */
     ret = ldb_add(ctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
                   ret, ldb_errstring(ctx->ldb), domain->name));
         ret = EIO;
         goto done;
@@ -1685,7 +1685,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* do a synchronous add */
     ret = ldb_add(ctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
                   ret, ldb_errstring(ctx->ldb), domain->name));
         ret = EIO;
         goto done;
@@ -1713,7 +1713,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     /* do a synchronous add */
     ret = ldb_add(ctx->ldb, msg);
     if (ret != LDB_SUCCESS) {
-        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!",
+        DEBUG(0, ("Failed to initialize DB (%d, [%s]) for domain %s!\n",
                   ret, ldb_errstring(ctx->ldb), domain->name));
         ret = EIO;
         goto done;
