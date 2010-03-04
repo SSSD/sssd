@@ -74,13 +74,16 @@ static int sss_nss_getpw_readrep(struct sss_nss_pw_rep *pr,
 {
     size_t i, slen, dlen;
     char *sbuf;
+    uint32_t c;
 
     if (*len < 13) { /* not enough space for data, bad packet */
         return EBADMSG;
     }
 
-    pr->result->pw_uid = ((uint32_t *)buf)[0];
-    pr->result->pw_gid = ((uint32_t *)buf)[1];
+    SAFEALIGN_COPY_UINT32(&c, buf, NULL);
+    pr->result->pw_uid = c;
+    SAFEALIGN_COPY_UINT32(&c, buf+sizeof(uint32_t), NULL);
+    pr->result->pw_gid = c;
 
     sbuf = (char *)&buf[8];
     slen = *len - 8;

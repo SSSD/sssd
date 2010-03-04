@@ -78,17 +78,19 @@ struct sss_nss_gr_rep {
 static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
                                  uint8_t *buf, size_t *len)
 {
-    size_t i, l, slen, ptmem;
+    size_t i, l, slen, ptmem, pad;
     ssize_t dlen;
     char *sbuf;
     uint32_t mem_num;
+    uint32_t c;
 
     if (*len < 11) { /* not enough space for data, bad packet */
         return EBADMSG;
     }
 
-    pr->result->gr_gid = ((uint32_t *)buf)[0];
-    mem_num = ((uint32_t *)buf)[1];
+    SAFEALIGN_COPY_UINT32(&c, buf, NULL);
+    pr->result->gr_gid = c;
+    SAFEALIGN_COPY_UINT32(&mem_num, buf+sizeof(uint32_t), NULL);
 
     sbuf = (char *)&buf[8];
     slen = *len - 8;
@@ -127,9 +129,15 @@ static int sss_nss_getgr_readrep(struct sss_nss_gr_rep *pr,
     i++;
     dlen--;
 
+    /* Make sure pr->buffer[i+pad] is 32 bit aligned */
+    pad = 0;
+    while((i + pad) % 4) {
+        pad++;
+    }
+
     /* now members */
-    pr->result->gr_mem = (char **)&(pr->buffer[i]);
-    ptmem = sizeof(char *) * (mem_num + 1);
+    pr->result->gr_mem = (char **)&(pr->buffer[i+pad]);
+    ptmem = (sizeof(char *) * (mem_num + 1)) + pad;
     if (ptmem > dlen) {
         return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
     }

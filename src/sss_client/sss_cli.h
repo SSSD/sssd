@@ -408,6 +408,20 @@ int sss_pam_make_request(enum sss_cli_command cmd,
                                      uint8_t **repbuf, size_t *replen,
                                      int *errnop);
 
+#ifndef SAFEALIGN_COPY_UINT32
+static inline void
+safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
+{
+    memcpy(dest, src, n);
+    if (counter) {
+        *counter += n;
+    }
+}
+
+#define SAFEALIGN_COPY_UINT32(dest, src, pctr) \
+    safealign_memcpy(dest, src, sizeof(uint32_t), pctr)
+#endif
+
 #endif /* _SSSCLI_H */
 
 #if 0
