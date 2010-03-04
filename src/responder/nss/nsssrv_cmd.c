@@ -205,9 +205,8 @@ static int fill_pwent(struct sss_packet *packet,
         }
         sss_packet_get_body(packet, &body, &blen);
 
-        ((uint32_t *)(&body[rp]))[0] = uid;
-        ((uint32_t *)(&body[rp]))[1] = gid;
-        rp += 2*sizeof(uint32_t);
+        SAFEALIGN_SET_UINT32(&body[rp], uid, &rp);
+        SAFEALIGN_SET_UINT32(&body[rp], gid, &rp);
 
         if (add_domain) {
             ret = snprintf((char *)&body[rp], s1, namefmt, name, domain);
@@ -1566,10 +1565,10 @@ static int fill_grent(struct sss_packet *packet,
         sss_packet_get_body(packet, &body, &blen);
 
         /*  0-3: 32bit number gid */
-        ((uint32_t *)(&body[rzero+GID_ROFFSET]))[0] = gid;
+        SAFEALIGN_SET_UINT32(&body[rzero+GID_ROFFSET], gid, NULL);
 
         /*  4-7: 32bit unsigned number of members */
-        ((uint32_t *)(&body[rzero+MNUM_ROFFSET]))[0] = 0;
+        SAFEALIGN_SET_UINT32(&body[rzero+MNUM_ROFFSET], 0, NULL);
 
         /*  8-X: sequence of strings (name, passwd, mem..) */
         if (add_domain) {
@@ -1688,7 +1687,7 @@ static int fill_grent(struct sss_packet *packet,
 
             if (memnum) {
                 /* set num of members */
-                ((uint32_t *)(&body[rzero+MNUM_ROFFSET]))[0] = memnum;
+                SAFEALIGN_SET_UINT32(&body[rzero+MNUM_ROFFSET], memnum, NULL);
             }
         }
 
