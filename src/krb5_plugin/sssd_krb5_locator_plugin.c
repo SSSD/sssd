@@ -45,7 +45,7 @@
 
 struct sssd_ctx {
     char *sssd_realm;
-    struct addrinfo *sssd_kdc_addrinfo;
+    char *kdc_addr;
     bool debug;
 };
 
@@ -122,14 +122,10 @@ static int get_kdcinfo(const char *realm, struct sssd_ctx *ctx)
     }
     PLUGIN_DEBUG(("Found kdcinfo [%s].\n", buf));
 
-    ret = getaddrinfo((char *) buf, "kerberos", NULL, &ctx->sssd_kdc_addrinfo);
-    if (ret != 0) {
-        PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
-                                                        gai_strerror(ret)));
-        if (ret == EAI_SYSTEM) {
-            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
-                                                            strerror(errno)));
-        }
+    ctx->kdc_addr = strdup((char *) buf);
+    if (ctx->kdc_addr == NULL) {
+        PLUGIN_DEBUG(("strdup failed.\n"));
+        ret = ENOMEM;
         goto done;
     }
 
@@ -139,8 +135,6 @@ static int get_kdcinfo(const char *realm, struct sssd_ctx *ctx)
         ret = ENOMEM;
         goto done;
     }
-
-
 
 done:
     free(kdcinfo_name);
@@ -178,7 +172,7 @@ void sssd_krb5_locator_close(void *private_data)
     ctx = (struct sssd_ctx *) private_data;
     PLUGIN_DEBUG(("sssd_krb5_locator_close called\n"));
 
-    freeaddrinfo(ctx->sssd_kdc_addrinfo);
+    free(ctx->kdc_addr);
     free(ctx->sssd_realm);
     free(ctx);
     private_data = NULL;
@@ -197,14 +191,15 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     int ret;
     struct addrinfo *ai;
     struct sssd_ctx *ctx;
-    char hostip[NI_MAXHOST];
+    struct addrinfo ai_hints;
+    const char *service = NULL;
 
     if (private_data == NULL) return KRB5_PLUGIN_NO_HANDLE;
     ctx = (struct sssd_ctx *) private_data;
 
     if (ctx->sssd_realm == NULL || strcmp(ctx->sssd_realm, realm) != 0) {
-        freeaddrinfo(ctx->sssd_kdc_addrinfo);
-        ctx->sssd_kdc_addrinfo = NULL;
+        free(ctx->kdc_addr);
+        ctx->kdc_addr = NULL;
         free(ctx->sssd_realm);
         ctx->sssd_realm = NULL;
         ret = get_kdcinfo(realm, ctx);
@@ -221,10 +216,15 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     switch (svc) {
         case locate_service_kdc:
         case locate_service_master_kdc:
+            service = "kerberos";
+            break;
         case locate_service_kadmin:
+            service = "kerberos-adm";
+            break;
+        case locate_service_kpasswd:
+            service = "kpasswd";
             break;
         case locate_service_krb524:
-        case locate_service_kpasswd:
             return KRB5_PLUGIN_NO_HANDLE;
         default:
             return EINVAL;
@@ -250,32 +250,35 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     if (strcmp(realm, ctx->sssd_realm) != 0)
         return KRB5_PLUGIN_NO_HANDLE;
 
-    for (ai = ctx->sssd_kdc_addrinfo; ai != NULL; ai = ai->ai_next) {
-        ret = getnameinfo(ai->ai_addr, ai->ai_addrlen, hostip, NI_MAXHOST,
-                          NULL, 0, NI_NUMERICHOST);
+    memset(&ai_hints, 0, sizeof(struct addrinfo));
+    ai_hints.ai_flags = AI_NUMERICHOST;
+    ai_hints.ai_socktype = socktype;
+    ret = getaddrinfo(ctx->kdc_addr, service, &ai_hints, &ai);
+    if (ret != 0) {
+        PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", ret,
+                                                        gai_strerror(ret)));
+        if (ret == EAI_SYSTEM) {
+            PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
+                                                            strerror(errno)));
+        }
+        return EFAULT;
+    }
+
+    PLUGIN_DEBUG(("addr[%s] family[%d] socktype[%d]\n", ctx->kdc_addr,
+                 ai->ai_family, ai->ai_socktype));
+
+    if ((family == AF_UNSPEC || ai->ai_family == family) &&
+        ai->ai_socktype == socktype) {
+
+        ret = cbfunc(cbdata, socktype, ai->ai_addr);
         if (ret != 0) {
-            PLUGIN_DEBUG(("getnameinfo failed [%d][%s].\n", ret,
-                          gai_strerror(ret)));
-            if (ret == EAI_SYSTEM) {
-                PLUGIN_DEBUG(("getnameinfo failed [%d][%s].\n", errno,
-                              strerror(errno)));
-            }
-        }
-        PLUGIN_DEBUG(("addr[%s] family[%d] socktype[%d] - ", hostip,
-                      ai->ai_family, ai->ai_socktype));
-
-        if ((family == AF_UNSPEC || ai->ai_family == family) &&
-            ai->ai_socktype == socktype) {
-
-            ret = cbfunc(cbdata, socktype, ai->ai_addr);
-            if (ret != 0) {
-                PLUGIN_DEBUG(("\ncbfunc failed\n"));
-            } else {
-                PLUGIN_DEBUG(("used\n"));
-            }
+            PLUGIN_DEBUG(("cbfunc failed\n"));
+            return ret;
         } else {
-            PLUGIN_DEBUG((" NOT used\n"));
+            PLUGIN_DEBUG(("[%s] used\n", ctx->kdc_addr));
         }
+    } else {
+        PLUGIN_DEBUG(("[%s] NOT used\n", ctx->kdc_addr));
     }
 
     return 0;

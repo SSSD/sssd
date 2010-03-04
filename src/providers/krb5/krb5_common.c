@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
@@ -47,7 +48,6 @@ errno_t check_and_export_options(struct dp_option *opts,
     char *value;
     const char *realm;
     const char *dummy;
-    char **list;
 
     realm = dp_opt_get_cstring(opts, KRB5_REALM);
     if (realm == NULL) {
@@ -68,18 +68,6 @@ errno_t check_and_export_options(struct dp_option *opts,
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
     if (dummy == NULL) {
         DEBUG(1, ("No KDC expicitly configured, using defaults"));
-    } else {
-        ret = split_on_separator(opts, dummy, ',', true, &list, NULL);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to parse server list!\n"));
-            return ret;
-        }
-        ret = write_kdcinfo_file(realm, list[0]);
-        if (ret != EOK) {
-            DEBUG(1, ("write_kdcinfo_file failed, "
-                      "using kerberos defaults from /etc/krb5.conf"));
-        }
-        talloc_free(list);
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_CCNAME_TMPL);
@@ -248,9 +236,15 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    address = talloc_asprintf(krb5_service, "%s", srvaddr->h_name);
-    if (!address) {
-        DEBUG(1, ("Failed to copy address ...\n"));
+    address = talloc_zero_size(krb5_service, 128);
+    if (address == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        return;
+    }
+
+    if (inet_ntop(srvaddr->h_addrtype, srvaddr->h_addr_list[0],
+                  address, 128) == NULL) {
+        DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
         return;
     }
 

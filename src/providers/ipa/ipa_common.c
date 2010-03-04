@@ -24,6 +24,8 @@
 
 #include <netdb.h>
 #include <ctype.h>
+#include <arpa/inet.h>
+
 #include "providers/ipa/ipa_common.h"
 
 struct dp_option ipa_basic_opts[] = {
@@ -472,9 +474,15 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
-    address = talloc_asprintf(service, "%s", srvaddr->h_name);
-    if (!address) {
-        DEBUG(1, ("Failed to copy address ...\n"));
+    address = talloc_zero_size(service, 128);
+    if (address == NULL) {
+        DEBUG(1, ("talloc_zero failed.\n"));
+        return;
+    }
+
+    if (inet_ntop(srvaddr->h_addrtype, srvaddr->h_addr_list[0],
+                  address, 128) == NULL) {
+        DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
         return;
     }
 
