@@ -290,7 +290,7 @@ int col_insert_str_property_with_ref(struct collection_item *ci,
                                      int idx,
                                      unsigned flags,
                                      const char *property,
-                                     char *string,
+                                     const char *string,
                                      int length,
                                      struct collection_item **ret_ref)
 {
