@@ -1,6 +1,8 @@
 #DEBUG_FLAGS=@DEBUG_VAR@
 TRACE_LEVEL=@TRACE_VAR@
 
+DOXYGEN = @DOXYGEN@
+
 topdir=$(srcdir)/..
 
 AM_CFLAGS =
@@ -50,6 +52,22 @@ collection_stack_ut_LDADD = libcollection.la
 collection_queue_ut_SOURCES = collection_queue_ut.c
 collection_queue_ut_LDADD = libcollection.la
 
+if HAVE_DOXYGEN
+docs:
+# A temp way of building docs until we hook into the package build
+	rm -fR doc
+	mkdir -p doc
+	$(DOXYGEN) collection.cfg.doxy
+else
+docs:
+	@echo "Doxygen not installed, cannot generate documentation"
+	@exit 1
+endif
+
+
 TESTS = collection_ut collection_stack_ut collection_queue_ut
 
 tests: all $(check_PROGRAMS)
+
+clean-local:
+	rm -Rf doc

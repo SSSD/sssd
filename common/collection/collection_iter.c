@@ -32,7 +32,8 @@
 #include "collection_priv.h"
 #include "collection.h"
 
-
+/* Depth for iterator depth allocation block */
+#define STACK_DEPTH_BLOCK   15
 
 /* Grow iteration stack */
 static int col_grow_stack(struct collection_iterator *iterator, unsigned desired)

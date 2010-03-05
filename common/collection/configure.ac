@@ -1,4 +1,6 @@
-AC_INIT([collection],[0.4.0],[sssd-devel@lists.fedorahosted.org])
+AC_INIT([collection],
+        [0.4.0],
+        [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([collection.c])
 AC_CONFIG_AUX_DIR([build])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
@@ -32,6 +34,9 @@ AC_CHECK_FUNC([strcasestr],
 
 AC_DEFINE([COL_MAX_DATA], [65535], [Max length of the data block allowed in the collection value.])
 
+AC_PATH_PROG([DOXYGEN], [doxygen], [false])
+AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
 
-AC_CONFIG_FILES([Makefile collection.pc])
+
+AC_CONFIG_FILES([Makefile collection.cfg.doxy collection.pc])
 AC_OUTPUT

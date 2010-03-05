@@ -24,66 +24,298 @@
 
 #include "collection.h"
 
+/**
+ * @defgroup queue QUEUE interface
+ *
+ * Queue interface is a wrapper on top of the \ref collection
+ * interface. It implements a queue using a collection object.
+ *
+ * @{
+ */
 
+/** @brief Class for the queue object */
 #define COL_CLASS_QUEUE 40000
+/** @brief All queues use this name as the name of the collection */
 #define COL_NAME_QUEUE  "queue"
 
-/* Function that creates a queue object */
+/**
+ * @brief Create queue.
+ *
+ * Function that creates a queue object.
+ *
+ * @param[out] queue             Newly created queue object.
+ *
+ * @return 0          - Queue was created successfully.
+ * @return ENOMEM     - No memory.
+ *
+ */
 int col_create_queue(struct collection_item **queue);
 
-/* Function that destroys a queue object */
+/**
+ * @brief Destroy queue.
+ *
+ * Function that destroys a queue object.
+ *
+ * @param[in] queue              Queue object to destroy.
+ *
+ */
 void col_destroy_queue(struct collection_item *queue);
 
-/* Family of functions that add property to a queue */
-/* Put a string property to queue.  */
+/**
+ * @brief Add string to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] string      Null terminated string to add.
+ * @param[in] length      Length of the string. Should include the length
+ *                        of the terminating 0.
+ *                        If the length is shorter than the full string
+ *                        the string will be truncated. If the length is
+ *                        longer than the actual string there might be
+ *                        garbage at end of the actual string.
+ *                        Library will always properly NULL terminate
+ *                        the string at the given position dictated
+ *                        by length but in no way will inspect the validity
+ *                        of the passed in data. This is left to the calling
+ *                        application.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid characters in the property name.
+ *                      Value argument is invalid in some way.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_str_property(struct collection_item *queue,
                              const char *property,
                              const char *string,
                              int length);
-/* Put a binary property to queue.  */
+/**
+ * @brief Add binary value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] binary_data Data to add.
+ * @param[in] length      Length of the binary data.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_binary_property(struct collection_item *queue,
                                 const char *property,
                                 void *binary_data,
                                 int length);
-/* Put an int property to queue. */
+/**
+ * @brief Add integer value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] number      Value to add.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_int_property(struct collection_item *queue,
                              const char *property,
                              int number);
-/* Put an unsigned int property to queue. */
+/**
+ * @brief Add unsigned value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] number      Value to add.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_unsigned_property(struct collection_item *queue,
                                   const char *property,
                                   unsigned int number);
-/* Put a long property. */
+/**
+ * @brief Add long integer value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] number      Value to add.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_long_property(struct collection_item *queue,
                               const char *property,
                               long number);
-/* Put an unsigned long property. */
+/**
+ * @brief Add unsigned long value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] number      Value to add.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_ulong_property(struct collection_item *queue,
                                const char *property,
                                unsigned long number);
-/* Put a double property. */
+/**
+ * @brief Add floating point value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] number      Value to add.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_double_property(struct collection_item *queue,
                                 const char *property,
                                 double number);
-/* Put a bool property. */
+/**
+ * @brief Add Boolean value to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] logical     Value to add.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
 int col_enqueue_bool_property(struct collection_item *queue,
                               const char *property,
                               unsigned char logical);
 
-/* Put any property */
-int col_enqueue_any_property(struct collection_item *queue, /* Queue */
-                             const char *property,          /* Name */
-                             int type,                      /* Data type */
-                             void *data,                    /* Pointer to the data */
-                             int length);                   /* Length of the data. For
-                                                             * strings it includes the
-                                                             * trailing 0 */
-/* Push item */
+/**
+ * @brief Add value of any type to the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] property    Name of the property.<br>
+ *                        Name should consist of the ASCII characters
+ *                        with codes non less than space.
+ *                        Exclamation mark character is
+ *                        a special character and can't be used
+ *                        in name of collection or property.<br>
+ *                        Maximum allowed length is defined at compile time.
+ *                        The default value is 64k.
+ * @param[in] type        Type to use.
+ * @param[in] data        Data to add.
+ * @param[in] length      Length of the data.
+ *
+ * @return 0 - Property was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid characters in the property name.
+ *                      Value argument is invalid in some way.
+ * @return EMSGSIZE   - Property name is too long.
+ *
+ */
+int col_enqueue_any_property(struct collection_item *queue,
+                             const char *property,
+                             int type,
+                             void *data,
+                             int length);
+
+/**
+ * @brief Push item into the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[in] item        Item to push.
+ *
+ * @return 0          - Item was added successfully.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ */
 int col_enqueue_item(struct collection_item *queue,
                      struct collection_item *item);
 
-
-/* Get item from queue */
+/**
+ * @brief Get item from the queue.
+ *
+ * @param[in] queue       Queue object.
+ * @param[out] item       Variable receives the value
+ *                        of the retrieved item.
+ *                        Will be set to NULL if there are
+ *                        no more items in the queue.
+ *
+ * @return 0          - No internal issues detected.
+ * @return ENOMEM     - No memory.
+ * @return EINVAL     - Invalid argument.
+ */
 int col_dequeue_item(struct collection_item *queue,
                      struct collection_item **item);
 
