@@ -205,6 +205,10 @@ KRB5_LIBS=-lkrb5 \
 
 make %{?_smp_mflags}
 
+pushd common/collection
+make %{?_smp_mflags} docs
+popd
+
 %check
 make %{?_smp_mflags} check
 
@@ -360,7 +364,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/collection_stack.h
 %{_libdir}/libcollection.so
 %{_libdir}/pkgconfig/collection.pc
-%doc common/collection/README
+%doc common/collection/doc/html/
 
 %files -n libini_config
 %defattr(-,root,root,-)

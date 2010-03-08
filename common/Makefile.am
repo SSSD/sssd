@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = trace collection ini dhash path_utils refarray
+DOCDIRS = collection
 
 dist_noinst_DATA = \
     m4
@@ -23,5 +24,10 @@ endif
 
 tests: all
 	for subdir in $(SUBDIRS); do \
+		$(MAKE) -C $$subdir $@; \
+	done
+
+docs:
+	for subdir in $(DOCDIRS); do \
 		$(MAKE) -C $$subdir $@; \
 	done

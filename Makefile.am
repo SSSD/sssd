@@ -58,4 +58,6 @@ tests: all
 	done
 
 docs:
-	$(MAKE) -C src $@
+	for subdir in $(SUBDIRS); do \
+		$(MAKE) -C $$subdir $@; \
+	done
