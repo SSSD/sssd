@@ -29,7 +29,7 @@ PID_FILE=/var/run/sssd.pid
 case "$1" in
     start)
         echo -n "Starting $prog "
-        /sbin/startproc $SSSD -D 2>/dev/null
+        /sbin/startproc $SSSD -f -D 2>/dev/null
         rc_status -v
         ;;
 
