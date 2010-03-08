@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: it\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-02-25 11:08-0500\n"
+"POT-Creation-Date: 2010-03-08 17:04-0500\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Marina Latini <deneb.alphacygni@gmail.com>\n"
 "Language-Team: Italian <fedora-trans-it@redhat.com>\n"
@@ -346,18 +346,26 @@ msgid "Policy to evaluate the password expiration"
 msgstr "Politica per controllare la scadenza della password"
 
 #: config/SSSDConfig.py:148
-msgid "Default shell, /bin/bash"
+msgid "Comma separated list of allowed users"
 msgstr ""
 
 #: config/SSSDConfig.py:149
-msgid "Base for home directories"
+msgid "Comma separated list of prohibited users"
 msgstr ""
 
 #: config/SSSDConfig.py:152
+msgid "Default shell, /bin/bash"
+msgstr ""
+
+#: config/SSSDConfig.py:153
+msgid "Base for home directories"
+msgstr ""
+
+#: config/SSSDConfig.py:156
 msgid "The name of the NSS library to use"
 msgstr ""
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:159
 msgid "PAM stack to use"
 msgstr "Stack PAM da usare"
 
@@ -665,48 +673,48 @@ msgstr "Impossibile modificare l'utente - utente già membro di gruppi?\n"
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Errore della transazione. Impossibile modificare l'utente.\n"
 
-#: sss_client/pam_sss.c:349
+#: sss_client/pam_sss.c:353
 msgid "Passwords do not match"
 msgstr "Le password non coincidono"
 
-#: sss_client/pam_sss.c:418
+#: sss_client/pam_sss.c:422
 msgid "Offline authentication"
 msgstr ""
 
-#: sss_client/pam_sss.c:419
+#: sss_client/pam_sss.c:423
 msgid ", your cached password will expire at: "
 msgstr ""
 
-#: sss_client/pam_sss.c:469
+#: sss_client/pam_sss.c:473
 msgid "Offline authentication, authentication is denied until: "
 msgstr ""
 
-#: sss_client/pam_sss.c:496
+#: sss_client/pam_sss.c:500
 msgid "System is offline, password change not possible"
 msgstr ""
 
-#: sss_client/pam_sss.c:526
+#: sss_client/pam_sss.c:530
 #, fuzzy
 msgid "Password change failed. "
 msgstr "La password è scaduta."
 
-#: sss_client/pam_sss.c:527
+#: sss_client/pam_sss.c:531
 msgid "Server message: "
 msgstr ""
 
-#: sss_client/pam_sss.c:894
+#: sss_client/pam_sss.c:898
 msgid "New Password: "
 msgstr "Nuova password: "
 
-#: sss_client/pam_sss.c:895
+#: sss_client/pam_sss.c:899
 msgid "Reenter new Password: "
 msgstr "reinserire la nuova password: "
 
-#: sss_client/pam_sss.c:953
+#: sss_client/pam_sss.c:957
 msgid "Password: "
 msgstr "Password: "
 
-#: sss_client/pam_sss.c:983
+#: sss_client/pam_sss.c:987
 #, fuzzy
 msgid "Current Password: "
 msgstr "Nuova password: "

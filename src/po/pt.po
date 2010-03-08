@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-02-25 11:08-0500\n"
+"POT-Creation-Date: 2010-03-08 17:04-0500\n"
 "PO-Revision-Date: 2010-02-23 13:59+0100\n"
 "Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
 "Language-Team: fedora-trans-pt@redhat.com\n"
@@ -355,18 +355,26 @@ msgid "Policy to evaluate the password expiration"
 msgstr "Politica para avaliar a expiração da senha"
 
 #: config/SSSDConfig.py:148
+msgid "Comma separated list of allowed users"
+msgstr ""
+
+#: config/SSSDConfig.py:149
+msgid "Comma separated list of prohibited users"
+msgstr ""
+
+#: config/SSSDConfig.py:152
 msgid "Default shell, /bin/bash"
 msgstr "Shell pré-definida, /bin/bash"
 
-#: config/SSSDConfig.py:149
+#: config/SSSDConfig.py:153
 msgid "Base for home directories"
 msgstr "Directório base para as pastas pessoais"
 
-#: config/SSSDConfig.py:152
+#: config/SSSDConfig.py:156
 msgid "The name of the NSS library to use"
 msgstr "O nome da biblioteca NSS a utilizar"
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:159
 msgid "PAM stack to use"
 msgstr "Stack PAM a utilizar"
 
@@ -682,47 +690,47 @@ msgstr "Incapaz de modificar utilizador - utilizador já é membro de grupos?\n"
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Erro na transacção. Não foi possível modificar o utilizador.\n"
 
-#: sss_client/pam_sss.c:349
+#: sss_client/pam_sss.c:353
 msgid "Passwords do not match"
 msgstr "Senhas não coincidem"
 
-#: sss_client/pam_sss.c:418
+#: sss_client/pam_sss.c:422
 msgid "Offline authentication"
 msgstr "Autenticação offline"
 
-#: sss_client/pam_sss.c:419
+#: sss_client/pam_sss.c:423
 msgid ", your cached password will expire at: "
 msgstr ", a sua senha guardada em cache irá expirar em: "
 
-#: sss_client/pam_sss.c:469
+#: sss_client/pam_sss.c:473
 msgid "Offline authentication, authentication is denied until: "
 msgstr "Autenticação offline, a autenticação é negada até: "
 
-#: sss_client/pam_sss.c:496
+#: sss_client/pam_sss.c:500
 msgid "System is offline, password change not possible"
 msgstr "O sistema está offline, a mudança de senha não é possível"
 
-#: sss_client/pam_sss.c:526
+#: sss_client/pam_sss.c:530
 msgid "Password change failed. "
 msgstr "Alteração da senha falhou."
 
-#: sss_client/pam_sss.c:527
+#: sss_client/pam_sss.c:531
 msgid "Server message: "
 msgstr "Mensagem do Servidor: "
 
-#: sss_client/pam_sss.c:894
+#: sss_client/pam_sss.c:898
 msgid "New Password: "
 msgstr "Nova Senha: "
 
-#: sss_client/pam_sss.c:895
+#: sss_client/pam_sss.c:899
 msgid "Reenter new Password: "
 msgstr "Digite a senha novamente: "
 
-#: sss_client/pam_sss.c:953
+#: sss_client/pam_sss.c:957
 msgid "Password: "
 msgstr "Senha: "
 
-#: sss_client/pam_sss.c:983
+#: sss_client/pam_sss.c:987
 #, fuzzy
 msgid "Current Password: "
 msgstr "Nova Senha: "

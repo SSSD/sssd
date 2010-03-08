@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-02-25 11:08-0500\n"
+"POT-Creation-Date: 2010-03-08 17:04-0500\n"
 "PO-Revision-Date: 2010-02-26 20:14-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -40,7 +40,8 @@ msgstr "Comando para iniciar el servicio"
 
 #: config/SSSDConfig.py:44
 msgid "Number of times to attempt connection to Data Providers"
-msgstr "Número de veces que debe intentar la conexión con los Proveedores de Datos"
+msgstr ""
+"Número de veces que debe intentar la conexión con los Proveedores de Datos"
 
 #: config/SSSDConfig.py:47
 msgid "SSSD Services to start"
@@ -56,11 +57,14 @@ msgstr "Tiempo máximo para los mensajes enviados a través de SBUS"
 
 #: config/SSSDConfig.py:50
 msgid "Regex to parse username and domain"
-msgstr "Expresión regular para analizar sintácticamente el nombre de usuario y dominio"
+msgstr ""
+"Expresión regular para analizar sintácticamente el nombre de usuario y "
+"dominio"
 
 #: config/SSSDConfig.py:51
 msgid "Printf-compatible format for displaying fully-qualified names"
-msgstr "Formato compatible con printf para mostrar nombres completamente calificados"
+msgstr ""
+"Formato compatible con printf para mostrar nombres completamente calificados"
 
 #: config/SSSDConfig.py:54
 msgid "Enumeration cache timeout length (seconds)"
@@ -68,7 +72,8 @@ msgstr "Tiempo máximo (segundos) del caché de enumeración"
 
 #: config/SSSDConfig.py:55
 msgid "Entry cache background update timeout length (seconds)"
-msgstr "Tiempo máximo (segundos) de la entrada de caché a actualizar en segundo plano"
+msgstr ""
+"Tiempo máximo (segundos) de la entrada de caché a actualizar en segundo plano"
 
 #: config/SSSDConfig.py:56
 msgid "Negative cache timeout length (seconds)"
@@ -92,15 +97,21 @@ msgstr "El valor del campo contraseña que el proveedor NSS debe devolver"
 
 #: config/SSSDConfig.py:63
 msgid "How long to allow cached logins between online logins (days)"
-msgstr "Por cuánto tiempo permitir ingresos cacheados entre ingresos en línea (días)"
+msgstr ""
+"Por cuánto tiempo permitir ingresos cacheados entre ingresos en línea (días)"
 
 #: config/SSSDConfig.py:64
 msgid "How many failed logins attempts are allowed when offline"
-msgstr "Cuantos intentos de ingreso fallidos se permiten cuando está desconectado"
+msgstr ""
+"Cuantos intentos de ingreso fallidos se permiten cuando está desconectado"
 
 #: config/SSSDConfig.py:65
-msgid "How long (minutes) to deny login after offline_failed_login_attempts has been reached"
-msgstr "Cuántos minutos se denegará el ingreso después de que se alcance el máximo de ingresos fallidos offline_failed_login_attempts"
+msgid ""
+"How long (minutes) to deny login after offline_failed_login_attempts has "
+"been reached"
+msgstr ""
+"Cuántos minutos se denegará el ingreso después de que se alcance el máximo "
+"de ingresos fallidos offline_failed_login_attempts"
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
@@ -151,8 +162,11 @@ msgid "Entry cache timeout length (seconds)"
 msgstr "Tiempo máximo de una entrada del caché (segundos)"
 
 #: config/SSSDConfig.py:82
-msgid "Restrict or prefer a specific address family when performing DNS lookups"
-msgstr "Restringir o preferir una familia de direcciones específica, cuando se realicen búsquedas DNS"
+msgid ""
+"Restrict or prefer a specific address family when performing DNS lookups"
+msgstr ""
+"Restringir o preferir una familia de direcciones específica, cuando se "
+"realicen búsquedas DNS"
 
 #: config/SSSDConfig.py:83
 msgid "How long to keep cached entries after last successful login (days)"
@@ -170,13 +184,11 @@ msgstr "Dirección del servidor IPA"
 msgid "IPA client hostname"
 msgstr "Nombre de equipo del cliente IPA"
 
-#: config/SSSDConfig.py:91
-#: config/SSSDConfig.py:118
+#: config/SSSDConfig.py:91 config/SSSDConfig.py:118
 msgid "Kerberos server address"
 msgstr "Dirección del servidor Kerberos"
 
-#: config/SSSDConfig.py:92
-#: config/SSSDConfig.py:119
+#: config/SSSDConfig.py:92 config/SSSDConfig.py:119
 msgid "Kerberos realm"
 msgstr "Reinado Kerberos"
 
@@ -345,36 +357,36 @@ msgid "Policy to evaluate the password expiration"
 msgstr "Política para evaluar el vencimiento de la contraseña"
 
 #: config/SSSDConfig.py:148
+msgid "Comma separated list of allowed users"
+msgstr ""
+
+#: config/SSSDConfig.py:149
+msgid "Comma separated list of prohibited users"
+msgstr ""
+
+#: config/SSSDConfig.py:152
 msgid "Default shell, /bin/bash"
 msgstr "Shell predeterminado, /bin/bash"
 
-#: config/SSSDConfig.py:149
+#: config/SSSDConfig.py:153
 msgid "Base for home directories"
 msgstr "Base de los directorios de inicio"
 
-#: config/SSSDConfig.py:152
+#: config/SSSDConfig.py:156
 msgid "The name of the NSS library to use"
 msgstr "Nombre de la biblioteca NSS a usar"
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:159
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
-#: tools/sss_groupdel.c:43
-#: tools/sss_groupmod.c:42
-#: tools/sss_userdel.c:45
-#: tools/sss_useradd.c:114
-#: tools/sss_groupadd.c:41
-#: tools/sss_usermod.c:46
+#: tools/sss_groupdel.c:43 tools/sss_groupmod.c:42 tools/sss_userdel.c:45
+#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_usermod.c:46
 msgid "The debug level to run with"
 msgstr "Nivel de depuración en que se debe ejecutar"
 
-#: tools/sss_groupdel.c:52
-#: tools/sss_groupmod.c:63
-#: tools/sss_userdel.c:57
-#: tools/sss_useradd.c:137
-#: tools/sss_groupadd.c:56
-#: tools/sss_usermod.c:70
+#: tools/sss_groupdel.c:52 tools/sss_groupmod.c:63 tools/sss_userdel.c:57
+#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_usermod.c:70
 msgid "Error setting the locale\n"
 msgstr "Error al poner la región\n"
 
@@ -382,30 +394,18 @@ msgstr "Error al poner la región\n"
 msgid "Specify group to delete\n"
 msgstr "Especifique el grupo a borrar\n"
 
-#: tools/sss_groupdel.c:81
-#: tools/sss_groupmod.c:111
-#: tools/sss_userdel.c:102
-#: tools/sss_useradd.c:183
-#: tools/sss_groupadd.c:86
-#: tools/sss_usermod.c:126
+#: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
+#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
 msgid "Error initializing the tools - no local domain\n"
 msgstr "Error al inicializar las herramientas -  no hay dominio local\n"
 
-#: tools/sss_groupdel.c:83
-#: tools/sss_groupmod.c:113
-#: tools/sss_userdel.c:104
-#: tools/sss_useradd.c:185
-#: tools/sss_groupadd.c:88
-#: tools/sss_usermod.c:128
+#: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
+#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
 msgid "Error initializing the tools\n"
 msgstr "Error al inicializar las herramientas\n"
 
-#: tools/sss_groupdel.c:92
-#: tools/sss_groupmod.c:121
-#: tools/sss_userdel.c:113
-#: tools/sss_useradd.c:194
-#: tools/sss_groupadd.c:97
-#: tools/sss_usermod.c:137
+#: tools/sss_groupdel.c:92 tools/sss_groupmod.c:121 tools/sss_userdel.c:113
+#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_usermod.c:137
 msgid "Invalid domain specified in FQDN\n"
 msgstr "Dominio inválido especificado en FQDN\n"
 
@@ -415,8 +415,12 @@ msgid "Group %s is outside the defined ID range for domain\n"
 msgstr "El grupo %s está fuera del rango de ID definido para los dominios\n"
 
 #: tools/sss_groupdel.c:136
-msgid "No such group in local domain. Removing groups only allowed in local domain.\n"
-msgstr "No existe tal grupo en el dominio local. Eliminando los grupos que sólo se permiten en el dominio local.\n"
+msgid ""
+"No such group in local domain. Removing groups only allowed in local "
+"domain.\n"
+msgstr ""
+"No existe tal grupo en el dominio local. Eliminando los grupos que sólo se "
+"permiten en el dominio local.\n"
 
 #: tools/sss_groupdel.c:141
 msgid "Internal error. Could not remove group.\n"
@@ -430,8 +434,7 @@ msgstr "Grupos a los que se debe agregar este grupo"
 msgid "Groups to remove this group from"
 msgstr "Grupos desde los que se debe eliminar este grupo"
 
-#: tools/sss_groupmod.c:48
-#: tools/sss_groupadd.c:43
+#: tools/sss_groupmod.c:48 tools/sss_groupadd.c:43
 msgid "The GID of the group"
 msgstr "El GID del grupo"
 
@@ -440,42 +443,47 @@ msgid "Specify group to modify\n"
 msgstr "Especifique el grupo a modificar\n"
 
 #: tools/sss_groupmod.c:130
-msgid "Cannot find group in local domain, modifying groups is allowed only in local domain\n"
-msgstr "No se pudo encontrar el grupo en el dominio local, la modificación de grupos se permite sólo en el dominio local\n"
+msgid ""
+"Cannot find group in local domain, modifying groups is allowed only in local "
+"domain\n"
+msgstr ""
+"No se pudo encontrar el grupo en el dominio local, la modificación de grupos "
+"se permite sólo en el dominio local\n"
 
-#: tools/sss_groupmod.c:143
-#: tools/sss_groupmod.c:170
-#: tools/sss_useradd.c:203
-#: tools/sss_usermod.c:162
-#: tools/sss_usermod.c:189
+#: tools/sss_groupmod.c:143 tools/sss_groupmod.c:170 tools/sss_useradd.c:203
+#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
 msgid "Internal error while parsing parameters\n"
 msgstr "Error interno al analizar sintácticamente los parámetros.\n"
 
-#: tools/sss_groupmod.c:151
-#: tools/sss_groupmod.c:178
+#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
 msgid "Member groups must be in the same domain as parent group\n"
-msgstr "Los grupos miembro deben estar en el mismo dominio que el grupo padre\n"
+msgstr ""
+"Los grupos miembro deben estar en el mismo dominio que el grupo padre\n"
 
-#: tools/sss_groupmod.c:159
-#: tools/sss_groupmod.c:186
-#: tools/sss_usermod.c:178
+#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
 #: tools/sss_usermod.c:205
 #, c-format
-msgid "Cannot find group %s in local domain, only groups in local domain are allowed\n"
-msgstr "No se pudo encontrar el grupo %s en el dominio local, solo se permiten los grupos del dominio local\n"
+msgid ""
+"Cannot find group %s in local domain, only groups in local domain are "
+"allowed\n"
+msgstr ""
+"No se pudo encontrar el grupo %s en el dominio local, solo se permiten los "
+"grupos del dominio local\n"
 
-#: tools/sss_groupmod.c:194
-#: tools/sss_groupadd.c:106
+#: tools/sss_groupmod.c:194 tools/sss_groupadd.c:106
 msgid "The selected GID is outside the allowed range\n"
 msgstr "El GID elegido está fuera del rango permitido\n"
 
 #: tools/sss_groupmod.c:222
 msgid "Could not modify group - check if member group names are correct\n"
-msgstr "No se pudo modificar el grupo - verifique si los nombre de grupo miembro son los correctos\n"
+msgstr ""
+"No se pudo modificar el grupo - verifique si los nombre de grupo miembro son "
+"los correctos\n"
 
 #: tools/sss_groupmod.c:226
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr "No se pudo modificar el grupo - verifique si el nombre de grupo es correcto\n"
+msgstr ""
+"No se pudo modificar el grupo - verifique si el nombre de grupo es correcto\n"
 
 #: tools/sss_groupmod.c:230
 msgid "Transaction error. Could not modify group.\n"
@@ -497,8 +505,7 @@ msgstr "Forzar la eliminación de los archivos que no pertenecen al usuario"
 msgid "Specify user to delete\n"
 msgstr "Especifique el usuario a borrar\n"
 
-#: tools/sss_userdel.c:123
-#: tools/sss_useradd.c:244
+#: tools/sss_userdel.c:123 tools/sss_useradd.c:244
 msgid "Cannot set default values\n"
 msgstr "No se pudieron establecer los valores predeterminados\n"
 
@@ -517,8 +524,11 @@ msgid "Cannot remove homedir: %s\n"
 msgstr " Imposible eliminar el directorio de inicio: %s\n"
 
 #: tools/sss_userdel.c:186
-msgid "No such user in local domain. Removing users only allowed in local domain.\n"
-msgstr "No existe ese usuario en el dominio local. La eliminación de usuarios se permite en el dominio local.\n"
+msgid ""
+"No such user in local domain. Removing users only allowed in local domain.\n"
+msgstr ""
+"No existe ese usuario en el dominio local. La eliminación de usuarios se "
+"permite en el dominio local.\n"
 
 #: tools/sss_userdel.c:191
 msgid "Internal error. Could not remove user.\n"
@@ -533,8 +543,7 @@ msgstr "Falta memoria\n"
 msgid "%s must be run as root\n"
 msgstr "%s se debe ejecutar como root\n"
 
-#: tools/sss_useradd.c:115
-#: tools/sss_usermod.c:47
+#: tools/sss_useradd.c:115 tools/sss_usermod.c:47
 msgid "The UID of the user"
 msgstr "El UID del usuario"
 
@@ -542,18 +551,15 @@ msgstr "El UID del usuario"
 msgid "The GID or group name of the user"
 msgstr "El GID o nombre de grupo del usuario"
 
-#: tools/sss_useradd.c:117
-#: tools/sss_usermod.c:49
+#: tools/sss_useradd.c:117 tools/sss_usermod.c:49
 msgid "The comment string"
 msgstr "La cadena de comentarios"
 
-#: tools/sss_useradd.c:118
-#: tools/sss_usermod.c:50
+#: tools/sss_useradd.c:118 tools/sss_usermod.c:50
 msgid "Home directory"
 msgstr "Directorio de inicio"
 
-#: tools/sss_useradd.c:119
-#: tools/sss_usermod.c:51
+#: tools/sss_useradd.c:119 tools/sss_usermod.c:51
 msgid "Login shell"
 msgstr "Shell de ingreso"
 
@@ -567,7 +573,8 @@ msgstr "Crear el directorio del usuario si no existe"
 
 #: tools/sss_useradd.c:122
 msgid "Never create user's directory, overrides config"
-msgstr "La opción de nunca crear el directorio del usuario, anula la configurada"
+msgstr ""
+"La opción de nunca crear el directorio del usuario, anula la configurada"
 
 #: tools/sss_useradd.c:123
 msgid "Specify an alternative skeleton directory"
@@ -577,9 +584,7 @@ msgstr "Debe especificar un directorio esqueleto alternativo"
 msgid "Specify user to add\n"
 msgstr "Especifique el usuario a agregar\n"
 
-#: tools/sss_useradd.c:211
-#: tools/sss_usermod.c:170
-#: tools/sss_usermod.c:197
+#: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
 msgstr "Los grupos deben estar en el mismo dominio que el usuario\n"
 
@@ -592,8 +597,7 @@ msgstr "No se pudo encontrar el grupo %s en el dominio local\n"
 msgid "Cannot get group information for the user\n"
 msgstr "No se pudo obtener la información del grupo del usuario\n"
 
-#: tools/sss_useradd.c:251
-#: tools/sss_usermod.c:153
+#: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
 msgstr "El UID seleccionado está fuera del rango permitido\n"
 
@@ -603,7 +607,9 @@ msgstr "No se pudo obtener información del usuario\n"
 
 #: tools/sss_useradd.c:299
 msgid "User's home directory already exists, not copying data from skeldir\n"
-msgstr "El directorio de inicio del usuario ya existe, no copiar datos desde el esqueleto\n"
+msgstr ""
+"El directorio de inicio del usuario ya existe, no copiar datos desde el "
+"esqueleto\n"
 
 #: tools/sss_useradd.c:302
 #, c-format
@@ -668,62 +674,69 @@ msgid "Specify user to modify\n"
 msgstr "Especifique el usuario a modificar\n"
 
 #: tools/sss_usermod.c:146
-msgid "Cannot find user in local domain, modifying users is allowed only in local domain\n"
-msgstr "No se pudo encontrar el usuario en el dominio local, la modificación de los usuarios se permite solamente en el dominio local\n"
+msgid ""
+"Cannot find user in local domain, modifying users is allowed only in local "
+"domain\n"
+msgstr ""
+"No se pudo encontrar el usuario en el dominio local, la modificación de los "
+"usuarios se permite solamente en el dominio local\n"
 
 #: tools/sss_usermod.c:241
 msgid "Could not modify user - check if group names are correct\n"
-msgstr "No se pudo modificar el usuario - verifique si los nombres de grupo son correctos\n"
+msgstr ""
+"No se pudo modificar el usuario - verifique si los nombres de grupo son "
+"correctos\n"
 
 #: tools/sss_usermod.c:245
 msgid "Could not modify user - user already member of groups?\n"
-msgstr "No se pudo modificar el usuario - ¿no será ya miembro de esos grupos?\n"
+msgstr ""
+"No se pudo modificar el usuario - ¿no será ya miembro de esos grupos?\n"
 
 #: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Error de transacción. No se pudo modificar el usuario.\n"
 
-#: sss_client/pam_sss.c:349
+#: sss_client/pam_sss.c:353
 msgid "Passwords do not match"
 msgstr "Las contraseñas no coinciden"
 
-#: sss_client/pam_sss.c:418
+#: sss_client/pam_sss.c:422
 msgid "Offline authentication"
 msgstr "Autenticación fuera de línea."
 
-#: sss_client/pam_sss.c:419
+#: sss_client/pam_sss.c:423
 msgid ", your cached password will expire at: "
 msgstr ", su contraseña cacheada vencerá el:"
 
-#: sss_client/pam_sss.c:469
+#: sss_client/pam_sss.c:473
 msgid "Offline authentication, authentication is denied until: "
 msgstr "Autenticación fuera de línea, la autenticación se deniega hasta:"
 
-#: sss_client/pam_sss.c:496
+#: sss_client/pam_sss.c:500
 msgid "System is offline, password change not possible"
 msgstr "El sistema está fuera de línea, no se puede cambiar la contraseña"
 
-#: sss_client/pam_sss.c:526
+#: sss_client/pam_sss.c:530
 msgid "Password change failed. "
 msgstr "Falló el cambio de contraseña."
 
-#: sss_client/pam_sss.c:527
+#: sss_client/pam_sss.c:531
 msgid "Server message: "
 msgstr "Mensaje del servidor:"
 
-#: sss_client/pam_sss.c:894
+#: sss_client/pam_sss.c:898
 msgid "New Password: "
 msgstr "Nueva contraseña: "
 
-#: sss_client/pam_sss.c:895
+#: sss_client/pam_sss.c:899
 msgid "Reenter new Password: "
 msgstr "Reingrese la contraseña nueva:"
 
-#: sss_client/pam_sss.c:953
+#: sss_client/pam_sss.c:957
 msgid "Password: "
 msgstr "Contraseña: "
 
-#: sss_client/pam_sss.c:983
+#: sss_client/pam_sss.c:987
 msgid "Current Password: "
 msgstr "Contraseña actual: "
 
