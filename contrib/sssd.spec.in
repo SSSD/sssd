@@ -69,6 +69,7 @@ BuildRequires: krb5-devel
 BuildRequires: c-ares-devel
 BuildRequires: python-devel
 BuildRequires: check-devel
+BuildRequires: doxygen
 
 %description
 Provides a set of daemons to manage access to remote directories and
