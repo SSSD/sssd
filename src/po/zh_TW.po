@@ -1,0 +1,816 @@
+# Traditional Chinese translation of SSSD
+# Copyright (C) YEAR Red Hat, Inc.
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sss_daemon 1.1.0\n"
+"Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
+"POT-Creation-Date: 2010-03-09 08:15-0500\n"
+"PO-Revision-Date: 2010-03-10 00:14+0800\n"
+"Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
+"Language-Team: Fedora-trans-zh_tw <trans-zh_tw@lists.fedoraproject.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n!=1;\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: TAIWAN\n"
+"X-Poedit-SourceCharset: utf-8\n"
+
+#: config/SSSDConfig.py:39
+msgid "Set the verbosity of the debug logging"
+msgstr ""
+
+#: config/SSSDConfig.py:40
+msgid "Include timestamps in debug logs"
+msgstr ""
+
+#: config/SSSDConfig.py:41
+msgid "Write debug messages to logfiles"
+msgstr ""
+
+#: config/SSSDConfig.py:42
+msgid "Ping timeout before restarting service"
+msgstr ""
+
+#: config/SSSDConfig.py:43
+msgid "Command to start service"
+msgstr ""
+
+#: config/SSSDConfig.py:44
+msgid "Number of times to attempt connection to Data Providers"
+msgstr ""
+
+#: config/SSSDConfig.py:47
+msgid "SSSD Services to start"
+msgstr ""
+
+#: config/SSSDConfig.py:48
+msgid "SSSD Domains to start"
+msgstr ""
+
+#: config/SSSDConfig.py:49
+msgid "Timeout for messages sent over the SBUS"
+msgstr ""
+
+#: config/SSSDConfig.py:50
+msgid "Regex to parse username and domain"
+msgstr ""
+
+#: config/SSSDConfig.py:51
+msgid "Printf-compatible format for displaying fully-qualified names"
+msgstr ""
+
+#: config/SSSDConfig.py:54
+msgid "Enumeration cache timeout length (seconds)"
+msgstr ""
+
+#: config/SSSDConfig.py:55
+msgid "Entry cache background update timeout length (seconds)"
+msgstr ""
+
+#: config/SSSDConfig.py:56
+msgid "Negative cache timeout length (seconds)"
+msgstr ""
+
+#: config/SSSDConfig.py:57
+msgid "Users that SSSD should explicitly ignore"
+msgstr ""
+
+#: config/SSSDConfig.py:58
+msgid "Groups that SSSD should explicitly ignore"
+msgstr ""
+
+#: config/SSSDConfig.py:59
+msgid "Should filtered users appear in groups"
+msgstr ""
+
+#: config/SSSDConfig.py:60
+msgid "The value of the password field the NSS provider should return"
+msgstr ""
+
+#: config/SSSDConfig.py:63
+msgid "How long to allow cached logins between online logins (days)"
+msgstr ""
+
+#: config/SSSDConfig.py:64
+msgid "How many failed logins attempts are allowed when offline"
+msgstr ""
+
+#: config/SSSDConfig.py:65
+msgid ""
+"How long (minutes) to deny login after offline_failed_login_attempts has "
+"been reached"
+msgstr ""
+
+#: config/SSSDConfig.py:68
+msgid "Identity provider"
+msgstr ""
+
+#: config/SSSDConfig.py:69
+msgid "Authentication provider"
+msgstr ""
+
+#: config/SSSDConfig.py:70
+msgid "Access control provider"
+msgstr ""
+
+#: config/SSSDConfig.py:71
+msgid "Password change provider"
+msgstr ""
+
+#: config/SSSDConfig.py:74
+msgid "Minimum user ID"
+msgstr ""
+
+#: config/SSSDConfig.py:75
+msgid "Maximum user ID"
+msgstr ""
+
+#: config/SSSDConfig.py:76
+msgid "Ping timeout before restarting domain"
+msgstr ""
+
+#: config/SSSDConfig.py:77
+msgid "Enable enumerating all users/groups"
+msgstr ""
+
+#: config/SSSDConfig.py:78
+msgid "Cache credentials for offline login"
+msgstr ""
+
+#: config/SSSDConfig.py:79
+msgid "Store password hashes"
+msgstr ""
+
+#: config/SSSDConfig.py:80
+msgid "Display users/groups in fully-qualified form"
+msgstr ""
+
+#: config/SSSDConfig.py:81
+msgid "Entry cache timeout length (seconds)"
+msgstr ""
+
+#: config/SSSDConfig.py:82
+msgid ""
+"Restrict or prefer a specific address family when performing DNS lookups"
+msgstr ""
+
+#: config/SSSDConfig.py:83
+msgid "How long to keep cached entries after last successful login (days)"
+msgstr ""
+
+#: config/SSSDConfig.py:86
+msgid "IPA domain"
+msgstr ""
+
+#: config/SSSDConfig.py:87
+msgid "IPA server address"
+msgstr ""
+
+#: config/SSSDConfig.py:88
+msgid "IPA client hostname"
+msgstr ""
+
+#: config/SSSDConfig.py:91 config/SSSDConfig.py:118
+msgid "Kerberos server address"
+msgstr ""
+
+#: config/SSSDConfig.py:92 config/SSSDConfig.py:119
+msgid "Kerberos realm"
+msgstr ""
+
+#: config/SSSDConfig.py:93
+msgid "Authentication timeout"
+msgstr ""
+
+#: config/SSSDConfig.py:96
+msgid "Directory to store credential caches"
+msgstr ""
+
+#: config/SSSDConfig.py:97
+msgid "Location of the user's credential cache"
+msgstr ""
+
+#: config/SSSDConfig.py:98
+msgid "Location of the keytab to validate credentials"
+msgstr ""
+
+#: config/SSSDConfig.py:99
+msgid "Enable credential validation"
+msgstr ""
+
+#: config/SSSDConfig.py:102
+msgid "The principal of the change password service"
+msgstr ""
+
+#: config/SSSDConfig.py:105
+msgid "ldap_uri, The URI of the LDAP server"
+msgstr ""
+
+#: config/SSSDConfig.py:106
+msgid "The default base DN"
+msgstr ""
+
+#: config/SSSDConfig.py:107
+msgid "The Schema Type in use on the LDAP server, rfc2307"
+msgstr ""
+
+#: config/SSSDConfig.py:108
+msgid "The default bind DN"
+msgstr ""
+
+#: config/SSSDConfig.py:109
+msgid "The type of the authentication token of the default bind DN"
+msgstr ""
+
+#: config/SSSDConfig.py:110
+msgid "The authentication token of the default bind DN"
+msgstr ""
+
+#: config/SSSDConfig.py:111
+msgid "Length of time to attempt connection"
+msgstr ""
+
+#: config/SSSDConfig.py:112
+msgid "Length of time to attempt synchronous LDAP operations"
+msgstr ""
+
+#: config/SSSDConfig.py:113
+msgid "Length of time between attempts to reconnect while offline"
+msgstr ""
+
+#: config/SSSDConfig.py:114
+msgid "file that contains CA certificates"
+msgstr ""
+
+#: config/SSSDConfig.py:115
+msgid "Require TLS certificate verification"
+msgstr ""
+
+#: config/SSSDConfig.py:116
+msgid "Specify the sasl mechanism to use"
+msgstr ""
+
+#: config/SSSDConfig.py:117
+msgid "Specify the sasl authorization id to use"
+msgstr ""
+
+#: config/SSSDConfig.py:120
+msgid "Kerberos service keytab"
+msgstr ""
+
+#: config/SSSDConfig.py:121
+msgid "Use Kerberos auth for LDAP connection"
+msgstr ""
+
+#: config/SSSDConfig.py:122
+msgid "Follow LDAP referrals"
+msgstr ""
+
+#: config/SSSDConfig.py:125
+msgid "Length of time to wait for a search request"
+msgstr ""
+
+#: config/SSSDConfig.py:126
+msgid "Length of time between enumeration updates"
+msgstr ""
+
+#: config/SSSDConfig.py:127
+msgid "Require TLS for ID lookups, false"
+msgstr ""
+
+#: config/SSSDConfig.py:128
+msgid "Base DN for user lookups"
+msgstr ""
+
+#: config/SSSDConfig.py:129
+msgid "Scope of user lookups"
+msgstr ""
+
+#: config/SSSDConfig.py:130
+msgid "Filter for user lookups"
+msgstr ""
+
+#: config/SSSDConfig.py:131
+msgid "Objectclass for users"
+msgstr ""
+
+#: config/SSSDConfig.py:132
+msgid "Username attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:133
+msgid "UID attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:134
+msgid "Primary GID attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:135
+msgid "GECOS attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:136
+msgid "Home directory attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:137
+msgid "Shell attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:138
+msgid "UUID attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:139
+msgid "User principal attribute (for Kerberos)"
+msgstr ""
+
+#: config/SSSDConfig.py:140
+msgid "Full Name"
+msgstr ""
+
+#: config/SSSDConfig.py:141
+msgid "memberOf attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:142
+msgid "Modification time attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:145
+msgid "Policy to evaluate the password expiration"
+msgstr ""
+
+#: config/SSSDConfig.py:148
+msgid "Comma separated list of allowed users"
+msgstr ""
+
+#: config/SSSDConfig.py:149
+msgid "Comma separated list of prohibited users"
+msgstr ""
+
+#: config/SSSDConfig.py:152
+msgid "Default shell, /bin/bash"
+msgstr ""
+
+#: config/SSSDConfig.py:153
+msgid "Base for home directories"
+msgstr ""
+
+#: config/SSSDConfig.py:156
+msgid "The name of the NSS library to use"
+msgstr ""
+
+#: config/SSSDConfig.py:159
+msgid "PAM stack to use"
+msgstr ""
+
+#: monitor/monitor.c:2199
+msgid "Become a daemon (default)"
+msgstr ""
+
+#: monitor/monitor.c:2201
+msgid "Run interactive (not a daemon)"
+msgstr ""
+
+#: monitor/monitor.c:2203
+msgid "Specify a non-default config file"
+msgstr ""
+
+#: monitor/monitor.c:2229
+msgid "sssd must be run as root\n"
+msgstr ""
+
+#: monitor/monitor.c:2265
+#, c-format
+msgid ""
+"Cannot read config file %s, please check if permissions are 0600 and the "
+"file is owned by root.root\n"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:922 providers/ldap/ldap_child.c:316
+#: util/util.h:61
+msgid "Debug level"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:924 providers/ldap/ldap_child.c:318
+#: util/util.h:65
+msgid "Add debug timestamps"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:926 providers/ldap/ldap_child.c:320
+msgid "An open file descriptor for the debug logs"
+msgstr ""
+
+#: providers/data_provider_be.c:1156
+msgid "Domain of the information provider (mandatory)"
+msgstr ""
+
+#: sss_client/pam_sss.c:353
+msgid "Passwords do not match"
+msgstr ""
+
+#: sss_client/pam_sss.c:422
+msgid "Offline authentication"
+msgstr ""
+
+#: sss_client/pam_sss.c:423
+msgid ", your cached password will expire at: "
+msgstr ""
+
+#: sss_client/pam_sss.c:473
+msgid "Offline authentication, authentication is denied until: "
+msgstr ""
+
+#: sss_client/pam_sss.c:500
+msgid "System is offline, password change not possible"
+msgstr ""
+
+#: sss_client/pam_sss.c:530
+msgid "Password change failed. "
+msgstr ""
+
+#: sss_client/pam_sss.c:531
+msgid "Server message: "
+msgstr ""
+
+#: sss_client/pam_sss.c:898
+msgid "New Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:899
+msgid "Reenter new Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:957
+msgid "Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:987
+msgid "Current Password: "
+msgstr ""
+
+#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
+#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45
+#: tools/sss_usermod.c:46
+msgid "The debug level to run with"
+msgstr ""
+
+#: tools/sss_useradd.c:115 tools/sss_usermod.c:47
+msgid "The UID of the user"
+msgstr ""
+
+#: tools/sss_useradd.c:116
+msgid "The GID or group name of the user"
+msgstr ""
+
+#: tools/sss_useradd.c:117 tools/sss_usermod.c:49
+msgid "The comment string"
+msgstr ""
+
+#: tools/sss_useradd.c:118 tools/sss_usermod.c:50
+msgid "Home directory"
+msgstr ""
+
+#: tools/sss_useradd.c:119 tools/sss_usermod.c:51
+msgid "Login shell"
+msgstr ""
+
+#: tools/sss_useradd.c:120
+msgid "Groups"
+msgstr ""
+
+#: tools/sss_useradd.c:121
+msgid "Create user's directory if it does not exist"
+msgstr ""
+
+#: tools/sss_useradd.c:122
+msgid "Never create user's directory, overrides config"
+msgstr ""
+
+#: tools/sss_useradd.c:123
+msgid "Specify an alternative skeleton directory"
+msgstr ""
+
+#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
+#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:57
+#: tools/sss_usermod.c:70
+msgid "Error setting the locale\n"
+msgstr ""
+
+#: tools/sss_useradd.c:172
+msgid "Specify user to add\n"
+msgstr ""
+
+#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
+#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:102
+#: tools/sss_usermod.c:126
+msgid "Error initializing the tools - no local domain\n"
+msgstr ""
+
+#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
+#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:104
+#: tools/sss_usermod.c:128
+msgid "Error initializing the tools\n"
+msgstr ""
+
+#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
+#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:113
+#: tools/sss_usermod.c:137
+msgid "Invalid domain specified in FQDN\n"
+msgstr ""
+
+#: tools/sss_useradd.c:203 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
+#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
+msgid "Internal error while parsing parameters\n"
+msgstr ""
+
+#: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
+msgid "Groups must be in the same domain as user\n"
+msgstr ""
+
+#: tools/sss_useradd.c:219
+#, c-format
+msgid "Cannot find group %s in local domain\n"
+msgstr ""
+
+#: tools/sss_useradd.c:229
+msgid "Cannot get group information for the user\n"
+msgstr ""
+
+#: tools/sss_useradd.c:244 tools/sss_userdel.c:123
+msgid "Cannot set default values\n"
+msgstr ""
+
+#: tools/sss_useradd.c:251 tools/sss_usermod.c:153
+msgid "The selected UID is outside the allowed range\n"
+msgstr ""
+
+#: tools/sss_useradd.c:285
+msgid "Cannot get info about the user\n"
+msgstr ""
+
+#: tools/sss_useradd.c:299
+msgid "User's home directory already exists, not copying data from skeldir\n"
+msgstr ""
+
+#: tools/sss_useradd.c:302
+#, c-format
+msgid "Cannot create user's home directory: %s\n"
+msgstr ""
+
+#: tools/sss_useradd.c:313
+#, c-format
+msgid "Cannot create user's mail spool: %s\n"
+msgstr ""
+
+#: tools/sss_useradd.c:325
+msgid "Could not allocate ID for the user - domain full?\n"
+msgstr ""
+
+#: tools/sss_useradd.c:329
+msgid "A user or group with the same name or ID already exists\n"
+msgstr ""
+
+#: tools/sss_useradd.c:335
+msgid "Transaction error. Could not add user.\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:43 tools/sss_groupmod.c:48
+msgid "The GID of the group"
+msgstr ""
+
+#: tools/sss_groupadd.c:75
+msgid "Specify group to add\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:106 tools/sss_groupmod.c:194
+msgid "The selected GID is outside the allowed range\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:133
+msgid "Could not allocate ID for the group - domain full?\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:137
+msgid "A group with the same name or GID already exists\n"
+msgstr ""
+
+#: tools/sss_groupadd.c:142
+msgid "Transaction error. Could not add group.\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:70
+msgid "Specify group to delete\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:107
+#, c-format
+msgid "Group %s is outside the defined ID range for domain\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:136
+msgid ""
+"No such group in local domain. Removing groups only allowed in local "
+"domain.\n"
+msgstr ""
+
+#: tools/sss_groupdel.c:141
+msgid "Internal error. Could not remove group.\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:44
+msgid "Groups to add this group to"
+msgstr ""
+
+#: tools/sss_groupmod.c:46
+msgid "Groups to remove this group from"
+msgstr ""
+
+#: tools/sss_groupmod.c:98
+msgid "Specify group to modify\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:130
+msgid ""
+"Cannot find group in local domain, modifying groups is allowed only in local "
+"domain\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
+msgid "Member groups must be in the same domain as parent group\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
+#: tools/sss_usermod.c:205
+#, c-format
+msgid ""
+"Cannot find group %s in local domain, only groups in local domain are "
+"allowed\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:222
+msgid "Could not modify group - check if member group names are correct\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:226
+msgid "Could not modify group - check if groupname is correct\n"
+msgstr ""
+
+#: tools/sss_groupmod.c:230
+msgid "Transaction error. Could not modify group.\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:954
+#, c-format
+msgid "%s%sGroup: %s\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:955
+msgid "Magic Private "
+msgstr ""
+
+#: tools/sss_groupshow.c:957
+#, c-format
+msgid "%sGID number: %d\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:959
+#, c-format
+msgid "%sMember users: "
+msgstr ""
+
+#: tools/sss_groupshow.c:966
+#, c-format
+msgid ""
+"\n"
+"%sIs a member of: "
+msgstr ""
+
+#: tools/sss_groupshow.c:973
+#, c-format
+msgid ""
+"\n"
+"%sMember groups: "
+msgstr ""
+
+#: tools/sss_groupshow.c:1010
+msgid "Print indirect group members recursively"
+msgstr ""
+
+#: tools/sss_groupshow.c:1045
+msgid "Specify group to show\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
+msgid "Cannot initiate search\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:1115
+msgid ""
+"No such group in local domain. Printing groups only allowed in local "
+"domain.\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:1120
+msgid "Internal error. Could not print group.\n"
+msgstr ""
+
+#: tools/sss_userdel.c:46
+msgid "Remove home directory and mail spool"
+msgstr ""
+
+#: tools/sss_userdel.c:47
+msgid "Do not remove home directory and mail spool"
+msgstr ""
+
+#: tools/sss_userdel.c:48
+msgid "Force removal of files not owned by the user"
+msgstr ""
+
+#: tools/sss_userdel.c:91
+msgid "Specify user to delete\n"
+msgstr ""
+
+#: tools/sss_userdel.c:141
+#, c-format
+msgid "User %s is outside the defined ID range for domain\n"
+msgstr ""
+
+#: tools/sss_userdel.c:172
+msgid "Not removing home dir - not owned by user\n"
+msgstr ""
+
+#: tools/sss_userdel.c:174
+#, c-format
+msgid "Cannot remove homedir: %s\n"
+msgstr ""
+
+#: tools/sss_userdel.c:186
+msgid ""
+"No such user in local domain. Removing users only allowed in local domain.\n"
+msgstr ""
+
+#: tools/sss_userdel.c:191
+msgid "Internal error. Could not remove user.\n"
+msgstr ""
+
+#: tools/sss_usermod.c:48
+msgid "The GID of the user"
+msgstr ""
+
+#: tools/sss_usermod.c:52
+msgid "Groups to add this user to"
+msgstr ""
+
+#: tools/sss_usermod.c:53
+msgid "Groups to remove this user from"
+msgstr ""
+
+#: tools/sss_usermod.c:54
+msgid "Lock the account"
+msgstr ""
+
+#: tools/sss_usermod.c:55
+msgid "Unlock the account"
+msgstr ""
+
+#: tools/sss_usermod.c:115
+msgid "Specify user to modify\n"
+msgstr ""
+
+#: tools/sss_usermod.c:146
+msgid ""
+"Cannot find user in local domain, modifying users is allowed only in local "
+"domain\n"
+msgstr ""
+
+#: tools/sss_usermod.c:241
+msgid "Could not modify user - check if group names are correct\n"
+msgstr ""
+
+#: tools/sss_usermod.c:245
+msgid "Could not modify user - user already member of groups?\n"
+msgstr ""
+
+#: tools/sss_usermod.c:249
+msgid "Transaction error. Could not modify user.\n"
+msgstr ""
+
+#: tools/tools_util.c:292
+msgid "Out of memory\n"
+msgstr ""
+
+#: tools/tools_util.h:34
+#, c-format
+msgid "%s must be run as root\n"
+msgstr ""
+
+#: util/util.h:63
+msgid "Send the debug output to files instead of stderr"
+msgstr ""
