@@ -15,9 +15,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: pt\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Virtaal 0.5.2\n"
 "X-Poedit-Language: Portuguese\n"
 "X-Poedit-Country: PORTUGAL\n"
+"X-Generator: Virtaal 0.5.2\n"
 
 #: config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -162,13 +162,14 @@ msgstr "Validade da cache (segundos)"
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr ""
+"Restringir ou preferir famílias de endereços especificas quando efectua "
+"consultas DNS"
 
 #: config/SSSDConfig.py:83
-#, fuzzy
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Durante quanto tempo devem ser permitidas as caches de sessões entre sessões "
-"online (dias)"
+"bem sucedidas (dias)"
 
 #: config/SSSDConfig.py:86
 msgid "IPA domain"
@@ -356,11 +357,11 @@ msgstr "Politica para avaliar a expiração da senha"
 
 #: config/SSSDConfig.py:148
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "Lista de utilizadores autorizados separados por vírgulas"
 
 #: config/SSSDConfig.py:149
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "Lista de utilizadores não autorizados separados por vírgulas"
 
 #: config/SSSDConfig.py:152
 msgid "Default shell, /bin/bash"
@@ -731,9 +732,8 @@ msgid "Password: "
 msgstr "Senha: "
 
 #: sss_client/pam_sss.c:987
-#, fuzzy
 msgid "Current Password: "
-msgstr "Nova Senha: "
+msgstr "Senha actual: "
 
 #~ msgid "Password has expired."
 #~ msgstr "Senha expirou."
