@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-08 17:04-0500\n"
+"POT-Creation-Date: 2010-03-09 08:15-0500\n"
 "PO-Revision-Date: 2010-02-23 13:59+0100\n"
 "Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
 "Language-Team: fedora-trans-pt@redhat.com\n"
@@ -379,167 +379,98 @@ msgstr "O nome da biblioteca NSS a utilizar"
 msgid "PAM stack to use"
 msgstr "Stack PAM a utilizar"
 
-#: tools/sss_groupdel.c:43 tools/sss_groupmod.c:42 tools/sss_userdel.c:45
-#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_usermod.c:46
+#: monitor/monitor.c:2199
+msgid "Become a daemon (default)"
+msgstr ""
+
+#: monitor/monitor.c:2201
+msgid "Run interactive (not a daemon)"
+msgstr ""
+
+#: monitor/monitor.c:2203
+msgid "Specify a non-default config file"
+msgstr ""
+
+#: monitor/monitor.c:2229
+#, fuzzy
+msgid "sssd must be run as root\n"
+msgstr "%s tem de executar como root\n"
+
+#: monitor/monitor.c:2265
+#, c-format
+msgid ""
+"Cannot read config file %s, please check if permissions are 0600 and the "
+"file is owned by root.root\n"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:922 providers/ldap/ldap_child.c:316
+#: util/util.h:61
+msgid "Debug level"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:924 providers/ldap/ldap_child.c:318
+#: util/util.h:65
+msgid "Add debug timestamps"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:926 providers/ldap/ldap_child.c:320
+#, fuzzy
+msgid "An open file descriptor for the debug logs"
+msgstr "Definir a verbosidade dos registos de depuração"
+
+#: providers/data_provider_be.c:1156
+msgid "Domain of the information provider (mandatory)"
+msgstr ""
+
+#: sss_client/pam_sss.c:353
+msgid "Passwords do not match"
+msgstr "Senhas não coincidem"
+
+#: sss_client/pam_sss.c:422
+msgid "Offline authentication"
+msgstr "Autenticação offline"
+
+#: sss_client/pam_sss.c:423
+msgid ", your cached password will expire at: "
+msgstr ", a sua senha guardada em cache irá expirar em: "
+
+#: sss_client/pam_sss.c:473
+msgid "Offline authentication, authentication is denied until: "
+msgstr "Autenticação offline, a autenticação é negada até: "
+
+#: sss_client/pam_sss.c:500
+msgid "System is offline, password change not possible"
+msgstr "O sistema está offline, a mudança de senha não é possível"
+
+#: sss_client/pam_sss.c:530
+msgid "Password change failed. "
+msgstr "Alteração da senha falhou."
+
+#: sss_client/pam_sss.c:531
+msgid "Server message: "
+msgstr "Mensagem do Servidor: "
+
+#: sss_client/pam_sss.c:898
+msgid "New Password: "
+msgstr "Nova Senha: "
+
+#: sss_client/pam_sss.c:899
+msgid "Reenter new Password: "
+msgstr "Digite a senha novamente: "
+
+#: sss_client/pam_sss.c:957
+msgid "Password: "
+msgstr "Senha: "
+
+#: sss_client/pam_sss.c:987
+msgid "Current Password: "
+msgstr "Senha actual: "
+
+#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
+#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45
+#: tools/sss_usermod.c:46
 msgid "The debug level to run with"
 msgstr "O nível de depuração a utilizar durante a execução"
-
-#: tools/sss_groupdel.c:52 tools/sss_groupmod.c:63 tools/sss_userdel.c:57
-#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_usermod.c:70
-msgid "Error setting the locale\n"
-msgstr "Erro ao definir a configuração regional\n"
-
-#: tools/sss_groupdel.c:70
-msgid "Specify group to delete\n"
-msgstr "Especifique grupo a remover\n"
-
-#: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
-#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
-msgid "Error initializing the tools - no local domain\n"
-msgstr "Erro ao inicializar as ferramentas - não existe domínio local\n"
-
-#: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
-#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
-msgid "Error initializing the tools\n"
-msgstr "Erro ao inicializar a ferramenta\n"
-
-#: tools/sss_groupdel.c:92 tools/sss_groupmod.c:121 tools/sss_userdel.c:113
-#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_usermod.c:137
-msgid "Invalid domain specified in FQDN\n"
-msgstr "Domínio inválido especificado no FQDN\n"
-
-#: tools/sss_groupdel.c:107
-#, c-format
-msgid "Group %s is outside the defined ID range for domain\n"
-msgstr "O grupo %s está fora do intervalo de IDs para o domínio\n"
-
-#: tools/sss_groupdel.c:136
-msgid ""
-"No such group in local domain. Removing groups only allowed in local "
-"domain.\n"
-msgstr ""
-"Grupo não existe no domínio local. Apenas é permitido remover grupos no "
-"domínio local.\n"
-
-#: tools/sss_groupdel.c:141
-msgid "Internal error. Could not remove group.\n"
-msgstr "Erro interno. Incapaz de remover grupo.\n"
-
-#: tools/sss_groupmod.c:44
-msgid "Groups to add this group to"
-msgstr "Grupos para adicionar este grupo"
-
-#: tools/sss_groupmod.c:46
-msgid "Groups to remove this group from"
-msgstr "Grupos para remover este projecto"
-
-#: tools/sss_groupmod.c:48 tools/sss_groupadd.c:43
-msgid "The GID of the group"
-msgstr "O GID do grupo"
-
-#: tools/sss_groupmod.c:98
-msgid "Specify group to modify\n"
-msgstr "Especifique grupo a modificar\n"
-
-#: tools/sss_groupmod.c:130
-msgid ""
-"Cannot find group in local domain, modifying groups is allowed only in local "
-"domain\n"
-msgstr ""
-"Grupo não foi encontrado no domínio local. Apenas é permitido modificar "
-"grupos no domínio local\n"
-
-#: tools/sss_groupmod.c:143 tools/sss_groupmod.c:170 tools/sss_useradd.c:203
-#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
-msgid "Internal error while parsing parameters\n"
-msgstr "Erro interno ao processar parâmetros\n"
-
-#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
-msgid "Member groups must be in the same domain as parent group\n"
-msgstr "Grupos membro têm de estar no mesmo domínio do grupo pai\n"
-
-#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
-#: tools/sss_usermod.c:205
-#, c-format
-msgid ""
-"Cannot find group %s in local domain, only groups in local domain are "
-"allowed\n"
-msgstr ""
-"Grupo %s não foi encontrado no domínio local. Apenas são permitidos grupos "
-"no domínio local\n"
-
-#: tools/sss_groupmod.c:194 tools/sss_groupadd.c:106
-msgid "The selected GID is outside the allowed range\n"
-msgstr "O GID seleccionado está fora do intervalo permitido\n"
-
-#: tools/sss_groupmod.c:222
-msgid "Could not modify group - check if member group names are correct\n"
-msgstr ""
-"Incapaz de modificar grupo - verifique que o nome do grupo membro está "
-"correcto\n"
-
-#: tools/sss_groupmod.c:226
-msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
-"Incapaz de modificar grupo - verifique que o nome do grupo está correcto\n"
-
-#: tools/sss_groupmod.c:230
-msgid "Transaction error. Could not modify group.\n"
-msgstr "Erro de transacção. Não foi possível modificar o grupo.\n"
-
-#: tools/sss_userdel.c:46
-msgid "Remove home directory and mail spool"
-msgstr "Remover pasta pessoal e spool de correio"
-
-#: tools/sss_userdel.c:47
-msgid "Do not remove home directory and mail spool"
-msgstr "Não remover pasta pessoal e spool de correio"
-
-#: tools/sss_userdel.c:48
-msgid "Force removal of files not owned by the user"
-msgstr "Forçar a remoção de ficheiros não pertencentes ao utilizador"
-
-#: tools/sss_userdel.c:91
-msgid "Specify user to delete\n"
-msgstr "Especificar o utilizador a remover\n"
-
-#: tools/sss_userdel.c:123 tools/sss_useradd.c:244
-msgid "Cannot set default values\n"
-msgstr "Incapaz de definir valores por omissão\n"
-
-#: tools/sss_userdel.c:141
-#, c-format
-msgid "User %s is outside the defined ID range for domain\n"
-msgstr "O utilizador %s está fora do intervalo de IDs para o domínio\n"
-
-#: tools/sss_userdel.c:172
-msgid "Not removing home dir - not owned by user\n"
-msgstr "Pasta pessoal não removida - não pertence ao utilizador\n"
-
-#: tools/sss_userdel.c:174
-#, c-format
-msgid "Cannot remove homedir: %s\n"
-msgstr "Incapaz de remover pasta pessoal: %s\n"
-
-#: tools/sss_userdel.c:186
-msgid ""
-"No such user in local domain. Removing users only allowed in local domain.\n"
-msgstr ""
-"Utilizador não existe no domínio local. Apenas é permitido remover "
-"utilizadores no domínio local.\n"
-
-#: tools/sss_userdel.c:191
-msgid "Internal error. Could not remove user.\n"
-msgstr "Erro interno. Incapaz de remover utilizador.\n"
-
-#: tools/tools_util.c:292
-msgid "Out of memory\n"
-msgstr "Memória esgotada\n"
-
-#: tools/tools_util.h:34
-#, c-format
-msgid "%s must be run as root\n"
-msgstr "%s tem de executar como root\n"
 
 #: tools/sss_useradd.c:115 tools/sss_usermod.c:47
 msgid "The UID of the user"
@@ -577,9 +508,38 @@ msgstr "Nunca criar pasta pessoal do utilizador. Sobrepõem-se à configuração
 msgid "Specify an alternative skeleton directory"
 msgstr "Indique um directório skeleton alternativo"
 
+#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
+#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:57
+#: tools/sss_usermod.c:70
+msgid "Error setting the locale\n"
+msgstr "Erro ao definir a configuração regional\n"
+
 #: tools/sss_useradd.c:172
 msgid "Specify user to add\n"
 msgstr "Indique utilizador a adicionar\n"
+
+#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
+#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:102
+#: tools/sss_usermod.c:126
+msgid "Error initializing the tools - no local domain\n"
+msgstr "Erro ao inicializar as ferramentas - não existe domínio local\n"
+
+#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
+#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:104
+#: tools/sss_usermod.c:128
+msgid "Error initializing the tools\n"
+msgstr "Erro ao inicializar a ferramenta\n"
+
+#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
+#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:113
+#: tools/sss_usermod.c:137
+msgid "Invalid domain specified in FQDN\n"
+msgstr "Domínio inválido especificado no FQDN\n"
+
+#: tools/sss_useradd.c:203 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
+#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
+msgid "Internal error while parsing parameters\n"
+msgstr "Erro interno ao processar parâmetros\n"
 
 #: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
@@ -593,6 +553,10 @@ msgstr "Incapaz de encontrar o grupo %s no domínio local\n"
 #: tools/sss_useradd.c:229
 msgid "Cannot get group information for the user\n"
 msgstr "Incapaz de obter informação do grupo para o utilizador\n"
+
+#: tools/sss_useradd.c:244 tools/sss_userdel.c:123
+msgid "Cannot set default values\n"
+msgstr "Incapaz de definir valores por omissão\n"
 
 #: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
@@ -629,9 +593,17 @@ msgstr "Já existe um utilizador ou grupo com o mesmo nome ou ID\n"
 msgid "Transaction error. Could not add user.\n"
 msgstr "Erro na transacção. Não foi possível adicionar o utilizador.\n"
 
+#: tools/sss_groupadd.c:43 tools/sss_groupmod.c:48
+msgid "The GID of the group"
+msgstr "O GID do grupo"
+
 #: tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
 msgstr "Indique grupo a adicionar\n"
+
+#: tools/sss_groupadd.c:106 tools/sss_groupmod.c:194
+msgid "The selected GID is outside the allowed range\n"
+msgstr "O GID seleccionado está fora do intervalo permitido\n"
 
 #: tools/sss_groupadd.c:133
 msgid "Could not allocate ID for the group - domain full?\n"
@@ -644,6 +616,178 @@ msgstr "Já existe um grupo com o mesmo nome ou GID\n"
 #: tools/sss_groupadd.c:142
 msgid "Transaction error. Could not add group.\n"
 msgstr "Erro de transacção. Não foi possível adicionar o grupo.\n"
+
+#: tools/sss_groupdel.c:70
+msgid "Specify group to delete\n"
+msgstr "Especifique grupo a remover\n"
+
+#: tools/sss_groupdel.c:107
+#, c-format
+msgid "Group %s is outside the defined ID range for domain\n"
+msgstr "O grupo %s está fora do intervalo de IDs para o domínio\n"
+
+#: tools/sss_groupdel.c:136
+msgid ""
+"No such group in local domain. Removing groups only allowed in local "
+"domain.\n"
+msgstr ""
+"Grupo não existe no domínio local. Apenas é permitido remover grupos no "
+"domínio local.\n"
+
+#: tools/sss_groupdel.c:141
+msgid "Internal error. Could not remove group.\n"
+msgstr "Erro interno. Incapaz de remover grupo.\n"
+
+#: tools/sss_groupmod.c:44
+msgid "Groups to add this group to"
+msgstr "Grupos para adicionar este grupo"
+
+#: tools/sss_groupmod.c:46
+msgid "Groups to remove this group from"
+msgstr "Grupos para remover este projecto"
+
+#: tools/sss_groupmod.c:98
+msgid "Specify group to modify\n"
+msgstr "Especifique grupo a modificar\n"
+
+#: tools/sss_groupmod.c:130
+msgid ""
+"Cannot find group in local domain, modifying groups is allowed only in local "
+"domain\n"
+msgstr ""
+"Grupo não foi encontrado no domínio local. Apenas é permitido modificar "
+"grupos no domínio local\n"
+
+#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
+msgid "Member groups must be in the same domain as parent group\n"
+msgstr "Grupos membro têm de estar no mesmo domínio do grupo pai\n"
+
+#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
+#: tools/sss_usermod.c:205
+#, c-format
+msgid ""
+"Cannot find group %s in local domain, only groups in local domain are "
+"allowed\n"
+msgstr ""
+"Grupo %s não foi encontrado no domínio local. Apenas são permitidos grupos "
+"no domínio local\n"
+
+#: tools/sss_groupmod.c:222
+msgid "Could not modify group - check if member group names are correct\n"
+msgstr ""
+"Incapaz de modificar grupo - verifique que o nome do grupo membro está "
+"correcto\n"
+
+#: tools/sss_groupmod.c:226
+msgid "Could not modify group - check if groupname is correct\n"
+msgstr ""
+"Incapaz de modificar grupo - verifique que o nome do grupo está correcto\n"
+
+#: tools/sss_groupmod.c:230
+msgid "Transaction error. Could not modify group.\n"
+msgstr "Erro de transacção. Não foi possível modificar o grupo.\n"
+
+#: tools/sss_groupshow.c:954
+#, fuzzy, c-format
+msgid "%s%sGroup: %s\n"
+msgstr "Grupos"
+
+#: tools/sss_groupshow.c:955
+msgid "Magic Private "
+msgstr ""
+
+#: tools/sss_groupshow.c:957
+#, c-format
+msgid "%sGID number: %d\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:959
+#, c-format
+msgid "%sMember users: "
+msgstr ""
+
+#: tools/sss_groupshow.c:966
+#, c-format
+msgid ""
+"\n"
+"%sIs a member of: "
+msgstr ""
+
+#: tools/sss_groupshow.c:973
+#, c-format
+msgid ""
+"\n"
+"%sMember groups: "
+msgstr ""
+
+#: tools/sss_groupshow.c:1010
+msgid "Print indirect group members recursively"
+msgstr ""
+
+#: tools/sss_groupshow.c:1045
+#, fuzzy
+msgid "Specify group to show\n"
+msgstr "Indique grupo a adicionar\n"
+
+#: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
+#, fuzzy
+msgid "Cannot initiate search\n"
+msgstr "Incapaz de obter informação acerca do utilizador\n"
+
+#: tools/sss_groupshow.c:1115
+#, fuzzy
+msgid ""
+"No such group in local domain. Printing groups only allowed in local "
+"domain.\n"
+msgstr ""
+"Grupo não existe no domínio local. Apenas é permitido remover grupos no "
+"domínio local.\n"
+
+#: tools/sss_groupshow.c:1120
+#, fuzzy
+msgid "Internal error. Could not print group.\n"
+msgstr "Erro interno. Incapaz de remover grupo.\n"
+
+#: tools/sss_userdel.c:46
+msgid "Remove home directory and mail spool"
+msgstr "Remover pasta pessoal e spool de correio"
+
+#: tools/sss_userdel.c:47
+msgid "Do not remove home directory and mail spool"
+msgstr "Não remover pasta pessoal e spool de correio"
+
+#: tools/sss_userdel.c:48
+msgid "Force removal of files not owned by the user"
+msgstr "Forçar a remoção de ficheiros não pertencentes ao utilizador"
+
+#: tools/sss_userdel.c:91
+msgid "Specify user to delete\n"
+msgstr "Especificar o utilizador a remover\n"
+
+#: tools/sss_userdel.c:141
+#, c-format
+msgid "User %s is outside the defined ID range for domain\n"
+msgstr "O utilizador %s está fora do intervalo de IDs para o domínio\n"
+
+#: tools/sss_userdel.c:172
+msgid "Not removing home dir - not owned by user\n"
+msgstr "Pasta pessoal não removida - não pertence ao utilizador\n"
+
+#: tools/sss_userdel.c:174
+#, c-format
+msgid "Cannot remove homedir: %s\n"
+msgstr "Incapaz de remover pasta pessoal: %s\n"
+
+#: tools/sss_userdel.c:186
+msgid ""
+"No such user in local domain. Removing users only allowed in local domain.\n"
+msgstr ""
+"Utilizador não existe no domínio local. Apenas é permitido remover "
+"utilizadores no domínio local.\n"
+
+#: tools/sss_userdel.c:191
+msgid "Internal error. Could not remove user.\n"
+msgstr "Erro interno. Incapaz de remover utilizador.\n"
 
 #: tools/sss_usermod.c:48
 msgid "The GID of the user"
@@ -691,49 +835,18 @@ msgstr "Incapaz de modificar utilizador - utilizador já é membro de grupos?\n"
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Erro na transacção. Não foi possível modificar o utilizador.\n"
 
-#: sss_client/pam_sss.c:353
-msgid "Passwords do not match"
-msgstr "Senhas não coincidem"
+#: tools/tools_util.c:292
+msgid "Out of memory\n"
+msgstr "Memória esgotada\n"
 
-#: sss_client/pam_sss.c:422
-msgid "Offline authentication"
-msgstr "Autenticação offline"
+#: tools/tools_util.h:34
+#, c-format
+msgid "%s must be run as root\n"
+msgstr "%s tem de executar como root\n"
 
-#: sss_client/pam_sss.c:423
-msgid ", your cached password will expire at: "
-msgstr ", a sua senha guardada em cache irá expirar em: "
-
-#: sss_client/pam_sss.c:473
-msgid "Offline authentication, authentication is denied until: "
-msgstr "Autenticação offline, a autenticação é negada até: "
-
-#: sss_client/pam_sss.c:500
-msgid "System is offline, password change not possible"
-msgstr "O sistema está offline, a mudança de senha não é possível"
-
-#: sss_client/pam_sss.c:530
-msgid "Password change failed. "
-msgstr "Alteração da senha falhou."
-
-#: sss_client/pam_sss.c:531
-msgid "Server message: "
-msgstr "Mensagem do Servidor: "
-
-#: sss_client/pam_sss.c:898
-msgid "New Password: "
-msgstr "Nova Senha: "
-
-#: sss_client/pam_sss.c:899
-msgid "Reenter new Password: "
-msgstr "Digite a senha novamente: "
-
-#: sss_client/pam_sss.c:957
-msgid "Password: "
-msgstr "Senha: "
-
-#: sss_client/pam_sss.c:987
-msgid "Current Password: "
-msgstr "Senha actual: "
+#: util/util.h:63
+msgid "Send the debug output to files instead of stderr"
+msgstr ""
 
 #~ msgid "Password has expired."
 #~ msgstr "Senha expirou."

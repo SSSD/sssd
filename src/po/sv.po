@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-08 17:04-0500\n"
+"POT-Creation-Date: 2010-03-09 08:15-0500\n"
 "PO-Revision-Date: 2009-12-30 17:58+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -370,168 +370,100 @@ msgstr "Namnet på NSS-biblioteket att använda"
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: tools/sss_groupdel.c:43 tools/sss_groupmod.c:42 tools/sss_userdel.c:45
-#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_usermod.c:46
+#: monitor/monitor.c:2199
+msgid "Become a daemon (default)"
+msgstr ""
+
+#: monitor/monitor.c:2201
+msgid "Run interactive (not a daemon)"
+msgstr ""
+
+#: monitor/monitor.c:2203
+msgid "Specify a non-default config file"
+msgstr ""
+
+#: monitor/monitor.c:2229
+#, fuzzy
+msgid "sssd must be run as root\n"
+msgstr "%s måste köras som root\n"
+
+#: monitor/monitor.c:2265
+#, c-format
+msgid ""
+"Cannot read config file %s, please check if permissions are 0600 and the "
+"file is owned by root.root\n"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:922 providers/ldap/ldap_child.c:316
+#: util/util.h:61
+msgid "Debug level"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:924 providers/ldap/ldap_child.c:318
+#: util/util.h:65
+msgid "Add debug timestamps"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:926 providers/ldap/ldap_child.c:320
+#, fuzzy
+msgid "An open file descriptor for the debug logs"
+msgstr "Ange pratsamhet för felsökningsloggning"
+
+#: providers/data_provider_be.c:1156
+msgid "Domain of the information provider (mandatory)"
+msgstr ""
+
+#: sss_client/pam_sss.c:353
+msgid "Passwords do not match"
+msgstr "Lösenorden stämmer inte överens"
+
+#: sss_client/pam_sss.c:422
+msgid "Offline authentication"
+msgstr ""
+
+#: sss_client/pam_sss.c:423
+msgid ", your cached password will expire at: "
+msgstr ""
+
+#: sss_client/pam_sss.c:473
+msgid "Offline authentication, authentication is denied until: "
+msgstr ""
+
+#: sss_client/pam_sss.c:500
+msgid "System is offline, password change not possible"
+msgstr ""
+
+#: sss_client/pam_sss.c:530
+#, fuzzy
+msgid "Password change failed. "
+msgstr "Leverantör av lösenordsändringar"
+
+#: sss_client/pam_sss.c:531
+msgid "Server message: "
+msgstr ""
+
+#: sss_client/pam_sss.c:898
+msgid "New Password: "
+msgstr "Nytt lösenord: "
+
+#: sss_client/pam_sss.c:899
+msgid "Reenter new Password: "
+msgstr "Skriv det nya lösenordet igen: "
+
+#: sss_client/pam_sss.c:957
+msgid "Password: "
+msgstr "Lösenord: "
+
+#: sss_client/pam_sss.c:987
+#, fuzzy
+msgid "Current Password: "
+msgstr "Nytt lösenord: "
+
+#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
+#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45
+#: tools/sss_usermod.c:46
 msgid "The debug level to run with"
 msgstr "Felsökningsnivå att köra med"
-
-#: tools/sss_groupdel.c:52 tools/sss_groupmod.c:63 tools/sss_userdel.c:57
-#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_usermod.c:70
-msgid "Error setting the locale\n"
-msgstr "Fel när lokalen sattes\n"
-
-#: tools/sss_groupdel.c:70
-msgid "Specify group to delete\n"
-msgstr "Ange grupp att ta bort\n"
-
-#: tools/sss_groupdel.c:81 tools/sss_groupmod.c:111 tools/sss_userdel.c:102
-#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_usermod.c:126
-#, fuzzy
-msgid "Error initializing the tools - no local domain\n"
-msgstr "Fel vid initiering av verktygen\n"
-
-#: tools/sss_groupdel.c:83 tools/sss_groupmod.c:113 tools/sss_userdel.c:104
-#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_usermod.c:128
-msgid "Error initializing the tools\n"
-msgstr "Fel vid initiering av verktygen\n"
-
-#: tools/sss_groupdel.c:92 tools/sss_groupmod.c:121 tools/sss_userdel.c:113
-#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_usermod.c:137
-msgid "Invalid domain specified in FQDN\n"
-msgstr "Ogiltig domän angiven i FQDN\n"
-
-#: tools/sss_groupdel.c:107
-#, c-format
-msgid "Group %s is outside the defined ID range for domain\n"
-msgstr "Grupp %s är utanför det definierade ID-intervallet för domänen\n"
-
-#: tools/sss_groupdel.c:136
-msgid ""
-"No such group in local domain. Removing groups only allowed in local "
-"domain.\n"
-msgstr ""
-"Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
-"tillåtet i den lokala domänen.\n"
-
-#: tools/sss_groupdel.c:141
-msgid "Internal error. Could not remove group.\n"
-msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
-
-#: tools/sss_groupmod.c:44
-msgid "Groups to add this group to"
-msgstr "Grupper att lägga till denna grupp till"
-
-#: tools/sss_groupmod.c:46
-msgid "Groups to remove this group from"
-msgstr "Grupper att ta bort denna grupp från"
-
-#: tools/sss_groupmod.c:48 tools/sss_groupadd.c:43
-msgid "The GID of the group"
-msgstr "GID:t för gruppen"
-
-#: tools/sss_groupmod.c:98
-msgid "Specify group to modify\n"
-msgstr "Ange grupp att ändra\n"
-
-#: tools/sss_groupmod.c:130
-msgid ""
-"Cannot find group in local domain, modifying groups is allowed only in local "
-"domain\n"
-msgstr ""
-"Ken inte hitta gruppen i den lokala domänen, att ändra grupper är endast "
-"tillåtet i den lokala domänen\n"
-
-#: tools/sss_groupmod.c:143 tools/sss_groupmod.c:170 tools/sss_useradd.c:203
-#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
-msgid "Internal error while parsing parameters\n"
-msgstr "Internt fel vid tolkning av parametrar\n"
-
-#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
-msgid "Member groups must be in the same domain as parent group\n"
-msgstr "Medlemsgrupper måster ligga i samma domän som föräldragrupper\n"
-
-#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
-#: tools/sss_usermod.c:205
-#, c-format
-msgid ""
-"Cannot find group %s in local domain, only groups in local domain are "
-"allowed\n"
-msgstr ""
-"Kan inte hitta grupp %s i den lokala domänen, endast grupper i den lokala "
-"domänen är tillåtna\n"
-
-#: tools/sss_groupmod.c:194 tools/sss_groupadd.c:106
-msgid "The selected GID is outside the allowed range\n"
-msgstr "Den valda GID:n är utanför det tillåtna intervallet\n"
-
-#: tools/sss_groupmod.c:222
-msgid "Could not modify group - check if member group names are correct\n"
-msgstr ""
-"Det gick inte att ändra gruppen - kontrollera om medlemsgruppsnamnen är "
-"riktiga\n"
-
-#: tools/sss_groupmod.c:226
-msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
-"Det gick inte att ändra gruppen - kontrollera om gruppnamnet är riktigt\n"
-
-#: tools/sss_groupmod.c:230
-msgid "Transaction error. Could not modify group.\n"
-msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
-
-#: tools/sss_userdel.c:46
-msgid "Remove home directory and mail spool"
-msgstr "Ta bort hemkatalog och brevlåda"
-
-#: tools/sss_userdel.c:47
-msgid "Do not remove home directory and mail spool"
-msgstr "Ta inte bort hemkatalog och brevlåda"
-
-#: tools/sss_userdel.c:48
-msgid "Force removal of files not owned by the user"
-msgstr "Framtvinga borttagning av filer som inte ägs av användaren"
-
-#: tools/sss_userdel.c:91
-msgid "Specify user to delete\n"
-msgstr "Ange användare att ta bort\n"
-
-#: tools/sss_userdel.c:123 tools/sss_useradd.c:244
-msgid "Cannot set default values\n"
-msgstr "Kan inte sätta standardvärden\n"
-
-#: tools/sss_userdel.c:141
-#, c-format
-msgid "User %s is outside the defined ID range for domain\n"
-msgstr "Användare %s är utanför det definierade ID-intervallet för domänen\n"
-
-#: tools/sss_userdel.c:172
-msgid "Not removing home dir - not owned by user\n"
-msgstr "Tar inte bort hemkatalogen - ägs inte av användaren\n"
-
-#: tools/sss_userdel.c:174
-#, c-format
-msgid "Cannot remove homedir: %s\n"
-msgstr "Kan inte ta bort hemkatalogen: %s\n"
-
-#: tools/sss_userdel.c:186
-msgid ""
-"No such user in local domain. Removing users only allowed in local domain.\n"
-msgstr ""
-"Ingen sådan användare i den lokala domänen.  Det går endast att ta bort "
-"användare i den lokala domänen.\n"
-
-#: tools/sss_userdel.c:191
-msgid "Internal error. Could not remove user.\n"
-msgstr "Internt fel.  Det gick inte att ta bort användaren.\n"
-
-#: tools/tools_util.c:292
-msgid "Out of memory\n"
-msgstr "Slut på minne\n"
-
-#: tools/tools_util.h:34
-#, c-format
-msgid "%s must be run as root\n"
-msgstr "%s måste köras som root\n"
 
 #: tools/sss_useradd.c:115 tools/sss_usermod.c:47
 msgid "The UID of the user"
@@ -569,9 +501,39 @@ msgstr "Skapa aldrig användarens katalog, åsidosätter konfigurationen"
 msgid "Specify an alternative skeleton directory"
 msgstr "Ange en alternativ skelettkatalog"
 
+#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
+#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:57
+#: tools/sss_usermod.c:70
+msgid "Error setting the locale\n"
+msgstr "Fel när lokalen sattes\n"
+
 #: tools/sss_useradd.c:172
 msgid "Specify user to add\n"
 msgstr "Ange en användare att lägga till\n"
+
+#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
+#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:102
+#: tools/sss_usermod.c:126
+#, fuzzy
+msgid "Error initializing the tools - no local domain\n"
+msgstr "Fel vid initiering av verktygen\n"
+
+#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
+#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:104
+#: tools/sss_usermod.c:128
+msgid "Error initializing the tools\n"
+msgstr "Fel vid initiering av verktygen\n"
+
+#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
+#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:113
+#: tools/sss_usermod.c:137
+msgid "Invalid domain specified in FQDN\n"
+msgstr "Ogiltig domän angiven i FQDN\n"
+
+#: tools/sss_useradd.c:203 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
+#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
+msgid "Internal error while parsing parameters\n"
+msgstr "Internt fel vid tolkning av parametrar\n"
 
 #: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
@@ -585,6 +547,10 @@ msgstr "Hittar inte grupp %s i den lokala domänen\n"
 #: tools/sss_useradd.c:229
 msgid "Cannot get group information for the user\n"
 msgstr "Kan inte få gruppinformation för användaren\n"
+
+#: tools/sss_useradd.c:244 tools/sss_userdel.c:123
+msgid "Cannot set default values\n"
+msgstr "Kan inte sätta standardvärden\n"
 
 #: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
@@ -622,9 +588,17 @@ msgstr "En användare eller grupp med samma namn eller ID finns redan\n"
 msgid "Transaction error. Could not add user.\n"
 msgstr "Transaktionsfel.  Det gick inte att lägga till användaren.\n"
 
+#: tools/sss_groupadd.c:43 tools/sss_groupmod.c:48
+msgid "The GID of the group"
+msgstr "GID:t för gruppen"
+
 #: tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
 msgstr "Ange en grupp att lägga till\n"
+
+#: tools/sss_groupadd.c:106 tools/sss_groupmod.c:194
+msgid "The selected GID is outside the allowed range\n"
+msgstr "Den valda GID:n är utanför det tillåtna intervallet\n"
 
 #: tools/sss_groupadd.c:133
 msgid "Could not allocate ID for the group - domain full?\n"
@@ -637,6 +611,178 @@ msgstr "En grupp med samma namn eller GID finns redan\n"
 #: tools/sss_groupadd.c:142
 msgid "Transaction error. Could not add group.\n"
 msgstr "Transaktionsfel.  Det gick inte att lägga till gruppen.\n"
+
+#: tools/sss_groupdel.c:70
+msgid "Specify group to delete\n"
+msgstr "Ange grupp att ta bort\n"
+
+#: tools/sss_groupdel.c:107
+#, c-format
+msgid "Group %s is outside the defined ID range for domain\n"
+msgstr "Grupp %s är utanför det definierade ID-intervallet för domänen\n"
+
+#: tools/sss_groupdel.c:136
+msgid ""
+"No such group in local domain. Removing groups only allowed in local "
+"domain.\n"
+msgstr ""
+"Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
+"tillåtet i den lokala domänen.\n"
+
+#: tools/sss_groupdel.c:141
+msgid "Internal error. Could not remove group.\n"
+msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
+
+#: tools/sss_groupmod.c:44
+msgid "Groups to add this group to"
+msgstr "Grupper att lägga till denna grupp till"
+
+#: tools/sss_groupmod.c:46
+msgid "Groups to remove this group from"
+msgstr "Grupper att ta bort denna grupp från"
+
+#: tools/sss_groupmod.c:98
+msgid "Specify group to modify\n"
+msgstr "Ange grupp att ändra\n"
+
+#: tools/sss_groupmod.c:130
+msgid ""
+"Cannot find group in local domain, modifying groups is allowed only in local "
+"domain\n"
+msgstr ""
+"Ken inte hitta gruppen i den lokala domänen, att ändra grupper är endast "
+"tillåtet i den lokala domänen\n"
+
+#: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
+msgid "Member groups must be in the same domain as parent group\n"
+msgstr "Medlemsgrupper måster ligga i samma domän som föräldragrupper\n"
+
+#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
+#: tools/sss_usermod.c:205
+#, c-format
+msgid ""
+"Cannot find group %s in local domain, only groups in local domain are "
+"allowed\n"
+msgstr ""
+"Kan inte hitta grupp %s i den lokala domänen, endast grupper i den lokala "
+"domänen är tillåtna\n"
+
+#: tools/sss_groupmod.c:222
+msgid "Could not modify group - check if member group names are correct\n"
+msgstr ""
+"Det gick inte att ändra gruppen - kontrollera om medlemsgruppsnamnen är "
+"riktiga\n"
+
+#: tools/sss_groupmod.c:226
+msgid "Could not modify group - check if groupname is correct\n"
+msgstr ""
+"Det gick inte att ändra gruppen - kontrollera om gruppnamnet är riktigt\n"
+
+#: tools/sss_groupmod.c:230
+msgid "Transaction error. Could not modify group.\n"
+msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
+
+#: tools/sss_groupshow.c:954
+#, fuzzy, c-format
+msgid "%s%sGroup: %s\n"
+msgstr "Grupper"
+
+#: tools/sss_groupshow.c:955
+msgid "Magic Private "
+msgstr ""
+
+#: tools/sss_groupshow.c:957
+#, c-format
+msgid "%sGID number: %d\n"
+msgstr ""
+
+#: tools/sss_groupshow.c:959
+#, c-format
+msgid "%sMember users: "
+msgstr ""
+
+#: tools/sss_groupshow.c:966
+#, c-format
+msgid ""
+"\n"
+"%sIs a member of: "
+msgstr ""
+
+#: tools/sss_groupshow.c:973
+#, c-format
+msgid ""
+"\n"
+"%sMember groups: "
+msgstr ""
+
+#: tools/sss_groupshow.c:1010
+msgid "Print indirect group members recursively"
+msgstr ""
+
+#: tools/sss_groupshow.c:1045
+#, fuzzy
+msgid "Specify group to show\n"
+msgstr "Ange en grupp att lägga till\n"
+
+#: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
+#, fuzzy
+msgid "Cannot initiate search\n"
+msgstr "Kan inte få information om användaren\n"
+
+#: tools/sss_groupshow.c:1115
+#, fuzzy
+msgid ""
+"No such group in local domain. Printing groups only allowed in local "
+"domain.\n"
+msgstr ""
+"Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
+"tillåtet i den lokala domänen.\n"
+
+#: tools/sss_groupshow.c:1120
+#, fuzzy
+msgid "Internal error. Could not print group.\n"
+msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
+
+#: tools/sss_userdel.c:46
+msgid "Remove home directory and mail spool"
+msgstr "Ta bort hemkatalog och brevlåda"
+
+#: tools/sss_userdel.c:47
+msgid "Do not remove home directory and mail spool"
+msgstr "Ta inte bort hemkatalog och brevlåda"
+
+#: tools/sss_userdel.c:48
+msgid "Force removal of files not owned by the user"
+msgstr "Framtvinga borttagning av filer som inte ägs av användaren"
+
+#: tools/sss_userdel.c:91
+msgid "Specify user to delete\n"
+msgstr "Ange användare att ta bort\n"
+
+#: tools/sss_userdel.c:141
+#, c-format
+msgid "User %s is outside the defined ID range for domain\n"
+msgstr "Användare %s är utanför det definierade ID-intervallet för domänen\n"
+
+#: tools/sss_userdel.c:172
+msgid "Not removing home dir - not owned by user\n"
+msgstr "Tar inte bort hemkatalogen - ägs inte av användaren\n"
+
+#: tools/sss_userdel.c:174
+#, c-format
+msgid "Cannot remove homedir: %s\n"
+msgstr "Kan inte ta bort hemkatalogen: %s\n"
+
+#: tools/sss_userdel.c:186
+msgid ""
+"No such user in local domain. Removing users only allowed in local domain.\n"
+msgstr ""
+"Ingen sådan användare i den lokala domänen.  Det går endast att ta bort "
+"användare i den lokala domänen.\n"
+
+#: tools/sss_userdel.c:191
+msgid "Internal error. Could not remove user.\n"
+msgstr "Internt fel.  Det gick inte att ta bort användaren.\n"
 
 #: tools/sss_usermod.c:48
 msgid "The GID of the user"
@@ -684,51 +830,18 @@ msgstr ""
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra användaren.\n"
 
-#: sss_client/pam_sss.c:353
-msgid "Passwords do not match"
-msgstr "Lösenorden stämmer inte överens"
+#: tools/tools_util.c:292
+msgid "Out of memory\n"
+msgstr "Slut på minne\n"
 
-#: sss_client/pam_sss.c:422
-msgid "Offline authentication"
+#: tools/tools_util.h:34
+#, c-format
+msgid "%s must be run as root\n"
+msgstr "%s måste köras som root\n"
+
+#: util/util.h:63
+msgid "Send the debug output to files instead of stderr"
 msgstr ""
-
-#: sss_client/pam_sss.c:423
-msgid ", your cached password will expire at: "
-msgstr ""
-
-#: sss_client/pam_sss.c:473
-msgid "Offline authentication, authentication is denied until: "
-msgstr ""
-
-#: sss_client/pam_sss.c:500
-msgid "System is offline, password change not possible"
-msgstr ""
-
-#: sss_client/pam_sss.c:530
-#, fuzzy
-msgid "Password change failed. "
-msgstr "Leverantör av lösenordsändringar"
-
-#: sss_client/pam_sss.c:531
-msgid "Server message: "
-msgstr ""
-
-#: sss_client/pam_sss.c:898
-msgid "New Password: "
-msgstr "Nytt lösenord: "
-
-#: sss_client/pam_sss.c:899
-msgid "Reenter new Password: "
-msgstr "Skriv det nya lösenordet igen: "
-
-#: sss_client/pam_sss.c:957
-msgid "Password: "
-msgstr "Lösenord: "
-
-#: sss_client/pam_sss.c:987
-#, fuzzy
-msgid "Current Password: "
-msgstr "Nytt lösenord: "
 
 #~ msgid "Password has expired."
 #~ msgstr "Lösenordet har gått ut."
