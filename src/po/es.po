@@ -1,6 +1,7 @@
 # Fedora Spanish translation of sssd.master.
 # This file is distributed under the same license as the sssd.master package.
 #
+# Domingo Becker <domingobecker@gmail.com>, 2009, 2010.
 # Héctor Daniel Cabrera <logan@fedoraproject.org>, 2010.
 #
 msgid ""
@@ -8,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-03-08 17:04-0500\n"
-"PO-Revision-Date: 2010-02-26 20:14-0300\n"
+"PO-Revision-Date: 2010-03-08 21:52-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -358,11 +359,11 @@ msgstr "Política para evaluar el vencimiento de la contraseña"
 
 #: config/SSSDConfig.py:148
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "Lista separada por comas de usuarios autorizados"
 
 #: config/SSSDConfig.py:149
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "Lista separada por comas de usuarios prohibidos"
 
 #: config/SSSDConfig.py:152
 msgid "Default shell, /bin/bash"
