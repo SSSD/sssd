@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-03-08 17:04-0500\n"
-"PO-Revision-Date: 2010-02-25 20:14+0100\n"
+"PO-Revision-Date: 2010-03-08 23:25+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -351,11 +351,11 @@ msgstr "Polityka do oszacowania wygaszenia hasła"
 
 #: config/SSSDConfig.py:148
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "Lista dozwolonych użytkowników oddzielonych przecinkami"
 
 #: config/SSSDConfig.py:149
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "Lista zabronionych użytkowników oddzielonych przecinkami"
 
 #: config/SSSDConfig.py:152
 msgid "Default shell, /bin/bash"
