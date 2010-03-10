@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-09 08:15-0500\n"
-"PO-Revision-Date: 2010-03-08 23:25+0100\n"
+"POT-Creation-Date: 2010-03-10 07:43-0500\n"
+"PO-Revision-Date: 2010-03-10 11:41+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -375,20 +375,19 @@ msgstr "Używany stos PAM"
 
 #: monitor/monitor.c:2199
 msgid "Become a daemon (default)"
-msgstr ""
+msgstr "Uruchamia jako demon (domyślnie)"
 
 #: monitor/monitor.c:2201
 msgid "Run interactive (not a daemon)"
-msgstr ""
+msgstr "Uruchamia interaktywnie (nie jako demon)"
 
 #: monitor/monitor.c:2203
 msgid "Specify a non-default config file"
-msgstr ""
+msgstr "Podaje niedomyślny plik konfiguracji"
 
 #: monitor/monitor.c:2229
-#, fuzzy
 msgid "sssd must be run as root\n"
-msgstr "%s musi zostać uruchomione jako root\n"
+msgstr "sssd musi zostać uruchomione jako root\n"
 
 #: monitor/monitor.c:2265
 #, c-format
@@ -396,25 +395,26 @@ msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
 msgstr ""
+"Nie można odczytać pliku konfiguracji %s. Proszę sprawdzić, czy uprawnienia "
+"wynoszą 0600, a właścicielem pliku jest root.root\n"
 
 #: providers/krb5/krb5_child.c:922 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
-msgstr ""
+msgstr "Poziom debugowania"
 
 #: providers/krb5/krb5_child.c:924 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
-msgstr ""
+msgstr "Dodaje czasy debugowania"
 
 #: providers/krb5/krb5_child.c:926 providers/ldap/ldap_child.c:320
-#, fuzzy
 msgid "An open file descriptor for the debug logs"
-msgstr "Ustawia liczbę komunikatów dziennika debugowania"
+msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
 #: providers/data_provider_be.c:1156
 msgid "Domain of the information provider (mandatory)"
-msgstr ""
+msgstr "Domena dostawcy informacji (wymagane)"
 
 #: sss_client/pam_sss.c:353
 msgid "Passwords do not match"
@@ -687,23 +687,23 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Błąd transakcji. Nie można zmodyfikować grupy.\n"
 
 #: tools/sss_groupshow.c:954
-#, fuzzy, c-format
+#, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "Grupy"
+msgstr "%s%sGrupa: %s\n"
 
 #: tools/sss_groupshow.c:955
 msgid "Magic Private "
-msgstr ""
+msgstr "Prywatne magic "
 
 #: tools/sss_groupshow.c:957
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr ""
+msgstr "%sNumer GID: %d\n"
 
 #: tools/sss_groupshow.c:959
 #, c-format
 msgid "%sMember users: "
-msgstr ""
+msgstr "%sUżytkownicy będący członkami: "
 
 #: tools/sss_groupshow.c:966
 #, c-format
@@ -711,6 +711,8 @@ msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
+"\n"
+"%sJest członkiem: "
 
 #: tools/sss_groupshow.c:973
 #, c-format
@@ -718,34 +720,32 @@ msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
+"\n"
+"%sGrupy będące członkami: "
 
 #: tools/sss_groupshow.c:1010
 msgid "Print indirect group members recursively"
-msgstr ""
+msgstr "Rekursywnie drukuje niebezpośrednich członków grupy"
 
 #: tools/sss_groupshow.c:1045
-#, fuzzy
 msgid "Specify group to show\n"
-msgstr "Proszę podać grupę do dodania\n"
+msgstr "Proszę podać grupę do wyświetlenia\n"
 
 #: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
-#, fuzzy
 msgid "Cannot initiate search\n"
-msgstr "Nie można uzyskać informacji o użytkowniku\n"
+msgstr "Nie można zainicjować wyszukiwania\n"
 
 #: tools/sss_groupshow.c:1115
-#, fuzzy
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Nie ma takiej grupy w lokalnej domenie. Usuwanie grup jest dozwolone tylko w "
-"lokalnej domenie.\n"
+"Nie ma takiej grupy w lokalnej domenie. Drukowanie grup jest dozwolone tylko "
+"w lokalnej domenie.\n"
 
 #: tools/sss_groupshow.c:1120
-#, fuzzy
 msgid "Internal error. Could not print group.\n"
-msgstr "Wewnętrzny błąd. Nie można usunąć grupy.\n"
+msgstr "Wewnętrzny błąd. Nie można wydrukować grupy.\n"
 
 #: tools/sss_userdel.c:46
 msgid "Remove home directory and mail spool"
@@ -850,3 +850,4 @@ msgstr "%s musi zostać uruchomione jako root\n"
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
+"Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
