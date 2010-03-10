@@ -336,12 +336,8 @@ done:
 int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
                       const char *name)
 {
-    DBusPendingCall *pending_reply;
-    DBusConnection *dbus_conn;
     DBusMessage *msg;
     dbus_bool_t ret;
-
-    dbus_conn = sbus_get_connection(conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -365,23 +361,6 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
-                                          30000 /* TODO: set timeout */);
-    if (!ret || !pending_reply) {
-        /*
-         * Critical Failure
-         * We can't communicate on this connection
-         * We'll drop it using the default destructor.
-         */
-        DEBUG(0, ("D-BUS send failed.\n"));
-        dbus_message_unref(msg);
-        return EIO;
-    }
-
-    /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, id_callback, NULL, NULL);
-    dbus_message_unref(msg);
-
-    return EOK;
+    return sbus_conn_send(conn, msg, 30000, id_callback, NULL, NULL);
 }
 

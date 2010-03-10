@@ -412,7 +412,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                                        void *callback_ctx,
                                        struct sss_dp_req **ndp)
 {
-    DBusConnection *dbus_conn;
     DBusMessage *msg;
     DBusPendingCall *pending_reply;
     dbus_bool_t dbret;
@@ -432,7 +431,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
                   " This maybe a bug, it shouldn't happen!\n", domain));
         return EIO;
     }
-    dbus_conn = sbus_get_connection(be_conn->conn);
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -457,9 +455,16 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
         return EIO;
     }
 
-    dbret = dbus_connection_send_with_reply(dbus_conn, msg,
-                                            &pending_reply, timeout);
-    if (!dbret || pending_reply == NULL) {
+    sdp_req = talloc_zero(rctx, struct sss_dp_req);
+    if (!sdp_req) {
+        dbus_message_unref(msg);
+        return ENOMEM;
+    }
+
+    ret = sbus_conn_send(be_conn->conn, msg, timeout,
+                         sss_dp_send_acct_callback,
+                         sdp_req, &pending_reply);
+    if (ret != EOK) {
         /*
          * Critical Failure
          * We can't communicate on this connection
@@ -470,11 +475,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
         return EIO;
     }
 
-    sdp_req = talloc_zero(rctx, struct sss_dp_req);
-    if (!sdp_req) {
-        dbus_message_unref(msg);
-        return ENOMEM;
-    }
     sdp_req->ev = rctx->ev;
     sdp_req->pending_reply = pending_reply;
 
@@ -491,18 +491,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
 
         DLIST_ADD(sdp_req->cb_list, cb);
         talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
-    }
-
-    /* Set up the reply handler */
-    dbret = dbus_pending_call_set_notify(pending_reply,
-                                         sss_dp_send_acct_callback,
-                                         sdp_req, NULL);
-    if (!dbret) {
-        DEBUG(0, ("Could not queue up pending request!\n"));
-        talloc_zfree(sdp_req);
-        dbus_pending_call_cancel(pending_reply);
-        dbus_message_unref(msg);
-        return EIO;
     }
 
     dbus_message_unref(msg);

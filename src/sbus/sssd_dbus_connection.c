@@ -685,6 +685,71 @@ bool sbus_conn_disconnecting(struct sbus_connection *conn)
     return false;
 }
 
+/*
+ * Send a message across the SBUS
+ * If requested, the DBusPendingCall object will
+ * be returned to the caller.
+ *
+ * This function will return EAGAIN in the event
+ * that the connection is not open for
+ * communication.
+ */
+int sbus_conn_send(struct sbus_connection *conn,
+                   DBusMessage *msg,
+                   int timeout_ms,
+                   DBusPendingCallNotifyFunction reply_handler,
+                   void *pvt,
+                   DBusPendingCall **pending)
+{
+    DBusPendingCall *pending_reply;
+    DBusConnection *dbus_conn;
+    dbus_bool_t dbret;
+
+    dbus_conn = sbus_get_connection(conn);
+
+    dbret = dbus_connection_send_with_reply(dbus_conn, msg,
+                                            &pending_reply,
+                                            timeout_ms);
+    if (!dbret) {
+        /*
+         * Critical Failure
+         * Insufficient memory to send message
+         */
+        DEBUG(0, ("D-BUS send failed.\n"));
+        return ENOMEM;
+    }
+
+    if (pending_reply) {
+        /* Set up the reply handler */
+        dbret = dbus_pending_call_set_notify(pending_reply, reply_handler,
+                                             pvt, NULL);
+        if (!dbret) {
+            /*
+             * Critical Failure
+             * Insufficient memory to create pending call notify
+             */
+            DEBUG(0, ("D-BUS send failed.\n"));
+            dbus_pending_call_cancel(pending_reply);
+            dbus_pending_call_unref(pending_reply);
+            return ENOMEM;
+        }
+
+        if(pending) {
+            *pending = pending_reply;
+        }
+        return EOK;
+    }
+
+    /* If pending_reply is NULL, the connection was not
+     * open for sending.
+     */
+
+    /* TODO: Create a callback into the reconnection logic so this
+     * request is invoked when the connection is re-established
+     */
+    return EAGAIN;
+}
+
 void sbus_conn_send_reply(struct sbus_connection *conn, DBusMessage *reply)
 {
     dbus_connection_send(conn->dbus.conn, reply, NULL);
