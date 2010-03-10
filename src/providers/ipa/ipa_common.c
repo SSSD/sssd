@@ -499,9 +499,10 @@ static void ipa_resolve_callback(void *private_data, struct fo_server *server)
     talloc_zfree(service->krb5_service->address);
     service->krb5_service->address = address;
 
-    ret = write_kdcinfo_file(service->krb5_service->realm, address);
+    ret = write_krb5info_file(service->krb5_service->realm, address,
+                              SSS_KRB5KDC_FO_SRV);
     if (ret != EOK) {
-        DEBUG(2, ("write_kdcinfo_file failed, authentication might fail.\n"));
+        DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
     }
 
 }

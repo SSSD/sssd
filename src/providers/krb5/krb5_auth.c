@@ -676,7 +676,9 @@ static int handle_child_recv(struct tevent_req *req,
 }
 
 static void get_user_attr_done(void *pvt, int err, struct ldb_result *res);
-static void krb5_resolve_done(struct tevent_req *req);
+static void krb5_resolve_kdc_done(struct tevent_req *req);
+static void krb5_resolve_kpasswd_done(struct tevent_req *req);
+static void krb5_find_ccache_step(struct krb5child_req *kr);
 static void krb5_save_ccname_done(struct tevent_req *req);
 static void krb5_child_done(struct tevent_req *req);
 static void krb5_pam_handler_cache_done(struct tevent_req *treq);
@@ -852,14 +854,16 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         break;
     }
 
+    kr->srv = NULL;
+    kr->kpasswd_srv = NULL;
     req = be_resolve_server_send(kr, be_req->be_ctx->ev, be_req->be_ctx,
                                  krb5_ctx->service->name);
     if (req == NULL) {
-        DEBUG(1, ("handle_child_send failed.\n"));
+        DEBUG(1, ("be_resolve_server_send failed.\n"));
         goto failed;
     }
 
-    tevent_req_set_callback(req, krb5_resolve_done, kr);
+    tevent_req_set_callback(req, krb5_resolve_kdc_done, kr);
 
     return;
 
@@ -870,18 +874,13 @@ failed:
     krb_reply(be_req, dp_err, pd->pam_status);
 }
 
-static void krb5_resolve_done(struct tevent_req *req)
+static void krb5_resolve_kdc_done(struct tevent_req *req)
 {
     struct krb5child_req *kr = tevent_req_callback_data(req,
                                                         struct krb5child_req);
     int ret;
-    int pam_status = PAM_SYSTEM_ERR;
-    int dp_err = DP_ERR_FATAL;
     struct pam_data *pd = kr->pd;
     struct be_req *be_req = kr->req;
-    char *msg;
-    size_t offset = 0;
-    bool private_path = false;
 
     ret = be_resolve_server_recv(req, &kr->srv);
     talloc_zfree(req);
@@ -892,7 +891,67 @@ static void krb5_resolve_done(struct tevent_req *req)
          * the ccache file. */
         be_mark_offline(be_req->be_ctx);
         kr->is_offline = true;
+    } else {
+        if (pd->cmd == SSS_PAM_CHAUTHTOK &&
+            kr->krb5_ctx->kpasswd_service != NULL) {
+            req = be_resolve_server_send(kr, be_req->be_ctx->ev, be_req->be_ctx,
+                                         kr->krb5_ctx->kpasswd_service->name);
+            if (req == NULL) {
+                DEBUG(1, ("be_resolve_server_send failed.\n"));
+                goto failed;
+            }
+
+            tevent_req_set_callback(req, krb5_resolve_kpasswd_done, kr);
+
+            return;
+        }
     }
+
+    krb5_find_ccache_step(kr);
+    return;
+
+failed:
+    talloc_free(kr);
+
+    pd->pam_status = PAM_SYSTEM_ERR;
+    krb_reply(be_req, DP_ERR_FATAL, pd->pam_status);
+}
+
+static void krb5_resolve_kpasswd_done(struct tevent_req *req)
+{
+    struct krb5child_req *kr = tevent_req_callback_data(req,
+                                                        struct krb5child_req);
+    int ret;
+    struct pam_data *pd = kr->pd;
+    struct be_req *be_req = kr->req;
+
+    ret = be_resolve_server_recv(req, &kr->kpasswd_srv);
+    talloc_zfree(req);
+    if (ret) {
+        /* all kpasswd servers have been tried and none was found good, but the
+         * kdc seems ok. Password changes are not possible but
+         * authentication. We return an PAM error here, but do not mark the
+         * backend offline. */
+
+        talloc_free(kr);
+        pd->pam_status = PAM_AUTHTOK_LOCK_BUSY;
+        krb_reply(be_req, DP_ERR_OK, pd->pam_status);
+    }
+
+    krb5_find_ccache_step(kr);
+}
+
+static void krb5_find_ccache_step(struct krb5child_req *kr)
+{
+    int ret;
+    int pam_status = PAM_SYSTEM_ERR;
+    int dp_err = DP_ERR_FATAL;
+    struct pam_data *pd = kr->pd;
+    struct be_req *be_req = kr->req;
+    char *msg;
+    size_t offset = 0;
+    bool private_path = false;
+    struct tevent_req *req = NULL;
 
     if (kr->ccname == NULL ||
         (be_is_offline(be_req->be_ctx) && !kr->active_ccache_present &&
@@ -1079,6 +1138,14 @@ static void krb5_child_done(struct tevent_req *req)
         kr->is_offline = true;
     } else if (kr->srv != NULL) {
         fo_set_port_status(kr->srv, PORT_WORKING);
+    }
+
+    if (kr->kpasswd_srv != NULL) {
+        if (*msg_status == PAM_AUTHTOK_LOCK_BUSY) {
+            fo_set_port_status(kr->kpasswd_srv, PORT_NOT_WORKING);
+        } else {
+            fo_set_port_status(kr->kpasswd_srv, PORT_WORKING);
+        }
     }
 
     struct sysdb_attrs *attrs;

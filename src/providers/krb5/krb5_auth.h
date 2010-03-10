@@ -57,6 +57,7 @@ struct krb5child_req {
     gid_t gid;
     bool is_offline;
     struct fo_server *srv;
+    struct fo_server *kpasswd_srv;
     bool active_ccache_present;
     bool valid_tgt_present;
 };
@@ -90,6 +91,7 @@ struct krb5_ctx {
 
     struct dp_option *opts;
     struct krb5_service *service;
+    struct krb5_service *kpasswd_service;
     int child_debug_fd;
 
     pcre *illegal_path_re;
