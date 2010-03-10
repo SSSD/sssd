@@ -453,15 +453,15 @@ sss_groupshow_LDADD = \
 #################
 # Feature Tests #
 #################
-if HAVE_CHECK
 noinst_LTLIBRARIES += \
     libsss_test_common.la
 
 libsss_test_common_la_SOURCES = \
     tests/common.c
-libsss_test_common_la_LIBADD = \
-    $(SSSD_LIBS) \
-    $(CHECK_LIBS)
+
+if HAVE_CHECK
+libsss_test_common_la_SOURCES += \
+    tests/common_check.c
 
 sysdb_tests_DEPENDENCIES = \
     $(ldblib_LTLIBRARIES)
