@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-09 08:15-0500\n"
+"POT-Creation-Date: 2010-03-10 07:43-0500\n"
 "PO-Revision-Date: 2010-02-23 13:59+0100\n"
 "Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
 "Language-Team: fedora-trans-pt@redhat.com\n"
@@ -381,20 +381,19 @@ msgstr "Stack PAM a utilizar"
 
 #: monitor/monitor.c:2199
 msgid "Become a daemon (default)"
-msgstr ""
+msgstr "Tornar-se num serviço (omissão)"
 
 #: monitor/monitor.c:2201
 msgid "Run interactive (not a daemon)"
-msgstr ""
+msgstr "Executar interactivamente (não como serviço)"
 
 #: monitor/monitor.c:2203
 msgid "Specify a non-default config file"
-msgstr ""
+msgstr "Especificar um ficheiro de configuração não standard"
 
 #: monitor/monitor.c:2229
-#, fuzzy
 msgid "sssd must be run as root\n"
-msgstr "%s tem de executar como root\n"
+msgstr "sssd tem de executar como root\n"
 
 #: monitor/monitor.c:2265
 #, c-format
@@ -402,25 +401,26 @@ msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
 msgstr ""
+"Incapaz de ler o ficheiro de configuração %s. Por favor, verifique se as "
+"permissões são 0600 e se o ficheiro pertence a root.root\n"
 
 #: providers/krb5/krb5_child.c:922 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
-msgstr ""
+msgstr "Nível de depuração"
 
 #: providers/krb5/krb5_child.c:924 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
-msgstr ""
+msgstr "Adicionar tempos na depuração"
 
 #: providers/krb5/krb5_child.c:926 providers/ldap/ldap_child.c:320
-#, fuzzy
 msgid "An open file descriptor for the debug logs"
-msgstr "Definir a verbosidade dos registos de depuração"
+msgstr "Um descritor de ficheiro aberto para os registos de depuração"
 
 #: providers/data_provider_be.c:1156
 msgid "Domain of the information provider (mandatory)"
-msgstr ""
+msgstr "Domínio do fornecedor de informação (obrigatório)"
 
 #: sss_client/pam_sss.c:353
 msgid "Passwords do not match"
@@ -528,7 +528,7 @@ msgstr "Erro ao inicializar as ferramentas - não existe domínio local\n"
 #: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:104
 #: tools/sss_usermod.c:128
 msgid "Error initializing the tools\n"
-msgstr "Erro ao inicializar a ferramenta\n"
+msgstr "Erro ao inicializar as ferramentas\n"
 
 #: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
 #: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:113
@@ -688,23 +688,23 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Erro de transacção. Não foi possível modificar o grupo.\n"
 
 #: tools/sss_groupshow.c:954
-#, fuzzy, c-format
+#, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "Grupos"
+msgstr "%s%sGrupo: %s\n"
 
 #: tools/sss_groupshow.c:955
 msgid "Magic Private "
-msgstr ""
+msgstr "\"Magic\" Privada"
 
 #: tools/sss_groupshow.c:957
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr ""
+msgstr "%sNúmero GID: %d\n"
 
 #: tools/sss_groupshow.c:959
 #, c-format
 msgid "%sMember users: "
-msgstr ""
+msgstr "%sUtilizadores Membros: "
 
 #: tools/sss_groupshow.c:966
 #, c-format
@@ -712,6 +712,8 @@ msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
+"\n"
+"%sIs um membro de: "
 
 #: tools/sss_groupshow.c:973
 #, c-format
@@ -719,34 +721,32 @@ msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
+"\n"
+"%sGrupos Membros: "
 
 #: tools/sss_groupshow.c:1010
 msgid "Print indirect group members recursively"
-msgstr ""
+msgstr "Imprimir membros de grupos indirectos recursivamente"
 
 #: tools/sss_groupshow.c:1045
-#, fuzzy
 msgid "Specify group to show\n"
-msgstr "Indique grupo a adicionar\n"
+msgstr "Especifique grupo a apresentar\n"
 
 #: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
-#, fuzzy
 msgid "Cannot initiate search\n"
-msgstr "Incapaz de obter informação acerca do utilizador\n"
+msgstr "Incapaz de iniciar pesquisa\n"
 
 #: tools/sss_groupshow.c:1115
-#, fuzzy
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr ""
-"Grupo não existe no domínio local. Apenas é permitido remover grupos no "
+"Grupo não existe no domínio local. Grupos de impressão apenas permitidos no "
 "domínio local.\n"
 
 #: tools/sss_groupshow.c:1120
-#, fuzzy
 msgid "Internal error. Could not print group.\n"
-msgstr "Erro interno. Incapaz de remover grupo.\n"
+msgstr "Erro interno. Incapaz de imprimir grupo.\n"
 
 #: tools/sss_userdel.c:46
 msgid "Remove home directory and mail spool"
@@ -846,7 +846,7 @@ msgstr "%s tem de executar como root\n"
 
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
-msgstr ""
+msgstr "Enviar o resultado de depuração para ficheiro em vez do stderr"
 
 #~ msgid "Password has expired."
 #~ msgstr "Senha expirou."
