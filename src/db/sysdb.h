@@ -501,20 +501,20 @@ int sysdb_cache_password(TALLOC_CTX *mem_ctx,
                          const char *username,
                          const char *password);
 
-errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
+errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx,
+                                    struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,
                                     uint32_t *failed_login_attempts,
                                     time_t *delayed_until);
-struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_ctx *sysdb,
-                                         struct sss_domain_info *domain,
-                                         const char *name,
-                                         const uint8_t *authtok,
-                                         size_t authtok_size,
-                                         struct confdb_ctx *cdb);
-int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
-                          time_t *delayed_until);
+int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
+                     const char *name,
+                     const uint8_t *authtok,
+                     size_t authtok_size,
+                     struct confdb_ctx *cdb,
+                     time_t *_expire_date,
+                     time_t *_delayed_until);
 
 int sysdb_store_custom(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *ctx,

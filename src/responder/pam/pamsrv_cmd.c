@@ -453,7 +453,8 @@ static void pam_reply_delay(struct tevent_context *ev, struct tevent_timer *te,
     pam_reply(preq);
 }
 
-static void pam_cache_auth_done(struct tevent_req *req);
+static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
+                                time_t expire_date, time_t delayed_until);
 
 static void pam_reply(struct pam_auth_req *preq)
 {
@@ -468,10 +469,11 @@ static void pam_reply(struct pam_auth_req *preq)
     struct timeval tv;
     struct tevent_timer *te;
     struct pam_data *pd;
-    struct tevent_req *req;
     struct sysdb_ctx *sysdb;
     struct pam_ctx *pctx;
     uint32_t user_info_type;
+    time_t exp_date = -1;
+    time_t delay_until = -1;
 
     pd = preq->pd;
     cctx = preq->cctx;
@@ -480,10 +482,10 @@ static void pam_reply(struct pam_auth_req *preq)
 
     if (pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
         switch(pd->cmd) {
-            case SSS_PAM_AUTHENTICATE:
-                if ((preq->domain != NULL) &&
-                    (preq->domain->cache_credentials == true) &&
-                    (pd->offline_auth == false)) {
+        case SSS_PAM_AUTHENTICATE:
+            if ((preq->domain != NULL) &&
+                (preq->domain->cache_credentials == true) &&
+                (pd->offline_auth == false)) {
 
                     /* do auth with offline credentials */
                     pd->offline_auth = true;
@@ -499,40 +501,37 @@ static void pam_reply(struct pam_auth_req *preq)
                     pctx = talloc_get_type(preq->cctx->rctx->pvt_ctx,
                                            struct pam_ctx);
 
-                    req = sysdb_cache_auth_send(preq, preq->cctx->ev, sysdb,
-                                                preq->domain, pd->user,
-                                                pd->authtok, pd->authtok_size,
-                                                pctx->rctx->cdb);
-                    if (req == NULL) {
-                        DEBUG(1, ("Failed to setup offline auth.\n"));
-                        /* this error is not fatal, continue */
-                    } else {
-                        tevent_req_set_callback(req, pam_cache_auth_done, preq);
-                        return;
-                    }
-                }
-                break;
-            case SSS_PAM_CHAUTHTOK_PRELIM:
-            case SSS_PAM_CHAUTHTOK:
-                DEBUG(5, ("Password change not possible while offline.\n"));
-                pd->pam_status = PAM_AUTHTOK_ERR;
-                user_info_type = SSS_PAM_USER_INFO_OFFLINE_CHPASS;
-                pam_add_response(pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
-                                 (const uint8_t *) &user_info_type);
-                break;
+                    ret = sysdb_cache_auth(preq, sysdb,
+                                           preq->domain, pd->user,
+                                           pd->authtok, pd->authtok_size,
+                                           pctx->rctx->cdb,
+                                           &exp_date, &delay_until);
+
+                    pam_cache_auth_done(preq, ret, exp_date, delay_until);
+                    return;
+            }
+            break;
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+        case SSS_PAM_CHAUTHTOK:
+            DEBUG(5, ("Password change not possible while offline.\n"));
+            pd->pam_status = PAM_AUTHTOK_ERR;
+            user_info_type = SSS_PAM_USER_INFO_OFFLINE_CHPASS;
+            pam_add_response(pd, SSS_PAM_USER_INFO, sizeof(uint32_t),
+                             (const uint8_t *) &user_info_type);
+            break;
 /* TODO: we need the pam session cookie here to make sure that cached
  * authentication was successful */
-            case SSS_PAM_SETCRED:
-            case SSS_PAM_ACCT_MGMT:
-            case SSS_PAM_OPEN_SESSION:
-            case SSS_PAM_CLOSE_SESSION:
-                DEBUG(2, ("Assuming offline authentication setting status for "
-                          "pam call %d to PAM_SUCCESS.\n", pd->cmd));
-                pd->pam_status = PAM_SUCCESS;
-                break;
-            default:
-                DEBUG(1, ("Unknown PAM call [%d].\n", pd->cmd));
-                pd->pam_status = PAM_MODULE_UNKNOWN;
+        case SSS_PAM_SETCRED:
+        case SSS_PAM_ACCT_MGMT:
+        case SSS_PAM_OPEN_SESSION:
+        case SSS_PAM_CLOSE_SESSION:
+            DEBUG(2, ("Assuming offline authentication setting status for "
+                      "pam call %d to PAM_SUCCESS.\n", pd->cmd));
+            pd->pam_status = PAM_SUCCESS;
+            break;
+        default:
+            DEBUG(1, ("Unknown PAM call [%d].\n", pd->cmd));
+            pd->pam_status = PAM_MODULE_UNKNOWN;
         }
     }
 
@@ -625,20 +624,13 @@ done:
     sss_cmd_done(cctx, preq);
 }
 
-static void pam_cache_auth_done(struct tevent_req *req)
+static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
+                                time_t expire_date, time_t delayed_until)
 {
-    int ret;
-    struct pam_auth_req *preq = tevent_req_callback_data(req,
-                                                         struct pam_auth_req);
     uint32_t resp_type;
     size_t resp_len;
     uint8_t *resp;
-    time_t expire_date = 0;
-    time_t delayed_until = -1;
     long long dummy;
-
-    ret = sysdb_cache_auth_recv(req, &expire_date, &delayed_until);
-    talloc_zfree(req);
 
     switch (ret) {
         case EOK:

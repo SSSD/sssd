@@ -1950,10 +1950,9 @@ static void cached_authentication_without_expiration(const char *username,
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
-    time_t expire_date;
-    time_t delayed_until;
+    time_t expire_date = -1;
+    time_t delayed_until = -1;
     const char *val[2];
     val[1] = NULL;
 
@@ -1975,18 +1974,11 @@ static void cached_authentication_without_expiration(const char *username,
         return;
     }
 
-    req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
-                                test_ctx->domain, data->username,
-                                (const uint8_t *) password, strlen(password),
-                                test_ctx->confdb);
-    fail_unless(req != NULL, "sysdb_cache_password_send failed.");
+    ret = sysdb_cache_auth(data, test_ctx->sysdb,
+                           test_ctx->domain, data->username,
+                           (const uint8_t *)password, strlen(password),
+                           test_ctx->confdb, &expire_date, &delayed_until);
 
-    tevent_req_set_callback(req, test_search_done, data);
-
-    ret = test_loop(data);
-    fail_unless(ret == EOK, "test_loop failed.");
-
-    ret = sysdb_cache_auth_recv(req, &expire_date, &delayed_until);
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
                                         "return expected result [%d].",
                                         expected_result);
@@ -2006,14 +1998,13 @@ static void cached_authentication_with_expiration(const char *username,
 {
     struct sysdb_test_ctx *test_ctx;
     struct test_data *data;
-    struct tevent_req *req;
     int ret;
-    time_t expire_date;
+    time_t expire_date = -1;
     const char *val[2];
     val[1] = NULL;
     time_t now;
     time_t expected_expire_date;
-    time_t delayed_until;
+    time_t delayed_until = -1;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2040,31 +2031,19 @@ static void cached_authentication_with_expiration(const char *username,
     data->attrs = sysdb_new_attrs(data);
     ret = sysdb_attrs_add_time_t(data->attrs, SYSDB_LAST_ONLINE_AUTH, now);
 
-    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
-    fail_unless(req != NULL, "sysdb_transaction_send failed.");
-
-    tevent_req_set_callback(req, test_set_user_attr, data);
-
-    ret = test_loop(data);
+    ret = sysdb_set_user_attr(data, data->ctx->sysdb,
+                              data->ctx->domain, data->username,
+                              data->attrs, SYSDB_MOD_REP);
     fail_unless(ret == EOK, "Could not modify user %s", data->username);
-    talloc_zfree(req);
 
-    data->finished = false;
-    req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
-                                test_ctx->domain, data->username,
-                                (const uint8_t *) password, strlen(password),
-                                test_ctx->confdb);
-    fail_unless(req != NULL, "sysdb_cache_password_send failed.");
+    ret = sysdb_cache_auth(data, test_ctx->sysdb,
+                           test_ctx->domain, data->username,
+                           (const uint8_t *) password, strlen(password),
+                           test_ctx->confdb, &expire_date, &delayed_until);
 
-    tevent_req_set_callback(req, test_search_done, data);
-
-    ret = test_loop(data);
-    fail_unless(ret == EOK, "test_loop failed.");
-
-    ret = sysdb_cache_auth_recv(req, &expire_date, &delayed_until);
-    fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
-                                        "return expected result [%d], got [%d].",
-                                        expected_result, ret);
+    fail_unless(ret == expected_result,
+                "sysdb_cache_auth request does not return expected "
+                "result [%d], got [%d].", expected_result, ret);
 
     fail_unless(expire_date == expected_expire_date,
                 "Wrong expire date, expected [%d], got [%d]",

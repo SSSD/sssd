@@ -1970,22 +1970,9 @@ fail:
 
 /* ========= Authentication against cached password ============ */
 
-struct sysdb_cache_auth_state {
-    struct tevent_context *ev;
-    const char *name;
-    const uint8_t *authtok;
-    size_t authtok_size;
-    struct sss_domain_info *domain;
-    struct sysdb_ctx *sysdb;
-    struct confdb_ctx *cdb;
-    struct sysdb_attrs *update_attrs;
-    bool authentication_successful;
-    struct sysdb_handle *handle;
-    time_t expire_date;
-    time_t delayed_until;
-};
 
-errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
+errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx,
+                                    struct confdb_ctx *cdb,
                                     struct ldb_message *ldb_msg,
                                     uint32_t *failed_login_attempts,
                                     time_t *delayed_until)
@@ -2045,21 +2032,17 @@ errno_t check_failed_login_attempts(TALLOC_CTX *mem_ctx, struct confdb_ctx *cdb,
     return EOK;
 }
 
-static void sysdb_cache_auth_transaction_start_done(struct tevent_req *subreq);
-static void sysdb_cache_auth_done(struct tevent_req *subreq);
-
-struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_ctx *sysdb,
-                                         struct sss_domain_info *domain,
-                                         const char *name,
-                                         const uint8_t *authtok,
-                                         size_t authtok_size,
-                                         struct confdb_ctx *cdb)
+int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *sysdb,
+                     struct sss_domain_info *domain,
+                     const char *name,
+                     const uint8_t *authtok,
+                     size_t authtok_size,
+                     struct confdb_ctx *cdb,
+                     time_t *_expire_date,
+                     time_t *_delayed_until)
 {
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct sysdb_cache_auth_state *state;
+    TALLOC_CTX *tmpctx;
     const char *attrs[] = { SYSDB_NAME, SYSDB_CACHEDPWD, SYSDB_DISABLED,
                             SYSDB_LAST_LOGIN, SYSDB_LAST_ONLINE_AUTH,
                             "lastCachedPasswordChange",
@@ -2072,53 +2055,47 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
     uint64_t lastLogin = 0;
     int cred_expiration;
     uint32_t failed_login_attempts = 0;
+    struct sysdb_attrs *update_attrs;
+    bool authentication_successful = false;
+    time_t expire_date = -1;
+    time_t delayed_until = -1;
     int ret;
     int i;
 
-    req = tevent_req_create(mem_ctx, &state, struct sysdb_cache_auth_state);
-    if (req == NULL) {
-        DEBUG(1, ("tevent_req_create failed.\n"));
-        return NULL;
-    }
-
     if (name == NULL || *name == '\0') {
         DEBUG(1, ("Missing user name.\n"));
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
     if (cdb == NULL) {
         DEBUG(1, ("Missing config db context.\n"));
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
     if (sysdb == NULL) {
         DEBUG(1, ("Missing sysdb db context.\n"));
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
     if (!domain->cache_credentials) {
         DEBUG(3, ("Cached credentials not available.\n"));
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
-    state->ev = ev;
-    state->name = name;
-    state->authtok = authtok;
-    state->authtok_size = authtok_size;
-    state->domain = domain;
-    state->sysdb = sysdb;
-    state->cdb = cdb;
-    state->update_attrs = NULL;
-    state->authentication_successful = false;
-    state->handle = NULL;
-    state->expire_date = -1;
-    state->delayed_until = -1;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
 
-    ret = sysdb_search_user_by_name(state, sysdb, domain, name, attrs, &ldb_msg);
+    ret = ldb_transaction_start(sysdb->ldb);
+    if (ret) {
+        talloc_zfree(tmpctx);
+        ret = sysdb_error_to_errno(ret);
+        return ret;
+    }
+
+    ret = sysdb_search_user_by_name(tmpctx, sysdb,
+                                    domain, name, attrs, &ldb_msg);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_search_user_by_name failed [%d][%s].\n",
                   ret, strerror(ret)));
@@ -2130,7 +2107,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
                                             SYSDB_LAST_ONLINE_AUTH,
                                             0);
 
-    ret = confdb_get_int(state->cdb, state, CONFDB_PAM_CONF_ENTRY,
+    ret = confdb_get_int(cdb, tmpctx, CONFDB_PAM_CONF_ENTRY,
                          CONFDB_PAM_CRED_TIMEOUT, 0, &cred_expiration);
     if (ret != EOK) {
         DEBUG(1, ("Failed to read expiration time of offline credentials.\n"));
@@ -2140,20 +2117,20 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
               cred_expiration));
 
     if (cred_expiration) {
-        state->expire_date = lastLogin + (cred_expiration * 86400);
-        if (state->expire_date < time(NULL)) {
+        expire_date = lastLogin + (cred_expiration * 86400);
+        if (expire_date < time(NULL)) {
             DEBUG(4, ("Cached user entry is too old.\n"));
-            state->expire_date = 0;
+            expire_date = 0;
             ret = EACCES;
             goto done;
         }
     } else {
-        state->expire_date = 0;
+        expire_date = 0;
     }
 
-    ret = check_failed_login_attempts(state, state->cdb, ldb_msg,
+    ret = check_failed_login_attempts(tmpctx, cdb, ldb_msg,
                                       &failed_login_attempts,
-                                      &state->delayed_until);
+                                      &delayed_until);
     if (ret != EOK) {
         DEBUG(1, ("Failed to check login attempts\n"));
         goto done;
@@ -2161,8 +2138,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
 
     /* TODO: verify user account (disabled, expired ...) */
 
-    password = talloc_strndup(state, (const char *) state->authtok,
-                              state->authtok_size);
+    password = talloc_strndup(tmpctx, (const char *)authtok, authtok_size);
     if (password == NULL) {
         DEBUG(1, ("talloc_strndup failed.\n"));
         ret = ENOMEM;
@@ -2176,15 +2152,15 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = s3crypt_sha512(state, password, userhash, &comphash);
+    ret = s3crypt_sha512(tmpctx, password, userhash, &comphash);
     if (ret) {
         DEBUG(4, ("Failed to create password hash.\n"));
         ret = EFAULT;
         goto done;
     }
 
-    state->update_attrs = sysdb_new_attrs(state);
-    if (state->update_attrs == NULL) {
+    update_attrs = sysdb_new_attrs(tmpctx);
+    if (update_attrs == NULL) {
         DEBUG(1, ("sysdb_new_attrs failed.\n"));
         ret = ENOMEM;
         goto done;
@@ -2193,10 +2169,10 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
     if (strcmp(userhash, comphash) == 0) {
         /* TODO: probable good point for audit logging */
         DEBUG(4, ("Hashes do match!\n"));
-        state->authentication_successful = true;
+        authentication_successful = true;
 
-        ret = sysdb_attrs_add_time_t(state->update_attrs, SYSDB_LAST_LOGIN,
-                                     time(NULL));
+        ret = sysdb_attrs_add_time_t(update_attrs,
+                                     SYSDB_LAST_LOGIN, time(NULL));
         if (ret != EOK) {
             DEBUG(3, ("sysdb_attrs_add_time_t failed, "
                       "but authentication is successful.\n"));
@@ -2204,7 +2180,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = sysdb_attrs_add_uint32(state->update_attrs,
+        ret = sysdb_attrs_add_uint32(update_attrs,
                                      SYSDB_FAILED_LOGIN_ATTEMPTS, 0U);
         if (ret != EOK) {
             DEBUG(3, ("sysdb_attrs_add_uint32 failed, "
@@ -2216,9 +2192,9 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
 
     } else {
         DEBUG(4, ("Authentication failed.\n"));
-        state->authentication_successful = false;
+        authentication_successful = false;
 
-        ret = sysdb_attrs_add_time_t(state->update_attrs,
+        ret = sysdb_attrs_add_time_t(update_attrs,
                                      SYSDB_LAST_FAILED_LOGIN,
                                      time(NULL));
         if (ret != EOK) {
@@ -2226,7 +2202,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
             goto done;
         }
 
-        ret = sysdb_attrs_add_uint32(state->update_attrs,
+        ret = sysdb_attrs_add_uint32(update_attrs,
                                      SYSDB_FAILED_LOGIN_ATTEMPTS,
                                      ++failed_login_attempts);
         if (ret != EOK) {
@@ -2235,106 +2211,31 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
         }
     }
 
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (subreq == NULL) {
-        DEBUG(1, ("sysdb_transaction_send failed.\n"));
-        goto done;
-    }
-    tevent_req_set_callback(subreq,
-                            sysdb_cache_auth_transaction_start_done, req);
-
-    return req;
-
-done:
-    if (password) for (i = 0; password[i]; i++) password[i] = 0;
-    if (ret) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void sysdb_cache_auth_transaction_start_done(struct tevent_req *subreq)
-{
-    int ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-
-    struct sysdb_cache_auth_state *state = tevent_req_data(req,
-                                                 struct sysdb_cache_auth_state);
-
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("sysdb_transaction_send failed [%d][%s].\n",
-                  ret, strerror(ret)));
-        goto done;
-    }
-
-
-    ret = sysdb_set_user_attr(state, state->handle->ctx,
-                              state->domain, state->name,
-                              state->update_attrs,
+    ret = sysdb_set_user_attr(tmpctx, sysdb,
+                              domain, name, update_attrs,
                               LDB_FLAG_MOD_REPLACE);
     if (ret) {
-        DEBUG(1, ("sysdb_set_user_attr request failed [%d][%s].\n",
-                  ret, strerror(ret)));
-        if (!state->authentication_successful) {
-            goto done;
-        }
+        DEBUG(1, ("Failed to update Login attempt information!\n"));
     }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (subreq == NULL) {
-        DEBUG(1, ("sysdb_transaction_commit_send failed.\n"));
-        goto done;
-    }
-    tevent_req_set_callback(subreq, sysdb_cache_auth_done, req);
-    return;
 
 done:
-    if (state->authentication_successful) {
-        tevent_req_done(req);
+    *_expire_date = expire_date;
+    *_delayed_until = delayed_until;
+    if (password) for (i = 0; password[i]; i++) password[i] = 0;
+    if (ret) {
+        ldb_transaction_cancel(sysdb->ldb);
     } else {
-        tevent_req_error(req, EINVAL);
+        ret = ldb_transaction_commit(sysdb->ldb);
+        if (ret) {
+            DEBUG(2, ("Failed to commit transaction!\n"));
+        }
     }
-    return;
-}
-
-static void sysdb_cache_auth_done(struct tevent_req *subreq)
-{
-    int ret;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-
-    struct sysdb_cache_auth_state *state = tevent_req_data(req,
-                                                 struct sysdb_cache_auth_state);
-
-    ret = sysdb_transaction_commit_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(1, ("sysdb_transaction_commit_send failed [%d][%s].\n",
-                  ret, strerror(ret)));
-    }
-
-    if (state->authentication_successful) {
-        tevent_req_done(req);
+    if (authentication_successful) {
+        ret = EOK;
     } else {
-        tevent_req_error(req, EINVAL);
+        if (ret == EOK) {
+            ret = EINVAL;
+        }
     }
-    return;
-}
-
-int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
-                          time_t *delayed_until) {
-    struct sysdb_cache_auth_state *state = tevent_req_data(req,
-                                                 struct sysdb_cache_auth_state);
-    *expire_date = state->expire_date;
-    *delayed_until = state->delayed_until;
-
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return (state->authentication_successful ? EOK : EINVAL);
+    return ret;
 }
