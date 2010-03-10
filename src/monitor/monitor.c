@@ -650,16 +650,16 @@ static void reload_reply(DBusPendingCall *pending, void *data)
          */
         DEBUG(0, ("A reply callback was called but no reply was received"
                   " and no timeout occurred\n"));
-
         /* Destroy this connection */
         sbus_disconnect(svc->conn);
-        goto done;
+        dbus_pending_call_unref(pending);
+        return;
     }
 
     /* TODO: Handle cases where the call has timed out or returned
      * with an error.
      */
-done:
+
     dbus_pending_call_unref(pending);
     dbus_message_unref(reply);
 }
@@ -687,9 +687,6 @@ static int monitor_update_resolv(struct config_file_ctx *file_ctx,
 static int service_signal(struct mt_svc *svc, const char *svc_signal)
 {
     DBusMessage *msg;
-    dbus_bool_t dbret;
-    DBusConnection *dbus_conn;
-    DBusPendingCall *pending_reply;
 
     if (svc->provider && strcasecmp(svc->provider, "local") == 0) {
         /* The local provider requires no signaling */
@@ -705,7 +702,6 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         return EIO;
     }
 
-    dbus_conn = sbus_get_connection(svc->conn);
     msg = dbus_message_new_method_call(NULL,
                                        MONITOR_PATH,
                                        MONITOR_INTERFACE,
@@ -717,21 +713,9 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         return ENOMEM;
     }
 
-    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
-                                            svc->mt_ctx->service_id_timeout);
-    if (!dbret || pending_reply == NULL) {
-        DEBUG(0, ("D-BUS send failed.\n"));
-        dbus_message_unref(msg);
-        monitor_kill_service(svc);
-        talloc_free(svc);
-        return EIO;
-    }
-
-    /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, reload_reply, svc, NULL);
-    dbus_message_unref(msg);
-
-    return EOK;
+    return sbus_conn_send(svc->conn, msg,
+                          svc->mt_ctx->service_id_timeout,
+                          reload_reply, svc, NULL);
 }
 
 static int service_signal_dns_reload(struct mt_svc *svc)
@@ -1859,9 +1843,6 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 static int service_send_ping(struct mt_svc *svc)
 {
     DBusMessage *msg;
-    DBusPendingCall *pending_reply;
-    DBusConnection *dbus_conn;
-    dbus_bool_t dbret;
 
     if (!svc->conn) {
         DEBUG(8, ("Service not yet initialized\n"));
@@ -1869,8 +1850,6 @@ static int service_send_ping(struct mt_svc *svc)
     }
 
     DEBUG(4,("Pinging %s\n", svc->name));
-
-    dbus_conn = sbus_get_connection(svc->conn);
 
     /*
      * Set up identity request
@@ -1887,24 +1866,9 @@ static int service_send_ping(struct mt_svc *svc)
         return ENOMEM;
     }
 
-    dbret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply,
-                                            svc->mt_ctx->service_id_timeout);
-    if (!dbret || pending_reply == NULL) {
-        /*
-         * Critical Failure
-         * We can't communicate on this connection
-         * We'll drop it using the default destructor.
-         */
-        DEBUG(0, ("D-BUS send failed.\n"));
-        talloc_zfree(svc->conn);
-        return EIO;
-    }
-
-    /* Set up the reply handler */
-    dbus_pending_call_set_notify(pending_reply, ping_check, svc, NULL);
-    dbus_message_unref(msg);
-
-    return EOK;
+    return sbus_conn_send(svc->conn, msg,
+                          svc->mt_ctx->service_id_timeout,
+                          ping_check, svc, NULL);
 }
 
 static void ping_check(DBusPendingCall *pending, void *data)

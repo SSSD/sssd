@@ -43,10 +43,10 @@ static void pam_dp_process_reply(DBusPendingCall *pending, void *ptr)
 
     dbus_error_init(&dbus_error);
 
-    dbus_pending_call_block(pending);
     msg = dbus_pending_call_steal_reply(pending);
     if (msg == NULL) {
-        DEBUG(0, ("Severe error. A reply callback was called but no reply was received and no timeout occurred\n"));
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was"
+                  "received and no timeout occurred\n"));
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
@@ -84,8 +84,6 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
     struct pam_data *pd = preq->pd;
     struct be_conn *be_conn;
     DBusMessage *msg;
-    DBusPendingCall *pending_reply;
-    DBusConnection *dbus_conn;
     dbus_bool_t ret;
     int res;
 
@@ -100,7 +98,6 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
                   " This maybe a bug, it shouldn't happen!\n", preq->domain));
         return EIO;
     }
-    dbus_conn = sbus_get_connection(be_conn->conn);
 
     msg = dbus_message_new_method_call(NULL,
                                        DP_PATH,
@@ -121,22 +118,8 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
         return EIO;
     }
 
-    ret = dbus_connection_send_with_reply(dbus_conn, msg, &pending_reply, timeout);
-    if (!ret || pending_reply == NULL) {
-        /*
-         * Critical Failure
-         * We can't communicate on this connection
-         * We'll drop it using the default destructor.
-         */
-        DEBUG(0, ("D-BUS send failed.\n"));
-        dbus_message_unref(msg);
-        return EIO;
-    }
-
-    dbus_pending_call_set_notify(pending_reply,
-                                 pam_dp_process_reply, preq, NULL);
-    dbus_message_unref(msg);
-
-    return EOK;
+    return sbus_conn_send(be_conn->conn, msg,
+                          timeout, pam_dp_process_reply,
+                          preq, NULL);
 }
 
