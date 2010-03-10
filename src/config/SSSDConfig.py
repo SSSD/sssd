@@ -100,6 +100,7 @@ option_strings = {
 
     # [provider/krb5/chpass]
     'krb5_changepw_principal' : _('The principal of the change password service'),
+    'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),
 
     # [provider/ldap]
     'ldap_uri' : _('ldap_uri, The URI of the LDAP server'),

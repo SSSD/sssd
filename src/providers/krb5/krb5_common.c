@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
@@ -38,7 +39,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_changepw_principal", DP_OPT_STRING, { "kadmin/changepw" }, NULL_STRING },
     { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
     { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
-    { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
+    { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 errno_t check_and_export_options(struct dp_option *opts,
@@ -67,7 +69,13 @@ errno_t check_and_export_options(struct dp_option *opts,
 
     dummy = dp_opt_get_cstring(opts, KRB5_KDC);
     if (dummy == NULL) {
-        DEBUG(1, ("No KDC expicitly configured, using defaults"));
+        DEBUG(1, ("No KDC explicitly configured, using defaults"));
+    }
+
+    dummy = dp_opt_get_cstring(opts, KRB5_KPASSWD);
+    if (dummy == NULL) {
+        DEBUG(1, ("No kpasswd server explicitly configured, "
+                  "using the KDC or defaults"));
     }
 
     dummy = dp_opt_get_cstring(opts, KRB5_CCNAME_TMPL);
@@ -139,21 +147,33 @@ done:
     return ret;
 }
 
-errno_t write_kdcinfo_file(const char *realm, const char *kdc)
+errno_t write_krb5info_file(const char *realm, const char *server,
+                           const char *service)
 {
     int ret;
     int fd = -1;
     char *tmp_name = NULL;
-    char *kdcinfo_name = NULL;
+    char *krb5info_name = NULL;
     TALLOC_CTX *tmp_ctx = NULL;
-    int kdc_len;
+    const char *name_tmpl = NULL;
+    int server_len;
 
-    if (realm == NULL || *realm == '\0' || kdc == NULL || *kdc == '\0') {
-        DEBUG(1, ("Missing or empty realm or kdc.\n"));
+    if (realm == NULL || *realm == '\0' || server == NULL || *server == '\0' ||
+        service == NULL || service == '\0') {
+        DEBUG(1, ("Missing or empty realm, server or service.\n"));
         return EINVAL;
     }
 
-    kdc_len = strlen(kdc);
+    if (strcmp(service, SSS_KRB5KDC_FO_SRV) == 0) {
+        name_tmpl = KDCINFO_TMPL;
+    } else if (strcmp(service, SSS_KRB5KPASSWD_FO_SRV) == 0) {
+        name_tmpl = KPASSWDINFO_TMPL;
+    } else {
+        DEBUG(1, ("Unsupported service [%s]\n.", service));
+        return EINVAL;
+    }
+
+    server_len = strlen(server);
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -161,15 +181,15 @@ errno_t write_kdcinfo_file(const char *realm, const char *kdc)
         return ENOMEM;
     }
 
-    tmp_name = talloc_asprintf(tmp_ctx, PUBCONF_PATH"/.kdcinfo_dummy_XXXXXX");
+    tmp_name = talloc_asprintf(tmp_ctx, PUBCONF_PATH"/.krb5info_dummy_XXXXXX");
     if (tmp_name == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));
         ret = ENOMEM;
         goto done;
     }
 
-    kdcinfo_name = talloc_asprintf(tmp_ctx, KDCINFO_TMPL, realm);
-    if (kdcinfo_name == NULL) {
+    krb5info_name = talloc_asprintf(tmp_ctx, name_tmpl, realm);
+    if (krb5info_name == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));
         ret = ENOMEM;
         goto done;
@@ -182,12 +202,12 @@ errno_t write_kdcinfo_file(const char *realm, const char *kdc)
         goto done;
     }
 
-    ret = write(fd, kdc, kdc_len);
+    ret = write(fd, server, server_len);
     if (ret == -1) {
         DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
         goto done;
     }
-    if (ret != kdc_len) {
+    if (ret != server_len) {
         DEBUG(1, ("Partial write occured, this should never happen.\n"));
         ret = EINTR;
         goto done;
@@ -205,7 +225,7 @@ errno_t write_kdcinfo_file(const char *realm, const char *kdc)
         goto done;
     }
 
-    ret = rename(tmp_name, kdcinfo_name);
+    ret = rename(tmp_name, krb5info_name);
     if (ret == -1) {
         DEBUG(1, ("rename failed [%d][%s].\n", errno, strerror(errno)));
         goto done;
@@ -248,12 +268,20 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
         return;
     }
 
+    address = talloc_asprintf_append(address, ":%d",
+                                     fo_get_server_port(server));
+    if (address == NULL) {
+        DEBUG(1, ("talloc_asprintf_append failed.\n"));
+        return;
+    }
+
     talloc_zfree(krb5_service->address);
     krb5_service->address = address;
 
-    ret = write_kdcinfo_file(krb5_service->realm, address);
+    ret = write_krb5info_file(krb5_service->realm, address,
+                              krb5_service->name);
     if (ret != EOK) {
-        DEBUG(2, ("write_kdcinfo_file failed, authentication might fail.\n"));
+        DEBUG(2, ("write_krb5info_file failed, authentication might fail.\n"));
     }
 
     return;
@@ -269,6 +297,11 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     char **list = NULL;
     int ret;
     int i;
+    char *port_str;
+    long port;
+    char *server_spec;
+    char *endptr;
+    struct servent *servent;
 
     tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
@@ -308,8 +341,53 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     for (i = 0; list[i]; i++) {
 
         talloc_steal(service, list[i]);
+        server_spec = talloc_strdup(service, list[i]);
+        port_str = strrchr(server_spec, ':');
+        if (port_str == NULL) {
+            port = 0;
+        } else {
+            *port_str = '\0';
+            ++port_str;
+            if (isdigit(*port_str)) {
+                errno = 0;
+                port = strtol(port_str, &endptr, 10);
+                if (errno != 0) {
+                    ret = errno;
+                    DEBUG(1, ("strtol failed on [%s]: [%d][%s].\n", port_str,
+                              ret, strerror(ret)));
+                    goto done;
+                }
+                if (*endptr != '\0') {
+                    DEBUG(1, ("Found additional characters [%s] in port number "
+                              "[%s].\n", endptr, port_str));
+                    ret = EINVAL;
+                    goto done;
+                }
 
-        ret = be_fo_add_server(ctx, service_name, list[i], 0, NULL);
+                if (port < 1 || port > 65535) {
+                    DEBUG(1, ("Illegal port number [%d].\n", port));
+                    ret = EINVAL;
+                    goto done;
+                }
+            } else if (isalpha(*port_str)) {
+                servent = getservbyname(port_str, NULL);
+                if (servent == NULL) {
+                    DEBUG(1, ("getservbyname cannot find service [%s].\n",
+                              port_str));
+                    ret = EINVAL;
+                    goto done;
+                }
+
+                port = servent->s_port;
+            } else {
+                DEBUG(1, ("Unsupported port specifier in [%s].\n", list[i]));
+                ret = EINVAL;
+                goto done;
+            }
+        }
+
+        ret = be_fo_add_server(ctx, service_name, server_spec, (int) port,
+                               list[i]);
         if (ret && ret != EEXIST) {
             DEBUG(0, ("Failed to add server\n"));
             goto done;

@@ -69,7 +69,9 @@
                             of the Kerberos servers to which SSSD should
                             connect in the order of preference. For more
                             information on failover and server redundancy,
-                            see the <quote>FAILOVER</quote> section.
+                            see the <quote>FAILOVER</quote> section. An optional
+                            port number (preceded by a colon) may be appended to
+                            the addresses or hostnames.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -94,6 +96,25 @@
                         </para>
                         <para>
                             Default: kadmin/changepw
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_kpasswd (string)</term>
+                    <listitem>
+                        <para>
+                            If the change password service is not running on the
+                            KDC alternative servers can be defined here. An
+                            optional port number (preceded by a colon) may be
+                            appended to the addresses or hostnames.
+                        </para>
+                        <para>
+                            For more information on failover and server
+                            redundancy, see the <quote>FAILOVER</quote> section.
+                            Please note that even if there are no more kpasswd
+                            servers to try the back end is not switch to offline
+                            if authentication against the KDC is still possible.
                         </para>
                     </listitem>
                 </varlistentry>

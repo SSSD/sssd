@@ -587,8 +587,15 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
+    memset(&result_code_string, 0, sizeof(krb5_data));
+    memset(&result_string, 0, sizeof(krb5_data));
     kerr = krb5_change_password(kr->ctx, kr->creds, newpass_str, &result_code,
                                 &result_code_string, &result_string);
+
+    if (kerr == KRB5_KDC_UNREACH) {
+        pam_status = PAM_AUTHTOK_LOCK_BUSY;
+        goto sendresponse;
+    }
 
     if (kerr != 0 || result_code != 0) {
         if (kerr != 0) {
