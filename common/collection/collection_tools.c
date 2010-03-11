@@ -77,7 +77,7 @@ int col_debug_handle(const char *property,
                (nest_level -1) * 4, "",
                property,
                length,
-               *((int *)(data)),
+               *((int32_t *)(data)),
                nest_level);
         break;
     case COL_TYPE_UNSIGNED:
@@ -85,23 +85,23 @@ int col_debug_handle(const char *property,
                (nest_level -1) * 4, "",
                property,
                length,
-               *((unsigned int *)(data)),
+               *((uint32_t *)(data)),
                nest_level);
         break;
     case COL_TYPE_LONG:
-        printf(">%*s%s[%d] long: %ld (%d)\n",
+        printf(">%*s%s[%d] long: %lld (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
-               *((long *)(data)),
+               (long long int)(*((int64_t *)(data))),
                nest_level);
         break;
     case COL_TYPE_ULONG:
-        printf(">%*s%s[%d] ulong: %lu (%d)\n",
+        printf(">%*s%s[%d] ulong: %llu (%d)\n",
                (nest_level -1) * 4, "",
                property,
                length,
-               *((unsigned long *)(data)),
+               (long long unsigned)(*((uint64_t *)(data))),
                nest_level);
         break;
     case COL_TYPE_DOUBLE:
@@ -242,6 +242,8 @@ int col_get_data_len(int type, int length)
     switch (type) {
     case COL_TYPE_INTEGER:
     case COL_TYPE_UNSIGNED:
+        len = 11;
+		break;
     case COL_TYPE_LONG:
     case COL_TYPE_ULONG:
         len = 20;
@@ -472,22 +474,24 @@ int col_serialize(const char *property_in,
 
     case COL_TYPE_INTEGER:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%d", *((const int *)(data)));
+                      "%d", *((const int32_t *)(data)));
         break;
 
     case COL_TYPE_UNSIGNED:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%u", *((const unsigned int *)(data)));
+                      "%u", *((const uint32_t *)(data)));
         break;
 
     case COL_TYPE_LONG:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%ld", *((const long *)(data)));
+                      "%lld",
+                      (long long int)(*((const int64_t *)(data))));
         break;
 
     case COL_TYPE_ULONG:
         len = sprintf(&buf_data->buffer[buf_data->length],
-                      "%lu", *((const unsigned long *)(data)));
+                      "%llu",
+                      (long long unsigned)(*((const uint64_t *)(data))));
         break;
 
     case COL_TYPE_DOUBLE:

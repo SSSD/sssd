@@ -1120,7 +1120,7 @@ int col_add_binary_property(struct collection_item *ci,
 int col_add_int_property(struct collection_item *ci,
                          const char *subcollection,
                          const char *property,
-                         int number);
+                         int32_t number);
 
 /**
  * @brief Add an unsigned integer property to a collection.
@@ -1150,7 +1150,7 @@ int col_add_int_property(struct collection_item *ci,
 int col_add_unsigned_property(struct collection_item *ci,
                               const char *subcollection,
                               const char *property,
-                              unsigned int number);
+                              uint32_t number);
 
 /**
  * @brief Add an long property to a collection.
@@ -1180,7 +1180,7 @@ int col_add_unsigned_property(struct collection_item *ci,
 int col_add_long_property(struct collection_item *ci,
                           const char *subcollection,
                           const char *property,
-                          long number);
+                          int64_t number);
 
 /**
  * @brief Add an unsigned long property to a collection.
@@ -1210,7 +1210,7 @@ int col_add_long_property(struct collection_item *ci,
 int col_add_ulong_property(struct collection_item *ci,
                            const char *subcollection,
                            const char *property,
-                           unsigned long number);
+                           uint64_t number);
 
 /**
  * @brief Add a property of type double to a collection.
@@ -1434,7 +1434,7 @@ int col_add_binary_property_with_ref(struct collection_item *ci,
  */
 int col_add_int_property_with_ref(struct collection_item *ci,
                                   const char *subcollection,
-                                  const char *property, int number,
+                                  const char *property, int32_t number,
                                   struct collection_item **ret_ref);
 
 /**
@@ -1466,7 +1466,7 @@ int col_add_int_property_with_ref(struct collection_item *ci,
  */
 int col_add_unsigned_property_with_ref(struct collection_item *ci,
                                        const char *subcollection,
-                                       const char *property, unsigned int number,
+                                       const char *property, uint32_t number,
                                        struct collection_item **ret_ref);
 
 /**
@@ -1498,7 +1498,7 @@ int col_add_unsigned_property_with_ref(struct collection_item *ci,
  */
 int col_add_long_property_with_ref(struct collection_item *ci,
                                    const char *subcollection,
-                                   const char *property, long number,
+                                   const char *property, int64_t number,
                                    struct collection_item **ret_ref);
 
 /**
@@ -1530,7 +1530,7 @@ int col_add_long_property_with_ref(struct collection_item *ci,
  */
 int col_add_ulong_property_with_ref(struct collection_item *ci,
                                     const char *subcollection,
-                                    const char *property, unsigned long number,
+                                    const char *property, uint64_t number,
                                     struct collection_item **ret_ref);
 
 /**
@@ -1716,7 +1716,7 @@ int col_insert_int_property(struct collection_item *ci,
                             int idx,
                             unsigned flags,
                             const char *property,
-                            int number);
+                            int32_t number);
 
 /** @brief Insert an unsigned property. */
 int col_insert_unsinged_property(struct collection_item *ci,
@@ -1726,7 +1726,7 @@ int col_insert_unsinged_property(struct collection_item *ci,
                                  int idx,
                                  unsigned flags,
                                  const char *property,
-                                 unsigned number);
+                                 uint32_t number);
 
 /** @brief Insert a long property. */
 int col_insert_long_property(struct collection_item *ci,
@@ -1736,7 +1736,7 @@ int col_insert_long_property(struct collection_item *ci,
                              int idx,
                              unsigned flags,
                              const char *property,
-                             long number);
+                             int64_t number);
 
 /** @brief Insert an unsigned long property. */
 int col_insert_ulong_property(struct collection_item *ci,
@@ -1746,7 +1746,7 @@ int col_insert_ulong_property(struct collection_item *ci,
                               int idx,
                               unsigned flags,
                               const char *property,
-                              unsigned long number);
+                              uint64_t number);
 
 /** @brief Insert a property with a floating point value. */
 int col_insert_double_property(struct collection_item *ci,
@@ -1800,7 +1800,7 @@ int col_insert_int_property_with_ref(struct collection_item *ci,
                                      int idx,
                                      unsigned flags,
                                      const char *property,
-                                     int number,
+                                     int32_t number,
                                      struct collection_item **ret_ref);
 
 /** @brief Insert an unsigned property and get back a reference. */
@@ -1811,7 +1811,7 @@ int col_insert_unsinged_property_with_ref(struct collection_item *ci,
                                           int idx,
                                           unsigned flags,
                                           const char *property,
-                                          unsigned number,
+                                          uint32_t number,
                                           struct collection_item **ret_ref);
 
 /** @brief Insert a long property and get back a reference. */
@@ -1822,7 +1822,7 @@ int col_insert_long_property_with_ref(struct collection_item *ci,
                                       int idx,
                                       unsigned flags,
                                       const char *property,
-                                      long number,
+                                      int64_t number,
                                       struct collection_item **ret_ref);
 
 /** @brief Insert an unsigned long property and get back a reference. */
@@ -1833,7 +1833,7 @@ int col_insert_ulong_property_with_ref(struct collection_item *ci,
                                        int idx,
                                        unsigned flags,
                                        const char *property,
-                                       unsigned long number,
+                                       uint64_t number,
                                        struct collection_item **ret_ref);
 
 /**
@@ -1942,28 +1942,28 @@ int col_update_binary_property(struct collection_item *ci,
 int col_update_int_property(struct collection_item *ci,
                             const char *property,
                             int mode_flags,
-                            int number);
+                            int32_t number);
 /**
  * Update a property with an unsigned value.
  */
 int col_update_unsigned_property(struct collection_item *ci,
                                  const char *property,
                                  int mode_flags,
-                                 unsigned int number);
+                                 uint32_t number);
 /**
  * Update a property with a long value.
  */
 int col_update_long_property(struct collection_item *ci,
                              const char *property,
                              int mode_flags,
-                             long number);
+                             int64_t number);
 /**
  * Update a property with an unsigned long value.
  */
 int col_update_ulong_property(struct collection_item *ci,
                               const char *property,
                               int mode_flags,
-                              unsigned long number);
+                              uint64_t number);
 /**
  * Update a property with a floating point value.
  */
@@ -2575,7 +2575,7 @@ int col_modify_bool_item(struct collection_item *item,
  */
 int col_modify_int_item(struct collection_item *item,
                         const char *property,
-                        int number);
+                        int32_t number);
 /**
  * @brief Modify item value to be a long integer.
  *
@@ -2588,7 +2588,7 @@ int col_modify_int_item(struct collection_item *item,
  */
 int col_modify_long_item(struct collection_item *item,
                          const char *property,
-                         long number);
+                         int64_t number);
 /**
  * @brief Modify item value to be an unsigned long.
  *
@@ -2601,7 +2601,7 @@ int col_modify_long_item(struct collection_item *item,
  */
 int col_modify_ulong_item(struct collection_item *item,
                           const char *property,
-                          unsigned long number);
+                          uint64_t number);
 /**
  * @brief Modify item value to be an unsigned integer.
  *
@@ -2614,7 +2614,7 @@ int col_modify_ulong_item(struct collection_item *item,
  */
 int col_modify_unsigned_item(struct collection_item *item,
                              const char *property,
-                             unsigned number);
+                             uint32_t number);
 /**
  * @brief Modify item value to be a floating point.
  *
