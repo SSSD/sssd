@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -28,6 +29,14 @@
 #include "ini_config.h"
 #include "collection.h"
 #include "collection_tools.h"
+
+
+int verbose = 0;
+
+#define COLOUT(foo) \
+    do { \
+        if (verbose) foo; \
+    } while(0)
 
 
 int basic_test(void)
@@ -39,32 +48,32 @@ int basic_test(void)
     error = config_for_app("test", NULL, NULL,
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error != EINVAL) {
-        printf("Expected error EINVAL got somethign else: %d\n",error);
+        printf("Expected error EINVAL got somethign else: %d\n", error);
         return EINVAL;
     }
 
     error = config_for_app("test", "foo", "bar",
                            &ini_config, INI_STOP_ON_ANY, &error_set);
     if (error != ENOENT) {
-        printf("Expected error ENOENT got somethign else: %d\n",error);
+        printf("Expected error ENOENT got somethign else: %d\n", error);
         return ENOENT;
     }
 
     error = config_for_app("test", "./ini.conf", "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
-        printf("Attempt to read configuration returned error: %d\n",error);
+        printf("Attempt to read configuration returned error: %d\n", error);
         return error;
     }
 
-    col_debug_collection(ini_config,COL_TRAVERSE_DEFAULT);
-    col_print_collection(ini_config);
-    col_print_collection(error_set);
+    COLOUT(col_debug_collection(ini_config,COL_TRAVERSE_DEFAULT));
+    COLOUT(col_print_collection(ini_config));
+    COLOUT(col_print_collection(error_set));
 
-    printf("\n\n----------------------\n");
+    COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
-    print_config_parsing_errors(stdout, error_set);
-    printf("----------------------\n\n\n");
+    COLOUT(print_config_parsing_errors(stdout, error_set));
+    COLOUT(printf("----------------------\n\n\n"));
 
 
     free_ini_config(ini_config);
@@ -82,24 +91,29 @@ int single_file(void)
     error = config_from_file("test", "./not_exist_ini.conf",
                              &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
-        printf("Attempt to read configuration returned error: %d. EXPECTED.\n\n", error);
+        COLOUT(printf("Attempt to read configuration returned error: %d."
+                      " EXPECTED.\n\n", error));
         if(error != ENOENT) return error;
     }
 
-    error = config_from_file("test", "./ini.conf", &ini_config, INI_STOP_ON_NONE, &error_set);
+    error = config_from_file("test",
+                             "./ini.conf",
+                             &ini_config,
+                             INI_STOP_ON_NONE,
+                             &error_set);
     if (error) {
-        printf("Attempt to read configuration returned error: %d\n",error);
+        printf("Attempt to read configuration returned error: %d\n", error);
         return error;
     }
 
-    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    col_print_collection(ini_config);
-    col_print_collection(error_set);
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_print_collection(ini_config));
+    COLOUT(col_print_collection(error_set));
 
-    printf("\n\n----------------------\n");
+    COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
-    print_file_parsing_errors(stdout, error_set);
-    printf("----------------------\n\n\n");
+    COLOUT(print_file_parsing_errors(stdout, error_set));
+    COLOUT(printf("----------------------\n\n\n"));
 
 
     free_ini_config(ini_config);
@@ -108,7 +122,7 @@ int single_file(void)
     ini_config = NULL;
     error_set = NULL;
 
-    printf("TEST WITH LINES\n");
+    COLOUT(printf("TEST WITH LINES\n"));
 
     error = config_from_file_with_lines("test", "./ini.conf",
                                         &ini_config, INI_STOP_ON_NONE,
@@ -118,13 +132,13 @@ int single_file(void)
         return error;
     }
 
-    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(lines, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(lines, COL_TRAVERSE_DEFAULT));
 
-    printf("\n\n----------------------\n");
+    COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
-    print_file_parsing_errors(stdout, error_set);
-    printf("----------------------\n\n\n");
+    COLOUT(print_file_parsing_errors(stdout, error_set));
+    COLOUT(printf("----------------------\n\n\n"));
 
 
     free_ini_config(ini_config);
@@ -155,14 +169,14 @@ int single_fd(void)
         return error;
     }
 
-    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    col_print_collection(ini_config);
-    col_print_collection(error_set);
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_print_collection(ini_config));
+    COLOUT(col_print_collection(error_set));
 
-    printf("\n\n----------------------\n");
+    COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
-    print_file_parsing_errors(stdout, error_set);
-    printf("----------------------\n\n\n");
+    COLOUT(print_file_parsing_errors(stdout, error_set));
+    COLOUT(printf("----------------------\n\n\n"));
 
 
     free_ini_config(ini_config);
@@ -172,7 +186,7 @@ int single_fd(void)
     ini_config = NULL;
     error_set = NULL;
 
-    printf("TEST WITH LINES\n");
+    COLOUT(printf("TEST WITH LINES\n"));
 
     fd = open("./ini.conf", O_RDONLY);
     if (fd < 0) {
@@ -190,13 +204,13 @@ int single_fd(void)
         return error;
     }
 
-    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    col_debug_collection(lines, COL_TRAVERSE_DEFAULT);
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    COLOUT(col_debug_collection(lines, COL_TRAVERSE_DEFAULT));
 
-    printf("\n\n----------------------\n");
+    COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
-    print_file_parsing_errors(stdout, error_set);
-    printf("----------------------\n\n\n");
+    COLOUT(print_file_parsing_errors(stdout, error_set));
+    COLOUT(printf("----------------------\n\n\n"));
 
 
     free_ini_config(ini_config);
@@ -213,28 +227,48 @@ int negative_test(void)
     struct collection_item *ini_config = NULL;
 
     /* App name is null - expect failure */
-    error = config_for_app(NULL, NULL, NULL, NULL, INI_STOP_ON_NONE, NULL);
+    error = config_for_app(NULL,
+                           NULL,
+                           NULL,
+                           NULL,
+                           INI_STOP_ON_NONE,
+                           NULL);
     if (!error) {
-        printf("Expected error: %d got success\n",EINVAL);
+        printf("Expected error: %d got success\n", EINVAL);
         return -1;
     }
 
     /* Config collection storage is NULL - expect failure */
-    error = config_for_app("real", NULL, NULL, NULL, INI_STOP_ON_NONE, NULL);
+    error = config_for_app("real",
+                           NULL,
+                           NULL,
+                           NULL,
+                           INI_STOP_ON_NONE,
+                           NULL);
     if (!error) {
-        printf("Expected error: %d got success\n",EINVAL);
+        printf("Expected error: %d got success\n", EINVAL);
         return -1;
     }
 
     /* Config collection storage is NULL - expect failure */
-    error = config_for_app("real", "real.conf", NULL, NULL, INI_STOP_ON_NONE, NULL);
+    error = config_for_app("real",
+                           "real.conf",
+                           NULL,
+                           NULL,
+                           INI_STOP_ON_NONE,
+                           NULL);
     if (!error) {
-        printf("Expected error: %d got success\n",EINVAL);
+        printf("Expected error: %d got success\n", EINVAL);
         return -1;
     }
 
     /* Expect success but empty config */
-    error = config_for_app("real", "real.conf", NULL, &ini_config, INI_STOP_ON_NONE, NULL);
+    error = config_for_app("real",
+                           "real.conf",
+                           NULL,
+                           &ini_config,
+                           INI_STOP_ON_NONE,
+                           NULL);
     if (error) {
         printf("Expected success got error: %d\n",error);
         return error;
@@ -243,7 +277,8 @@ int negative_test(void)
     count = 0;
     (void)col_get_collection_count(ini_config, &count);
     if (count > 1) {
-        printf("Expected empty collection but got contents with %d elements\n", count);
+        printf("Expected empty collection but"
+               " got contents with %d elements\n", count);
         col_print_collection(ini_config);
         return -1;
     }
@@ -262,8 +297,8 @@ int real_test(const char *file)
     struct collection_item *item = NULL;
     int type;
 
-    printf("\n\n===== REAL TEST START ======\n");
-    printf("Reading collection\n");
+    COLOUT(printf("\n\n===== REAL TEST START ======\n"));
+    COLOUT(printf("Reading collection\n"));
     error = config_for_app("real", file, "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
@@ -271,18 +306,19 @@ int real_test(const char *file)
         return error;
     }
 
-    printf("Debugging the config collection:\n");
-    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    printf("Debugging the error collection:\n");
-    col_debug_collection(error_set, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("Debugging the config collection:\n"));
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    COLOUT(printf("Debugging the error collection:\n"));
+    COLOUT(col_debug_collection(error_set, COL_TRAVERSE_DEFAULT));
 
-    printf("About to print parsing errors:\n");
-    printf("\n\n----------------------\n");
+    COLOUT(printf("About to print parsing errors:\n"));
+    COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
-    print_config_parsing_errors(stdout, error_set);
-    printf("----------------------\n\n\n");
+    COLOUT(print_config_parsing_errors(stdout, error_set));
+    COLOUT(printf("----------------------\n\n\n"));
 
-    printf("About to bind iterator to print the config file contents.\n");
+    COLOUT(printf("About to bind iterator to print"
+                  " the config file contents.\n"));
     /* Bind iterator */
     error =  col_bind_iterator(&iterator, ini_config,
                            COL_TRAVERSE_DEFAULT|COL_TRAVERSE_END);
@@ -293,7 +329,7 @@ int real_test(const char *file)
         return error;
     }
 
-    printf("About to start iteration loop.\n");
+    COLOUT(printf("About to start iteration loop.\n"));
     do {
         /* Loop through a collection */
         error = col_iterate_collection(iterator, &item);
@@ -310,18 +346,23 @@ int real_test(const char *file)
 
         /* Start of the collection */
         if (type == COL_TYPE_COLLECTION)
-            printf("Contents of the configuration for application %s\n", col_get_item_property(item, NULL));
+            COLOUT(printf("Contents of the application's configuration %s\n",
+                          col_get_item_property(item, NULL)));
         /* End of section */
-        else if (type == COL_TYPE_END) printf("\n");
+        else if (type == COL_TYPE_END) COLOUT(printf("\n"));
         /* Section header ? */
-        else if (type == COL_TYPE_COLLECTIONREF) printf("[%s]\n", col_get_item_property(item, NULL));
+        else if (type == COL_TYPE_COLLECTIONREF)
+            COLOUT(printf("[%s]\n", col_get_item_property(item, NULL)));
         /* Anything else - we know they are all strings*/
-        else printf("%s = %s\n", col_get_item_property(item, NULL), (char *)col_get_item_data(item));
+        else
+            COLOUT(printf("%s = %s\n",
+                          col_get_item_property(item, NULL),
+                          (char *)col_get_item_data(item)));
     }
     while(1);
 
     /* Do not forget to unbind iterator - otherwise there will be a leak */
-    printf("About to clean up.\n");
+    COLOUT(printf("About to clean up.\n"));
     col_unbind_iterator(iterator);
 
     free_ini_config(ini_config);
@@ -347,7 +388,7 @@ int get_test(void)
     const char *cstrn;
     void *binary;
     int length;
-    int i;
+    int i = 0;
     char **strarray;
     char **strptr;
     int size;
@@ -355,8 +396,9 @@ int get_test(void)
     double *darray;
     char **prop_array;
 
-    printf("\n\n===== GET TEST START ======\n");
-    printf("Reading collection\n");
+    COLOUT(printf("\n\n===== GET TEST START ======\n"));
+    COLOUT(printf("Reading collection\n"));
+
     error = config_for_app("real", NULL, "./ini.d",
                            &ini_config, INI_STOP_ON_NONE, &error_set);
     if (error) {
@@ -364,13 +406,14 @@ int get_test(void)
         return error;
     }
 
-    printf("Debugging the config collection:\n");
-    col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
-    printf("Debugging the error collection:\n");
-    col_debug_collection(error_set, COL_TRAVERSE_DEFAULT);
+    COLOUT(printf("Debugging the config collection:\n"));
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    COLOUT(printf("Debugging the error collection:\n"));
+    COLOUT(col_debug_collection(error_set, COL_TRAVERSE_DEFAULT));
     free_ini_config_errors(error_set);
 
-    printf("Negtive test - trying to get non existing key-value pair.\n");
+    COLOUT(printf("Negtive test - trying to get non"
+                  " existing key-value pair.\n"));
 
     /* Negative test */
     item = NULL;
@@ -404,7 +447,7 @@ int get_test(void)
         return -1;
     }
 
-    printf("Trying to get an item.\n");
+    COLOUT(printf("Trying to get an item.\n"));
 
     /* Positive test */
     item = NULL;
@@ -422,9 +465,10 @@ int get_test(void)
         return -1;
     }
 
-    col_debug_item(item);
+    COLOUT(col_debug_item(item));
 
-    printf("Get item as string without duplication from NULL item.\n");
+    COLOUT(printf("Get item as string without duplication"
+                  " from the NULL item.\n"));
 
     /* Get a string without duplicication */
     /* Negative test */
@@ -435,7 +479,8 @@ int get_test(void)
         return -1;
     }
 
-    printf("Get item as string without duplication from correct item.\n");
+    COLOUT(printf("Get item as string without duplication"
+                  "from the correct item.\n"));
 
     /* Now get string from the right item */
     error = 0;
@@ -446,11 +491,12 @@ int get_test(void)
         return error;
     }
 
-    printf("Value: [%s]\n", cstr);
+    COLOUT(printf("Value: [%s]\n", cstr));
 
     /* Same thing but create a dup */
 
-    printf("Get item as string with duplication from correct item.\n");
+    COLOUT(printf("Get item as string with duplication"
+                  " from correct item.\n"));
 
     error = 0;
     str = get_string_config_value(item, &error);
@@ -460,12 +506,12 @@ int get_test(void)
         return error;
     }
 
-    printf("Value: [%s]\n", str);
+    COLOUT(printf("Value: [%s]\n", str));
     free(str);
 
 
     /* Get a badly formated number */
-    printf("Convert item to number with strict conversion.\n");
+    COLOUT(printf("Convert item to number with strict conversion.\n"));
 
     item = NULL;
     error = get_config_item("monitor", "bad_number", ini_config, &item);
@@ -482,7 +528,7 @@ int get_test(void)
         return -1;
     }
 
-    col_debug_item(item);
+    COLOUT(col_debug_item(item));
 
 
     /* Now try to get value in different ways */
@@ -490,7 +536,7 @@ int get_test(void)
     number = get_int_config_value(item, 1, 10, &error);
     if (error) {
         /* We expected error in this case */
-        printf("Expected error.\n");
+        COLOUT(printf("Expected error.\n"));
         if(number != 10) {
             printf("It failed to set default value.\n");
             free_ini_config(ini_config);
@@ -498,7 +544,7 @@ int get_test(void)
         }
     }
 
-    printf("Convert item to number without strict conversion.\n");
+    COLOUT(printf("Convert item to number without strict conversion.\n"));
 
     error = 0;
     number = 1;
@@ -519,7 +565,8 @@ int get_test(void)
 
     /* Get real integer */
 
-    printf("Fetch another item from section \"domains/LOCAL\" named \"enumerate\".\n");
+    COLOUT(printf("Fetch another item from section \"domains/LOCAL\""
+                  " named \"enumerate\".\n"));
 
     item = NULL;
     error = get_config_item("domains/LOCAL","enumerate", ini_config, &item);
@@ -536,7 +583,7 @@ int get_test(void)
         return -1;
     }
 
-    printf("Convert item to integer.\n");
+    COLOUT(printf("Convert item to integer.\n"));
 
     /* Take number out of it */
     error = 0;
@@ -554,9 +601,9 @@ int get_test(void)
         return -1;
     }
 
-    printf("Expected 3 got %d\n", number);
+    COLOUT(printf("Expected 3 got %d\n", number));
 
-    printf("Convert item to long.\n");
+    COLOUT(printf("Convert item to long.\n"));
 
     /* Take number out of it */
     error = 0;
@@ -574,9 +621,9 @@ int get_test(void)
         return -1;
     }
 
-    printf("Expected 3 got %ld\n", number_long);
+    COLOUT(printf("Expected 3 got %ld\n", number_long));
 
-    printf("Convert item to unsigned.\n");
+    COLOUT(printf("Convert item to unsigned.\n"));
 
     /* Take number out of it */
     error = 0;
@@ -594,9 +641,9 @@ int get_test(void)
         return -1;
     }
 
-    printf("Expected 3 got %d\n", number_unsigned);
+    COLOUT(printf("Expected 3 got %d\n", number_unsigned));
 
-    printf("Convert item to unsigned long.\n");
+    COLOUT(printf("Convert item to unsigned long.\n"));
 
     /* Take number out of it */
     error = 0;
@@ -614,9 +661,9 @@ int get_test(void)
         return -1;
     }
 
-    printf("Expected 3 got %lu\n", number_ulong);
+    COLOUT(printf("Expected 3 got %lu\n", number_ulong));
 
-    printf("Convert item to double.\n");
+    COLOUT(printf("Convert item to double.\n"));
 
     /* Take number out of it */
     error = 0;
@@ -634,9 +681,9 @@ int get_test(void)
         return -1;
     }
 
-    printf("Expected 3 got %e\n", number_double);
+    COLOUT(printf("Expected 3 got %e\n", number_double));
 
-    printf("Convert item to bool.\n");
+    COLOUT(printf("Convert item to bool.\n"));
 
     /* Take number out of it */
     error = 0;
@@ -648,7 +695,7 @@ int get_test(void)
     }
 
     /* Get real bool item and convert it */
-    printf("Get real bool item \"legacy\" and convert it.\n");
+    COLOUT(printf("Get real bool item \"legacy\" and convert it.\n"));
 
     item = NULL;
     error = get_config_item("domains/LOCAL","legacy", ini_config, &item);
@@ -665,7 +712,7 @@ int get_test(void)
         return -1;
     }
 
-    printf("Convert item to bool.\n");
+    COLOUT(printf("Convert item to bool.\n"));
 
     error = 0;
     logical = get_bool_config_value(item, 1, &error);
@@ -680,12 +727,15 @@ int get_test(void)
         return -1;
     }
 
-    printf("In the files it is FALSE so we got false.\n");
+    COLOUT(printf("In the files it is FALSE so we got false.\n"));
 
-    printf("Get binary item\n");
+    COLOUT(printf("Get binary item\n"));
 
     item = NULL;
-    error = get_config_item("domains/EXAMPLE.COM","binary_test", ini_config, &item);
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "binary_test",
+                            ini_config,
+                            &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
         free_ini_config(ini_config);
@@ -699,7 +749,7 @@ int get_test(void)
         return -1;
     }
 
-    col_debug_item(item);
+    COLOUT(col_debug_item(item));
 
     error = 0;
     binary = get_bin_config_value(item, &length, &error);
@@ -709,15 +759,15 @@ int get_test(void)
         return error;
     }
 
-    printf("Binary value (expect 123) = ");
-    for (i=0;i<length;i++) {
-        printf("%d",*((unsigned char*)(binary)+i));
-    }
-    printf("\n");
+    COLOUT(printf("Binary value (expect 123) = "));
+    COLOUT(for (i=0;i<length;i++) {
+                printf("%d",*((unsigned char*)(binary)+i));
+           });
+    COLOUT(printf("\n"));
 
     free_bin_config_value(binary);
 
-    printf("Get string array item\n");
+    COLOUT(printf("Get string array item\n"));
 
     item = NULL;
     error = get_config_item("domains", "domainsorder", ini_config, &item);
@@ -734,9 +784,9 @@ int get_test(void)
         return -1;
     }
 
-    col_debug_item(item);
+    COLOUT(col_debug_item(item));
 
-    printf("Get str array without size.\n");
+    COLOUT(printf("Get str array without size.\n"));
 
     error = 0;
     strarray = get_string_config_array(item, ",", NULL, &error);
@@ -749,13 +799,13 @@ int get_test(void)
     /* Can be used with this cycle */
     strptr = strarray;
     while (*strptr != NULL) {
-        printf("[%s]\n",*strptr);
+        COLOUT(printf("[%s]\n",*strptr));
         strptr++;
     }
 
     free_string_config_array(strarray);
 
-    printf("Get raw str array without size.\n");
+    COLOUT(printf("Get raw str array without size.\n"));
 
     error = 0;
     strarray = get_raw_string_config_array(item, ",", NULL, &error);
@@ -768,13 +818,13 @@ int get_test(void)
     /* Can be used with this cycle */
     strptr = strarray;
     while (*strptr != NULL) {
-        printf("[%s]\n",*strptr);
+        COLOUT(printf("[%s]\n",*strptr));
         strptr++;
     }
 
     free_string_config_array(strarray);
 
-    printf("Get str array with size.\n");
+    COLOUT(printf("Get str array with size.\n"));
 
     error = 0;
     size = 0;
@@ -786,11 +836,11 @@ int get_test(void)
     }
 
     /* Can be used with this cycle */
-    for (i=0;i<size;i++) printf("[%s]\n",*(strarray + i));
+    COLOUT(for (i=0;i<size;i++) printf("[%s]\n",*(strarray + i)));
 
     free_string_config_array(strarray);
 
-    printf("Get raw str array with size.\n");
+    COLOUT(printf("Get raw str array with size.\n"));
 
     error = 0;
     size = 0;
@@ -802,14 +852,17 @@ int get_test(void)
     }
 
     /* Can be used with this cycle */
-    for (i=0;i<size;i++) printf("[%s]\n",*(strarray + i));
+    COLOUT(for (i=0;i<size;i++) printf("[%s]\n",*(strarray + i)));
 
     free_string_config_array(strarray);
 
-    printf("Get long array item\n");
+    COLOUT(printf("Get long array item\n"));
 
     item = NULL;
-    error = get_config_item("domains/EXAMPLE.COM", "long_array", ini_config, &item);
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "long_array",
+                            ini_config,
+                            &item);
     if(error) {
         printf("Expected success but got error! %d\n", error);
         free_ini_config(ini_config);
@@ -823,7 +876,7 @@ int get_test(void)
         return -1;
     }
 
-    col_debug_item(item);
+    COLOUT(col_debug_item(item));
 
     error = 0;
     size = 0; /* Here size is not optional!!! */
@@ -835,14 +888,17 @@ int get_test(void)
     }
 
     /* Can be used with this cycle */
-    for (i=0;i<size;i++) printf("%ld\n", *(array + i));
+    COLOUT(for (i=0;i<size;i++) printf("%ld\n", *(array + i)));
 
     free_long_config_array(array);
 
-    printf("Get double array item\n");
+    COLOUT(printf("Get double array item\n"));
 
     item = NULL;
-    error = get_config_item("domains/EXAMPLE.COM", "double_array", ini_config, &item);
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "double_array",
+                            ini_config,
+                            &item);
     if (error) {
         printf("Expected success but got error! %d\n", error);
         free_ini_config(ini_config);
@@ -856,7 +912,7 @@ int get_test(void)
         return -1;
     }
 
-    col_debug_item(item);
+    COLOUT(col_debug_item(item));
 
     error = 0;
     size = 0; /* Here size is not optional!!! */
@@ -868,11 +924,11 @@ int get_test(void)
     }
 
     /* Can be used with this cycle */
-    for (i=0;i<size;i++) printf("%.4f\n", darray[i]);
+    COLOUT(for (i=0;i<size;i++) printf("%.4f\n", darray[i]));
 
     free_double_config_array(darray);
 
-    printf("\n\nSection list - no size\n");
+    COLOUT(printf("\n\nSection list - no size\n"));
 
     /* Do not care about the error or size */
     prop_array = get_section_list(ini_config, NULL, NULL);
@@ -883,13 +939,14 @@ int get_test(void)
     }
 
     i = 0;
-    while (prop_array[i]) {
-        printf("Section: [%s]\n", prop_array[i]);
-        i++;
-    }
+    COLOUT(while (prop_array[i]) {
+               printf("Section: [%s]\n", prop_array[i]);
+               i++;
+           });
+
     free_section_list(prop_array);
 
-    printf("\n\nSection list - with size\n");
+    COLOUT(printf("\n\nSection list - with size\n"));
 
     /* Do not care about the error or size */
     prop_array = get_section_list(ini_config, &size, NULL);
@@ -899,24 +956,27 @@ int get_test(void)
         return -1;
     }
 
-    for (i=0;i<size;i++) printf("Section: [%s]\n", prop_array[i]);
+    COLOUT(for (i=0;i<size;i++) printf("Section: [%s]\n", prop_array[i]));
     free_section_list(prop_array);
 
-    printf("\n\nAttributes in the section - with size and error\n");
+    COLOUT(printf("\n\nAttributes in the section - with size and error\n"));
 
     /* Do not care about the error or size */
-    prop_array = get_attribute_list(ini_config, "domains/EXAMPLE.COM", &size, &error);
+    prop_array = get_attribute_list(ini_config,
+                                    "domains/EXAMPLE.COM",
+                                    &size,
+                                    &error);
     if (prop_array == NULL) {
         printf("Expect success got error.\n");
         free_ini_config(ini_config);
         return -1;
     }
 
-    for (i=0;i<size;i++) printf("Attribute: [%s]\n", prop_array[i]);
+    COLOUT(for (i=0;i<size;i++) printf("Attribute: [%s]\n", prop_array[i]));
     free_attribute_list(prop_array);
 
     free_ini_config(ini_config);
-    printf("Done with get test!\n");
+    COLOUT(printf("Done with get test!\n"));
     return EOK;
 }
 
@@ -924,6 +984,10 @@ int main(int argc, char *argv[])
 {
     int error = EOK;
     char *srcdir = NULL;
+
+    if ((argc > 1) && (strcmp(argv[1], "-v") == 0)) verbose = 1;
+
+    printf("Start\n");
 
     srcdir = getenv("srcdir");
     if(srcdir) {
@@ -944,6 +1008,7 @@ int main(int argc, char *argv[])
         printf("Test failed! Error %d.\n", error);
         return -1;
     }
+
     printf("Success!\n");
     return 0;
 }
