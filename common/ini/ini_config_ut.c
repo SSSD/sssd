@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #define TRACE_HOME
+#include "trace.h"
 #include "ini_config.h"
 #include "collection.h"
 #include "collection_tools.h"

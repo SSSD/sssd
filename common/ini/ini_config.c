@@ -239,9 +239,13 @@ static int ini_to_collection(FILE *file,
 
         switch (status) {
         case RET_PAIR:
-            /* Add line to the collection of lines */
+            /* Add line to the collection of lines.
+             * It is pretty safe in this case to just type cast the value to
+             * int32_t since it is unrealistic that ini file will ever have
+             * so many lines.
+             */
             if (lines) {
-                error = col_add_int_property(*lines, NULL, key, line);
+                error = col_add_int_property(*lines, NULL, key, (int32_t)line);
                 if (error) {
                     TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
                     fclose(file);
@@ -308,8 +312,11 @@ static int ini_to_collection(FILE *file,
             if (lines) {
                 /* For easier search make line numbers for the sections negative.
                  * This would allow differentiating sections and attributes.
+                 * It is pretty safe in this case to just type cast the value to
+                 * int32_t since it is unrealistic that ini file will ever have
+                 * so many lines.
                  */
-                error = col_add_int_property(*lines, NULL, key, -1 * line);
+                error = col_add_int_property(*lines, NULL, key, (int32_t)(-1 * line));
                 if (error) {
                     TRACE_ERROR_NUMBER("Failed to add line to line collection", error);
                     fclose(file);
@@ -1275,13 +1282,16 @@ int get_config_item(const char *section,
     return error;
 }
 
-/* Get long value from config item */
-long get_long_config_value(struct collection_item *item,
-                           int strict, long def, int *error)
+/* Get long long value from config item */
+static long long get_llong_config_value(struct collection_item *item,
+                                        int strict,
+                                        long long def,
+                                        int *error)
 {
+    int err;
     const char *str;
     char *endptr;
-    long val = 0;
+    long long val = 0;
 
     TRACE_FLOW_STRING("get_long_config_value", "Entry");
 
@@ -1298,49 +1308,178 @@ long get_long_config_value(struct collection_item *item,
     /* Try to parse the value */
     str = (const char *)col_get_item_data(item);
     errno = 0;
-    val = strtol(str, &endptr, 10);
+    val = strtoll(str, &endptr, 10);
+    err = errno;
 
     /* Check for various possible errors */
-    if (((errno == ERANGE) &&
-        ((val == LONG_MAX) ||
-         (val == LONG_MIN))) ||
-         ((errno != 0) && (val == 0)) ||
-         (endptr == str)) {
-        TRACE_ERROR_NUMBER("Conversion failed", EIO);
+    if (err != 0) {
+        TRACE_ERROR_NUMBER("Conversion failed", err);
+        if (error) *error = err;
+        return def;
+    }
+
+    /* Other error cases */
+    if ((endptr == str) || (strict && (*endptr != '\0'))) {
+        TRACE_ERROR_NUMBER("More characters or nothing processed", EIO);
         if (error) *error = EIO;
         return def;
     }
 
-    if (strict && (*endptr != '\0')) {
-        TRACE_ERROR_NUMBER("More characters than expected", EIO);
-        if (error) *error = EIO;
-        val = def;
-    }
-
-    TRACE_FLOW_NUMBER("get_long_config_value returning", val);
+    TRACE_FLOW_NUMBER("get_long_config_value returning", (long)val);
     return val;
 }
 
+/* Get unsigned long long value from config item */
+static unsigned long long get_ullong_config_value(struct collection_item *item,
+                                                  int strict,
+                                                  unsigned long long def,
+                                                  int *error)
+{
+    int err;
+    const char *str;
+    char *endptr;
+    unsigned long long val = 0;
+
+    TRACE_FLOW_STRING("get_long_config_value", "Entry");
+
+    /* Do we have the item ? */
+    if ((item == NULL) ||
+       (col_get_item_type(item) != COL_TYPE_STRING)) {
+        TRACE_ERROR_NUMBER("Invalid argument.", EINVAL);
+        if (error) *error = EINVAL;
+        return def;
+    }
+
+    if (error) *error = EOK;
+
+    /* Try to parse the value */
+    str = (const char *)col_get_item_data(item);
+    errno = 0;
+    val = strtoull(str, &endptr, 10);
+    err = errno;
+
+    /* Check for various possible errors */
+    if (err != 0) {
+        TRACE_ERROR_NUMBER("Conversion failed", err);
+        if (error) *error = err;
+        return def;
+    }
+
+    /* Other error cases */
+    if ((endptr == str) || (strict && (*endptr != '\0'))) {
+        TRACE_ERROR_NUMBER("More characters or nothing processed", EIO);
+        if (error) *error = EIO;
+        return def;
+    }
+
+    TRACE_FLOW_NUMBER("get_long_config_value returning", (long)val);
+    return val;
+}
+
+
 /* Get integer value from config item */
 int get_int_config_value(struct collection_item *item,
-                         int strict, int def, int *error)
+                         int strict,
+                         int def,
+                         int *error)
 {
-    return get_long_config_value(item, strict, def, error);
+    long long val = 0;
+    int err = 0;
+
+    TRACE_FLOW_STRING("get_int_config_value", "Entry");
+
+    val = get_llong_config_value(item, strict, def, &err);
+    if (err == 0) {
+        if ((val > INT_MAX) || (val < INT_MIN)) {
+            val = def;
+            err = ERANGE;
+        }
+    }
+
+    if (error) *error = err;
+
+    TRACE_FLOW_NUMBER("get_int_config_value returning", (int)val);
+    return (int)val;
 }
 
 /* Get unsigned integer value from config item */
 unsigned get_unsigned_config_value(struct collection_item *item,
-                                   int strict, unsigned def, int *error)
+                                   int strict,
+                                   unsigned def,
+                                   int *error)
 {
-    return get_long_config_value(item, strict, def, error);
+    unsigned long long val = 0;
+    int err = 0;
+
+    TRACE_FLOW_STRING("get_unsigned_config_value", "Entry");
+
+    val = get_ullong_config_value(item, strict, def, &err);
+    if (err == 0) {
+        if (val > UINT_MAX) {
+            val = def;
+            err = ERANGE;
+        }
+    }
+
+    if (error) *error = err;
+
+    TRACE_FLOW_NUMBER("get_unsigned_config_value returning",
+                      (unsigned)val);
+    return (unsigned)val;
+}
+
+/* Get long value from config item */
+long get_long_config_value(struct collection_item *item,
+                           int strict,
+                           long def,
+                           int *error)
+{
+    long long val = 0;
+    int err = 0;
+
+    TRACE_FLOW_STRING("get_long_config_value", "Entry");
+
+    val = get_llong_config_value(item, strict, def, &err);
+    if (err == 0) {
+        if ((val > LONG_MAX) || (val < LONG_MIN)) {
+            val = def;
+            err = ERANGE;
+        }
+    }
+
+    if (error) *error = err;
+
+    TRACE_FLOW_NUMBER("get_long_config_value returning",
+                      (long)val);
+    return (long)val;
 }
 
 /* Get unsigned long value from config item */
 unsigned long get_ulong_config_value(struct collection_item *item,
-                                     int strict, unsigned long def, int *error)
+                                     int strict,
+                                     unsigned long def,
+                                     int *error)
 {
-    return get_long_config_value(item, strict, def, error);
+    unsigned long long val = 0;
+    int err = 0;
+
+    TRACE_FLOW_STRING("get_ulong_config_value", "Entry");
+
+    val = get_ullong_config_value(item, strict, def, &err);
+    if (err == 0) {
+        if (val > ULONG_MAX) {
+            val = def;
+            err = ERANGE;
+        }
+    }
+
+    if (error) *error = err;
+
+    TRACE_FLOW_NUMBER("get_ulong_config_value returning",
+                      (unsigned long)val);
+    return (unsigned long)val;
 }
+
 
 /* Get double value */
 double get_double_config_value(struct collection_item *item,
@@ -1725,7 +1864,11 @@ void free_string_config_array(char **str_config)
     TRACE_FLOW_STRING("free_string_config_array", "Exit");
 }
 
-/* Get an array of long values */
+/* Get an array of long values.
+ * NOTE: For now I leave just one function that returns numeric arrays.
+ * In future if we need other numeric types we can change it to do strtoll
+ * internally and wrap it for backward compatibility.
+ */
 long *get_long_config_array(struct collection_item *item, int *size, int *error)
 {
     const char *str;
@@ -1733,6 +1876,7 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
     long val = 0;
     long *array;
     int count = 0;
+    int err;
 
     TRACE_FLOW_STRING("get_long_config_array", "Entry");
 
@@ -1756,18 +1900,25 @@ long *get_long_config_array(struct collection_item *item, int *size, int *error)
     /* Now parse the string */
     str = (const char *)col_get_item_data(item);
     while (*str) {
+
         errno = 0;
         val = strtol(str, &endptr, 10);
-        if (((errno == ERANGE) &&
-            ((val == LONG_MAX) ||
-             (val == LONG_MIN))) ||
-             ((errno != 0) && (val == 0)) ||
-             (endptr == str)) {
-            TRACE_ERROR_NUMBER("Conversion failed", EIO);
+        err = errno;
+
+        if (err) {
+            TRACE_ERROR_NUMBER("Conversion failed", err);
+            free(array);
+            if (error) *error = err;
+            return NULL;
+        }
+
+        if (endptr == str) {
+            TRACE_ERROR_NUMBER("Nothing processed", EIO);
             free(array);
             if (error) *error = EIO;
             return NULL;
         }
+
         /* Save value */
         array[count] = val;
         count++;
