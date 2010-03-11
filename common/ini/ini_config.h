@@ -1040,6 +1040,10 @@ void free_bin_config_value(char *bin);
  * Size and error parameters can be NULL.
  * Use \ref free_string_config_array() to free the array after use.
  *
+ * The array is always NULL terminated so
+ * it is safe not to get size and just loop until
+ * array element is NULL.
+ *
  * @param[in]  item             Item to interpret.
  *                              It must be retrieved using
  *                              \ref get_config_item().
@@ -1095,6 +1099,10 @@ char **get_string_config_array(struct collection_item *item,
  * Size and error parameters can be NULL.
  * Use \ref free_string_config_array() to free the array after use.
  *
+ * The array is always NULL terminated so
+ * it is safe not to get size and just loop until
+ * array element is NULL.
+ *
  * @param[in]  item             Item to interpret.
  *                              It must be retrieved using
  *                              \ref get_config_item().
@@ -1142,13 +1150,14 @@ char **get_raw_string_config_array(struct collection_item *item,
  * in the string.
  *
  * The length of the allocated array is returned in "size".
- * Size and error parameters can be NULL.
+ * Size parameter can't be NULL.
+ *
  * Use \ref free_long_config_array() to free the array after use.
  *
  * @param[in]  item             Item to interpret.
  *                              It must be retrieved using
  *                              \ref get_config_item().
- * @param[out] size             Variable that optionally receives
+ * @param[out] size             Variable that receives
  *                              the size of the array.
  * @param[out] error            Variable will get the value
  *                              of the error code if
@@ -1187,13 +1196,14 @@ long *get_long_config_array(struct collection_item *item,
  * in the string.
  *
  * The length of the allocated array is returned in "size".
- * Size and error parameters can be NULL.
+ * Size parameter can't be NULL.
+ *
  * Use \ref free_double_config_array() to free the array after use.
  *
  * @param[in]  item             Item to interpret.
  *                              It must be retrieved using
  *                              \ref get_config_item().
- * @param[out] size             Variable that optionally receives
+ * @param[out] size             Variable that receives
  *                              the size of the array.
  * @param[out] error            Variable will get the value
  *                              of the error code if
