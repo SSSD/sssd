@@ -107,7 +107,7 @@ int col_insert_int_property(struct collection_item *ci,
                             int idx,
                             unsigned flags,
                             const char *property,
-                            int number)
+                            int32_t number)
 {
     int error = EOK;
 
@@ -122,7 +122,7 @@ int col_insert_int_property(struct collection_item *ci,
                                          property,
                                          COL_TYPE_INTEGER,
                                          (void *)&number,
-                                         sizeof(int),
+                                         sizeof(int32_t),
                                          NULL);
 
     TRACE_FLOW_NUMBER("col_insert_int_property returning", error);
@@ -138,7 +138,7 @@ int col_insert_unsigned_property(struct collection_item *ci,
                                  int idx,
                                  unsigned flags,
                                  const char *property,
-                                 unsigned number)
+                                 uint32_t number)
 {
     int error = EOK;
 
@@ -153,7 +153,7 @@ int col_insert_unsigned_property(struct collection_item *ci,
                                          property,
                                          COL_TYPE_UNSIGNED,
                                          (void *)&number,
-                                         sizeof(unsigned),
+                                         sizeof(uint32_t),
                                          NULL);
 
     TRACE_FLOW_NUMBER("col_insert_unsigned_property returning", error);
@@ -169,7 +169,7 @@ int col_insert_long_property(struct collection_item *ci,
                              int idx,
                              unsigned flags,
                              const char *property,
-                             long number)
+                             int64_t number)
 {
     int error = EOK;
 
@@ -184,7 +184,7 @@ int col_insert_long_property(struct collection_item *ci,
                                          property,
                                          COL_TYPE_LONG,
                                          (void *)&number,
-                                         sizeof(long),
+                                         sizeof(int64_t),
                                          NULL);
 
     TRACE_FLOW_NUMBER("col_insert_long_property returning", error);
@@ -199,7 +199,7 @@ int col_insert_ulong_property(struct collection_item *ci,
                               int idx,
                               unsigned flags,
                               const char *property,
-                              unsigned long number)
+                              uint64_t number)
 {
     int error = EOK;
 
@@ -214,7 +214,7 @@ int col_insert_ulong_property(struct collection_item *ci,
                                          property,
                                          COL_TYPE_ULONG,
                                          (void *)&number,
-                                         sizeof(unsigned long),
+                                         sizeof(uint64_t),
                                          NULL);
 
     TRACE_FLOW_NUMBER("col_insert_ulong_property returning", error);
@@ -295,10 +295,14 @@ int col_insert_str_property_with_ref(struct collection_item *ci,
                                      struct collection_item **ret_ref)
 {
     int error = EOK;
+    void *ptr;
 
     TRACE_FLOW_STRING("col_insert_string_property_with_ref", "Entry.");
 
     if (length == 0) length = strlen(string) + 1;
+
+    /* Work around a compilation warning */
+    memcpy(&ptr, &string, sizeof(void *));
 
     error = col_insert_property_with_ref(ci,
                                          subcollection,
@@ -308,7 +312,7 @@ int col_insert_str_property_with_ref(struct collection_item *ci,
                                          flags,
                                          property,
                                          COL_TYPE_STRING,
-                                         (void *)string,
+                                         ptr,
                                          length,
                                          ret_ref);
 
@@ -356,7 +360,7 @@ int col_insert_int_property_with_ref(struct collection_item *ci,
                                      int idx,
                                      unsigned flags,
                                      const char *property,
-                                     int number,
+                                     int32_t number,
                                      struct collection_item **ret_ref)
 {
     int error = EOK;
@@ -372,7 +376,7 @@ int col_insert_int_property_with_ref(struct collection_item *ci,
                                          property,
                                          COL_TYPE_INTEGER,
                                          (void *)&number,
-                                         sizeof(int),
+                                         sizeof(int32_t),
                                          ret_ref);
 
     TRACE_FLOW_NUMBER("col_insert_int_property_with_ref returning", error);
@@ -388,7 +392,7 @@ int col_insert_unsigned_property_with_ref(struct collection_item *ci,
                                           int idx,
                                           unsigned flags,
                                           const char *property,
-                                          unsigned number,
+                                          uint32_t number,
                                           struct collection_item **ret_ref)
 {
     int error = EOK;
@@ -404,7 +408,7 @@ int col_insert_unsigned_property_with_ref(struct collection_item *ci,
                                          property,
                                          COL_TYPE_UNSIGNED,
                                          (void *)&number,
-                                         sizeof(unsigned),
+                                         sizeof(uint32_t),
                                          ret_ref);
 
     TRACE_FLOW_NUMBER("col_insert_unsigned_property_with_ref returning", error);
@@ -419,7 +423,7 @@ int col_insert_long_property_with_ref(struct collection_item *ci,
                                       int idx,
                                       unsigned flags,
                                       const char *property,
-                                      long number,
+                                      int64_t number,
                                       struct collection_item **ret_ref)
 {
     int error = EOK;
@@ -435,7 +439,7 @@ int col_insert_long_property_with_ref(struct collection_item *ci,
                                          property,
                                          COL_TYPE_LONG,
                                          (void *)&number,
-                                         sizeof(long),
+                                         sizeof(int64_t),
                                          ret_ref);
 
     TRACE_FLOW_NUMBER("col_insert_long_property_with_ref returning", error);
@@ -450,7 +454,7 @@ int col_insert_ulong_property_with_ref(struct collection_item *ci,
                                        int idx,
                                        unsigned flags,
                                        const char *property,
-                                       unsigned long number,
+                                       uint64_t number,
                                        struct collection_item **ret_ref)
 {
     int error = EOK;
@@ -466,7 +470,7 @@ int col_insert_ulong_property_with_ref(struct collection_item *ci,
                                          property,
                                          COL_TYPE_ULONG,
                                          (void *)&number,
-                                         sizeof(unsigned long),
+                                         sizeof(uint64_t),
                                          ret_ref);
 
     TRACE_FLOW_NUMBER("col_insert_ulong_property_with_ref returning", error);
@@ -590,7 +594,7 @@ int col_add_binary_property(struct collection_item *ci,
 int col_add_int_property(struct collection_item *ci,
                          const char *subcollection,
                          const char *property,
-                         int number)
+                         int32_t number)
 {
     int error = EOK;
 
@@ -613,7 +617,7 @@ int col_add_int_property(struct collection_item *ci,
 int col_add_unsigned_property(struct collection_item *ci,
                               const char *subcollection,
                               const char *property,
-                              unsigned int number)
+                              uint32_t number)
 {
     int error = EOK;
 
@@ -636,7 +640,7 @@ int col_add_unsigned_property(struct collection_item *ci,
 int col_add_long_property(struct collection_item *ci,
                           const char *subcollection,
                           const char *property,
-                          long number)
+                          int64_t number)
 {
     int error = EOK;
 
@@ -660,7 +664,7 @@ int col_add_long_property(struct collection_item *ci,
 int col_add_ulong_property(struct collection_item *ci,
                            const char *subcollection,
                            const char *property,
-                           unsigned long number)
+                           uint64_t number)
 {
     int error = EOK;
 
@@ -809,7 +813,7 @@ int col_add_binary_property_with_ref(struct collection_item *ci,
 int col_add_int_property_with_ref(struct collection_item *ci,
                                   const char *subcollection,
                                   const char *property,
-                                  int number,
+                                  int32_t number,
                                   struct collection_item **ref_ret)
 {
     int error = EOK;
@@ -834,7 +838,7 @@ int col_add_int_property_with_ref(struct collection_item *ci,
 int col_add_unsigned_property_with_ref(struct collection_item *ci,
                                        const char *subcollection,
                                        const char *property,
-                                       unsigned int number,
+                                       uint32_t number,
                                        struct collection_item **ref_ret)
 {
     int error = EOK;
@@ -859,7 +863,7 @@ int col_add_unsigned_property_with_ref(struct collection_item *ci,
 int col_add_long_property_with_ref(struct collection_item *ci,
                                    const char *subcollection,
                                    const char *property,
-                                   long number,
+                                   int64_t number,
                                    struct collection_item **ref_ret)
 {
     int error = EOK;
@@ -884,7 +888,7 @@ int col_add_long_property_with_ref(struct collection_item *ci,
 int col_add_ulong_property_with_ref(struct collection_item *ci,
                                     const char *subcollection,
                                     const char *property,
-                                    unsigned long number,
+                                    uint64_t number,
                                     struct collection_item **ref_ret)
 {
     int error = EOK;
@@ -1025,13 +1029,13 @@ int col_update_binary_property(struct collection_item *ci,
 int col_update_int_property(struct collection_item *ci,
                             const char *property,
                             int mode_flags,
-                            int number)
+                            int32_t number)
 {
     int error = EOK;
     TRACE_FLOW_STRING("col_update_int_property", "Entry.");
 
     error = col_update_property(ci, property, COL_TYPE_INTEGER,
-                                (void *)(&number), sizeof(int), mode_flags);
+                                (void *)(&number), sizeof(int32_t), mode_flags);
 
     TRACE_FLOW_NUMBER("col_update_int_property Returning", error);
     return error;
@@ -1041,13 +1045,13 @@ int col_update_int_property(struct collection_item *ci,
 int col_update_unsigned_property(struct collection_item *ci,
                                  const char *property,
                                  int mode_flags,
-                                 unsigned int number)
+                                 uint32_t number)
 {
     int error = EOK;
     TRACE_FLOW_STRING("col_update_unsigned_property", "Entry.");
 
     error = col_update_property(ci, property, COL_TYPE_UNSIGNED,
-                                (void *)(&number), sizeof(unsigned int),
+                                (void *)(&number), sizeof(uint32_t),
                                 mode_flags);
 
     TRACE_FLOW_NUMBER("col_update_unsigned_property Returning", error);
@@ -1058,13 +1062,13 @@ int col_update_unsigned_property(struct collection_item *ci,
 int col_update_long_property(struct collection_item *ci,
                              const char *property,
                              int mode_flags,
-                             long number)
+                             int64_t number)
 {
     int error = EOK;
     TRACE_FLOW_STRING("col_update_long_property", "Entry.");
 
     error = col_update_property(ci, property, COL_TYPE_LONG,
-                                (void *)(&number), sizeof(long),
+                                (void *)(&number), sizeof(int64_t),
                                 mode_flags);
 
     TRACE_FLOW_NUMBER("col_update_long_property Returning", error);
@@ -1076,13 +1080,13 @@ int col_update_long_property(struct collection_item *ci,
 int col_update_ulong_property(struct collection_item *ci,
                               const char *property,
                               int mode_flags,
-                              unsigned long number)
+                              uint64_t number)
 {
     int error = EOK;
     TRACE_FLOW_STRING("col_update_ulong_property", "Entry.");
 
     error = col_update_property(ci, property, COL_TYPE_ULONG,
-                                (void *)(&number), sizeof(unsigned long),
+                                (void *)(&number), sizeof(uint64_t),
                                 mode_flags);
 
     TRACE_FLOW_NUMBER("col_update_ulong_property Returning", error);
@@ -1193,14 +1197,14 @@ int col_modify_bool_item(struct collection_item *item,
 /* Modify item data to be int */
 int col_modify_int_item(struct collection_item *item,
                         const char *property,
-                        int number)
+                        int32_t number)
 {
     int error;
 
     TRACE_FLOW_STRING("col_modify_int_item","Entry");
 
     error = col_modify_item(item, property, COL_TYPE_INTEGER,
-                            (void *)(&number), sizeof(int));
+                            (void *)(&number), sizeof(int32_t));
 
     TRACE_FLOW_STRING("col_modify_int_item", "Exit");
     return error;
@@ -1209,14 +1213,14 @@ int col_modify_int_item(struct collection_item *item,
 /* Modify item data to be long */
 int col_modify_long_item(struct collection_item *item,
                          const char *property,
-                         long number)
+                         int64_t number)
 {
     int error;
 
     TRACE_FLOW_STRING("col_modify_long_item", "Entry");
 
     error = col_modify_item(item, property, COL_TYPE_LONG,
-                            (void *)(&number), sizeof(long));
+                            (void *)(&number), sizeof(int64_t));
 
     TRACE_FLOW_STRING("col_modify_long_item", "Exit");
     return error;
@@ -1225,14 +1229,14 @@ int col_modify_long_item(struct collection_item *item,
 /* Modify item data to be unigned long */
 int col_modify_ulong_item(struct collection_item *item,
                           const char *property,
-                          unsigned long number)
+                          uint64_t number)
 {
     int error;
 
     TRACE_FLOW_STRING("col_modify_ulong_item", "Entry");
 
     error = col_modify_item(item, property, COL_TYPE_ULONG,
-                            (void *)(&number), sizeof(unsigned long));
+                            (void *)(&number), sizeof(uint64_t));
 
     TRACE_FLOW_STRING("col_modify_ulong_item", "Exit");
     return error;
@@ -1240,14 +1244,14 @@ int col_modify_ulong_item(struct collection_item *item,
 
 int col_modify_unsigned_item(struct collection_item *item,
                              const char *property,
-                             unsigned number)
+                             uint32_t number)
 {
     int error;
 
     TRACE_FLOW_STRING("col_modify_unsigned_item", "Entry");
 
     error = col_modify_item(item, property, COL_TYPE_UNSIGNED,
-                            (void *)(&number), sizeof(unsigned));
+                            (void *)(&number), sizeof(uint32_t));
 
     TRACE_FLOW_STRING("col_modify_unsigned_item", "Exit");
     return error;
