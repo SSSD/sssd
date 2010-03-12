@@ -421,8 +421,10 @@ static void simple_bind_done(struct sdap_op *op,
                           "error [%s].\n", pp_expire, pp_grace,
                           ldap_passwordpolicy_err2txt(pp_error)));
 
-                if (state->result == LDAP_SUCCESS &&
-                    (pp_error == PP_changeAfterReset || pp_grace > 0)) {
+                if ((state->result == LDAP_SUCCESS &&
+                        (pp_error == PP_changeAfterReset || pp_grace > 0)) ||
+                    (state->result == LDAP_INVALID_CREDENTIALS &&
+                        pp_error == PP_passwordExpired ) ) {
                     DEBUG(4, ("User must set a new password.\n"));
                     state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
                 }
