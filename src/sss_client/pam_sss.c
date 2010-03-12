@@ -979,11 +979,13 @@ static int get_authtok_for_password_change(pam_handle_t *pamh,
                                            int pam_flags)
 {
     int ret;
-
+    int *exp_data = NULL;
+    pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data);
+    
     /* we query for the old password during PAM_PRELIM_CHECK to make
      * pam_sss work e.g. with pam_cracklib */
     if (pam_flags & PAM_PRELIM_CHECK) {
-        if (getuid() != 0 && !(flags & FLAGS_USE_FIRST_PASS)) {
+        if ( (getuid() != 0 || exp_data ) && !(flags & FLAGS_USE_FIRST_PASS)) {
             ret = prompt_password(pamh, pi, _("Current Password: "));
             if (ret != PAM_SUCCESS) {
                 D(("failed to get password from user"));
