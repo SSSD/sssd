@@ -255,22 +255,23 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    start_transaction(tctx);
+    tctx->error = sysdb_transaction_start(tctx->sysdb);
     if (tctx->error != EOK) {
         goto done;
     }
 
     /* useradd */
-    ret = useradd(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
-    if (ret != EOK) {
-        tctx->error = ret;
-
+    tctx->error = useradd(tctx, tctx->sysdb, tctx->octx);
+    if (tctx->error) {
         /* cancel transaction */
-        talloc_zfree(tctx->handle);
+        sysdb_transaction_cancel(tctx->sysdb);
         goto done;
     }
 
-    end_transaction(tctx);
+    tctx->error = sysdb_transaction_commit(tctx->sysdb);
+    if (tctx->error) {
+        goto done;
+    }
 
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */

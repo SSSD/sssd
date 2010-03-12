@@ -57,16 +57,6 @@ struct sync_op_res {
 };
 
 /*
- * Generic recv function
- */
-static int sync_ops_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
-/*
  * Generic modify groups member
  */
 static int mod_groups_member(TALLOC_CTX *mem_ctx,
@@ -210,215 +200,120 @@ static int usermod_build_attrs(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void user_mod_attr_wakeup(struct tevent_req *subreq);
-
-static struct tevent_req *user_mod_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sysdb_handle *handle,
-                                        struct ops_ctx *data)
+/*
+ * Public interface for modifying users
+ */
+int usermod(TALLOC_CTX *mem_ctx,
+            struct sysdb_ctx *sysdb,
+            struct ops_ctx *data)
 {
-    struct user_mod_state *state = NULL;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
+    struct sysdb_attrs *attrs;
+    struct ldb_dn *member_dn;
     int ret;
-    struct timeval tv = { 0, 0 };
-
-    req = tevent_req_create(mem_ctx, &state, struct user_mod_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
 
     if (data->addgroups || data->rmgroups) {
-        state->member_dn = sysdb_user_dn(state->sysdb, state,
-                                         state->data->domain->name,
-                                         state->data->name);
-        if (!state->member_dn) {
-            talloc_zfree(req);
-            return NULL;
+        member_dn = sysdb_user_dn(sysdb, mem_ctx,
+                                  data->domain->name, data->name);
+        if (!member_dn) {
+            return ENOMEM;
         }
     }
 
-    ret = usermod_build_attrs(state,
-                              state->data->gecos,
-                              state->data->home,
-                              state->data->shell,
-                              state->data->uid,
-                              state->data->gid,
-                              state->data->lock,
-                              &state->attrs);
+    ret = usermod_build_attrs(mem_ctx,
+                              data->gecos,
+                              data->home,
+                              data->shell,
+                              data->uid,
+                              data->gid,
+                              data->lock,
+                              &attrs);
     if (ret != EOK) {
-        talloc_zfree(req);
-        return NULL;
+        return ret;
     }
 
-    subreq = tevent_wakeup_send(req, ev, tv);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, user_mod_attr_wakeup, req);
-    return req;
-}
-
-static void user_mod_attr_wakeup(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct user_mod_state *state = tevent_req_data(req,
-                                                   struct user_mod_state);
-    int ret;
-
-    if (state->attrs->num != 0) {
-        ret = sysdb_set_user_attr(state, sysdb_handle_get_ctx(state->handle),
-                                  state->data->domain, state->data->name,
-                                  state->attrs, SYSDB_MOD_REP);
+    if (attrs->num != 0) {
+        ret = sysdb_set_user_attr(mem_ctx, sysdb,
+                                  data->domain, data->name,
+                                  attrs, SYSDB_MOD_REP);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
     }
 
-    if (state->data->rmgroups != NULL) {
-        ret = remove_from_groups(state, state->sysdb,
-                                 state->data, state->member_dn);
+    if (data->rmgroups != NULL) {
+        ret = remove_from_groups(mem_ctx, sysdb, data, member_dn);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
     }
 
-    if (state->data->addgroups != NULL) {
-        ret = add_to_groups(state, state->sysdb,
-                            state->data, state->member_dn);
+    if (data->addgroups != NULL) {
+        ret = add_to_groups(mem_ctx, sysdb, data, member_dn);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
     }
 
-    tevent_req_done(req);
-}
+    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
-static int user_mod_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
+    return EOK;
 }
 
 /*
- * Modify a group
+ * Public interface for modifying groups
  */
-struct group_mod_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-
+int groupmod(TALLOC_CTX *mem_ctx,
+             struct sysdb_ctx *sysdb,
+             struct ops_ctx *data)
+{
     struct sysdb_attrs *attrs;
     struct ldb_dn *member_dn;
-
-    struct ops_ctx *data;
-};
-
-static void group_mod_attr_wakeup(struct tevent_req *);
-
-static struct tevent_req *group_mod_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_ctx *sysdb,
-                                         struct sysdb_handle *handle,
-                                         struct ops_ctx *data)
-{
-    struct group_mod_state *state;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct timeval tv = { 0, 0 };
-
-    req = tevent_req_create(mem_ctx, &state, struct group_mod_state);
-    if (req == NULL) {
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-
-    if (data->addgroups || data->rmgroups) {
-        state->member_dn = sysdb_group_dn(state->sysdb, state,
-                                          state->data->domain->name,
-                                          state->data->name);
-        if (!state->member_dn) {
-            return NULL;
-        }
-    }
-
-    subreq = tevent_wakeup_send(req, ev, tv);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, group_mod_attr_wakeup, req);
-    return req;
-}
-
-static void group_mod_attr_wakeup(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct group_mod_state *state = tevent_req_data(req,
-                                                    struct group_mod_state);
-    struct sysdb_attrs *attrs;
     int ret;
 
-    if (state->data->gid != 0) {
-        attrs = sysdb_new_attrs(NULL);
-        if (!attrs) {
-            tevent_req_error(req, ENOMEM);
-            return;
+    if (data->addgroups || data->rmgroups) {
+        member_dn = sysdb_group_dn(sysdb, mem_ctx,
+                                   data->domain->name, data->name);
+        if (!member_dn) {
+            return ENOMEM;
         }
-        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, state->data->gid);
+    }
+
+    if (data->gid != 0) {
+        attrs = sysdb_new_attrs(mem_ctx);
+        if (!attrs) {
+            return ENOMEM;
+        }
+        ret = sysdb_attrs_add_uint32(attrs, SYSDB_GIDNUM, data->gid);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
 
-        ret = sysdb_set_group_attr(state, sysdb_handle_get_ctx(state->handle),
-                                   state->data->domain, state->data->name,
+        ret = sysdb_set_group_attr(mem_ctx, sysdb,
+                                   data->domain, data->name,
                                    attrs, SYSDB_MOD_REP);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
     }
 
-    if (state->data->rmgroups != NULL) {
-        ret = remove_from_groups(state, state->sysdb,
-                                 state->data, state->member_dn);
+    if (data->rmgroups != NULL) {
+        ret = remove_from_groups(mem_ctx, sysdb, data, member_dn);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
     }
 
-    if (state->data->addgroups != NULL) {
-        ret = add_to_groups(state, state->sysdb,
-                            state->data, state->member_dn);
+    if (data->addgroups != NULL) {
+        ret = add_to_groups(mem_ctx, sysdb, data, member_dn);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            return ret;
         }
     }
 
-    tevent_req_done(req);
-}
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
-static int group_mod_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
+    return EOK;
 }
 
 int userdel_defaults(TALLOC_CTX *mem_ctx,
@@ -585,9 +480,7 @@ done:
  * Public interface for adding users
  */
 int useradd(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data)
 {
     int ret;
@@ -651,63 +544,10 @@ int userdel(TALLOC_CTX *mem_ctx,
 }
 
 /*
- * Public interface for modifying users
- */
-static void usermod_done(struct tevent_req *req);
-
-int usermod(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
-            struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
-            struct ops_ctx *data)
-{
-    int ret;
-    struct tevent_req *req;
-    struct sync_op_res *res = NULL;
-
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
-        return ENOMEM;
-    }
-
-    req = user_mod_send(res, ev, sysdb, handle, data);
-    if (!req) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req, usermod_done, res);
-
-    SYNC_LOOP(res, ret);
-
-    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
-
-    talloc_free(res);
-    return ret;
-}
-
-static void usermod_done(struct tevent_req *req)
-{
-    int ret;
-    struct sync_op_res *res = tevent_req_callback_data(req,
-                                                       struct sync_op_res);
-
-    ret = user_mod_recv(req);
-    talloc_free(req);
-    if (ret) {
-        DEBUG(2, ("Modifying user failed: %s (%d)\n", strerror(ret), ret));
-    }
-
-    res->done = true;
-    res->error = ret;
-}
-
-/*
  * Public interface for adding groups
  */
 int groupadd(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data)
 {
     int ret;
@@ -746,135 +586,6 @@ int groupdel(TALLOC_CTX *mem_ctx,
     flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
     return ret;
-}
-
-/*
- * Public interface for modifying groups
- */
-static void groupmod_done(struct tevent_req *req);
-
-int groupmod(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
-            struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
-            struct ops_ctx *data)
-{
-    int ret;
-    struct tevent_req *req;
-    struct sync_op_res *res = NULL;
-
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
-        return ENOMEM;
-    }
-
-    req = group_mod_send(res, ev, sysdb, handle, data);
-    if (!req) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req, groupmod_done, res);
-
-    SYNC_LOOP(res, ret);
-
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
-
-    talloc_free(res);
-    return ret;
-}
-
-static void groupmod_done(struct tevent_req *req)
-{
-    int ret;
-    struct sync_op_res *res = tevent_req_callback_data(req,
-                                                       struct sync_op_res);
-
-    ret = group_mod_recv(req);
-    talloc_free(req);
-    if (ret) {
-        DEBUG(2, ("Modifying group failed: %s (%d)\n", strerror(ret), ret));
-    }
-
-    res->done = true;
-    res->error = ret;
-}
-
-/*
- * Synchronous transaction functions
- */
-static void start_transaction_done(struct tevent_req *req);
-
-void start_transaction(struct tools_ctx *tctx)
-{
-    struct tevent_req *req;
-
-    /* make sure handle is NULL, as it is the spy to check if the transaction
-     * has been started */
-    tctx->handle = NULL;
-    tctx->error = 0;
-
-    req = sysdb_transaction_send(tctx->octx, tctx->ev, tctx->sysdb);
-    if (!req) {
-        DEBUG(1, ("Could not start transaction\n"));
-        tctx->error = ENOMEM;
-        return;
-    }
-    tevent_req_set_callback(req, start_transaction_done, tctx);
-
-    /* loop to obtain a transaction */
-    while (!tctx->handle && !tctx->error) {
-        tevent_loop_once(tctx->ev);
-    }
-}
-
-static void start_transaction_done(struct tevent_req *req)
-{
-    struct tools_ctx *tctx = tevent_req_callback_data(req,
-                                                struct tools_ctx);
-    int ret;
-
-    ret = sysdb_transaction_recv(req, tctx, &tctx->handle);
-    if (ret) {
-        tctx->error = ret;
-    }
-    if (!tctx->handle) {
-        tctx->error = EIO;
-    }
-    talloc_zfree(req);
-}
-
-static void end_transaction_done(struct tevent_req *req);
-
-void end_transaction(struct tools_ctx *tctx)
-{
-    struct tevent_req *req;
-
-    tctx->error = 0;
-
-    req = sysdb_transaction_commit_send(tctx, tctx->ev, tctx->handle);
-    if (!req) {
-        /* free transaction and signal error */
-        tctx->error = ENOMEM;
-        return;
-    }
-    tevent_req_set_callback(req, end_transaction_done, tctx);
-
-    /* loop to obtain a transaction */
-    while (!tctx->transaction_done && !tctx->error) {
-        tevent_loop_once(tctx->ev);
-    }
-}
-
-static void end_transaction_done(struct tevent_req *req)
-{
-    struct tools_ctx *tctx = tevent_req_callback_data(req,
-                                                      struct tools_ctx);
-    int ret;
-
-    ret = sysdb_transaction_commit_recv(req);
-
-    tctx->transaction_done = true;
-    tctx->error = ret;
-    talloc_zfree(req);
 }
 
 /*

@@ -73,35 +73,24 @@ int userdel_defaults(TALLOC_CTX *mem_ctx,
 
 /* synchronous operations */
 int useradd(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data);
 int userdel(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 int usermod(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data);
 
 int groupadd(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data);
 int groupdel(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct ops_ctx *data);
 int groupmod(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data);
-
-void start_transaction(struct tools_ctx *tctx);
-void end_transaction(struct tools_ctx *tctx);
 
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,

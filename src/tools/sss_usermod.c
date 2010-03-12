@@ -218,22 +218,20 @@ int main(int argc, const char **argv)
     tctx->octx->gid = pc_gid;
     tctx->octx->lock = pc_lock;
 
-    start_transaction(tctx);
+    tctx->error = sysdb_transaction_start(tctx->sysdb);
     if (tctx->error != EOK) {
         goto done;
     }
 
     /* usermod */
-    ret = usermod(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
-    if (ret != EOK) {
-        tctx->error = ret;
-
+    tctx->error = usermod(tctx, tctx->sysdb, tctx->octx);
+    if (tctx->error) {
         /* cancel transaction */
-        talloc_zfree(tctx->handle);
+        sysdb_transaction_cancel(tctx->sysdb);
         goto done;
     }
 
-    end_transaction(tctx);
+    tctx->error = sysdb_transaction_commit(tctx->sysdb);
 
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */
