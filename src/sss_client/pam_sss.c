@@ -1120,7 +1120,12 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     if (ret == PAM_SUCCESS && task == SSS_PAM_ACCT_MGMT &&
         pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
                                                                   PAM_SUCCESS) {
-            return PAM_NEW_AUTHTOK_REQD;
+        ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
+                _("Password expired. Change your password now."), NULL, NULL);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+        }
+        return PAM_NEW_AUTHTOK_REQD;
     }
 
     overwrite_and_free_authtoks(&pi);
