@@ -217,3 +217,17 @@ AC_DEFUN([WITH_TEST_DIR],
     AC_DEFINE_UNQUOTED(TEST_DIR, "$with_test_dir", [Directory used for 'make check' temporary files])
   ])
 
+AC_DEFUN([WITH_NSCD],
+  [ AC_ARG_WITH([nscd],
+                [AC_HELP_STRING([--with-nscd],
+                                [Whether to attempt to flush nscd cache after local domain operations [yes]]
+                               )
+                ],
+                [],
+                with_nscd=yes
+               )
+    if test x"$with_nscd" == xyes; then
+        AC_DEFINE_UNQUOTED(HAVE_NSCD, 1, [flush nscd cache after local domain operations])
+    fi
+  ])
+
