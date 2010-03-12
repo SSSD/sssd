@@ -222,25 +222,6 @@ int sysdb_transaction_start(struct sysdb_ctx *ctx);
 int sysdb_transaction_commit(struct sysdb_ctx *ctx);
 int sysdb_transaction_cancel(struct sysdb_ctx *ctx);
 
-
-struct tevent_req *sysdb_transaction_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct sysdb_ctx *ctx);
-int sysdb_transaction_recv(struct tevent_req *req, TALLOC_CTX *memctx,
-                           struct sysdb_handle **handle);
-
-struct tevent_req *sysdb_transaction_commit_send(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 struct sysdb_handle *handle);
-int sysdb_transaction_commit_recv(struct tevent_req *req);
-
-
-/* default transaction commit receive function.
- * This function does not use the request state so it is safe to use
- * from any caller */
-void sysdb_transaction_complete(struct tevent_req *subreq);
-
-
 /* Sysdb initialization.
  * call this function *only* once to initialize the database and get
  * the sysdb ctx */
