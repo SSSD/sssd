@@ -285,192 +285,107 @@ static void proxy_reply(struct be_req *req, int dp_err,
 #define DEFAULT_BUFSIZE 4096
 #define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
 
-struct proxy_state {
-    struct tevent_context *ev;
-    struct proxy_ctx *ctx;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-    const char *name;
-
-    struct sysdb_handle *handle;
-    struct passwd *pwd;
-    struct group *grp;
-    uid_t uid;
-    gid_t gid;
-};
-
-static void proxy_default_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_transaction_commit_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    tevent_req_done(req);
-}
-
-static int proxy_default_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
-
 /* =Getpwnam-wrapper======================================================*/
 
-static void get_pw_name_process(struct tevent_req *subreq);
 static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain, const char *name);
 
-static struct tevent_req *get_pw_name_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct proxy_ctx *ctx,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sss_domain_info *domain,
-                                           const char *name)
+static int get_pw_name(TALLOC_CTX *mem_ctx,
+                       struct proxy_ctx *ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *dom,
+                       const char *name)
 {
-    struct tevent_req *req, *subreq;
-    struct proxy_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
-    if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->name = name;
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, get_pw_name_process, req);
-
-    return req;
-}
-
-static void get_pw_name_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
+    TALLOC_CTX *tmpctx;
+    struct passwd *pwd;
     enum nss_status status;
     char *buffer;
     size_t buflen;
     int ret;
 
-    DEBUG(7, ("Searching user by name (%s)\n", state->name));
+    DEBUG(7, ("Searching user by name (%s)\n", name));
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
 
-    state->pwd = talloc(state, struct passwd);
-    if (!state->pwd) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    pwd = talloc_zero(tmpctx, struct passwd);
+    if (!pwd) {
+        ret = ENOMEM;
+        goto done;
     }
 
     buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
+    buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
-    status = ctx->ops.getpwnam_r(state->name, state->pwd,
-                                 buffer, buflen, &ret);
+    status = ctx->ops.getpwnam_r(name, pwd, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(7, ("User %s not found.\n", state->name));
-        ret = delete_user(state, state->sysdb,
-                          state->domain, state->name);
+        DEBUG(7, ("User %s not found.\n", name));
+        ret = delete_user(tmpctx, sysdb, dom, name);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
         break;
 
     case NSS_STATUS_SUCCESS:
 
         DEBUG(7, ("User %s found: (%s, %d, %d)\n",
-                  state->name, state->pwd->pw_name,
-                  state->pwd->pw_uid, state->pwd->pw_gid));
+                  name, pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
-            DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      state->name));
-            ret = delete_user(state, state->sysdb,
-                              state->domain, state->name);
+            DEBUG(2, ("User [%s] filtered out! (id out of range)\n", name));
+            ret = delete_user(tmpctx, sysdb, dom, name);
             if (ret) {
-                tevent_req_error(req, ret);
-                return;
+                goto done;
             }
             break;
         }
 
-        ret = sysdb_store_user(state, state->sysdb,
-                               state->domain,
-                               state->pwd->pw_name,
-                               state->pwd->pw_passwd,
-                               state->pwd->pw_uid,
-                               state->pwd->pw_gid,
-                               state->pwd->pw_gecos,
-                               state->pwd->pw_dir,
-                               state->pwd->pw_shell,
+        ret = sysdb_store_user(tmpctx, sysdb, dom,
+                               pwd->pw_name,
+                               pwd->pw_passwd,
+                               pwd->pw_uid,
+                               pwd->pw_gid,
+                               pwd->pw_gecos,
+                               pwd->pw_dir,
+                               pwd->pw_shell,
                                NULL, ctx->entry_cache_timeout);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
         break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
-        tevent_req_error(req, ENXIO);
-        return;
+        ret = ENXIO;
+        goto done;
 
     default:
-        goto fail;
+        ret = EIO;
+        goto done;
     }
 
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+done:
+    talloc_zfree(tmpctx);
+    if (ret) {
+        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
+                  name, status));
     }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-    return;
-
-fail:
-    DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-              state->name, status));
-    tevent_req_error(req, EIO);
+    return ret;
 }
 
 static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
@@ -491,265 +406,177 @@ static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 
 /* =Getpwuid-wrapper======================================================*/
 
-static void get_pw_uid_process(struct tevent_req *subreq);
-
-static struct tevent_req *get_pw_uid_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct proxy_ctx *ctx,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sss_domain_info *domain,
-                                           uid_t uid)
+static int get_pw_uid(TALLOC_CTX *mem_ctx,
+                      struct proxy_ctx *ctx,
+                      struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *dom,
+                      uid_t uid)
 {
-    struct tevent_req *req, *subreq;
-    struct proxy_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
-    if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->uid = uid;
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, get_pw_uid_process, req);
-
-    return req;
-}
-
-static void get_pw_uid_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
+    TALLOC_CTX *tmpctx;
+    struct passwd *pwd;
     enum nss_status status;
     char *buffer;
     size_t buflen;
     bool del_user = false;
     int ret;
 
-    DEBUG(7, ("Searching user by uid (%d)\n", state->uid));
+    DEBUG(7, ("Searching user by uid (%d)\n", uid));
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
 
-    state->pwd = talloc(state, struct passwd);
-    if (!state->pwd) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    pwd = talloc_zero(tmpctx, struct passwd);
+    if (!pwd) {
+        ret = ENOMEM;
+        goto done;
     }
 
     buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
+    buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
-    /* always zero out the pwd structure */
-    memset(state->pwd, 0, sizeof(struct passwd));
-
-    status = ctx->ops.getpwuid_r(state->uid, state->pwd,
-                                 buffer, buflen, &ret);
+    status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(7, ("User %d not found.\n", state->uid));
+        DEBUG(7, ("User %d not found.\n", uid));
         del_user = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
         DEBUG(7, ("User %d found (%s, %d, %d)\n",
-                  state->uid, state->pwd->pw_name,
-                  state->pwd->pw_uid, state->pwd->pw_gid));
+                  uid, pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      state->pwd->pw_name));
+                      pwd->pw_name));
             del_user = true;
             break;
         }
 
-        ret = sysdb_store_user(state, state->sysdb,
-                               state->domain,
-                               state->pwd->pw_name,
-                               state->pwd->pw_passwd,
-                               state->pwd->pw_uid,
-                               state->pwd->pw_gid,
-                               state->pwd->pw_gecos,
-                               state->pwd->pw_dir,
-                               state->pwd->pw_shell,
+        ret = sysdb_store_user(tmpctx, sysdb, dom,
+                               pwd->pw_name,
+                               pwd->pw_passwd,
+                               pwd->pw_uid,
+                               pwd->pw_gid,
+                               pwd->pw_gecos,
+                               pwd->pw_dir,
+                               pwd->pw_shell,
                                NULL, ctx->entry_cache_timeout);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
         break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
-        tevent_req_error(req, ENXIO);
-        return;
+        ret = ENXIO;
+        goto done;
 
     default:
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-                  state->name, status));
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto done;
     }
 
     if (del_user) {
         DEBUG(7, ("User %d does not exist (or is invalid) on remote server,"
-                  " deleting!\n", state->uid));
+                  " deleting!\n", uid));
 
-        ret = sysdb_delete_user(state, sysdb_handle_get_ctx(state->handle),
-                                state->domain, NULL, state->uid);
+        ret = sysdb_delete_user(tmpctx, sysdb, dom, NULL, uid);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
     }
 
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+done:
+    talloc_zfree(tmpctx);
+    if (ret) {
+        DEBUG(2, ("proxy -> getpwuid_r failed for '%d' <%d>\n", uid, status));
     }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
+    return ret;
 }
 
 /* =Getpwent-wrapper======================================================*/
 
-struct enum_users_state {
-    struct tevent_context *ev;
-    struct proxy_ctx *ctx;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-    struct sysdb_handle *handle;
-
+static int enum_users(TALLOC_CTX *mem_ctx,
+                      struct proxy_ctx *ctx,
+                      struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *dom)
+{
+    TALLOC_CTX *tmpctx;
+    bool in_transaction = false;
     struct passwd *pwd;
-
+    enum nss_status status;
     size_t buflen;
     char *buffer;
-};
-
-static void enum_users_process(struct tevent_req *subreq);
-
-static struct tevent_req *enum_users_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct proxy_ctx *ctx,
-                                          struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain)
-{
-    struct tevent_req *req, *subreq;
-    struct enum_users_state *state;
-    enum nss_status status;
-
-    DEBUG(7, ("Enumerating users\n"));
-
-    req = tevent_req_create(mem_ctx, &state, struct enum_users_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->handle = NULL;
-
-    state->pwd = talloc(state, struct passwd);
-    if (!state->pwd) {
-        tevent_req_error(req, ENOMEM);
-        goto fail;
-    }
-
-    state->buflen = DEFAULT_BUFSIZE;
-    state->buffer = talloc_size(state, state->buflen);
-    if (!state->buffer) {
-        tevent_req_error(req, ENOMEM);
-        goto fail;
-    }
-
-    status = ctx->ops.setpwent();
-    if (status != NSS_STATUS_SUCCESS) {
-        tevent_req_error(req, EIO);
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, enum_users_process, req);
-
-    return req;
-
-fail:
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void enum_users_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct enum_users_state *state = tevent_req_data(req,
-                                                struct enum_users_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
-    enum nss_status status;
     char *newbuf;
     int ret;
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        goto fail;
+    DEBUG(7, ("Enumerating users\n"));
+
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
+
+    pwd = talloc_zero(tmpctx, struct passwd);
+    if (!pwd) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    buflen = DEFAULT_BUFSIZE;
+    buffer = talloc_size(tmpctx, buflen);
+    if (!buffer) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret) {
+        goto done;
+    }
+    in_transaction = true;
+
+    status = ctx->ops.setpwent();
+    if (status != NSS_STATUS_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
 
 again:
     /* always zero out the pwd structure */
-    memset(state->pwd, 0, sizeof(struct passwd));
+    memset(pwd, 0, sizeof(struct passwd));
 
     /* get entry */
-    status = ctx->ops.getpwent_r(state->pwd,
-                                 state->buffer, state->buflen, &ret);
+    status = ctx->ops.getpwent_r(pwd, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
         /* buffer too small ? */
-        if (state->buflen < MAX_BUF_SIZE) {
-            state->buflen *= 2;
+        if (buflen < MAX_BUF_SIZE) {
+            buflen *= 2;
         }
-        if (state->buflen > MAX_BUF_SIZE) {
-            state->buflen = MAX_BUF_SIZE;
+        if (buflen > MAX_BUF_SIZE) {
+            buflen = MAX_BUF_SIZE;
         }
-        newbuf = talloc_realloc_size(state, state->buffer, state->buflen);
+        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
         if (!newbuf) {
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
-        state->buffer = newbuf;
+        buffer = newbuf;
         goto again;
 
     case NSS_STATUS_NOTFOUND:
@@ -757,127 +584,91 @@ again:
         /* we are done here */
         DEBUG(7, ("Enumeration completed.\n"));
 
-        ctx->ops.endpwent();
-        subreq = sysdb_transaction_commit_send(state, state->ev,
-                                               state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, proxy_default_done, req);
-        return;
+        ret = sysdb_transaction_commit(sysdb);
+        in_transaction = false;
+        break;
 
     case NSS_STATUS_SUCCESS:
 
-        DEBUG(7, ("User found (%s, %d, %d)\n", state->pwd->pw_name,
-                  state->pwd->pw_uid, state->pwd->pw_gid));
+        DEBUG(7, ("User found (%s, %d, %d)\n",
+                  pwd->pw_name, pwd->pw_uid, pwd->pw_gid));
 
         /* uid=0 or gid=0 are invalid values */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      state->pwd->pw_name));
+                      pwd->pw_name));
 
             goto again; /* skip */
         }
 
-        ret = sysdb_store_user(state, state->sysdb,
-                               state->domain,
-                               state->pwd->pw_name,
-                               state->pwd->pw_passwd,
-                               state->pwd->pw_uid,
-                               state->pwd->pw_gid,
-                               state->pwd->pw_gecos,
-                               state->pwd->pw_dir,
-                               state->pwd->pw_shell,
+        ret = sysdb_store_user(tmpctx, sysdb, dom,
+                               pwd->pw_name,
+                               pwd->pw_passwd,
+                               pwd->pw_uid,
+                               pwd->pw_gid,
+                               pwd->pw_gecos,
+                               pwd->pw_dir,
+                               pwd->pw_shell,
                                NULL, ctx->entry_cache_timeout);
         if (ret) {
             /* Do not fail completely on errors.
              * Just report the failure to save and go on */
             DEBUG(2, ("Failed to store user %s. Ignoring.\n",
-                      state->pwd->pw_name));
+                      pwd->pw_name));
         }
         goto again; /* next */
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
         ret = ENXIO;
-        goto fail;
+        break;
 
     default:
         DEBUG(2, ("proxy -> getpwent_r failed (%d)[%s]\n",
                   ret, strerror(ret)));
-        goto fail;
+        break;
     }
 
-fail:
+done:
+    talloc_zfree(tmpctx);
+    if (in_transaction) {
+        sysdb_transaction_cancel(sysdb);
+    }
     ctx->ops.endpwent();
-    tevent_req_error(req, ret);
+    return ret;
 }
 
 /* =Getgrnam-wrapper======================================================*/
 
-#define DEBUG_GR_MEM(level, state) \
+#define DEBUG_GR_MEM(level, grp) \
     do { \
         if (debug_level >= level) { \
-            if (!state->grp->gr_mem || !state->grp->gr_mem[0]) { \
+            if (!grp->gr_mem || !grp->gr_mem[0]) { \
                 DEBUG(level, ("Group %s has no members!\n", \
-                              state->grp->gr_name)); \
+                              grp->gr_name)); \
             } else { \
                 int i = 0; \
-                while (state->grp->gr_mem[i]) { \
+                while (grp->gr_mem[i]) { \
                     /* count */ \
                     i++; \
                 } \
                 DEBUG(level, ("Group %s has %d members!\n", \
-                              state->grp->gr_name, i)); \
+                              grp->gr_name, i)); \
             } \
         } \
     } while(0)
 
-static void get_gr_name_process(struct tevent_req *subreq);
-
-static struct tevent_req *get_gr_name_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct proxy_ctx *ctx,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sss_domain_info *domain,
-                                           const char *name)
+static int get_gr_name(TALLOC_CTX *mem_ctx,
+                       struct proxy_ctx *ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *dom,
+                       const char *name)
 {
-    struct tevent_req *req, *subreq;
-    struct proxy_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
-    if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->name = name;
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, get_gr_name_process, req);
-
-    return req;
-}
-
-static void get_gr_name_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
+    TALLOC_CTX *tmpctx;
+    struct group *grp;
     enum nss_status status;
     char *buffer;
     char *newbuf;
@@ -886,36 +677,33 @@ static void get_gr_name_process(struct tevent_req *subreq)
     struct sysdb_attrs *members;
     int ret;
 
-    DEBUG(7, ("Searching group by name (%s)\n", state->name));
+    DEBUG(7, ("Searching group by name (%s)\n", name));
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
 
-    state->grp = talloc(state, struct group);
-    if (!state->grp) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    grp = talloc(tmpctx, struct group);
+    if (!grp) {
+        ret = ENOMEM;
+        goto done;
     }
 
     buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
+    buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
 again:
     /* always zero out the grp structure */
-    memset(state->grp, 0, sizeof(struct group));
+    memset(grp, 0, sizeof(struct group));
 
-    status = ctx->ops.getgrnam_r(state->name, state->grp,
-                                 buffer, buflen, &ret);
+    status = ctx->ops.getgrnam_r(name, grp, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
@@ -926,152 +714,109 @@ again:
         if (buflen > MAX_BUF_SIZE) {
             buflen = MAX_BUF_SIZE;
         }
-        newbuf = talloc_realloc_size(state, buffer, buflen);
+        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
         if (!newbuf) {
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto done;
         }
         buffer = newbuf;
         goto again;
 
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(7, ("Group %s not found.\n", state->name));
+        DEBUG(7, ("Group %s not found.\n", name));
         delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
-        DEBUG(7, ("Group %s found: (%s, %d)\n", state->name,
-                  state->grp->gr_name, state->grp->gr_gid));
+        DEBUG(7, ("Group %s found: (%s, %d)\n",
+                  name, grp->gr_name, grp->gr_gid));
 
         /* gid=0 is an invalid value */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
 
                 DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          state->name));
+                          name));
             delete_group = true;
             break;
         }
 
-        DEBUG_GR_MEM(7, state);
+        DEBUG_GR_MEM(7, grp);
 
-        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = sysdb_new_attrs(state);
+        if (grp->gr_mem && grp->gr_mem[0]) {
+            members = sysdb_new_attrs(tmpctx);
             if (!members) {
-                tevent_req_error(req, ENOMEM);
-                return;
+                ret = ENOMEM;
+                goto done;
             }
             ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  state->domain->name,
-                                                  (const char **)state->grp->gr_mem);
+                                                  dom->name,
+                                                  (const char **)grp->gr_mem);
             if (ret) {
-                tevent_req_error(req, ret);
-                return;
+                goto done;
             }
         } else {
             members = NULL;
         }
 
-        ret = sysdb_store_group(state, state->sysdb,
-                                state->domain,
-                                state->grp->gr_name,
-                                state->grp->gr_gid,
+        ret = sysdb_store_group(tmpctx, sysdb, dom,
+                                grp->gr_name,
+                                grp->gr_gid,
                                 members,
                                 ctx->entry_cache_timeout);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
         break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
-        tevent_req_error(req, ENXIO);
-        return;
+        ret = ENXIO;
+        goto done;
 
     default:
-        goto fail;
+        goto done;
     }
 
     if (delete_group) {
         struct ldb_dn *dn;
 
         DEBUG(7, ("Group %s does not exist (or is invalid) on remote server,"
-                  " deleting!\n", state->name));
+                  " deleting!\n", name));
 
-        dn = sysdb_group_dn(state->sysdb, state,
-                            state->domain->name, state->name);
+        dn = sysdb_group_dn(sysdb, tmpctx, dom->name, name);
         if (!dn) {
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto done;
         }
 
-        ret = sysdb_delete_entry(state->sysdb, dn, true);
+        ret = sysdb_delete_entry(sysdb, dn, true);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
     }
 
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+done:
+    talloc_zfree(tmpctx);
+    if (ret) {
+        DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
+                  name, status));
     }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-    return;
-
-fail:
-    DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
-              state->name, status));
-    tevent_req_error(req, EIO);
+    return ret;
 }
 
 /* =Getgrgid-wrapper======================================================*/
 
-static void get_gr_gid_process(struct tevent_req *subreq);
-
-static struct tevent_req *get_gr_gid_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct proxy_ctx *ctx,
-                                           struct sysdb_ctx *sysdb,
-                                           struct sss_domain_info *domain,
-                                           gid_t gid)
+static int get_gr_gid(TALLOC_CTX *mem_ctx,
+                      struct proxy_ctx *ctx,
+                      struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *dom,
+                      gid_t gid)
 {
-    struct tevent_req *req, *subreq;
-    struct proxy_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
-    if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->gid = gid;
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, get_gr_gid_process, req);
-
-    return req;
-}
-
-static void get_gr_gid_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
+    TALLOC_CTX *tmpctx;
+    struct group *grp;
     enum nss_status status;
     char *buffer;
     char *newbuf;
@@ -1080,34 +825,31 @@ static void get_gr_gid_process(struct tevent_req *subreq)
     struct sysdb_attrs *members;
     int ret;
 
-    DEBUG(7, ("Searching group by gid (%d)\n", state->gid));
+    DEBUG(7, ("Searching group by gid (%d)\n", gid));
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
 
-    state->grp = talloc(state, struct group);
-    if (!state->grp) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    grp = talloc(tmpctx, struct group);
+    if (!grp) {
+        ret = ENOMEM;
+        goto done;
     }
 
     buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
+    buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
 
 again:
     /* always zero out the group structure */
-    memset(state->grp, 0, sizeof(struct group));
+    memset(grp, 0, sizeof(struct group));
 
-    status = ctx->ops.getgrgid_r(state->gid, state->grp,
-                                 buffer, buflen, &ret);
+    status = ctx->ops.getgrgid_r(gid, grp, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
@@ -1118,213 +860,164 @@ again:
         if (buflen > MAX_BUF_SIZE) {
             buflen = MAX_BUF_SIZE;
         }
-        newbuf = talloc_realloc_size(state, buffer, buflen);
+        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
         if (!newbuf) {
-            tevent_req_error(req, ENOMEM);
-            return;
+            ret = ENOMEM;
+            goto done;
         }
         buffer = newbuf;
         goto again;
 
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(7, ("Group %d not found.\n", state->gid));
+        DEBUG(7, ("Group %d not found.\n", gid));
         delete_group = true;
         break;
 
     case NSS_STATUS_SUCCESS:
 
-        DEBUG(7, ("Group %d found (%s, %d)\n", state->gid,
-                  state->grp->gr_name, state->grp->gr_gid));
+        DEBUG(7, ("Group %d found (%s, %d)\n",
+                  gid, grp->gr_name, grp->gr_gid));
 
         /* gid=0 is an invalid value */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
 
                 DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          state->grp->gr_name));
+                          grp->gr_name));
             delete_group = true;
             break;
         }
 
-        DEBUG_GR_MEM(7, state);
+        DEBUG_GR_MEM(7, grp);
 
-        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = sysdb_new_attrs(state);
+        if (grp->gr_mem && grp->gr_mem[0]) {
+            members = sysdb_new_attrs(tmpctx);
             if (!members) {
-                tevent_req_error(req, ENOMEM);
-                return;
+                ret = ENOMEM;
+                goto done;
             }
             ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  state->domain->name,
-                                                  (const char **)state->grp->gr_mem);
+                                                  dom->name,
+                                                  (const char **)grp->gr_mem);
             if (ret) {
-                tevent_req_error(req, ret);
-                return;
+                goto done;
             }
         } else {
             members = NULL;
         }
 
-        ret = sysdb_store_group(state, state->sysdb,
-                                state->domain,
-                                state->grp->gr_name,
-                                state->grp->gr_gid,
+        ret = sysdb_store_group(tmpctx, sysdb, dom,
+                                grp->gr_name,
+                                grp->gr_gid,
                                 members,
                                 ctx->entry_cache_timeout);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
         break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
-        tevent_req_error(req, ENXIO);
-        return;
+        ret = ENXIO;
+        goto done;
 
     default:
-        DEBUG(2, ("proxy -> getgrgid_r failed for '%d' <%d>\n",
-                  state->gid, status));
-        tevent_req_error(req, EIO);
-        return;
+        ret = EIO;
+        goto done;
     }
 
     if (delete_group) {
 
         DEBUG(7, ("Group %d does not exist (or is invalid) on remote server,"
-                  " deleting!\n", state->gid));
+                  " deleting!\n", gid));
 
-        ret = sysdb_delete_group(state, state->sysdb,
-                                 state->domain, NULL, state->gid);
+        ret = sysdb_delete_group(tmpctx, sysdb, dom, NULL, gid);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
     }
 
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+done:
+    talloc_zfree(tmpctx);
+    if (ret) {
+        DEBUG(2, ("proxy -> getgrgid_r failed for '%d' <%d>\n",
+                  gid, status));
     }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
+    return ret;
 }
 
 /* =Getgrent-wrapper======================================================*/
 
-struct enum_groups_state {
-    struct tevent_context *ev;
-    struct proxy_ctx *ctx;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-    struct sysdb_handle *handle;
-
+static int enum_groups(TALLOC_CTX *mem_ctx,
+                       struct proxy_ctx *ctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sss_domain_info *dom)
+{
+    TALLOC_CTX *tmpctx;
+    bool in_transaction = false;
     struct group *grp;
-
+    enum nss_status status;
     size_t buflen;
     char *buffer;
-};
-
-static void enum_groups_process(struct tevent_req *subreq);
-
-static struct tevent_req *enum_groups_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct proxy_ctx *ctx,
-                                          struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain)
-{
-    struct tevent_req *req, *subreq;
-    struct enum_groups_state *state;
-    enum nss_status status;
-
-    DEBUG(7, ("Enumerating groups\n"));
-
-    req = tevent_req_create(mem_ctx, &state, struct enum_groups_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->handle = NULL;
-
-    state->grp = talloc(state, struct group);
-    if (!state->grp) {
-        tevent_req_error(req, ENOMEM);
-        goto fail;
-    }
-
-    state->buflen = DEFAULT_BUFSIZE;
-    state->buffer = talloc_size(state, state->buflen);
-    if (!state->buffer) {
-        tevent_req_error(req, ENOMEM);
-        goto fail;
-    }
-
-    status = ctx->ops.setgrent();
-    if (status != NSS_STATUS_SUCCESS) {
-        tevent_req_error(req, EIO);
-        goto fail;
-    }
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        goto fail;
-    }
-    tevent_req_set_callback(subreq, enum_groups_process, req);
-
-    return req;
-
-fail:
-    tevent_req_post(req, ev);
-    return req;
-}
-
-static void enum_groups_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct enum_groups_state *state = tevent_req_data(req,
-                                                struct enum_groups_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
-    enum nss_status status;
     struct sysdb_attrs *members;
     char *newbuf;
     int ret;
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    DEBUG(7, ("Enumerating groups\n"));
+
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
+
+    grp = talloc(tmpctx, struct group);
+    if (!grp) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    buflen = DEFAULT_BUFSIZE;
+    buffer = talloc_size(tmpctx, buflen);
+    if (!buffer) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret) {
+        goto done;
+    }
+    in_transaction = true;
+
+    status = ctx->ops.setgrent();
+    if (status != NSS_STATUS_SUCCESS) {
+        ret = EIO;
+        goto done;
+    }
 
 again:
     /* always zero out the grp structure */
-    memset(state->grp, 0, sizeof(struct group));
+    memset(grp, 0, sizeof(struct group));
 
     /* get entry */
-    status = ctx->ops.getgrent_r(state->grp,
-                                 state->buffer, state->buflen, &ret);
+    status = ctx->ops.getgrent_r(grp, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
         /* buffer too small ? */
-        if (state->buflen < MAX_BUF_SIZE) {
-            state->buflen *= 2;
+        if (buflen < MAX_BUF_SIZE) {
+            buflen *= 2;
         }
-        if (state->buflen > MAX_BUF_SIZE) {
-            state->buflen = MAX_BUF_SIZE;
+        if (buflen > MAX_BUF_SIZE) {
+            buflen = MAX_BUF_SIZE;
         }
-        newbuf = talloc_realloc_size(state, state->buffer, state->buflen);
+        newbuf = talloc_realloc_size(tmpctx, buffer, buflen);
         if (!newbuf) {
             ret = ENOMEM;
-            goto fail;
+            goto done;
         }
-        state->buffer = newbuf;
+        buffer = newbuf;
         goto again;
 
     case NSS_STATUS_NOTFOUND:
@@ -1332,54 +1025,46 @@ again:
         /* we are done here */
         DEBUG(7, ("Enumeration completed.\n"));
 
-        ctx->ops.endgrent();
-        subreq = sysdb_transaction_commit_send(state, state->ev,
-                                               state->handle);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
-        }
-        tevent_req_set_callback(subreq, proxy_default_done, req);
-        return;
+        ret = sysdb_transaction_commit(sysdb);
+        in_transaction = false;
+        break;
 
     case NSS_STATUS_SUCCESS:
 
         DEBUG(7, ("Group found (%s, %d)\n",
-                  state->grp->gr_name, state->grp->gr_gid));
+                  grp->gr_name, grp->gr_gid));
 
         /* gid=0 is an invalid value */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(grp->gr_gid, dom->id_min, dom->id_max)) {
 
                 DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          state->grp->gr_name));
+                          grp->gr_name));
 
             goto again; /* skip */
         }
 
-        DEBUG_GR_MEM(7, state);
+        DEBUG_GR_MEM(7, grp);
 
-        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = sysdb_new_attrs(state);
+        if (grp->gr_mem && grp->gr_mem[0]) {
+            members = sysdb_new_attrs(tmpctx);
             if (!members) {
-                tevent_req_error(req, ENOMEM);
-                return;
+                ret = ENOMEM;
+                goto done;
             }
             ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  state->domain->name,
-                                                  (const char **)state->grp->gr_mem);
+                                                  dom->name,
+                                                  (const char **)grp->gr_mem);
             if (ret) {
-                tevent_req_error(req, ret);
-                return;
+                goto done;
             }
         } else {
             members = NULL;
         }
 
-        ret = sysdb_store_group(state, state->sysdb,
-                                state->domain,
-                                state->grp->gr_name,
-                                state->grp->gr_gid,
+        ret = sysdb_store_group(tmpctx, sysdb, dom,
+                                grp->gr_name,
+                                grp->gr_gid,
                                 members,
                                 ctx->entry_cache_timeout);
         if (ret) {
@@ -1392,120 +1077,81 @@ again:
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
         ret = ENXIO;
-        goto fail;
+        break;
 
     default:
         DEBUG(2, ("proxy -> getgrent_r failed (%d)[%s]\n",
                   ret, strerror(ret)));
-        goto fail;
+        break;
     }
 
-fail:
+done:
+    talloc_zfree(tmpctx);
+    if (in_transaction) {
+        sysdb_transaction_cancel(sysdb);
+    }
     ctx->ops.endgrent();
-    tevent_req_error(req, ret);
+    return ret;
 }
 
 
 /* =Initgroups-wrapper====================================================*/
 
-static void get_initgr_process(struct tevent_req *subreq);
-static void get_initgr_groups_process(struct tevent_req *req);
-static void get_initgr_groups_done(struct tevent_req *subreq);
-static struct tevent_req *get_groups_by_gid_send(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 struct sysdb_handle *handle,
-                                                 struct proxy_ctx *ctx,
-                                                 struct sss_domain_info *domain,
-                                                 gid_t *gids, int num_gids);
-static int get_groups_by_gid_recv(struct tevent_req *req);
-static void get_groups_by_gid_process(struct tevent_req *subreq);
-static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct proxy_ctx *ctx,
-                                                  struct sss_domain_info *domain,
-                                                  gid_t gid);
-static int get_group_from_gid_recv(struct tevent_req *req);
+static int get_initgr_groups_process(TALLOC_CTX *memctx,
+                                     struct proxy_ctx *ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *dom,
+                                     struct passwd *pwd);
 
-
-static struct tevent_req *get_initgr_send(TALLOC_CTX *mem_ctx,
-                                          struct tevent_context *ev,
-                                          struct proxy_ctx *ctx,
-                                          struct sysdb_ctx *sysdb,
-                                          struct sss_domain_info *domain,
-                                          const char *name)
+static int get_initgr(TALLOC_CTX *mem_ctx,
+                      struct proxy_ctx *ctx,
+                      struct sysdb_ctx *sysdb,
+                      struct sss_domain_info *dom,
+                      const char *name)
 {
-    struct tevent_req *req, *subreq;
-    struct proxy_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
-    if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sysdb = sysdb;
-    state->domain = domain;
-    state->name = name;
-
-    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, get_initgr_process, req);
-
-    return req;
-}
-
-static void get_initgr_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    struct proxy_ctx *ctx = state->ctx;
-    struct sss_domain_info *dom = ctx->be->domain;
+    TALLOC_CTX *tmpctx;
+    bool in_transaction = false;
+    struct passwd *pwd;
     enum nss_status status;
     char *buffer;
     size_t buflen;
     int ret;
 
-    ret = sysdb_transaction_recv(subreq, state, &state->handle);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
-    talloc_zfree(subreq);
 
-    state->pwd = talloc(state, struct passwd);
-    if (!state->pwd) {
-        tevent_req_error(req, ENOMEM);
-        return;
+    pwd = talloc_zero(tmpctx, struct passwd);
+    if (!pwd) {
+        ret = ENOMEM;
+        goto done;
     }
 
     buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
+    buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        ret = ENOMEM;
+        goto done;
     }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret) {
+        goto done;
+    }
+    in_transaction = true;
 
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
-    status = ctx->ops.getpwnam_r(state->name, state->pwd,
-                                 buffer, buflen, &ret);
+    status = ctx->ops.getpwnam_r(name, pwd, buffer, buflen, &ret);
 
     switch (status) {
     case NSS_STATUS_NOTFOUND:
 
-        DEBUG(7, ("User %s not found.\n", state->name));
-        ret = delete_user(state, state->sysdb,
-                          state->domain, state->name);
+        DEBUG(7, ("User %s not found.\n", name));
+        ret = delete_user(tmpctx, sysdb, dom, name);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
         break;
 
@@ -1513,67 +1159,61 @@ static void get_initgr_process(struct tevent_req *subreq)
 
         /* uid=0 or gid=0 are invalid values */
         /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->pwd->pw_uid, dom->id_min, dom->id_max) ||
-            OUT_OF_ID_RANGE(state->pwd->pw_gid, dom->id_min, dom->id_max)) {
+        if (OUT_OF_ID_RANGE(pwd->pw_uid, dom->id_min, dom->id_max) ||
+            OUT_OF_ID_RANGE(pwd->pw_gid, dom->id_min, dom->id_max)) {
 
             DEBUG(2, ("User [%s] filtered out! (id out of range)\n",
-                      state->name));
-            ret = delete_user(state, state->sysdb,
-                              state->domain, state->name);
-            if (ret) {
-                tevent_req_error(req, ret);
-                return;
-            }
+                      name));
+            ret = delete_user(tmpctx, sysdb, dom, name);
             break;
         }
 
-        ret = sysdb_store_user(state, state->sysdb,
-                               state->domain,
-                               state->pwd->pw_name,
-                               state->pwd->pw_passwd,
-                               state->pwd->pw_uid,
-                               state->pwd->pw_gid,
-                               state->pwd->pw_gecos,
-                               state->pwd->pw_dir,
-                               state->pwd->pw_shell,
+        ret = sysdb_store_user(tmpctx, sysdb, dom,
+                               pwd->pw_name,
+                               pwd->pw_passwd,
+                               pwd->pw_uid,
+                               pwd->pw_gid,
+                               pwd->pw_gecos,
+                               pwd->pw_dir,
+                               pwd->pw_shell,
                                NULL, ctx->entry_cache_timeout);
         if (ret) {
-            tevent_req_error(req, ret);
-            return;
+            goto done;
         }
 
-        get_initgr_groups_process(req);
-        return;
+        ret = get_initgr_groups_process(tmpctx, ctx, sysdb, dom, pwd);
+        if (ret == EOK) {
+            ret = sysdb_transaction_commit(sysdb);
+            in_transaction = true;
+        }
+        break;
 
     case NSS_STATUS_UNAVAIL:
         /* "remote" backend unavailable. Enter offline mode */
-        tevent_req_error(req, ENXIO);
-        return;
+        ret = ENXIO;
+        break;
 
     default:
-        goto fail;
+        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
+                  name, status));
+        ret = EIO;
+        break;
     }
 
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
+done:
+    talloc_zfree(tmpctx);
+    if (in_transaction) {
+        sysdb_transaction_cancel(sysdb);
     }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-    return;
-
-fail:
-    DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-              state->name, status));
-    tevent_req_error(req, EIO);
+    return ret;
 }
 
-static void get_initgr_groups_process(struct tevent_req *req)
+static int get_initgr_groups_process(TALLOC_CTX *memctx,
+                                     struct proxy_ctx *ctx,
+                                     struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *dom,
+                                     struct passwd *pwd)
 {
-    struct tevent_req *subreq;
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    struct proxy_ctx *ctx = state->ctx;
     enum nss_status status;
     long int limit;
     long int size;
@@ -1581,23 +1221,21 @@ static void get_initgr_groups_process(struct tevent_req *req)
     long int num_gids;
     gid_t *gids;
     int ret;
+    int i;
 
     num_gids = 0;
     limit = 4096;
     num = 4096;
     size = num*sizeof(gid_t);
-    gids = talloc_size(state, size);
+    gids = talloc_size(memctx, size);
     if (!gids) {
-        tevent_req_error(req, ENOMEM);
-        return;
+        return ENOMEM;
     }
-
-    state->gid = state->pwd->pw_gid;
 
 again:
     /* FIXME: should we move this call outside the transaction to keep the
      * transaction as short as possible ? */
-    status = ctx->ops.initgroups_dyn(state->name, state->gid, &num_gids,
+    status = ctx->ops.initgroups_dyn(pwd->pw_name, pwd->pw_gid, &num_gids,
                                      &num, &gids, limit, &ret);
     switch (status) {
     case NSS_STATUS_TRYAGAIN:
@@ -1611,295 +1249,38 @@ again:
             num = size/sizeof(gid_t);
         }
         limit = num;
-        gids = talloc_realloc_size(state, gids, size);
+        gids = talloc_realloc_size(memctx, gids, size);
         if (!gids) {
-            tevent_req_error(req, ENOMEM);
-            return;
+            return ENOMEM;
         }
         goto again; /* retry with more memory */
 
     case NSS_STATUS_SUCCESS:
         DEBUG(4, ("User [%s] appears to be member of %lu groups\n",
-                  state->name, num_gids));
+                  pwd->pw_name, num_gids));
 
-        subreq = get_groups_by_gid_send(state, state->ev, state->handle,
-                                        state->ctx, state->domain,
-                                        gids, num_gids);
-        if (!subreq) {
-            tevent_req_error(req, ENOMEM);
-            return;
+        for (i = 0; i < num_gids; i++) {
+            ret = get_gr_gid(memctx, ctx, sysdb, dom, gids[i]);
+            if (ret) {
+                return ret;
+            }
         }
-        tevent_req_set_callback(subreq, get_initgr_groups_done, req);
         break;
 
     default:
         DEBUG(2, ("proxy -> initgroups_dyn failed (%d)[%s]\n",
                   ret, strerror(ret)));
-        tevent_req_error(req, EIO);
-        return;
-    }
-}
-
-static void get_initgr_groups_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = get_groups_by_gid_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-}
-
-struct get_groups_state {
-    struct tevent_context *ev;
-    struct sysdb_handle *handle;
-    struct proxy_ctx *ctx;
-    struct sss_domain_info *domain;
-
-    gid_t *gids;
-    int num_gids;
-    int cur_gid;
-};
-
-static struct tevent_req *get_groups_by_gid_send(TALLOC_CTX *mem_ctx,
-                                                 struct tevent_context *ev,
-                                                 struct sysdb_handle *handle,
-                                                 struct proxy_ctx *ctx,
-                                                 struct sss_domain_info *domain,
-                                                 gid_t *gids, int num_gids)
-{
-    struct tevent_req *req, *subreq;
-    struct get_groups_state *state;
-
-    req = tevent_req_create(mem_ctx, &state, struct get_groups_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ctx = ctx;
-    state->domain = domain;
-    state->gids = gids;
-    state->num_gids = num_gids;
-    state->cur_gid = 0;
-
-    subreq = get_group_from_gid_send(state, ev, handle, ctx, domain, gids[0]);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    tevent_req_set_callback(subreq, get_groups_by_gid_process, req);
-
-    return req;
-}
-
-static void get_groups_by_gid_process(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct get_groups_state *state = tevent_req_data(req,
-                                                struct get_groups_state);
-    int ret;
-
-    ret = get_group_from_gid_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->cur_gid++;
-    if (state->cur_gid >= state->num_gids) {
-        tevent_req_done(req);
-        return;
-    }
-
-    subreq = get_group_from_gid_send(state,
-                                     state->ev, state->handle,
-                                     state->ctx, state->domain,
-                                     state->gids[state->cur_gid]);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, get_groups_by_gid_process, req);
-}
-
-static int get_groups_by_gid_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
-static struct tevent_req *get_group_from_gid_send(TALLOC_CTX *mem_ctx,
-                                                  struct tevent_context *ev,
-                                                  struct sysdb_handle *handle,
-                                                  struct proxy_ctx *ctx,
-                                                  struct sss_domain_info *domain,
-                                                  gid_t gid)
-{
-    struct tevent_req *req;
-    struct proxy_state *state;
-    struct sss_domain_info *dom = ctx->be->domain;
-    enum nss_status status;
-    char *buffer;
-    char *newbuf;
-    size_t buflen;
-    bool delete_group = false;
-    struct sysdb_attrs *members;
-    int ret;
-
-    req = tevent_req_create(mem_ctx, &state, struct proxy_state);
-    if (!req) return NULL;
-
-    memset(state, 0, sizeof(struct proxy_state));
-
-    state->ev = ev;
-    state->handle = handle;
-    state->ctx = ctx;
-    state->domain = domain;
-    state->gid = gid;
-
-    state->grp = talloc(state, struct group);
-    if (!state->grp) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    buflen = DEFAULT_BUFSIZE;
-    buffer = talloc_size(state, buflen);
-    if (!buffer) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-again:
-    /* always zero out the grp structure */
-    memset(state->grp, 0, sizeof(struct group));
-
-    status = ctx->ops.getgrgid_r(state->gid, state->grp,
-                                 buffer, buflen, &ret);
-
-    switch (status) {
-    case NSS_STATUS_TRYAGAIN:
-        /* buffer too small ? */
-        if (buflen < MAX_BUF_SIZE) {
-            buflen *= 2;
-        }
-        if (buflen > MAX_BUF_SIZE) {
-            buflen = MAX_BUF_SIZE;
-        }
-        newbuf = talloc_realloc_size(state, buffer, buflen);
-        if (!newbuf) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        buffer = newbuf;
-        goto again;
-
-    case NSS_STATUS_NOTFOUND:
-
-        delete_group = true;
-        break;
-
-    case NSS_STATUS_SUCCESS:
-
-        /* gid=0 is an invalid value */
-        /* also check that the id is in the valid range for this domain */
-        if (OUT_OF_ID_RANGE(state->grp->gr_gid, dom->id_min, dom->id_max)) {
-
-                DEBUG(2, ("Group [%s] filtered out! (id out of range)\n",
-                          state->grp->gr_name));
-            delete_group = true;
-            break;
-        }
-
-        if (state->grp->gr_mem && state->grp->gr_mem[0]) {
-            members = sysdb_new_attrs(state);
-            if (!members) {
-                ret = ENOMEM;
-                goto fail;
-            }
-            ret = sysdb_attrs_users_from_str_list(members, SYSDB_MEMBER,
-                                                  state->domain->name,
-                                                  (const char **)state->grp->gr_mem);
-            if (ret) {
-                goto fail;
-            }
-        } else {
-            members = NULL;
-        }
-
-        ret = sysdb_store_group(state, state->sysdb,
-                                state->domain,
-                                state->grp->gr_name,
-                                state->grp->gr_gid,
-                                members,
-                                ctx->entry_cache_timeout);
-        if (ret) {
-            goto fail;
-        }
-        break;
-
-    case NSS_STATUS_UNAVAIL:
-        /* "remote" backend unavailable. Enter offline mode */
-        ret = ENXIO;
-        goto fail;
-
-    default:
-        DEBUG(2, ("proxy -> getgrgid_r failed for '%d' <%d>\n",
-                  state->gid, status));
         ret = EIO;
-        goto fail;
+        break;
     }
 
-    if (delete_group) {
-        ret = sysdb_delete_group(state, state->sysdb,
-                                 state->domain, NULL, state->gid);
-        if (ret) {
-            goto fail;
-        }
-    }
-
-    tevent_req_done(req);
-    tevent_req_post(req, ev);
-    return req;
-
-fail:
-    tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
-    return req;
+    return ret;
 }
-
-static int get_group_from_gid_recv(struct tevent_req *req)
-{
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    return EOK;
-}
-
 
 /* =Proxy_Id-Functions====================================================*/
 
-static void proxy_get_account_info_done(struct tevent_req *subreq);
-
-/* TODO: See if we can use async_req code */
 static void proxy_get_account_info(struct be_req *breq)
 {
-    struct tevent_req *subreq;
     struct be_acct_req *ar;
     struct proxy_ctx *ctx;
     struct tevent_context *ev;
@@ -1907,6 +1288,7 @@ static void proxy_get_account_info(struct be_req *breq)
     struct sss_domain_info *domain;
     uid_t uid;
     gid_t gid;
+    int ret;
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
     ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
@@ -1928,26 +1310,9 @@ static void proxy_get_account_info(struct be_req *breq)
         switch (ar->filter_type) {
         case BE_FILTER_NAME:
             if (strchr(ar->filter_value, '*')) {
-                subreq = enum_users_send(breq, ev, ctx,
-                                         sysdb, domain);
-                if (!subreq) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       ENOMEM, "Out of memory");
-                }
-                tevent_req_set_callback(subreq,
-                               proxy_get_account_info_done, breq);
-                return;
+                ret = enum_users(breq, ctx, sysdb, domain);
             } else {
-                subreq = get_pw_name_send(breq, ev, ctx,
-                                          sysdb, domain,
-                                          ar->filter_value);
-                if (!subreq) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       ENOMEM, "Out of memory");
-                }
-                tevent_req_set_callback(subreq,
-                               proxy_get_account_info_done, breq);
-                return;
+                ret = get_pw_name(breq, ctx, sysdb, domain, ar->filter_value);
             }
             break;
 
@@ -1963,15 +1328,7 @@ static void proxy_get_account_info(struct be_req *breq)
                     return proxy_reply(breq, DP_ERR_FATAL,
                                        EINVAL, "Invalid attr type");
                 }
-                subreq = get_pw_uid_send(breq, ev, ctx,
-                                         sysdb, domain, uid);
-                if (!subreq) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       ENOMEM, "Out of memory");
-                }
-                tevent_req_set_callback(subreq,
-                               proxy_get_account_info_done, breq);
-                return;
+                ret = get_pw_uid(breq, ctx, sysdb, domain, uid);
             }
             break;
         default:
@@ -1984,26 +1341,9 @@ static void proxy_get_account_info(struct be_req *breq)
         switch (ar->filter_type) {
         case BE_FILTER_NAME:
             if (strchr(ar->filter_value, '*')) {
-                subreq = enum_groups_send(breq, ev, ctx,
-                                          sysdb, domain);
-                if (!subreq) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       ENOMEM, "Out of memory");
-                }
-                tevent_req_set_callback(subreq,
-                               proxy_get_account_info_done, breq);
-                return;
+                ret = enum_groups(breq, ctx, sysdb, domain);
             } else {
-                subreq = get_gr_name_send(breq, ev, ctx,
-                                          sysdb, domain,
-                                          ar->filter_value);
-                if (!subreq) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       ENOMEM, "Out of memory");
-                }
-                tevent_req_set_callback(subreq,
-                               proxy_get_account_info_done, breq);
-                return;
+                ret = get_gr_name(breq, ctx, sysdb, domain, ar->filter_value);
             }
             break;
         case BE_FILTER_IDNUM:
@@ -2018,15 +1358,7 @@ static void proxy_get_account_info(struct be_req *breq)
                     return proxy_reply(breq, DP_ERR_FATAL,
                                        EINVAL, "Invalid attr type");
                 }
-                subreq = get_gr_gid_send(breq, ev, ctx,
-                                         sysdb, domain, gid);
-                if (!subreq) {
-                    return proxy_reply(breq, DP_ERR_FATAL,
-                                       ENOMEM, "Out of memory");
-                }
-                tevent_req_set_callback(subreq,
-                               proxy_get_account_info_done, breq);
-                return;
+                ret = get_gr_gid(breq, ctx, sysdb, domain, gid);
             }
             break;
         default:
@@ -2048,31 +1380,14 @@ static void proxy_get_account_info(struct be_req *breq)
             return proxy_reply(breq, DP_ERR_FATAL,
                                ENODEV, "Initgroups call not supported");
         }
-        subreq = get_initgr_send(breq, ev, ctx, sysdb,
-                                 domain, ar->filter_value);
-        if (!subreq) {
-            return proxy_reply(breq, DP_ERR_FATAL,
-                               ENOMEM, "Out of memory");
-        }
-        tevent_req_set_callback(subreq,
-                       proxy_get_account_info_done, breq);
-        return;
+        ret = get_initgr(breq, ctx, sysdb, domain, ar->filter_value);
+        break;
 
     default: /*fail*/
-        break;
+        return proxy_reply(breq, DP_ERR_FATAL,
+                           EINVAL, "Invalid request type");
     }
 
-    return proxy_reply(breq, DP_ERR_FATAL,
-                       EINVAL, "Invalid request type");
-}
-
-static void proxy_get_account_info_done(struct tevent_req *subreq)
-{
-    struct be_req *breq = tevent_req_callback_data(subreq,
-                                                   struct be_req);
-    int ret;
-    ret = proxy_default_recv(subreq);
-    talloc_zfree(subreq);
     if (ret) {
         if (ret == ENXIO) {
             DEBUG(2, ("proxy returned UNAVAIL error, going offline!\n"));
