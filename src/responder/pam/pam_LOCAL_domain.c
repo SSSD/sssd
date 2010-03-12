@@ -70,69 +70,8 @@ static void prepare_reply(struct LOCAL_request *lreq)
     lreq->preq->callback(lreq->preq);
 }
 
-static void set_user_attr_done(struct tevent_req *req)
-{
-    struct LOCAL_request *lreq;
-    int ret;
-
-    lreq = tevent_req_callback_data(req, struct LOCAL_request);
-
-    ret = sysdb_transaction_commit_recv(req);
-    if (ret) {
-        DEBUG(2, ("set_user_attr failed.\n"));
-        lreq->error =ret;
-    }
-
-    prepare_reply(lreq);
-}
-
-static void set_user_attr_req(struct tevent_req *req)
-{
-    struct LOCAL_request *lreq = tevent_req_callback_data(req,
-                                                          struct LOCAL_request);
-    int ret;
-
-    DEBUG(4, ("entering set_user_attr_req\n"));
-
-    ret = sysdb_transaction_recv(req, lreq, &lreq->handle);
-    if (ret) {
-        lreq->error = ret;
-        return prepare_reply(lreq);
-    }
-
-    ret = sysdb_set_user_attr(lreq, sysdb_handle_get_ctx(lreq->handle),
-                              lreq->preq->domain,
-                              lreq->preq->pd->user,
-                              lreq->mod_attrs, SYSDB_MOD_REP);
-
-    DEBUG(4, ("set_user_attr_callback, status [%d][%s]\n", ret, strerror(ret)));
-
-    if (ret) {
-        lreq->error = ret;
-        goto fail;
-    }
-
-    req = sysdb_transaction_commit_send(lreq, lreq->ev, lreq->handle);
-    if (!req) {
-        lreq->error = ENOMEM;
-        goto fail;
-    }
-    tevent_req_set_callback(req, set_user_attr_done, lreq);
-
-    return;
-
-fail:
-    DEBUG(2, ("set_user_attr failed.\n"));
-
-    /* cancel transaction */
-    talloc_zfree(lreq->handle);
-
-    prepare_reply(lreq);
-}
-
 static void do_successful_login(struct LOCAL_request *lreq)
 {
-    struct tevent_req *req;
     int ret;
 
     lreq->mod_attrs = sysdb_new_attrs(lreq);
@@ -148,23 +87,19 @@ static void do_successful_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    req = sysdb_transaction_send(lreq, lreq->ev, lreq->dbctx);
-    if (!req) {
-        lreq->error = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(req, set_user_attr_req, lreq);
-
-    return;
+    ret = sysdb_set_user_attr(lreq, lreq->dbctx,
+                              lreq->preq->domain,
+                              lreq->preq->pd->user,
+                              lreq->mod_attrs, SYSDB_MOD_REP);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
+                      lreq->error, ret, done);
 
 done:
-
-    prepare_reply(lreq);
+    return;
 }
 
 static void do_failed_login(struct LOCAL_request *lreq)
 {
-    struct tevent_req *req;
     int ret;
     int failedLoginAttempts;
     struct pam_data *pd;
@@ -194,18 +129,15 @@ static void do_failed_login(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    req = sysdb_transaction_send(lreq, lreq->ev, lreq->dbctx);
-    if (!req) {
-        lreq->error = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(req, set_user_attr_req, lreq);
-
-    return;
+    ret = sysdb_set_user_attr(lreq, lreq->dbctx,
+                              lreq->preq->domain,
+                              lreq->preq->pd->user,
+                              lreq->mod_attrs, SYSDB_MOD_REP);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
+                      lreq->error, ret, done);
 
 done:
-
-    prepare_reply(lreq);
+    return;
 }
 
 static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
@@ -222,13 +154,10 @@ static void do_pam_acct_mgmt(struct LOCAL_request *lreq)
         (strncasecmp(disabled, "no",2) != 0) ) {
         pd->pam_status = PAM_PERM_DENIED;
     }
-
-    prepare_reply(lreq);
 }
 
 static void do_pam_chauthtok(struct LOCAL_request *lreq)
 {
-    struct tevent_req *req;
     int ret;
     char *newauthtok;
     char *salt;
@@ -246,7 +175,7 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     if (strlen(newauthtok) == 0) {
         /* TODO: should we allow null passwords via a config option ? */
         DEBUG(1, ("Empty passwords are not allowed!\n"));
-        ret = EINVAL;
+        lreq->error = EINVAL;
         goto done;
     }
 
@@ -274,17 +203,15 @@ static void do_pam_chauthtok(struct LOCAL_request *lreq)
     NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_attrs_add_long failed.\n"),
                       lreq->error, ret, done);
 
-    req = sysdb_transaction_send(lreq, lreq->ev, lreq->dbctx);
-    if (!req) {
-        lreq->error = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(req, set_user_attr_req, lreq);
+    ret = sysdb_set_user_attr(lreq, lreq->dbctx,
+                              lreq->preq->domain,
+                              lreq->preq->pd->user,
+                              lreq->mod_attrs, SYSDB_MOD_REP);
+    NEQ_CHECK_OR_JUMP(ret, EOK, ("sysdb_set_user_attr failed.\n"),
+                      lreq->error, ret, done);
 
-    return;
 done:
-
-    prepare_reply(lreq);
+    return;
 }
 
 static void local_handler_callback(void *pvt, int ldb_status,
@@ -361,7 +288,7 @@ static void local_handler_callback(void *pvt, int ldb_status,
             if (strcmp(new_hash, password) != 0) {
                 DEBUG(1, ("Passwords do not match.\n"));
                 do_failed_login(lreq);
-                return;
+                goto done;
             }
 
             break;
@@ -370,15 +297,12 @@ static void local_handler_callback(void *pvt, int ldb_status,
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
             do_successful_login(lreq);
-            return;
             break;
         case SSS_PAM_CHAUTHTOK:
             do_pam_chauthtok(lreq);
-            return;
             break;
         case SSS_PAM_ACCT_MGMT:
             do_pam_acct_mgmt(lreq);
-            return;
             break;
         case SSS_PAM_SETCRED:
             break;
