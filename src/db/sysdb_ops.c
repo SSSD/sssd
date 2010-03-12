@@ -112,15 +112,23 @@ int sysdb_delete_recursive(TALLOC_CTX *mem_ctx,
     int ret;
     int i;
 
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        return ret;
+    }
+
     ret = sysdb_search_entry(mem_ctx, ctx, dn,
                              LDB_SCOPE_SUBTREE, "(distinguishedName=*)",
                              no_attrs, &msgs_count, &msgs);
     if (ret) {
         if (ignore_not_found && ret == ENOENT) {
-            return EOK;
+            ret = EOK;
         }
-        DEBUG(6, ("Search error: %d (%s)\n", ret, strerror(ret)));
-        return ret;
+        if (ret) {
+            DEBUG(6, ("Search error: %d (%s)\n", ret, strerror(ret)));
+        }
+        goto done;
     }
 
     DEBUG(9, ("Found [%d] items to delete.\n", msgs_count));
@@ -134,11 +142,18 @@ int sysdb_delete_recursive(TALLOC_CTX *mem_ctx,
 
         ret = sysdb_delete_entry(ctx, msgs[i]->dn, false);
         if (ret) {
-            return ret;
+            goto done;
         }
     }
 
-    return EOK;
+done:
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(ctx->ldb);
+        ret = sysdb_error_to_errno(ret);
+    } else {
+        ldb_transaction_cancel(ctx->ldb);
+    }
+    return ret;
 }
 
 
@@ -603,6 +618,7 @@ int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
 done:
     if (ret == EOK) {
         ret = ldb_transaction_commit(ctx->ldb);
+        ret = sysdb_error_to_errno(ret);
     } else {
         ldb_transaction_cancel(ctx->ldb);
     }
@@ -736,6 +752,13 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        talloc_free(tmpctx);
+        return ret;
+    }
+
     if (ctx->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
@@ -810,8 +833,12 @@ int sysdb_add_user(TALLOC_CTX *mem_ctx,
                               domain, name, attrs, SYSDB_MOD_REP);
 
 done:
-    if (ret) {
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(ctx->ldb);
+        ret = sysdb_error_to_errno(ret);
+    } else {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        ldb_transaction_cancel(ctx->ldb);
     }
     talloc_zfree(tmpctx);
     return ret;
@@ -892,6 +919,13 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        talloc_free(tmpctx);
+        return ret;
+    }
+
     if (ctx->mpg) {
         /* In MPG domains you can't have groups with the same name as users,
          * search if a group with the same name exists.
@@ -958,8 +992,12 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
                                domain, name, attrs, SYSDB_MOD_REP);
 
 done:
-    if (ret) {
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(ctx->ldb);
+        ret = sysdb_error_to_errno(ret);
+    } else {
         DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        ldb_transaction_cancel(ctx->ldb);
     }
     talloc_zfree(tmpctx);
     return ret;
@@ -1508,6 +1546,7 @@ done:
         ldb_transaction_cancel(ctx->ldb);
     } else {
         ret = ldb_transaction_commit(ctx->ldb);
+        ret = sysdb_error_to_errno(ret);
     }
     talloc_zfree(tmpctx);
     return ret;
@@ -2136,6 +2175,7 @@ done:
         ldb_transaction_cancel(sysdb->ldb);
     } else {
         ret = ldb_transaction_commit(sysdb->ldb);
+        ret = sysdb_error_to_errno(ret);
         if (ret) {
             DEBUG(2, ("Failed to commit transaction!\n"));
         }
