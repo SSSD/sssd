@@ -721,7 +721,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         goto done;
     }
 
-    if (result == SDAP_AUTH_SUCCESS &&
+    if ( (result == SDAP_AUTH_SUCCESS || result == SDAP_AUTH_PW_EXPIRED ) &&
         state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(9, ("Initial authentication for change password operation "
                   "successful.\n"));
