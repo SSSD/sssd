@@ -71,6 +71,7 @@ WITH_XML_CATALOG
 WITH_KRB5_PLUGIN_PATH
 WITH_PYTHON_BINDINGS
 WITH_SELINUX
+WITH_NSCD
 
 m4_include([external/platform.m4])
 m4_include([external/pkg.m4])
@@ -92,6 +93,7 @@ m4_include([external/sizes.m4])
 m4_include([external/python.m4])
 m4_include([external/selinux.m4])
 m4_include([external/crypto.m4])
+m4_include([external/nscd.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])

@@ -105,4 +105,12 @@ int copy_tree(const char *src_root,
 int selinux_file_context(const char *dst_name);
 int reset_selinux_file_context(void);
 
+/* from nscd.c */
+enum nscd_db {
+    NSCD_DB_PASSWD,
+    NSCD_DB_GROUP
+};
+
+int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db);
+
 #endif  /* __TOOLS_UTIL_H__ */

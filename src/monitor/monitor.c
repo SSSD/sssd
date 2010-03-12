@@ -2257,6 +2257,15 @@ int main(int argc, const char *argv[])
         }
     }
 
+    /* Warn if nscd seems to be running */
+    ret = check_file(NSCD_SOCKET_PATH, -1, -1, -1, CHECK_SOCK, NULL);
+    if (ret == EOK) {
+        DEBUG(0, ("WARNING: nscd appears to be running\n"));
+        ERROR("nscd socket was detected.  As nscd caching capabilities "
+              "may conflict with SSSD, it is recommended to not run "
+              "nscd in parallel with SSSD\n");
+    }
+
     /* Parse config file, fail if cannot be done */
     ret = load_configuration(tmp_ctx, config_file, &monitor);
     if (ret != EOK) {

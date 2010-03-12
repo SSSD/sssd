@@ -1301,6 +1301,9 @@ int useradd(TALLOC_CTX *mem_ctx,
 
     SYNC_LOOP(res, ret);
 
+    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+
     talloc_free(res);
     return ret;
 }
@@ -1348,6 +1351,9 @@ int userdel(TALLOC_CTX *mem_ctx,
     tevent_req_set_callback(req, userdel_done, res);
 
     SYNC_LOOP(res, ret);
+
+    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
     talloc_free(res);
     return ret;
@@ -1397,6 +1403,9 @@ int usermod(TALLOC_CTX *mem_ctx,
 
     SYNC_LOOP(res, ret);
 
+    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+
     talloc_free(res);
     return ret;
 }
@@ -1444,6 +1453,8 @@ int groupadd(TALLOC_CTX *mem_ctx,
     tevent_req_set_callback(req, groupadd_done, res);
 
     SYNC_LOOP(res, ret);
+
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
     talloc_free(res);
     return ret;
@@ -1493,6 +1504,8 @@ int groupdel(TALLOC_CTX *mem_ctx,
 
     SYNC_LOOP(res, ret);
 
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+
     talloc_free(res);
     return ret;
 }
@@ -1540,6 +1553,8 @@ int groupmod(TALLOC_CTX *mem_ctx,
     tevent_req_set_callback(req, groupmod_done, res);
 
     SYNC_LOOP(res, ret);
+
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
 
     talloc_free(res);
     return ret;
