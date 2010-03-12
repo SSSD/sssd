@@ -114,20 +114,6 @@ AC_DEFUN([WITH_INIT_DIR],
     AC_SUBST(initdir)
   ])
 
-AC_DEFUN([WITH_SHADOW_UTILS_PATH],
-  [ AC_ARG_WITH([shadow-utils-path],
-                [AC_HELP_STRING([--with-shadow-utils-path=PATH],
-                                [Where to look for shadow-utils binaries [/usr/sbin]]
-                               )
-                ]
-               )
-    shadow_utils_path="${sbindir}"
-    if test x"$with_shadow_utils_path" != x; then
-        shadow_utils_path=$with_shadow_utils_path
-    fi
-    AC_SUBST(shadow_utils_path)
-  ])
-
 AC_DEFUN([WITH_MANPAGES],
   [ AC_ARG_WITH([manpages],
                 [AC_HELP_STRING([--with-manpages],
