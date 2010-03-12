@@ -217,20 +217,11 @@ struct sysdb_ctx *sysdb_handle_get_ctx(struct sysdb_handle *handle);
 
 int compare_ldb_dn_comp_num(const void *m1, const void *m2);
 
-/* function to start and finish a transaction
- * sysdb_transaction_send() will queue a request for a transaction
- * when it is done it will call the tevent_req callback, which must
- * retrieve the transaction handle using sysdb_transaction_recv()
- *
- * A transaction must be completed either by sending a commit:
- * sysdb_transaction_commit_send()/sysdb_transaction_commit_recv()
- * or by freeing the transaction handle (this will implicitly cause
- * a transaction cancelation).
- *
- * Transactions are serialized, no other transaction or operation can be
- * performed while a transaction is active. Multiple transaction request
- * are queued internally and served in order.
- */
+/* functions to start and finish transactions */
+int sysdb_transaction_start(struct sysdb_ctx *ctx);
+int sysdb_transaction_commit(struct sysdb_ctx *ctx);
+int sysdb_transaction_cancel(struct sysdb_ctx *ctx);
+
 
 struct tevent_req *sysdb_transaction_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,

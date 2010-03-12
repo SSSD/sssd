@@ -669,6 +669,38 @@ void sysdb_transaction_complete(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
+int sysdb_transaction_start(struct sysdb_ctx *ctx)
+{
+    int ret;
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to start ldb transaction! (%d)\n", ret));
+    }
+    return sysdb_error_to_errno(ret);
+}
+
+int sysdb_transaction_commit(struct sysdb_ctx *ctx)
+{
+    int ret;
+
+    ret = ldb_transaction_commit(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to commit ldb transaction! (%d)\n", ret));
+    }
+    return sysdb_error_to_errno(ret);
+}
+
+int sysdb_transaction_cancel(struct sysdb_ctx *ctx)
+{
+    int ret;
+
+    ret = ldb_transaction_cancel(ctx->ldb);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to cancel ldb transaction! (%d)\n", ret));
+    }
+    return sysdb_error_to_errno(ret);
+}
 
 /* =Operations============================================================ */
 
