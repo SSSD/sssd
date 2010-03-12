@@ -3,6 +3,7 @@
         Sumit Bose <sbose@redhat.com>
 
     Copyright (C) 2009 Red Hat
+    Copyright (C) 2010, rhafer@suse.de, Novell Inc.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
@@ -436,6 +437,81 @@ static int user_info_offline_auth(pam_handle_t *pamh, size_t buflen,
     return PAM_SUCCESS;
 }
 
+static int user_info_grace_login(pam_handle_t *pamh,
+                                 size_t buflen,
+                                 uint8_t *buf)
+{
+    int ret;
+    uint32_t grace;
+    char user_msg[256];
+
+    if (buflen != 2* sizeof(uint32_t)) {
+        D(("User info response data has the wrong size"));
+        return PAM_BUF_ERR;
+    }
+    memcpy(&grace, buf + sizeof(uint32_t), sizeof(uint32_t));
+    ret = snprintf(user_msg, sizeof(user_msg),
+                   _("Your password has expired. "
+                     "You have %d grace login(s) remaining."),
+                   grace);
+    if (ret < 0 || ret >= sizeof(user_msg)) {
+        D(("snprintf failed."));
+        return PAM_SYSTEM_ERR;
+    }
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, user_msg, NULL, NULL);
+
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
+#define MINSEC 60
+#define HOURSEC (60*MINSEC)
+#define DAYSEC (24*HOURSEC)
+static int user_info_expire_warn(pam_handle_t *pamh,
+                                 size_t buflen,
+                                 uint8_t *buf)
+{
+    int ret;
+    uint32_t expire;
+    char user_msg[256];
+    const char* unit="second(s)";
+
+    if (buflen != 2* sizeof(uint32_t)) {
+        D(("User info response data has the wrong size"));
+        return PAM_BUF_ERR;
+    }
+    memcpy(&expire, buf + sizeof(uint32_t), sizeof(uint32_t));
+    if (expire >= DAYSEC) {
+        expire /= DAYSEC;
+        unit = "day(s)";
+    } else if (expire >= HOURSEC) {
+        expire /= HOURSEC;
+        unit = "hour(s)";
+    } else if (expire >= MINSEC) {
+        expire /= MINSEC;
+        unit = "minute(s)";
+    }
+
+    ret = snprintf(user_msg, sizeof(user_msg),
+                   _("Your password will expire in %d %s."), expire, unit);
+    if (ret < 0 || ret >= sizeof(user_msg)) {
+        D(("snprintf failed."));
+        return PAM_SYSTEM_ERR;
+    }
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, user_msg, NULL, NULL);
+
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    return PAM_SUCCESS;
+}
+
 static int user_info_offline_auth_delayed(pam_handle_t *pamh, size_t buflen,
                                   uint8_t *buf)
 {
@@ -562,6 +638,12 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
     switch(type) {
         case SSS_PAM_USER_INFO_OFFLINE_AUTH:
             ret = user_info_offline_auth(pamh, buflen, buf);
+            break;
+        case SSS_PAM_USER_INFO_GRACE_LOGIN:
+            ret = user_info_grace_login(pamh, buflen, buf);
+            break;
+        case SSS_PAM_USER_INFO_EXPIRE_WARN:
+            ret = user_info_expire_warn(pamh, buflen, buf);
             break;
         case SSS_PAM_USER_INFO_OFFLINE_AUTH_DELAYED:
             ret = user_info_offline_auth_delayed(pamh, buflen, buf);

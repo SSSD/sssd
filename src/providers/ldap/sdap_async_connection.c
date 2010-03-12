@@ -4,6 +4,7 @@
     Async LDAP Helper routines
 
     Copyright (C) Simo Sorce <ssorce@redhat.com> - 2009
+    Copyright (C) 2010, rhafer@suse.de, Novell Inc.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -278,6 +279,7 @@ struct simple_bind_state {
     struct sdap_op *op;
 
     struct sdap_msg *reply;
+    struct sdap_ppolicy_data *ppolicy;
     int result;
 };
 
@@ -401,6 +403,7 @@ static void simple_bind_done(struct sdap_op *op,
 
     if (response_controls == NULL) {
         DEBUG(5, ("Server returned no controls.\n"));
+        state->ppolicy = NULL;
     } else {
         for (c = 0; response_controls[c] != NULL; c++) {
             DEBUG(9, ("Server returned control [%s].\n",
@@ -420,12 +423,30 @@ static void simple_bind_done(struct sdap_op *op,
                 DEBUG(7, ("Password Policy Response: expire [%d] grace [%d] "
                           "error [%s].\n", pp_expire, pp_grace,
                           ldap_passwordpolicy_err2txt(pp_error)));
-
-                if ((state->result == LDAP_SUCCESS &&
-                        (pp_error == PP_changeAfterReset || pp_grace > 0)) ||
-                    (state->result == LDAP_INVALID_CREDENTIALS &&
-                        pp_error == PP_passwordExpired ) ) {
-                    DEBUG(4, ("User must set a new password.\n"));
+                state->ppolicy = talloc(state, struct sdap_ppolicy_data);
+                if (state->ppolicy == NULL) {
+                    DEBUG(1, ("talloc failed.\n"));
+                    ret = ENOMEM;
+                    goto done;
+                }
+                state->ppolicy->grace = pp_grace;
+                state->ppolicy->expire = pp_expire;
+                if (state->result == LDAP_SUCCESS) {
+                    if (pp_error == PP_changeAfterReset) {
+                        DEBUG(4, ("Password was reset. "
+                                  "User must set a new password.\n"));
+                        state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
+                    } else if (pp_grace > 0) {
+                        DEBUG(4, ("Password expired. "
+                                  "[%d] grace logins remaining.\n", pp_grace));
+                    } else if (pp_expire > 0) {
+                        DEBUG(4, ("Password will expire in [%d] seconds.\n",
+                                  pp_expire));
+                    }
+                } else if (state->result == LDAP_INVALID_CREDENTIALS &&
+                           pp_error == PP_passwordExpired) {
+                    DEBUG(4,
+                          ("Password expired user must set a new password.\n"));
                     state->result = LDAP_X_SSSD_PASSWORD_EXPIRED;
                 }
             }
@@ -446,7 +467,10 @@ done:
     }
 }
 
-static int simple_bind_recv(struct tevent_req *req, int *ldaperr)
+static int simple_bind_recv(struct tevent_req *req,
+                            TALLOC_CTX *memctx,
+                            int *ldaperr,
+                            struct sdap_ppolicy_data **ppolicy)
 {
     struct simple_bind_state *state = tevent_req_data(req,
                                             struct simple_bind_state);
@@ -455,6 +479,7 @@ static int simple_bind_recv(struct tevent_req *req, int *ldaperr)
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *ldaperr = state->result;
+    *ppolicy = talloc_steal(memctx, state->ppolicy);
     return EOK;
 }
 
@@ -704,6 +729,7 @@ int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result)
 struct sdap_auth_state {
     const char *user_dn;
     struct berval pw;
+    struct sdap_ppolicy_data *ppolicy;
 
     int result;
     bool is_sasl;
@@ -766,8 +792,9 @@ static void sdap_auth_done(struct tevent_req *subreq)
 
     if (state->is_sasl) {
         ret = sasl_bind_recv(subreq, &state->result);
+        state->ppolicy = NULL;
     } else {
-        ret = simple_bind_recv(subreq, &state->result);
+        ret = simple_bind_recv(subreq, state, &state->result, &state->ppolicy);
     }
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -777,7 +804,10 @@ static void sdap_auth_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result)
+int sdap_auth_recv(struct tevent_req *req,
+                   TALLOC_CTX *memctx,
+                   enum sdap_result *result,
+                   struct sdap_ppolicy_data **ppolicy)
 {
     struct sdap_auth_state *state = tevent_req_data(req,
                                                  struct sdap_auth_state);
@@ -785,6 +815,9 @@ int sdap_auth_recv(struct tevent_req *req, enum sdap_result *result)
     *result = SDAP_ERROR;
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
+    if (ppolicy != NULL) {
+        *ppolicy = talloc_steal(memctx, state->ppolicy);
+    }
     switch (state->result) {
         case LDAP_SUCCESS:
             *result = SDAP_AUTH_SUCCESS;
@@ -1078,7 +1111,7 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
     enum sdap_result result;
     int ret;
 
-    ret = sdap_auth_recv(subreq, &result);
+    ret = sdap_auth_recv(subreq, NULL, &result, NULL);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);

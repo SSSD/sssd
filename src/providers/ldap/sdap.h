@@ -85,6 +85,11 @@ struct sdap_service {
     char *uri;
 };
 
+struct sdap_ppolicy_data {
+    int grace;
+    int expire;
+};
+
 #define SYSDB_SHADOWPW_LASTCHANGE "shadowLastChange"
 #define SYSDB_SHADOWPW_MIN "shadowMin"
 #define SYSDB_SHADOWPW_MAX "shadowMax"

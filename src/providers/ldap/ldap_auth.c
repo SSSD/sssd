@@ -7,6 +7,7 @@
         Sumit Bose <sbose@redhat.com>
 
     Copyright (C) 2008 Red Hat
+    Copyright (C) 2010, rhafer@suse.de, Novell Inc.
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -130,6 +131,39 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
     }
 
 /* TODO: evaluate spwd->min and spwd->warn */
+
+    *result = SDAP_AUTH_SUCCESS;
+    return EOK;
+}
+
+static errno_t check_pwexpire_ldap(struct pam_data *pd,
+                                   struct sdap_ppolicy_data *ppolicy,
+                                   enum sdap_result *result)
+{
+    if (ppolicy->grace > 0 || ppolicy->expire > 0) {
+        uint32_t *data;
+        uint32_t *ptr;
+
+        data = talloc_size(pd, 2* sizeof(uint32_t));
+        if (data == NULL) {
+            DEBUG(1, ("talloc_size failed.\n"));
+            return ENOMEM;
+        }
+
+        ptr = data;
+        if (ppolicy->grace > 0) {
+            *ptr = SSS_PAM_USER_INFO_GRACE_LOGIN;
+            ptr++;
+            *ptr = ppolicy->grace;
+        } else if (ppolicy->expire > 0) {
+            *ptr = SSS_PAM_USER_INFO_EXPIRE_WARN;
+            ptr++;
+            *ptr = ppolicy->expire;
+        }
+
+        pam_add_response(pd, SSS_PAM_USER_INFO, 2* sizeof(uint32_t),
+                         (uint8_t*)data);
+    }
 
     *result = SDAP_AUTH_SUCCESS;
     return EOK;
@@ -569,8 +603,15 @@ static void auth_bind_user_done(struct tevent_req *subreq)
     struct auth_state *state = tevent_req_data(req,
                                                     struct auth_state);
     int ret;
+    struct sdap_ppolicy_data *ppolicy;
 
-    ret = sdap_auth_recv(subreq, &state->result);
+    ret = sdap_auth_recv(subreq, state, &state->result, &ppolicy);
+    if (ppolicy != NULL) {
+        DEBUG(9,("Found ppolicy data, "
+                 "assuming LDAP password policies are active.\n"));
+        state->pw_expire_type = PWEXPIRE_LDAP_PASSWORD_POLICY;
+        state->pw_expire_data = ppolicy;
+    }
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -960,6 +1001,13 @@ static void sdap_pam_auth_done(struct tevent_req *req)
                 }
                 break;
             case PWEXPIRE_LDAP_PASSWORD_POLICY:
+                ret = check_pwexpire_ldap(state->pd, pw_expire_data, &result);
+                if (ret != EOK) {
+                    DEBUG(1, ("check_pwexpire_ldap failed.\n"));
+                    state->pd->pam_status = PAM_SYSTEM_ERR;
+                    goto done;
+                }
+                break;
             case PWEXPIRE_NONE:
                 break;
             default:
