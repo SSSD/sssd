@@ -236,7 +236,7 @@ int main(int argc, const char **argv)
                               tctx->sysdb,
                               tctx->octx->name,
                               tctx->local,
-                              &tctx->octx);
+                              tctx->octx);
     if (ret != EOK) {
         /* Error message will be printed in the switch */
         goto done;

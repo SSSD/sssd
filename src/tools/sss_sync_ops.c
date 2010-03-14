@@ -591,125 +591,79 @@ int groupdel(TALLOC_CTX *mem_ctx,
 /*
  * getpwnam, getgrnam and friends
  */
-static void sss_getpwnam_done(void *ptr, int status,
-                              struct ldb_result *lrs);
-
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct sysdb_ctx *sysdb,
                         const char *name,
                         struct sss_domain_info *domain,
-                        struct ops_ctx **out)
+                        struct ops_ctx *out)
 {
-    int ret;
-    struct sync_op_res *res = NULL;
-
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
-        return ENOMEM;
-    }
-
-    if (out == NULL) {
-        DEBUG(1, ("NULL passed for storage pointer\n"));
-        return EINVAL;
-    }
-    res->data = *out;
-
-    ret = sysdb_getpwnam(mem_ctx,
-                         sysdb,
-                         domain,
-                         name,
-                         sss_getpwnam_done,
-                         res);
-
-    SYNC_LOOP(res, ret);
-
-    return ret;
-}
-
-static void sss_getpwnam_done(void *ptr, int status,
-                              struct ldb_result *lrs)
-{
-    struct sync_op_res *res = talloc_get_type(ptr, struct sync_op_res );
+    struct ldb_result *res;
     const char *str;
+    int ret;
 
-    res->done = true;
-
-    if (status != LDB_SUCCESS) {
-        res->error = status;
-        return;
+    ret = sysdb_getpwnam(mem_ctx, sysdb, domain, name, &res);
+    if (ret) {
+        return ret;
     }
 
-    switch (lrs->count) {
-        case 0:
-            DEBUG(1, ("No result for sysdb_getpwnam call\n"));
-            res->error = ENOENT;
-            break;
+    switch (res->count) {
+    case 0:
+        DEBUG(1, ("No result for sysdb_getpwnam call\n"));
+        return ENOENT;
 
-        case 1:
-            res->error = EOK;
-            /* fill ops_ctx */
-            res->data->uid = ldb_msg_find_attr_as_uint64(lrs->msgs[0],
-                                                         SYSDB_UIDNUM, 0);
+    case 1:
+        /* fill ops_ctx */
+        out->uid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_UIDNUM, 0);
 
-            res->data->gid = ldb_msg_find_attr_as_uint64(lrs->msgs[0],
-                                                         SYSDB_GIDNUM, 0);
+        out->gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
 
-            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
-                                              SYSDB_NAME, NULL);
-            res->data->name = talloc_strdup(res, str);
-            if (res->data->name == NULL) {
-                res->error = ENOMEM;
-                return;
+        str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+        out->name = talloc_strdup(out, str);
+        if (out->name == NULL) {
+            return ENOMEM;
+        }
+
+        str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_GECOS, NULL);
+        out->gecos = talloc_strdup(out, str);
+        if (out->gecos == NULL) {
+            return ENOMEM;
+        }
+
+        str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_HOMEDIR, NULL);
+        out->home = talloc_strdup(out, str);
+        if (out->home == NULL) {
+            return ENOMEM;
+        }
+
+        str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, NULL);
+        out->shell = talloc_strdup(out, str);
+        if (out->shell == NULL) {
+            return ENOMEM;
+        }
+
+        str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_DISABLED, NULL);
+        if (str == NULL) {
+            out->lock = DO_UNLOCK;
+        } else {
+            if (strcasecmp(str, "true") == 0) {
+                out->lock = DO_LOCK;
+            } else if (strcasecmp(str, "false") == 0) {
+                out->lock = DO_UNLOCK;
+            } else { /* Invalid value */
+                DEBUG(2, ("Invalid value for %s attribute: %s\n",
+                          SYSDB_DISABLED, str ? str : "NULL"));
+                return EIO;
             }
+        }
+        break;
 
-            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
-                                              SYSDB_GECOS, NULL);
-            res->data->gecos = talloc_strdup(res, str);
-            if (res->data->gecos == NULL) {
-                res->error = ENOMEM;
-                return;
-            }
-
-            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
-                                              SYSDB_HOMEDIR, NULL);
-            res->data->home = talloc_strdup(res, str);
-            if (res->data->home == NULL) {
-                res->error = ENOMEM;
-                return;
-            }
-
-            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
-                                              SYSDB_SHELL, NULL);
-            res->data->shell = talloc_strdup(res, str);
-            if (res->data->shell == NULL) {
-                res->error = ENOMEM;
-                return;
-            }
-
-            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
-                                              SYSDB_DISABLED, NULL);
-            if (str == NULL) {
-                res->data->lock = DO_UNLOCK;
-            } else {
-                if (strcasecmp(str, "true") == 0) {
-                    res->data->lock = DO_LOCK;
-                } else if (strcasecmp(str, "false") == 0) {
-                    res->data->lock = DO_UNLOCK;
-                } else { /* Invalid value */
-                    DEBUG(2, ("Invalid value for %s attribute: %s\n",
-                              SYSDB_DISABLED, str ? str : "NULL"));
-                    res->error = EIO;
-                    return;
-                }
-            }
-            break;
-
-        default:
-            DEBUG(1, ("More than one result for sysdb_getpwnam call\n"));
-            res->error = EIO;
-            break;
+    default:
+        DEBUG(1, ("More than one result for sysdb_getpwnam call\n"));
+        return EIO;
     }
+
+    return EOK;
 }
 
 static void sss_getgrnam_done(void *ptr, int status,

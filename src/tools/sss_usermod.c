@@ -143,7 +143,7 @@ int main(int argc, const char **argv)
     /* check the username to be able to give sensible error message */
     ret = sysdb_getpwnam_sync(tctx, tctx->ev, tctx->sysdb,
                               tctx->octx->name, tctx->local,
-                              &tctx->octx);
+                              tctx->octx);
     if (ret != EOK) {
         ERROR("Cannot find user in local domain, "
               "modifying users is allowed only in local domain\n");

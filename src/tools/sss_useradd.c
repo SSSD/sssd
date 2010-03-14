@@ -292,7 +292,7 @@ int main(int argc, const char **argv)
                                       tctx->sysdb,
                                       tctx->octx->name,
                                       tctx->local,
-                                      &tctx->octx);
+                                      tctx->octx);
             if (ret != EOK) {
                 ERROR("Cannot get info about the user\n");
                 ret = EXIT_FAILURE;

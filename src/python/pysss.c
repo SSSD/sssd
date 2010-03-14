@@ -268,7 +268,7 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
                                       tctx->sysdb,
                                       tctx->octx->name,
                                       tctx->local,
-                                      &tctx->octx);
+                                      tctx->octx);
             if (ret != EOK) {
                 PyErr_SetSssError(ret);
                 goto fail;
@@ -375,7 +375,7 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
                                   tctx->sysdb,
                                   tctx->octx->name,
                                   tctx->local,
-                                  &tctx->octx);
+                                  tctx->octx);
         if (ret != EOK) {
             PyErr_SetSssError(ret);
             goto fail;

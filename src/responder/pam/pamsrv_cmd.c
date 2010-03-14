@@ -564,8 +564,8 @@ static void pam_cache_auth_done(struct pam_auth_req *preq, int ret,
 
 static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr);
-static void pam_check_user_callback(void *ptr, int status,
-                                    struct ldb_result *res);
+static int pam_check_user_search(struct pam_auth_req *preq);
+static int pam_check_user_done(struct pam_auth_req *preq, int ret);
 static void pam_dom_forwarder(struct pam_auth_req *preq);
 
 /* TODO: we should probably return some sort of cookie that is set in the
@@ -575,12 +575,10 @@ static void pam_dom_forwarder(struct pam_auth_req *preq);
 static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
 {
     struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
     struct pam_auth_req *preq;
     struct pam_data *pd;
     uint8_t *body;
     size_t blen;
-    int timeout;
     int ret;
     uint32_t terminator = SSS_END_OF_PAM_REQUEST;
     preq = talloc_zero(cctx, struct pam_auth_req);
@@ -663,46 +661,146 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         goto done;
     }
 
-    /* When auth is requested always search the provider first,
-     * do not rely on cached data unless the provider is completely
-     * offline */
-    if (NEED_CHECK_PROVIDER(preq->domain->provider) &&
-        (pam_cmd == SSS_PAM_AUTHENTICATE || pam_cmd == SSS_PAM_SETCRED)) {
-
-        /* no need to re-check later on */
-        preq->check_provider = false;
-        timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-        ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
-                                   pam_check_user_dp_callback, preq,
-                                   timeout, preq->domain->name,
-                                   false, SSS_DP_INITGROUPS,
-                                   preq->pd->user, 0);
-    }
-    else {
-        preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
-
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                      preq->domain, &sysdb);
-        if (ret != EOK) {
-            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-            goto done;
-        }
-        ret = sysdb_getpwnam(preq, sysdb,
-                             preq->domain, preq->pd->user,
-                             pam_check_user_callback, preq);
+    ret = pam_check_user_search(preq);
+    if (ret == EOK) {
+        pam_dom_forwarder(preq);
     }
 
 done:
-    if (ret != EOK) {
-        switch (ret) {
-        case ENOENT:
-            pd->pam_status = PAM_USER_UNKNOWN;
-        default:
-            pd->pam_status = PAM_SYSTEM_ERR;
+    return pam_check_user_done(preq, ret);
+}
+
+static int pam_check_user_search(struct pam_auth_req *preq)
+{
+    struct sss_domain_info *dom = preq->domain;
+    struct cli_ctx *cctx = preq->cctx;
+    const char *name = preq->pd->user;
+    struct sysdb_ctx *sysdb;
+    time_t cacheExpire;
+    int ret;
+
+    while (dom) {
+       /* if it is a domainless search, skip domains that require fully
+         * qualified names instead */
+        while (dom && !preq->pd->domain && dom->fqnames) {
+            dom = dom->next;
         }
-        pam_reply(preq);
+
+        if (!dom) break;
+
+        if (dom != preq->domain) {
+            /* make sure we reset the check_provider flag when we check
+             * a new domain */
+            preq->check_provider = NEED_CHECK_PROVIDER(dom->provider);
+        }
+
+        /* make sure to update the preq if we changed domain */
+        preq->domain = dom;
+
+        /* TODO: check negative cache ? */
+
+        /* Always try to refresh the cache first on authentication */
+        if (preq->check_provider &&
+            (preq->pd->cmd == SSS_PAM_AUTHENTICATE ||
+             preq->pd->cmd == SSS_PAM_SETCRED)) {
+
+            /* call provider first */
+            break;
+        }
+
+        DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
+
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
+            return EFAULT;
+        }
+        ret = sysdb_getpwnam(preq, sysdb, dom, name, &preq->res);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to make request to our cache!\n"));
+            return EIO;
+        }
+
+        if (preq->res->count > 1) {
+            DEBUG(0, ("getpwnam call returned more than one result !?!\n"));
+            return ENOENT;
+        }
+
+        if (preq->res->count == 0) {
+            /* if a multidomain search, try with next */
+            if (!preq->pd->domain) {
+                dom = dom->next;
+                continue;
+            }
+
+            DEBUG(2, ("No results for getpwnam call\n"));
+
+            /* TODO: store negative cache ? */
+
+            return ENOENT;
+        }
+
+        /* One result found */
+
+        /* if we need to check the remote account go on */
+        if (preq->check_provider) {
+            cacheExpire = ldb_msg_find_attr_as_uint64(preq->res->msgs[0],
+                                                      SYSDB_CACHE_EXPIRE, 0);
+            if (cacheExpire < time(NULL)) {
+                break;
+            }
+        }
+
+        DEBUG(6, ("Returning info for user [%s@%s]\n", name, dom->name));
+
+        return EOK;
     }
+
+    if (preq->check_provider) {
+
+        /* dont loop forever :-) */
+        preq->check_provider = false;
+
+        ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
+                                   pam_check_user_dp_callback, preq,
+                                   SSS_CLI_SOCKET_TIMEOUT/2,
+                                   dom->name, false, SSS_DP_USER, name, 0);
+        if (ret != EOK) {
+            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
+                      ret, strerror(ret)));
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
+            return EIO;
+        }
+        /* tell caller we are in an async call */
+        return EAGAIN;
+    }
+
+    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    return ENOENT;
+}
+
+static int pam_check_user_done(struct pam_auth_req *preq, int ret)
+{
+    switch (ret) {
+    case EOK:
+        break;
+
+    case EAGAIN:
+        /* performing async request, just return */
+        break;
+
+    case ENOENT:
+        preq->pd->pam_status = PAM_USER_UNKNOWN;
+        pam_reply(preq);
+        break;
+
+    default:
+        preq->pd->pam_status = PAM_SYSTEM_ERR;
+        pam_reply(preq);
+        break;
+    }
+
     return EOK;
 }
 
@@ -710,7 +808,6 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                                        const char *err_msg, void *ptr)
 {
     struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
-    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -719,211 +816,13 @@ static void pam_check_user_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    /* always try to see if we have the user in cache even if the provider
-     * returned an error */
-    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
-                                  preq->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        goto done;
-    }
-    ret = sysdb_getpwnam(preq, sysdb,
-                         preq->domain, preq->pd->user,
-                         pam_check_user_callback, preq);
-
-done:
-    if (ret != EOK) {
-        preq->pd->pam_status = PAM_SYSTEM_ERR;
-        pam_reply(preq);
-    }
-}
-
-static void pam_check_user_callback(void *ptr, int status,
-                                    struct ldb_result *res)
-{
-    struct pam_auth_req *preq = talloc_get_type(ptr, struct pam_auth_req);
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
-    uint64_t cacheExpire;
-    bool call_provider = false;
-    time_t timeout;
-    int ret;
-
-    if (status != LDB_SUCCESS) {
-        preq->pd->pam_status = PAM_SYSTEM_ERR;
-        pam_reply(preq);
-        return;
-    }
-
-    timeout = SSS_CLI_SOCKET_TIMEOUT/2;
-
-    if (preq->check_provider) {
-        switch (res->count) {
-        case 0:
-            call_provider = true;
-            break;
-
-        case 1:
-            cacheExpire = ldb_msg_find_attr_as_uint64(res->msgs[0],
-                                                      SYSDB_CACHE_EXPIRE, 0);
-            if (cacheExpire < time(NULL)) {
-                call_provider = true;
-            }
-            break;
-
-        default:
-            DEBUG(1, ("check user call returned more than one result !?!\n"));
-            preq->pd->pam_status = PAM_SYSTEM_ERR;
-            pam_reply(preq);
-            return;
-        }
-    }
-
-    if (call_provider) {
-
-        /* dont loop forever :-) */
-        preq->check_provider = false;
-
-        /* keep around current data in case backend is offline */
-        if (res->count) {
-            preq->data = talloc_steal(preq, res);
-        }
-
-        ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
-                                   pam_check_user_dp_callback, preq,
-                                   timeout, preq->domain->name,
-                                   false, SSS_DP_USER,
-                                   preq->pd->user, 0);
-        if (ret != EOK) {
-            DEBUG(3, ("Failed to dispatch request: %d(%s)\n",
-                      ret, strerror(ret)));
-            preq->pd->pam_status = PAM_SYSTEM_ERR;
-            pam_reply(preq);
-        }
-        return;
-    }
-
-    switch (res->count) {
-    case 0:
-        if (!preq->pd->domain) {
-            /* search next as the domain was unknown */
-
-            ret = EOK;
-
-            /* skip domains that require FQnames or have negative caches */
-            for (dom = preq->domain->next; dom; dom = dom->next) {
-
-                if (dom->fqnames) continue;
-
-#if HAVE_NEG_CACHE
-                ncret = nss_ncache_check_user(nctx->ncache,
-                                              nctx->neg_timeout,
-                                              dom->name, cmdctx->name);
-                if (ncret == ENOENT) break;
-
-                neghit = true;
-#endif
-                break;
-            }
-#if HAVE_NEG_CACHE
-            /* reset neghit if we still have a domain to check */
-            if (dom) neghit = false;
-
-           if (neghit) {
-                DEBUG(2, ("User [%s] does not exist! (negative cache)\n",
-                          cmdctx->name));
-                ret = ENOENT;
-            }
-#endif
-            if (dom == NULL) {
-                DEBUG(2, ("No matching domain found for [%s], fail!\n",
-                          preq->pd->user));
-                ret = ENOENT;
-            }
-
-            if (ret == EOK) {
-                preq->domain = dom;
-                preq->data = NULL;
-
-                DEBUG(4, ("Requesting info for [%s@%s]\n",
-                          preq->pd->user, preq->domain->name));
-
-                /* When auth is requested always search the provider first,
-                 * do not rely on cached data unless the provider is
-                 * completely offline */
-                if (NEED_CHECK_PROVIDER(preq->domain->provider) &&
-                    (preq->pd->cmd == SSS_PAM_AUTHENTICATE ||
-                     preq->pd->cmd == SSS_PAM_SETCRED)) {
-
-                    /* no need to re-check later on */
-                    preq->check_provider = false;
-
-                    ret = sss_dp_send_acct_req(preq->cctx->rctx, preq,
-                                               pam_check_user_dp_callback,
-                                               preq, timeout,
-                                               preq->domain->name,
-                                               false, SSS_DP_USER,
-                                               preq->pd->user, 0);
-                }
-                else {
-                    preq->check_provider = NEED_CHECK_PROVIDER(preq->domain->provider);
-
-                    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
-                                                  preq->domain, &sysdb);
-                    if (ret != EOK) {
-                        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-                        preq->pd->pam_status = PAM_SYSTEM_ERR;
-                        pam_reply(preq);
-                        return;
-                    }
-                    ret = sysdb_getpwnam(preq, sysdb,
-                                         preq->domain, preq->pd->user,
-                                         pam_check_user_callback, preq);
-                }
-                if (ret != EOK) {
-                    DEBUG(1, ("Failed to make request to our cache!\n"));
-                }
-            }
-
-            /* we made another call, end here */
-            if (ret == EOK) return;
-        }
-        else {
-            ret = ENOENT;
-        }
-
-        DEBUG(2, ("No results for check user call\n"));
-
-#if HAVE_NEG_CACHE
-        /* set negative cache only if not result of cache check */
-        if (!neghit) {
-            ret = nss_ncache_set_user(nctx->ncache, false,
-                                      dctx->domain->name, cmdctx->name);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-        }
-#endif
-
-        if (ret != EOK) {
-            if (ret == ENOENT) {
-                preq->pd->pam_status = PAM_USER_UNKNOWN;
-            } else {
-                preq->pd->pam_status = PAM_SYSTEM_ERR;
-            }
-            pam_reply(preq);
-            return;
-        }
-        break;
-
-    case 1:
-
-        /* BINGO */
+    ret = pam_check_user_search(preq);
+    if (ret == EOK) {
         pam_dom_forwarder(preq);
-        return;
+    }
 
-    default:
-        DEBUG(1, ("check user call returned more than one result !?!\n"));
+    ret = pam_check_user_done(preq, ret);
+    if (ret) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;
         pam_reply(preq);
     }

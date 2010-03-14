@@ -306,31 +306,6 @@ static int test_remove_group_by_gid(struct test_data *data)
     return ret;
 }
 
-static void test_getpwent(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    switch (res->count) {
-        case 0:
-            data->error = ENOENT;
-            break;
-
-        case 1:
-            data->uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
-            break;
-
-        default:
-            data->error = EFAULT;
-            break;
-    }
-}
-
 static void test_getgrent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
@@ -838,8 +813,9 @@ END_TEST
 START_TEST (test_sysdb_getpwnam)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
-    struct test_data *data_uc;
+    struct ldb_result *res;
+    const char *username;
+    uid_t uid;
     int ret;
 
     /* Setup */
@@ -849,45 +825,42 @@ START_TEST (test_sysdb_getpwnam)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->username = talloc_asprintf(data, "testuser%d", _i);
+    username = talloc_asprintf(test_ctx, "testuser%d", _i);
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->sysdb,
-                         data->ctx->domain,
-                         data->username,
-                         test_getpwent,
-                         data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+                         test_ctx->domain,
+                         username, &res);
     if (ret) {
         fail("sysdb_getpwnam failed for username %s (%d: %s)",
-             data->username, ret, strerror(ret));
+             username, ret, strerror(ret));
         goto done;
     }
-    fail_unless(data->uid == _i,
-                "Did not find the expected UID");
+
+    if (res->count != 1) {
+        fail("Invalid number of replies. Expected 1, got %d", res->count);
+        goto done;
+    }
+
+    uid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_UIDNUM, 0);
+    fail_unless(uid == _i, "Did not find the expected UID");
 
     /* Search for the user with the wrong case */
-    data_uc = talloc_zero(test_ctx, struct test_data);
-    data_uc->ctx = test_ctx;
-    data_uc->username = talloc_asprintf(data_uc, "TESTUSER%d", _i);
+    username = talloc_asprintf(test_ctx, "TESTUSER%d", _i);
 
     ret = sysdb_getpwnam(test_ctx,
                          test_ctx->sysdb,
-                         data_uc->ctx->domain,
-                         data_uc->username,
-                         test_getpwent,
-                         data_uc);
-    if (ret == EOK) {
-        ret = test_loop(data_uc);
+                         test_ctx->domain,
+                         username, &res);
+    if (ret) {
+        fail("sysdb_getpwnam failed for username %s (%d: %s)",
+             username, ret, strerror(ret));
+        goto done;
     }
 
-    fail_unless(ret == ENOENT,
-                "The upper-case username search should fail. ");
+    if (res->count != 0) {
+        fail("The upper-case username search should fail.");
+    }
 
 done:
     talloc_free(test_ctx);
