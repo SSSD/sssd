@@ -356,31 +356,6 @@ static void test_getgrgid(void *pvt, int error, struct ldb_result *res)
     }
 }
 
-static void test_getpwuid(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    switch (res->count) {
-        case 0:
-            data->error = ENOENT;
-            break;
-
-        case 1:
-            data->username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
-            break;
-
-        default:
-            data->error = EFAULT;
-            break;
-    }
-}
-
 static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
@@ -976,9 +951,10 @@ END_TEST
 START_TEST (test_sysdb_getpwuid)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
+    struct ldb_result *res;
+    const char *e_username;
+    const char *username;
     int ret;
-    const char *username = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -987,35 +963,27 @@ START_TEST (test_sysdb_getpwuid)
         return;
     }
 
-    username = talloc_asprintf(test_ctx, "testuser%d", _i);
-    if (username == NULL) {
-        fail("Cannot allocate memory");
-        return;
-    }
-
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->uid = _i;
-
     ret = sysdb_getpwuid(test_ctx,
                          test_ctx->sysdb,
-                         data->ctx->domain,
-                         data->uid,
-                         test_getpwuid,
-                         data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+                         test_ctx->domain,
+                         _i, &res);
     if (ret) {
         fail("sysdb_getpwuid failed for uid %d (%d: %s)",
-             data->uid, ret, strerror(ret));
+             _i, ret, strerror(ret));
         goto done;
     }
 
-    fail_unless(strcmp(data->username, username) == 0,
+    username = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
+
+    e_username = talloc_asprintf(test_ctx, "testuser%d", _i);
+    if (username == NULL) {
+        fail("Cannot allocate memory");
+        goto done;
+    }
+
+    fail_unless(strcmp(username, e_username) == 0,
                 "Did not find the expected username (found %s expected %s)",
-                data->username, username);
+                username, e_username);
 done:
     talloc_free(test_ctx);
 }
