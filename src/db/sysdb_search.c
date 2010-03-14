@@ -363,6 +363,20 @@ static int mpg_convert(struct ldb_message *msg)
     return EOK;
 }
 
+static int mpg_res_convert(struct ldb_result *res)
+{
+    int ret;
+    int i;
+
+    for (i = 0; i < res->count; i++) {
+        ret = mpg_convert(res->msgs[i]);
+        if (ret) {
+            return ret;
+        }
+    }
+    return EOK;
+}
+
 static void grp_search(struct tevent_req *treq)
 {
     struct sysdb_search_ctx *sctx;
@@ -408,40 +422,55 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    struct sss_domain_info *domain,
                    const char *name,
-                   sysdb_callback_t fn, void *ptr)
+                   struct ldb_result **_res)
 {
-    struct sysdb_search_ctx *sctx;
-    struct tevent_req *req;
+    TALLOC_CTX *tmpctx;
+    static const char *attrs[] = SYSDB_GRSRC_ATTRS;
+    const char *fmt_filter;
+    struct ldb_dn *base_dn;
+    struct ldb_result *res;
+    int ret;
 
     if (!domain) {
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
-    if (!sctx) {
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
         return ENOMEM;
     }
 
     if (ctx->mpg) {
-        sctx->gen_conv_mpg_users = true;
-        sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_MPG_FILTER, name);
+        fmt_filter = SYSDB_GRNAM_MPG_FILTER;
+        base_dn = ldb_dn_new_fmt(tmpctx, ctx->ldb,
+                                 SYSDB_DOM_BASE, domain->name);
     } else {
-        sctx->expression = talloc_asprintf(sctx, SYSDB_GRNAM_FILTER, name);
+        fmt_filter = SYSDB_GRNAM_FILTER;
+        base_dn = ldb_dn_new_fmt(tmpctx, ctx->ldb,
+                                 SYSDB_TMPL_GROUP_BASE, domain->name);
     }
-    if (!sctx->expression) {
-        talloc_free(sctx);
-        return ENOMEM;
-    }
-
-    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
-    if (!req) {
-        talloc_free(sctx);
-        return ENOMEM;
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    tevent_req_set_callback(req, grp_search, sctx);
+    ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
+                     LDB_SCOPE_SUBTREE, attrs, fmt_filter, name);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
 
-    return EOK;
+    ret = mpg_res_convert(res);
+    if (ret) {
+        goto done;
+    }
+
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,

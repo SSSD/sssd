@@ -306,31 +306,6 @@ static int test_remove_group_by_gid(struct test_data *data)
     return ret;
 }
 
-static void test_getgrent(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    switch (res->count) {
-        case 0:
-            data->error = ENOENT;
-            break;
-
-        case 1:
-            data->gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
-            break;
-
-        default:
-            data->error = EFAULT;
-            break;
-    }
-}
-
 static void test_getgrgid(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
@@ -845,8 +820,9 @@ END_TEST
 START_TEST (test_sysdb_getgrnam)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
-    struct test_data *data_uc;
+    struct ldb_result *res;
+    const char *groupname;
+    gid_t gid;
     int ret;
 
     /* Setup */
@@ -856,46 +832,45 @@ START_TEST (test_sysdb_getgrnam)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
+    groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
 
     ret = sysdb_getgrnam(test_ctx,
                          test_ctx->sysdb,
-                         data->ctx->domain,
-                         data->groupname,
-                         test_getgrent,
-                         data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+                         test_ctx->domain,
+                         groupname, &res);
     if (ret) {
         fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
-             data->groupname, ret, strerror(ret));
+             groupname, ret, strerror(ret));
         goto done;
     }
-    fail_unless(data->gid == _i,
+
+    if (res->count != 1) {
+        fail("Invalid number of replies. Expected 1, got %d", res->count);
+        goto done;
+    }
+
+    gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
+    fail_unless(gid == _i,
                 "Did not find the expected GID (found %d expected %d)",
-                data->gid, _i);
+                gid, _i);
 
     /* Search for the group with the wrong case */
-    data_uc = talloc_zero(test_ctx, struct test_data);
-    data_uc->ctx = test_ctx;
-    data_uc->groupname = talloc_asprintf(data_uc, "TESTGROUP%d", _i);
+    groupname = talloc_asprintf(test_ctx, "TESTGROUP%d", _i);
 
     ret = sysdb_getgrnam(test_ctx,
                          test_ctx->sysdb,
-                         data_uc->ctx->domain,
-                         data_uc->groupname,
-                         test_getgrent,
-                         data_uc);
-    if (ret == EOK) {
-        ret = test_loop(data_uc);
+                         test_ctx->domain,
+                         groupname, &res);
+    if (ret) {
+        fail("sysdb_getgrnam failed for groupname %s (%d: %s)",
+             groupname, ret, strerror(ret));
+        goto done;
     }
 
-    fail_unless(ret == ENOENT,
-                "The upper-case groupname search should fail. ");
+    if (res->count != 0) {
+        fail("The upper-case groupname search should fail.");
+    }
+
 done:
     talloc_free(test_ctx);
 }

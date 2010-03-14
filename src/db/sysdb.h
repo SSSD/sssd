@@ -271,7 +271,7 @@ int sysdb_getgrnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    struct sss_domain_info *domain,
                    const char *name,
-                   sysdb_callback_t fn, void *ptr);
+                   struct ldb_result **res);
 
 int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,

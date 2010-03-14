@@ -215,7 +215,7 @@ int check_group_names(struct tools_ctx *tctx,
                                   tctx->sysdb,
                                   grouplist[i],
                                   tctx->local,
-                                  &groupinfo);
+                                  groupinfo);
         if (ret) {
             DEBUG(6, ("Cannot find group %s, ret: %d\n", grouplist[i], ret));
             break;

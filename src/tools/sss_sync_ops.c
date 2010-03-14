@@ -666,75 +666,42 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void sss_getgrnam_done(void *ptr, int status,
-                              struct ldb_result *lrs);
-
 int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         struct sysdb_ctx *sysdb,
                         const char *name,
                         struct sss_domain_info *domain,
-                        struct ops_ctx **out)
+                        struct ops_ctx *out)
 {
-    int ret;
-    struct sync_op_res *res = NULL;
-
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
-        return ENOMEM;
-    }
-
-    if (out == NULL) {
-        DEBUG(1, ("NULL passed for storage pointer\n"));
-        return EINVAL;
-    }
-    res->data = *out;
-
-    ret = sysdb_getgrnam(mem_ctx,
-                         sysdb,
-                         domain,
-                         name,
-                         sss_getgrnam_done,
-                         res);
-
-    SYNC_LOOP(res, ret);
-
-    return ret;
-}
-
-static void sss_getgrnam_done(void *ptr, int status,
-                              struct ldb_result *lrs)
-{
-    struct sync_op_res *res = talloc_get_type(ptr, struct sync_op_res );
+    struct ldb_result *res;
     const char *str;
+    int ret;
 
-    res->done = true;
-
-    if (status != LDB_SUCCESS) {
-        res->error = status;
-        return;
+    ret = sysdb_getgrnam(mem_ctx, sysdb, domain, name, &res);
+    if (ret) {
+        return ret;
     }
 
-    switch (lrs->count) {
-        case 0:
-            DEBUG(1, ("No result for sysdb_getgrnam call\n"));
-            res->error = ENOENT;
-            break;
+    switch (res->count) {
+    case 0:
+        DEBUG(1, ("No result for sysdb_getgrnam call\n"));
+        return ENOENT;
 
-            /* sysdb_getgrnam also returns members */
-        default:
-            res->error = EOK;
-            /* fill ops_ctx */
-            res->data->gid = ldb_msg_find_attr_as_uint64(lrs->msgs[0],
-                                                         SYSDB_GIDNUM, 0);
-            str = ldb_msg_find_attr_as_string(lrs->msgs[0],
-                                              SYSDB_NAME, NULL);
-            res->data->name = talloc_strdup(res, str);
-            if (res->data->name == NULL) {
-                res->error = ENOMEM;
-                return;
-            }
-            break;
+    case 1:
+        /* fill ops_ctx */
+        out->gid = ldb_msg_find_attr_as_uint64(res->msgs[0], SYSDB_GIDNUM, 0);
+        str = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, NULL);
+        out->name = talloc_strdup(out, str);
+        if (out->name == NULL) {
+            return ENOMEM;
+        }
+        break;
+
+    default:
+        DEBUG(1, ("More than one result for sysdb_getgrnam call\n"));
+        return EIO;
     }
+
+    return EOK;
 }
 

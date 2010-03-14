@@ -104,7 +104,7 @@ int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
                         struct sysdb_ctx *sysdb,
                         const char *name,
                         struct sss_domain_info *domain,
-                        struct ops_ctx **out);
+                        struct ops_ctx *out);
 
 #endif /* __SSS_OPS_H__ */
 

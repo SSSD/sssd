@@ -32,39 +32,13 @@
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
 
-static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
-{
-    struct tools_ctx *tctx = talloc_get_type(ptr, struct tools_ctx);
-
-    if (error) {
-        tctx->error = error;
-        return;
-    }
-
-    switch (res->count) {
-    case 0:
-        tctx->error = ENOENT;
-        break;
-
-    case 1:
-        tctx->octx->gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
-        if (tctx->octx->gid == 0) {
-            tctx->error = ERANGE;
-        }
-        break;
-
-    default:
-        tctx->error = EFAULT;
-        break;
-    }
-}
-
 /* Returns a gid for a given groupname. If a numerical gid
  * is given, returns that as integer (rationale: shadow-utils)
  * On error, returns -EINVAL
  */
 static int get_gid(struct tools_ctx *tctx, const char *groupname)
 {
+    struct ldb_result *res;
     char *end_ptr;
     int ret;
 
@@ -75,27 +49,30 @@ static int get_gid(struct tools_ctx *tctx, const char *groupname)
         /* Does not look like a gid - find the group name */
 
         ret = sysdb_getgrnam(tctx->octx, tctx->sysdb,
-                             tctx->octx->domain, groupname,
-                             get_gid_callback, tctx);
+                             tctx->octx->domain, groupname, &res);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
-            goto done;
+            return ret;
         }
 
-        tctx->error = EOK;
-        tctx->octx->gid = 0;
-        while ((tctx->error == EOK) && (tctx->octx->gid == 0)) {
-            tevent_loop_once(tctx->ev);
-        }
+        switch (res->count) {
+        case 0:
+            return ENOENT;
 
-        if (tctx->error) {
-            DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
-            goto done;
+        case 1:
+            tctx->octx->gid = ldb_msg_find_attr_as_uint(res->msgs[0],
+                                                        SYSDB_GIDNUM, 0);
+            if (tctx->octx->gid == 0) {
+                return ERANGE;
+            }
+            break;
+
+        default:
+            return EFAULT;
         }
     }
 
-done:
-    return ret;
+    return EOK;
 }
 
 int main(int argc, const char **argv)
