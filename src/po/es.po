@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-09 08:15-0500\n"
+"POT-Creation-Date: 2010-03-15 07:37-0400\n"
 "PO-Revision-Date: 2010-03-09 12:46-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -185,11 +185,11 @@ msgstr "Dirección del servidor IPA"
 msgid "IPA client hostname"
 msgstr "Nombre de equipo del cliente IPA"
 
-#: config/SSSDConfig.py:91 config/SSSDConfig.py:118
+#: config/SSSDConfig.py:91 config/SSSDConfig.py:119
 msgid "Kerberos server address"
 msgstr "Dirección del servidor Kerberos"
 
-#: config/SSSDConfig.py:92 config/SSSDConfig.py:119
+#: config/SSSDConfig.py:92 config/SSSDConfig.py:120
 msgid "Kerberos realm"
 msgstr "Reinado Kerberos"
 
@@ -217,167 +217,171 @@ msgstr "Habilitar la validación de credenciales"
 msgid "The principal of the change password service"
 msgstr "El principal del servicio de cambio de contraseña"
 
-#: config/SSSDConfig.py:105
+#: config/SSSDConfig.py:103
+msgid "Server where the change password service is running if not on the KDC"
+msgstr ""
+
+#: config/SSSDConfig.py:106
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr "ldap_uri, El URI del servidor LDAP"
 
-#: config/SSSDConfig.py:106
+#: config/SSSDConfig.py:107
 msgid "The default base DN"
 msgstr "DN base predeterminado"
 
-#: config/SSSDConfig.py:107
+#: config/SSSDConfig.py:108
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr "El Tipo de Esquema a usar en el servidor LDAP, rfc2307"
 
-#: config/SSSDConfig.py:108
+#: config/SSSDConfig.py:109
 msgid "The default bind DN"
 msgstr "El DN Bind predeterminado"
 
-#: config/SSSDConfig.py:109
+#: config/SSSDConfig.py:110
 msgid "The type of the authentication token of the default bind DN"
 msgstr "El tipo del token de autenticación del DN bind predeterminado"
 
-#: config/SSSDConfig.py:110
+#: config/SSSDConfig.py:111
 msgid "The authentication token of the default bind DN"
 msgstr "El token de autenticación del DN bind predeterminado"
 
-#: config/SSSDConfig.py:111
+#: config/SSSDConfig.py:112
 msgid "Length of time to attempt connection"
 msgstr "Tiempo durante el que se intentará la conexión"
 
-#: config/SSSDConfig.py:112
+#: config/SSSDConfig.py:113
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Tiempo durante el que se intentará operaciones LDAP sincrónicas"
 
-#: config/SSSDConfig.py:113
+#: config/SSSDConfig.py:114
 msgid "Length of time between attempts to reconnect while offline"
 msgstr "Tiempo entre intentos de reconexión cuando esté fuera de línea"
 
-#: config/SSSDConfig.py:114
+#: config/SSSDConfig.py:115
 msgid "file that contains CA certificates"
 msgstr "archivo que contiene los certificados CA"
 
-#: config/SSSDConfig.py:115
+#: config/SSSDConfig.py:116
 msgid "Require TLS certificate verification"
 msgstr "Requiere la verificación de certificado TLS"
 
-#: config/SSSDConfig.py:116
+#: config/SSSDConfig.py:117
 msgid "Specify the sasl mechanism to use"
 msgstr "Especificar el mecanismo sasl a usar"
 
-#: config/SSSDConfig.py:117
+#: config/SSSDConfig.py:118
 msgid "Specify the sasl authorization id to use"
 msgstr "Especifique el id de autorización sasl a usar"
 
-#: config/SSSDConfig.py:120
+#: config/SSSDConfig.py:121
 msgid "Kerberos service keytab"
 msgstr "Tabla de clave del servicio Kerberos"
 
-#: config/SSSDConfig.py:121
+#: config/SSSDConfig.py:122
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Usar auth Kerberos para la conexión LDAP"
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:123
 msgid "Follow LDAP referrals"
 msgstr "Seguir referencias LDAP"
 
-#: config/SSSDConfig.py:125
+#: config/SSSDConfig.py:126
 msgid "Length of time to wait for a search request"
 msgstr "Tiempo máximo a esperar un pedido de búsqueda"
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:127
 msgid "Length of time between enumeration updates"
 msgstr "Tiempo en segundos entre las actualizaciones de enumeración"
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:128
 msgid "Require TLS for ID lookups, false"
 msgstr "Requiere TLS para búsquedas de ID, falso"
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:129
 msgid "Base DN for user lookups"
 msgstr "DN base para búsquedas de usuario"
 
-#: config/SSSDConfig.py:129
+#: config/SSSDConfig.py:130
 msgid "Scope of user lookups"
 msgstr "Ambito de las búsquedas del usuario"
 
-#: config/SSSDConfig.py:130
+#: config/SSSDConfig.py:131
 msgid "Filter for user lookups"
 msgstr "Filtro para las búsquedas del usuario"
 
-#: config/SSSDConfig.py:131
+#: config/SSSDConfig.py:132
 msgid "Objectclass for users"
 msgstr "Objectclass para los usuarios"
 
-#: config/SSSDConfig.py:132
+#: config/SSSDConfig.py:133
 msgid "Username attribute"
 msgstr "Atributo Username"
 
-#: config/SSSDConfig.py:133
+#: config/SSSDConfig.py:134
 msgid "UID attribute"
 msgstr "Atributo UID"
 
-#: config/SSSDConfig.py:134
+#: config/SSSDConfig.py:135
 msgid "Primary GID attribute"
 msgstr "Atributo GID primario"
 
-#: config/SSSDConfig.py:135
+#: config/SSSDConfig.py:136
 msgid "GECOS attribute"
 msgstr "Atributo GECOS"
 
-#: config/SSSDConfig.py:136
+#: config/SSSDConfig.py:137
 msgid "Home directory attribute"
 msgstr "Atributo Directorio de inicio"
 
-#: config/SSSDConfig.py:137
+#: config/SSSDConfig.py:138
 msgid "Shell attribute"
 msgstr "Atributo shell"
 
-#: config/SSSDConfig.py:138
+#: config/SSSDConfig.py:139
 msgid "UUID attribute"
 msgstr "Atributo UUID"
 
-#: config/SSSDConfig.py:139
+#: config/SSSDConfig.py:140
 msgid "User principal attribute (for Kerberos)"
 msgstr "Atributo principal del usuario (para Kerberos) "
 
-#: config/SSSDConfig.py:140
+#: config/SSSDConfig.py:141
 msgid "Full Name"
 msgstr "Nombre completo"
 
-#: config/SSSDConfig.py:141
+#: config/SSSDConfig.py:142
 msgid "memberOf attribute"
 msgstr "Atributo memberOf"
 
-#: config/SSSDConfig.py:142
+#: config/SSSDConfig.py:143
 msgid "Modification time attribute"
 msgstr "Atributo hora de modificación"
 
-#: config/SSSDConfig.py:145
+#: config/SSSDConfig.py:146
 msgid "Policy to evaluate the password expiration"
 msgstr "Política para evaluar el vencimiento de la contraseña"
 
-#: config/SSSDConfig.py:148
+#: config/SSSDConfig.py:149
 msgid "Comma separated list of allowed users"
 msgstr "Lista separada por comas de usuarios autorizados"
 
-#: config/SSSDConfig.py:149
+#: config/SSSDConfig.py:150
 msgid "Comma separated list of prohibited users"
 msgstr "Lista separada por comas de usuarios prohibidos"
 
-#: config/SSSDConfig.py:152
+#: config/SSSDConfig.py:153
 msgid "Default shell, /bin/bash"
 msgstr "Shell predeterminado, /bin/bash"
 
-#: config/SSSDConfig.py:153
+#: config/SSSDConfig.py:154
 msgid "Base for home directories"
 msgstr "Base de los directorios de inicio"
 
-#: config/SSSDConfig.py:156
+#: config/SSSDConfig.py:157
 msgid "The name of the NSS library to use"
 msgstr "Nombre de la biblioteca NSS a usar"
 
-#: config/SSSDConfig.py:159
+#: config/SSSDConfig.py:160
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
@@ -397,7 +401,13 @@ msgstr "Indicar un archivo de configuración diferente al predeterminado"
 msgid "sssd must be run as root\n"
 msgstr "sssd debe ejecutarse como root\n"
 
-#: monitor/monitor.c:2265
+#: monitor/monitor.c:2264
+msgid ""
+"nscd socket was detected.  As nscd caching capabilities may conflict with "
+"SSSD, it is recommended to not run nscd in parallel with SSSD\n"
+msgstr ""
+
+#: monitor/monitor.c:2274
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -406,17 +416,17 @@ msgstr ""
 "No es posible leer el archivo de configuración %s, por favor verifique que "
 "los permisos sean 0600, y que su deueño sea root.root\n"
 
-#: providers/krb5/krb5_child.c:922 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Nive de depuración"
 
-#: providers/krb5/krb5_child.c:924 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:931 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Agregar marcas de tiempo de depuración"
 
-#: providers/krb5/krb5_child.c:926 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:933 providers/ldap/ldap_child.c:320
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
