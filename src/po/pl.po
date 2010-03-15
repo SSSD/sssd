@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-03-15 08:12-0400\n"
-"PO-Revision-Date: 2010-03-10 11:41+0100\n"
+"PO-Revision-Date: 2010-03-15 14:21+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -212,6 +212,8 @@ msgstr "Główna usługa zmiany hasła"
 #: config/SSSDConfig.py:103
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
+"Serwer, w którym jest uruchomiona usługa zmiany haseł, jeśli nie znajduje "
+"się w KDC"
 
 #: config/SSSDConfig.py:106
 msgid "ldap_uri, The URI of the LDAP server"
@@ -398,6 +400,8 @@ msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
 msgstr ""
+"Wykryto gniazdo nscd. Możliwości pamięci podręcznej nscd mogą konfliktować z "
+"SSSD, więc nie jest zalecane uruchamianie nscd jednocześnie z SSSD\n"
 
 #: monitor/monitor.c:2274
 #, c-format
@@ -473,7 +477,7 @@ msgstr "Bieżące hasło: "
 
 #: sss_client/pam_sss.c:1126
 msgid "Password expired. Change your password now."
-msgstr ""
+msgstr "Hasło wygasło. Proszę je zmienić teraz."
 
 #: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
 #: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45
