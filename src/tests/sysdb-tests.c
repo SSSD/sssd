@@ -306,31 +306,6 @@ static int test_remove_group_by_gid(struct test_data *data)
     return ret;
 }
 
-static void test_getgrgid(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    switch (res->count) {
-        case 0:
-            data->error = ENOENT;
-            break;
-
-        case 1:
-            data->groupname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
-            break;
-
-        default:
-            data->error = EFAULT;
-            break;
-    }
-}
-
 static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
 {
     struct test_data *data = talloc_get_type(pvt, struct test_data);
@@ -879,9 +854,10 @@ END_TEST
 START_TEST (test_sysdb_getgrgid)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
+    struct ldb_result *res;
+    const char *e_groupname;
+    const char *groupname;
     int ret;
-    const char *groupname = NULL;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -890,34 +866,27 @@ START_TEST (test_sysdb_getgrgid)
         return;
     }
 
-    groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
-    if (groupname == NULL) {
-        fail("Cannot allocate memory");
-        return;
-    }
-
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->gid = _i;
-
     ret = sysdb_getgrgid(test_ctx,
                          test_ctx->sysdb,
-                         data->ctx->domain,
-                         data->gid,
-                         test_getgrgid,
-                         data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+                         test_ctx->domain,
+                         _i, &res);
     if (ret) {
         fail("sysdb_getgrgid failed for gid %d (%d: %s)",
-             data->gid, ret, strerror(ret));
+             _i, ret, strerror(ret));
         goto done;
     }
-    fail_unless(strcmp(data->groupname, groupname) == 0,
+
+    groupname = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_NAME, 0);
+
+    e_groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
+    if (e_groupname == NULL) {
+        fail("Cannot allocate memory");
+        goto done;
+    }
+
+    fail_unless(strcmp(groupname, e_groupname) == 0,
                 "Did not find the expected groupname (found %s expected %s)",
-                data->groupname, groupname);
+                groupname, e_groupname);
 done:
     talloc_free(test_ctx);
 }

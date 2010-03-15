@@ -277,7 +277,7 @@ int sysdb_getgrgid(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    struct sss_domain_info *domain,
                    gid_t gid,
-                   sysdb_callback_t fn, void *ptr);
+                   struct ldb_result **res);
 
 int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,

@@ -1841,136 +1841,108 @@ done:
 static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
                                       const char *err_msg, void *ptr);
 
-static void nss_cmd_getgrgid_callback(void *ptr, int status,
-                                      struct ldb_result *res)
+/* search for a gid.
+ * Returns:
+ *   ENOENT, if gid is definitely not found
+ *   EAGAIN, if gid is beeing fetched from backend via async operations
+ *   EOK, if found
+ *   anything else on a fatal error
+ */
+
+static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
 {
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
-    uint8_t *body;
-    size_t blen;
-    bool neghit = false;
-    int i, ret;
-    int ncret;
+    int ret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    if (status != LDB_SUCCESS) {
-        ret = nss_cmd_send_error(cmdctx, status);
+    while (dom) {
+
+        /* check that the gid is valid for this domain */
+        if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
+            (dom->id_max && (cmdctx->id > dom->id_max))) {
+            DEBUG(4, ("Gid [%lu] does not exist in domain [%s]! "
+                      "(id out of range)\n",
+                      (unsigned long)cmdctx->id, dom->name));
+            if (cmdctx->check_next) {
+                dom = dom->next;
+                continue;
+            }
+            return ENOENT;
+        }
+
+        if (dom != dctx->domain) {
+            /* make sure we reset the check_provider flag when we check
+             * a new domain */
+            dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
+        }
+
+        /* make sure to update the dctx if we changed domain */
+        dctx->domain = dom;
+
+        DEBUG(4, ("Requesting info for [%d@%s]\n", cmdctx->id, dom->name));
+
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
         if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            return EIO;
         }
-        sss_cmd_done(cctx, cmdctx);
-        return;
-    }
 
-    if (dctx->check_provider) {
-        ret = check_cache(dctx, nctx, res,
-                          SSS_DP_GROUP, NULL, cmdctx->id,
-                          nss_cmd_getgrgid_dp_callback);
+        ret = sysdb_getgrgid(cmdctx, sysdb, dom, cmdctx->id, &dctx->res);
         if (ret != EOK) {
-            /* Anything but EOK means we should reenter the mainloop
-             * because we may be refreshing the cache
-             */
-            return;
-        }
-    }
-
-    switch (res->count) {
-    case 0:
-        if (cmdctx->check_next) {
-
-            ret = EOK;
-
-            dom = dctx->domain->next;
-
-            ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
-                                         cmdctx->id);
-            if (ncret == EEXIST) {
-                DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
-                          (unsigned long)cmdctx->id));
-                ret = ENOENT;
-            }
-            if (dom == NULL) {
-                DEBUG(0, ("No matching domain found for [%lu], fail!\n",
-                          (unsigned long)cmdctx->id));
-                ret = ENOENT;
-            }
-
-            if (ret == EOK) {
-                dctx->domain = dom;
-                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-                if (dctx->res) talloc_free(res);
-                dctx->res = NULL;
-
-                DEBUG(4, ("Requesting info for [%s@%s]\n",
-                          cmdctx->name, dctx->domain->name));
-
-                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                              dctx->domain, &sysdb);
-                if (ret != EOK) {
-                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-                    NSS_CMD_FATAL_ERROR(cctx);
-                }
-                ret = sysdb_getgrgid(cmdctx, sysdb,
-                                     dctx->domain, cmdctx->id,
-                                     nss_cmd_getgrgid_callback, dctx);
-                if (ret != EOK) {
-                    DEBUG(1, ("Failed to make request to our cache!\n"));
-                }
-            }
-
-            /* we made another call, end here */
-            if (ret == EOK) return;
+            DEBUG(1, ("Failed to make request to our cache!\n"));
+            return EIO;
         }
 
-        DEBUG(2, ("No results for getgrgid call\n"));
+        if (dctx->res->count > 1) {
+            DEBUG(0, ("getgrgid call returned more than one result !?!\n"));
+            return ENOENT;
+        }
 
-        /* set negative cache only if not result of cache check */
-        if (!neghit) {
+        if (dctx->res->count == 0 && !dctx->check_provider) {
+            /* if a multidomain search, try with next */
+            if (cmdctx->check_next) {
+                dom = dom->next;
+                continue;
+            }
+
+            DEBUG(2, ("No results for getgrgid call\n"));
+
+            /* set negative cache only if not result of cache check */
             ret = nss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
             if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
+                return ret;
+            }
+
+            return ENOENT;
+        }
+
+        /* if this is a caching provider (or if we haven't checked the cache
+         * yet) then verify that the cache is uptodate */
+        if (dctx->check_provider) {
+            ret = check_cache(dctx, nctx, dctx->res,
+                              SSS_DP_GROUP, NULL, cmdctx->id,
+                              nss_cmd_getgrgid_dp_callback);
+            if (ret != EOK) {
+                /* Anything but EOK means we should reenter the mainloop
+                 * because we may be refreshing the cache
+                 */
+                return ret;
             }
         }
 
-        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             sss_packet_get_cmd(cctx->creq->in),
-                             &cctx->creq->out);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_packet_get_body(cctx->creq->out, &body, &blen);
-        ((uint32_t *)body)[0] = 0; /* 0 results */
-        ((uint32_t *)body)[1] = 0; /* reserved */
-        break;
+        /* One result found */
+        DEBUG(6, ("Returning info for gid [%d@%s]\n", cmdctx->id, dom->name));
 
-    default:
-
-        DEBUG(6, ("Returning info for group [%u]\n", (unsigned)cmdctx->id));
-
-        /* create response packet */
-        ret = sss_packet_new(cctx->creq, 0,
-                             sss_packet_get_cmd(cctx->creq->in),
-                             &cctx->creq->out);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        i = res->count;
-        ret = fill_grent(cctx->creq->out,
-                         dctx->domain,
-                         nctx, true,
-                         res->msgs, 1, &i);
-        if (ret == ENOENT) {
-            ret = fill_empty(cctx->creq->out);
-        }
-        sss_packet_set_error(cctx->creq->out, ret);
+        return EOK;
     }
 
-    sss_cmd_done(cctx, cmdctx);
+    DEBUG(2, ("No matching domain found for [%d], fail!\n", cmdctx->id));
+    return ENOENT;
 }
 
 static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
@@ -1979,7 +1951,6 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -1988,38 +1959,33 @@ static void nss_cmd_getgrgid_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
 
-        if (!dctx->res) {
-            /* return 0 results */
-            dctx->res = talloc_zero(dctx, struct ldb_result);
-            if (!dctx->res) {
-                ret = ENOMEM;
-                goto done;
-            }
+        if (dctx->res && dctx->res->count == 1) {
+            ret = nss_cmd_getgr_send_reply(dctx, true);
+            goto done;
         }
 
-        nss_cmd_getgrgid_callback(dctx, LDB_SUCCESS, dctx->res);
-        return;
+        /* no previous results, just loop to next domain if possible */
+        if (dctx->domain->next && cmdctx->check_next) {
+            dctx->domain = dctx->domain->next;
+            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+        } else {
+            /* nothing vailable */
+            ret = ENOENT;
+            goto done;
+        }
     }
 
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        NSS_CMD_FATAL_ERROR(cctx);
+    /* ok the backend returned, search to see if we have updated results */
+    ret = nss_cmd_getgrgid_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_getgr_send_reply(dctx, true);
     }
-    ret = sysdb_getgrgid(cmdctx, sysdb,
-                         dctx->domain, cmdctx->id,
-                         nss_cmd_getgrgid_callback, dctx);
 
 done:
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
-
-        ret = nss_cmd_send_error(cmdctx, ret);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_cmd_done(cctx, cmdctx);
+    ret = nss_cmd_done(cmdctx, ret);
+    if (ret) {
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 }
 
@@ -2027,15 +1993,11 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
     uint8_t *body;
     size_t blen;
     int ret;
-    int ncret;
 
-    ret = ENOENT;
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
@@ -2060,75 +2022,29 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     }
     cmdctx->id = *((uint32_t *)body);
 
-    /* this is a multidomain search */
+    ret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
+    if (ret == EEXIST) {
+        DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
+                  (unsigned long)cmdctx->id));
+        ret = ENOENT;
+        goto done;
+    }
+
+    /* gid searches are always multidomain */
+    dctx->domain = cctx->rctx->domains;
     cmdctx->check_next = true;
 
-    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-        /* verify this user has not yet been negatively cached,
-         * or has been permanently filtered */
-        ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
-                                     cmdctx->id);
-        if (ncret == EEXIST) {
-            DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
-                      (unsigned long)cmdctx->id));
-            continue;
-        }
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
-        /* check that the uid is valid for this domain */
-        if ((dom->id_min && (cmdctx->id < dom->id_min)) ||
-            (dom->id_max && (cmdctx->id > dom->id_max))) {
-            DEBUG(4, ("Gid [%lu] does not exist in domain [%s]! "
-                      "(id out of range)\n",
-                      (unsigned long)cmdctx->id, dom->name));
-            continue;
-        }
-
-        dctx->domain = dom;
-        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-        DEBUG(4, ("Requesting info for [%lu@%s]\n",
-                  cmdctx->id, dctx->domain->name));
-
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                      dctx->domain, &sysdb);
-        if (ret != EOK) {
-            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-            ret = EFAULT;
-            goto done;
-        }
-        ret = sysdb_getgrgid(cmdctx, sysdb,
-                             dctx->domain, cmdctx->id,
-                             nss_cmd_getgrgid_callback, dctx);
-        if (ret != EOK) {
-            DEBUG(1, ("Failed to make request to our cache!\n"));
-        }
-
-        break;
+    /* ok, find it ! */
+    ret = nss_cmd_getgrgid_search(dctx);
+    if (ret == EOK) {
+        /* we have results to return */
+        ret = nss_cmd_getgr_send_reply(dctx, true);
     }
 
 done:
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            /* we do not have any entry to return */
-            ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                                 sss_packet_get_cmd(cctx->creq->in),
-                                 &cctx->creq->out);
-            if (ret == EOK) {
-                sss_packet_get_body(cctx->creq->out, &body, &blen);
-                ((uint32_t *)body)[0] = 0; /* 0 results */
-                ((uint32_t *)body)[1] = 0; /* reserved */
-            }
-        }
-        if (ret != EOK) {
-            ret = nss_cmd_send_error(cmdctx, ret);
-        }
-        if (ret == EOK) {
-            sss_cmd_done(cctx, cmdctx);
-        }
-        return ret;
-    }
-
-    return EOK;
+    return nss_cmd_done(cmdctx, ret);
 }
 
 /* to keep it simple at this stage we are retrieving the
