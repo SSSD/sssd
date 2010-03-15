@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-15 07:37-0400\n"
+"POT-Creation-Date: 2010-03-15 08:12-0400\n"
 "PO-Revision-Date: 2009-11-19 12:19+0100\n"
 "Last-Translator: Richard van der Luit <nippur@fedoraproject.org>\n"
 "Language-Team: Dutch <nl@li.org>\n"
@@ -460,10 +460,14 @@ msgstr "Voer nieuw wachtwoord nogmaals in: "
 msgid "Password: "
 msgstr "Wachtwoord: "
 
-#: sss_client/pam_sss.c:987
+#: sss_client/pam_sss.c:989
 #, fuzzy
 msgid "Current Password: "
 msgstr "Nieuw Wachtwoord: "
+
+#: sss_client/pam_sss.c:1126
+msgid "Password expired. Change your password now."
+msgstr ""
 
 #: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
 #: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45

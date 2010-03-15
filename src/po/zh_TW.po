@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 1.1.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-15 07:37-0400\n"
+"POT-Creation-Date: 2010-03-15 08:12-0400\n"
 "PO-Revision-Date: 2010-03-13 19:53+0800\n"
 "Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
 "Language-Team: Fedora-trans-zh_tw <trans-zh_tw@lists.fedoraproject.org>\n"
@@ -470,9 +470,13 @@ msgstr "再次輸入新密碼："
 msgid "Password: "
 msgstr "密碼："
 
-#: sss_client/pam_sss.c:987
+#: sss_client/pam_sss.c:989
 msgid "Current Password: "
 msgstr "目前的密碼："
+
+#: sss_client/pam_sss.c:1126
+msgid "Password expired. Change your password now."
+msgstr ""
 
 #: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
 #: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45

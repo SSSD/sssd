@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-15 07:37-0400\n"
+"POT-Creation-Date: 2010-03-15 08:12-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -458,8 +458,12 @@ msgstr ""
 msgid "Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:987
+#: sss_client/pam_sss.c:989
 msgid "Current Password: "
+msgstr ""
+
+#: sss_client/pam_sss.c:1126
+msgid "Password expired. Change your password now."
 msgstr ""
 
 #: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
