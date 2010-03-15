@@ -441,43 +441,6 @@ fi
 %postun -n libref_array -p /sbin/ldconfig
 
 %changelog
-* Mon Sep 28 2009 Sumit Bose <sbose@redhat.com> - 0.6.0-0
-- New upstream release 0.6.0
+* Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
+- Automated build of the SSSD
 
-* Fri Sep 25 2009 Simo Sorce <ssorce@redhat.com> - 0.5.0-1
-- Split package into server and clients components
-- Convert to new config file format
-
-* Wed Sep 02 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.5.0-0
-- New upstream release 0.5.0
-
-* Mon May 18 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.4.0-1
-- Convert build system to automake
-
-* Mon Apr 20 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.3.2-1
-- bugfix release 0.3.2
-
-* Mon Apr 13 2009 Simo Sorce <ssorce@redhat.com> - 0.3.1-1
-- bugfix release
-
-* Sun Apr 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.3.0-2
-- Remove InfoPipe from RPM build
-
-* Sun Apr 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.3.0-1
-- Convert to using /etc/sssd/sssd.conf for configuration
-
-* Tue Mar 10 2009 Simo Sorce <ssorce@redhat.com> - 0.2.1-1
-- Bump up to version 0.2.1
-
-* Fri Mar 06 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-4
-- fixed items found during review
-- added initscript
-
-* Thu Mar 05 2009 Sumit Bose <sbose@redhat.com> - 0.1.0-3
-- added sss_client
-
-* Mon Feb 23 2009 Jakub Hrozek <jhrozek@redhat.com> - 0.1.0-2
-- Small cleanup and fixes in the spec file
-
-* Thu Feb 12 2009 Stephen Gallagher <sgallagh@redhat.com> - 0.1.0-1
-- Initial release (based on version 0.1.0 upstream code)
