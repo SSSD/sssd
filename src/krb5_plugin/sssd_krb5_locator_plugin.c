@@ -153,34 +153,35 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
     port_str = strrchr((char *) buf, ':');
     if (port_str == NULL) {
         port = 0;
-    }
-    *port_str = '\0';
-    ++port_str;
-
-    if (isdigit(*port_str)) {
-        errno = 0;
-        port = strtol(port_str, &endptr, 10);
-        if (errno != 0) {
-            ret = errno;
-            PLUGIN_DEBUG(("strtol failed on [%s]: [%d][%s], "
-                          "assuming default.\n", port_str, ret, strerror(ret)));
-            port = 0;
-        }
-        if (*endptr != '\0') {
-            PLUGIN_DEBUG(("Found additional characters [%s] in port number "
-                          "[%s], assuming default.\n", endptr, port_str));
-            port = 0;
-        }
-
-        if (port < 0 || port > 65535) {
-            PLUGIN_DEBUG(("Illegal port number [%d], assuming default.\n",
-                          port));
-            port = 0;
-        }
     } else {
-        PLUGIN_DEBUG(("Illegal port number [%s], assuming default.\n",
-                      port_str));
-        port = 0;
+        *port_str = '\0';
+        ++port_str;
+
+        if (isdigit(*port_str)) {
+            errno = 0;
+            port = strtol(port_str, &endptr, 10);
+            if (errno != 0) {
+                ret = errno;
+                PLUGIN_DEBUG(("strtol failed on [%s]: [%d][%s], "
+                            "assuming default.\n", port_str, ret, strerror(ret)));
+                port = 0;
+            }
+            if (*endptr != '\0') {
+                PLUGIN_DEBUG(("Found additional characters [%s] in port number "
+                            "[%s], assuming default.\n", endptr, port_str));
+                port = 0;
+            }
+
+            if (port < 0 || port > 65535) {
+                PLUGIN_DEBUG(("Illegal port number [%d], assuming default.\n",
+                            port));
+                port = 0;
+            }
+        } else {
+            PLUGIN_DEBUG(("Illegal port number [%s], assuming default.\n",
+                        port_str));
+            port = 0;
+        }
     }
 
     switch (svc) {
