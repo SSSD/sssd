@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sss_daemon 1.1.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-03-15 07:37-0400\n"
-"PO-Revision-Date: 2010-03-10 00:14+0800\n"
+"PO-Revision-Date: 2010-03-13 19:53+0800\n"
 "Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
 "Language-Team: Fedora-trans-zh_tw <trans-zh_tw@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -25,11 +25,11 @@ msgstr ""
 
 #: config/SSSDConfig.py:40
 msgid "Include timestamps in debug logs"
-msgstr ""
+msgstr "在除錯日誌內加入時間戳記"
 
 #: config/SSSDConfig.py:41
 msgid "Write debug messages to logfiles"
-msgstr ""
+msgstr "將除錯訊息寫入日誌檔"
 
 #: config/SSSDConfig.py:42
 msgid "Ping timeout before restarting service"
@@ -37,19 +37,20 @@ msgstr ""
 
 #: config/SSSDConfig.py:43
 msgid "Command to start service"
-msgstr ""
+msgstr "啟動服務的指令"
 
 #: config/SSSDConfig.py:44
+#, fuzzy
 msgid "Number of times to attempt connection to Data Providers"
-msgstr ""
+msgstr "試圖連線到資料提供者的次數"
 
 #: config/SSSDConfig.py:47
 msgid "SSSD Services to start"
-msgstr ""
+msgstr "要啟動的 SSSD 服務"
 
 #: config/SSSDConfig.py:48
 msgid "SSSD Domains to start"
-msgstr ""
+msgstr "要啟動的 SSSD 網域"
 
 #: config/SSSDConfig.py:49
 msgid "Timeout for messages sent over the SBUS"
@@ -77,27 +78,29 @@ msgstr ""
 
 #: config/SSSDConfig.py:57
 msgid "Users that SSSD should explicitly ignore"
-msgstr ""
+msgstr "SSSD 應該明確忽略的使用者"
 
 #: config/SSSDConfig.py:58
 msgid "Groups that SSSD should explicitly ignore"
-msgstr ""
+msgstr "SSSD 應該明確忽略的群組"
 
 #: config/SSSDConfig.py:59
 msgid "Should filtered users appear in groups"
-msgstr ""
+msgstr "過濾的使用者是否應該顯現在群組內"
 
 #: config/SSSDConfig.py:60
+#, fuzzy
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
+msgstr "NSS 提供者應該回傳的密碼的值"
 
 #: config/SSSDConfig.py:63
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
 
 #: config/SSSDConfig.py:64
+#, fuzzy
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "當離線時所許可的試圖登入失敗次數"
 
 #: config/SSSDConfig.py:65
 msgid ""
@@ -107,27 +110,27 @@ msgstr ""
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
-msgstr ""
+msgstr "身分提供者"
 
 #: config/SSSDConfig.py:69
 msgid "Authentication provider"
-msgstr ""
+msgstr "認證提供者"
 
 #: config/SSSDConfig.py:70
 msgid "Access control provider"
-msgstr ""
+msgstr "存取控制提供者"
 
 #: config/SSSDConfig.py:71
 msgid "Password change provider"
-msgstr ""
+msgstr "密碼變更提供者"
 
 #: config/SSSDConfig.py:74
 msgid "Minimum user ID"
-msgstr ""
+msgstr "最小的使用者 ID"
 
 #: config/SSSDConfig.py:75
 msgid "Maximum user ID"
-msgstr ""
+msgstr "最大的使用者 ID"
 
 #: config/SSSDConfig.py:76
 msgid "Ping timeout before restarting domain"
@@ -135,15 +138,16 @@ msgstr ""
 
 #: config/SSSDConfig.py:77
 msgid "Enable enumerating all users/groups"
-msgstr ""
+msgstr "啟用所有使用者或群組的列舉"
 
 #: config/SSSDConfig.py:78
 msgid "Cache credentials for offline login"
-msgstr ""
+msgstr "供離線登入使用的快取憑證"
 
 #: config/SSSDConfig.py:79
+#, fuzzy
 msgid "Store password hashes"
-msgstr ""
+msgstr "儲存密碼雜湊"
 
 #: config/SSSDConfig.py:80
 msgid "Display users/groups in fully-qualified form"
@@ -164,19 +168,19 @@ msgstr ""
 
 #: config/SSSDConfig.py:86
 msgid "IPA domain"
-msgstr ""
+msgstr "IPA 網域"
 
 #: config/SSSDConfig.py:87
 msgid "IPA server address"
-msgstr ""
+msgstr "IPA 伺服器位址"
 
 #: config/SSSDConfig.py:88
 msgid "IPA client hostname"
-msgstr ""
+msgstr "IPA 客戶端主機名稱"
 
 #: config/SSSDConfig.py:91 config/SSSDConfig.py:119
 msgid "Kerberos server address"
-msgstr ""
+msgstr "Kerberos 伺服器位址"
 
 #: config/SSSDConfig.py:92 config/SSSDConfig.py:120
 msgid "Kerberos realm"
@@ -184,27 +188,27 @@ msgstr ""
 
 #: config/SSSDConfig.py:93
 msgid "Authentication timeout"
-msgstr ""
+msgstr "認證逾時"
 
 #: config/SSSDConfig.py:96
 msgid "Directory to store credential caches"
-msgstr ""
+msgstr "儲存憑證快取的目錄"
 
 #: config/SSSDConfig.py:97
 msgid "Location of the user's credential cache"
-msgstr ""
+msgstr "使用者憑證快取的位置"
 
 #: config/SSSDConfig.py:98
 msgid "Location of the keytab to validate credentials"
-msgstr ""
+msgstr "驗證憑證用的金鑰表格位置"
 
 #: config/SSSDConfig.py:99
 msgid "Enable credential validation"
-msgstr ""
+msgstr "啟用憑證驗證"
 
 #: config/SSSDConfig.py:102
 msgid "The principal of the change password service"
-msgstr ""
+msgstr "變更密碼的服務其原則"
 
 #: config/SSSDConfig.py:103
 msgid "Server where the change password service is running if not on the KDC"
@@ -248,19 +252,19 @@ msgstr ""
 
 #: config/SSSDConfig.py:115
 msgid "file that contains CA certificates"
-msgstr ""
+msgstr "含有 CA 憑證的檔案"
 
 #: config/SSSDConfig.py:116
 msgid "Require TLS certificate verification"
-msgstr ""
+msgstr "需要 TLS 憑證驗證"
 
 #: config/SSSDConfig.py:117
 msgid "Specify the sasl mechanism to use"
-msgstr ""
+msgstr "指定要使用的 sasl 機制"
 
 #: config/SSSDConfig.py:118
 msgid "Specify the sasl authorization id to use"
-msgstr ""
+msgstr "指定要使用的 sasl 認證 id"
 
 #: config/SSSDConfig.py:121
 msgid "Kerberos service keytab"
@@ -336,59 +340,61 @@ msgstr ""
 
 #: config/SSSDConfig.py:141
 msgid "Full Name"
-msgstr ""
+msgstr "全名"
 
 #: config/SSSDConfig.py:142
 msgid "memberOf attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:143
+#, fuzzy
 msgid "Modification time attribute"
-msgstr ""
+msgstr "修改時間屬性"
 
 #: config/SSSDConfig.py:146
 msgid "Policy to evaluate the password expiration"
-msgstr ""
+msgstr "評估密碼過期時效的策略"
 
 #: config/SSSDConfig.py:149
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "許可的使用者清單，請使用半形逗號作為分隔"
 
 #: config/SSSDConfig.py:150
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "被禁止的使用者清單，請使用半形逗號作為分隔"
 
 #: config/SSSDConfig.py:153
 msgid "Default shell, /bin/bash"
-msgstr ""
+msgstr "預設 shell，/bin/bash"
 
 #: config/SSSDConfig.py:154
+#, fuzzy
 msgid "Base for home directories"
-msgstr ""
+msgstr "家目錄的基礎"
 
 #: config/SSSDConfig.py:157
 msgid "The name of the NSS library to use"
-msgstr ""
+msgstr "要使用的 NSS 函式庫名稱"
 
 #: config/SSSDConfig.py:160
 msgid "PAM stack to use"
-msgstr ""
+msgstr "要使用的 PAM 堆疊"
 
 #: monitor/monitor.c:2199
 msgid "Become a daemon (default)"
-msgstr ""
+msgstr "作為幕後程式 (預設)"
 
 #: monitor/monitor.c:2201
 msgid "Run interactive (not a daemon)"
-msgstr ""
+msgstr "以互動方式執行 (非幕後程式)"
 
 #: monitor/monitor.c:2203
 msgid "Specify a non-default config file"
-msgstr ""
+msgstr "指定非預設的配置檔"
 
 #: monitor/monitor.c:2229
 msgid "sssd must be run as root\n"
-msgstr ""
+msgstr "sssd 必須以 root 身分執行\n"
 
 #: monitor/monitor.c:2264
 msgid ""
@@ -402,20 +408,22 @@ msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
 msgstr ""
+"無法讀取配置檔 %s，請確認權限是否為 0600 並且檔案是由 root.root 所擁有\n"
 
 #: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
-msgstr ""
+msgstr "除錯層級"
 
 #: providers/krb5/krb5_child.c:931 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
-msgstr ""
+msgstr "加入除錯時間戳記"
 
 #: providers/krb5/krb5_child.c:933 providers/ldap/ldap_child.c:320
+#, fuzzy
 msgid "An open file descriptor for the debug logs"
-msgstr ""
+msgstr "供除錯日誌使用的開啟檔案描述符"
 
 #: providers/data_provider_be.c:1156
 msgid "Domain of the information provider (mandatory)"
@@ -423,238 +431,242 @@ msgstr ""
 
 #: sss_client/pam_sss.c:353
 msgid "Passwords do not match"
-msgstr ""
+msgstr "密碼不相符"
 
 #: sss_client/pam_sss.c:422
 msgid "Offline authentication"
-msgstr ""
+msgstr "離線認證"
 
 #: sss_client/pam_sss.c:423
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr "，您快取的密碼將在此刻過期："
 
 #: sss_client/pam_sss.c:473
+#, fuzzy
 msgid "Offline authentication, authentication is denied until: "
-msgstr ""
+msgstr "離線認證，認證被定義到："
 
 #: sss_client/pam_sss.c:500
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "系統已離線，不可能作密碼變更"
 
 #: sss_client/pam_sss.c:530
 msgid "Password change failed. "
-msgstr ""
+msgstr "密碼變更失敗。"
 
 #: sss_client/pam_sss.c:531
 msgid "Server message: "
-msgstr ""
+msgstr "伺服器訊息："
 
 #: sss_client/pam_sss.c:898
 msgid "New Password: "
-msgstr ""
+msgstr "新密碼："
 
 #: sss_client/pam_sss.c:899
 msgid "Reenter new Password: "
-msgstr ""
+msgstr "再次輸入新密碼："
 
 #: sss_client/pam_sss.c:957
 msgid "Password: "
-msgstr ""
+msgstr "密碼："
 
 #: sss_client/pam_sss.c:987
 msgid "Current Password: "
-msgstr ""
+msgstr "目前的密碼："
 
 #: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
 #: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45
 #: tools/sss_usermod.c:46
+#, fuzzy
 msgid "The debug level to run with"
-msgstr ""
+msgstr "要依那種除錯層級執行"
 
 #: tools/sss_useradd.c:115 tools/sss_usermod.c:47
 msgid "The UID of the user"
-msgstr ""
+msgstr "使用者的 UID"
 
 #: tools/sss_useradd.c:116
 msgid "The GID or group name of the user"
-msgstr ""
+msgstr "使用者的 GID 或群組名稱"
 
 #: tools/sss_useradd.c:117 tools/sss_usermod.c:49
 msgid "The comment string"
-msgstr ""
+msgstr "註解字串"
 
 #: tools/sss_useradd.c:118 tools/sss_usermod.c:50
 msgid "Home directory"
-msgstr ""
+msgstr "家目錄"
 
 #: tools/sss_useradd.c:119 tools/sss_usermod.c:51
 msgid "Login shell"
-msgstr ""
+msgstr "登入用 shell"
 
 #: tools/sss_useradd.c:120
 msgid "Groups"
-msgstr ""
+msgstr "群組"
 
 #: tools/sss_useradd.c:121
 msgid "Create user's directory if it does not exist"
-msgstr ""
+msgstr "如果使用者的目錄不存在便將它建立"
 
 #: tools/sss_useradd.c:122
 msgid "Never create user's directory, overrides config"
-msgstr ""
+msgstr "永遠不建立使用者的目錄，凌駕配置"
 
 #: tools/sss_useradd.c:123
 msgid "Specify an alternative skeleton directory"
-msgstr ""
+msgstr "指定替代的骨幹目錄"
 
 #: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:57
 #: tools/sss_usermod.c:70
 msgid "Error setting the locale\n"
-msgstr ""
+msgstr "設定區域設置時發生錯誤\n"
 
 #: tools/sss_useradd.c:172
 msgid "Specify user to add\n"
-msgstr ""
+msgstr "指定要加入的使用者\n"
 
 #: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
 #: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:102
 #: tools/sss_usermod.c:126
 msgid "Error initializing the tools - no local domain\n"
-msgstr ""
+msgstr "初始化工具時發生錯誤 - 沒有本機網域\n"
 
 #: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
 #: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:104
 #: tools/sss_usermod.c:128
 msgid "Error initializing the tools\n"
-msgstr ""
+msgstr "初始化工具時發生錯誤\n"
 
 #: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
 #: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:113
 #: tools/sss_usermod.c:137
 msgid "Invalid domain specified in FQDN\n"
-msgstr ""
+msgstr "在 FQDN 內指定了無效的網域\n"
 
 #: tools/sss_useradd.c:203 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
 #: tools/sss_usermod.c:162 tools/sss_usermod.c:189
 msgid "Internal error while parsing parameters\n"
-msgstr ""
+msgstr "當解析參數時發生內部錯誤\n"
 
 #: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
 msgid "Groups must be in the same domain as user\n"
-msgstr ""
+msgstr "群組必須位於與使用者相同的網域內\n"
 
 #: tools/sss_useradd.c:219
 #, c-format
 msgid "Cannot find group %s in local domain\n"
-msgstr ""
+msgstr "在本機網域內找不到 %s 群組\n"
 
 #: tools/sss_useradd.c:229
 msgid "Cannot get group information for the user\n"
-msgstr ""
+msgstr "無法為這位使用者設定群組資訊\n"
 
 #: tools/sss_useradd.c:244 tools/sss_userdel.c:123
 msgid "Cannot set default values\n"
-msgstr ""
+msgstr "無法設定預設值\n"
 
 #: tools/sss_useradd.c:251 tools/sss_usermod.c:153
 msgid "The selected UID is outside the allowed range\n"
-msgstr ""
+msgstr "所選的 UID 位於許可的範圍外\n"
 
 #: tools/sss_useradd.c:285
 msgid "Cannot get info about the user\n"
-msgstr ""
+msgstr "無法取得關於這位使用者的資訊\n"
 
 #: tools/sss_useradd.c:299
 msgid "User's home directory already exists, not copying data from skeldir\n"
-msgstr ""
+msgstr "使用者的家目錄已經存在，不會從骨幹目錄複製資料\n"
 
 #: tools/sss_useradd.c:302
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
-msgstr ""
+msgstr "無法建立使用者的家目錄：%s\n"
 
 #: tools/sss_useradd.c:313
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
-msgstr ""
+msgstr "無法建立使用者的郵件 spool：%s\n"
 
 #: tools/sss_useradd.c:325
 msgid "Could not allocate ID for the user - domain full?\n"
-msgstr ""
+msgstr "無法為使用者分配 ID - 網域已滿？\n"
 
 #: tools/sss_useradd.c:329
 msgid "A user or group with the same name or ID already exists\n"
-msgstr ""
+msgstr "已經存在相同名稱的使用者或群組\n"
 
 #: tools/sss_useradd.c:335
 msgid "Transaction error. Could not add user.\n"
-msgstr ""
+msgstr "處理事項發生錯誤。無法加入使用者。\n"
 
 #: tools/sss_groupadd.c:43 tools/sss_groupmod.c:48
 msgid "The GID of the group"
-msgstr ""
+msgstr "群組的 GID"
 
 #: tools/sss_groupadd.c:75
 msgid "Specify group to add\n"
-msgstr ""
+msgstr "指定要加入的群組\n"
 
 #: tools/sss_groupadd.c:106 tools/sss_groupmod.c:194
 msgid "The selected GID is outside the allowed range\n"
-msgstr ""
+msgstr "所選的 GID 位於許可的範圍外\n"
 
 #: tools/sss_groupadd.c:133
 msgid "Could not allocate ID for the group - domain full?\n"
-msgstr ""
+msgstr "無法為群組分配 ID - 網域已滿？\n"
 
 #: tools/sss_groupadd.c:137
 msgid "A group with the same name or GID already exists\n"
-msgstr ""
+msgstr "已經存在相同名稱的群組或 GID\n"
 
 #: tools/sss_groupadd.c:142
 msgid "Transaction error. Could not add group.\n"
-msgstr ""
+msgstr "處理事項發生錯誤。無法加入群組。\n"
 
 #: tools/sss_groupdel.c:70
 msgid "Specify group to delete\n"
-msgstr ""
+msgstr "指定要刪除的群組\n"
 
 #: tools/sss_groupdel.c:107
-#, c-format
+#, fuzzy, c-format
 msgid "Group %s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "群組 %s 位於為網域所定義的 ID 範圍外\n"
 
 #: tools/sss_groupdel.c:136
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
-msgstr ""
+msgstr "在本機網域內沒有這樣的群組。只許可在本機網域內移除群組。\n"
 
 #: tools/sss_groupdel.c:141
 msgid "Internal error. Could not remove group.\n"
-msgstr ""
+msgstr "內部錯誤。無法移除群組。\n"
 
 #: tools/sss_groupmod.c:44
+#, fuzzy
 msgid "Groups to add this group to"
-msgstr ""
+msgstr "要加入此群組的群組"
 
 #: tools/sss_groupmod.c:46
+#, fuzzy
 msgid "Groups to remove this group from"
-msgstr ""
+msgstr "要從哪些群組移除此群組"
 
 #: tools/sss_groupmod.c:98
 msgid "Specify group to modify\n"
-msgstr ""
+msgstr "指定要修改的群組\n"
 
 #: tools/sss_groupmod.c:130
 msgid ""
 "Cannot find group in local domain, modifying groups is allowed only in local "
 "domain\n"
-msgstr ""
+msgstr "在本機網域內找不到群組，只許可在本機網域內修改群組\n"
 
 #: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
 msgid "Member groups must be in the same domain as parent group\n"
-msgstr ""
+msgstr "成員群組必須位於與親代群組相同的網域內\n"
 
 #: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
 #: tools/sss_usermod.c:205
@@ -662,165 +674,174 @@ msgstr ""
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
 "allowed\n"
-msgstr ""
+msgstr "在本機網域內找不到 %s 群組，只許可本機網域內的群組\n"
 
 #: tools/sss_groupmod.c:222
+#, fuzzy
 msgid "Could not modify group - check if member group names are correct\n"
-msgstr ""
+msgstr "無法修改群組 - 請檢查成員群組名稱是否正確\n"
 
 #: tools/sss_groupmod.c:226
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
+msgstr "無法修改群組 - 請檢查群組名稱是否正確\n"
 
 #: tools/sss_groupmod.c:230
 msgid "Transaction error. Could not modify group.\n"
-msgstr ""
+msgstr "處理事項發生錯誤。無法修改群組。\n"
 
 #: tools/sss_groupshow.c:954
 #, c-format
 msgid "%s%sGroup: %s\n"
-msgstr ""
+msgstr "%s%s群組：%s\n"
 
 #: tools/sss_groupshow.c:955
 msgid "Magic Private "
-msgstr ""
+msgstr "魔法隱私"
 
 #: tools/sss_groupshow.c:957
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr ""
+msgstr "%sGID 編號：%d\n"
 
 #: tools/sss_groupshow.c:959
-#, c-format
+#, fuzzy, c-format
 msgid "%sMember users: "
-msgstr ""
+msgstr "%s成員使用者："
 
 #: tools/sss_groupshow.c:966
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
+"\n"
+"%s是該群組的成員："
 
 #: tools/sss_groupshow.c:973
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
+"\n"
+"%s成員群組： "
 
 #: tools/sss_groupshow.c:1010
 msgid "Print indirect group members recursively"
-msgstr ""
+msgstr "遞迴地列出間接的群組成員"
 
 #: tools/sss_groupshow.c:1045
 msgid "Specify group to show\n"
-msgstr ""
+msgstr "指定要顯示的群組\n"
 
 #: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
 msgid "Cannot initiate search\n"
-msgstr ""
+msgstr "無法開始搜尋\n"
 
 #: tools/sss_groupshow.c:1115
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
-msgstr ""
+msgstr "本機網域內沒有這樣的群組。只許可在本機網域內列出群組。\n"
 
 #: tools/sss_groupshow.c:1120
 msgid "Internal error. Could not print group.\n"
-msgstr ""
+msgstr "內部錯誤。無法列出群組。\n"
 
 #: tools/sss_userdel.c:46
+#, fuzzy
 msgid "Remove home directory and mail spool"
-msgstr ""
+msgstr "移除家目錄與郵件 spool"
 
 #: tools/sss_userdel.c:47
+#, fuzzy
 msgid "Do not remove home directory and mail spool"
-msgstr ""
+msgstr "不要移除家目錄與郵件 spool"
 
 #: tools/sss_userdel.c:48
 msgid "Force removal of files not owned by the user"
-msgstr ""
+msgstr "強制檔案的移除並非由使用者所擁有"
 
 #: tools/sss_userdel.c:91
 msgid "Specify user to delete\n"
-msgstr ""
+msgstr "指定要刪除的使用者\n"
 
 #: tools/sss_userdel.c:141
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
-msgstr ""
+msgstr "使用者 %s 位於為網域所定義的 ID 範圍外\n"
 
 #: tools/sss_userdel.c:172
 msgid "Not removing home dir - not owned by user\n"
-msgstr ""
+msgstr "不會移除家目錄 - 並非由使用者所擁有\n"
 
 #: tools/sss_userdel.c:174
 #, c-format
 msgid "Cannot remove homedir: %s\n"
-msgstr ""
+msgstr "無法移除家目錄：%s\n"
 
 #: tools/sss_userdel.c:186
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
-msgstr ""
+msgstr "在本機網域內沒有這樣的使用者。只許可在本機網域內移除使用者。\n"
 
 #: tools/sss_userdel.c:191
 msgid "Internal error. Could not remove user.\n"
-msgstr ""
+msgstr "內部錯誤。無法移除使用者。\n"
 
 #: tools/sss_usermod.c:48
 msgid "The GID of the user"
-msgstr ""
+msgstr "使用者的 GID"
 
 #: tools/sss_usermod.c:52
+#, fuzzy
 msgid "Groups to add this user to"
-msgstr ""
+msgstr "將此使用者加入何群組"
 
 #: tools/sss_usermod.c:53
+#, fuzzy
 msgid "Groups to remove this user from"
-msgstr ""
+msgstr "將此使用者從何群組移除"
 
 #: tools/sss_usermod.c:54
 msgid "Lock the account"
-msgstr ""
+msgstr "鎖住這個帳號"
 
 #: tools/sss_usermod.c:55
 msgid "Unlock the account"
-msgstr ""
+msgstr "解除這個帳號的鎖"
 
 #: tools/sss_usermod.c:115
 msgid "Specify user to modify\n"
-msgstr ""
+msgstr "指定要修改的使用者\n"
 
 #: tools/sss_usermod.c:146
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
-msgstr ""
+msgstr "在本機網域內找不到使用者，只許可在本機網域內修改使用者\n"
 
 #: tools/sss_usermod.c:241
 msgid "Could not modify user - check if group names are correct\n"
-msgstr ""
+msgstr "無法修改使用者 - 請檢查群組名稱是否正確\n"
 
 #: tools/sss_usermod.c:245
 msgid "Could not modify user - user already member of groups?\n"
-msgstr ""
+msgstr "無法修改使用者 - 使用者是否已經是群組的成員？\n"
 
 #: tools/sss_usermod.c:249
 msgid "Transaction error. Could not modify user.\n"
-msgstr ""
+msgstr "處理事項發生錯誤。無法修改使用者。\n"
 
 #: tools/tools_util.c:292
 msgid "Out of memory\n"
-msgstr ""
+msgstr "記憶體耗盡\n"
 
 #: tools/tools_util.h:34
 #, c-format
 msgid "%s must be run as root\n"
-msgstr ""
+msgstr "%s 必須以 root 身分執行\n"
 
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
-msgstr ""
+msgstr "傳送除錯輸出到檔案而不是標準輸出"
