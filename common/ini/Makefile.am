@@ -45,6 +45,21 @@ check_PROGRAMS = ini_config_ut
 ini_config_ut_SOURCES = ini_config_ut.c
 ini_config_ut_LDADD = libini_config.la -lcollection
 
+if HAVE_DOXYGEN
+docs:
+# A temp way of building docs until we hook into the package build
+	rm -fR doc
+	mkdir -p doc
+	$(DOXYGEN) ini_config.cfg.doxy
+else
+docs:
+	@echo "Doxygen not installed, cannot generate documentation"
+	@exit 1
+endif
+
 TESTS = ini_config_ut
 
 tests: all $(check_PROGRAMS)
+
+clean-local:
+	rm -Rf doc

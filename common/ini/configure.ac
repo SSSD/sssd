@@ -23,5 +23,8 @@ AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TR
 
 AC_DEFINE([MAX_KEY], [1024], [Max length of the key in the INI file.])
 
-AC_CONFIG_FILES([Makefile ini_config.pc])
+AC_PATH_PROG([DOXYGEN], [doxygen], [false])
+AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
+
+AC_CONFIG_FILES([Makefile ini_config.cfg.doxy ini_config.pc])
 AC_OUTPUT
