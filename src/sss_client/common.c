@@ -63,7 +63,11 @@ static int exchange_credentials(void)
     struct cmsghdr *cmsg;
     struct iovec iov;
     char dummy='a';
-    char buf[CMSG_SPACE(sizeof(struct ucred))];
+    /* buf must be aligned on some architectures. */
+    union ubuf {
+        int align;
+        char buf[CMSG_SPACE(sizeof(struct ucred))];
+    } u;
     struct ucred *creds;
     int enable = 1;
     struct pollfd pfd;
@@ -83,8 +87,8 @@ static int exchange_credentials(void)
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
 
-    msg.msg_control = buf;
-    msg.msg_controllen = sizeof(buf);
+    msg.msg_control = u.buf;
+    msg.msg_controllen = sizeof(u.buf);
 
     cmsg = CMSG_FIRSTHDR(&msg);
     cmsg->cmsg_level = SOL_SOCKET;
@@ -118,8 +122,8 @@ static int exchange_credentials(void)
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
 
-    msg.msg_control = buf;
-    msg.msg_controllen = sizeof(buf);
+    msg.msg_control = u.buf;
+    msg.msg_controllen = sizeof(u.buf);
 
     pfd.fd = sss_cli_sd;
     pfd.events = POLLIN;

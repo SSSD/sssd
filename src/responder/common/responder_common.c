@@ -157,7 +157,11 @@ static void cred_handler(struct cli_ctx *cctx, char action)
     struct iovec iov;
     struct cmsghdr *cmsg;
     struct ucred *creds;
-    char buf[CMSG_SPACE(sizeof(struct ucred))];
+    /* buf must be aligned on some architectures. */
+    union ubuf {
+        int align;
+        char buf[CMSG_SPACE(sizeof(struct ucred))];
+    } u;
     char dummy='s';
     int enable=1;
 
@@ -178,8 +182,8 @@ static void cred_handler(struct cli_ctx *cctx, char action)
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
 
-    msg.msg_control = buf;
-    msg.msg_controllen = sizeof(buf);
+    msg.msg_control = u.buf;
+    msg.msg_controllen = sizeof(u.buf);
 
     switch (action) {
         case 'r':
