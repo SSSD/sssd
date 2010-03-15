@@ -208,7 +208,7 @@ KRB5_LIBS=-lkrb5 \
 
 make %{?_smp_mflags}
 
-pushd common/collection
+pushd common
 make %{?_smp_mflags} docs
 popd
 
@@ -383,7 +383,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/ini_config.h
 %{_libdir}/libini_config.so
 %{_libdir}/pkgconfig/ini_config.pc
-%doc common/ini/README
+%doc common/ini/doc/html/
 
 %files -n libref_array
 %defattr(-,root,root,-)
