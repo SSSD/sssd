@@ -27,15 +27,3 @@ fi
 AM_CONDITIONAL([HAVE_FEDORA], [test x"$osname" == xfedora])
 AM_CONDITIONAL([HAVE_REDHAT], [test x"$osname" == xredhat])
 AM_CONDITIONAL([HAVE_SUSE], [test x"$osname" == xsuse])
-
-AC_CHECK_MEMBERS([struct ucred.pid, struct ucred.uid, struct ucred.gid], , ,
-                 [[#define _GNU_SOURCE
-                   #include <sys/socket.h>]])
-
-if test x"$ac_cv_member_struct_ucred_pid" = xyes -a \
-        x"$ac_cv_member_struct_ucred_uid" = xyes -a \
-        x"$ac_cv_member_struct_ucred_gid" = xyes ; then
-    AC_DEFINE([HAVE_UCRED], [1], [Define if struct ucred is available])
-else
-    AC_MSG_WARN([struct ucred is not available])
-fi

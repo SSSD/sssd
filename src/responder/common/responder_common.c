@@ -19,9 +19,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/* for struct ucred */
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -32,8 +29,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
-#include <popt.h>
-#include "config.h"
+#include "popt.h"
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -148,129 +144,11 @@ static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
     return;
 }
 
-static void cred_handler(struct cli_ctx *cctx, char action)
-{
-#ifdef HAVE_UCRED
-    int ret;
-    int fd;
-    struct msghdr msg;
-    struct iovec iov;
-    struct cmsghdr *cmsg;
-    struct ucred *creds;
-    char buf[CMSG_SPACE(sizeof(struct ucred))];
-    char dummy='s';
-    int enable=1;
-
-    if (cctx->creds_exchange_done != 0) {
-        DEBUG(1, ("cred_handler called, but creds are already exchanged.\n"));
-        goto failed;
-    }
-
-    fd = cctx->cfd;
-
-    iov.iov_base = &dummy;
-    iov.iov_len = 1;
-
-    memset (&msg, 0, sizeof(msg));
-
-    msg.msg_name = NULL;
-    msg.msg_namelen = 0;
-    msg.msg_iov = &iov;
-    msg.msg_iovlen = 1;
-
-    msg.msg_control = buf;
-    msg.msg_controllen = sizeof(buf);
-
-    switch (action) {
-        case 'r':
-            ret = setsockopt(fd, SOL_SOCKET, SO_PASSCRED, &enable, sizeof(int));
-            if (ret == -1) {
-                DEBUG(1, ("setsockopt failed: [%d][%s].\n", errno,
-                                                            strerror(errno)));
-                goto failed;
-            }
-
-            ret = recvmsg(fd, &msg, 0);
-            if (ret == -1) {
-                DEBUG(1, ("recvmsg failed.[%d][%s]\n", errno, strerror(errno)));
-                goto failed;
-            }
-
-            cmsg = CMSG_FIRSTHDR(&msg);
-
-            if (cmsg->cmsg_level == SOL_SOCKET &&
-                cmsg->cmsg_type == SCM_CREDENTIALS) {
-                creds = (struct ucred *) CMSG_DATA(cmsg);
-                DEBUG(1, ("creds: [%d][%d][%d]\n",creds->uid, creds->gid,
-                                                  creds->pid));
-                cctx->client_uid = creds->uid;
-                cctx->client_gid = creds->gid;
-                cctx->client_pid = creds->pid;
-            }
-
-            TEVENT_FD_WRITEABLE(cctx->cfde);
-
-            return;
-            break;
-        case 's':
-            cmsg = CMSG_FIRSTHDR(&msg);
-            cmsg->cmsg_level = SOL_SOCKET;
-            cmsg->cmsg_type = SCM_CREDENTIALS;
-            cmsg->cmsg_len = CMSG_LEN(sizeof(struct ucred));
-
-            creds = (struct ucred *) CMSG_DATA(cmsg);
-
-            creds->uid = geteuid();
-            creds->gid = getegid();
-            creds->pid = getpid();
-
-            msg.msg_controllen = cmsg->cmsg_len;
-
-            ret = sendmsg(fd, &msg, 0);
-            if (ret == -1) {
-                DEBUG(1, ("sendmsg failed.[%d][%s]\n", errno, strerror(errno)));
-                goto failed;
-            }
-            DEBUG(4, ("Send creds to the client succesfully.\n"));
-            cctx->creds_exchange_done = 1;
-
-            TEVENT_FD_NOT_WRITEABLE(cctx->cfde);
-            return;
-        default:
-            DEBUG(1, ("Unknown action [%c].\n", action));
-            goto failed;
-    }
-
-failed:
-    talloc_free(cctx);
-    return;
-
-#else
-
-    DEBUG(9, ("Credential exchange not available over socket, "
-              "continuing without.\n"));
-    cctx->creds_exchange_done = 1;
-    return;
-
-#endif
-}
-
 static void client_fd_handler(struct tevent_context *ev,
                               struct tevent_fd *fde,
                               uint16_t flags, void *ptr)
 {
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
-
-    if (cctx->creds_exchange_done == 0) {
-        if (flags & TEVENT_FD_READ) {
-            cred_handler(cctx, 'r');
-            return;
-        }
-        if (flags & TEVENT_FD_WRITE) {
-            cred_handler(cctx, 's');
-            return;
-        }
-    }
 
     if (flags & TEVENT_FD_READ) {
         client_recv(ev, cctx);
@@ -335,10 +213,6 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
     }
 
     cctx->priv = 1;
-    cctx->creds_exchange_done = 0;
-    cctx->client_uid = -1;
-    cctx->client_gid = -1;
-    cctx->client_pid = -1;
 
     cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
                                TEVENT_FD_READ, client_fd_handler, cctx);
@@ -390,11 +264,6 @@ static void accept_fd_handler(struct tevent_context *ev,
         talloc_free(cctx);
         return;
     }
-
-    cctx->creds_exchange_done = 0;
-    cctx->client_uid = -1;
-    cctx->client_gid = -1;
-    cctx->client_pid = -1;
 
     cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
                                TEVENT_FD_READ, client_fd_handler, cctx);

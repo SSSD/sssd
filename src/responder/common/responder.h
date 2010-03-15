@@ -101,10 +101,6 @@ struct cli_ctx {
     struct cli_request *creq;
     struct cli_protocol_version *cli_protocol_version;
     int priv;
-    int creds_exchange_done;
-    int client_uid;
-    int client_gid;
-    int client_pid;
 };
 
 struct sss_cmd_table {
