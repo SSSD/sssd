@@ -218,6 +218,8 @@ msgstr "O principal do serviço de alteração de senha"
 #: config/SSSDConfig.py:103
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
+"Servidor onde está em execução o serviço de alteração de senha, se não "
+"coincide com o KDC"
 
 #: config/SSSDConfig.py:106
 msgid "ldap_uri, The URI of the LDAP server"
@@ -404,6 +406,9 @@ msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
 msgstr ""
+"foi detectado um socket nscd. As capacidades de caching do nscd podem entrar "
+"em conflito com o SSSD. Não é recomendado executar o nscd em paralelo com o "
+"SSSD\n"
 
 #: monitor/monitor.c:2274
 #, c-format
