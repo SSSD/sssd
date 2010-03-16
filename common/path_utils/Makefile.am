@@ -19,4 +19,18 @@ libpath_utils_la_SOURCES = path_utils.c
 libpath_utils_la_LDFLAGS = \
     -version-info 1:0:0
 
+if HAVE_CHECK
+    check_PROGRAMS = path_utils_ut
+endif
+
+path_utils_ut_SOURCES = \
+    path_utils_ut.c
+path_utils_ut_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+path_utils_ut_LDADD = \
+    $(CHECK_LIBS) \
+    libpath_utils.la
+TESTS = $(check_PROGRAMS)
+
 tests: all $(check_PROGRAMS)

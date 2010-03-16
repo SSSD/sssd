@@ -9,6 +9,12 @@ AC_PROG_INSTALL
 
 AM_CONDITIONAL([HAVE_GCC], [test "$ac_cv_prog_gcc" = yes])
 
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.5], [have_check=1], [have_check=])
+if test x$have_check = x; then
+    AC_MSG_WARN([Without the 'CHECK' libraries, you will be unable to run all tests in the 'make check' suite])
+fi
+AM_CONDITIONAL([HAVE_CHECK], [test x$have_check != x])
+
 m4_pattern_allow([AM_SILENT_RULES])
 AM_SILENT_RULES
 
