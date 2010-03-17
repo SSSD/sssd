@@ -464,6 +464,7 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
     ret = sbus_conn_send(be_conn->conn, msg, timeout,
                          sss_dp_send_acct_callback,
                          sdp_req, &pending_reply);
+    dbus_message_unref(msg);
     if (ret != EOK) {
         /*
          * Critical Failure
@@ -471,7 +472,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
          * We'll drop it using the default destructor.
          */
         DEBUG(0, ("D-BUS send failed.\n"));
-        dbus_message_unref(msg);
         return EIO;
     }
 
@@ -481,7 +481,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
     if (callback) {
         cb = talloc_zero(callback_memctx, struct sss_dp_callback);
         if (!cb) {
-            dbus_message_unref(msg);
             talloc_zfree(sdp_req);
             return ENOMEM;
         }
@@ -492,8 +491,6 @@ static int sss_dp_send_acct_req_create(struct resp_ctx *rctx,
         DLIST_ADD(sdp_req->cb_list, cb);
         talloc_set_destructor((TALLOC_CTX *)cb, sss_dp_callback_destructor);
     }
-
-    dbus_message_unref(msg);
 
     *ndp = sdp_req;
 
