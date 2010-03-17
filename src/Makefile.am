@@ -247,6 +247,7 @@ SSSD_TOOLS_OBJ = \
     tools/sss_sync_ops.c \
     tools/tools_util.c \
     tools/files.c \
+    tools/selinux.c \
     tools/nscd.c
 
 SSSD_RESOLV_OBJ = \

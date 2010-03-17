@@ -66,10 +66,6 @@
 #include "util/util.h"
 #include "tools/tools_util.h"
 
-#ifdef HAVE_SELINUX
-#include <selinux/selinux.h>
-#endif
-
 int copy_tree(const char *src_root, const char *dst_root,
               uid_t uid, gid_t gid);
 
@@ -78,59 +74,6 @@ struct copy_ctx {
     const char *dst_orig;
     dev_t       src_dev;
 };
-
-#ifdef HAVE_SELINUX
-/*
- * selinux_file_context - Set the security context before any file or
- *                        directory creation.
- *
- *	selinux_file_context () should be called before any creation of file,
- *	symlink, directory, ...
- *
- *	Callers may have to Reset SELinux to create files with default
- *	contexts:
- *		reset_selinux_file_context();
- */
-int selinux_file_context(const char *dst_name)
-{
-    security_context_t scontext = NULL;
-
-    if (is_selinux_enabled() == 1) {
-        /* Get the default security context for this file */
-        if (matchpathcon(dst_name, 0, &scontext) < 0) {
-            if (security_getenforce () != 0) {
-                return 1;
-            }
-        }
-        /* Set the security context for the next created file */
-        if (setfscreatecon(scontext) < 0) {
-            if (security_getenforce() != 0) {
-                return 1;
-            }
-        }
-        freecon(scontext);
-    }
-
-    return 0;
-}
-
-int reset_selinux_file_context(void)
-{
-    setfscreatecon(NULL);
-    return EOK;
-}
-
-#else   /* HAVE_SELINUX */
-int selinux_file_context(const char *dst_name)
-{
-    return EOK;
-}
-
-int reset_selinux_file_context(void)
-{
-    return EOK;
-}
-#endif  /* HAVE_SELINUX */
 
 /* wrapper in order not to create a temporary context in
  * every iteration */

@@ -104,9 +104,6 @@ int copy_tree(const char *src_root,
               const char *dst_root,
               uid_t uid, gid_t gid);
 
-int selinux_file_context(const char *dst_name);
-int reset_selinux_file_context(void);
-
 /* from nscd.c */
 enum nscd_db {
     NSCD_DB_PASSWD,
@@ -114,5 +111,9 @@ enum nscd_db {
 };
 
 int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db);
+
+/* from selinux.c */
+int selinux_file_context(const char *dst_name);
+int reset_selinux_file_context(void);
 
 #endif  /* __TOOLS_UTIL_H__ */
