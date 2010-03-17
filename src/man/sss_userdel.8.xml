@@ -75,6 +75,17 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-k</option>,<option>--kick</option>
+                </term>
+                <listitem>
+                    <para>
+                        Before actually deleting the user, terminate all
+                        his processes.
+                    </para>
+                </listitem>
+            </varlistentry>
         </variablelist>
     </refsect1>
 

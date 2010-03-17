@@ -23,11 +23,107 @@
 #include <stdlib.h>
 #include <talloc.h>
 #include <popt.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "db/sysdb.h"
 #include "util/util.h"
+#include "util/find_uid.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
+
+#ifndef KILL_CMD
+#define KILL_CMD "killall"
+#endif
+
+#ifndef KILL_CMD_USER_FLAG
+#define KILL_CMD_USER_FLAG "-u"
+#endif
+
+#ifndef KILL_CMD_SIGNAL_FLAG
+#define KILL_CMD_SIGNAL_FLAG "-s"
+#endif
+
+#ifndef KILL_CMD_SIGNAL
+#define KILL_CMD_SIGNAL "SIGKILL"
+#endif
+
+static int is_logged_in(TALLOC_CTX *mem_ctx, uid_t uid)
+{
+    int ret;
+    hash_key_t key;
+    hash_value_t value;
+    hash_table_t *uid_table;
+
+    ret = get_uid_table(mem_ctx, &uid_table);
+    if (ret == ENOSYS) return ret;
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot initialize hash table.\n"));
+        return ret;
+    }
+
+    key.type = HASH_KEY_ULONG;
+    key.ul   = (unsigned long) uid;
+
+    ret = hash_lookup(uid_table, &key, &value);
+    talloc_zfree(uid_table);
+    return ret == HASH_SUCCESS ? EOK : ENOENT;
+}
+
+static int kick_user(struct tools_ctx *tctx)
+{
+    int ret;
+    int status;
+    pid_t pid, child_pid;
+
+    tctx->octx->lock = 1;
+
+    start_transaction(tctx);
+    if (tctx->error != EOK) {
+        return tctx->error;
+    }
+
+    ret = usermod(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
+    if (ret != EOK) {
+        talloc_zfree(tctx->handle);
+        return ret;
+    }
+
+    end_transaction(tctx);
+    if (tctx->error != EOK) {
+        return tctx->error;
+    }
+
+    errno = 0;
+    pid = fork();
+    if (pid == 0) {
+        /* child */
+        execlp(KILL_CMD, KILL_CMD,
+               KILL_CMD_USER_FLAG, tctx->octx->name,
+               KILL_CMD_SIGNAL_FLAG, KILL_CMD_SIGNAL,
+               (char *) NULL);
+        exit(errno);
+    } else {
+        /* parent */
+        if (pid == -1) {
+            DEBUG(1, ("fork failed [%d]: %s\n"));
+            return errno;
+        }
+
+        while((child_pid = waitpid(pid, &status, 0)) > 0) {
+            if (child_pid == -1) {
+                DEBUG(1, ("waitpid failed\n"));
+                return errno;
+            }
+
+            if (WIFEXITED(status)) {
+                break;
+            }
+        }
+    }
+
+    return EOK;
+}
 
 int main(int argc, const char **argv)
 {
@@ -38,14 +134,20 @@ int main(int argc, const char **argv)
     int pc_debug = 0;
     int pc_remove = 0;
     int pc_force = 0;
+    int pc_kick = 0;
     poptContext pc = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug,
                     0, _("The debug level to run with"), NULL },
-        { "remove", 'r', POPT_ARG_NONE, NULL, 'r', _("Remove home directory and mail spool"), NULL },
-        { "no-remove", 'R', POPT_ARG_NONE, NULL, 'R', _("Do not remove home directory and mail spool"), NULL },
-        { "force", 'f', POPT_ARG_NONE, NULL, 'f', _("Force removal of files not owned by the user"), NULL },
+        { "remove", 'r', POPT_ARG_NONE, NULL, 'r',
+                    _("Remove home directory and mail spool"), NULL },
+        { "no-remove", 'R', POPT_ARG_NONE, NULL, 'R',
+                    _("Do not remove home directory and mail spool"), NULL },
+        { "force", 'f', POPT_ARG_NONE, NULL, 'f',
+                    _("Force removal of files not owned by the user"), NULL },
+        { "kick", 'k', POPT_ARG_NONE, NULL, 'k',
+                    _("Kill users' processes before removing him"), NULL },
         POPT_TABLEEND
     };
 
@@ -74,6 +176,10 @@ int main(int argc, const char **argv)
 
             case 'f':
                 pc_force = DO_FORCE_REMOVAL;
+                break;
+
+            case 'k':
+                pc_kick = 1;
                 break;
         }
     }
@@ -144,6 +250,17 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
+    if (pc_kick) {
+        ret = kick_user(tctx);
+        if (ret != EOK) {
+            tctx->error = ret;
+
+            /* cancel transaction */
+            talloc_zfree(tctx->handle);
+            goto done;
+        }
+    }
+
     start_transaction(tctx);
     if (tctx->error != EOK) {
         goto done;
@@ -160,6 +277,28 @@ int main(int argc, const char **argv)
     }
 
     end_transaction(tctx);
+
+    if (!pc_kick) {
+        ret = is_logged_in(tctx, tctx->octx->uid);
+        switch(ret) {
+            case ENOENT:
+                break;
+
+            case EOK:
+                ERROR("WARNING: The user (uid %lu) was still logged in when "
+                      "deleted.\n", (unsigned long) tctx->octx->uid);
+                break;
+
+            case ENOSYS:
+                ERROR("Cannot determine if the user was logged in on this "
+                      "platform");
+                break;
+
+            default:
+                ERROR("Error while checking if the user was logged in\n");
+                break;
+        }
+    }
 
     ret = run_userdel_cmd(tctx);
     if (ret != EOK) {

@@ -411,6 +411,7 @@ sss_useradd_LDADD = \
 
 sss_userdel_SOURCES = \
     tools/sss_userdel.c \
+    util/find_uid.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_TOOLS_OBJ)
 sss_userdel_LDADD = \
