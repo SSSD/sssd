@@ -183,8 +183,12 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     errno = 0;
     rb = recv(fd, buf, len, 0);
 
-    if (rb == -1 && errno == EAGAIN) {
-        return EAGAIN;
+    if (rb == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+            return EAGAIN;
+        } else {
+            return errno;
+        }
     }
 
     if (rb == 0) {
@@ -219,8 +223,12 @@ int sss_packet_send(struct sss_packet *packet, int fd)
     errno = 0;
     rb = send(fd, buf, len, 0);
 
-    if (rb == -1 && errno == EAGAIN) {
-        return EAGAIN;
+    if (rb == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+            return EAGAIN;
+        } else {
+            return errno;
+        }
     }
 
     if (rb == 0) {

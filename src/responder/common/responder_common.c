@@ -61,7 +61,7 @@ static int client_destructor(struct cli_ctx *ctx)
     return 0;
 }
 
-static void client_send(struct tevent_context *ev, struct cli_ctx *cctx)
+static void client_send(struct cli_ctx *cctx)
 {
     int ret;
 
@@ -71,7 +71,7 @@ static void client_send(struct tevent_context *ev, struct cli_ctx *cctx)
         return;
     }
     if (ret != EOK) {
-        DEBUG(0, ("Failed to read request, aborting client!\n"));
+        DEBUG(0, ("Failed to send data, aborting client!\n"));
         talloc_free(cctx);
         return;
     }
@@ -84,7 +84,7 @@ static void client_send(struct tevent_context *ev, struct cli_ctx *cctx)
     return;
 }
 
-static void client_recv(struct tevent_context *ev, struct cli_ctx *cctx)
+static void client_recv(struct cli_ctx *cctx)
 {
     int ret;
 
@@ -151,11 +151,11 @@ static void client_fd_handler(struct tevent_context *ev,
     struct cli_ctx *cctx = talloc_get_type(ptr, struct cli_ctx);
 
     if (flags & TEVENT_FD_READ) {
-        client_recv(ev, cctx);
+        client_recv(cctx);
         return;
     }
     if (flags & TEVENT_FD_WRITE) {
-        client_send(ev, cctx);
+        client_send(cctx);
         return;
     }
 }
