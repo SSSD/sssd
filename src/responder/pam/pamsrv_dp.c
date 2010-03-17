@@ -118,8 +118,10 @@ int pam_dp_send_req(struct pam_auth_req *preq, int timeout)
         return EIO;
     }
 
-    return sbus_conn_send(be_conn->conn, msg,
-                          timeout, pam_dp_process_reply,
-                          preq, NULL);
+    res = sbus_conn_send(be_conn->conn, msg,
+                         timeout, pam_dp_process_reply,
+                         preq, NULL);
+    dbus_message_unref(msg);
+    return res;
 }
 

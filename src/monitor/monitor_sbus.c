@@ -111,6 +111,7 @@ int monitor_common_send_id(struct sbus_connection *conn,
 {
     DBusMessage *msg;
     dbus_bool_t ret;
+    int retval;
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -133,9 +134,11 @@ int monitor_common_send_id(struct sbus_connection *conn,
         return EIO;
     }
 
-    return sbus_conn_send(conn, msg, 3000,
-                          id_callback,
-                          NULL, NULL);
+    retval = sbus_conn_send(conn, msg, 3000,
+                            id_callback,
+                            NULL, NULL);
+    dbus_message_unref(msg);
+    return retval;
 }
 
 int monitor_common_pong(DBusMessage *message,

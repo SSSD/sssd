@@ -687,6 +687,7 @@ static int monitor_update_resolv(struct config_file_ctx *file_ctx,
 static int service_signal(struct mt_svc *svc, const char *svc_signal)
 {
     DBusMessage *msg;
+    int ret;
 
     if (svc->provider && strcasecmp(svc->provider, "local") == 0) {
         /* The local provider requires no signaling */
@@ -713,9 +714,12 @@ static int service_signal(struct mt_svc *svc, const char *svc_signal)
         return ENOMEM;
     }
 
-    return sbus_conn_send(svc->conn, msg,
-                          svc->mt_ctx->service_id_timeout,
-                          reload_reply, svc, NULL);
+    ret = sbus_conn_send(svc->conn, msg,
+                         svc->mt_ctx->service_id_timeout,
+                         reload_reply, svc, NULL);
+
+    dbus_message_unref(msg);
+    return ret;
 }
 
 static int service_signal_dns_reload(struct mt_svc *svc)
@@ -1843,6 +1847,7 @@ static int monitor_service_init(struct sbus_connection *conn, void *data)
 static int service_send_ping(struct mt_svc *svc)
 {
     DBusMessage *msg;
+    int ret;
 
     if (!svc->conn) {
         DEBUG(8, ("Service not yet initialized\n"));
@@ -1866,9 +1871,11 @@ static int service_send_ping(struct mt_svc *svc)
         return ENOMEM;
     }
 
-    return sbus_conn_send(svc->conn, msg,
-                          svc->mt_ctx->service_id_timeout,
-                          ping_check, svc, NULL);
+    ret = sbus_conn_send(svc->conn, msg,
+                         svc->mt_ctx->service_id_timeout,
+                         ping_check, svc, NULL);
+    dbus_message_unref(msg);
+    return ret;
 }
 
 static void ping_check(DBusPendingCall *pending, void *data)

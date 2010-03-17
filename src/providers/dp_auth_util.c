@@ -338,6 +338,7 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
 {
     DBusMessage *msg;
     dbus_bool_t ret;
+    int retval;
 
     /* create the message */
     msg = dbus_message_new_method_call(NULL,
@@ -361,6 +362,9 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
         return EIO;
     }
 
-    return sbus_conn_send(conn, msg, 30000, id_callback, NULL, NULL);
+    retval = sbus_conn_send(conn, msg, 30000, id_callback, NULL, NULL);
+
+    dbus_message_unref(msg);
+    return retval;
 }
 
