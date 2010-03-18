@@ -1344,8 +1344,7 @@ static void process_config_file(struct tevent_context *ev,
 
     buf = talloc_size(tmp_ctx, event_size);
     if (!buf) {
-        talloc_free(tmp_ctx);
-        return;
+        goto done;
     }
 
     total_len = 0;
@@ -1354,8 +1353,7 @@ static void process_config_file(struct tevent_context *ev,
                    event_size-total_len);
         if (len == -1 && errno != EINTR) {
             DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
-            talloc_free(tmp_ctx);
-            return;
+            goto done;
         }
         total_len += len;
     }
@@ -1368,22 +1366,18 @@ static void process_config_file(struct tevent_context *ev,
          */
         name = talloc_size(tmp_ctx, len);
         if (!name) {
-            talloc_free(tmp_ctx);
-            return;
+            goto done;
         }
         total_len = 0;
         while (total_len < in_event->len) {
             len = read(file_ctx->mt_ctx->inotify_fd, &name, in_event->len);
             if (len == -1 && errno != EINTR) {
                 DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
-                talloc_free(tmp_ctx);
-                return;
+                goto done;
             }
             total_len += len;
         }
     }
-
-    talloc_free(tmp_ctx);
 
     for (cb = file_ctx->callbacks; cb; cb = cb->next) {
         if (cb->wd == in_event->wd) {
@@ -1392,7 +1386,7 @@ static void process_config_file(struct tevent_context *ev,
     }
     if (!cb) {
         DEBUG(0, ("Unknown watch descriptor\n"));
-        return;
+        goto done;
     }
 
     if (in_event->mask & IN_IGNORED) {
@@ -1413,7 +1407,7 @@ static void process_config_file(struct tevent_context *ev,
             DEBUG(0, ("Could not restore inotify watch. Quitting!\n"));
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
-            return;
+            goto done;
         }
         rw_ctx->cb = cb;
         rw_ctx->file_ctx = file_ctx;
@@ -1424,12 +1418,15 @@ static void process_config_file(struct tevent_context *ev,
             close(file_ctx->mt_ctx->inotify_fd);
             kill(getpid(), SIGTERM);
         }
-        return;
+        goto done;
     }
 
     /* Tell the monitor to signal the children */
     cb->fn(file_ctx, cb->filename);
     file_ctx->needs_update = 0;
+
+done:
+    talloc_free(tmp_ctx);
 }
 
 static void rewatch_config_file(struct tevent_context *ev,
