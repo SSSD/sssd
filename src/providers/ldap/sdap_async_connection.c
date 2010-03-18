@@ -305,7 +305,8 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     int ret = EOK;
     int msgid;
     int ldap_err;
-    LDAPControl *request_controls[2];
+    LDAPControl **request_controls = NULL;
+    LDAPControl *ctrls[2] = { NULL, NULL };
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -321,19 +322,20 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     state->user_dn = user_dn;
     state->pw = pw;
 
-    ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-                                  0, NULL, 0, &request_controls[0]);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("sss_ldap_control_create failed.\n"));
+    ret = sdap_control_create(state->sh, LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                              0, NULL, 0, &ctrls[0]);
+    if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
+        DEBUG(1, ("sdap_control_create failed to create "
+                  "Password Policy control.\n"));
         goto fail;
     }
-    request_controls[1] = NULL;
+    request_controls = ctrls;
 
     DEBUG(4, ("Executing simple bind as: %s\n", state->user_dn));
 
     ret = ldap_sasl_bind(state->sh->ldap, state->user_dn, LDAP_SASL_SIMPLE,
                          state->pw, request_controls, NULL, &msgid);
-    ldap_control_free(request_controls[0]);
+    if (ctrls[0]) ldap_control_free(ctrls[0]);
     if (ret == -1 || msgid == -1) {
         ret = ldap_get_option(state->sh->ldap,
                               LDAP_OPT_RESULT_CODE, &ldap_err);

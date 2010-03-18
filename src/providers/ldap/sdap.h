@@ -297,4 +297,7 @@ bool sdap_check_sup_list(struct sup_list *l, const char *val);
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
                          size_t size, const char ***_attrs);
+
+int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
+                        struct berval *value, int dupval, LDAPControl **ctrlp);
 #endif /* _SDAP_H_ */

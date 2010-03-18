@@ -432,3 +432,21 @@ int build_attrs_from_map(TALLOC_CTX *memctx,
     return EOK;
 }
 
+int sdap_control_create(struct sdap_handle *sh, const char *oid, int iscritical,
+                        struct berval *value, int dupval, LDAPControl **ctrlp)
+{
+    int ret;
+
+    if (sdap_is_control_supported(sh, oid)) {
+        ret = sss_ldap_control_create(oid, iscritical, value, dupval, ctrlp);
+        if (ret != LDAP_SUCCESS) {
+            DEBUG(1, ("sss_ldap_control_create failed [%d][%s].\n",
+                      ret, ldap_err2string(ret)));
+        }
+    } else {
+        DEBUG(3, ("Server does not support the requested control [%s].\n", oid));
+        ret = LDAP_NOT_SUPPORTED;
+    }
+
+    return ret;
+}

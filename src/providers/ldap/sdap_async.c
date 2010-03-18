@@ -451,7 +451,8 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
     BerElement *ber = NULL;
     struct berval *bv = NULL;
     int msgid;
-    LDAPControl *request_controls[2];
+    LDAPControl **request_controls = NULL;
+    LDAPControl *ctrls[2] = { NULL, NULL };
 
     req = tevent_req_create(memctx, &state,
                             struct sdap_exop_modify_passwd_state);
@@ -486,20 +487,21 @@ struct tevent_req *sdap_exop_modify_passwd_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    ret = sss_ldap_control_create(LDAP_CONTROL_PASSWORDPOLICYREQUEST,
-                                  0, NULL, 0, &request_controls[0]);
-    if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("sss_ldap_control_create failed.\n"));
+    ret = sdap_control_create(state->sh, LDAP_CONTROL_PASSWORDPOLICYREQUEST,
+                              0, NULL, 0, &ctrls[0]);
+    if (ret != LDAP_SUCCESS && ret != LDAP_NOT_SUPPORTED) {
+        DEBUG(1, ("sdap_control_create failed to create "
+                  "Password Policy control.\n"));
         goto fail;
     }
-    request_controls[1] = NULL;
+    request_controls = ctrls;
 
     DEBUG(4, ("Executing extended operation\n"));
 
     ret = ldap_extended_operation(state->sh->ldap, LDAP_EXOP_MODIFY_PASSWD,
                                   bv, request_controls, NULL, &msgid);
     ber_bvfree(bv);
-    ldap_control_free(request_controls[0]);
+    if (ctrls[0]) ldap_control_free(ctrls[0]);
     if (ret == -1 || msgid == -1) {
         DEBUG(1, ("ldap_extended_operation failed\n"));
         goto fail;
