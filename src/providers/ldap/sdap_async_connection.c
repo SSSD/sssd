@@ -162,7 +162,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &msgid);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_start_tls failed: [%s]", ldap_err2string(ret)));
+        DEBUG(3, ("ldap_start_tls failed: [%s]\n", ldap_err2string(lret)));
         goto fail;
     }
 
