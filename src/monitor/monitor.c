@@ -282,8 +282,10 @@ static int svc_destructor(void *mem)
         return 0;
     }
 
-    /* always try to delist service */
-    DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
+    /* try to delist service */
+    if (svc->mt_ctx) {
+        DLIST_REMOVE(svc->mt_ctx->svc_list, svc);
+    }
 
     /* svc is beeing freed, neutralize the spy */
     if (svc->conn_spy) {
@@ -302,6 +304,7 @@ static int svc_spy_destructor(void *mem)
     }
 
     /* svc->conn has been freed, NULL the pointer in svc */
+    spy->svc->conn_spy = NULL;
     spy->svc->conn = NULL;
     return 0;
 }
@@ -886,6 +889,8 @@ static int get_service_config(struct mt_ctx *ctx, const char *name,
     }
     svc->mt_ctx = ctx;
 
+    talloc_set_destructor((TALLOC_CTX *)svc, svc_destructor);
+
     svc->name = talloc_strdup(svc, name);
     if (!svc->name) {
         talloc_free(svc);
@@ -1196,6 +1201,20 @@ int read_config_file(const char *config_file)
     return ret;
 }
 
+static int monitor_ctx_destructor(void *mem)
+{
+    struct mt_ctx *mon = talloc_get_type(mem, struct mt_ctx);
+    struct mt_svc *svc;
+
+    /* zero out references in svcs so that they don't try
+     * to access the monitor context on process shutdown */
+
+    for (svc = mon->svc_list; svc; svc = svc->next) {
+        svc->mt_ctx = NULL;
+    }
+    return 0;
+}
+
 static errno_t load_configuration(TALLOC_CTX *mem_ctx,
                                   const char *config_file,
                                   struct mt_ctx **monitor)
@@ -1208,6 +1227,7 @@ static errno_t load_configuration(TALLOC_CTX *mem_ctx,
     if(!ctx) {
         return ENOMEM;
     }
+    talloc_set_destructor((TALLOC_CTX *)ctx, monitor_ctx_destructor);
 
     cdb_file = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (cdb_file == NULL) {
