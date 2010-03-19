@@ -1194,10 +1194,12 @@ class SSSDConfig(SSSDChangeConf):
             outputfile = self.configfile
 
         # open() will raise IOError if it fails
+        old_umask = os.umask(0177)
         of = open(outputfile, "wb")
         output = self.dump(self.opts)
         of.write(output)
         of.close()
+        os.umask(old_umask)
 
     def list_services(self):
         """

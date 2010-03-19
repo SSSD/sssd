@@ -5,6 +5,8 @@ Created on Sep 18, 2009
 @author: sgallagh
 '''
 import unittest
+import os
+from stat import *
 
 import SSSDConfig
 
@@ -119,7 +121,27 @@ class SSSDConfigTestValid(unittest.TestCase):
         local_domain.set_active(True)
         sssdconfig.save_domain(local_domain)
 
-        sssdconfig.write('/tmp/testCreateNewLocalConfig.conf')
+        of = '/tmp/testCreateNewLocalConfig.conf'
+
+        #Ensure the output file doesn't exist
+        try:
+            os.unlink(of)
+        except:
+            pass
+
+        #Write out the file
+        sssdconfig.write(of)
+
+        #Verify that the output file has the correct permissions
+        mode = os.stat(of)[ST_MODE]
+
+        #Output files should not be readable or writable by
+        #non-owners, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0177)
+
+        #Remove the output file
+        os.unlink(of)
+
 
     def testCreateNewLDAPConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -133,7 +155,26 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain.set_active(True)
         sssdconfig.save_domain(ldap_domain)
 
-        sssdconfig.write('/tmp/testCreateNewLDAPConfig.conf')
+        of = '/tmp/testCreateNewLDAPConfig.conf'
+
+        #Ensure the output file doesn't exist
+        try:
+            os.unlink(of)
+        except:
+            pass
+
+        #Write out the file
+        sssdconfig.write(of)
+
+        #Verify that the output file has the correct permissions
+        mode = os.stat(of)[ST_MODE]
+
+        #Output files should not be readable or writable by
+        #non-owners, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0177)
+
+        #Remove the output file
+        os.unlink(of)
 
     def testModifyExistingConfig(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -148,7 +189,26 @@ class SSSDConfigTestValid(unittest.TestCase):
         ldap_domain.set_active(True)
         sssdconfig.save_domain(ldap_domain)
 
-        sssdconfig.write('/tmp/testModifyExistingConfig.conf')
+        of = '/tmp/testModifyExistingConfig.conf'
+
+        #Ensure the output file doesn't exist
+        try:
+            os.unlink(of)
+        except:
+            pass
+
+        #Write out the file
+        sssdconfig.write(of)
+
+        #Verify that the output file has the correct permissions
+        mode = os.stat(of)[ST_MODE]
+
+        #Output files should not be readable or writable by
+        #non-owners, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0177)
+
+        #Remove the output file
+        os.unlink(of)
 
     def testSpaces(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
@@ -1412,7 +1472,28 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
                          'cn=accounts, dc=example, dc=com')
 
         sssdconfig.save_domain(domain)
-        sssdconfig.write('/tmp/testSaveDomain.out')
+
+        of = '/tmp/testSaveDomain.out'
+
+        #Ensure the output file doesn't exist
+        try:
+            os.unlink(of)
+        except:
+            pass
+
+        #Write out the file
+        sssdconfig.write(of)
+
+        #Verify that the output file has the correct permissions
+        mode = os.stat(of)[ST_MODE]
+
+        #Output files should not be readable or writable by
+        #non-owners, and should not be executable by anyone
+        self.assertFalse(S_IMODE(mode) & 0177)
+
+        #Remove the output file
+        os.unlink(of)
+
 
         domain2 = sssdconfig.get_domain('example.com2')
         self.assertTrue(domain2.get_option('ldap_krb5_init_creds'))
