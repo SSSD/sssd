@@ -971,6 +971,11 @@ static void sdap_get_generic_done(struct sdap_op *op,
         DEBUG(6, ("Search result: %s(%d), %s\n",
                   ldap_err2string(result), result, errmsg));
 
+        if (result != LDAP_SUCCESS && result != LDAP_NO_SUCH_OBJECT) {
+            DEBUG(2, ("Unexpected result from ldap: %s(%d), %s\n",
+                      ldap_err2string(result), result, errmsg));
+        }
+
         tevent_req_done(req);
         return;
 
