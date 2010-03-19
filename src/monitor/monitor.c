@@ -2261,6 +2261,10 @@ int main(int argc, const char *argv[])
             DEBUG(1, ("Cannot read configuration file %s\n", config_file));
             ERROR("Cannot read config file %s, please check if permissions "
                   "are 0600 and the file is owned by root.root\n", config_file);
+        } else {
+            DEBUG(1, ("Error loading configuration database: [%d]: %s",
+                      ret, strerror(ret)));
+            ERROR("Cannot load configuration database\n");
         }
         return 4;
     }
