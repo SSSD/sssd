@@ -290,7 +290,7 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
     if (ret != EOK) {
         DEBUG(1, ("Permission check on config file failed.\n"));
         talloc_zfree(tmp_ctx);
-        return EIO;
+        return EPERM;
     }
 
     /* Determine if the conf file has changed since we last updated
