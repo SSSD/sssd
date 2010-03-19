@@ -7,6 +7,8 @@ endif
 
 ACLOCAL_AMFLAGS = -I m4
 
+DOXYGEN = @DOXYGEN@
+
 pkgconfigdir = $(libdir)/pkgconfig
 dist_pkgconfig_DATA = path_utils.pc
 
@@ -34,3 +36,15 @@ path_utils_ut_LDADD = \
 TESTS = $(check_PROGRAMS)
 
 tests: all $(check_PROGRAMS)
+
+if HAVE_DOXYGEN
+docs:
+	rm -fR doc
+	mkdir -p doc
+	$(DOXYGEN) path_utils.cfg.doxy
+else
+docs:
+	@echo "Doxygen not installed, cannot generate documentation"
+	@exit 1
+endif
+

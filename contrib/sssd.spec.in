@@ -353,6 +353,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libpath_utils.so
 %{_libdir}/pkgconfig/path_utils.pc
 %doc common/path_utils/README
+%doc common/path_utils/doc/html/
 
 %files -n libcollection
 %defattr(-,root,root,-)

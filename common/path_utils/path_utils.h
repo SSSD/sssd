@@ -25,6 +25,13 @@
 /******************************** Documentation ******************************/
 /*****************************************************************************/
 
+/** @mainpage Pathname manipulation utilities
+ *
+ * This library contains a set of utilities designed to extract info from
+ * and manipulate path names.
+ *
+ */
+
 /*****************************************************************************/
 /******************************* Include Files *******************************/
 /*****************************************************************************/
@@ -38,19 +45,51 @@
 /*********************************** Defines *********************************/
 /*****************************************************************************/
 
+/**
+ * @defgroup constants Constants
+ * @{
+ */
+
 #ifndef _
 #define _(String) gettext(String)
 #endif
 
+/**
+ * @brief SUCCESS (=0) is returned by all functions in the path_utils
+ * library on success.
+ */
 #ifndef SUCCESS
 #define SUCCESS 0
 #endif
 
+/**
+ * @}
+ */
+
+/**
+ * @defgroup errors Error codes and macros
+ * @{
+ */
+
 #define PATH_UTILS_ERROR_BASE -3000
 #define PATH_UTILS_ERROR_LIMIT (PATH_UTILS_ERROR_BASE+20)
+
+/**
+ * @brief You can use this macro to check if an error code is one of
+ * the internal path_utils codes.
+ */
 #define IS_PATH_UTILS_ERROR(error)  (((error) >= PATH_UTILS_ERROR_BASE) && ((error) < PATH_UTILS_ERROR_LIMIT))
 
+/** @brief A path cannot be normalized due to too many parent links
+ *
+ * Returned when a relative path contains too many parent (\c "..") links.
+ * Please see the documentation of \c normalize_path() for full explanation.
+ */
 #define PATH_UTILS_ERROR_NOT_FULLY_NORMALIZED   (PATH_UTILS_ERROR_BASE + 1)
+
+/**
+ * @}
+ */
 
 /*****************************************************************************/
 /******************************* Type Definitions ****************************/
@@ -65,93 +104,142 @@
 /*****************************************************************************/
 
 /**
- * Given an error code return the string description.
- * If error code is not recognized NULL is returned.
+ * @defgroup functions Functions
+ * @{
+ */
+
+/** @brief Given an error code return the string description.
+ *
+ * @param[in] error The error code
+ *
+ * @return Error string. If error code is not recognized \c NULL is returned.
  */
 const char *path_utils_error_string(int error);
 
-/**
- * Given a path, copy the basename component into the buffer base_name whose
- * length is base_name_size.
+/** @brief Get the basename component of a path
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      if the buffer space is too small
+ * Given a path, copy the basename component (in the usual case, the part
+ * following the final "/") into the buffer \c base_name
+ * whose length is \c base_name_size. If the path does not contain a slash,
+ * \c get_basename() returns a copy of path.
+ *
+ * @param[out]  base_name       The basename component
+ * @param[in]   base_name_size  The size of the base_name buffer
+ * @param[in]   path            The full path to parse
+ *
+ * @return \c SUCCESS if successful, non-zero error code otherwise.
+ * Possible errors:
+ * \li \c ENOBUFS      if the buffer space is too small
+ * \li \c EINVAL       The path was a NULL pointer
  */
 int get_basename(char *base_name, size_t base_name_size, const char *path);
 
-/**
- * Given a path, copy the directory components into the buffer dir_path whose
- * length is dir_path_size.
+/** @brief Copy the directory components of a path
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      If the buffer space is too small
- * EACCES       Permission to read or search a component of the filename was denied.
- * ENAMETOOLONG The size of the null-terminated pathname exceeds PATH_MAX bytes.
- * ENOENT       The current working directory has been unlinked.
+ * Given a path, copy the directory components (in the usual case, the path
+ * up to, but not including the final "/") into the buffer \c dir_path whose
+ * length is \c dir_path_size. If the path does not contain a slash,
+ * \c get_dirname() returns the current working directory.
+ *
+ * @param[out]  dir_path       The directory component
+ * @param[in]   dir_path_size  The size of the dir_path buffer
+ * @param[in]   path           The full path to parse
+ *
+ * @return \c SUCCESS if successful, non-zero error code otherwise.
+ * Possible errors:
+ * \li \c ENOBUFS      If the buffer space is too small
+ * \li \c EACCES       Permission to read or search a component of the filename was denied.
+ * \li \c ENAMETOOLONG The size of the null-terminated pathname exceeds PATH_MAX bytes.
+ * \li \c ENOENT       The current working directory has been unlinked.
+ * \li \c EINVAL       The path was a NULL pointer
  */
 int get_dirname(char *dir_path, size_t dir_path_size, const char *path);
 
-/**
- * Given a path, copy the directory components into the buffer dir_path whose
- * length is dir_path_size and copy the basename component into the buffer
- * base_name whose length is base_name_size.
+/** @brief Get the basaname and directory components of a path
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      If the buffer space is too small
- * EACCES       Permission to read or search a component of the filename was denied.
- * ENAMETOOLONG The size of the null-terminated pathname exceeds PATH_MAX bytes.
- * ENOENT       The current working directory has been unlinked.
+ * Given a path, copy the directory components into the buffer \c dir_path whose
+ * length is \c dir_path_size and copy the basename component into the buffer
+ * \c base_name whose length is \c base_name_size.
+ *
+ * @param[out]  base_name       The basename component
+ * @param[in]   base_name_size  The size of the base_name buffer
+ * @param[out]  dir_path       The directory component
+ * @param[in]   dir_path_size  The size of the dir_path buffer
+ * @param[in]   path           The full path to parse
+ *
+ * @return \c SUCCESS if successful, non-zero error code otherwise.
+ * Possible errors:
+ * \li \c ENOBUFS      If the buffer space is too small
+ * \li \c EACCES       Permission to read or search a component of the filename was denied.
+ * \li \c ENAMETOOLONG The size of the null-terminated pathname exceeds PATH_MAX bytes.
+ * \li \c ENOENT       The current working directory has been unlinked.
+ * \li \c EINVAL       The path was a NULL pointer
  */
-int get_directory_and_base_name(char *dir_path, size_t dir_path_size, char *base_name, size_t base_name_size, const char *path);
+int get_directory_and_base_name(char *dir_path, size_t dir_path_size,
+                                char *base_name, size_t base_name_size,
+                                const char *path);
 
-/**
- * Return true if the path is absolute, false otherwise.
+/** @brief Tell if path is absolute or relative
+ *
+ * @param[in]   path           The path to check
+ *
+ * @return \c true if the path is absolute, \c false otherwise.
  */
 bool is_absolute_path(const char *path);
 
-/**
- * Given two paths, head & tail, copy their concatenation into the buffer path
- * whose length is path_size.
+/** @brief Concatenate two components of a path
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      If the buffer space is too small
+ * Given two paths, \c head & \c tail, copy their concatenation into the
+ * buffer \c path whose length is \c path_size.
+ *
+ * @param[out]   path           The full path
+ * @param[in]    path_size      The size of the path buffer
+ * @param[in]    head           The first component of the path
+ * @param[in]    tail           The second component of the path
+ *
+ * @return \c SUCCESS if successful, non-zero error code otherwise.
+ * \li \c ENOBUFS      If the buffer space is too small
  */
 int path_concat(char *path, size_t path_size, const char *head, const char *tail);
 
-/**
- * Given a path make it absolute storing the absolute path in into the buffer
- * absolute_path whose length is absolute_path_size.
+/** @brief Convert a path into absolute
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      If the buffer space is too small
- * ENOMEM       If user memory cannot be mapped
- * ENOENT       If directory does not exist (i.e. it has been deleted)
- * EFAULT       If memory access violation occurs while copying
+ * Given a path make it absolute storing the absolute path in into the buffer
+ * \c absolute_path whose length is \c absolute_path_size.
+ *
+ * Returns \c SUCCESS if successful, non-zero error code otherwise. Possible errors:
+ * \li \c ENOBUFS      If the buffer space is too small
+ * \li \c ENOMEM       If user memory cannot be mapped
+ * \li \c ENOENT       If directory does not exist (i.e. it has been deleted)
+ * \li \c EFAULT       If memory access violation occurs while copying
+ * \li \c EINVAL       The path was a NULL pointer
  */
 int make_path_absolute(char *absolute_path, size_t absolute_path_size, const char *path);
 
-/**
+/** @brief Split a file system path into individual components.
+ *
  * Split a file system path into individual components.  Return a pointer to an
  * array of char pointers, each array entry is a pointer to a copy of the
  * component. As a special case if the path begins with / then the first
  * component is "/" so the caller can identify the pah as absolute with the
- * first component being the root. The last entry in the array is NULL serving
+ * first component being the root. The last entry in the array is \c NULL serving
  * as a termination sentinel. An optional integer count parameter can be
  * provided, which if non-NULL will have the number of components written into
- * it. Thus the caller can iterate on the array until it sees a NULL pointer or
+ * it. Thus the caller can iterate on the array until it sees a \c NULL pointer or
  * iterate count times indexing the array.
  *
- * The caller is responsible for calling free() on the returned array.  This
+ * The caller is responsible for calling \c free() on the returned array.  This
  * frees both the array of component pointers and the copies of each component
  * in one operation because the copy of each component is stored in the same
  * allocation block.
  *
  * The original path parameter is not modified.
  *
- * In the event of an error NULL is returned and count (if specified) will be -1.
+ * In the event of an error \c NULL is returned and count (if specified) will be -1.
  *
  * Examples:
  *
+ * \code
  * char **components, **component;
  * int i;
  *
@@ -159,73 +247,96 @@ int make_path_absolute(char *absolute_path, size_t absolute_path_size, const cha
  * for (component = components; *component; component++)
  *     printf("\"%s\" ", *component);
  * free(components);
+ * \endcode
  *
  * -OR-
  *
+ * \code
  * components = split_path(path, &count);
  * for (i = 0; i < count; i++)
  *     printf("\"%s\" ", components[i]);
  * free(components);
+ * \endcode
  *
+ * @param[in]   path    The original path
+ * @param[out]  count   The number of components the path was split into
+ *
+ * @return An array of char pointers, each array entry is a pointer to a
+ * copy of the component or NULL on error.
  */
 char **split_path(const char *path, int *count);
 
-/**
+/** @brief Normalizes a path
+ *
  * Normalizes a path copying the resulting normalized path into the buffer
- * normalized_path whose length is normalized_size.
+ * \c normalized_path whose length is \c normalized_size.
  *
  * A path is normalized when:
- *     only 1 slash separates all path components
- *     there are no . path components (except if . is the only component)
- *     there are no .. path components
+ * \li only 1 slash separates all path components
+ * \li there are no \c . path components (except if \c . is the only component)
+ * \li there are no \c .. path components
  *
  * The input path may either be an absolute path or a path fragment.
  *
- * As a special case if the input path is NULL, the empty string "", or "." the
- * returned normalized path will be ".".
+ * As a special case if the input path is \c NULL, the empty string \c "",
+ * or \c "." the returned normalized path will be \c ".".
  *
- * .. path components point to the parent directory which effectively means
- * poping the parent off the path. But what happens when there are more .. path
- * components than ancestors in the path? The answer depends on whether the path
- * is an absolute path or a path fragment. If the path is absolute then the
- * extra .. components which would move above the root (/) are simply
- * ignored. This effectively limits the path to the root. However if the path is
- * not absolute, rather it is a path fragment, and there are more .. components
- * than ancestors which can be "popped off" then as many .. components will be
- * popped off the fragement as possible without changing the meaning of the path
- * fragment. In this case some extra .. components will be left in the path and
- * the function will return the error
- * ERROR_COULD_NOT_NORMALIZE_PATH_FULLY. However the function will still
- * normalize as much of the path fragment as is possible. The behavior of
- * .. components when the input path is a fragment is adopted because after
- * normalizing a path fragment then the normalized path fragment if made
- * absolute should reference the same file system name as if the unnormalized
- * fragment were made absolute. Note this also means
- * ERROR_COULD_NOT_NORMALIZE_PATH_FULLY will never be returned if the input path
- * is absolute.
+ * \c ".." path components point to the parent directory which effectively
+ * means poping the parent off the path. But what happens when there are
+ * more \c ".." path components than ancestors in the path? The answer depends
+ * on whether the path is an absolute path or a path fragment. If the path is
+ * absolute then the extra \c ".." components which would move above the root
+ * (/) are simply ignored. This effectively limits the path to the root.
+ * However if the path is not absolute, rather it is a path fragment, and
+ * there are more \c ".." components than ancestors which can be "popped off"
+ * then as many \c ".." components will be popped off the fragement as
+ * possible without changing the meaning of the path fragment. In this case
+ * some extra \c ".." components will be left in the path and the function
+ * will return the error \c ERROR_COULD_NOT_NORMALIZE_PATH_FULLY. However the
+ * function will still normalize as much of the path fragment as is possible.
+ * The behavior of \c ".." components when the input path is a fragment is
+ * adopted because after normalizing a path fragment then the normalized path
+ * fragment if made absolute should reference the same file system name as if
+ * the unnormalized fragment were made absolute. Note this also means
+ * \c ERROR_COULD_NOT_NORMALIZE_PATH_FULLY will never be returned if the input
+ * path is absolute.
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      If the buffer space is too small
- * ERROR_COULD_NOT_NORMALIZE_PATH_FULLY If not all .. path components could be removed
+ * @returns \c SUCCESS if successful, non-zero error code otherwise. Possible
+ * errors:
+ * \li \c ENOBUFS      If the buffer space is too small
+ * \li \c ERROR_COULD_NOT_NORMALIZE_PATH_FULLY If not all \c ".." path components could be removed
  */
 int normalize_path(char *normalized_path, size_t normalized_path_size, const char *path);
 
-/**
+/** @brief Find the common prefix between two paths
+ *
  * Finds the common prefix between two paths, returns the common prefix and
- * optionally the count of how many path components were common between the two
- * paths (if common_count is non-NULL).
+ * optionally the count of how many path components were common between the
+ * two paths (if \c common_count is non-NULL). Please note that for absolute
+ * paths, the \c "/" root prefix is treated as a common components, so the
+ * paths \c "/usr/lib" and \c "/usr/share" would have two common components -
+ * \c "/" and \c "/usr".
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      if the buffer space is too small
+ * Contrary to some other implementations, \c common_path_prefix() works on
+ * path components, not characters, which guarantees at least some level of
+ * sanity of the returned prefixes (for example, the common prefix of
+ * \c "/usr/share" and \c "/usr/src" would be \c "/usr")
+ *
+ * @returns \c SUCCESS if successful, non-zero error code otherwise.
+ * Possible errors:
+ * \li \c ENOBUFS      if the buffer space is too small
  */
-int common_path_prefix(char *common_path, size_t common_path_size, int *common_count, const char *path1, const char *path2);
+int common_path_prefix(char *common_path,
+                       size_t common_path_size,
+                       int *common_count,
+                       const char *path1, const char *path2);
 
 
-/**
- * Make the input path absolute if it's not already, then normalize it.
+/** @brief Make the input path absolute if it's not already, then normalize it.
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      if the buffer space is too small
+ * @returns \c SUCCESS if successful, non-zero error code otherwise.
+ * Possible errors:
+ * \li \c ENOBUFS      if the buffer space is too small
  */
 int make_normalized_absolute_path(char *result_path, size_t result_path_size, const char *path);
 
@@ -233,35 +344,67 @@ int make_normalized_absolute_path(char *result_path, size_t result_path_size, co
  * Find the first path component which is an existing directory by walking from
  * the tail of the path to it's head, return the path of the existing directory.
  *
- * Returns SUCCESS (0) if successful, non-zero error code otherwise. Possible errors:
- * ENOBUFS      if the buffer space is too small
- * EACCES       Search permission is denied for one of the directories.
- * ELOOP        Too many symbolic links encountered while traversing the path.
- * ENAMETOOLONG File name too long.
- * ENOMEM       Out of memory (i.e., kernel memory).
+ * If the pathname is relative and does not contain a directory, the current
+ * directory is returned as parent.
+ *
+ * @returns \c SUCCESS if successful, non-zero error code otherwise.
+ * Possible errors:
+ * \li \c ENOBUFS      if the buffer space is too small
+ * \li \c EACCES       Search permission is denied for one of the directories.
+ * \li \c ELOOP        Too many symbolic links encountered while traversing the path.
+ * \li \c ENAMETOOLONG File name too long.
+ * \li \c ENOMEM       Out of memory (i.e., kernel memory).
  */
 int find_existing_directory_ancestor(char *ancestor, size_t ancestor_size, const char *path);
 
-/**
- * Walk a directory. If recursive is true child directories will be descended
- * into. The supplied callback is invoked for each entry in the directory.
+/** @brief callback for the \c directory_list() function
  *
- * The callback is provided with the directory name, basename the full pathname
- * (i.e. directory name + basename) a stat sturcture for the path item and a
- * pointer to any user supplied data specified in the user_data parameter. If
- * the callback returns false for a directory the recursive descent into that
- * directory does not occur thus effectively "pruning" the tree.
+ * Please see the description of \c directory_list() to see more
+ * details about this callback
+ *
+ * @param[in]   directory   Directory name of the visited path
+ * @param[in]   base_name   Base name of the visited path
+ * @param[in]   path        Full name of the visited path
+ * @param[in]   info        Info about the visited directory
+ * @param[in]   user_data   Callback data passed by caller
+ *
+ * @returns if \c false, do not recursively descend into the directory,
+ * descend if \c true
  */
-typedef bool (*directory_list_callback_t)(const char *directory, const char *basename, const char *path,
-                                         struct stat *info, void *user_data);
-int directory_list(const char *path, bool recursive, directory_list_callback_t callback, void *user_data);
-
-/**
- * Test to see if the path passed in the ancestor parameter is an ancestor of
- * the path passed in the path parameter returning true if it is, false otherwise.
+typedef bool (*directory_list_callback_t)(const char *directory, const char *base_name,
+                                          const char *path, struct stat *info,
+                                          void *user_data);
+/** @brief Walk a directory.
  *
- * The test "static" as such it is performed on the string components in each
- * path. Live symbolic links in the file system are not taken into
+ * Walk a directory. If \c recursive is \c true child directories will be
+ * descended into. The supplied callback is invoked for each entry in the
+ * directory.
+ *
+ * The callback is provided with the directory name, basename, the full
+ * pathname (i.e. directory name + basename) a stat structure for the path
+ * item and a pointer to any user supplied data specified in the \c user_data
+ * parameter. If the callback returns \c false for a directory the recursive
+ * descent into that directory does not occur thus effectively "pruning"
+ * the tree.
+ *
+ * @param[in]   path        The path to examine
+ * @param[in]   recursive   Whether to recursively examine entries in the directory 
+ * @param[in]   callback    The callback to invoke for each entry
+ * @param[in]   user_data   The data to pass into the callback
+ *
+ * @returns SUCCESS if successfull, an error code if not.
+ */
+int directory_list(const char *path, bool recursive,
+                   directory_list_callback_t callback, void *user_data);
+
+/** @brief  Tell if one path is ancestor of another
+ *
+ * Test to see if the path passed in the \c ancestor parameter is an ancestor
+ * of the path passed in the path parameter returning true if it is, \c false
+ * otherwise.
+ *
+ * The test is "static" as such it is performed on the string components in
+ * each path. Live symbolic links in the file system are not taken into
  * consideration. The test operates by splitting each path into it's individual
  * components and then comparing each component pairwise for string
  * equality. Both paths mush share a common root component for the test to be
@@ -269,9 +412,18 @@ int directory_list(const char *path, bool recursive, directory_list_callback_t c
  * path).
  *
  * Example:
+ * \code
  * is_ancestor_path("/a/b/c"   "/a/b/c/d") => true
  * is_ancestor_path("/a/b/c/d" "/a/b/c/d") => false // equal, not ancestor
  * is_ancestor_path("/a/x/c"   "/a/b/c/d") => false
+ * \endcode
+ *
+ * @returns \c true if \c ancestor is an ancestor of \c path
  */
 bool is_ancestor_path(const char *ancestor, const char *path);
-#endif
+
+/**
+ * @}
+ */
+
+#endif /* PATH_UTILS_H */

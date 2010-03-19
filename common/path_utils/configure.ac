@@ -20,5 +20,8 @@ AM_SILENT_RULES
 
 AC_CONFIG_HEADERS([config.h])
 
-AC_CONFIG_FILES([Makefile path_utils.pc])
+AC_PATH_PROG([DOXYGEN], [doxygen], [false])
+AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
+
+AC_CONFIG_FILES([Makefile path_utils.cfg.doxy path_utils.pc])
 AC_OUTPUT
