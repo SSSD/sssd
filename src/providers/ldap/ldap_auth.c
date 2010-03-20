@@ -312,152 +312,107 @@ shadow_fail:
 
 /* ==Get-User-DN========================================================== */
 
-struct get_user_dn_state {
-    struct tevent_context *ev;
-    struct sdap_auth_ctx *ctx;
-    struct sdap_handle *sh;
-
-    const char **attrs;
-    const char *name;
-
-    char *dn;
+static int get_user_dn(TALLOC_CTX *memctx,
+                       struct sysdb_ctx *sysdb,
+                       struct sdap_options *opts,
+                       struct sss_domain_info *dom,
+                       const char *username,
+                       char **user_dn,
+                       enum pwexpire *user_pw_expire_type,
+                       void **user_pw_expire_data)
+{
+    TALLOC_CTX *tmpctx;
     enum pwexpire pw_expire_type;
     void *pw_expire_data;
-};
-
-static void get_user_dn_done(void *pvt, int err, struct ldb_result *res);
-
-struct tevent_req *get_user_dn_send(TALLOC_CTX *memctx,
-                                    struct tevent_context *ev,
-                                    struct sdap_auth_ctx *ctx,
-                                    struct sdap_handle *sh,
-                                    const char *username)
-{
-    struct tevent_req *req;
-    struct get_user_dn_state *state;
-    int ret;
-
-    req = tevent_req_create(memctx, &state, struct get_user_dn_state);
-    if (!req) return NULL;
-
-    state->ev = ev;
-    state->ctx = ctx;
-    state->sh = sh;
-    state->name = username;
-
-    state->attrs = talloc_array(state, const char *, 11);
-    if (!state->attrs) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    state->attrs[0] = SYSDB_ORIG_DN;
-    state->attrs[1] = SYSDB_SHADOWPW_LASTCHANGE;
-    state->attrs[2] = SYSDB_SHADOWPW_MIN;
-    state->attrs[3] = SYSDB_SHADOWPW_MAX;
-    state->attrs[4] = SYSDB_SHADOWPW_WARNING;
-    state->attrs[5] = SYSDB_SHADOWPW_INACTIVE;
-    state->attrs[6] = SYSDB_SHADOWPW_EXPIRE;
-    state->attrs[7] = SYSDB_KRBPW_LASTCHANGE;
-    state->attrs[8] = SYSDB_KRBPW_EXPIRATION;
-    state->attrs[9] = SYSDB_PWD_ATTRIBUTE;
-    state->attrs[10] = NULL;
-
-    /* this sysdb call uses a sysdn operation, which means it will be
-     * schedule only after we return, no timer hack needed */
-    ret = sysdb_get_user_attr(state, state->ctx->be->sysdb,
-                              state->ctx->be->domain, state->name,
-                              state->attrs, get_user_dn_done, req);
-    if (ret) {
-        tevent_req_error(req, ret);
-        tevent_req_post(req, ev);
-    }
-
-    return req;
-}
-
-static void get_user_dn_done(void *pvt, int err, struct ldb_result *res)
-{
-    struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
-    struct get_user_dn_state *state = tevent_req_data(req,
-                                           struct get_user_dn_state);
+    struct ldb_result *res;
+    const char **attrs;
     const char *dn;
     int ret;
 
-    if (err != LDB_SUCCESS) {
-        tevent_req_error(req, EIO);
-        return;
+    tmpctx = talloc_new(memctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    attrs = talloc_array(tmpctx, const char *, 11);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    attrs[0] = SYSDB_ORIG_DN;
+    attrs[1] = SYSDB_SHADOWPW_LASTCHANGE;
+    attrs[2] = SYSDB_SHADOWPW_MIN;
+    attrs[3] = SYSDB_SHADOWPW_MAX;
+    attrs[4] = SYSDB_SHADOWPW_WARNING;
+    attrs[5] = SYSDB_SHADOWPW_INACTIVE;
+    attrs[6] = SYSDB_SHADOWPW_EXPIRE;
+    attrs[7] = SYSDB_KRBPW_LASTCHANGE;
+    attrs[8] = SYSDB_KRBPW_EXPIRATION;
+    attrs[9] = SYSDB_PWD_ATTRIBUTE;
+    attrs[10] = NULL;
+
+    ret = sysdb_get_user_attr(tmpctx, sysdb, dom, username, attrs, &res);
+    if (ret) {
+        goto done;
     }
 
     switch (res->count) {
     case 0:
         /* FIXME: not in cache, needs a true search */
-        tevent_req_error(req, ENOENT);
+        ret = ENOENT;
         break;
 
     case 1:
         dn = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_ORIG_DN, NULL);
-        if (!dn) {
+        if (dn) {
+            dn = talloc_strdup(tmpctx, dn);
+        } else {
             /* TODO: try to search ldap server ? */
 
             /* FIXME: remove once we store originalDN on every call
              * NOTE: this is wrong, works only with some DITs */
-            dn = talloc_asprintf(state, "%s=%s,%s",
-                        state->ctx->opts->user_map[SDAP_AT_USER_NAME].name,
-                        state->name,
-                        dp_opt_get_string(state->ctx->opts->basic,
-                                          SDAP_USER_SEARCH_BASE));
-            if (!dn) {
-                tevent_req_error(req, ENOMEM);
-                break;
-            }
+            dn = talloc_asprintf(tmpctx, "%s=%s,%s",
+                                 opts->user_map[SDAP_AT_USER_NAME].name,
+                                 username,
+                                 dp_opt_get_string(opts->basic,
+                                                   SDAP_USER_SEARCH_BASE));
         }
-
-        state->dn = talloc_strdup(state, dn);
-        if (!state->dn) {
-            tevent_req_error(req, ENOMEM);
+        if (!dn) {
+            ret = ENOMEM;
             break;
         }
 
-        ret = find_password_expiration_attributes(state, res->msgs[0],
-                                                  state->ctx->opts->basic,
-                                                  &state->pw_expire_type,
-                                                  &state->pw_expire_data);
+        ret = find_password_expiration_attributes(tmpctx,
+                                                  res->msgs[0],
+                                                  opts->basic,
+                                                  &pw_expire_type,
+                                                  &pw_expire_data);
         if (ret != EOK) {
             DEBUG(1, ("find_password_expiration_attributes failed.\n"));
-            tevent_req_error(req, ENOMEM);
-            break;
         }
-
-        tevent_req_done(req);
         break;
 
     default:
-        DEBUG(1, ("A user search by name (%s) returned > 1 results!\n",
-                  state->name));
-        tevent_req_error(req, EFAULT);
+        DEBUG(1, ("User search by name (%s) returned > 1 results!\n",
+                  username));
+        ret = EFAULT;
         break;
     }
-}
 
-static int get_user_dn_recv(struct tevent_req *req,
-                            TALLOC_CTX *memctx, char **dn,
-                            enum pwexpire *pw_expire_type,
-                            void **pw_expire_data)
-{
-    struct get_user_dn_state *state = tevent_req_data(req,
-                                           struct get_user_dn_state);
+done:
+    if (ret == EOK) {
+        *user_dn = talloc_strdup(memctx, dn);
+        if (!*user_dn) {
+            ret = ENOMEM;
+        }
+        /* pw_expire_data may be NULL */
+        *user_pw_expire_data = talloc_steal(memctx, pw_expire_data);
+        *user_pw_expire_type = pw_expire_type;
+    }
 
-    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dn = talloc_steal(memctx, state->dn);
-    if (!*dn) return ENOMEM;
-
-    /* state->pw_expire_data may be NULL */
-    *pw_expire_data = talloc_steal(memctx, state->pw_expire_data);
-
-    *pw_expire_type = state->pw_expire_type;
-
-    return EOK;
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* ==Authenticate-User==================================================== */
@@ -480,7 +435,6 @@ struct auth_state {
 
 static void auth_resolve_done(struct tevent_req *subreq);
 static void auth_connect_done(struct tevent_req *subreq);
-static void auth_get_user_dn_done(struct tevent_req *subreq);
 static void auth_bind_user_done(struct tevent_req *subreq);
 
 static struct tevent_req *auth_send(TALLOC_CTX *memctx,
@@ -560,28 +514,9 @@ static void auth_connect_done(struct tevent_req *subreq)
         fo_set_port_status(state->srv, PORT_WORKING);
     }
 
-    subreq = get_user_dn_send(state, state->ev,
-                              state->ctx, state->sh,
-                              state->username);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-
-    tevent_req_set_callback(subreq, auth_get_user_dn_done, req);
-}
-
-static void auth_get_user_dn_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct auth_state *state = tevent_req_data(req,
-                                                    struct auth_state);
-    int ret;
-
-    ret = get_user_dn_recv(subreq, state, &state->dn, &state->pw_expire_type,
-                           &state->pw_expire_data);
-    talloc_zfree(subreq);
+    ret = get_user_dn(state, state->ctx->be->sysdb, state->ctx->opts,
+                      state->ctx->be->domain, state->username, &state->dn,
+                      &state->pw_expire_type, &state->pw_expire_data);
     if (ret) {
         tevent_req_error(req, ret);
         return;

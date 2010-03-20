@@ -214,27 +214,56 @@ done:
     return;
 }
 
-static void local_handler_callback(void *pvt, int ldb_status,
-                                   struct ldb_result *res)
+int LOCAL_pam_handler(struct pam_auth_req *preq)
 {
     struct LOCAL_request *lreq;
+    static const char *attrs[] = {SYSDB_NAME,
+                                  SYSDB_PWD,
+                                  SYSDB_DISABLED,
+                                  SYSDB_LAST_LOGIN,
+                                  "lastPasswordChange",
+                                  "accountExpires",
+                                  SYSDB_FAILED_LOGIN_ATTEMPTS,
+                                  "passwordHint",
+                                  "passwordHistory",
+                                  SYSDB_LAST_FAILED_LOGIN,
+                                  NULL};
+    struct ldb_result *res;
     const char *username = NULL;
     const char *password = NULL;
     char *newauthtok = NULL;
     char *new_hash = NULL;
     char *authtok = NULL;
-    struct pam_data *pd;
+    struct pam_data *pd = preq->pd;
     int ret;
 
-    lreq = talloc_get_type(pvt, struct LOCAL_request);
-    pd = lreq->preq->pd;
+    DEBUG(4, ("LOCAL pam handler.\n"));
 
-    DEBUG(4, ("pam_handler_callback called with ldb_status [%d].\n",
-              ldb_status));
+    lreq = talloc_zero(preq, struct LOCAL_request);
+    if (!lreq) {
+        return ENOMEM;
+    }
 
-    NEQ_CHECK_OR_JUMP(ldb_status, LDB_SUCCESS, ("ldb search failed.\n"),
-                      lreq->error, sysdb_error_to_errno(ldb_status), done);
+    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
+                                  preq->domain, &lreq->dbctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+        talloc_free(lreq);
+        return ret;
+    }
+    lreq->ev = preq->cctx->ev;
+    lreq->preq = preq;
 
+    pd->pam_status = PAM_SUCCESS;
+
+    ret = sysdb_get_user_attr(lreq, lreq->dbctx,
+                              preq->domain, preq->pd->user,
+                              attrs, &res);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_get_user_attr failed.\n"));
+        talloc_free(lreq);
+        return ret;
+    }
 
     if (res->count < 1) {
         DEBUG(4, ("No user found with filter ["SYSDB_PWNAM_FILTER"]\n",
@@ -328,53 +357,6 @@ done:
         memset(newauthtok, 0, pd->newauthtok_size);
 
     prepare_reply(lreq);
-}
-
-int LOCAL_pam_handler(struct pam_auth_req *preq)
-{
-    int ret;
-    struct LOCAL_request *lreq;
-
-    static const char *attrs[] = {SYSDB_NAME,
-                                  SYSDB_PWD,
-                                  SYSDB_DISABLED,
-                                  SYSDB_LAST_LOGIN,
-                                  "lastPasswordChange",
-                                  "accountExpires",
-                                  SYSDB_FAILED_LOGIN_ATTEMPTS,
-                                  "passwordHint",
-                                  "passwordHistory",
-                                  SYSDB_LAST_FAILED_LOGIN,
-                                  NULL};
-
-    DEBUG(4, ("LOCAL pam handler.\n"));
-
-    lreq = talloc_zero(preq, struct LOCAL_request);
-    if (!lreq) {
-        return ENOMEM;
-    }
-
-    ret = sysdb_get_ctx_from_list(preq->cctx->rctx->db_list,
-                                  preq->domain, &lreq->dbctx);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        talloc_free(lreq);
-        return ret;
-    }
-    lreq->ev = preq->cctx->ev;
-    lreq->preq = preq;
-
-    preq->pd->pam_status = PAM_SUCCESS;
-
-    ret = sysdb_get_user_attr(lreq, lreq->dbctx,
-                              preq->domain, preq->pd->user, attrs,
-                              local_handler_callback, lreq);
-
-    if (ret != EOK) {
-        DEBUG(1, ("sysdb_get_user_attr failed.\n"));
-        talloc_free(lreq);
-        return ret;
-    }
-
     return EOK;
 }
+

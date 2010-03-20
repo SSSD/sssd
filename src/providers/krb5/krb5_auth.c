@@ -610,7 +610,6 @@ static int handle_child_recv(struct tevent_req *req,
     return EOK;
 }
 
-static void get_user_attr_done(void *pvt, int err, struct ldb_result *res);
 static void krb5_resolve_kdc_done(struct tevent_req *req);
 static void krb5_resolve_kpasswd_done(struct tevent_req *req);
 static void krb5_find_ccache_step(struct krb5child_req *kr);
@@ -623,6 +622,12 @@ void krb5_pam_handler(struct be_req *be_req)
     const char **attrs;
     int pam_status = PAM_SYSTEM_ERR;
     int dp_err = DP_ERR_FATAL;
+    struct ldb_result *res;
+    struct krb5child_req *kr = NULL;
+    const char *ccache_file = NULL;
+    const char *realm;
+    krb5_error_code kerr;
+    struct tevent_req *req;
     int ret;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
@@ -668,34 +673,12 @@ void krb5_pam_handler(struct be_req *be_req)
     attrs[5] = NULL;
 
     ret = sysdb_get_user_attr(be_req, be_req->be_ctx->sysdb,
-                              be_req->be_ctx->domain, pd->user, attrs,
-                              get_user_attr_done, be_req);
-
+                              be_req->be_ctx->domain, pd->user,
+                              attrs, &res);
     if (ret) {
+        DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
         goto done;
     }
-
-    return;
-
-done:
-    pd->pam_status = pam_status;
-
-    krb_reply(be_req, dp_err, pd->pam_status);
-}
-
-static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
-{
-    struct be_req *be_req = talloc_get_type(pvt, struct be_req);
-    struct krb5_ctx *krb5_ctx;
-    struct krb5child_req *kr = NULL;
-    struct tevent_req *req;
-    krb5_error_code kerr;
-    int ret;
-    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
-    int pam_status = PAM_SYSTEM_ERR;
-    int dp_err = DP_ERR_FATAL;
-    const char *ccache_file = NULL;
-    const char *realm;
 
     ret = krb5_setup(be_req, &kr);
     if (ret != EOK) {
@@ -703,14 +686,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         goto failed;
     }
 
-    krb5_ctx = kr->krb5_ctx;
-
-    if (err != LDB_SUCCESS) {
-        DEBUG(5, ("sysdb search for upn of user [%s] failed.\n", pd->user));
-        goto failed;
-    }
-
-    realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+    realm = dp_opt_get_cstring(kr->krb5_ctx->opts, KRB5_REALM);
     if (realm == NULL) {
         DEBUG(1, ("Missing Kerberos realm.\n"));
         goto failed;
@@ -782,8 +758,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
         break;
 
     default:
-        DEBUG(1, ("A user search by name (%s) returned > 1 results!\n",
-                  pd->user));
+        DEBUG(1, ("User search for (%s) returned > 1 results!\n", pd->user));
         goto failed;
         break;
     }
@@ -791,7 +766,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
     kr->srv = NULL;
     kr->kpasswd_srv = NULL;
     req = be_resolve_server_send(kr, be_req->be_ctx->ev, be_req->be_ctx,
-                                 krb5_ctx->service->name);
+                                 kr->krb5_ctx->service->name);
     if (req == NULL) {
         DEBUG(1, ("be_resolve_server_send failed.\n"));
         goto failed;
@@ -803,7 +778,7 @@ static void get_user_attr_done(void *pvt, int err, struct ldb_result *res)
 
 failed:
     talloc_free(kr);
-
+done:
     pd->pam_status = pam_status;
     krb_reply(be_req, dp_err, pd->pam_status);
 }

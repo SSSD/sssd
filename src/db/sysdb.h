@@ -295,7 +295,7 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         const char *name,
                         const char **attributes,
-                        sysdb_callback_t fn, void *ptr);
+                        struct ldb_result **res);
 
 
 /* functions that modify the databse

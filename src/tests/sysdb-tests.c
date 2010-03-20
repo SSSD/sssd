@@ -174,7 +174,6 @@ struct test_data {
     int error;
 
     struct sysdb_attrs *attrs;
-    const char *attrval;  /* testing sysdb_get_user_attr */
     const char **attrlist;
     struct ldb_message *msg;
 
@@ -354,31 +353,6 @@ static int test_set_user_attr(struct test_data *data)
                               data->ctx->domain, data->username,
                               data->attrs, SYSDB_MOD_REP);
     return ret;
-}
-
-static void test_get_user_attr(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    switch (res->count) {
-        case 0:
-            data->error = ENOENT;
-            break;
-
-        case 1:
-            data->attrval = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, 0);
-            break;
-
-        default:
-            data->error = EFAULT;
-            break;
-    }
 }
 
 static int test_add_group_member(struct test_data *data)
@@ -1044,9 +1018,11 @@ END_TEST
 START_TEST (test_sysdb_get_user_attr)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
-    int ret;
     const char *attrs[] = { SYSDB_SHELL, NULL };
+    struct ldb_result *res;
+    const char *attrval;
+    char *username;
+    int ret;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -1055,28 +1031,22 @@ START_TEST (test_sysdb_get_user_attr)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-    data->username = talloc_asprintf(data, "testuser%d", _i);
+    username = talloc_asprintf(test_ctx, "testuser%d", _i);
 
-    ret = sysdb_get_user_attr(data,
-                              data->ctx->sysdb,
-                              data->ctx->domain,
-                              data->username,
-                              attrs,
-                              test_get_user_attr,
-                              data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+    ret = sysdb_get_user_attr(test_ctx, test_ctx->sysdb,
+                              test_ctx->domain, username,
+                              attrs, &res);
     if (ret) {
-        fail("Could not get attributes for user %s", data->username);
+        fail("Could not get attributes for user %s", username);
         goto done;
     }
-    fail_if(strcmp(data->attrval, "/bin/ksh"),
-            "Got bad attribute value for user %s",
-            data->username);
+
+    fail_if(res->count != 1,
+            "Invalid number of entries, expected 1, got %d", res->count);
+
+    attrval = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_SHELL, 0);
+    fail_if(strcmp(attrval, "/bin/ksh"),
+            "Got bad attribute value for user %s", username);
 done:
     talloc_free(test_ctx);
 }
