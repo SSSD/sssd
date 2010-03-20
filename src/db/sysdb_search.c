@@ -176,41 +176,6 @@ static int get_gen_callback(struct ldb_request *req,
 
 /* users */
 
-static void user_search(struct tevent_req *treq)
-{
-    struct sysdb_search_ctx *sctx;
-    struct ldb_request *req;
-    struct ldb_dn *base_dn;
-    int ret;
-
-    sctx = tevent_req_callback_data(treq, struct sysdb_search_ctx);
-
-    ret = sysdb_operation_recv(treq, sctx, &sctx->handle);
-    if (ret) {
-        return request_error(sctx, ret);
-    }
-
-    base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_USER_BASE, sctx->domain->name);
-    if (!base_dn) {
-        return request_error(sctx, ENOMEM);
-    }
-
-    ret = ldb_build_search_req(&req, sctx->ctx->ldb, sctx,
-                               base_dn, LDB_SCOPE_SUBTREE,
-                               sctx->expression, sctx->attrs, NULL,
-                               sctx, get_gen_callback,
-                               NULL);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-
-    ret = ldb_request(sctx->ctx->ldb, req);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-}
-
 int sysdb_getpwnam(TALLOC_CTX *mem_ctx,
                    struct sysdb_ctx *ctx,
                    struct sss_domain_info *domain,
@@ -299,38 +264,42 @@ done:
 int sysdb_enumpwent(TALLOC_CTX *mem_ctx,
                     struct sysdb_ctx *ctx,
                     struct sss_domain_info *domain,
-                    const char *expression,
-                    sysdb_callback_t fn, void *ptr)
+                    struct ldb_result **_res)
 {
+    TALLOC_CTX *tmpctx;
     static const char *attrs[] = SYSDB_PW_ATTRS;
-    struct sysdb_search_ctx *sctx;
-    struct tevent_req *req;
+    struct ldb_dn *base_dn;
+    struct ldb_result *res;
+    int ret;
 
     if (!domain) {
         return EINVAL;
     }
 
-    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
-    if (!sctx) {
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
         return ENOMEM;
     }
 
-    if (expression)
-        sctx->expression = expression;
-    else
-        sctx->expression = SYSDB_PWENT_FILTER;
-
-    sctx->attrs = attrs;
-
-    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
-    if (!req) {
-        talloc_free(sctx);
-        return ENOMEM;
+    base_dn = ldb_dn_new_fmt(tmpctx, ctx->ldb,
+                             SYSDB_TMPL_USER_BASE, domain->name);
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
     }
 
-    tevent_req_set_callback(req, user_search, sctx);
+    ret = ldb_search(ctx->ldb, tmpctx, &res, base_dn,
+                     LDB_SCOPE_SUBTREE, attrs, SYSDB_PWENT_FILTER);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
 
-    return EOK;
+    *_res = talloc_steal(mem_ctx, res);
+
+done:
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 /* groups */

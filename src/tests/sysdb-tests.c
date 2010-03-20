@@ -325,26 +325,6 @@ static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
     data->error = EOK;
 }
 
-static void test_enumpwent(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    const int expected = 10;
-
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    if (res->count != expected) {
-        data->error = EINVAL;
-        return;
-    }
-
-    data->error = EOK;
-}
-
 static int test_set_user_attr(struct test_data *data)
 {
     int ret;
@@ -943,7 +923,7 @@ END_TEST
 START_TEST (test_sysdb_enumpwent)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
+    struct ldb_result *res;
     int ret;
 
     /* Setup */
@@ -953,22 +933,15 @@ START_TEST (test_sysdb_enumpwent)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-
     ret = sysdb_enumpwent(test_ctx,
                           test_ctx->sysdb,
-                          data->ctx->domain,
-                          NULL,
-                          test_enumpwent,
-                          data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+                          test_ctx->domain,
+                          &res);
     fail_unless(ret == EOK,
                 "sysdb_enumpwent failed (%d: %s)",
                 ret, strerror(ret));
+
+    fail_if(res->count != 10, "Expected 10 users, got %d", res->count);
 
     talloc_free(test_ctx);
 }
