@@ -180,7 +180,7 @@ static int fill_pwent(struct sss_packet *packet,
                       struct nss_ctx *nctx,
                       bool filter_users,
                       struct ldb_message **msgs,
-                      int count)
+                      int *count)
 {
     struct ldb_message *msg;
     uint8_t *body;
@@ -206,7 +206,7 @@ static int fill_pwent(struct sss_packet *packet,
     rp = 2*sizeof(uint32_t);
 
     num = 0;
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < *count; i++) {
         msg = msgs[i];
 
         name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
@@ -305,6 +305,8 @@ static int fill_pwent(struct sss_packet *packet,
     }
 
 done:
+    *count = i;
+
     /* if there are no results just return ENOENT,
      * let the caller decide if this is the last packet or not */
     if (!packet_initialized) return ENOENT;
@@ -322,6 +324,7 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
     struct cli_ctx *cctx = cmdctx->cctx;
     struct nss_ctx *nctx;
     int ret;
+    int i;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
@@ -331,10 +334,11 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
     if (ret != EOK) {
         return EFAULT;
     }
+    i = dctx->res->count;
     ret = fill_pwent(cctx->creq->out,
                      dctx->domain,
                      nctx, filter,
-                     dctx->res->msgs, dctx->res->count);
+                     dctx->res->msgs, &i);
     if (ret) {
         return ret;
     }
@@ -1182,9 +1186,10 @@ static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
         if (n > num) n = num;
 
         msgs = &(pdom->res->msgs[pdom->cur]);
-        pdom->cur += n;
 
-        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, n);
+        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, &n);
+
+        pdom->cur += n;
     }
 
 none:
@@ -1286,7 +1291,7 @@ static int fill_grent(struct sss_packet *packet,
                       struct nss_ctx *nctx,
                       bool filter_groups,
                       struct ldb_message **msgs,
-                      int max, int *count)
+                      int *count)
 {
     struct ldb_message *msg;
     struct ldb_message_element *el;
@@ -1335,11 +1340,6 @@ static int fill_grent(struct sss_packet *packet,
             DEBUG(1, ("Wrong object (%s) found on stack!\n",
                       ldb_dn_get_linearized(msg->dn)));
             continue;
-        }
-
-        /* if we reached the max allowed entries, simply return */
-        if (num >= max) {
-            goto done;
         }
 
         /* new result starts at end of previous result */
@@ -1546,7 +1546,7 @@ static int nss_cmd_getgr_send_reply(struct nss_dom_ctx *dctx, bool filter)
     ret = fill_grent(cctx->creq->out,
                      dctx->domain,
                      nctx, filter,
-                     dctx->res->msgs, 1, &i);
+                     dctx->res->msgs, &i);
     if (ret) {
         return ret;
     }
@@ -2253,7 +2253,7 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
 
         ret = fill_grent(cctx->creq->out,
                          gdom->domain,
-                         nctx, true, msgs, n, &n);
+                         nctx, true, msgs, &n);
 
         gdom->cur += n;
     }
