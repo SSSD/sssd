@@ -305,26 +305,6 @@ static int test_remove_group_by_gid(struct test_data *data)
     return ret;
 }
 
-static void test_enumgrent(void *pvt, int error, struct ldb_result *res)
-{
-    struct test_data *data = talloc_get_type(pvt, struct test_data);
-    const int expected = 20; /* 10 groups + 10 users (we're MPG) */
-
-    data->finished = true;
-
-    if (error != EOK) {
-        data->error = error;
-        return;
-    }
-
-    if (res->count != expected) {
-        data->error = EINVAL;
-        return;
-    }
-
-    data->error = EOK;
-}
-
 static int test_set_user_attr(struct test_data *data)
 {
     int ret;
@@ -890,7 +870,7 @@ END_TEST
 START_TEST (test_sysdb_enumgrent)
 {
     struct sysdb_test_ctx *test_ctx;
-    struct test_data *data;
+    struct ldb_result *res;
     int ret;
 
     /* Setup */
@@ -900,21 +880,16 @@ START_TEST (test_sysdb_enumgrent)
         return;
     }
 
-    data = talloc_zero(test_ctx, struct test_data);
-    data->ctx = test_ctx;
-
     ret = sysdb_enumgrent(test_ctx,
-                         test_ctx->sysdb,
-                         data->ctx->domain,
-                         test_enumgrent,
-                         data);
-    if (ret == EOK) {
-        ret = test_loop(data);
-    }
-
+                          test_ctx->sysdb,
+                          test_ctx->domain,
+                          &res);
     fail_unless(ret == EOK,
                 "sysdb_enumgrent failed (%d: %s)",
                 ret, strerror(ret));
+
+    /* 10 groups + 10 users (we're MPG) */
+    fail_if(res->count != 20, "Expected 20 users, got %d", res->count);
 
     talloc_free(test_ctx);
 }

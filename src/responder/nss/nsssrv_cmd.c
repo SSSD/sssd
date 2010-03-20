@@ -2004,97 +2004,108 @@ done:
  */
 static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx);
 
-static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr);
+static void nss_cmd_getgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                         const char *err_msg, void *ptr);
 
-static void nss_cmd_setgrent_callback(void *ptr, int status,
-                                     struct ldb_result *res)
+static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
 {
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct sss_domain_info *dom = dctx->domain;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sss_domain_info *dom;
     struct sysdb_ctx *sysdb;
+    struct ldb_result *res;
     struct getent_ctx *gctx;
     struct nss_ctx *nctx;
     int timeout;
     int ret;
-
-    if (status != LDB_SUCCESS) {
-        ret = nss_cmd_send_error(cmdctx, ENOENT);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_cmd_done(cctx, cmdctx);
-        return;
-    }
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
     gctx = nctx->gctx;
     if (gctx == NULL) {
         gctx = talloc_zero(nctx, struct getent_ctx);
         if (!gctx) {
-            ret = nss_cmd_send_error(cmdctx, ENOMEM);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
-            return;
+            return ENOMEM;
         }
         nctx->gctx = gctx;
     }
 
-    gctx->doms = talloc_realloc(gctx, gctx->doms, struct dom_ctx, gctx->num +1);
-    if (!gctx->doms) NSS_CMD_FATAL_ERROR(cctx);
-
-    gctx->doms[gctx->num].domain = dctx->domain;
-    gctx->doms[gctx->num].res = talloc_steal(gctx->doms, res);
-    gctx->doms[gctx->num].cur = 0;
-
-    gctx->num++;
-
-    /* do not reply until all domain searches are done */
-    for (dom = dctx->domain->next; dom; dom = dom->next) {
-        if (dom->enumerate != 0) break;
-    }
-    dctx->domain = dom;
-
-    if (dctx->domain != NULL) {
-        if (cmdctx->enum_cached) {
-            dctx->check_provider = false;
-        } else {
-            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+    while (dom) {
+        while (dom && dom->enumerate == 0) {
+            dom = dom->next;
         }
 
+        if (!dom) break;
+
+        if (dom != dctx->domain) {
+            /* make sure we reset the check_provider flag when we check
+             * a new domain */
+            if (cmdctx->enum_cached) {
+                dctx->check_provider = false;
+            } else {
+                dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
+            }
+        }
+
+        /* make sure to update the dctx if we changed domain */
+        dctx->domain = dom;
+
+        DEBUG(4, ("Requesting info for domain [%s]\n", dom->name));
+
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
+        if (ret != EOK) {
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            return EIO;
+        }
+
+        /* if this is a caching provider (or if we haven't checked the cache
+         * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
+            dctx->check_provider = false;
             timeout = SSS_CLI_SOCKET_TIMEOUT;
             ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                       nss_cmd_setgr_dp_callback, dctx,
+                                       nss_cmd_getgrent_dp_callback, dctx,
                                        timeout, dom->name, true,
                                        SSS_DP_GROUP, NULL, 0);
-        } else {
-            ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                          dctx->domain, &sysdb);
-            if (ret != EOK) {
-                DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-                NSS_CMD_FATAL_ERROR(cctx);
+            if (ret == EOK) {
+                return ret;
+            } else {
+                DEBUG(2, ("Enum Cache refresh for domain [%s] failed."
+                          " Trying to return what we have in cache!\n",
+                          dom->name));
             }
-            ret = sysdb_enumgrent(dctx, sysdb,
-                                  dctx->domain,
-                                  nss_cmd_setgrent_callback, dctx);
         }
-        if (ret != EOK) {
-            /* FIXME: shutdown ? */
-            DEBUG(1, ("Failed to send enumeration request for domain [%s]!\n",
-                      dom->name));
 
-            ret = nss_cmd_send_error(cmdctx, ret);
-            if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
-            }
-            sss_cmd_done(cctx, cmdctx);
+        ret = sysdb_enumgrent(dctx, sysdb, dctx->domain, &res);
+        if (ret != EOK) {
+            DEBUG(1, ("Enum from cache failed, skipping domain [%s]\n",
+                      dom->name));
+            dom = dom->next;
+            continue;
         }
-        return;
+
+        if (res->count == 0) {
+            DEBUG(4, ("Domain [%s] has no groups, skipping.\n", dom->name));
+            dom = dom->next;
+            continue;
+        }
+
+
+        gctx->doms = talloc_realloc(gctx, gctx->doms,
+                                    struct dom_ctx, gctx->num +1);
+        if (!gctx->doms) {
+            talloc_free(gctx);
+            nctx->gctx = NULL;
+            return ENOMEM;
+        }
+
+        gctx->doms[gctx->num].domain = dctx->domain;
+        gctx->doms[gctx->num].res = talloc_steal(gctx->doms, res);
+        gctx->doms[gctx->num].cur = 0;
+
+        gctx->num++;
+
+        /* do not reply until all domain searches are done */
+        dom = dom->next;
     }
 
     /* set cache mark */
@@ -2103,28 +2114,25 @@ static void nss_cmd_setgrent_callback(void *ptr, int status,
     if (cmdctx->immediate) {
         /* this was a getgrent call w/o setgrent,
          * return immediately one result */
-        ret = nss_cmd_getgrent_immediate(cmdctx);
-        if (ret != EOK) NSS_CMD_FATAL_ERROR(cctx);
-        return;
+        return nss_cmd_getgrent_immediate(cmdctx);
     }
 
     /* create response packet */
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
-    if (ret != EOK) {
-        NSS_CMD_FATAL_ERROR(cctx);
+    if (ret == EOK) {
+        sss_cmd_done(cctx, cmdctx);
     }
-    sss_cmd_done(cctx, cmdctx);
+    return ret;
 }
 
-static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                      const char *err_msg, void *ptr)
+static void nss_cmd_getgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                         const char *err_msg, void *ptr)
 {
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -2134,37 +2142,20 @@ static void nss_cmd_setgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-    ret = sysdb_enumgrent(dctx, sysdb,
-                          dctx->domain,
-                          nss_cmd_setgrent_callback, dctx);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
+    ret = nss_cmd_getgrent_search(dctx);
 
-        ret = nss_cmd_send_error(cmdctx, ret);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_cmd_done(cctx, cmdctx);
+    if (ret) {
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 }
 
 static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 {
     struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
     struct nss_ctx *nctx;
     time_t now = time(NULL);
-    int timeout;
-    uint8_t *body;
-    size_t blen;
     int ret;
 
     DEBUG(4, ("Requesting info for all groups\n"));
@@ -2189,8 +2180,7 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     /* do not query backends if we have a recent enumeration */
     if (nctx->enum_cache_timeout) {
-        if (nctx->last_group_enum +
-            nctx->enum_cache_timeout > now) {
+        if (nctx->last_group_enum + nctx->enum_cache_timeout > now) {
             cmdctx->enum_cached = true;
         }
     }
@@ -2203,71 +2193,25 @@ static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
 
     if (dctx->domain == NULL) {
         DEBUG(2, ("Enumeration disabled on all domains!\n"));
-        ret = ENOENT;
+        if (cmdctx->immediate) {
+            ret = ENOENT;
+        } else {
+            ret = sss_packet_new(cctx->creq, 0,
+                                 sss_packet_get_cmd(cctx->creq->in),
+                                 &cctx->creq->out);
+            if (ret == EOK) {
+                sss_cmd_done(cctx, cmdctx);
+            }
+        }
         goto done;
     }
 
-    if (cmdctx->enum_cached) {
-        dctx->check_provider = false;
-    } else {
-        dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-    }
+    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
-    if (dctx->check_provider) {
-        timeout = SSS_CLI_SOCKET_TIMEOUT;
-        ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   nss_cmd_setgr_dp_callback, dctx,
-                                   timeout, dom->name, true,
-                                   SSS_DP_GROUP, NULL, 0);
-    } else {
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                      dctx->domain, &sysdb);
-        if (ret != EOK) {
-            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-            ret = EFAULT;
-            goto done;
-        }
-        ret = sysdb_enumgrent(dctx, sysdb,
-                              dctx->domain,
-                              nss_cmd_setgrent_callback, dctx);
-    }
-    if (ret != EOK) {
-        /* FIXME: shutdown ? */
-        DEBUG(1, ("Failed to send enumeration request for domain [%s]!\n",
-                  dom->name));
-    }
-
+    /* ok, start the searches */
+    ret = nss_cmd_getgrent_search(dctx);
 done:
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            if (cmdctx->immediate) {
-                /* we do not have any entry to return */
-                ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                                     sss_packet_get_cmd(cctx->creq->in),
-                                     &cctx->creq->out);
-                if (ret == EOK) {
-                    sss_packet_get_body(cctx->creq->out, &body, &blen);
-                    ((uint32_t *)body)[0] = 0; /* 0 results */
-                    ((uint32_t *)body)[1] = 0; /* reserved */
-                }
-            }
-            else {
-                /* create response packet */
-                ret = sss_packet_new(cctx->creq, 0,
-                                     sss_packet_get_cmd(cctx->creq->in),
-                                     &cctx->creq->out);
-            }
-        }
-        if (ret != EOK) {
-            ret = nss_cmd_send_error(cmdctx, ret);
-        }
-        if (ret == EOK) {
-            sss_cmd_done(cctx, cmdctx);
-        }
-        return ret;
-    }
-
-    return EOK;
+    return nss_cmd_done(cmdctx, ret);
 }
 
 static int nss_cmd_setgrent(struct cli_ctx *cctx)
@@ -2282,13 +2226,15 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     struct ldb_message **msgs = NULL;
     struct dom_ctx *gdom = NULL;
     int n = 0;
-    int ret;
+    int ret = ENOENT;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    if (!nctx->gctx) goto none;
+
     gctx = nctx->gctx;
 
-    do {
-        if (gctx->cur >= gctx->num) goto none;
+    while (ret == ENOENT) {
+        if (gctx->cur >= gctx->num) break;
 
         gdom = &gctx->doms[gctx->cur];
 
@@ -2299,24 +2245,26 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
             n = gdom->res->count - gdom->cur;
         }
 
-        if (!n) goto none;
+        if (!n) break;
+
+        if (n > num) n = num;
 
         msgs = &(gdom->res->msgs[gdom->cur]);
 
-        ret = fill_grent(cctx->creq->out, gdom->domain, nctx, true, msgs, num, &n);
+        ret = fill_grent(cctx->creq->out,
+                         gdom->domain,
+                         nctx, true, msgs, n, &n);
 
         gdom->cur += n;
-
-    } while(ret == ENOENT);
-
-    return ret;
+    }
 
 none:
-    return fill_empty(cctx->creq->out);
+    if (ret == ENOENT) {
+        ret = fill_empty(cctx->creq->out);
+    }
+    return ret;
 }
 
-/* used only if a process calls getpwent() without first calling setpwent()
- */
 static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx)
 {
     struct cli_ctx *cctx = cmdctx->cctx;
@@ -2359,9 +2307,6 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
 
     /* see if we need to trigger an implicit setpwent() */
     if (nctx->gctx == NULL) {
-        nctx->gctx = talloc_zero(nctx, struct getent_ctx);
-        if (!nctx->gctx) return ENOMEM;
-
         return nss_cmd_setgrent_ext(cctx, true);
     }
 
