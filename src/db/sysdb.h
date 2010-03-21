@@ -243,9 +243,6 @@ int sysdb_get_ctx_from_list(struct sysdb_ctx_list *ctx_list,
                             struct sss_domain_info *domain,
                             struct sysdb_ctx **_ctx);
 
-/* FIXME: REMOVE */
-typedef void (*sysdb_callback_t)(void *, int, struct ldb_result *);
-
 /* functions to retrieve information from sysdb
  * These functions automatically starts an operation
  * therefore they cannot be called within a transaction */
@@ -423,11 +420,6 @@ int sysdb_mod_group_member(TALLOC_CTX *mem_ctx,
                            struct ldb_dn *member_dn,
                            struct ldb_dn *group_dn,
                            int mod_op);
-
-int sysdb_set_group_gid(struct sysdb_handle *handle,
-                        struct sss_domain_info *domain,
-                        const char *name, gid_t gid,
-                        sysdb_callback_t fn, void *pvt);
 
 int sysdb_store_user(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *ctx,
