@@ -511,141 +511,94 @@ done:
     return ret;
 }
 
-static void initgr_mem_search(struct sysdb_search_ctx *sctx)
+int sysdb_initgroups(TALLOC_CTX *mem_ctx,
+                     struct sysdb_ctx *ctx,
+                     struct sss_domain_info *domain,
+                     const char *name,
+                     struct ldb_result **_res)
 {
-    struct sysdb_ctx *ctx = sctx->ctx;
-    struct ldb_result *res = sctx->res;
+    TALLOC_CTX *tmpctx;
+    struct ldb_result *res;
+    struct ldb_dn *user_dn;
     struct ldb_request *req;
     struct ldb_control **ctrl;
     struct ldb_asq_control *control;
     static const char *attrs[] = SYSDB_INITGR_ATTRS;
     int ret;
 
-    if (res->count == 0) {
-        return request_done(sctx);
-    }
-    if (res->count > 1) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
     }
 
-    /* make sure we don't loop with get_gen_callback() */
-    sctx->gen_aux_fn = NULL;
-
-    sctx->expression = talloc_asprintf(sctx, SYSDB_INITGR_FILTER);
-    if (!sctx->expression) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+    ret = sysdb_getpwnam(tmpctx, ctx, domain, name, &res);
+    if (ret != EOK) {
+        goto done;
+    }
+    if (res->count != 1) {
+        ret = EIO;
+        goto done;
     }
 
-    ctrl = talloc_array(sctx, struct ldb_control *, 2);
+    /* no need to steal the dn, we are not freeing the result */
+    user_dn = res->msgs[0]->dn;
+
+    /* note we count on the fact that the default search callback
+     * will just keep appending values. This is by design and can't
+     * change so it is ok to already have a result (from the getpwnam)
+     * even before we call the next search */
+
+    ctrl = talloc_array(tmpctx, struct ldb_control *, 2);
     if (!ctrl) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+        ret = ENOMEM;
+        goto done;
     }
     ctrl[1] = NULL;
     ctrl[0] = talloc(ctrl, struct ldb_control);
     if (!ctrl[0]) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+        ret = ENOMEM;
+        goto done;
     }
     ctrl[0]->oid = LDB_CONTROL_ASQ_OID;
     ctrl[0]->critical = 1;
     control = talloc(ctrl[0], struct ldb_asq_control);
     if (!control) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+        ret = ENOMEM;
+        goto done;
     }
     control->request = 1;
     control->source_attribute = talloc_strdup(control, SYSDB_INITGR_ATTR);
     if (!control->source_attribute) {
-        return request_ldberror(sctx, LDB_ERR_OPERATIONS_ERROR);
+        ret = ENOMEM;
+        goto done;
     }
     control->src_attr_len = strlen(control->source_attribute);
     ctrl[0]->data = control;
 
-    ret = ldb_build_search_req(&req, ctx->ldb, sctx,
-                               res->msgs[0]->dn,
-                               LDB_SCOPE_BASE,
-                               sctx->expression, attrs, ctrl,
-                               sctx, get_gen_callback,
+    ret = ldb_build_search_req(&req, ctx->ldb, tmpctx,
+                               user_dn, LDB_SCOPE_BASE,
+                               SYSDB_INITGR_FILTER, attrs, ctrl,
+                               res, ldb_search_default_callback,
                                NULL);
     if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
+        ret = sysdb_error_to_errno(ret);
+        goto done;
     }
 
     ret = ldb_request(ctx->ldb, req);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_wait(req->handle, LDB_WAIT_ALL);
+    }
     if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-}
-
-static void initgr_search(struct tevent_req *treq)
-{
-    struct sysdb_search_ctx *sctx;
-    static const char *attrs[] = SYSDB_PW_ATTRS;
-    struct ldb_request *req;
-    struct ldb_dn *base_dn;
-    int ret;
-
-    sctx = tevent_req_callback_data(treq, struct sysdb_search_ctx);
-
-    ret = sysdb_operation_recv(treq, sctx, &sctx->handle);
-    if (ret) {
-        return request_error(sctx, ret);
+        ret = sysdb_error_to_errno(ret);
+        goto done;
     }
 
-    sctx->gen_aux_fn = initgr_mem_search;
+    *_res = talloc_steal(mem_ctx, res);
 
-    base_dn = ldb_dn_new_fmt(sctx, sctx->ctx->ldb,
-                             SYSDB_TMPL_USER_BASE, sctx->domain->name);
-    if (!base_dn) {
-        return request_error(sctx, ENOMEM);
-    }
-
-    ret = ldb_build_search_req(&req, sctx->ctx->ldb, sctx,
-                               base_dn, LDB_SCOPE_SUBTREE,
-                               sctx->expression, attrs, NULL,
-                               sctx, get_gen_callback,
-                               NULL);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-
-    ret = ldb_request(sctx->ctx->ldb, req);
-    if (ret != LDB_SUCCESS) {
-        return request_ldberror(sctx, ret);
-    }
-}
-
-int sysdb_initgroups(TALLOC_CTX *mem_ctx,
-                     struct sysdb_ctx *ctx,
-                     struct sss_domain_info *domain,
-                     const char *name,
-                     sysdb_callback_t fn, void *ptr)
-{
-    struct sysdb_search_ctx *sctx;
-    struct tevent_req *req;
-
-    if (!domain) {
-        return EINVAL;
-    }
-
-    sctx = init_src_ctx(mem_ctx, domain, ctx, fn, ptr);
-    if (!sctx) {
-        return ENOMEM;
-    }
-
-    sctx->expression = talloc_asprintf(sctx, SYSDB_PWNAM_FILTER, name);
-    if (!sctx->expression) {
-        talloc_free(sctx);
-        return ENOMEM;
-    }
-
-    req = sysdb_operation_send(mem_ctx, ctx->ev, ctx);
-    if (!req) {
-        talloc_free(sctx);
-        return ENOMEM;
-    }
-
-    tevent_req_set_callback(req, initgr_search, sctx);
-
-    return EOK;
+done:
+    talloc_zfree(tmpctx);
+    return ret;
 }
 
 int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,

@@ -2344,6 +2344,8 @@ done:
     return EOK;
 }
 
+/* FIXME: what about mpg, should we return the user's GID ? */
+/* FIXME: should we filter out GIDs ? */
 static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
 {
     uint8_t *body;
@@ -2380,155 +2382,137 @@ static int fill_initgr(struct sss_packet *packet, struct ldb_result *res)
     return EOK;
 }
 
-static void nss_cmd_getinitgr_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                          const char *err_msg, void *ptr);
-
-static void nss_cmd_getinitgr_callback(void *ptr, int status,
-                                       struct ldb_result *res)
+static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
 {
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sss_domain_info *dom;
+    struct nss_ctx *nctx;
+    int ret;
+    int i;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+
+    ret = sss_packet_new(cctx->creq, 0,
+                         sss_packet_get_cmd(cctx->creq->in),
+                         &cctx->creq->out);
+    if (ret != EOK) {
+        return EFAULT;
+    }
+    i = dctx->res->count;
+    ret = fill_initgr(cctx->creq->out, dctx->res);
+    if (ret) {
+        return ret;
+    }
+    sss_packet_set_error(cctx->creq->out, EOK);
+    sss_cmd_done(cctx, cmdctx);
+    return EOK;
+}
+
+static void nss_cmd_initgroups_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                           const char *err_msg, void *ptr);
+
+static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
+{
+    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
+    struct sss_domain_info *dom = dctx->domain;
+    struct cli_ctx *cctx = cmdctx->cctx;
+    const char *name = cmdctx->name;
     struct sysdb_ctx *sysdb;
     struct nss_ctx *nctx;
-    uint8_t *body;
-    size_t blen;
-    bool neghit = false;
-    int ncret;
     int ret;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
-    if (status != LDB_SUCCESS) {
-        ret = nss_cmd_send_error(cmdctx, status);
+    while (dom) {
+       /* if it is a domainless search, skip domains that require fully
+         * qualified names instead */
+        while (dom && cmdctx->check_next && dom->fqnames) {
+            dom = dom->next;
+        }
+
+        if (!dom) break;
+
+        if (dom != dctx->domain) {
+            /* make sure we reset the check_provider flag when we check
+             * a new domain */
+            dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
+        }
+
+        /* make sure to update the dctx if we changed domain */
+        dctx->domain = dom;
+
+        /* verify this user has not yet been negatively cached,
+        * or has been permanently filtered */
+        ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+                                    dom->name, name);
+
+        /* if neg cached, return we didn't find it */
+        if (ret == EEXIST) {
+            DEBUG(2, ("User [%s] does not exist! (negative cache)\n", name));
+            return ENOENT;
+        }
+
+        DEBUG(4, ("Requesting info for [%s@%s]\n", name, dom->name));
+
+        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
         if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
+            DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
+            return EIO;
         }
-        sss_cmd_done(cctx, cmdctx);
-        return;
-    }
 
-    if (dctx->check_provider) {
-        ret = check_cache(dctx, nctx, res,
-                          SSS_DP_INITGROUPS, cmdctx->name, 0,
-                          nss_cmd_getinitgr_dp_callback);
+        ret = sysdb_initgroups(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
-            /* Anything but EOK means we should reenter the mainloop
-             * because we may be refreshing the cache
-             */
-            return;
-        }
-    }
-
-    switch (res->count) {
-    case 0:
-        if (cmdctx->check_next) {
-
-            ret = EOK;
-
-            /* skip domains that require FQnames or have negative caches */
-            for (dom = dctx->domain->next; dom; dom = dom->next) {
-
-                if (dom->fqnames) continue;
-
-                ncret = nss_ncache_check_user(nctx->ncache,
-                                              nctx->neg_timeout,
-                                              dom->name, cmdctx->name);
-                if (ncret == ENOENT) break;
-
-                neghit = true;
-            }
-            /* reset neghit if we still have a domain to check */
-            if (dom) neghit = false;
-
-            if (neghit) {
-                DEBUG(2, ("User [%s] does not exist! (negative cache)\n",
-                          cmdctx->name));
-                ret = ENOENT;
-            }
-            if (dom == NULL) {
-                DEBUG(2, ("No matching domain found for [%s], fail!\n",
-                          cmdctx->name));
-                ret = ENOENT;
-            }
-
-            if (ret == EOK) {
-                dctx->domain = dom;
-                dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-                if (dctx->res) talloc_free(res);
-                dctx->res = NULL;
-
-                DEBUG(4, ("Requesting info for [%s@%s]\n",
-                          cmdctx->name, dctx->domain->name));
-
-                ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                              dctx->domain, &sysdb);
-                if (ret != EOK) {
-                    DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-                    NSS_CMD_FATAL_ERROR(cctx);
-                }
-                ret = sysdb_initgroups(cmdctx, sysdb,
-                                       dctx->domain, cmdctx->name,
-                                       nss_cmd_getinitgr_callback, dctx);
-                if (ret != EOK) {
-                    DEBUG(1, ("Failed to make request to our cache!\n"));
-                }
-            }
-
-            /* we made another call, end here */
-            if (ret == EOK) return;
+            DEBUG(1, ("Failed to make request to our cache!\n"));
+            return EIO;
         }
 
-        DEBUG(2, ("No results for initgroups call\n"));
+        if (dctx->res->count == 0 && !dctx->check_provider) {
+            /* if a multidomain search, try with next */
+            if (cmdctx->check_next) {
+                dom = dom->next;
+                continue;
+            }
 
-        /* set negative cache only if not result of cache check */
-        if (!neghit) {
-            ret = nss_ncache_set_user(nctx->ncache, false,
-                                      dctx->domain->name, cmdctx->name);
+            DEBUG(2, ("No results for initgroups call\n"));
+
+            /* set negative cache only if not result of cache check */
+            ret = nss_ncache_set_user(nctx->ncache, false, dom->name, name);
             if (ret != EOK) {
-                NSS_CMD_FATAL_ERROR(cctx);
+                return ret;
+            }
+
+            return ENOENT;
+        }
+
+        /* if this is a caching provider (or if we haven't checked the cache
+         * yet) then verify that the cache is uptodate */
+        if (dctx->check_provider) {
+            ret = check_cache(dctx, nctx, dctx->res,
+                              SSS_DP_INITGROUPS, name, 0,
+                              nss_cmd_initgroups_dp_callback);
+            if (ret != EOK) {
+                /* Anything but EOK means we should reenter the mainloop
+                 * because we may be refreshing the cache
+                 */
+                return ret;
             }
         }
 
-        ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                             sss_packet_get_cmd(cctx->creq->in),
-                             &cctx->creq->out);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_packet_get_body(cctx->creq->out, &body, &blen);
-        ((uint32_t *)body)[0] = 0; /* 0 results */
-        ((uint32_t *)body)[1] = 0; /* reserved */
-        break;
+        DEBUG(6, ("Initgroups for [%s@%s] completed\n", name, dom->name));
 
-    default:
-
-        DEBUG(6, ("Returning initgr for user [%s]\n", cmdctx->name));
-
-        ret = sss_packet_new(cctx->creq, 0,
-                             sss_packet_get_cmd(cctx->creq->in),
-                             &cctx->creq->out);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        ret = fill_initgr(cctx->creq->out, res);
-        if (ret == ENOENT) {
-            ret = fill_empty(cctx->creq->out);
-        }
-        sss_packet_set_error(cctx->creq->out, ret);
+        return nss_cmd_initgr_send_reply(dctx);
     }
 
-    sss_cmd_done(cctx, cmdctx);
+    DEBUG(2, ("No matching domain found for [%s], fail!\n", name));
+    return ENOENT;
 }
 
-static void nss_cmd_getinitgr_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                          const char *err_msg, void *ptr)
+static void nss_cmd_initgroups_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                           const char *err_msg, void *ptr)
 {
     struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct sysdb_ctx *sysdb;
     int ret;
 
     if (err_maj) {
@@ -2537,38 +2521,29 @@ static void nss_cmd_getinitgr_dp_callback(uint16_t err_maj, uint32_t err_min,
                   "Will try to return what we have in cache\n",
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
 
-        if (!dctx->res) {
-            /* return 0 results */
-            dctx->res = talloc_zero(dctx, struct ldb_result);
-            if (!dctx->res) {
-                ret = ENOMEM;
-                goto done;
-            }
+        if (dctx->res && dctx->res->count != 0) {
+            ret = nss_cmd_initgr_send_reply(dctx);
+            goto done;
         }
 
-        nss_cmd_getinitgr_callback(dctx, LDB_SUCCESS, dctx->res);
-        return;
+        /* no previous results, just loop to next domain if possible */
+        if (dctx->domain->next && cmdctx->check_next) {
+            dctx->domain = dctx->domain->next;
+            dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
+        } else {
+            /* nothing vailable */
+            ret = ENOENT;
+            goto done;
+        }
     }
 
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        NSS_CMD_FATAL_ERROR(cctx);
-    }
-    ret = sysdb_initgroups(cmdctx, sysdb,
-                           dctx->domain, cmdctx->name,
-                           nss_cmd_getinitgr_callback, dctx);
+    /* ok the backend returned, search to see if we have updated results */
+    ret = nss_cmd_initgroups_search(dctx);
 
 done:
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
-
-        ret = nss_cmd_send_error(cmdctx, ret);
-        if (ret != EOK) {
-            NSS_CMD_FATAL_ERROR(cctx);
-        }
-        sss_cmd_done(cctx, cmdctx);
+    ret = nss_cmd_done(cmdctx, ret);
+    if (ret) {
+        NSS_CMD_FATAL_ERROR(cctx);
     }
 }
 
@@ -2577,18 +2552,11 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 {
     struct nss_cmd_ctx *cmdctx;
     struct nss_dom_ctx *dctx;
-    struct sss_domain_info *dom;
-    struct sysdb_ctx *sysdb;
-    struct nss_ctx *nctx;
     const char *rawname;
     char *domname;
     uint8_t *body;
     size_t blen;
     int ret;
-    int ncret;
-    bool neghit = false;
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -2623,7 +2591,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
     }
 
     DEBUG(4, ("Requesting info for [%s] from [%s]\n",
-              cmdctx->name, domname  ? : "<ALL>"));
+              cmdctx->name, domname?domname:"<ALL>"));
 
     if (domname) {
         dctx->domain = nss_get_dom(cctx->rctx->domains, domname);
@@ -2631,92 +2599,19 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
             ret = ENOENT;
             goto done;
         }
-
-        /* verify this user has not yet been negatively cached,
-         * or has been permanently filtered */
-        ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                    domname, cmdctx->name);
-        if (ncret == EEXIST) {
-            neghit = true;
-        }
-    }
-    else {
-        /* skip domains that require FQnames or have negative caches */
-        for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-
-            if (dom->fqnames) continue;
-
-            /* verify this user has not yet been negatively cached,
-            * or has been permanently filtered */
-            ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                          dom->name, cmdctx->name);
-            if (ncret == ENOENT) break;
-
-            neghit = true;
-        }
-        /* reset neghit if we still have a domain to check */
-        if (dom) neghit = false;
-
-        dctx->domain = dom;
-    }
-    if (neghit) {
-        DEBUG(2, ("User [%s] does not exist! (negative cache)\n", rawname));
-        ret = ENOENT;
-        goto done;
-    }
-    if (dctx->domain == NULL) {
-        DEBUG(2, ("No matching domain found for [%s], fail!\n", rawname));
-        ret = ENOENT;
-        goto done;
+    } else {
+        /* this is a multidomain search */
+        dctx->domain = cctx->rctx->domains;
+        cmdctx->check_next = true;
     }
 
     dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
 
-    if (!domname) {
-        /* this is a multidomain search */
-        cmdctx->check_next = true;
-    }
-
-    DEBUG(4, ("Requesting info for [%s@%s]\n",
-              cmdctx->name, dctx->domain->name));
-
-    ret = sysdb_get_ctx_from_list(cctx->rctx->db_list,
-                                  dctx->domain, &sysdb);
-    if (ret != EOK) {
-        DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
-        ret = EFAULT;
-        goto done;
-    }
-    ret = sysdb_initgroups(cmdctx, sysdb,
-                           dctx->domain, cmdctx->name,
-                           nss_cmd_getinitgr_callback, dctx);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to make request to our cache!\n"));
-    }
+    /* ok, find it ! */
+    ret = nss_cmd_initgroups_search(dctx);
 
 done:
-    if (ret != EOK) {
-        if (ret == ENOENT) {
-            /* we do not have any entry to return */
-            ret = sss_packet_new(cctx->creq, 2*sizeof(uint32_t),
-                                 sss_packet_get_cmd(cctx->creq->in),
-                                 &cctx->creq->out);
-            if (ret == EOK) {
-                sss_packet_get_body(cctx->creq->out, &body, &blen);
-                ((uint32_t *)body)[0] = 0; /* 0 results */
-                ((uint32_t *)body)[1] = 0; /* reserved */
-            }
-        }
-        if (ret != EOK) {
-            ret = nss_cmd_send_error(cmdctx, ret);
-        }
-        if (ret == EOK) {
-            sss_cmd_done(cctx, cmdctx);
-        }
-        return ret;
-    }
-
-    return EOK;
+    return nss_cmd_done(cmdctx, ret);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)
