@@ -50,7 +50,6 @@ struct LOCAL_request {
     struct tevent_context *ev;
     struct sysdb_ctx *dbctx;
     struct sysdb_attrs *mod_attrs;
-    struct sysdb_handle *handle;
 
     struct ldb_result *res;
     int error;

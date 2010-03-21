@@ -61,16 +61,6 @@
 
 #include "db/sysdb.h"
 
-struct sysdb_handle {
-    struct sysdb_handle *prev;
-    struct sysdb_handle *next;
-
-    struct sysdb_ctx *ctx;
-    struct tevent_req *subreq;
-
-    bool transaction_active;
-};
-
 struct sysdb_ctx {
     struct tevent_context *ev;
 
@@ -79,8 +69,6 @@ struct sysdb_ctx {
 
     struct ldb_context *ldb;
     char *ldb_file;
-
-    struct sysdb_handle *queue;
 };
 
 struct sysdb_ctx_list {
@@ -89,19 +77,5 @@ struct sysdb_ctx_list {
 
     char *db_path;
 };
-
-/* An operation blocks the transaction queue as well, but does not
- * start a transaction, normally useful only for search type calls.
- * do *NOT* call within a transaction you'll deadlock sysdb.
- * Also make sure to free the handle as soon as the operation is
- * finished to avoid stalling or potentially deadlocking sysdb */
-
-struct tevent_req *sysdb_operation_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sysdb_ctx *ctx);
-int sysdb_operation_recv(struct tevent_req *req, TALLOC_CTX *memctx,
-                         struct sysdb_handle **handle);
-
-void sysdb_operation_done(struct sysdb_handle *handle);
 
 #endif /* __INT_SYS_DB_H__ */

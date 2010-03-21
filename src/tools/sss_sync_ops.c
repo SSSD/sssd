@@ -114,7 +114,6 @@ done:
 struct user_mod_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
 
     struct sysdb_attrs *attrs;
     struct ldb_dn *member_dn;

@@ -47,7 +47,6 @@ struct tools_ctx {
 
     struct ops_ctx *octx;
 
-    struct sysdb_handle *handle;
     bool transaction_done;
     int error;
 };

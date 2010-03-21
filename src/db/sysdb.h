@@ -147,7 +147,6 @@
 struct confdb_ctx;
 struct sysdb_ctx_list;
 struct sysdb_ctx;
-struct sysdb_handle;
 
 struct sysdb_attrs {
     int num;
@@ -212,8 +211,6 @@ char *sysdb_group_strdn(TALLOC_CTX *memctx,
 
 
 struct ldb_context *sysdb_ctx_get_ldb(struct sysdb_ctx *ctx);
-struct ldb_context *sysdb_handle_get_ldb(struct sysdb_handle *handle);
-struct sysdb_ctx *sysdb_handle_get_ctx(struct sysdb_handle *handle);
 
 int compare_ldb_dn_comp_num(const void *m1, const void *m2);
 

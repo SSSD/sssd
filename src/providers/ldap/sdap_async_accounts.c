@@ -1302,8 +1302,6 @@ struct sdap_get_initgr_state {
     const char **grp_attrs;
 
     struct sysdb_attrs *orig_user;
-
-    struct sysdb_handle *handle;
 };
 
 static void sdap_get_initgr_user(struct tevent_req *subreq);

@@ -89,7 +89,6 @@ struct py_sss_transaction {
     PySssLocalObject *self;
     struct ops_ctx *ops;
 
-    struct sysdb_handle *handle;
     bool transaction_done;
     int error;
 };

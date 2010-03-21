@@ -267,7 +267,6 @@ done:
 struct group_show_state {
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
     struct sss_domain_info *domain;
 
     struct group_info *root;
@@ -294,7 +293,6 @@ static int group_show_trim_memberof(TALLOC_CTX *mem_ctx,
 struct tevent_req *group_show_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,
                                    struct sysdb_ctx *sysdb,
-                                   struct sysdb_handle *handle,
                                    struct sss_domain_info *domain,
                                    bool   recursive,
                                    const char *name)
@@ -315,7 +313,6 @@ struct tevent_req *group_show_send(TALLOC_CTX *mem_ctx,
     }
     state->ev = ev;
     state->sysdb = sysdb;
-    state->handle = handle;
     state->domain = domain;
     state->recursive = recursive;
 
@@ -876,7 +873,7 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    req = group_show_send(tctx, tctx->ev, tctx->sysdb, tctx->handle,
+    req = group_show_send(tctx, tctx->ev, tctx->sysdb,
                           tctx->local, pc_recursive, tctx->octx->name);
     if (!req) {
         ERROR("Cannot initiate search\n");

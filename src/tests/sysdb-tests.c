@@ -161,7 +161,6 @@ static int setup_sysdb_tests(struct sysdb_test_ctx **ctx)
 
 struct test_data {
     struct tevent_context *ev;
-    struct sysdb_handle *handle;
     struct sysdb_test_ctx *ctx;
 
     const char *username;

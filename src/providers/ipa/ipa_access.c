@@ -211,7 +211,6 @@ struct hbac_get_host_info_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_ctx;
     struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
     bool offline;
 
     char *host_filter;
@@ -257,7 +256,6 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->sdap_ctx = sdap_ctx;
     state->sysdb = sysdb;
-    state->handle = NULL;
     state->offline = offline;
 
     state->host_reply_list = NULL;
@@ -649,7 +647,6 @@ struct hbac_get_rules_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_ctx;
     struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
     bool offline;
 
     const char *host_dn;
@@ -699,7 +696,6 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->offline = offline;
     state->sdap_ctx = sdap_ctx;
     state->sysdb = sysdb;
-    state->handle = NULL;
     state->host_dn = host_dn;
     state->memberof = memberof;
 
