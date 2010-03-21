@@ -94,7 +94,7 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    ret = sysdb_getgrnam_sync(tctx, tctx->ev, tctx->sysdb,
+    ret = sysdb_getgrnam_sync(tctx, tctx->sysdb,
                               tctx->octx->name, tctx->local,
                               tctx->octx);
     if (ret != EOK) {

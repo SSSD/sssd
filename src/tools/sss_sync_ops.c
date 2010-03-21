@@ -43,13 +43,6 @@
         } \
 } while(0)
 
-#define SYNC_LOOP(ops, retval) do { \
-    while (!ops->done) { \
-        tevent_loop_once(ev); \
-    } \
-    retval = ops->error; \
-} while(0)
-
 struct sync_op_res {
     struct ops_ctx *data;
     int error;
@@ -112,7 +105,6 @@ done:
  * Modify a user
  */
 struct user_mod_state {
-    struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
 
     struct sysdb_attrs *attrs;
@@ -591,7 +583,6 @@ int groupdel(TALLOC_CTX *mem_ctx,
  * getpwnam, getgrnam and friends
  */
 int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
-                        struct tevent_context *ev,
                         struct sysdb_ctx *sysdb,
                         const char *name,
                         struct sss_domain_info *domain,
@@ -666,7 +657,6 @@ int sysdb_getpwnam_sync(TALLOC_CTX *mem_ctx,
 }
 
 int sysdb_getgrnam_sync(TALLOC_CTX *mem_ctx,
-                        struct tevent_context *ev,
                         struct sysdb_ctx *sysdb,
                         const char *name,
                         struct sss_domain_info *domain,

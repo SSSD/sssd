@@ -44,13 +44,6 @@ static int setup_db(struct tools_ctx *ctx)
     char *confdb_path;
     int ret;
 
-    /* Create the event context */
-    ctx->ev = tevent_context_init(ctx);
-    if (ctx->ev == NULL) {
-        DEBUG(1, ("Could not create event context\n"));
-        return EIO;
-    }
-
     confdb_path = talloc_asprintf(ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
         return ENOMEM;
@@ -211,7 +204,6 @@ int check_group_names(struct tools_ctx *tctx,
     ret = EOK;
     for (i=0; grouplist[i]; ++i) {
         ret = sysdb_getgrnam_sync(tctx,
-                                  tctx->ev,
                                   tctx->sysdb,
                                   grouplist[i],
                                   tctx->local,

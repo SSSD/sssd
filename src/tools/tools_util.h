@@ -38,7 +38,6 @@
 } while(0)
 
 struct tools_ctx {
-    struct tevent_context *ev;
     struct confdb_ctx *confdb;
     struct sysdb_ctx *sysdb;
 

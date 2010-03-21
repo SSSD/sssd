@@ -265,7 +265,6 @@ int main(int argc, const char **argv)
          * sysdb did assign it automatically, do a lookup */
         if (tctx->octx->uid == 0 || tctx->octx->gid == 0) {
             ret = sysdb_getpwnam_sync(tctx,
-                                      tctx->ev,
                                       tctx->sysdb,
                                       tctx->octx->name,
                                       tctx->local,

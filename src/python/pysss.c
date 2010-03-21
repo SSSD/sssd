@@ -29,17 +29,6 @@
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
 
-#define TRANSACTION_WAIT(trs, retval) do { \
-    while (!trs->transaction_done) { \
-        tevent_loop_once(trs->self->ev); \
-    } \
-    retval = trs->error; \
-    if (retval) { \
-        PyErr_SetSssError(retval); \
-        goto fail; \
-    } \
-} while(0)
-
 /*
  * function taken from samba sources tree as of Aug 20 2009,
  * file source4/lib/ldb/pyldb.c
@@ -124,7 +113,6 @@ struct tools_ctx *init_ctx(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    tctx->ev = self->ev;
     tctx->confdb = self->confdb;
     tctx->sysdb = self->sysdb;
     tctx->local = self->local;
@@ -263,7 +251,6 @@ static PyObject *py_sss_useradd(PySssLocalObject *self,
          * sysdb did assign it automatically, do a lookup */
         if (tctx->octx->uid == 0 || tctx->octx->gid == 0) {
             ret = sysdb_getpwnam_sync(tctx,
-                                      tctx->ev,
                                       tctx->sysdb,
                                       tctx->octx->name,
                                       tctx->local,
@@ -370,7 +357,6 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
 
     if (tctx->octx->remove_homedir) {
         ret = sysdb_getpwnam_sync(tctx,
-                                  tctx->ev,
                                   tctx->sysdb,
                                   tctx->octx->name,
                                   tctx->local,
@@ -770,13 +756,6 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
         return NULL;
     }
     self->mem_ctx = mem_ctx;
-
-    self->ev = tevent_context_init(mem_ctx);
-    if (self->ev == NULL) {
-        talloc_free(mem_ctx);
-        PyErr_SetSssErrorWithMessage(EIO, "Cannot create event context");
-        return NULL;
-    }
 
     confdb_path = talloc_asprintf(self->mem_ctx, "%s/%s", DB_PATH, CONFDB_FILE);
     if (confdb_path == NULL) {
