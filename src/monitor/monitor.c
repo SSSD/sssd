@@ -1719,7 +1719,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     if (!tmp_ctx) {
         return ENOMEM;
     }
-    ret = sysdb_init(tmp_ctx, ctx->ev, ctx->cdb, NULL, true, &db_list);
+    ret = sysdb_init(tmp_ctx, ctx->cdb, NULL, true, &db_list);
     if (ret != EOK) {
         return ret;
     }

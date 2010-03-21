@@ -679,7 +679,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
-    ret = sysdb_init(rctx, ev, cdb, NULL, false, &rctx->db_list);
+    ret = sysdb_init(rctx, cdb, NULL, false, &rctx->db_list);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing resp_ctx\n"));
         return ret;

@@ -1062,7 +1062,7 @@ int be_process_init(TALLOC_CTX *mem_ctx,
         return ret;
     }
 
-    ret = sysdb_domain_init(ctx, ev, ctx->domain, DB_PATH, &ctx->sysdb);
+    ret = sysdb_domain_init(ctx, ctx->domain, DB_PATH, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(0, ("fatal error opening cache database\n"));
         return ret;

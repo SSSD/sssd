@@ -446,7 +446,6 @@ int sysdb_transaction_cancel(struct sysdb_ctx *ctx)
 /* =Initialization======================================================== */
 
 static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
-                                      struct tevent_context *ev,
                                       struct sss_domain_info *domain,
                                       const char *db_path,
                                       bool allow_upgrade,
@@ -632,7 +631,6 @@ done:
 }
 
 static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
-                                  struct tevent_context *ev,
                                   struct sss_domain_info *domains,
                                   const char *db_path)
 {
@@ -662,7 +660,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
         goto exit;
     }
 
-    ldb = ldb_init(tmp_ctx, ev);
+    ldb = ldb_init(tmp_ctx, NULL);
     if (!ldb) {
         ret = EIO;
         goto exit;
@@ -767,7 +765,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
     }
 
     /* reopen */
-    ldb = ldb_init(tmp_ctx, ev);
+    ldb = ldb_init(tmp_ctx, NULL);
     if (!ldb) {
         ret = EIO;
         goto exit;
@@ -807,7 +805,7 @@ static int sysdb_check_upgrade_02(TALLOC_CTX *mem_ctx,
         }
 
         /* create new dom db */
-        ret = sysdb_domain_init_internal(tmp_ctx, ev, dom,
+        ret = sysdb_domain_init_internal(tmp_ctx, dom,
                                          db_path, false, &ctx);
         if (ret != EOK) {
             goto done;
@@ -1194,7 +1192,6 @@ done:
 }
 
 static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
-                                      struct tevent_context *ev,
                                       struct sss_domain_info *domain,
                                       const char *db_path,
                                       bool allow_upgrade,
@@ -1215,12 +1212,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     if (!ctx) {
         return ENOMEM;
     }
-    ctx->ev = ev;
     ctx->domain = domain;
-
-    /* FIXME: TEMPORARY
-     * remove once sysdb code is all converted to synchronous */
-    tevent_loop_allow_nesting(ctx->ev);
 
     /* The local provider s the only true MPG,
      * for the other domains, the provider actually unrolls MPGs */
@@ -1236,7 +1228,7 @@ static int sysdb_domain_init_internal(TALLOC_CTX *mem_ctx,
     }
     DEBUG(5, ("DB File for %s: %s\n", domain->name, ctx->ldb_file));
 
-    ctx->ldb = ldb_init(ctx, ev);
+    ctx->ldb = ldb_init(ctx, NULL);
     if (!ctx->ldb) {
         return EIO;
     }
@@ -1436,7 +1428,6 @@ done:
 }
 
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct tevent_context *ev,
                struct confdb_ctx *cdb,
                const char *alt_db_path,
                bool allow_upgrade,
@@ -1446,8 +1437,6 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
     struct sss_domain_info *domains, *dom;
     struct sysdb_ctx *ctx;
     int ret;
-
-    if (!ev) return EINVAL;
 
     ctx_list = talloc_zero(mem_ctx, struct sysdb_ctx_list);
     if (!ctx_list) {
@@ -1473,7 +1462,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 
     if (allow_upgrade) {
         /* check if we have an old sssd.ldb to upgrade */
-        ret = sysdb_check_upgrade_02(ctx_list, ev, domains,
+        ret = sysdb_check_upgrade_02(ctx_list, domains,
                                      ctx_list->db_path);
         if (ret != EOK) {
             talloc_zfree(ctx_list);
@@ -1491,7 +1480,7 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
             return ENOMEM;
         }
 
-        ret = sysdb_domain_init_internal(ctx_list, ev, dom,
+        ret = sysdb_domain_init_internal(ctx_list, dom,
                                          ctx_list->db_path,
                                          allow_upgrade, &ctx);
         if (ret != EOK) {
@@ -1514,12 +1503,11 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 }
 
 int sysdb_domain_init(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
                       struct sss_domain_info *domain,
                       const char *db_path,
                       struct sysdb_ctx **_ctx)
 {
-    return sysdb_domain_init_internal(mem_ctx, ev, domain,
+    return sysdb_domain_init_internal(mem_ctx, domain,
                                       db_path, false, _ctx);
 }
 

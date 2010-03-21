@@ -802,7 +802,7 @@ static PyObject *PySssLocalObject_new(PyTypeObject *type,
     }
 
     /* open 'local' sysdb at default path */
-    ret = sysdb_domain_init(self->mem_ctx, self->ev, self->local, DB_PATH, &self->sysdb);
+    ret = sysdb_domain_init(self->mem_ctx, self->local, DB_PATH, &self->sysdb);
     if (ret != EOK) {
         talloc_free(mem_ctx);
         PyErr_SetSssErrorWithMessage(ret,

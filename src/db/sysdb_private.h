@@ -62,8 +62,6 @@
 #include "db/sysdb.h"
 
 struct sysdb_ctx {
-    struct tevent_context *ev;
-
     struct sss_domain_info *domain;
     bool mpg;
 

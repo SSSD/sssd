@@ -223,7 +223,6 @@ int sysdb_transaction_cancel(struct sysdb_ctx *ctx);
  * call this function *only* once to initialize the database and get
  * the sysdb ctx */
 int sysdb_init(TALLOC_CTX *mem_ctx,
-               struct tevent_context *ev,
                struct confdb_ctx *cdb,
                const char *alt_db_path,
                bool allow_upgrade,
@@ -231,7 +230,6 @@ int sysdb_init(TALLOC_CTX *mem_ctx,
 /* used to initialize only one domain database.
  * Do NOT use if sysdb_init has already been called */
 int sysdb_domain_init(TALLOC_CTX *mem_ctx,
-                      struct tevent_context *ev,
                       struct sss_domain_info *domain,
                       const char *db_path,
                       struct sysdb_ctx **_ctx);

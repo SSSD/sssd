@@ -70,7 +70,7 @@ static int setup_db(struct tools_ctx *ctx)
     }
 
     /* open 'local' sysdb at default path */
-    ret = sysdb_domain_init(ctx, ctx->ev, ctx->local, DB_PATH, &ctx->sysdb);
+    ret = sysdb_domain_init(ctx, ctx->local, DB_PATH, &ctx->sysdb);
     if (ret != EOK) {
         DEBUG(1, ("Could not initialize connection to the sysdb\n"));
         return ret;
