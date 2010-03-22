@@ -241,6 +241,10 @@ install -m400 src/config/etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sss
 mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d
 install -m644 src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
 
+# Make sure SSSD is able to run on read-only root
+mkdir -p $RPM_BUILD_ROOT/%{_sysconfdir}/rwtab.d
+install -m644 src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
+
 # Remove .la files created by libtool
 rm -f \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
@@ -297,6 +301,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(700,root,root) %dir %{_sysconfdir}/sssd
 %config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/sssd
+%config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %config %{_sysconfdir}/sssd/sssd.api.conf
 %attr(700,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
 %config %{_sysconfdir}/sssd/sssd.api.d/
