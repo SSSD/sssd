@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-17 15:16-0400\n"
+"POT-Creation-Date: 2010-03-22 14:13-0400\n"
 "PO-Revision-Date: 2010-03-17 19:38+0200\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
@@ -384,23 +384,23 @@ msgstr "Назва бібліотеки NSS, яку слід використо�
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: monitor/monitor.c:2163
+#: monitor/monitor.c:2187
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: monitor/monitor.c:2165
+#: monitor/monitor.c:2189
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: monitor/monitor.c:2167
+#: monitor/monitor.c:2191
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: monitor/monitor.c:2193
+#: monitor/monitor.c:2217
 msgid "sssd must be run as root\n"
 msgstr "sssd слід запускати від імені користувача root\n"
 
-#: monitor/monitor.c:2228
+#: monitor/monitor.c:2252
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
@@ -408,7 +408,7 @@ msgstr ""
 "Було виявлено сокет nscd. Можливості з кешування nscd можуть конфліктувати з "
 "SSSD. Не рекомендуємо вам користуватися nscd паралельно з SSSD\n"
 
-#: monitor/monitor.c:2238
+#: monitor/monitor.c:2262
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -417,6 +417,10 @@ msgstr ""
 "Не вдалося прочитати файл налаштувань %s, будь ласка, перевірте, чи "
 "встановлено для цього файла права доступу 0600 і чи є парою власник-група "
 "файла root.root\n"
+
+#: monitor/monitor.c:2267
+msgid "Cannot load configuration database\n"
+msgstr ""
 
 #: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
 #: util/util.h:61

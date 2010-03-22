@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-18 15:01-0400\n"
+"POT-Creation-Date: 2010-03-22 14:13-0400\n"
 "PO-Revision-Date: 2010-02-23 13:59+0100\n"
 "Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
 "Language-Team: fedora-trans-pt@redhat.com\n"
@@ -385,23 +385,23 @@ msgstr "O nome da biblioteca NSS a utilizar"
 msgid "PAM stack to use"
 msgstr "Stack PAM a utilizar"
 
-#: monitor/monitor.c:2170
+#: monitor/monitor.c:2187
 msgid "Become a daemon (default)"
 msgstr "Tornar-se num serviço (omissão)"
 
-#: monitor/monitor.c:2172
+#: monitor/monitor.c:2189
 msgid "Run interactive (not a daemon)"
 msgstr "Executar interactivamente (não como serviço)"
 
-#: monitor/monitor.c:2174
+#: monitor/monitor.c:2191
 msgid "Specify a non-default config file"
 msgstr "Especificar um ficheiro de configuração não standard"
 
-#: monitor/monitor.c:2200
+#: monitor/monitor.c:2217
 msgid "sssd must be run as root\n"
 msgstr "sssd tem de executar como root\n"
 
-#: monitor/monitor.c:2235
+#: monitor/monitor.c:2252
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
@@ -410,7 +410,7 @@ msgstr ""
 "em conflito com o SSSD. Não é recomendado executar o nscd em paralelo com o "
 "SSSD\n"
 
-#: monitor/monitor.c:2245
+#: monitor/monitor.c:2262
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -418,6 +418,10 @@ msgid ""
 msgstr ""
 "Incapaz de ler o ficheiro de configuração %s. Por favor, verifique se as "
 "permissões são 0600 e se o ficheiro pertence a root.root\n"
+
+#: monitor/monitor.c:2267
+msgid "Cannot load configuration database\n"
+msgstr ""
 
 #: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
 #: util/util.h:61

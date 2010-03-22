@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-15 08:12-0400\n"
+"POT-Creation-Date: 2010-03-22 14:13-0400\n"
 "PO-Revision-Date: 2010-03-09 10:34+0700\n"
 "Last-Translator: Teguh DC <dheche@songolimo.net>\n"
 "Language-Team: Fedora Indonesia <trans-id@lists.fedoraproject.org>\n"
@@ -372,34 +372,38 @@ msgstr ""
 msgid "PAM stack to use"
 msgstr ""
 
-#: monitor/monitor.c:2199
+#: monitor/monitor.c:2187
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: monitor/monitor.c:2201
+#: monitor/monitor.c:2189
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: monitor/monitor.c:2203
+#: monitor/monitor.c:2191
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: monitor/monitor.c:2229
+#: monitor/monitor.c:2217
 #, fuzzy
 msgid "sssd must be run as root\n"
 msgstr "%s harus dijalankan sebagai root\n"
 
-#: monitor/monitor.c:2264
+#: monitor/monitor.c:2252
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
 msgstr ""
 
-#: monitor/monitor.c:2274
+#: monitor/monitor.c:2262
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
+msgstr ""
+
+#: monitor/monitor.c:2267
+msgid "Cannot load configuration database\n"
 msgstr ""
 
 #: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
