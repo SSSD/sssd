@@ -366,6 +366,12 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
         goto fail;
     }
 
+    ret = run_userdel_cmd(tctx);
+    if (ret != EOK) {
+        PyErr_SetSssError(ret);
+        goto fail;
+    }
+
     if (tctx->octx->remove_homedir) {
         ret = sysdb_getpwnam_sync(tctx,
                                   tctx->ev,

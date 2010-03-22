@@ -111,6 +111,7 @@
 #define CONFDB_LOCAL_UMASK           "homedir_umask"
 #define CONFDB_LOCAL_SKEL_DIR        "skel_dir"
 #define CONFDB_LOCAL_MAIL_DIR        "mail_dir"
+#define CONFDB_LOCAL_USERDEL_CMD     "userdel_cmd"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"

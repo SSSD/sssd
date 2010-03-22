@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 
 #include "config.h"
@@ -518,3 +519,77 @@ done:
     return ret;
 }
 
+int run_userdel_cmd(struct tools_ctx *tctx)
+{
+    int ret, status;
+    char *userdel_cmd = NULL;
+    char *conf_path = NULL;
+    pid_t pid, child_pid;
+
+    conf_path = talloc_asprintf(tctx, CONFDB_DOMAIN_PATH_TMPL,
+                                      tctx->local->name);
+    if (!conf_path) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = confdb_get_string(tctx->confdb, tctx,
+                            conf_path, CONFDB_LOCAL_USERDEL_CMD,
+                            NULL, &userdel_cmd);
+    if (ret != EOK || !userdel_cmd) {
+        goto done;
+    }
+
+    errno = 0;
+    pid = fork();
+    if (pid == 0) {
+        /* child */
+        execl(userdel_cmd, userdel_cmd,
+              tctx->octx->name, (char *) NULL);
+        exit(errno);
+    } else {
+        /* parent */
+        if (pid == -1) {
+            DEBUG(1, ("fork failed [%d]: %s\n"));
+            ret = errno;
+            goto done;
+        }
+
+        while((child_pid = waitpid(pid, &status, 0)) > 0) {
+            if (child_pid == -1) {
+                DEBUG(1, ("waitpid failed\n"));
+                ret = errno;
+                goto done;
+            }
+
+            if (WIFEXITED(status)) {
+                ret = WEXITSTATUS(status);
+                if (ret != 0) {
+                    DEBUG(5, ("command [%s] returned nonzero status %d.\n",
+                              userdel_cmd, ret));
+                    ret = EOK;  /* Ignore return code of the command */
+                    goto done;
+                }
+            } else if (WIFSIGNALED(status)) {
+                DEBUG(5, ("command [%s] was terminated by signal %d.\n",
+                          userdel_cmd, WTERMSIG(status)));
+                ret = EIO;
+                goto done;
+            } else if (WIFSTOPPED(status)) {
+                DEBUG(5, ("command [%s] was stopped by signal %d.\n",
+                          userdel_cmd, WSTOPSIG(status)));
+                continue;
+            } else {
+                DEBUG(1, ("Unknown status from WAITPID\n"));
+                ret = EIO;
+                goto done;
+            }
+        }
+    }
+
+    ret = EOK;
+done:
+    talloc_free(userdel_cmd);
+    talloc_free(conf_path);
+    return ret;
+}

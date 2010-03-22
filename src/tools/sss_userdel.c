@@ -161,6 +161,12 @@ int main(int argc, const char **argv)
 
     end_transaction(tctx);
 
+    ret = run_userdel_cmd(tctx);
+    if (ret != EOK) {
+        ERROR("The post-delete command failed: %s\n", strerror(ret));
+        goto fini;
+    }
+
     if (tctx->octx->remove_homedir) {
         ret = remove_homedir(tctx,
                              tctx->octx->home,

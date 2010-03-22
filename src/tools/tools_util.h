@@ -95,6 +95,8 @@ int remove_homedir(TALLOC_CTX *mem_ctx,
                    const char *username,
                    uid_t uid, bool force);
 
+int run_userdel_cmd(struct tools_ctx *tctx);
+
 /* from files.c */
 int remove_tree(const char *root);
 

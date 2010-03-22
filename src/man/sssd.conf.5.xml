@@ -784,6 +784,20 @@
                         </para>
                     </listitem>
                 </varlistentry>
+                <varlistentry>
+                    <term>userdel_cmd (string)</term>
+                    <listitem>
+                        <para>
+                            The command that is run after a user is removed.
+                            The command us passed the username of the user being
+                            removed as the first and only parameter. The return
+                            code of the command is not taken into account.
+                        </para>
+                        <para>
+                            Default: None, no command is run
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </refsect2>
 
