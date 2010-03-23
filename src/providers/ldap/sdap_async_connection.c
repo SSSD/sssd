@@ -497,6 +497,13 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     DEBUG(4, ("Executing sasl bind mech: %s, user: %s\n",
               sasl_mech, sasl_user));
 
+    /* Until ldap_sasl_interactive_bind_s() is async we may want to set
+     * LDAP_OPT_RESTART to handle EINTR during poll(). */
+    ret = ldap_set_option(state->sh->ldap, LDAP_OPT_RESTART, LDAP_OPT_ON);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to set restart option.\n"));
+    }
+
     /* FIXME: Warning, this is a sync call!
      * No async variant exist in openldap libraries yet */
 
