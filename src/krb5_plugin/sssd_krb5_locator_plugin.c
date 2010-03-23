@@ -289,7 +289,8 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
-        if (svc == locate_service_kadmin || svc == locate_service_kpasswd) {
+        if (svc == locate_service_kadmin || svc == locate_service_kpasswd ||
+            svc == locate_service_master_kdc) {
             ret = get_krb5info(realm, ctx, locate_service_kpasswd);
             if (ret != EOK) {
                 PLUGIN_DEBUG(("reading kpasswd address failed, "
@@ -307,9 +308,12 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
 
     switch (svc) {
         case locate_service_kdc:
-        case locate_service_master_kdc:
             addr = ctx->kdc_addr;
             port = ctx->kdc_port ? ctx->kdc_port : DEFAULT_KERBEROS_PORT;
+            break;
+        case locate_service_master_kdc:
+            addr = ctx->kpasswd_addr;
+            port = DEFAULT_KERBEROS_PORT;
             break;
         case locate_service_kadmin:
             addr = ctx->kpasswd_addr;
