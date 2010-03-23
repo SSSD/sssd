@@ -33,6 +33,7 @@ errno_t pack_user_info_chpass_error(TALLOC_CTX *mem_ctx,
     uint32_t resp_type = SSS_PAM_USER_INFO_CHPASS_ERROR;
     size_t err_len;
     uint8_t *resp;
+    size_t p;
 
     err_len = strlen(user_error_message);
     *resp_len = 2 * sizeof(uint32_t) + err_len;
@@ -42,9 +43,13 @@ errno_t pack_user_info_chpass_error(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    memcpy(resp, &resp_type, sizeof(uint32_t));
-    memcpy(resp + sizeof(uint32_t), &err_len, sizeof(uint32_t));
-    memcpy(resp + 2 * sizeof(uint32_t), user_error_message, err_len);
+    p = 0;
+    SAFEALIGN_SET_UINT32(&resp[p], resp_type, &p);
+    SAFEALIGN_SET_UINT32(&resp[p], err_len, &p);
+    safealign_memcpy(&resp[p], user_error_message, err_len, &p);
+    if (p != *resp_len) {
+        DEBUG(0, ("Size mismatch\n"));
+    }
 
     *_resp = resp;
     return EOK;

@@ -512,7 +512,8 @@ static int user_info_chpass_error(pam_handle_t *pamh, size_t buflen,
 {
     int ret;
     uint32_t msg_len;
-    char user_msg[256];
+    char *user_msg;
+    size_t bufsize = 0;
 
     if (buflen < 2* sizeof(uint32_t)) {
         D(("User info response data is too short"));
@@ -526,19 +527,35 @@ static int user_info_chpass_error(pam_handle_t *pamh, size_t buflen,
         return PAM_BUF_ERR;
     }
 
-    ret = snprintf(user_msg, sizeof(user_msg), "%s%s%.*s",
+    bufsize = strlen(_("Password change failed. ")) + 1;
+
+    if (msg_len > 0) {
+        bufsize += strlen(_("Server message: ")) + msg_len;
+    }
+
+    user_msg = (char *)malloc(sizeof(char) * bufsize);
+    if (!user_msg) {
+       D(("Out of memory."));
+       return PAM_SYSTEM_ERR;
+    }
+
+    ret = snprintf(user_msg, bufsize, "%s%s%.*s",
                    _("Password change failed. "),
                    msg_len > 0 ? _("Server message: ") : "",
                    msg_len,
                    msg_len > 0 ? (char *)(buf + 2 * sizeof(uint32_t)) : "" );
-    if (ret < 0 || ret >= sizeof(user_msg)) {
+    if (ret < 0 || ret > bufsize) {
         D(("snprintf failed."));
+
+        free(user_msg);
         return PAM_SYSTEM_ERR;
     }
 
     ret = do_pam_conversation(pamh, PAM_TEXT_INFO, user_msg, NULL, NULL);
+    free(user_msg);
     if (ret != PAM_SUCCESS) {
         D(("do_pam_conversation failed."));
+
         return PAM_SYSTEM_ERR;
     }
 

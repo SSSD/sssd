@@ -149,9 +149,8 @@ struct tevent_req *read_pipe_send(TALLOC_CTX *mem_ctx,
     if (req == NULL) return NULL;
 
     state->fd = fd;
-    state->buf = talloc_array(state, uint8_t, MAX_CHILD_MSG_SIZE);
+    state->buf = NULL;
     state->len = 0;
-    if (state->buf == NULL) goto fail;
 
     fde = tevent_add_fd(ev, state, fd, TEVENT_FD_READ,
                         read_pipe_handler, req);
@@ -176,6 +175,7 @@ static void read_pipe_handler(struct tevent_context *ev,
                                                     struct read_pipe_state);
     ssize_t size;
     errno_t err;
+    uint8_t buf[CHILD_MSG_CHUNK];
 
     if (flags & TEVENT_FD_WRITE) {
         DEBUG(1, ("read_pipe_done called with TEVENT_FD_WRITE,"
@@ -185,8 +185,8 @@ static void read_pipe_handler(struct tevent_context *ev,
     }
 
     size = read(state->fd,
-                state->buf + state->len,
-                MAX_CHILD_MSG_SIZE - state->len);
+                buf,
+                CHILD_MSG_CHUNK);
     if (size == -1) {
         err = errno;
         if (err == EAGAIN || err == EINTR) {
@@ -198,12 +198,16 @@ static void read_pipe_handler(struct tevent_context *ev,
         return;
 
     } else if (size > 0) {
-        state->len += size;
-        if (state->len > MAX_CHILD_MSG_SIZE) {
-            DEBUG(1, ("read to much, this should never happen.\n"));
-            tevent_req_error(req, EINVAL);
+        state->buf = talloc_realloc(state, state->buf, uint8_t,
+                                    state->len + size);
+        if(!state->buf) {
+            tevent_req_error(req, ENOMEM);
             return;
         }
+
+        safealign_memcpy(&state->buf[state->len], buf,
+                         size, &state->len);
+        return;
 
     } else if (size == 0) {
         DEBUG(6, ("EOF received, client finished\n"));
