@@ -1091,7 +1091,7 @@ static void krb5_child_done(struct tevent_req *req)
                                                 *msg_len));
 
     if ((p + *msg_len) != len) {
-        DEBUG(1, ("message format error.\n"));
+        DEBUG(1, ("message format error [%d] != [%d].\n", p+*msg_len, len));
         goto done;
     }
 

@@ -33,12 +33,11 @@
 #include "util/util.h"
 
 #define IN_BUF_SIZE         512
-#define MAX_CHILD_MSG_SIZE  255
+#define CHILD_MSG_CHUNK     256
 
 struct response {
-    size_t max_size;
-    size_t size;
     uint8_t *buf;
+    size_t size;
 };
 
 struct io_buffer {

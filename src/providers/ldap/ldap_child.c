@@ -97,6 +97,11 @@ static int pack_buffer(struct response *r, int result, const char *msg)
     len = strlen(msg);
     r->size = 2 * sizeof(uint32_t) + len;
 
+    r->buf = talloc_array(r, uint8_t, r->size);
+    if(!r->buf) {
+        return ENOMEM;
+    }
+
     /* result */
     SAFEALIGN_SET_UINT32(&r->buf[p], result, &p);
 
@@ -265,12 +270,7 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
     r = talloc_zero(mem_ctx, struct response);
     if (!r) return ENOMEM;
 
-    r->buf = talloc_size(mem_ctx, MAX_CHILD_MSG_SIZE);
-    if (r->buf == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
-        return ENOMEM;
-    }
-    r->max_size = MAX_CHILD_MSG_SIZE;
+    r->buf = NULL;
     r->size = 0;
 
     if (kerr == 0) {

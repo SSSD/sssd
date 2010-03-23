@@ -247,27 +247,15 @@ done:
     return kerr;
 }
 
-static struct response *init_response(TALLOC_CTX *mem_ctx) {
-    struct response *r;
-    r = talloc(mem_ctx, struct response);
-    r->buf = talloc_size(mem_ctx, MAX_CHILD_MSG_SIZE);
-    if (r->buf == NULL) {
-        DEBUG(1, ("talloc_size failed.\n"));
-        return NULL;
-    }
-    r->max_size = MAX_CHILD_MSG_SIZE;
-    r->size = 0;
-
-    return r;
-}
-
 static errno_t pack_response_packet(struct response *resp, int status, int type,
                                     size_t len, const uint8_t *data)
 {
     size_t p = 0;
 
-    if ((3*sizeof(int32_t) + len +1) > resp->max_size) {
-        DEBUG(1, ("response message too big.\n"));
+    resp->buf = talloc_array(resp, uint8_t,
+                             3*sizeof(int32_t) + len);
+    if (!resp->buf) {
+        DEBUG(1, ("Insufficient memory to create message.\n"));
         return ENOMEM;
     }
 
@@ -293,9 +281,9 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     size_t user_resp_len;
     uint8_t *user_resp;
 
-    resp = init_response(kr);
+    resp = talloc_zero(kr, struct response);
     if (resp == NULL) {
-        DEBUG(1, ("init_response failed.\n"));
+        DEBUG(1, ("Initializing response failed.\n"));
         return NULL;
     }
 
@@ -321,7 +309,6 @@ static struct response *prepare_response_message(struct krb5_req *kr,
             talloc_zfree(msg);
         }
     } else {
-
         if (user_error_message != NULL) {
             ret = pack_user_info_chpass_error(kr, user_error_message,
                                               &user_resp_len, &user_resp);
