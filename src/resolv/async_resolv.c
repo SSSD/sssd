@@ -140,7 +140,7 @@ check_fd_timeouts(struct tevent_context *ev, struct tevent_timer *te,
 static void
 add_timeout_timer(struct tevent_context *ev, struct resolv_ctx *ctx)
 {
-    struct timeval tv = { 0 };
+    struct timeval tv = { 0, 0 };
     struct timeval *tvp;
 
     tvp = ares_timeout(ctx->channel, NULL, &tv);

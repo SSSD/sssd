@@ -888,10 +888,10 @@ static PyMethodDef sss_local_methods[] = {
 
 static PyMemberDef sss_members[] = {
     { discard_const_p(char, "lock"), T_INT,
-      offsetof(PySssLocalObject, lock), RO },
+      offsetof(PySssLocalObject, lock), RO, NULL},
     { discard_const_p(char, "unlock"), T_INT,
-      offsetof(PySssLocalObject, unlock), RO },
-    {NULL} /* Sentinel */
+      offsetof(PySssLocalObject, unlock), RO, NULL},
+    {NULL, 0, 0, 0, NULL} /* Sentinel */
 };
 
 /*
@@ -913,7 +913,7 @@ static PyTypeObject pysss_local_type = {
  * Module methods
  */
 static PyMethodDef module_methods[] = {
-        {NULL}  /* Sentinel */
+        {NULL, NULL, 0, NULL}  /* Sentinel */
 };
 
 /*

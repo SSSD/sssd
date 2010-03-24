@@ -57,8 +57,10 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
                                        enum sdap_result *result)
 {
     char *end;
-    struct tm tm = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+    struct tm tm;
     time_t expire_time;
+
+    memset(&tm, 0, sizeof(tm));
 
     *result = SDAP_AUTH_FAILED;
 

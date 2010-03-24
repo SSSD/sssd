@@ -168,24 +168,24 @@ int main(int argc, const char *argv[])
     struct main_context *main_ctx;
     int ret;
 
-	struct poptOption long_options[] = {
-		POPT_AUTOHELP
+    struct poptOption long_options[] = {
+        POPT_AUTOHELP
         SSSD_MAIN_OPTS
-		{ NULL }
-	};
+        POPT_TABLEEND
+    };
 
-	pc = poptGetContext(argv[0], argc, argv, long_options, 0);
-	while((opt = poptGetNextOpt(pc)) != -1) {
-		switch(opt) {
-		default:
-			fprintf(stderr, "\nInvalid option %s: %s\n\n",
-				  poptBadOption(pc, 0), poptStrerror(opt));
-			poptPrintUsage(pc, stderr, 0);
-			return 1;
-		}
-	}
+    pc = poptGetContext(argv[0], argc, argv, long_options, 0);
+    while((opt = poptGetNextOpt(pc)) != -1) {
+        switch(opt) {
+        default:
+            fprintf(stderr, "\nInvalid option %s: %s\n\n",
+                             poptBadOption(pc, 0), poptStrerror(opt));
+            poptPrintUsage(pc, stderr, 0);
+            return 1;
+        }
+    }
 
-	poptFreeContext(pc);
+    poptFreeContext(pc);
 
     /* set up things like debug, signals, daemonization, etc... */
     debug_log_file = "sssd_pam";

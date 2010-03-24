@@ -2189,7 +2189,7 @@ int main(int argc, const char *argv[])
          _("Run interactive (not a daemon)"), NULL}, \
         {"config", 'c', POPT_ARG_STRING, &opt_config_file, 0, \
          _("Specify a non-default config file"), NULL}, \
-        { NULL }
+        POPT_TABLEEND
     };
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);

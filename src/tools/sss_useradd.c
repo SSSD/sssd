@@ -120,7 +120,7 @@ int main(int argc, const char **argv)
         { "groups", 'G', POPT_ARG_STRING, NULL, 'G', _("Groups"), NULL },
         { "create-home", 'm', POPT_ARG_NONE, NULL, 'm', _("Create user's directory if it does not exist"), NULL },
         { "no-create-home", 'M', POPT_ARG_NONE, NULL, 'M', _("Never create user's directory, overrides config"), NULL },
-        { "skel", 'k', POPT_ARG_STRING, &pc_skeldir, 0, _("Specify an alternative skeleton directory") },
+        { "skel", 'k', POPT_ARG_STRING, &pc_skeldir, 0, _("Specify an alternative skeleton directory"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
