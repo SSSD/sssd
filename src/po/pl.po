@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-03-22 14:13-0400\n"
-"PO-Revision-Date: 2010-03-15 14:21+0100\n"
+"PO-Revision-Date: 2010-03-22 21:30+0100\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -414,7 +414,7 @@ msgstr ""
 
 #: monitor/monitor.c:2267
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Nie można wczytać bazy danych konfiguracji\n"
 
 #: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
 #: util/util.h:61
