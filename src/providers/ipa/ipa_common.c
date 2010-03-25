@@ -123,33 +123,6 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
-int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
-{
-    const char *s;
-    char *dn;
-    char *p;
-    int l;
-
-    s = domain;
-    dn = talloc_strdup(memctx, "dc=");
-
-    while ((p = strchr(s, '.'))) {
-        l = p - s;
-        dn = talloc_asprintf_append_buffer(dn, "%.*s,dc=", l, s);
-        if (!dn) {
-            return ENOMEM;
-        }
-        s = p + 1;
-    }
-    dn = talloc_strdup_append_buffer(dn, s);
-    if (!dn) {
-        return ENOMEM;
-    }
-
-    *basedn = dn;
-    return EOK;
-}
-
 int ipa_get_options(TALLOC_CTX *memctx,
                     struct confdb_ctx *cdb,
                     const char *conf_path,

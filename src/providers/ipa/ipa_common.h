@@ -32,7 +32,7 @@ struct ipa_service {
     struct krb5_service *krb5_service;
 };
 
-/* the following define is used to keep track of the options in the ldap
+/* the following defines are used to keep track of the options in the ldap
  * module, so that if they change and ipa is not updated correspondingly
  * this will trigger a runtime abort error */
 #define IPA_OPTS_BASIC_TEST 32
@@ -63,6 +63,8 @@ struct ipa_options {
     struct dp_option *auth;
     struct krb5_ctx *auth_ctx;
 };
+
+int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
 
 /* options parsers */
 int ipa_get_options(TALLOC_CTX *memctx,
