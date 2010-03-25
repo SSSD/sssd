@@ -249,13 +249,13 @@ int make_path_absolute(char *absolute_path, size_t absolute_path_size, const cha
     for (dst = absolute_path; *dst && dst < dst_end; dst++);
     if (!(path && *path)) return result;
     if (dst > dst_end) {
-        *dst = 0;
+        *absolute_path = 0;
         return ENOBUFS;
     }
 
     *dst++ = '/';
     if (dst > dst_end) {
-        *dst = 0;
+        *absolute_path = 0;
         return ENOBUFS;
     }
 
@@ -272,6 +272,7 @@ char **split_path(const char *path, int *count)
     const char *start, *end;
     char *mem_block, **array_ptr, *component_ptr;
 
+    if (count) *count = 0;
     if (!path) return NULL;
 
     /* If path is absolute add in special "/" root component */
