@@ -27,11 +27,13 @@
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap.h"
+#include "providers/krb5/krb5_common.h"
 #include "tests/common.h"
 
 START_TEST(test_check_num_opts)
 {
     fail_if(IPA_OPTS_BASIC_TEST != SDAP_OPTS_BASIC);
+    fail_if(IPA_KRB5_OPTS_TEST != KRB5_OPTS);
 }
 END_TEST
 
