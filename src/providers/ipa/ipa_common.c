@@ -119,7 +119,8 @@ struct dp_option ipa_def_krb5_opts[] = {
     { "krb5_changepw_principal", DP_OPT_STRING, { "kadmin/changepw" }, NULL_STRING },
     { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
     { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
-    { "krb5_validate", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE }
+    { "krb5_validate", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
+    { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn)
