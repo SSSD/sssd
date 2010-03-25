@@ -24,11 +24,54 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include <talloc.h>
 
 #include "providers/ipa/ipa_common.h"
 #include "providers/ldap/sdap.h"
 #include "providers/krb5/krb5_common.h"
 #include "tests/common.h"
+
+struct test_domain {
+    const char *domain;
+    const char *basedn;
+};
+
+struct test_domain test_domains[] = {
+    { "abc", "dc=abc"},
+    { "a.b.c", "dc=a,dc=b,dc=c"},
+    { NULL, NULL}
+};
+
+START_TEST(test_domain_to_basedn)
+{
+    int ret;
+    int i;
+    TALLOC_CTX *tmp_ctx;
+    char *basedn;
+
+    tmp_ctx = talloc_new(NULL);
+    fail_unless(tmp_ctx != NULL, "talloc_new failed");
+
+    ret = domain_to_basedn(tmp_ctx, NULL, &basedn);
+    fail_unless(ret == EINVAL,
+                "domain_to_basedn does not fail with EINVAL if domain is NULL");
+
+    ret = domain_to_basedn(tmp_ctx, "abc", NULL);
+    fail_unless(ret == EINVAL,
+                "domain_to_basedn does not fail with EINVAL if basedn is NULL");
+
+    for(i=0; test_domains[i].domain != NULL; i++) {
+        ret = domain_to_basedn(tmp_ctx, test_domains[i].domain, &basedn);
+        fail_unless(ret == EOK, "domain_to_basedn failed");
+        fail_unless(strcmp(basedn, test_domains[i].basedn) == 0,
+                    "domain_to_basedn returned wrong basedn, "
+                    "get [%s], expected [%s]", basedn, test_domains[i].basedn);
+        talloc_free(basedn);
+    }
+
+    talloc_free(tmp_ctx);
+}
+END_TEST
 
 START_TEST(test_check_num_opts)
 {
@@ -45,6 +88,10 @@ Suite *ipa_ldap_opt_suite (void)
 
     tcase_add_test (tc_ipa_ldap_opt, test_check_num_opts);
     suite_add_tcase (s, tc_ipa_ldap_opt);
+
+    TCase *tc_ipa_utils = tcase_create ("ipa_utils");
+    tcase_add_test (tc_ipa_utils, test_domain_to_basedn);
+    suite_add_tcase (s, tc_ipa_utils);
 
     return s;
 }
