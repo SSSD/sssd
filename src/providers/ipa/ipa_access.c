@@ -48,8 +48,8 @@
 #define IPA_HOST_CATEGORY "hostCategory"
 #define IPA_CN "cn"
 
-#define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,dc=%s"
-#define IPA_HBAC_BASE_TMPL "cn=hbac,dc=%s"
+#define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,%s"
+#define IPA_HBAC_BASE_TMPL "cn=hbac,%s"
 
 #define SYSDB_HBAC_BASE_TMPL "cn=hbac,"SYSDB_TMPL_CUSTOM_BASE
 
@@ -340,7 +340,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
                                                   bool offline,
                                                   struct sdap_id_ctx *sdap_ctx,
                                                   struct sysdb_ctx *sysdb,
-                                                  const char *ipa_domain,
+                                                  const char *basedn,
                                                   const char **hostnames)
 {
     struct tevent_req *req = NULL;
@@ -349,7 +349,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     int ret;
     int i;
 
-    if (hostnames == NULL || ipa_domain == NULL) {
+    if (hostnames == NULL || basedn == NULL) {
         DEBUG(1, ("Missing hostnames or domain.\n"));
         return NULL;
     }
@@ -394,7 +394,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     }
 
     state->host_search_base = talloc_asprintf(state, IPA_HOST_BASE_TMPL,
-                                              ipa_domain);
+                                              basedn);
     if (state->host_search_base == NULL) {
         DEBUG(1, ("Failed to create host search base.\n"));
         ret = ENOMEM;
@@ -832,7 +832,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
                                              bool offline,
                                              struct sdap_id_ctx *sdap_ctx,
                                              struct sysdb_ctx *sysdb,
-                                             const char *ipa_domain,
+                                             const char *basedn,
                                              const char *host_dn,
                                              const char **memberof)
 {
@@ -842,7 +842,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     int ret;
     int i;
 
-    if (host_dn == NULL || ipa_domain == NULL) {
+    if (host_dn == NULL || basedn == NULL) {
         DEBUG(1, ("Missing host_dn or domain.\n"));
         return NULL;
     }
@@ -867,7 +867,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->current_item = 0;
 
     state->hbac_search_base = talloc_asprintf(state, IPA_HBAC_BASE_TMPL,
-                                              ipa_domain);
+                                              basedn);
     if (state->hbac_search_base == NULL) {
         DEBUG(1, ("Failed to create HBAC search base.\n"));
         ret = ENOMEM;
@@ -1642,6 +1642,7 @@ void ipa_access_handler(struct be_req *be_req)
     int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
     const char *hostlist[3];
+    int ret;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
 
@@ -1658,6 +1659,13 @@ void ipa_access_handler(struct be_req *be_req)
     hbac_ctx->sdap_ctx = ipa_access_ctx->sdap_ctx;
     hbac_ctx->ipa_options = ipa_access_ctx->ipa_options;
     hbac_ctx->tr_ctx = ipa_access_ctx->tr_ctx;
+    ret = domain_to_basedn(hbac_ctx,
+                           dp_opt_get_string(hbac_ctx->ipa_options, IPA_DOMAIN),
+                           &hbac_ctx->ldap_basedn);
+    if (ret != EOK) {
+        DEBUG(1, ("domain_to_basedn failed.\n"));
+        goto fail;
+    }
     hbac_ctx->offline = be_is_offline(be_req->be_ctx);
 
     DEBUG(9, ("Connection status is [%s].\n", hbac_ctx->offline ? "offline" :
@@ -1682,10 +1690,8 @@ void ipa_access_handler(struct be_req *be_req)
     hostlist[2] = NULL;
 
     req = hbac_get_host_info_send(hbac_ctx, be_req->be_ctx->ev,
-                                  hbac_ctx->offline,
-                                  hbac_ctx->sdap_ctx, be_req->be_ctx->sysdb,
-                                  dp_opt_get_string(hbac_ctx->ipa_options,
-                                                    IPA_DOMAIN),
+                                  hbac_ctx->offline, hbac_ctx->sdap_ctx,
+                                  be_req->be_ctx->sysdb, hbac_ctx->ldap_basedn,
                                   hostlist);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_host_info_send failed.\n"));
@@ -1744,9 +1750,8 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     }
     req = hbac_get_rules_send(hbac_ctx, be_req->be_ctx->ev, hbac_ctx->offline,
                               hbac_ctx->sdap_ctx, be_req->be_ctx->sysdb,
-                              dp_opt_get_string(hbac_ctx->ipa_options,
-                                                IPA_DOMAIN),
-                              local_hhi->dn, local_hhi->memberof);
+                              hbac_ctx->ldap_basedn, local_hhi->dn,
+                              local_hhi->memberof);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_rules_send failed.\n"));
         goto fail;
