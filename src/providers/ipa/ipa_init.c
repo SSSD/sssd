@@ -48,7 +48,7 @@ struct bet_ops ipa_auth_ops = {
 };
 
 struct bet_ops ipa_chpass_ops = {
-    .handler = krb5_pam_handler,
+    .handler = ipa_auth,
     .finalize = NULL,
 };
 
@@ -161,7 +161,9 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
                        struct bet_ops **ops,
                        void **pvt_data)
 {
-    struct krb5_ctx *ctx;
+    struct ipa_auth_ctx *ipa_auth_ctx;
+    struct krb5_ctx *krb5_auth_ctx;
+    struct sdap_auth_ctx *sdap_auth_ctx;
     struct tevent_signal *sige;
     FILE *debug_filep;
     unsigned v;
@@ -181,32 +183,73 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         return EOK;
     }
 
-    ctx = talloc_zero(bectx, struct krb5_ctx);
-    if (!ctx) {
+    ipa_auth_ctx = talloc_zero(ipa_options, struct ipa_auth_ctx);
+    if (!ipa_auth_ctx) {
         return ENOMEM;
     }
-    ctx->service = ipa_options->service->krb5_service;
-    ipa_options->auth_ctx = ctx;
+    ipa_options->auth_ctx = ipa_auth_ctx;
 
-    ret = ipa_get_auth_options(ipa_options, bectx->cdb,
-                               bectx->conf_path,
-                               &ctx->opts);
+    ret = dp_copy_options(ipa_auth_ctx, ipa_options->basic,
+                          IPA_OPTS_BASIC, &ipa_auth_ctx->ipa_options);
+    if (ret != EOK) {
+        DEBUG(1, ("dp_copy_options failed.\n"));
+        goto done;
+    }
+
+    krb5_auth_ctx = talloc_zero(ipa_auth_ctx, struct krb5_ctx);
+    if (!krb5_auth_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+    krb5_auth_ctx->service = ipa_options->service->krb5_service;
+    ipa_options->auth_ctx->krb5_auth_ctx = krb5_auth_ctx;
+
+    ret = ipa_get_auth_options(ipa_options, bectx->cdb, bectx->conf_path,
+                               &krb5_auth_ctx->opts);
     if (ret != EOK) {
         goto done;
     }
 
-    ret = check_and_export_options(ctx->opts, bectx->domain);
+    sdap_auth_ctx = talloc_zero(ipa_auth_ctx, struct sdap_auth_ctx);
+    if (!sdap_auth_ctx) {
+        ret = ENOMEM;
+        goto done;
+    }
+    sdap_auth_ctx->be =  bectx;
+    sdap_auth_ctx->service = ipa_options->service->sdap;
+    ipa_options->auth_ctx->sdap_auth_ctx = sdap_auth_ctx;
+
+    ret = ipa_get_id_options(ipa_options, bectx->cdb, bectx->conf_path,
+                             &sdap_auth_ctx->opts);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = setup_tls_config(sdap_auth_ctx->opts->basic);
+    if (ret != EOK) {
+        DEBUG(1, ("setup_tls_config failed [%d][%s].\n",
+                  ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = check_and_export_options(krb5_auth_ctx->opts, bectx->domain);
     if (ret != EOK) {
         DEBUG(1, ("check_and_export_opts failed.\n"));
         goto done;
     }
 
-    sige = tevent_add_signal(bectx->ev, ctx, SIGCHLD, SA_SIGINFO,
-                             child_sig_handler, NULL);
-    if (sige == NULL) {
-        DEBUG(1, ("tevent_add_signal failed.\n"));
-        ret = ENOMEM;
-        goto done;
+    if (ipa_options->id_ctx == NULL) {
+        DEBUG(9, ("Adding SIGCHLD handler for Kerberos child.\n"));
+        sige = tevent_add_signal(bectx->ev, krb5_auth_ctx, SIGCHLD, SA_SIGINFO,
+                                 child_sig_handler, NULL);
+        if (sige == NULL) {
+            DEBUG(1, ("tevent_add_signal failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        DEBUG(9, ("IPA id provider already initialized, "
+                  "assuming that a SIGCHLD handler is already in place.\n"));
     }
 
     if (debug_to_file != 0) {
@@ -217,19 +260,19 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
             goto done;
         }
 
-        ctx->child_debug_fd = fileno(debug_filep);
-        if (ctx->child_debug_fd == -1) {
+        krb5_auth_ctx->child_debug_fd = fileno(debug_filep);
+        if (krb5_auth_ctx->child_debug_fd == -1) {
             DEBUG(0, ("fileno failed [%d][%s]\n", errno, strerror(errno)));
             ret = errno;
             goto done;
         }
 
-        v = fcntl(ctx->child_debug_fd, F_GETFD, 0);
-        fcntl(ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
+        v = fcntl(krb5_auth_ctx->child_debug_fd, F_GETFD, 0);
+        fcntl(krb5_auth_ctx->child_debug_fd, F_SETFD, v & ~FD_CLOEXEC);
     }
 
     *ops = &ipa_auth_ops;
-    *pvt_data = ctx;
+    *pvt_data = ipa_auth_ctx;
     ret = EOK;
 
 done:

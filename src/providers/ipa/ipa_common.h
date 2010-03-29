@@ -50,6 +50,12 @@ enum ipa_basic_opt {
     IPA_OPTS_BASIC /* opts counter */
 };
 
+struct ipa_auth_ctx {
+    struct krb5_ctx *krb5_auth_ctx;
+    struct sdap_auth_ctx *sdap_auth_ctx;
+    struct dp_option *ipa_options;
+};
+
 struct ipa_options {
     struct dp_option *basic;
 
@@ -61,7 +67,7 @@ struct ipa_options {
 
     /* auth and chpass provider */
     struct dp_option *auth;
-    struct krb5_ctx *auth_ctx;
+    struct ipa_auth_ctx *auth_ctx;
 };
 
 int domain_to_basedn(TALLOC_CTX *memctx, const char *domain, char **basedn);
