@@ -44,7 +44,6 @@ struct krb5child_req {
     int read_from_child_fd;
     int write_to_child_fd;
 
-    struct be_req *req;
     struct pam_data *pd;
     struct krb5_ctx *krb5_ctx;
 
@@ -99,4 +98,10 @@ struct krb5_ctx {
 
 void krb5_pam_handler(struct be_req *be_req);
 
+struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
+                                  struct tevent_context *ev,
+                                  struct be_ctx *be_ctx,
+                                  struct pam_data *pd,
+                                  struct krb5_ctx *krb5_ctx);
+int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err);
 #endif /* __KRB5_AUTH_H__ */
