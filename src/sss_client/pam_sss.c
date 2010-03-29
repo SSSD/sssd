@@ -877,10 +877,13 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     }
     rd.data = buf;
 
+    errnop = 0;
     ret = sss_pam_make_request(task, &rd, &repbuf, &replen, &errnop);
 
     if (ret != NSS_STATUS_SUCCESS) {
-        logger(pamh, LOG_ERR, "Request to sssd failed.");
+        if (errnop != 0) {
+            logger(pamh, LOG_ERR, "Request to sssd failed. %s", ssscli_err2string(errnop));
+        }
         pam_status = PAM_SYSTEM_ERR;
         goto done;
     }

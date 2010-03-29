@@ -406,6 +406,17 @@ enum user_info_type {
  * @}
  */ /* end of group sss_pam_cli */
 
+enum sss_cli_error_codes {
+    ESSS_SSS_CLI_ERROR_START = 0x1000,
+    ESSS_BAD_PRIV_SOCKET,
+    ESSS_BAD_PUB_SOCKET,
+    ESSS_BAD_CRED_MSG,
+    ESSS_SERVER_NOT_TRUSTED,
+
+    ESS_SSS_CLI_ERROR_MAX
+};
+
+const char *ssscli_err2string(int err);
 
 enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
                                      struct sss_cli_req_data *rd,

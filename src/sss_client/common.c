@@ -23,6 +23,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+/* for struct ucred */
+#define _GNU_SOURCE
+
 #include <nss.h>
 #include <security/pam_modules.h>
 #include <errno.h>
@@ -36,6 +39,10 @@
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
+
+#include <libintl.h>
+#define _(STRING) dgettext (PACKAGE, STRING)
+#include "config.h"
 #include "sss_cli.h"
 
 /* common functions */
@@ -632,6 +639,29 @@ enum nss_status sss_nss_make_request(enum sss_cli_command cmd,
     return sss_nss_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
 }
 
+errno_t check_server_cred(int sockfd)
+{
+#ifdef HAVE_UCRED
+    int ret;
+    struct ucred server_cred;
+    socklen_t server_cred_len = sizeof(server_cred);
+
+    ret = getsockopt(sockfd, SOL_SOCKET, SO_PEERCRED, &server_cred,
+                     &server_cred_len);
+    if (ret != 0) {
+        return errno;
+    }
+
+    if (server_cred_len != sizeof(struct ucred)) {
+        return ESSS_BAD_CRED_MSG;
+    }
+
+    if (server_cred.uid != 0 || server_cred.gid != 0) {
+        return ESSS_SERVER_NOT_TRUSTED;
+    }
+#endif
+    return 0;
+}
 int sss_pam_make_request(enum sss_cli_command cmd,
                       struct sss_cli_req_data *rd,
                       uint8_t **repbuf, size_t *replen,
@@ -653,17 +683,66 @@ int sss_pam_make_request(enum sss_cli_command cmd,
         if (ret != 0) return PAM_SERVICE_ERR;
         if ( ! (stat_buf.st_uid == 0 &&
                 stat_buf.st_gid == 0 &&
-                (stat_buf.st_mode&(S_IFSOCK|S_IRUSR|S_IWUSR)) == stat_buf.st_mode)) {
+                S_ISSOCK(stat_buf.st_mode) &&
+                (stat_buf.st_mode & ~S_IFMT) == 0600 )) {
+            *errnop = ESSS_BAD_PRIV_SOCKET;
             return PAM_SERVICE_ERR;
         }
 
         ret = sss_cli_check_socket(errnop, SSS_PAM_PRIV_SOCKET_NAME);
     } else {
+        ret = stat(SSS_PAM_SOCKET_NAME, &stat_buf);
+        if (ret != 0) return PAM_SERVICE_ERR;
+        if ( ! (stat_buf.st_uid == 0 &&
+                stat_buf.st_gid == 0 &&
+                S_ISSOCK(stat_buf.st_mode) &&
+                (stat_buf.st_mode & ~S_IFMT) == 0666 )) {
+            *errnop = ESSS_BAD_PUB_SOCKET;
+            return PAM_SERVICE_ERR;
+        }
+
         ret = sss_cli_check_socket(errnop, SSS_PAM_SOCKET_NAME);
     }
     if (ret != NSS_STATUS_SUCCESS) {
         return PAM_SERVICE_ERR;
     }
 
+    ret = check_server_cred(sss_cli_sd);
+    if (ret != 0) {
+        sss_cli_close_socket();
+        *errnop = ret;
+        return PAM_SERVICE_ERR;
+    }
+
     return sss_nss_make_request_nochecks(cmd, rd, repbuf, replen, errnop);
+}
+
+
+const char *ssscli_err2string(int err)
+{
+    const char *m;
+
+    switch(err) {
+        case ESSS_BAD_PRIV_SOCKET:
+            return _("Privileged socket has wrong ownership or permissions.");
+            break;
+        case ESSS_BAD_PUB_SOCKET:
+            return _("Public socket has wrong ownership or permissions.");
+            break;
+        case ESSS_BAD_CRED_MSG:
+            return _("Unexpected format of the server credential message.");
+            break;
+        case ESSS_SERVER_NOT_TRUSTED:
+            return _("SSSD is not run by root.");
+            break;
+        default:
+            m = strerror(err);
+            if (m == NULL) {
+                return _("An error occurred, but no description can be found.");
+            }
+            return m;
+            break;
+    }
+
+    return _("Unexpected error while looking for an error description");
 }
