@@ -33,12 +33,15 @@ dist_include_HEADERS = \
 # Build library
 lib_LTLIBRARIES = libini_config.la
 libini_config_la_SOURCES = \
-    ini_config.c
+    ini_config.c \
+    ini_metadata.c \
+    ini_metadata.h
+
 libini_config_la_LIBADD = \
     -L$(topbuilddir)/collection \
     -lcollection
 libini_config_la_LDFLAGS = \
-    -version-info 1:0:0
+    -version-info 2:0:0
 
 # Build unit test
 check_PROGRAMS = ini_config_ut

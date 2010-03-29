@@ -180,22 +180,13 @@
  * of such sets.
  */
 #define COL_CLASS_INI_PESET       COL_CLASS_INI_BASE + 3
-/** @brief Collection of grammar errors.
- *
- * Reserved for future use.
- */
-#define COL_CLASS_INI_GERROR      COL_CLASS_INI_BASE + 4
-/** @brief Collection of validation errors.
- *
- * Reserved for future use.
- */
-#define COL_CLASS_INI_VERROR      COL_CLASS_INI_BASE + 5
-/** @brief Collection of lines from the INI file.
- *
- * Reserved for future use
- */
-#define COL_CLASS_INI_LINES       COL_CLASS_INI_BASE + 6
 
+/**
+ * @brief Collection of metadata.
+ *
+ * Collection that stores metadata.
+ */
+#define COL_CLASS_INI_META        COL_CLASS_INI_BASE + 4
 /**
  * @}
  */
@@ -295,6 +286,173 @@ struct parse_error {
  */
 
 /**
+ * @defgroup metadata Meta data
+ *
+ * Metadata is a collection of a similar structure as any ini file.
+ * The difference is that there are some predefined sections
+ * and attributes inside these sections.
+ * Using meta flags one can specify what section he is interested
+ * in including into the meta data. If a flag for a corresponding
+ * meta data section is specified the data for this section will
+ * be included into the meta data collection. The caller can then
+ * use meta data collection to get items from it and then get
+ * a specific value using a corresponding conversion function.
+ *
+ * Think about the meta data as an INI file that looks like this:
+ *
+ * <b>
+ * [ACCESS]
+ * - uid = <i>\<ini file owner uid\></i>
+ * - gid = <i>\<ini file group gid\></i>
+ * - perm = <i>\<permissions word\></i>
+ * - name = <i>\<file name\></i>
+ * - created = <i>\<time stamp\></i>
+ * - modified = <i>\<time stamp\></i>
+ * - ...
+ *
+ * [ERROR]
+ * - read_error = <i><file open error if any\></i>
+ * - ...
+ *
+ * [<i>TBD</i>]
+ * - ...
+ *
+ * </b>
+ *
+ * The names of the keys and sections provide an example
+ * of how the meta data is structured. Look information
+ * about specific sections and available keys in this manual
+ * to get the exact set of currently supported sections
+ * and keys.
+ *
+ * @{
+ */
+
+/**
+ * @brief Collect only meta data.
+ *
+ * Special flag that indicates that only meta data
+ * needs to be collected. No parsing should be performed.
+ *
+ */
+#define INI_META_ACTION_NOPARSE     0x10000000
+
+/**
+ * @defgroup metasection Meta data section names
+ *
+ * @{
+ */
+
+/**
+ * @brief Meta data section that stores file access information
+ * and ownership.
+ */
+#define INI_META_SEC_ACCESS     "ACCESS"
+
+/**
+ * @brief Meta data "access" section flag to include access section
+ * into the output.
+ */
+#define INI_META_SEC_ACCESS_FLAG     0x00000001
+
+
+/**
+ * @defgroup metaaccesskeys Key names available in the "ACCESS" section
+ *
+ * @{
+ *
+ */
+
+/**
+ * @brief The value for this key will store user ID of the INI file owner.
+ *
+ */
+#define INI_META_KEY_UID     "uid"
+
+/**
+ * @brief The value for this key will store group ID of the INI file owner.
+ *
+ */
+#define INI_META_KEY_GID     "gid"
+
+/**
+ * @brief The value for this key will store INI file access permissions.
+ *
+ */
+#define INI_META_KEY_PERM     "perm"
+
+/**
+ * @brief The value for this key will store INI file creation time stamp.
+ *
+ */
+#define INI_META_KEY_CREATED     "created"
+
+/**
+ * @brief The value for this key will store INI file modification time stamp.
+ *
+ */
+#define INI_META_KEY_MODIFIED     "modified"
+
+/**
+ * @brief The value for this key will store INI file full name.
+ *
+ */
+#define INI_META_KEY_NAME     "name"
+
+/**
+ * @}
+ */
+
+/**
+ * @brief Meta data section that stores error related information.
+ */
+#define INI_META_SEC_ERROR     "ERROR"
+
+/**
+ * @brief Meta data "error" section flag to include access section
+ * into the output.
+ */
+#define INI_META_SEC_ERROR_FLAG     0x00000002
+
+
+/**
+ * @defgroup metaerrorkeys Key names available in the "ERROR" section
+ *
+ * @{
+ *
+ */
+
+/**
+ * @brief The value for this key will store read error when file was opened.
+ *
+ * If file was opened by caller first but this section was requested
+ * the value will be zero.
+ */
+#define INI_META_KEY_READ_ERROR     "read_error"
+
+/**
+ * @brief The value for this key will store read error message if any.
+ *
+ * If file was opened by caller first but this section was requested
+ * the key will no be present. Also the key will no exist if no error
+ * occured.
+ */
+#define INI_META_KEY_READ_ERRMSG     "err_msg"
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+
+/**
  * @defgroup functions Functions
  * @{
  */
@@ -307,32 +465,6 @@ struct parse_error {
  */
 const char *parsing_error_str(int parsing_error);
 
-/** @brief Function to return a grammar error in template.
- *
- * EXPERIMENTAL. Reserved for future use.
- *
- * This error is returned when the template
- * is translated into the grammar object.
- *
- * @param[in] parsing_error    Error code for the grammar error.
- *
- * @return Error string.
- */
-const char *grammar_error_str(int parsing_error);
-
-/** @brief Function to return a validation error.
- *
- * EXPERIMENTAL. Reserved for future use.
- *
- * This is the error that it is returned when
- * the INI file is validated against the
- * grammar object.
- *
- * @param[in] parsing_error    Error code for the validation error.
- *
- * @return Error string.
- */
-const char *validation_error_str(int parsing_error);
 
 /**
  * @brief Read configuration information from a file.
@@ -397,36 +529,112 @@ int config_from_fd(const char *application,
                    struct collection_item **error_list);
 
 
+
 /**
  * @brief Read configuration information from a file with
- * extra collection of line numbers.
+ * additional meta data.
  *
- * EXPERIMENTAL. Reserved for future use.
+ * Meta data consists of addition information about
+ * the file for example when it was created
+ * or who is the owner. For the detailed description
+ * of the meta data content and structure see
+ * \ref metadata "meta data" section.
+ *
+ * If the metadata argument is not NULL
+ * the calling function MUST always free meta data since it can
+ * be allocated even if the function returned error.
+ *
+ * @param[in]  application         Name of the application,
+ *                                 will be used as name of
+ *                                 the collection.
+ * @param[in]  config_filename     Name of the config file,
+ *                                 if NULL the configuration
+ *                                 collection will be empty.
+ * @param[out] ini_config          If *ini_config is NULL
+ *                                 a new ini object will be
+ *                                 allocated, otherwise
+ *                                 the one that is pointed to
+ *                                 will be updated.
+ * @param[in]  error_level         Break for errors, warnings
+ *                                 or best effort (don't break).
+ * @param[out] error_list          List of errors for the file
+ *                                 detected during parsing.
+ * @param[in]  metaflags           A bit mask of flags that define
+ *                                 what kind of metadata should
+ *                                 be collected.
+ * @param[out] metadata            Collection of metadata
+ *                                 values. See \ref metadata "meta data"
+ *                                 section for more details.
+ *                                 Can be NULL.
+ *
+ * @return 0 - Success.
+ * @return EINVAL - Invalid parameter.
+ * @return Any error returned by fopen().
+ *
  *
  */
-int config_from_file_with_lines(
+int config_from_file_with_metadata(
                      const char *application,
                      const char *config_filename,
                      struct collection_item **ini_config,
                      int error_level,
                      struct collection_item **error_list,
-                     struct collection_item **lines);
+                     uint32_t metaflags,
+                     struct collection_item **metadata);
+
 
 /**
- * @brief Read configuration information from a file descriptor with
- * extra collection of line numbers.
+ * @brief Read configuration information from a file descriptor
+ * with additional meta data.
  *
- * EXPERIMENTAL. Reserved for future use.
+ * Meta data consists of addition information about
+ * the file for example when it was created
+ * or who is the owner. For the detailed description
+ * of the meta data content and structure see
+ * \ref metadata "meta data" section.
+ *
+ * If the metadata argument is not NULL
+ * the calling function MUST always free meta data since it can
+ * be allocated even if the function returned error.
+ *
+ * @param[in]  application         Name of the application,
+ *                                 will be used as name of
+ *                                 the collection.
+ * @param[in]  fd                  Previously opened file
+ *                                 descriptor for the config file.
+ * @param[in]  config_source       Name of the file being parsed,
+ *                                 for use when printing the error
+ *                                 list.
+ * @param[out] ini_config          If *ini_config is NULL
+ *                                 a new ini object will be
+ *                                 allocated, otherwise
+ *                                 the one that is pointed to
+ *                                 will be updated.
+ * @param[in]  error_level         Break for errors, warnings
+ *                                 or best effort (don't break).
+ * @param[out] error_list          List of errors for the file
+ *                                 detected during parsing.
+ * @param[in]  metaflags           A bit mask of flags that define
+ *                                 what kind of metadata should
+ *                                 be collected.
+ * @param[out] metadata            Collection of metadata
+ *                                 values. See \ref metadata "meta data"
+ *                                 section for more details.
+ *                                 Can be NULL.
+ *
+ * @return 0 - Success.
+ * @return EINVAL - Invalid parameter.
  *
  */
-int config_from_fd_with_lines(
+int config_from_fd_with_metadata(
                    const char *application,
                    int fd,
                    const char *config_source,
                    struct collection_item **ini_config,
                    int error_level,
                    struct collection_item **error_list,
-                   struct collection_item **lines);
+                   uint32_t metaflags,
+                   struct collection_item **metadata);
 
 
 /**
@@ -443,7 +651,7 @@ int config_from_fd_with_lines(
  *                                 the configuration files for
  *                                 different applications reside.
  *                                 Function will look for file
- *                                 with the name name constructed by
+ *                                 with the name constructed by
  *                                 appending ".ini" to the end of
  *                                 the "application" argument.
  * @param[out] ini_config          A new configuration object.
@@ -464,6 +672,64 @@ int config_for_app(const char *application,
                    struct collection_item **error_set);
 
 /**
+ * @brief Read default configuration file and then
+ * overwrite it with a specific one from the directory.
+ *
+ * If requested collect meta data for both.
+ *
+ * If the metadata argument is not NULL
+ * the calling function MUST always free meta data since it can
+ * be allocated even if the function returned error.
+ *
+ * @param[in]  application         Name of the application,
+ *                                 will be used as name of
+ *                                 the collection.
+ * @param[in]  config_file         Name of the configuration file,
+ *                                 with default settings for all
+ *                                 appplications.
+ * @param[in]  config_dir          Name of the directory where
+ *                                 the configuration files for
+ *                                 different applications reside.
+ *                                 Function will look for file
+ *                                 with the name constructed by
+ *                                 appending ".ini" to the end of
+ *                                 the "application" argument.
+ * @param[out] ini_config          A new configuration object.
+ * @param[in]  error_level         Break for errors, warnings
+ *                                 or best effort (don't break).
+ * @param[out] error_set           Collection of error lists.
+ *                                 One list per file.
+ * @param[in]  metaflags           A bit mask of flags that define
+ *                                 what kind of metadata should
+ *                                 be collected.
+ * @param[out] meta_default        Collection of metadata
+ *                                 values for the default common
+ *                                 config file for all applications.
+ *                                 See \ref metadata "meta data"
+ *                                 section for more details.
+ *                                 Can be NULL.
+ * @param[out] meta_appini         Collection of metadata
+ *                                 values for the application
+ *                                 specific config file.
+ *                                 See \ref metadata "meta data"
+ *                                 section for more details.
+ *                                 Can be NULL.
+ *
+ * @return 0 - Success.
+ * @return EINVAL - Invalid parameter.
+ * @return Any error returned by fopen().
+ */
+int config_for_app_with_metadata(
+                   const char *application,
+                   const char *config_file,
+                   const char *config_dir,
+                   struct collection_item **ini_config,
+                   int error_level,
+                   struct collection_item **error_set,
+                   uint32_t metaflags,
+                   struct collection_item **meta_default,
+                   struct collection_item **meta_appini);
+/**
  * @brief Function to free configuration object.
  *
  * @param[in] ini_config       Configuration object.
@@ -479,16 +745,14 @@ void free_ini_config(struct collection_item *ini_config);
  */
 void free_ini_config_errors(struct collection_item *error_set);
 
+
 /**
- * @brief Function to free lines object.
+ * @brief Function to free metadata.
  *
- * EXPERIMENTAL. Reserved for future use.
- *
- * @param[in] lines       Lines object.
+ * @param[in] error_set       Configuration meta data object.
  *
  */
-void free_ini_config_lines(struct collection_item *lines);
-
+void free_ini_config_metadata(struct collection_item *metadata);
 
 
 /**
@@ -500,34 +764,6 @@ void free_ini_config_lines(struct collection_item *lines);
  */
 void print_file_parsing_errors(FILE *file,
                                struct collection_item *error_list);
-
-/**
- * @brief Print errors and warnings that were detected while
- * checking grammar of the template.
- *
- * EXPERIMENTAL. Reserved for future use.
- *
- * @param[in] file           File descriptor.
- * @param[in] error_list     List of the parsing errors.
- *
- */
-void print_grammar_errors(FILE *file,
-                          struct collection_item *error_list);
-
-/**
- * @brief Print errors and warnings that were detected while
- * checking INI file against the grammar object.
- *
- * EXPERIMENTAL. Reserved for future use.
- *
- * @param[in] file           File descriptor.
- * @param[in] error_list     List of the parsing errors.
- *
- */
-void print_validation_errors(FILE *file,
-                             struct collection_item *error_list);
-
-
 
 
 /**

@@ -87,7 +87,8 @@ int single_file(void)
     int error;
     struct collection_item *ini_config = NULL;
     struct collection_item *error_set = NULL;
-    struct collection_item *lines = NULL;
+    struct collection_item *metadata = NULL;
+    uint32_t flags;
 
     error = config_from_file("test", "./not_exist_ini.conf",
                              &ini_config, INI_STOP_ON_NONE, &error_set);
@@ -123,18 +124,54 @@ int single_file(void)
     ini_config = NULL;
     error_set = NULL;
 
-    COLOUT(printf("TEST WITH LINES\n"));
+    COLOUT(printf("TEST WITH METADATA NO PARSE\n"));
+    flags = INI_META_SEC_ACCESS_FLAG |
+            INI_META_SEC_ERROR_FLAG  |
+            INI_META_ACTION_NOPARSE;
 
-    error = config_from_file_with_lines("test", "./ini.conf",
-                                        &ini_config, INI_STOP_ON_NONE,
-                                        &error_set, &lines);
+    error = config_from_file_with_metadata("test", "./ini.conf",
+                                           &ini_config, INI_STOP_ON_NONE,
+                                           NULL,
+                                           flags,
+                                           &metadata);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n",error);
+        printf("\n\nMetadata\n");
+        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        free_ini_config_metadata(metadata);
         return error;
     }
 
+    if (ini_config) {
+        printf("Expected no config but got some.\n");
+        col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+        free_ini_config(ini_config);
+        printf("\n\nMetadata\n");
+        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        free_ini_config_metadata(metadata);
+        return EINVAL;
+    }
+
+    COLOUT(printf("\n\nMeta data\n"));
+    COLOUT(col_debug_collection(metadata, COL_TRAVERSE_DEFAULT));
+    free_ini_config_metadata(metadata);
+
+    COLOUT(printf("\n\n----------------------\n"));
+
+    error = config_from_file_with_metadata("test", "./ini.conf",
+                                           &ini_config, INI_STOP_ON_NONE,
+                                           &error_set,
+                                           0,
+                                           NULL);
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+        print_file_parsing_errors(stdout, error_set);
+        free_ini_config_errors(error_set);
+        return error;
+    }
+
+    COLOUT(printf("\n\n----------------------\n"));
     COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
-    COLOUT(col_debug_collection(lines, COL_TRAVERSE_DEFAULT));
 
     COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
@@ -144,7 +181,6 @@ int single_file(void)
 
     free_ini_config(ini_config);
     free_ini_config_errors(error_set);
-    free_ini_config_lines(lines);
 
     return 0;
 }
@@ -154,7 +190,8 @@ int single_fd(void)
     int error;
     struct collection_item *ini_config = NULL;
     struct collection_item *error_set = NULL;
-    struct collection_item *lines = NULL;
+    struct collection_item *metadata = NULL;
+    uint32_t flags;
 
     int fd = open("./ini.conf", O_RDONLY);
     if (fd < 0) {
@@ -187,7 +224,7 @@ int single_fd(void)
     ini_config = NULL;
     error_set = NULL;
 
-    COLOUT(printf("TEST WITH LINES\n"));
+    COLOUT(printf("TEST WITH FILE FD & META DATA\n"));
 
     fd = open("./ini.conf", O_RDONLY);
     if (fd < 0) {
@@ -195,18 +232,63 @@ int single_fd(void)
         printf("Attempt to read configuration returned error: %d\n", error);
         return error;
     }
-    error = config_from_fd_with_lines("test", fd,
-                                      "./ini.conf",
-                                      &ini_config,
-                                      INI_STOP_ON_NONE,
-                                      &error_set, &lines);
+
+    flags = INI_META_SEC_ACCESS_FLAG |
+            INI_META_SEC_ERROR_FLAG  |
+            INI_META_ACTION_NOPARSE;
+
+    error = config_from_fd_with_metadata("test", fd,
+                                         "./ini.conf",
+                                         &ini_config,
+                                         INI_STOP_ON_NONE,
+                                         &error_set,
+                                         flags,
+                                         &metadata);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n",error);
+        printf("\n\nErrors\n");
+        print_file_parsing_errors(stdout, error_set);
+        free_ini_config_errors(error_set);
+        printf("\n\nMetadata\n");
+        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        free_ini_config_metadata(metadata);
+        return error;
+    }
+
+    if (ini_config) {
+        printf("Expected no config but got some.\n");
+        col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
+        free_ini_config(ini_config);
+        return EINVAL;
+    }
+
+    /* FIXME get elements of the meta data and check them */
+
+
+    COLOUT(printf("\n\nMeta data\n"));
+    COLOUT(col_debug_collection(metadata, COL_TRAVERSE_DEFAULT));
+    free_ini_config_metadata(metadata);
+
+
+    error = config_from_fd_with_metadata("test", fd,
+                                         "./ini.conf",
+                                         &ini_config,
+                                         INI_STOP_ON_NONE,
+                                         &error_set,
+                                         0,
+                                         NULL);
+
+    close(fd);
+
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+        printf("\n\nErrors\n");
+        print_file_parsing_errors(stdout, error_set);
+        free_ini_config_errors(error_set);
         return error;
     }
 
     COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
-    COLOUT(col_debug_collection(lines, COL_TRAVERSE_DEFAULT));
 
     COLOUT(printf("\n\n----------------------\n"));
     /* Output parsing errors (if any) */
@@ -216,7 +298,6 @@ int single_fd(void)
 
     free_ini_config(ini_config);
     free_ini_config_errors(error_set);
-    free_ini_config_lines(lines);
 
     return 0;
 }
