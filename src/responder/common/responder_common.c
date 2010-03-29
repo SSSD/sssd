@@ -19,6 +19,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/* for struct ucred */
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -29,7 +32,8 @@
 #include <string.h>
 #include <sys/time.h>
 #include <errno.h>
-#include "popt.h"
+#include <popt.h>
+#include "config.h"
 #include "util/util.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
@@ -59,6 +63,40 @@ static int client_destructor(struct cli_ctx *ctx)
 {
     if (ctx->cfd > 0) close(ctx->cfd);
     return 0;
+}
+
+static errno_t get_client_cred(struct cli_ctx *cctx)
+{
+#ifdef HAVE_UCRED
+    int ret;
+    struct ucred client_cred;
+    socklen_t client_cred_len = sizeof(client_cred);
+
+    cctx->client_euid = -1;
+    cctx->client_egid = -1;
+    cctx->client_pid = -1;
+
+    ret = getsockopt(cctx->cfd, SOL_SOCKET, SO_PEERCRED, &client_cred,
+                     &client_cred_len);
+    if (ret != EOK) {
+        ret = errno;
+        DEBUG(1, ("getsock failed [%d][%s].\n", ret, strerror(ret)));
+        return ret;
+    }
+    if (client_cred_len != sizeof(struct ucred)) {
+        DEBUG(1, ("getsockopt returned unexpected message size.\n"));
+        return ENOMSG;
+    }
+
+    cctx->client_euid = client_cred.uid;
+    cctx->client_egid = client_cred.gid;
+    cctx->client_pid = client_cred.pid;
+
+    DEBUG(9, ("Client creds: euid[%d] egid[%d] pid[%d].\n",
+              cctx->client_euid, cctx->client_egid, cctx->client_pid));
+#endif
+
+    return EOK;
 }
 
 static void client_send(struct cli_ctx *cctx)
@@ -214,6 +252,12 @@ static void accept_priv_fd_handler(struct tevent_context *ev,
 
     cctx->priv = 1;
 
+    ret = get_client_cred(cctx);
+    if (ret != EOK) {
+        DEBUG(2, ("get_client_cred failed, "
+                  "client cred may not be available.\n"));
+    }
+
     cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
                                TEVENT_FD_READ, client_fd_handler, cctx);
     if (!cctx->cfde) {
@@ -240,6 +284,7 @@ static void accept_fd_handler(struct tevent_context *ev,
     struct resp_ctx *rctx = talloc_get_type(ptr, struct resp_ctx);
     struct cli_ctx *cctx;
     socklen_t len;
+    int ret;
 
     cctx = talloc_zero(rctx, struct cli_ctx);
     if (!cctx) {
@@ -263,6 +308,12 @@ static void accept_fd_handler(struct tevent_context *ev,
         DEBUG(1, ("Accept failed [%s]\n", strerror(errno)));
         talloc_free(cctx);
         return;
+    }
+
+    ret = get_client_cred(cctx);
+    if (ret != EOK) {
+        DEBUG(2, ("get_client_cred failed, "
+                  "client cred may not be available.\n"));
     }
 
     cctx->cfde = tevent_add_fd(ev, cctx, cctx->cfd,
