@@ -115,5 +115,7 @@ int flush_nscd_cache(TALLOC_CTX *mem_ctx, enum nscd_db flush_db);
 /* from selinux.c */
 int selinux_file_context(const char *dst_name);
 int reset_selinux_file_context(void);
+int set_seuser(const char *login_name, const char *seuser_name);
+int del_seuser(const char *login_name);
 
 #endif  /* __TOOLS_UTIL_H__ */

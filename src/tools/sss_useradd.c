@@ -109,6 +109,7 @@ int main(int argc, const char **argv)
     int pc_create_home = 0;
     const char *pc_username = NULL;
     const char *pc_skeldir = NULL;
+    const char *pc_selinux_user = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
@@ -121,6 +122,7 @@ int main(int argc, const char **argv)
         { "create-home", 'm', POPT_ARG_NONE, NULL, 'm', _("Create user's directory if it does not exist"), NULL },
         { "no-create-home", 'M', POPT_ARG_NONE, NULL, 'M', _("Never create user's directory, overrides config"), NULL },
         { "skel", 'k', POPT_ARG_STRING, &pc_skeldir, 0, _("Specify an alternative skeleton directory"), NULL },
+        { "selinux-user", 'Z', POPT_ARG_STRING, &pc_selinux_user, 0, _("The SELinux user for user's login"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -269,6 +271,15 @@ int main(int argc, const char **argv)
     }
 
     end_transaction(tctx);
+
+    /* Set SELinux login context - must be done after transaction is done
+     * b/c libselinux calls getpwnam */
+    ret = set_seuser(tctx->octx->name, pc_selinux_user);
+    if (ret != EOK) {
+        ERROR("Cannot set SELinux login context\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
 
     /* Create user's home directory and/or mail spool */
     if (tctx->octx->create_homedir) {

@@ -41,6 +41,7 @@ int main(int argc, const char **argv)
     char *pc_home = NULL;
     char *pc_shell = NULL;
     int pc_debug = 0;
+    const char *pc_selinux_user = NULL;
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
@@ -53,6 +54,7 @@ int main(int argc, const char **argv)
         { "remove-group", 'r', POPT_ARG_STRING, NULL, 'r', _("Groups to remove this user from"), NULL },
         { "lock", 'L', POPT_ARG_NONE, NULL, 'L', _("Lock the account"), NULL },
         { "unlock", 'U', POPT_ARG_NONE, NULL, 'U', _("Unlock the account"), NULL },
+        { "selinux-user", 'Z', POPT_ARG_STRING, &pc_selinux_user, 0, _("The SELinux user for user's login"), NULL },
         POPT_TABLEEND
     };
     poptContext pc = NULL;
@@ -232,6 +234,15 @@ int main(int argc, const char **argv)
     }
 
     end_transaction(tctx);
+
+    /* Set SELinux login context - must be done after transaction is done
+     * b/c libselinux calls getpwnam */
+    ret = set_seuser(tctx->octx->name, pc_selinux_user);
+    if (ret != EOK) {
+        ERROR("Cannot set SELinux login context\n");
+        ret = EXIT_FAILURE;
+        goto fini;
+    }
 
 done:
     if (tctx->error) {

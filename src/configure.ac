@@ -72,6 +72,7 @@ WITH_KRB5_PLUGIN_PATH
 WITH_PYTHON_BINDINGS
 WITH_SELINUX
 WITH_NSCD
+WITH_SEMANAGE
 
 m4_include([external/platform.m4])
 m4_include([external/pkg.m4])
@@ -128,6 +129,10 @@ fi
 
 if test x$HAVE_SELINUX != x; then
     AM_CHECK_SELINUX
+fi
+
+if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
+    AM_CHECK_SEMANAGE
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])

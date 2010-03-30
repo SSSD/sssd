@@ -295,6 +295,9 @@ TOOLS_LIBS = \
 if BUILD_SELINUX
     TOOLS_LIBS += $(SELINUX_LIBS)
 endif
+if BUILD_SEMANAGE
+    TOOLS_LIBS += $(SEMANAGE_LIBS)
+endif
 
 dist_noinst_HEADERS = \
     monitor/monitor.h \
@@ -529,11 +532,15 @@ FILES_TESTS_LIBS = \
 if BUILD_SELINUX
     FILES_TESTS_LIBS += $(SELINUX_LIBS)
 endif
+if BUILD_SEMANAGE
+    FILES_TESTS_LIBS += $(SEMANAGE_LIBS)
+endif
 
 files_tests_SOURCES = \
     $(SSSD_DEBUG_OBJ) \
     tests/files-tests.c \
     util/check_and_open.c \
+    tools/selinux.c \
     tools/files.c
 files_tests_CFLAGS = \
     $(AM_CFLAGS) \

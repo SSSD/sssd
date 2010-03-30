@@ -110,6 +110,7 @@ KRB5_LIBS=-lkrb5 \
     --with-init-dir=%{_initrddir} \
     --enable-nsslibdir=/%{_lib} \
     --without-selinux \
+    --without-semanage \
     --with-os=suse \
     --disable-static
 

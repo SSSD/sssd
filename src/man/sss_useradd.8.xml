@@ -160,6 +160,18 @@
                     </para>
                 </listitem>
             </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-Z</option>,<option>--selinux-user</option>
+                    <replaceable>SELINUX_USER</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        The SELinux user for the user's login. If not specified,
+                        the system default will be used.
+                    </para>
+                </listitem>
+            </varlistentry>
             <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
         </variablelist>
     </refsect1>

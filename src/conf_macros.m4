@@ -217,3 +217,19 @@ AC_DEFUN([WITH_NSCD],
     fi
   ])
 
+AC_DEFUN([WITH_SEMANAGE],
+  [ AC_ARG_WITH([semanage],
+                [AC_HELP_STRING([--with-semanage],
+                                [Whether to build with SELinux user management support [yes]]
+                               )
+                ],
+                [],
+                with_semanage=yes
+               )
+    if test x"$with_semanage" == xyes; then
+        HAVE_SEMANAGE=1
+        AC_SUBST(HAVE_SEMANAGE)
+        AC_DEFINE_UNQUOTED(HAVE_SEMANAGE, 1, [Build with SELinux support])
+    fi
+    AM_CONDITIONAL([BUILD_SEMANAGE], [test x"$with_semanage" = xyes])
+  ])
