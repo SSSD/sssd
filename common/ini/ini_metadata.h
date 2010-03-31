@@ -35,7 +35,8 @@ int prepare_metadata(uint32_t metaflags,
 /* Collect metadata for the file */
 int collect_metadata(uint32_t metaflags,
                      struct collection_item **metadata,
-                     FILE *config_file);
+                     FILE *config_file,
+                     const char *config_filename);
 
 
 

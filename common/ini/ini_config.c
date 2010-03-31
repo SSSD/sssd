@@ -717,7 +717,10 @@ int config_from_fd_with_metadata(const char *application,
     }
 
     /* Collect meta data before actually parsing the file */
-    error = collect_metadata(metaflags, metadata, config_file);
+    error = collect_metadata(metaflags,
+                             metadata,
+                             config_file,
+                             config_filename);
     if(error) {
         TRACE_ERROR_NUMBER("Failed to collect metadata", error);
         return error;

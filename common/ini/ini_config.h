@@ -382,10 +382,16 @@ struct parse_error {
 #define INI_META_KEY_PERM     "perm"
 
 /**
- * @brief The value for this key will store INI file creation time stamp.
+ * @brief The value for this key will store INI file device ID.
  *
  */
-#define INI_META_KEY_CREATED     "created"
+#define INI_META_KEY_DEV     "dev"
+
+/**
+ * @brief The value for this key will store INI file inode number.
+ *
+ */
+#define INI_META_KEY_INODE     "inode"
 
 /**
  * @brief The value for this key will store INI file modification time stamp.
@@ -430,14 +436,6 @@ struct parse_error {
  */
 #define INI_META_KEY_READ_ERROR     "read_error"
 
-/**
- * @brief The value for this key will store read error message if any.
- *
- * If file was opened by caller first but this section was requested
- * the key will no be present. Also the key will no exist if no error
- * occured.
- */
-#define INI_META_KEY_READ_ERRMSG     "err_msg"
 
 /**
  * @}
