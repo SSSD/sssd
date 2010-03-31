@@ -39,14 +39,15 @@ libini_config_la_SOURCES = \
 
 libini_config_la_LIBADD = \
     -L$(topbuilddir)/collection \
-    -lcollection
+    -lcollection \
+    -lpath_utils
 libini_config_la_LDFLAGS = \
     -version-info 2:0:0
 
 # Build unit test
 check_PROGRAMS = ini_config_ut
 ini_config_ut_SOURCES = ini_config_ut.c
-ini_config_ut_LDADD = libini_config.la -lcollection
+ini_config_ut_LDADD = libini_config.la -lcollection -lpath_utils
 
 if HAVE_DOXYGEN
 docs:

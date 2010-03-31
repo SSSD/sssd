@@ -29,6 +29,7 @@
 #include <locale.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <limits.h>
 #include "config.h"
 /* For error text */
 #include <libintl.h>
@@ -39,6 +40,7 @@
 #include "trace.h"
 #include "ini_config.h"
 #include "ini_metadata.h"
+#include "path_utils.h"
 
 #define NAME_OVERHEAD   10
 
@@ -665,6 +667,8 @@ int config_from_fd_with_metadata(const char *application,
     int save_error = 0;
     int fd = -1;
     FILE *config_file = NULL;
+    int can_free = 0;
+    char abs_name[PATH_MAX + 1];
 
     TRACE_FLOW_STRING("config_from_fd_with_metadata", "Entry");
 
@@ -716,13 +720,25 @@ int config_from_fd_with_metadata(const char *application,
         return file_error;
     }
 
+    /* Normalize path for reporting purposes */
+    error = make_normalized_absolute_path(abs_name,
+                                          PATH_MAX,
+                                          config_filename);
+    if(error) {
+        TRACE_ERROR_NUMBER("Failed to resolve path", error);
+        fclose(config_file);
+        return error;
+    }
+
+
     /* Collect meta data before actually parsing the file */
     error = collect_metadata(metaflags,
                              metadata,
                              config_file,
-                             config_filename);
+                             abs_name);
     if(error) {
         TRACE_ERROR_NUMBER("Failed to collect metadata", error);
+        fclose(config_file);
         return error;
     }
 
@@ -730,7 +746,7 @@ int config_from_fd_with_metadata(const char *application,
         /* Parse data if needed */
         error = config_with_metadata(application,
                                      config_file,
-                                     config_filename,
+                                     abs_name,
                                      ini_config,
                                      error_level,
                                      error_list,
