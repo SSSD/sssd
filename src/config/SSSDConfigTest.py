@@ -1323,7 +1323,12 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         self.assertTrue(isinstance(domain, SSSDConfig.SSSDDomain))
         self.assertTrue(domain.active)
 
+        domain = sssdconfig.get_domain('LDAP')
+        self.assertTrue(isinstance(domain, SSSDConfig.SSSDDomain))
+        self.assertFalse(domain.active)
+
         # TODO verify the contents of this domain
+        self.assertTrue(domain.get_option('ldap_id_use_start_tls'))
 
         # Negative Test - No such domain
         self.assertRaises(SSSDConfig.NoDomainError, sssdconfig.get_domain, 'nosuchdomain')
