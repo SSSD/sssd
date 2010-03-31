@@ -1445,7 +1445,7 @@ class SSSDConfig(SSSDChangeConf):
 
         [domain.set_option(opt['name'], opt['value'])
          for opt in self.strip_comments_empty(self.options('domain/%s' % name))
-         if opt not in providers]
+         if (opt['name'], opt['value']) not in providers]
 
         # Determine if this domain is currently active
         domain.active = self.is_domain_active(name)
