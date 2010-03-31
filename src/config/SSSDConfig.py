@@ -126,7 +126,7 @@ option_strings = {
     # [provider/ldap/id]
     'ldap_search_timeout' : _('Length of time to wait for a search request'),
     'ldap_enumeration_refresh_timeout' : _('Length of time between enumeration updates'),
-    'ldap_id_use_start_tls' : _('Require TLS for ID lookups, false'),
+    'ldap_id_use_start_tls' : _('Require TLS for ID lookups'),
     'ldap_user_search_base' : _('Base DN for user lookups'),
     'ldap_user_search_scope' : _('Scope of user lookups'),
     'ldap_user_search_filter' : _('Filter for user lookups'),
