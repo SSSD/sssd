@@ -268,9 +268,38 @@ enum check_file_type {
     CHECK_LNK,
     CHECK_SOCK
 };
+
+/* check_file()
+ * Verify that a file has certain permissions and/or is of a certain
+ * file type. This function can be used to determine if a file is a
+ * symlink.
+ * Warning: use of this function implies a potential race condition
+ * Opening a file before or after checking it does NOT guarantee that
+ * it is still the same file. Additional checks should be performed
+ * on the caller_stat_buf to ensure that it has the same device and
+ * inode to minimize impact. Permission changes may have occurred,
+ * however.
+ */
 errno_t check_file(const char *filename, const int uid, const int gid,
                    const int mode, enum check_file_type type,
                    struct stat *caller_stat_buf);
+
+/* check_fd()
+ * Verify that an open file descriptor has certain permissions and/or
+ * is of a certain file type. This function CANNOT detect symlinks,
+ * as the file is already open and symlinks have been traversed. This
+ * is the safer way to perform file checks and should be preferred
+ * over check_file for nearly all situations.
+ */
+errno_t check_fd(int fd, const int uid, const int gid,
+                 const int mode, enum check_file_type type,
+                 struct stat *caller_stat_buf);
+
+/* check_and_open_readonly()
+ * Utility function to open a file and verify that it has certain
+ * permissions and is of a certain file type. This function wraps
+ * check_fd(), and is considered race-condition safe.
+ */
 errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
                                const gid_t gid, const mode_t mode,
                                enum check_file_type type);

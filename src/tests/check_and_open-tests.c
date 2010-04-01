@@ -100,11 +100,11 @@ START_TEST(test_symlink)
     ret = symlink(filename, newpath);
     fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(ret));
 
-    ret = check_and_open_readonly(newpath, &fd, uid, gid, mode, CHECK_REG);
+    ret = check_file(newpath, uid, gid, mode, CHECK_REG, NULL);
     unlink(newpath);
+
     fail_unless(ret == EINVAL,
                 "check_and_open_readonly succeeded on symlink");
-    fail_unless(fd == -1, "check_and_open_readonly file descriptor not -1");
 }
 END_TEST
 
