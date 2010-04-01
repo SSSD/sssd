@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-22 14:13-0400\n"
+"POT-Creation-Date: 2010-04-01 09:55-0400\n"
 "PO-Revision-Date: 2010-03-15 11:40-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -425,17 +425,17 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Nive de depuración"
 
-#: providers/krb5/krb5_child.c:931 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:918 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Agregar marcas de tiempo de depuración"
 
-#: providers/krb5/krb5_child.c:933 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:920 providers/ldap/ldap_child.c:320
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
@@ -463,31 +463,31 @@ msgstr "Autenticación fuera de línea, la autenticación se deniega hasta:"
 msgid "System is offline, password change not possible"
 msgstr "El sistema está fuera de línea, no se puede cambiar la contraseña"
 
-#: sss_client/pam_sss.c:530
+#: sss_client/pam_sss.c:530 sss_client/pam_sss.c:543
 msgid "Password change failed. "
 msgstr "Falló el cambio de contraseña."
 
-#: sss_client/pam_sss.c:531
+#: sss_client/pam_sss.c:533 sss_client/pam_sss.c:544
 msgid "Server message: "
 msgstr "Mensaje del servidor:"
 
-#: sss_client/pam_sss.c:898
+#: sss_client/pam_sss.c:915
 msgid "New Password: "
 msgstr "Nueva contraseña: "
 
-#: sss_client/pam_sss.c:899
+#: sss_client/pam_sss.c:916
 msgid "Reenter new Password: "
 msgstr "Reingrese la contraseña nueva:"
 
-#: sss_client/pam_sss.c:957
+#: sss_client/pam_sss.c:974
 msgid "Password: "
 msgstr "Contraseña: "
 
-#: sss_client/pam_sss.c:989
+#: sss_client/pam_sss.c:1006
 msgid "Current Password: "
 msgstr "Contraseña actual: "
 
-#: sss_client/pam_sss.c:1126
+#: sss_client/pam_sss.c:1143
 msgid "Password expired. Change your password now."
 msgstr "La contraseña ha expirado. Modifíquela en este preciso momento."
 

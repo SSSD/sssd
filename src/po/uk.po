@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-22 14:13-0400\n"
+"POT-Creation-Date: 2010-04-01 09:55-0400\n"
 "PO-Revision-Date: 2010-03-17 19:38+0200\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
@@ -422,17 +422,17 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: providers/krb5/krb5_child.c:931 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:918 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: providers/krb5/krb5_child.c:933 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:920 providers/ldap/ldap_child.c:320
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
@@ -460,31 +460,31 @@ msgstr "Автономне розпізнавання, розпізнаванн�
 msgid "System is offline, password change not possible"
 msgstr "Система працює у автономному режимі, зміна пароля неможлива"
 
-#: sss_client/pam_sss.c:530
+#: sss_client/pam_sss.c:530 sss_client/pam_sss.c:543
 msgid "Password change failed. "
 msgstr "Спроба зміни пароля зазнала невдачі. "
 
-#: sss_client/pam_sss.c:531
+#: sss_client/pam_sss.c:533 sss_client/pam_sss.c:544
 msgid "Server message: "
 msgstr "Повідомлення сервера: "
 
-#: sss_client/pam_sss.c:898
+#: sss_client/pam_sss.c:915
 msgid "New Password: "
 msgstr "Новий пароль: "
 
-#: sss_client/pam_sss.c:899
+#: sss_client/pam_sss.c:916
 msgid "Reenter new Password: "
 msgstr "Ще раз введіть новий пароль: "
 
-#: sss_client/pam_sss.c:957
+#: sss_client/pam_sss.c:974
 msgid "Password: "
 msgstr "Пароль: "
 
-#: sss_client/pam_sss.c:989
+#: sss_client/pam_sss.c:1006
 msgid "Current Password: "
 msgstr "Поточний пароль: "
 
-#: sss_client/pam_sss.c:1126
+#: sss_client/pam_sss.c:1143
 msgid "Password expired. Change your password now."
 msgstr "Строк дії пароля вичерпано. Змініть ваш пароль."
 

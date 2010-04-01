@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-22 14:13-0400\n"
+"POT-Creation-Date: 2010-04-01 09:55-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -404,17 +404,17 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:931 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:918 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:933 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:920 providers/ldap/ldap_child.c:320
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
@@ -442,31 +442,31 @@ msgstr ""
 msgid "System is offline, password change not possible"
 msgstr ""
 
-#: sss_client/pam_sss.c:530
+#: sss_client/pam_sss.c:530 sss_client/pam_sss.c:543
 msgid "Password change failed. "
 msgstr ""
 
-#: sss_client/pam_sss.c:531
+#: sss_client/pam_sss.c:533 sss_client/pam_sss.c:544
 msgid "Server message: "
 msgstr ""
 
-#: sss_client/pam_sss.c:898
+#: sss_client/pam_sss.c:915
 msgid "New Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:899
+#: sss_client/pam_sss.c:916
 msgid "Reenter new Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:957
+#: sss_client/pam_sss.c:974
 msgid "Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:989
+#: sss_client/pam_sss.c:1006
 msgid "Current Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:1126
+#: sss_client/pam_sss.c:1143
 msgid "Password expired. Change your password now."
 msgstr ""
 
