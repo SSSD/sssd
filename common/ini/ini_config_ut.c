@@ -136,8 +136,10 @@ int single_file(void)
                                            &metadata);
     if (error) {
         printf("Attempt to read configuration returned error: %d\n",error);
-        printf("\n\nMetadata\n");
-        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        if (metadata) {
+            printf("\n\nMeta data\n");
+            col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        }
         free_ini_config_metadata(metadata);
         return error;
     }
@@ -146,7 +148,7 @@ int single_file(void)
         printf("Expected no config but got some.\n");
         col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT);
         free_ini_config(ini_config);
-        printf("\n\nMetadata\n");
+        printf("\n\nMeta data\n");
         col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
         free_ini_config_metadata(metadata);
         return EINVAL;
@@ -249,8 +251,10 @@ int single_fd(void)
         printf("\n\nErrors\n");
         print_file_parsing_errors(stdout, error_set);
         free_ini_config_errors(error_set);
-        printf("\n\nMetadata\n");
-        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        if (metadata) {
+            printf("\n\nMeta data\n");
+            col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        }
         free_ini_config_metadata(metadata);
         return error;
     }
@@ -261,8 +265,6 @@ int single_fd(void)
         free_ini_config(ini_config);
         return EINVAL;
     }
-
-    /* FIXME get elements of the meta data and check them */
 
 
     COLOUT(printf("\n\nMeta data\n"));
@@ -1062,6 +1064,251 @@ int get_test(void)
     return EOK;
 }
 
+/* This is an emulation of the case when daemon starts
+ * and one needs to parse the configuration file
+ * for the first time and load configuration
+ */
+int startup_test(void)
+{
+    int error;
+    struct collection_item *ini_config = NULL;
+    struct collection_item *error_set = NULL;
+    struct collection_item *metadata = NULL;
+    uint32_t flags;
+
+
+    /* At startup we can simplify our life by
+     * parsing configuration and then checking
+     * the permissions. It is less optimal from
+     * the performnce point of view but simple to implement.
+     * Since it is the start of the daemon we can
+     * hope that parsing the config file would
+     * usually not a be a wasted effort.
+     * If permission check fails that means we should
+     * exit. Ok so we just parse the INI file for nothing.
+     * Not a big deal, I would say...
+     */
+
+    COLOUT(printf("STARTUP TEST\n"));
+
+
+    flags = INI_META_SEC_ACCESS_FLAG |
+            INI_META_SEC_ERROR_FLAG;
+
+    error = config_from_file_with_metadata("test", "./ini.conf",
+                                           &ini_config, INI_STOP_ON_NONE,
+                                           &error_set,
+                                           flags,
+                                           &metadata);
+    /*
+     * This is just for debugging.
+     * do not copy into your implementation
+     */
+    if (metadata) {
+        COLOUT(printf("\n\nMeta data\n"));
+        COLOUT(col_debug_collection(metadata, COL_TRAVERSE_DEFAULT));
+    }
+
+
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+
+        /* If you want to do any specific error checking, do it here.
+         * If you want to get the file error code from the
+         * metadata get it here.
+         */
+        free_ini_config_metadata(metadata);
+
+        /* Error reporting start ==> */
+        if (error_set) {
+            printf("\n\nErrors\n");
+            col_debug_collection(error_set, COL_TRAVERSE_DEFAULT);
+        }
+        /* <==== end */
+        free_ini_config_errors(error_set);
+        return error;
+    }
+
+    free_ini_config_errors(error_set);
+
+    /* So we are here if we successfully got configuration. */
+    /* You can check ownership and permissions here in one call */
+    /* We will check just permissions here. */
+    error = config_access_check(metadata,
+                                INI_ACCESS_CHECK_MODE, /* add uid & gui flags
+                                                        * in real case
+                                                        */
+                                0, /* <- will be real uid in real case */
+                                0, /* <- will be real gid in real case */
+                                0440, /* Checkling for r--r----- */
+                                0);
+    /* This check is expected to fail since
+     * the actual permissions on the test file are: rw-rw-r--
+     */
+
+    if (!error) {
+        printf("Expected error got success!\n");
+        free_ini_config_metadata(metadata);
+        free_ini_config(ini_config);
+        return EACCES;
+    }
+
+    error = config_access_check(metadata,
+                                INI_ACCESS_CHECK_MODE, /* add uid & gui flags
+                                                        * in real case
+                                                        */
+                                0, /* <- will be real uid in real case */
+                                0, /* <- will be real gid in real case */
+                                0664, /* Checkling for rw-rw-r-- */
+                                0);
+
+    if (error) {
+        printf("Access check failed %d!\n", error);
+        free_ini_config_metadata(metadata);
+        free_ini_config(ini_config);
+        return EACCES;
+    }
+
+
+    /* Use configuration */
+
+    COLOUT(printf("\n\nMeta data\n"));
+    COLOUT(col_debug_collection(metadata, COL_TRAVERSE_DEFAULT));
+    free_ini_config_metadata(metadata);
+
+    COLOUT(printf("\n\n----------------------\n"));
+
+    COLOUT(printf("\n\nConfiguration\n"));
+    COLOUT(col_debug_collection(ini_config, COL_TRAVERSE_DEFAULT));
+    free_ini_config(ini_config);
+
+    return 0;
+}
+
+int reload_test(void)
+{
+
+    int error;
+    struct collection_item *ini_config = NULL;
+    struct collection_item *metadata = NULL;
+    struct collection_item *saved_metadata = NULL;
+    uint32_t flags;
+    int changed = 0;
+    int fd;
+
+    COLOUT(printf("RELOAD TEST\n"));
+
+    /* Assume we saved metadata at the beginning
+     * when we opened the file and read configuration
+     * for the first time.
+     * Here we have to emulate it.
+     */
+
+    flags = INI_META_SEC_ACCESS_FLAG |
+            INI_META_ACTION_NOPARSE;
+
+    error = config_from_file_with_metadata("test", "./ini.conf",
+                                           &ini_config,
+                                           0,
+                                           NULL,
+                                           flags,
+                                           &saved_metadata);
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+        free_ini_config_metadata(saved_metadata);
+        return error;
+    }
+
+    /*****************************************/
+
+    /* We are reloading so we probably doing it becuase
+     * we got a signal ot some kind of time out expired
+     * and it might be time for us to check if we need
+     * to reload. So assume it is time to check...
+     */
+
+    /* It is safer to open file first */
+    fd = open("./ini.conf", O_RDONLY);
+    if (fd < 0) {
+        error = errno;
+        printf("Attempt to read configuration returned error: %d\n", error);
+        free_ini_config_metadata(saved_metadata);
+        return error;
+    }
+
+    /* You migth be checking pretty frequently, once in 5 min for example
+     * but the config usually does not change for months
+     * so you do not want to do any extra processing every time you check.
+     */
+
+    /* Do permission check here right away on the file, or... */
+
+
+    flags = INI_META_SEC_ACCESS_FLAG |
+            INI_META_ACTION_NOPARSE;
+
+    error = config_from_fd_with_metadata("test", fd,
+                                         "./ini.conf",
+                                         &ini_config,
+                                         0,
+                                         NULL,
+                                         flags,
+                                         &metadata);
+    if (error) {
+        printf("Attempt to read configuration returned error: %d\n",error);
+        if (metadata) {
+            printf("\n\nMeta data\n");
+            col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        }
+        free_ini_config_metadata(metadata);
+        free_ini_config_metadata(saved_metadata);
+        close(fd);
+        return error;
+    }
+
+    /* ...or you can do permission check here using the metadata
+     * as it is done in the startup test.
+     * For now we skip this part and move on.
+     */
+
+    error = config_changed(metadata, saved_metadata, &changed);
+
+    if (error) {
+        printf("Internal error: %d\n",error);
+        printf("\n\nSaved Meta data\n");
+        col_debug_collection(saved_metadata, COL_TRAVERSE_DEFAULT);
+        printf("\n\nMeta data\n");
+        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+        free_ini_config_metadata(saved_metadata);
+        free_ini_config_metadata(metadata);
+        close(fd);
+        return error;
+
+    }
+
+    if (changed) {
+
+        /* Read the config from the descriptor and use it.
+         * Discard old saved meta data and save
+         * the latest one for future use...
+         */
+
+        /* Here it would be an error if it is different */
+        printf("Meta data is supposed to be same but different.\n");
+        printf("\n\nSaved Meta data\n");
+        col_debug_collection(saved_metadata, COL_TRAVERSE_DEFAULT);
+        printf("\n\nMeta data\n");
+        col_debug_collection(metadata, COL_TRAVERSE_DEFAULT);
+    }
+
+    free_ini_config_metadata(saved_metadata);
+    free_ini_config_metadata(metadata);
+    close(fd);
+
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
     int error = EOK;
@@ -1086,6 +1333,8 @@ int main(int argc, char *argv[])
         (error = real_test(NULL)) ||
          /* This should result in merged configuration */
         (error = real_test("./ini.conf")) ||
+        (error = startup_test()) ||
+        (error = reload_test()) ||
         (error = get_test())) {
         printf("Test failed! Error %d.\n", error);
         return -1;

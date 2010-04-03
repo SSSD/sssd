@@ -264,6 +264,42 @@
  */
 
 /**
+ * @defgroup accesscheck Access control check flags
+ *
+ * @{
+ */
+
+/**
+ * @brief Validate access mode
+ *
+ * If this flag is specified the mode parameter
+ * will be matched against the permissions set on the file
+ * using the provided mask.
+ */
+#define INI_ACCESS_CHECK_MODE   0x00000001
+
+/**
+ * @brief Validate uid
+ *
+ * Provided uid will be checked against uid
+ * of the file.
+ */
+#define INI_ACCESS_CHECK_UID   0x00000002
+
+/**
+ * @brief Validate gid
+ *
+ * Provided gid will be checked against gid
+ * of the file.
+ */
+#define INI_ACCESS_CHECK_GID   0x00000004
+
+/**
+ * @}
+ */
+
+
+/**
  * @}
  */
 
@@ -485,6 +521,7 @@ const char *parsing_error_str(int parsing_error);
  *
  * @return 0 - Success.
  * @return EINVAL - Invalid parameter.
+ * @return EMOMEM - No memory.
  * @return Any error returned by fopen().
  *
  */
@@ -516,6 +553,7 @@ int config_from_file(const char *application,
  *                                 detected during parsing.
  *
  * @return 0 - Success.
+ * @return EMOMEM - No memory.
  * @return EINVAL - Invalid parameter.
  *
  */
@@ -567,6 +605,7 @@ int config_from_fd(const char *application,
  *
  * @return 0 - Success.
  * @return EINVAL - Invalid parameter.
+ * @return EMOMEM - No memory.
  * @return Any error returned by fopen().
  *
  *
@@ -622,6 +661,7 @@ int config_from_file_with_metadata(
  *
  * @return 0 - Success.
  * @return EINVAL - Invalid parameter.
+ * @return EMOMEM - No memory.
  *
  */
 int config_from_fd_with_metadata(
@@ -660,6 +700,7 @@ int config_from_fd_with_metadata(
  *
  * @return 0 - Success.
  * @return EINVAL - Invalid parameter.
+ * @return EMOMEM - No memory.
  * @return Any error returned by fopen().
  */
 int config_for_app(const char *application,
@@ -715,6 +756,7 @@ int config_for_app(const char *application,
  *
  * @return 0 - Success.
  * @return EINVAL - Invalid parameter.
+ * @return EMOMEM - No memory.
  * @return Any error returned by fopen().
  */
 int config_for_app_with_metadata(
@@ -727,6 +769,76 @@ int config_for_app_with_metadata(
                    uint32_t metaflags,
                    struct collection_item **meta_default,
                    struct collection_item **meta_appini);
+
+
+/**
+ *
+ * @brief Function to check ownership and permissions
+ *
+ * The function allow caller to make decision
+ * if the configuration file is from a trusted source
+ * or not.
+ *
+ * The flags control how to perform check.
+ * See \ref accesscheck "Access control check flags"
+ * section for more information.
+ *
+ * @param[in] metadata     Meta data object.
+ *                         Can't be NULL.
+ * @param[in] flags        How and what to check.
+ *                         Must be nonzero.
+ * @param[in] uid          UID to check.
+ * @param[in] gid          GID to check.
+ * @param[in] mode         Mode to check.
+ *                         Only permission bits
+ *                         are used.
+ * @param[in] mask         Which mode bits to check.
+ *                         If 0 all permision bits
+ *                         are checked.
+ *
+ * @return 0 - Success.
+ * @return EINVAL  - Invalid parameter.
+ * @return EACCESS - File properties do not match provided
+ *                   access parameters.
+ */
+int config_access_check(struct collection_item *metadata,
+                        uint32_t flags,
+                        uid_t uid,
+                        gid_t gid,
+                        mode_t mode,
+                        mode_t mask);
+
+
+/**
+ * @brief Function compares two meta data objects
+ *
+ * Function compares two meta data objects
+ * to determine whether the configuration
+ * has changed since last time the meta data
+ * was collected.
+ * The function checks three things about the
+ * file:
+ * - time stamp
+ * - device ID
+ * - i-node
+ * If any of those changes function will indicate
+ * that configuration changed.
+ *
+ * @param[in] metadata        Recent meta data object.
+ * @param[in] saved_metadata  Previously saved meta
+ *                            data object.
+ * @param[out] changed        Will be set to a nonzero value
+ *                            if the configuration has changed.
+ *
+ * @return 0 - No internal error
+ * @return EINVAL - Invalid argument
+ * @return ENOENT - Expected value is missing
+ * @return ENOMEM - No memory
+ */
+int config_changed(struct collection_item *metadata,
+                   struct collection_item *saved_metadata,
+                   int *changed);
+
 /**
  * @brief Function to free configuration object.
  *
@@ -747,7 +859,7 @@ void free_ini_config_errors(struct collection_item *error_set);
 /**
  * @brief Function to free metadata.
  *
- * @param[in] error_set       Configuration meta data object.
+ * @param[in] metadata       Configuration meta data object.
  *
  */
 void free_ini_config_metadata(struct collection_item *metadata);

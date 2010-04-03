@@ -87,6 +87,8 @@
 #define MAX_VALUE       PATH_MAX
 #define BUFFER_SIZE     MAX_KEY + MAX_VALUE + 3
 
+/* Beffer length used for int to string conversions */
+#define CONVERSION_BUFFER 80
 
 /*============================================================*/
 /* The following classes moved here from the public header
@@ -583,7 +585,7 @@ static int config_with_metadata(const char *application,
                                 int error_level,
                                 struct collection_item **error_list,
                                 uint32_t metaflags,
-                                struct collection_item *metadata)
+                                struct collection_item **metadata)
 {
     int error;
     int created = 0;
@@ -667,8 +669,8 @@ int config_from_fd_with_metadata(const char *application,
     int save_error = 0;
     int fd = -1;
     FILE *config_file = NULL;
-    int can_free = 0;
     char abs_name[PATH_MAX + 1];
+    char buff[CONVERSION_BUFFER];
 
     TRACE_FLOW_STRING("config_from_fd_with_metadata", "Entry");
 
@@ -703,10 +705,12 @@ int config_from_fd_with_metadata(const char *application,
 
     if (save_error) {
         /* Record the result of the open file operation in metadata */
-        error = col_add_int_property(*metadata,
+        snprintf(buff, CONVERSION_BUFFER, "%d", file_error);
+        error = col_add_str_property(*metadata,
                                      INI_META_SEC_ERROR,
                                      INI_META_KEY_READ_ERROR,
-                                     file_error);
+                                     buff,
+                                     0);
         if (error) {
             /* Something is really wrong if we failed here */
             TRACE_ERROR_NUMBER("Failed to save file open error", error);
@@ -731,15 +735,17 @@ int config_from_fd_with_metadata(const char *application,
     }
 
 
-    /* Collect meta data before actually parsing the file */
-    error = collect_metadata(metaflags,
-                             metadata,
-                             config_file,
-                             abs_name);
-    if(error) {
-        TRACE_ERROR_NUMBER("Failed to collect metadata", error);
-        fclose(config_file);
-        return error;
+    if (metadata) {
+        /* Collect meta data before actually parsing the file */
+        error = collect_metadata(metaflags,
+                                 metadata,
+                                 config_file,
+                                 abs_name);
+        if(error) {
+            TRACE_ERROR_NUMBER("Failed to collect metadata", error);
+            fclose(config_file);
+            return error;
+        }
     }
 
     if (!(metaflags & INI_META_ACTION_NOPARSE)) {
@@ -751,7 +757,7 @@ int config_from_fd_with_metadata(const char *application,
                                      error_level,
                                      error_list,
                                      metaflags,
-                                     *metadata);
+                                     metadata);
     }
 
     /* We opened the file we close it */
@@ -1529,7 +1535,7 @@ static unsigned long long get_ullong_config_value(struct collection_item *item,
     char *endptr;
     unsigned long long val = 0;
 
-    TRACE_FLOW_STRING("get_long_config_value", "Entry");
+    TRACE_FLOW_STRING("get_ullong_config_value", "Entry");
 
     /* Do we have the item ? */
     if ((item == NULL) ||
@@ -1561,7 +1567,7 @@ static unsigned long long get_ullong_config_value(struct collection_item *item,
         return def;
     }
 
-    TRACE_FLOW_NUMBER("get_long_config_value returning", (long)val);
+    TRACE_FLOW_NUMBER("get_ullong_config_value returning", (long)val);
     return val;
 }
 
