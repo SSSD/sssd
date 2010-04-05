@@ -34,6 +34,22 @@ check_PROGRAMS = ref_array_ut
 ref_array_ut_SOURCES = ref_array_ut.c
 ref_array_ut_LDADD = libref_array.la
 
+if HAVE_DOXYGEN
+docs:
+# A temp way of building docs until we hook into the package build
+	rm -fR doc
+	mkdir -p doc
+	$(DOXYGEN) ref_array.cfg.doxy
+else
+docs:
+	@echo "Doxygen not installed, cannot generate documentation"
+	@exit 1
+endif
+
+
 TESTS = ref_array_ut
 
 tests: all $(check_PROGRAMS)
+
+clean-local:
+	rm -Rf doc

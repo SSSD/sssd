@@ -406,6 +406,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libref_array.so
 %{_libdir}/pkgconfig/ref_array.pc
 %doc common/refarray/README
+%doc common/refarray/doc/html/
 
 
 %post

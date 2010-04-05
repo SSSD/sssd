@@ -24,6 +24,9 @@ AC_ARG_ENABLE([trace],
 
 AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TRACE_VAR],["-DTRACE_LEVEL=$trace_level"])])
 
-AC_CONFIG_FILES([Makefile ref_array.pc])
+AC_PATH_PROG([DOXYGEN], [doxygen], [false])
+AM_CONDITIONAL([HAVE_DOXYGEN], [test x$DOXYGEN != xfalse ])
+
+AC_CONFIG_FILES([Makefile ref_array.cfg.doxy ref_array.pc])
 
 AC_OUTPUT
