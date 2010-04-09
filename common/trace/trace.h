@@ -52,7 +52,7 @@ extern unsigned trace_level;
         } \
     } while(0)
 
-/* Tracing numbers */
+/* Tracing unsigned numbers */
 #define TRACE_NUMBER(level, msg, num) \
     do { \
         if (level & trace_level) { \
@@ -61,6 +61,42 @@ extern unsigned trace_level;
                    (level == TRACE_ERROR) ? "ERROR-> " : "", \
                    (msg != NULL) ? msg : "MISSING MESSAGE", \
                    (unsigned long int)(num)); \
+        } \
+    } while(0)
+
+/* Tracing signed numbers */
+#define TRACE_SNUMBER(level, msg, num) \
+    do { \
+        if (level & trace_level) { \
+            printf("[DEBUG] %40s (%4d) %s%s %ld\n", \
+                   __FILE__, __LINE__, \
+                   (level == TRACE_ERROR) ? "ERROR-> " : "", \
+                   (msg != NULL) ? msg : "MISSING MESSAGE", \
+                   (long int)(num)); \
+        } \
+    } while(0)
+
+/* Tracing long numbers */
+#define TRACE_LNUMBER(level, msg, num) \
+    do { \
+        if (level & trace_level) { \
+            printf("[DEBUG] %40s (%4d) %s%s %llu\n", \
+                   __FILE__, __LINE__, \
+                   (level == TRACE_ERROR) ? "ERROR-> " : "", \
+                   (msg != NULL) ? msg : "MISSING MESSAGE", \
+                   (unsigned long long int)(num)); \
+        } \
+    } while(0)
+
+/* Tracing signed long numbers */
+#define TRACE_SLNUMBER(level, msg, num) \
+    do { \
+        if (level & trace_level) { \
+            printf("[DEBUG] %40s (%4d) %s%s %lld\n", \
+                   __FILE__, __LINE__, \
+                   (level == TRACE_ERROR) ? "ERROR-> " : "", \
+                   (msg != NULL) ? msg : "MISSING MESSAGE", \
+                   (long long int)(num)); \
         } \
     } while(0)
 
@@ -83,6 +119,9 @@ extern unsigned trace_level;
 /* Noop in case the tracing is disabled */
 #define TRACE_STRING(level, msg, str)
 #define TRACE_NUMBER(level, msg, num)
+#define TRACE_SNUMBER(level, msg, num)
+#define TRACE_LNUMBER(level, msg, num)
+#define TRACE_SLNUMBER(level, msg, num)
 #define TRACE_DOUBLE(level, msg, num)
 #endif /* HAVE_TRACE */
 
@@ -92,10 +131,25 @@ extern unsigned trace_level;
 #define TRACE_ERROR_STRING(msg, str) TRACE_STRING(TRACE_ERROR, msg, str)
 #define TRACE_INFO_STRING(msg, str)  TRACE_STRING(TRACE_INFO, msg, str)
 
-/* Convenience wrappers for numbers */
+/* Convenience wrappers for unsigned numbers */
 #define TRACE_FLOW_NUMBER(msg, num)  TRACE_NUMBER(TRACE_FLOW, msg, num)
 #define TRACE_ERROR_NUMBER(msg, num) TRACE_NUMBER(TRACE_ERROR, msg, num)
 #define TRACE_INFO_NUMBER(msg, num)  TRACE_NUMBER(TRACE_INFO, msg, num)
+
+/* Convenience wrappers for signed numbers */
+#define TRACE_FLOW_SNUMBER(msg, num)  TRACE_SNUMBER(TRACE_FLOW, msg, num)
+#define TRACE_ERROR_SNUMBER(msg, num) TRACE_SNUMBER(TRACE_ERROR, msg, num)
+#define TRACE_INFO_SNUMBER(msg, num)  TRACE_SNUMBER(TRACE_INFO, msg, num)
+
+/* Convenience wrappers for 64-bit long unsigned numbers */
+#define TRACE_FLOW_LNUMBER(msg, num)  TRACE_LNUMBER(TRACE_FLOW, msg, num)
+#define TRACE_ERROR_LNUMBER(msg, num) TRACE_LNUMBER(TRACE_ERROR, msg, num)
+#define TRACE_INFO_LNUMBER(msg, num)  TRACE_LNUMBER(TRACE_INFO, msg, num)
+
+/* Convenience wrappers for 64-bit long signed numbers */
+#define TRACE_FLOW_SLNUMBER(msg, num)  TRACE_SLNUMBER(TRACE_FLOW, msg, num)
+#define TRACE_ERROR_SLNUMBER(msg, num) TRACE_SLNUMBER(TRACE_ERROR, msg, num)
+#define TRACE_INFO_SLNUMBER(msg, num)  TRACE_SLNUMBER(TRACE_INFO, msg, num)
 
 /* Convenience wrappers for numbers */
 #define TRACE_FLOW_DOUBLE(msg, num)  TRACE_DOUBLE(TRACE_FLOW, msg, num)

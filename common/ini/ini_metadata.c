@@ -211,6 +211,8 @@ int collect_metadata(uint32_t metaflags,
         }
 
         /* Device  ID */
+        TRACE_INFO_LNUMBER("Device ID", file_stats.st_dev);
+
         snprintf(buff, CONVERSION_BUFFER, "%lu",
                  (unsigned long)file_stats.st_dev);
         error = col_add_str_property(metasec,
