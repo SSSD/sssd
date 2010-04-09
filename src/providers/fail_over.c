@@ -302,7 +302,7 @@ get_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name,
     struct server_common *common;
 
     DLIST_FOR_EACH(common, ctx->server_common_list) {
-        if (!strcmp(name, common->name)) {
+        if (!strcasecmp(name, common->name)) {
             *_common = rc_reference(mem_ctx, struct server_common, common);
             if (_common == NULL)
                 return ENOMEM;
@@ -355,7 +355,7 @@ fo_add_server(struct fo_service *service, const char *name, int port,
         if (name == NULL && server->common == NULL) {
             return EEXIST;
         } else if (name != NULL && server->common != NULL) {
-            if (!strcmp(name, server->common->name))
+            if (!strcasecmp(name, server->common->name))
                 return EEXIST;
         }
     }
