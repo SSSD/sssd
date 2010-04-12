@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-03-15 08:12-0400\n"
+"POT-Creation-Date: 2010-04-12 09:33-0400\n"
 "PO-Revision-Date: 2009-12-30 17:58+0100\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -174,11 +174,11 @@ msgstr "IPA-serveradress"
 msgid "IPA client hostname"
 msgstr "IPA-klienvärdnamn"
 
-#: config/SSSDConfig.py:91 config/SSSDConfig.py:119
+#: config/SSSDConfig.py:91 config/SSSDConfig.py:120
 msgid "Kerberos server address"
 msgstr "Kerberosserveradress"
 
-#: config/SSSDConfig.py:92 config/SSSDConfig.py:120
+#: config/SSSDConfig.py:92 config/SSSDConfig.py:121
 msgid "Kerberos realm"
 msgstr "Kerberosrike"
 
@@ -247,174 +247,184 @@ msgid "Length of time between attempts to reconnect while offline"
 msgstr "Tidslängd mellan försök att återansluta under frånkoppling"
 
 #: config/SSSDConfig.py:115
-msgid "file that contains CA certificates"
+#, fuzzy
+msgid "File that contains CA certificates"
 msgstr "fil som innehåller CA-certifikat"
 
 #: config/SSSDConfig.py:116
+msgid "Path to CA certificate directory"
+msgstr ""
+
+#: config/SSSDConfig.py:117
 msgid "Require TLS certificate verification"
 msgstr "Kräv TLS-certifikatverifiering"
 
-#: config/SSSDConfig.py:117
+#: config/SSSDConfig.py:118
 msgid "Specify the sasl mechanism to use"
 msgstr "Ange sasl-mekanismen att använda"
 
-#: config/SSSDConfig.py:118
+#: config/SSSDConfig.py:119
 msgid "Specify the sasl authorization id to use"
 msgstr "Ange sasl-auktorisering-id att använda"
 
-#: config/SSSDConfig.py:121
+#: config/SSSDConfig.py:122
 msgid "Kerberos service keytab"
 msgstr "Kerberostjänstens nyckeltabell"
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:123
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
-#: config/SSSDConfig.py:123
+#: config/SSSDConfig.py:124
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:127
 msgid "Length of time to wait for a search request"
 msgstr "Tidslängd att vänta på en sökbegäran"
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:128
 msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
-#: config/SSSDConfig.py:128
-msgid "Require TLS for ID lookups, false"
+#: config/SSSDConfig.py:129
+#, fuzzy
+msgid "Require TLS for ID lookups"
 msgstr "Kräv TLS för ID-uppslagningar, falsk"
 
-#: config/SSSDConfig.py:129
+#: config/SSSDConfig.py:130
 msgid "Base DN for user lookups"
 msgstr "Bas-DN för användaruppslagningar"
 
-#: config/SSSDConfig.py:130
+#: config/SSSDConfig.py:131
 msgid "Scope of user lookups"
 msgstr "Omfång av användaruppslagningar"
 
-#: config/SSSDConfig.py:131
+#: config/SSSDConfig.py:132
 msgid "Filter for user lookups"
 msgstr "Filter för användaruppslagningar"
 
-#: config/SSSDConfig.py:132
+#: config/SSSDConfig.py:133
 msgid "Objectclass for users"
 msgstr "Objektklass för användare"
 
-#: config/SSSDConfig.py:133
+#: config/SSSDConfig.py:134
 msgid "Username attribute"
 msgstr "Användarnamnsattribut"
 
-#: config/SSSDConfig.py:134
+#: config/SSSDConfig.py:135
 msgid "UID attribute"
 msgstr "UID-attribut"
 
-#: config/SSSDConfig.py:135
+#: config/SSSDConfig.py:136
 msgid "Primary GID attribute"
 msgstr "Primärt GID-attribut"
 
-#: config/SSSDConfig.py:136
+#: config/SSSDConfig.py:137
 msgid "GECOS attribute"
 msgstr "GECOS-attribut"
 
-#: config/SSSDConfig.py:137
+#: config/SSSDConfig.py:138
 msgid "Home directory attribute"
 msgstr "Hemkatalogattribut"
 
-#: config/SSSDConfig.py:138
+#: config/SSSDConfig.py:139
 msgid "Shell attribute"
 msgstr "Skalattribut"
 
-#: config/SSSDConfig.py:139
+#: config/SSSDConfig.py:140
 msgid "UUID attribute"
 msgstr "UUID-attribut"
 
-#: config/SSSDConfig.py:140
+#: config/SSSDConfig.py:141
 msgid "User principal attribute (for Kerberos)"
 msgstr "Användarens huvudmansattribut (för Kerberos)"
 
-#: config/SSSDConfig.py:141
+#: config/SSSDConfig.py:142
 msgid "Full Name"
 msgstr "Fullständigt namn"
 
-#: config/SSSDConfig.py:142
+#: config/SSSDConfig.py:143
 msgid "memberOf attribute"
 msgstr "medlemAv-attribut"
 
-#: config/SSSDConfig.py:143
+#: config/SSSDConfig.py:144
 msgid "Modification time attribute"
 msgstr "Modifieringstidsattribut"
 
-#: config/SSSDConfig.py:146
+#: config/SSSDConfig.py:147
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy för att utvärdera utgång av lösenord"
 
-#: config/SSSDConfig.py:149
+#: config/SSSDConfig.py:150
 msgid "Comma separated list of allowed users"
 msgstr ""
 
-#: config/SSSDConfig.py:150
+#: config/SSSDConfig.py:151
 msgid "Comma separated list of prohibited users"
 msgstr ""
 
-#: config/SSSDConfig.py:153
+#: config/SSSDConfig.py:154
 msgid "Default shell, /bin/bash"
 msgstr "Standardskal, /bin/bash"
 
-#: config/SSSDConfig.py:154
+#: config/SSSDConfig.py:155
 msgid "Base for home directories"
 msgstr "Bas för hemkataloger"
 
-#: config/SSSDConfig.py:157
+#: config/SSSDConfig.py:158
 msgid "The name of the NSS library to use"
 msgstr "Namnet på NSS-biblioteket att använda"
 
-#: config/SSSDConfig.py:160
+#: config/SSSDConfig.py:161
 msgid "PAM stack to use"
 msgstr "PAM-stack att använda"
 
-#: monitor/monitor.c:2199
+#: monitor/monitor.c:2187
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: monitor/monitor.c:2201
+#: monitor/monitor.c:2189
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: monitor/monitor.c:2203
+#: monitor/monitor.c:2191
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: monitor/monitor.c:2229
+#: monitor/monitor.c:2217
 #, fuzzy
 msgid "sssd must be run as root\n"
 msgstr "%s måste köras som root\n"
 
-#: monitor/monitor.c:2264
+#: monitor/monitor.c:2252
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
 msgstr ""
 
-#: monitor/monitor.c:2274
+#: monitor/monitor.c:2262
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:929 providers/ldap/ldap_child.c:316
+#: monitor/monitor.c:2267
+msgid "Cannot load configuration database\n"
+msgstr ""
+
+#: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:931 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:918 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:933 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:920 providers/ldap/ldap_child.c:320
 #, fuzzy
 msgid "An open file descriptor for the debug logs"
 msgstr "Ange pratsamhet för felsökningsloggning"
@@ -423,182 +433,200 @@ msgstr "Ange pratsamhet för felsökningsloggning"
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: sss_client/pam_sss.c:353
+#: sss_client/pam_sss.c:354
 msgid "Passwords do not match"
 msgstr "Lösenorden stämmer inte överens"
 
-#: sss_client/pam_sss.c:422
+#: sss_client/pam_sss.c:423
 msgid "Offline authentication"
 msgstr ""
 
-#: sss_client/pam_sss.c:423
+#: sss_client/pam_sss.c:424
 msgid ", your cached password will expire at: "
 msgstr ""
 
-#: sss_client/pam_sss.c:473
-msgid "Offline authentication, authentication is denied until: "
+#: sss_client/pam_sss.c:454
+#, c-format
+msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
 #: sss_client/pam_sss.c:500
+#, fuzzy, c-format
+msgid "Your password will expire in %d %s."
+msgstr "Lösenordet har gått ut."
+
+#: sss_client/pam_sss.c:549
+msgid "Offline authentication, authentication is denied until: "
+msgstr ""
+
+#: sss_client/pam_sss.c:576
 msgid "System is offline, password change not possible"
 msgstr ""
 
-#: sss_client/pam_sss.c:530
+#: sss_client/pam_sss.c:606 sss_client/pam_sss.c:619
 #, fuzzy
 msgid "Password change failed. "
 msgstr "Leverantör av lösenordsändringar"
 
-#: sss_client/pam_sss.c:531
+#: sss_client/pam_sss.c:609 sss_client/pam_sss.c:620
 msgid "Server message: "
 msgstr ""
 
-#: sss_client/pam_sss.c:898
+#: sss_client/pam_sss.c:997
 msgid "New Password: "
 msgstr "Nytt lösenord: "
 
-#: sss_client/pam_sss.c:899
+#: sss_client/pam_sss.c:998
 msgid "Reenter new Password: "
 msgstr "Skriv det nya lösenordet igen: "
 
-#: sss_client/pam_sss.c:957
+#: sss_client/pam_sss.c:1056
 msgid "Password: "
 msgstr "Lösenord: "
 
-#: sss_client/pam_sss.c:989
+#: sss_client/pam_sss.c:1088
 #, fuzzy
 msgid "Current Password: "
 msgstr "Nytt lösenord: "
 
-#: sss_client/pam_sss.c:1126
+#: sss_client/pam_sss.c:1225
 msgid "Password expired. Change your password now."
 msgstr ""
 
-#: tools/sss_useradd.c:114 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
-#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:45
-#: tools/sss_usermod.c:46
+#: tools/sss_useradd.c:92 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
+#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:620 tools/sss_userdel.c:142
+#: tools/sss_usermod.c:47
 msgid "The debug level to run with"
 msgstr "Felsökningsnivå att köra med"
 
-#: tools/sss_useradd.c:115 tools/sss_usermod.c:47
+#: tools/sss_useradd.c:93 tools/sss_usermod.c:48
 msgid "The UID of the user"
 msgstr "Användarens UID"
 
-#: tools/sss_useradd.c:116
+#: tools/sss_useradd.c:94
 msgid "The GID or group name of the user"
 msgstr "Användarens GID eller gruppnamn"
 
-#: tools/sss_useradd.c:117 tools/sss_usermod.c:49
+#: tools/sss_useradd.c:95 tools/sss_usermod.c:50
 msgid "The comment string"
 msgstr "Kommentarsträngen"
 
-#: tools/sss_useradd.c:118 tools/sss_usermod.c:50
+#: tools/sss_useradd.c:96 tools/sss_usermod.c:51
 msgid "Home directory"
 msgstr "Hemkatalogen"
 
-#: tools/sss_useradd.c:119 tools/sss_usermod.c:51
+#: tools/sss_useradd.c:97 tools/sss_usermod.c:52
 msgid "Login shell"
 msgstr "Inloggningsskalet"
 
-#: tools/sss_useradd.c:120
+#: tools/sss_useradd.c:98
 msgid "Groups"
 msgstr "Grupper"
 
-#: tools/sss_useradd.c:121
+#: tools/sss_useradd.c:99
 msgid "Create user's directory if it does not exist"
 msgstr "Skapa användarens katalog om den inte redan finns"
 
-#: tools/sss_useradd.c:122
+#: tools/sss_useradd.c:100
 msgid "Never create user's directory, overrides config"
 msgstr "Skapa aldrig användarens katalog, åsidosätter konfigurationen"
 
-#: tools/sss_useradd.c:123
+#: tools/sss_useradd.c:101
 msgid "Specify an alternative skeleton directory"
 msgstr "Ange en alternativ skelettkatalog"
 
-#: tools/sss_useradd.c:137 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
-#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:57
-#: tools/sss_usermod.c:70
+#: tools/sss_useradd.c:102 tools/sss_usermod.c:57
+msgid "The SELinux user for user's login"
+msgstr ""
+
+#: tools/sss_useradd.c:116 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
+#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:631 tools/sss_userdel.c:159
+#: tools/sss_usermod.c:72
 msgid "Error setting the locale\n"
 msgstr "Fel när lokalen sattes\n"
 
-#: tools/sss_useradd.c:172
+#: tools/sss_useradd.c:151
 msgid "Specify user to add\n"
 msgstr "Ange en användare att lägga till\n"
 
-#: tools/sss_useradd.c:183 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
-#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:102
-#: tools/sss_usermod.c:126
+#: tools/sss_useradd.c:162 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
+#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:668 tools/sss_userdel.c:208
+#: tools/sss_usermod.c:128
 #, fuzzy
 msgid "Error initializing the tools - no local domain\n"
 msgstr "Fel vid initiering av verktygen\n"
 
-#: tools/sss_useradd.c:185 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
-#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:104
-#: tools/sss_usermod.c:128
+#: tools/sss_useradd.c:164 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
+#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:670 tools/sss_userdel.c:210
+#: tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "Fel vid initiering av verktygen\n"
 
-#: tools/sss_useradd.c:194 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
-#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:113
-#: tools/sss_usermod.c:137
+#: tools/sss_useradd.c:173 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
+#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:679 tools/sss_userdel.c:219
+#: tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "Ogiltig domän angiven i FQDN\n"
 
-#: tools/sss_useradd.c:203 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
-#: tools/sss_usermod.c:162 tools/sss_usermod.c:189
+#: tools/sss_useradd.c:182 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
+#: tools/sss_usermod.c:164 tools/sss_usermod.c:191
 msgid "Internal error while parsing parameters\n"
 msgstr "Internt fel vid tolkning av parametrar\n"
 
-#: tools/sss_useradd.c:211 tools/sss_usermod.c:170 tools/sss_usermod.c:197
+#: tools/sss_useradd.c:190 tools/sss_usermod.c:172 tools/sss_usermod.c:199
 msgid "Groups must be in the same domain as user\n"
 msgstr "Grupper måste finnas i samma domän som användaren\n"
 
-#: tools/sss_useradd.c:219
+#: tools/sss_useradd.c:198
 #, c-format
 msgid "Cannot find group %s in local domain\n"
 msgstr "Hittar inte grupp %s i den lokala domänen\n"
 
-#: tools/sss_useradd.c:229
+#: tools/sss_useradd.c:208
 msgid "Cannot get group information for the user\n"
 msgstr "Kan inte få gruppinformation för användaren\n"
 
-#: tools/sss_useradd.c:244 tools/sss_userdel.c:123
+#: tools/sss_useradd.c:223 tools/sss_userdel.c:229
 msgid "Cannot set default values\n"
 msgstr "Kan inte sätta standardvärden\n"
 
-#: tools/sss_useradd.c:251 tools/sss_usermod.c:153
+#: tools/sss_useradd.c:230 tools/sss_usermod.c:155
 msgid "The selected UID is outside the allowed range\n"
 msgstr "Den valda UID:n är utanför det tillåtna intervallet\n"
 
-#: tools/sss_useradd.c:285
+#: tools/sss_useradd.c:257 tools/sss_usermod.c:240
+msgid "Cannot set SELinux login context\n"
+msgstr ""
+
+#: tools/sss_useradd.c:273
 msgid "Cannot get info about the user\n"
 msgstr "Kan inte få information om användaren\n"
 
-#: tools/sss_useradd.c:299
+#: tools/sss_useradd.c:287
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr ""
 "Användarens hemkatalog finns redan, kopierar inte data från "
 "skelettkatalogen\n"
 
-#: tools/sss_useradd.c:302
+#: tools/sss_useradd.c:290
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
 msgstr "Kan inte skapa användarens hemkatalog: %s\n"
 
-#: tools/sss_useradd.c:313
+#: tools/sss_useradd.c:301
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
 msgstr "Kan inte skapa användarens brevlåda: %s\n"
 
-#: tools/sss_useradd.c:325
+#: tools/sss_useradd.c:313
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr "Det gick inte att allokera ID för användaren - full domän?\n"
 
-#: tools/sss_useradd.c:329
+#: tools/sss_useradd.c:317
 msgid "A user or group with the same name or ID already exists\n"
 msgstr "En användare eller grupp med samma namn eller ID finns redan\n"
 
-#: tools/sss_useradd.c:335
+#: tools/sss_useradd.c:323
 msgid "Transaction error. Could not add user.\n"
 msgstr "Transaktionsfel.  Det gick inte att lägga till användaren.\n"
 
@@ -614,15 +642,15 @@ msgstr "Ange en grupp att lägga till\n"
 msgid "The selected GID is outside the allowed range\n"
 msgstr "Den valda GID:n är utanför det tillåtna intervallet\n"
 
-#: tools/sss_groupadd.c:133
+#: tools/sss_groupadd.c:131
 msgid "Could not allocate ID for the group - domain full?\n"
 msgstr "Det gick inte att allokera ID för gruppen - full domän?\n"
 
-#: tools/sss_groupadd.c:137
+#: tools/sss_groupadd.c:135
 msgid "A group with the same name or GID already exists\n"
 msgstr "En grupp med samma namn eller GID finns redan\n"
 
-#: tools/sss_groupadd.c:142
+#: tools/sss_groupadd.c:140
 msgid "Transaction error. Could not add group.\n"
 msgstr "Transaktionsfel.  Det gick inte att lägga till gruppen.\n"
 
@@ -635,7 +663,7 @@ msgstr "Ange grupp att ta bort\n"
 msgid "Group %s is outside the defined ID range for domain\n"
 msgstr "Grupp %s är utanför det definierade ID-intervallet för domänen\n"
 
-#: tools/sss_groupdel.c:136
+#: tools/sss_groupdel.c:121
 msgid ""
 "No such group in local domain. Removing groups only allowed in local "
 "domain.\n"
@@ -643,7 +671,7 @@ msgstr ""
 "Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
 "tillåtet i den lokala domänen.\n"
 
-#: tools/sss_groupdel.c:141
+#: tools/sss_groupdel.c:126
 msgid "Internal error. Could not remove group.\n"
 msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
 
@@ -671,8 +699,8 @@ msgstr ""
 msgid "Member groups must be in the same domain as parent group\n"
 msgstr "Medlemsgrupper måster ligga i samma domän som föräldragrupper\n"
 
-#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:178
-#: tools/sss_usermod.c:205
+#: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:180
+#: tools/sss_usermod.c:207
 #, c-format
 msgid ""
 "Cannot find group %s in local domain, only groups in local domain are "
@@ -681,69 +709,64 @@ msgstr ""
 "Kan inte hitta grupp %s i den lokala domänen, endast grupper i den lokala "
 "domänen är tillåtna\n"
 
-#: tools/sss_groupmod.c:222
+#: tools/sss_groupmod.c:220
 msgid "Could not modify group - check if member group names are correct\n"
 msgstr ""
 "Det gick inte att ändra gruppen - kontrollera om medlemsgruppsnamnen är "
 "riktiga\n"
 
-#: tools/sss_groupmod.c:226
+#: tools/sss_groupmod.c:224
 msgid "Could not modify group - check if groupname is correct\n"
 msgstr ""
 "Det gick inte att ändra gruppen - kontrollera om gruppnamnet är riktigt\n"
 
-#: tools/sss_groupmod.c:230
+#: tools/sss_groupmod.c:228
 msgid "Transaction error. Could not modify group.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
 
-#: tools/sss_groupshow.c:954
+#: tools/sss_groupshow.c:567
 #, fuzzy, c-format
 msgid "%s%sGroup: %s\n"
 msgstr "Grupper"
 
-#: tools/sss_groupshow.c:955
+#: tools/sss_groupshow.c:568
 msgid "Magic Private "
 msgstr ""
 
-#: tools/sss_groupshow.c:957
+#: tools/sss_groupshow.c:570
 #, c-format
 msgid "%sGID number: %d\n"
 msgstr ""
 
-#: tools/sss_groupshow.c:959
+#: tools/sss_groupshow.c:572
 #, c-format
 msgid "%sMember users: "
 msgstr ""
 
-#: tools/sss_groupshow.c:966
+#: tools/sss_groupshow.c:579
 #, c-format
 msgid ""
 "\n"
 "%sIs a member of: "
 msgstr ""
 
-#: tools/sss_groupshow.c:973
+#: tools/sss_groupshow.c:586
 #, c-format
 msgid ""
 "\n"
 "%sMember groups: "
 msgstr ""
 
-#: tools/sss_groupshow.c:1010
+#: tools/sss_groupshow.c:622
 msgid "Print indirect group members recursively"
 msgstr ""
 
-#: tools/sss_groupshow.c:1045
+#: tools/sss_groupshow.c:657
 #, fuzzy
 msgid "Specify group to show\n"
 msgstr "Ange en grupp att lägga till\n"
 
-#: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
-#, fuzzy
-msgid "Cannot initiate search\n"
-msgstr "Kan inte få information om användaren\n"
-
-#: tools/sss_groupshow.c:1115
+#: tools/sss_groupshow.c:698
 #, fuzzy
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
@@ -752,77 +775,103 @@ msgstr ""
 "Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
 "tillåtet i den lokala domänen.\n"
 
-#: tools/sss_groupshow.c:1120
+#: tools/sss_groupshow.c:703
 #, fuzzy
 msgid "Internal error. Could not print group.\n"
 msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
 
-#: tools/sss_userdel.c:46
+#: tools/sss_userdel.c:144
 msgid "Remove home directory and mail spool"
 msgstr "Ta bort hemkatalog och brevlåda"
 
-#: tools/sss_userdel.c:47
+#: tools/sss_userdel.c:146
 msgid "Do not remove home directory and mail spool"
 msgstr "Ta inte bort hemkatalog och brevlåda"
 
-#: tools/sss_userdel.c:48
+#: tools/sss_userdel.c:148
 msgid "Force removal of files not owned by the user"
 msgstr "Framtvinga borttagning av filer som inte ägs av användaren"
 
-#: tools/sss_userdel.c:91
+#: tools/sss_userdel.c:150
+msgid "Kill users' processes before removing him"
+msgstr ""
+
+#: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
 msgstr "Ange användare att ta bort\n"
 
-#: tools/sss_userdel.c:141
+#: tools/sss_userdel.c:246
 #, c-format
 msgid "User %s is outside the defined ID range for domain\n"
 msgstr "Användare %s är utanför det definierade ID-intervallet för domänen\n"
 
-#: tools/sss_userdel.c:172
+#: tools/sss_userdel.c:280
+msgid "Cannot reset SELinux login context\n"
+msgstr ""
+
+#: tools/sss_userdel.c:292
+#, c-format
+msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
+msgstr ""
+
+#: tools/sss_userdel.c:297
+msgid "Cannot determine if the user was logged in on this platform"
+msgstr ""
+
+#: tools/sss_userdel.c:302
+msgid "Error while checking if the user was logged in\n"
+msgstr ""
+
+#: tools/sss_userdel.c:309
+#, c-format
+msgid "The post-delete command failed: %s\n"
+msgstr ""
+
+#: tools/sss_userdel.c:321
 msgid "Not removing home dir - not owned by user\n"
 msgstr "Tar inte bort hemkatalogen - ägs inte av användaren\n"
 
-#: tools/sss_userdel.c:174
+#: tools/sss_userdel.c:323
 #, c-format
 msgid "Cannot remove homedir: %s\n"
 msgstr "Kan inte ta bort hemkatalogen: %s\n"
 
-#: tools/sss_userdel.c:186
+#: tools/sss_userdel.c:334
 msgid ""
 "No such user in local domain. Removing users only allowed in local domain.\n"
 msgstr ""
 "Ingen sådan användare i den lokala domänen.  Det går endast att ta bort "
 "användare i den lokala domänen.\n"
 
-#: tools/sss_userdel.c:191
+#: tools/sss_userdel.c:339
 msgid "Internal error. Could not remove user.\n"
 msgstr "Internt fel.  Det gick inte att ta bort användaren.\n"
 
-#: tools/sss_usermod.c:48
+#: tools/sss_usermod.c:49
 msgid "The GID of the user"
 msgstr "Användarens GID"
 
-#: tools/sss_usermod.c:52
+#: tools/sss_usermod.c:53
 msgid "Groups to add this user to"
 msgstr "Grupper att lägga till denna användare till"
 
-#: tools/sss_usermod.c:53
+#: tools/sss_usermod.c:54
 msgid "Groups to remove this user from"
 msgstr "Grupper att ta bort denna användare ifrån"
 
-#: tools/sss_usermod.c:54
+#: tools/sss_usermod.c:55
 msgid "Lock the account"
 msgstr "Lås kontot"
 
-#: tools/sss_usermod.c:55
+#: tools/sss_usermod.c:56
 msgid "Unlock the account"
 msgstr "Lås upp kontot"
 
-#: tools/sss_usermod.c:115
+#: tools/sss_usermod.c:117
 msgid "Specify user to modify\n"
 msgstr "Ange användare att ändra\n"
 
-#: tools/sss_usermod.c:146
+#: tools/sss_usermod.c:148
 msgid ""
 "Cannot find user in local domain, modifying users is allowed only in local "
 "domain\n"
@@ -830,21 +879,21 @@ msgstr ""
 "Det gick inte att hitta användaren i den lokala domänen, det går bara att "
 "ändra användare i den lokala domänen\n"
 
-#: tools/sss_usermod.c:241
+#: tools/sss_usermod.c:250
 msgid "Could not modify user - check if group names are correct\n"
 msgstr ""
 "Det gick inte att ändra användaren - kontrollera att gruppnamnen är riktiga\n"
 
-#: tools/sss_usermod.c:245
+#: tools/sss_usermod.c:254
 msgid "Could not modify user - user already member of groups?\n"
 msgstr ""
 "Det gick inte att ändra användaren - är användaren redan medlem i grupper?\n"
 
-#: tools/sss_usermod.c:249
+#: tools/sss_usermod.c:258
 msgid "Transaction error. Could not modify user.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra användaren.\n"
 
-#: tools/tools_util.c:292
+#: tools/tools_util.c:285
 msgid "Out of memory\n"
 msgstr "Slut på minne\n"
 
@@ -857,5 +906,6 @@ msgstr "%s måste köras som root\n"
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 
-#~ msgid "Password has expired."
-#~ msgstr "Lösenordet har gått ut."
+#, fuzzy
+#~ msgid "Cannot initiate search\n"
+#~ msgstr "Kan inte få information om användaren\n"
