@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-04-12 09:33-0400\n"
-"PO-Revision-Date: 2010-03-15 14:21+0100\n"
+"PO-Revision-Date: 2010-04-12 21:15+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -252,13 +252,12 @@ msgid "Length of time between attempts to reconnect while offline"
 msgstr "Czas między próbami ponownego połączenia w trybie offline"
 
 #: config/SSSDConfig.py:115
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "plik zawierający certyfikaty CA"
+msgstr "Plik zawierający certyfikaty CA"
 
 #: config/SSSDConfig.py:116
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Ścieżka do katalogu certyfikatów CA"
 
 #: config/SSSDConfig.py:117
 msgid "Require TLS certificate verification"
@@ -293,9 +292,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Czas między aktualizacjami wyliczania"
 
 #: config/SSSDConfig.py:129
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Wymaga TLS dla wyszukiwania identyfikatorów, fałsz"
+msgstr "Wymaga TLS dla wyszukiwania identyfikatorów"
 
 #: config/SSSDConfig.py:130
 msgid "Base DN for user lookups"
@@ -420,7 +418,7 @@ msgstr ""
 
 #: monitor/monitor.c:2267
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Nie można wczytać bazy danych konfiguracji\n"
 
 #: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
@@ -455,12 +453,12 @@ msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 #: sss_client/pam_sss.c:454
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "Hasło wygasło. Pozostało %d możliwych logowań."
 
 #: sss_client/pam_sss.c:500
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr ", hasło w pamięci podręcznej wygaśnie za: "
+msgstr "Hasło wygaśnie za %d %s."
 
 #: sss_client/pam_sss.c:549
 msgid "Offline authentication, authentication is denied until: "
@@ -543,7 +541,7 @@ msgstr "Proszę podać alternatywny katalog szkieletu"
 
 #: tools/sss_useradd.c:102 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "Użytkownik SELinuksa dla loginu użytkownika"
 
 #: tools/sss_useradd.c:116 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:631 tools/sss_userdel.c:159
@@ -601,7 +599,7 @@ msgstr "Wybrany UID jest spoza dozwolonego zakresu\n"
 
 #: tools/sss_useradd.c:257 tools/sss_usermod.c:240
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Nie można ustawić kontekstu loginu SELinuksa\n"
 
 #: tools/sss_useradd.c:273
 msgid "Cannot get info about the user\n"
@@ -803,7 +801,7 @@ msgstr "Wymusza usunięcie plików, których właścicielem nie jest użytkownik
 
 #: tools/sss_userdel.c:150
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Usuwa procesy użytkownika przed jego usunięciem"
 
 #: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
@@ -817,25 +815,26 @@ msgstr ""
 
 #: tools/sss_userdel.c:280
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Nie można przywrócić kontekstu loginu SELinuksa\n"
 
 #: tools/sss_userdel.c:292
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
+"OSTRZEŻENIE: użytkownik (UID %lu) był zalogowany podczas jego usunięcia.\n"
 
 #: tools/sss_userdel.c:297
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
+msgstr "Nie można określić, czy użytkownik był zalogowany na tej platformie"
 
 #: tools/sss_userdel.c:302
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Błąd podczas sprawdzania, czy użytkownik był zalogowany\n"
 
 #: tools/sss_userdel.c:309
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr ""
+msgstr "Polecenie po usunięciu nie powiodło się: %s\n"
 
 #: tools/sss_userdel.c:321
 msgid "Not removing home dir - not owned by user\n"
@@ -919,6 +918,3 @@ msgstr "%s musi zostać uruchomione jako root\n"
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
-
-#~ msgid "Cannot initiate search\n"
-#~ msgstr "Nie można zainicjować wyszukiwania\n"
