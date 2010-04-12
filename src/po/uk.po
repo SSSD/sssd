@@ -7,15 +7,15 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-04-12 09:33-0400\n"
-"PO-Revision-Date: 2010-03-17 19:38+0200\n"
+"PO-Revision-Date: 2010-04-12 19:12+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Lokalize 1.0\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
-"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -257,13 +257,12 @@ msgstr ""
 "режимі"
 
 #: config/SSSDConfig.py:115
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "файл, що містить сертифікати CA"
+msgstr "Файл, що містить сертифікати CA"
 
 #: config/SSSDConfig.py:116
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Шлях до каталогу сертифікатів CA"
 
 #: config/SSSDConfig.py:117
 msgid "Require TLS certificate verification"
@@ -298,9 +297,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Проміжок часу між оновленнями нумерації"
 
 #: config/SSSDConfig.py:129
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Вимагати TLS для пошуків ідентифікаторів, вимкнено"
+msgstr "Вимагати TLS для пошуків ідентифікаторів"
 
 #: config/SSSDConfig.py:130
 msgid "Base DN for user lookups"
@@ -426,7 +424,7 @@ msgstr ""
 
 #: monitor/monitor.c:2267
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Не вдалося завантажити базу даних налаштувань\n"
 
 #: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
@@ -461,12 +459,12 @@ msgstr ", строк дії вашого кешованого пароля за�
 #: sss_client/pam_sss.c:454
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "Строк дії вашого пароля вичерпано. Залишилося %d резервних входи."
 
 #: sss_client/pam_sss.c:500
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr ", строк дії вашого кешованого пароля завершиться: "
+msgstr "Строк дії вашого пароля завершиться за %d %s."
 
 #: sss_client/pam_sss.c:549
 msgid "Offline authentication, authentication is denied until: "
@@ -548,7 +546,7 @@ msgstr "Вказати альтернативний основний катал�
 
 #: tools/sss_useradd.c:102 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "Ім’я користувача SELinux для входу до системи"
 
 #: tools/sss_useradd.c:116 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:631 tools/sss_userdel.c:159
@@ -607,7 +605,7 @@ msgstr ""
 
 #: tools/sss_useradd.c:257 tools/sss_usermod.c:240
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Не вдалося встановити контекст входу SELinux\n"
 
 #: tools/sss_useradd.c:273
 msgid "Cannot get info about the user\n"
@@ -810,7 +808,7 @@ msgstr "Примусово вилучити файли, які не належа
 
 #: tools/sss_userdel.c:150
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Припинити роботу процесів користувача перед вилученням його запису"
 
 #: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
@@ -824,25 +822,28 @@ msgstr ""
 
 #: tools/sss_userdel.c:280
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Не вдалося відновити початковий контекст входу SELinux\n"
 
 #: tools/sss_userdel.c:292
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
+"ПОПЕРЕДЖЕННЯ: користувач (uid %lu) все ще працював у системі на час "
+"вилучення його запису.\n"
 
 #: tools/sss_userdel.c:297
 msgid "Cannot determine if the user was logged in on this platform"
 msgstr ""
+"Не вдалося визначити, чи увійшов користувач до системи на цій платформі"
 
 #: tools/sss_userdel.c:302
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Помилка під час перевірки входу користувача до системи\n"
 
 #: tools/sss_userdel.c:309
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr ""
+msgstr "Помилка команди, яку слід було виконати після вилучення запису: %s\n"
 
 #: tools/sss_userdel.c:321
 msgid "Not removing home dir - not owned by user\n"
