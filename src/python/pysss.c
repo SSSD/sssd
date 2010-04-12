@@ -385,27 +385,10 @@ static PyObject *py_sss_userdel(PySssLocalObject *self,
         }
     }
 
-    /* Delete the user within a transaction */
-    start_transaction(tctx);
-    if (tctx->error != EOK) {
-        PyErr_SetSssError(tctx->error);
-        goto fail;
-    }
-
-    ret = userdel(tctx, self->ev,
-                  self->sysdb, tctx->handle, tctx->octx);
+    /* Delete the user */
+    ret = userdel(tctx, self->sysdb, tctx->octx);
     if (ret != EOK) {
-        tctx->error = ret;
-
-        /* cancel transaction */
-        talloc_zfree(tctx->handle);
-        PyErr_SetSssError(tctx->error);
-        goto fail;
-    }
-
-    end_transaction(tctx);
-    if (tctx->error) {
-        PyErr_SetSssError(tctx->error);
+        PyErr_SetSssError(ret);
         goto fail;
     }
 
@@ -653,28 +636,10 @@ static PyObject *py_sss_groupdel(PySssLocalObject *self,
 
     tctx->octx->name = groupname;
 
-    /* Remove the group within a transaction */
-    start_transaction(tctx);
-    if (tctx->error != EOK) {
-        PyErr_SetSssError(tctx->error);
-        goto fail;
-    }
-
-    /* groupdel */
-    ret = groupdel(tctx, self->ev,
-                   self->sysdb, tctx->handle, tctx->octx);
+    /* Remove the group */
+    ret = groupdel(tctx, self->sysdb, tctx->octx);
     if (ret != EOK) {
-        tctx->error = ret;
-
-        /* cancel transaction */
-        talloc_zfree(tctx->handle);
-        PyErr_SetSssError(tctx->error);
-        goto fail;
-    }
-
-    end_transaction(tctx);
-    if (tctx->error) {
-        PyErr_SetSssError(tctx->error);
+        PyErr_SetSssError(ret);
         goto fail;
     }
 

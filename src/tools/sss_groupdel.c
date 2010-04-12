@@ -110,24 +110,9 @@ int main(int argc, const char **argv)
         goto fini;
     }
 
-    start_transaction(tctx);
-    if (tctx->error != EOK) {
-        goto done;
-    }
-
     /* groupdel */
-    ret = groupdel(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
-    if (ret != EOK) {
-        tctx->error = ret;
+    ret = groupdel(tctx, tctx->sysdb, tctx->octx);
 
-        /* cancel transaction */
-        talloc_zfree(tctx->handle);
-        goto done;
-    }
-
-    end_transaction(tctx);
-
-    ret = tctx->error;
 done:
     if (ret) {
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));

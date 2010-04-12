@@ -78,9 +78,7 @@ int useradd(TALLOC_CTX *mem_ctx,
             struct sysdb_handle *handle,
             struct ops_ctx *data);
 int userdel(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data);
 int usermod(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,
@@ -94,9 +92,7 @@ int groupadd(TALLOC_CTX *mem_ctx,
             struct sysdb_handle *handle,
             struct ops_ctx *data);
 int groupdel(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data);
 int groupmod(TALLOC_CTX *mem_ctx,
             struct tevent_context *ev,

@@ -397,80 +397,6 @@ static int user_add_recv(struct tevent_req *req)
 }
 
 /*
- * Remove a user
- */
-struct user_del_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-
-    struct ops_ctx *data;
-};
-
-static void user_del_done(struct tevent_req *subreq);
-
-static struct tevent_req *user_del_send(TALLOC_CTX *mem_ctx,
-                                        struct tevent_context *ev,
-                                        struct sysdb_ctx *sysdb,
-                                        struct sysdb_handle *handle,
-                                        struct ops_ctx *data)
-{
-    struct user_del_state *state = NULL;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct ldb_dn *user_dn;
-
-    req = tevent_req_create(mem_ctx, &state, struct user_del_state);
-    if (req == NULL) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-
-    user_dn = sysdb_user_dn(state->sysdb, state,
-                            state->data->domain->name, state->data->name);
-    if (!user_dn) {
-        DEBUG(1, ("Could not construct a user DN\n"));
-        return NULL;
-    }
-
-    subreq = sysdb_delete_entry_send(state,
-                                     state->ev, state->handle,
-                                     user_dn, false);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, user_del_done, req);
-    return req;
-}
-
-static void user_del_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    return tevent_req_done(req);
-}
-
-static int user_del_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
-}
-
-/*
  * Modify a user
  */
 struct user_mod_state {
@@ -822,81 +748,6 @@ static void group_add_done(struct tevent_req *subreq)
 }
 
 static int group_add_recv(struct tevent_req *req)
-{
-    return sync_ops_recv(req);
-}
-
-/*
- * Delete a group
- */
-struct group_del_state {
-    struct tevent_context *ev;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
-    struct sysdb_attrs *attrs;
-
-    struct ops_ctx *data;
-};
-
-static void group_del_done(struct tevent_req *subreq);
-
-static struct tevent_req *group_del_send(TALLOC_CTX *mem_ctx,
-                                         struct tevent_context *ev,
-                                         struct sysdb_ctx *sysdb,
-                                         struct sysdb_handle *handle,
-                                         struct ops_ctx *data)
-{
-    struct group_del_state *state = NULL;
-    struct tevent_req *req;
-    struct tevent_req *subreq;
-    struct ldb_dn *group_dn;
-
-    req = tevent_req_create(mem_ctx, &state, struct group_del_state);
-    if (req == NULL) {
-        talloc_zfree(req);
-        return NULL;
-    }
-    state->ev = ev;
-    state->sysdb = sysdb;
-    state->handle = handle;
-    state->data = data;
-
-    group_dn = sysdb_group_dn(state->sysdb, state,
-                              state->data->domain->name, state->data->name);
-    if (group_dn == NULL) {
-        DEBUG(1, ("Could not construct a group DN\n"));
-        return NULL;
-    }
-
-    subreq = sysdb_delete_entry_send(state,
-                                     state->ev, state->handle,
-                                     group_dn, false);
-    if (!subreq) {
-        talloc_zfree(req);
-        return NULL;
-    }
-
-    tevent_req_set_callback(subreq, group_del_done, req);
-    return req;
-}
-
-static void group_del_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    return tevent_req_done(req);
-}
-
-static int group_del_recv(struct tevent_req *req)
 {
     return sync_ops_recv(req);
 }
@@ -1327,52 +1178,29 @@ static void useradd_done(struct tevent_req *req)
 /*
  * Public interface for deleting users
  */
-static void userdel_done(struct tevent_req *req);
-
 int userdel(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data)
 {
+    struct ldb_dn *user_dn;
     int ret;
-    struct tevent_req *req;
-    struct sync_op_res *res = NULL;
 
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
+    user_dn = sysdb_user_dn(sysdb, mem_ctx,
+                            data->domain->name, data->name);
+    if (!user_dn) {
+        DEBUG(1, ("Could not construct a user DN\n"));
         return ENOMEM;
     }
 
-    req = user_del_send(res, ev, sysdb, handle, data);
-    if (!req) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req, userdel_done, res);
-
-    SYNC_LOOP(res, ret);
-
-    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
-
-    talloc_free(res);
-    return ret;
-}
-
-static void userdel_done(struct tevent_req *req)
-{
-    int ret;
-    struct sync_op_res *res = tevent_req_callback_data(req,
-                                                       struct sync_op_res);
-
-    ret = user_del_recv(req);
-    talloc_free(req);
+    ret = sysdb_delete_entry(sysdb, user_dn, false);
     if (ret) {
         DEBUG(2, ("Removing user failed: %s (%d)\n", strerror(ret), ret));
     }
 
-    res->done = true;
-    res->error = ret;
+    flush_nscd_cache(mem_ctx, NSCD_DB_PASSWD);
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+
+    return ret;
 }
 
 /*
@@ -1479,51 +1307,28 @@ static void groupadd_done(struct tevent_req *req)
 /*
  * Public interface for deleting groups
  */
-static void groupdel_done(struct tevent_req *req);
-
 int groupdel(TALLOC_CTX *mem_ctx,
-            struct tevent_context *ev,
             struct sysdb_ctx *sysdb,
-            struct sysdb_handle *handle,
             struct ops_ctx *data)
 {
+    struct ldb_dn *group_dn;
     int ret;
-    struct tevent_req *req;
-    struct sync_op_res *res = NULL;
 
-    res = talloc_zero(mem_ctx, struct sync_op_res);
-    if (!res) {
+    group_dn = sysdb_group_dn(sysdb, mem_ctx,
+                              data->domain->name, data->name);
+    if (group_dn == NULL) {
+        DEBUG(1, ("Could not construct a group DN\n"));
         return ENOMEM;
     }
 
-    req = group_del_send(res, ev, sysdb, handle, data);
-    if (!req) {
-        return ENOMEM;
-    }
-    tevent_req_set_callback(req, groupdel_done, res);
-
-    SYNC_LOOP(res, ret);
-
-    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
-
-    talloc_free(res);
-    return ret;
-}
-
-static void groupdel_done(struct tevent_req *req)
-{
-    int ret;
-    struct sync_op_res *res = tevent_req_callback_data(req,
-                                                       struct sync_op_res);
-
-    ret = group_del_recv(req);
-    talloc_free(req);
+    ret = sysdb_delete_entry(sysdb, group_dn, false);
     if (ret) {
         DEBUG(2, ("Removing group failed: %s (%d)\n", strerror(ret), ret));
     }
 
-    res->done = true;
-    res->error = ret;
+    flush_nscd_cache(mem_ctx, NSCD_DB_GROUP);
+
+    return ret;
 }
 
 /*

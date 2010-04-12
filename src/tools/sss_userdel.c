@@ -267,12 +267,8 @@ int main(int argc, const char **argv)
     }
 
     /* userdel */
-    ret = userdel(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
+    ret = userdel(tctx, tctx->sysdb, tctx->octx);
     if (ret != EOK) {
-        tctx->error = ret;
-
-        /* cancel transaction */
-        talloc_zfree(tctx->handle);
         goto done;
     }
 
@@ -331,7 +327,6 @@ int main(int argc, const char **argv)
         }
     }
 
-    ret = tctx->error;
 done:
     if (ret) {
         DEBUG(1, ("sysdb operation failed (%d)[%s]\n", ret, strerror(ret)));

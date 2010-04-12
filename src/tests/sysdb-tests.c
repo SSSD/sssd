@@ -306,13 +306,10 @@ static void test_store_user_done(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_remove_user_done(struct tevent_req *subreq);
-
 static void test_remove_user(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
     struct ldb_dn *user_dn;
-    struct tevent_req *subreq;
     int ret;
 
     ret = sysdb_transaction_recv(req, data, &data->handle);
@@ -323,21 +320,7 @@ static void test_remove_user(struct tevent_req *req)
     user_dn = sysdb_user_dn(data->ctx->sysdb, data, "LOCAL", data->username);
     if (!user_dn) return test_return(data, ENOMEM);
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, user_dn, true);
-    if (!subreq) return test_return(data, ENOMEM);
-
-    tevent_req_set_callback(subreq, test_remove_user_done, data);
-}
-
-static void test_remove_user_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-
+    ret = sysdb_delete_entry(data->ctx->sysdb, user_dn, true);
     return test_return(data, ret);
 }
 
@@ -511,12 +494,9 @@ static void test_store_group_done(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
-static void test_remove_group_done(struct tevent_req *subreq);
-
 static void test_remove_group(struct tevent_req *req)
 {
     struct test_data *data = tevent_req_callback_data(req, struct test_data);
-    struct tevent_req *subreq;
     struct ldb_dn *group_dn;
     int ret;
 
@@ -528,21 +508,7 @@ static void test_remove_group(struct tevent_req *req)
     group_dn = sysdb_group_dn(data->ctx->sysdb, data, "LOCAL", data->groupname);
     if (!group_dn) return test_return(data, ENOMEM);
 
-    subreq = sysdb_delete_entry_send(data, data->ev, data->handle, group_dn, true);
-    if (!subreq) return test_return(data, ENOMEM);
-
-    tevent_req_set_callback(subreq, test_remove_group_done, data);
-}
-
-static void test_remove_group_done(struct tevent_req *subreq)
-{
-    struct test_data *data = tevent_req_callback_data(subreq,
-                                                      struct test_data);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
-
+    ret = sysdb_delete_entry(data->ctx->sysdb, group_dn, true);
     return test_return(data, ret);
 }
 

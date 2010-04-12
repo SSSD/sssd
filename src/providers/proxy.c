@@ -345,7 +345,6 @@ static int proxy_default_recv(struct tevent_req *req)
 /* =Getpwnam-wrapper======================================================*/
 
 static void get_pw_name_process(struct tevent_req *subreq);
-static void get_pw_name_remove_done(struct tevent_req *subreq);
 static void get_pw_name_add_done(struct tevent_req *subreq);
 
 static struct tevent_req *get_pw_name_send(TALLOC_CTX *mem_ctx,
@@ -467,10 +466,7 @@ static void get_pw_name_process(struct tevent_req *subreq)
         return;
 
     default:
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-                  state->name, status));
-        tevent_req_error(req, EIO);
-        return;
+        break;
     }
 
     if (delete_user) {
@@ -486,13 +482,24 @@ static void get_pw_name_process(struct tevent_req *subreq)
             return;
         }
 
-        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn, true);
+        ret = sysdb_delete_entry(state->sysdb, dn, true);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
         }
-        tevent_req_set_callback(subreq, get_pw_name_remove_done, req);
+        tevent_req_set_callback(subreq, proxy_default_done, req);
+        return;
     }
+
+    DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
+              state->name, status));
+    tevent_req_error(req, EIO);
 }
 
 static void get_pw_name_add_done(struct tevent_req *subreq)
@@ -504,29 +511,6 @@ static void get_pw_name_add_done(struct tevent_req *subreq)
     int ret;
 
     ret = sysdb_store_user_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-}
-
-static void get_pw_name_remove_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -926,7 +910,6 @@ fail:
     } while(0)
 
 static void get_gr_name_process(struct tevent_req *subreq);
-static void get_gr_name_remove_done(struct tevent_req *subreq);
 static void get_gr_name_add_done(struct tevent_req *subreq);
 
 static struct tevent_req *get_gr_name_send(TALLOC_CTX *mem_ctx,
@@ -1083,10 +1066,7 @@ again:
         return;
 
     default:
-        DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
-                  state->name, status));
-        tevent_req_error(req, EIO);
-        return;
+        break;
     }
 
     if (delete_group) {
@@ -1102,13 +1082,24 @@ again:
             return;
         }
 
-        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn, true);
+        ret = sysdb_delete_entry(state->sysdb, dn, true);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
         }
-        tevent_req_set_callback(subreq, get_gr_name_remove_done, req);
+        tevent_req_set_callback(subreq, proxy_default_done, req);
+        return;
     }
+
+    DEBUG(2, ("proxy -> getgrnam_r failed for '%s' <%d>\n",
+              state->name, status));
+    tevent_req_error(req, EIO);
 }
 
 static void get_gr_name_add_done(struct tevent_req *subreq)
@@ -1120,29 +1111,6 @@ static void get_gr_name_add_done(struct tevent_req *subreq)
     int ret;
 
     ret = sysdb_store_group_recv(subreq);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, proxy_default_done, req);
-}
-
-static void get_gr_name_remove_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct proxy_state *state = tevent_req_data(req,
-                                                struct proxy_state);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -1707,10 +1675,7 @@ static void get_initgr_process(struct tevent_req *subreq)
         return;
 
     default:
-        DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
-                  state->name, status));
-        tevent_req_error(req, EIO);
-        return;
+        break;
     }
 
     if (delete_user) {
@@ -1723,13 +1688,24 @@ static void get_initgr_process(struct tevent_req *subreq)
             return;
         }
 
-        subreq = sysdb_delete_entry_send(state, state->ev, state->handle, dn, true);
+        ret = sysdb_delete_entry(state->sysdb, dn, true);
+        if (ret) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
         }
-        tevent_req_set_callback(subreq, get_pw_name_remove_done, req);
+        tevent_req_set_callback(subreq, proxy_default_done, req);
+        return;
     }
+
+    DEBUG(2, ("proxy -> getpwnam_r failed for '%s' <%d>\n",
+              state->name, status));
+    tevent_req_error(req, EIO);
 }
 
 static void get_initgr_groups_process(struct tevent_req *subreq)

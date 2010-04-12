@@ -331,12 +331,9 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
  * See sysdb_transaction_send()/_recv() */
 
 /* Delete Entry */
-struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
-                                           struct tevent_context *ev,
-                                           struct sysdb_handle *handle,
-                                           struct ldb_dn *dn,
-                                           bool ignore_not_found);
-int sysdb_delete_entry_recv(struct tevent_req *req);
+int sysdb_delete_entry(struct sysdb_ctx *ctx,
+                       struct ldb_dn *dn,
+                       bool ignore_not_found);
 
 
 struct tevent_req *sysdb_delete_recursive_send(TALLOC_CTX *mem_ctx,

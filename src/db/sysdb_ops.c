@@ -251,6 +251,29 @@ static int sysdb_op_default_recv(struct tevent_req *req)
 
 /* =Remove-Entry-From-Sysdb=============================================== */
 
+int sysdb_delete_entry(struct sysdb_ctx *ctx,
+                       struct ldb_dn *dn,
+                       bool ignore_not_found)
+{
+    int ret;
+
+    ret = ldb_delete(ctx->ldb, dn);
+    switch (ret) {
+    case LDB_SUCCESS:
+        return EOK;
+    case LDB_ERR_NO_SUCH_OBJECT:
+        if (ignore_not_found) {
+            return EOK;
+        }
+        /* fall through */
+    default:
+        DEBUG(1, ("LDB Error: %s(%d)\nError Message: [%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(ctx->ldb)));
+        return sysdb_error_to_errno(ret);
+    }
+}
+
+static
 struct tevent_req *sysdb_delete_entry_send(TALLOC_CTX *mem_ctx,
                                            struct tevent_context *ev,
                                            struct sysdb_handle *handle,
@@ -294,11 +317,11 @@ fail:
     return req;
 }
 
+static
 int sysdb_delete_entry_recv(struct tevent_req *req)
 {
     return sysdb_op_default_recv(req);
 }
-
 
 /* =Remove-Subentries-From-Sysdb=============================================== */
 
@@ -4218,7 +4241,6 @@ struct sysdb_delete_user_state {
 };
 
 void sysdb_delete_user_check_handle(struct tevent_req *subreq);
-static void sysdb_delete_user_found(struct tevent_req *subreq);
 static void sysdb_delete_user_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_delete_user_send(TALLOC_CTX *mem_ctx,
@@ -4282,10 +4304,10 @@ void sysdb_delete_user_check_handle(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sysdb_delete_user_found, req);
+    tevent_req_set_callback(subreq, sysdb_delete_user_done, req);
 }
 
-static void sysdb_delete_user_found(struct tevent_req *subreq)
+static void sysdb_delete_user_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
@@ -4320,24 +4342,7 @@ static void sysdb_delete_user_found(struct tevent_req *subreq)
         }
     }
 
-    subreq = sysdb_delete_entry_send(state, state->ev,
-                                     state->handle, msg->dn, false);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_user_done, req);
-}
-
-static void sysdb_delete_user_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_delete_entry(state->handle->ctx, msg->dn, false);
     if (ret) {
         tevent_req_error(req, ret);
         return;
@@ -4502,8 +4507,6 @@ struct sysdb_delete_group_state {
 };
 
 void sysdb_delete_group_check_handle(struct tevent_req *subreq);
-static void sysdb_delete_group_found(struct tevent_req *subreq);
-static void sysdb_delete_group_done(struct tevent_req *subreq);
 
 struct tevent_req *sysdb_delete_group_send(TALLOC_CTX *mem_ctx,
                                           struct tevent_context *ev,
@@ -4566,10 +4569,10 @@ void sysdb_delete_group_check_handle(struct tevent_req *subreq)
         tevent_req_error(req, ENOMEM);
         return;
     }
-    tevent_req_set_callback(subreq, sysdb_delete_group_found, req);
+    tevent_req_set_callback(subreq, sysdb_delete_group_done, req);
 }
 
-static void sysdb_delete_group_found(struct tevent_req *subreq)
+static void sysdb_delete_group_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                   struct tevent_req);
@@ -4604,24 +4607,7 @@ static void sysdb_delete_group_found(struct tevent_req *subreq)
         }
     }
 
-    subreq = sysdb_delete_entry_send(state, state->ev,
-                                     state->handle, msg->dn, false);
-    if (!subreq) {
-        DEBUG(6, ("Error: Out of memory\n"));
-        tevent_req_error(req, ENOMEM);
-        return;
-    }
-    tevent_req_set_callback(subreq, sysdb_delete_group_done, req);
-}
-
-static void sysdb_delete_group_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                  struct tevent_req);
-    int ret;
-
-    ret = sysdb_delete_entry_recv(subreq);
-    talloc_zfree(subreq);
+    ret = sysdb_delete_entry(state->handle->ctx, msg->dn, false);
     if (ret) {
         tevent_req_error(req, ret);
         return;
