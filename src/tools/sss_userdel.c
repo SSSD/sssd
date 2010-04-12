@@ -78,20 +78,9 @@ static int kick_user(struct tools_ctx *tctx)
 
     tctx->octx->lock = 1;
 
-    start_transaction(tctx);
-    if (tctx->error != EOK) {
-        return tctx->error;
-    }
-
-    ret = usermod(tctx, tctx->ev, tctx->sysdb, tctx->handle, tctx->octx);
+    ret = usermod(tctx, tctx->sysdb, tctx->octx);
     if (ret != EOK) {
-        talloc_zfree(tctx->handle);
         return ret;
-    }
-
-    end_transaction(tctx);
-    if (tctx->error != EOK) {
-        return tctx->error;
     }
 
     errno = 0;
@@ -254,15 +243,8 @@ int main(int argc, const char **argv)
         if (ret != EOK) {
             tctx->error = ret;
 
-            /* cancel transaction */
-            talloc_zfree(tctx->handle);
             goto done;
         }
-    }
-
-    start_transaction(tctx);
-    if (tctx->error != EOK) {
-        goto done;
     }
 
     /* userdel */
@@ -270,8 +252,6 @@ int main(int argc, const char **argv)
     if (ret != EOK) {
         goto done;
     }
-
-    end_transaction(tctx);
 
     /* Set SELinux login context - must be done after transaction is done
      * b/c libselinux calls getpwnam */
