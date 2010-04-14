@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #define TRACE_HOME
 #include "trace.h"
 #include "ini_config.h"
@@ -1091,6 +1092,8 @@ int startup_test(void)
 
     COLOUT(printf("STARTUP TEST\n"));
 
+    /* Set file permissions to 0664 */
+    chmod("./ini.conf", 0664);
 
     flags = INI_META_SEC_ACCESS_FLAG |
             INI_META_SEC_ERROR_FLAG;
@@ -1140,7 +1143,7 @@ int startup_test(void)
                                                         */
                                 0, /* <- will be real uid in real case */
                                 0, /* <- will be real gid in real case */
-                                0440, /* Checkling for r--r----- */
+                                0440, /* Checking for r--r----- */
                                 0);
     /* This check is expected to fail since
      * the actual permissions on the test file are: rw-rw-r--
