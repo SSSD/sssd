@@ -100,8 +100,6 @@ time properties
 %setup -q
 
 %build
-NSS_LIBS=-lnss3 \
-KRB5_LIBS=-lkrb5 \
 %configure \
     --without-tests \
     --with-db-path=%{dbpath} \

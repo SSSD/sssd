@@ -197,8 +197,6 @@ A dynamically-growing, reference-counted array
 %setup -q
 
 %build
-NSS_LIBS=-lnss3 \
-KRB5_LIBS=-lkrb5 \
 %configure \
     --with-db-path=%{dbpath} \
     --with-pipe-path=%{pipepath} \
