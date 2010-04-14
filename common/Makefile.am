@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = trace collection ini dhash path_utils refarray
-DOCDIRS = collection ini path_utils refarray
+SUBDIRS = trace dhash path_utils refarray collection ini
+DOCDIRS = path_utils refarray collection ini
 
 dist_noinst_DATA = \
     m4

@@ -24,7 +24,7 @@ AS_IF([test ["$trace_level" -gt "0"] -a ["$trace_level" -lt "8"] ],[AC_SUBST([TR
 AC_CONFIG_FILES([Makefile
 		trace/Makefile])
 
-AC_CONFIG_SUBDIRS([collection dhash ini path_utils refarray])
+AC_CONFIG_SUBDIRS([dhash path_utils refarray collection ini])
 
 AC_DEFUN([WITH_SINGLELIB],
   [ AC_ARG_WITH([singlelib],

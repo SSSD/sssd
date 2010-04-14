@@ -13,7 +13,7 @@ if HAVE_GCC
         -Wcast-align -Wwrite-strings
 endif
 
-AM_CPPFLAGS = -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection $(TRACE_LEVEL)
+AM_CPPFLAGS = -I$(topdir) -I$(topdir)/trace -I$(topdir)/collection -I$(topdir)/path_utils $(TRACE_LEVEL)
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -39,6 +39,7 @@ libini_config_la_SOURCES = \
 
 libini_config_la_LIBADD = \
     -L$(topbuilddir)/collection \
+    -L$(topbuilddir)/path_utils \
     -lcollection \
     -lpath_utils
 libini_config_la_LDFLAGS = \
@@ -47,7 +48,7 @@ libini_config_la_LDFLAGS = \
 # Build unit test
 check_PROGRAMS = ini_config_ut
 ini_config_ut_SOURCES = ini_config_ut.c
-ini_config_ut_LDADD = libini_config.la -lcollection -lpath_utils
+ini_config_ut_LDADD = libini_config.la -L$(topbuilddir)/collection -lcollection
 
 if HAVE_DOXYGEN
 docs:
