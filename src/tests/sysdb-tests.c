@@ -180,14 +180,6 @@ struct test_data {
     struct ldb_message **msgs;
 };
 
-static int test_loop(struct test_data *data)
-{
-    while (!data->finished)
-        tevent_loop_once(data->ctx->ev);
-
-    return data->error;
-}
-
 static int test_add_user(struct test_data *data)
 {
     char *homedir;
