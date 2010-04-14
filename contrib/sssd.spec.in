@@ -16,7 +16,7 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 %define dhash_version 0.4.0
 %define path_utils_version 0.2.0
 %define collection_version 0.4.0
-%define ini_config_version 0.4.0
+%define ini_config_version 0.5.0
 %define refarray_version 0.1.0
 
 ### Patches ###
@@ -383,8 +383,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc common/ini/COPYING
 %doc common/ini/COPYING.LESSER
-%{_libdir}/libini_config.so.1
-%{_libdir}/libini_config.so.1.0.0
+%{_libdir}/libini_config.so.2
+%{_libdir}/libini_config.so.2.0.0
 
 %files -n libini_config-devel
 %defattr(-,root,root,-)
