@@ -97,12 +97,7 @@ static void sdap_handle_release(struct sdap_handle *sh)
     if (sh->connected) {
         struct sdap_op *op;
 
-#ifdef HAVE_LDAP_CONNCB
-        /* remove all related fd events from the event loop */
-        talloc_zfree(sh->conncb->lc_arg);
-#else
-        talloc_zfree(sh->fde);
-#endif
+        talloc_zfree(sh->sdap_fd_events);
 
         while (sh->ops) {
             op = sh->ops;
@@ -115,9 +110,6 @@ static void sdap_handle_release(struct sdap_handle *sh)
         if (sh->ldap) {
             ldap_unbind_ext(sh->ldap, NULL, NULL);
         }
-#ifdef HAVE_LDAP_CONNCB
-        talloc_zfree(sh->conncb);
-#endif
         sh->connected = false;
         sh->ldap = NULL;
         sh->ops = NULL;
@@ -132,9 +124,8 @@ static void sdap_process_next_reply(struct tevent_context *ev,
                                     struct tevent_timer *te,
                                     struct timeval tv, void *pvt);
 
-static void sdap_ldap_result(struct tevent_context *ev,
-                             struct tevent_fd *fde,
-                             uint16_t flags, void *pvt)
+void sdap_ldap_result(struct tevent_context *ev, struct tevent_fd *fde,
+                      uint16_t flags, void *pvt)
 {
     sdap_process_result(ev, pvt);
 }
@@ -335,118 +326,6 @@ static void sdap_process_next_reply(struct tevent_context *ev,
 
     op->callback(op, op->list, EOK, op->data);
 }
-
-#ifdef HAVE_LDAP_CONNCB
-int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
-                           struct sockaddr *addr, struct ldap_conncb *ctx)
-{
-    int ret;
-    ber_socket_t ber_fd;
-    struct fd_event_item *fd_event_item;
-    struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
-                                                   struct ldap_cb_data);
-
-    ret = ber_sockbuf_ctrl(sb, LBER_SB_OPT_GET_FD, &ber_fd);
-    if (ret == -1) {
-        DEBUG(1, ("ber_sockbuf_ctrl failed.\n"));
-        return EINVAL;
-    }
-    DEBUG(9, ("New LDAP connection to [%s] with fd [%d].\n",
-              ldap_url_desc2str(srv), ber_fd));
-
-    fd_event_item = talloc_zero(cb_data, struct fd_event_item);
-    if (fd_event_item == NULL) {
-        DEBUG(1, ("talloc failed.\n"));
-        return ENOMEM;
-    }
-
-    fd_event_item->fde = tevent_add_fd(cb_data->ev, fd_event_item, ber_fd,
-                                       TEVENT_FD_READ, sdap_ldap_result,
-                                       cb_data->sh);
-    if (fd_event_item->fde == NULL) {
-        DEBUG(1, ("tevent_add_fd failed.\n"));
-        talloc_free(fd_event_item);
-        return ENOMEM;
-    }
-    fd_event_item->fd = ber_fd;
-
-    DLIST_ADD(cb_data->fd_list, fd_event_item);
-
-    return LDAP_SUCCESS;
-}
-
-void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
-                                    struct ldap_conncb *ctx)
-{
-    int ret;
-    ber_socket_t ber_fd;
-    struct fd_event_item *fd_event_item;
-    struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
-                                                   struct ldap_cb_data);
-
-    if (sb == NULL || cb_data == NULL) {
-        return;
-    }
-
-    ret = ber_sockbuf_ctrl(sb, LBER_SB_OPT_GET_FD, &ber_fd);
-    if (ret == -1) {
-        DEBUG(1, ("ber_sockbuf_ctrl failed.\n"));
-        return;
-    }
-    DEBUG(9, ("Closing LDAP connection with fd [%d].\n", ber_fd));
-
-    DLIST_FOR_EACH(fd_event_item, cb_data->fd_list) {
-        if (fd_event_item->fd == ber_fd) {
-            break;
-        }
-    }
-    if (fd_event_item == NULL) {
-        DEBUG(1, ("No event for fd [%d] found.\n", ber_fd));
-        return;
-    }
-
-    DLIST_REMOVE(cb_data->fd_list, fd_event_item);
-    talloc_zfree(fd_event_item);
-
-    return;
-}
-
-#else
-
-static int get_fd_from_ldap(LDAP *ldap, int *fd)
-{
-    int ret;
-
-    ret = ldap_get_option(ldap, LDAP_OPT_DESC, fd);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("Failed to get fd from ldap!!\n"));
-        *fd = -1;
-        return EIO;
-    }
-
-    return EOK;
-}
-
-int sdap_install_ldap_callbacks(struct sdap_handle *sh,
-                                struct tevent_context *ev)
-{
-    int fd;
-    int ret;
-
-    ret = get_fd_from_ldap(sh->ldap, &fd);
-    if (ret) return ret;
-
-    sh->fde = tevent_add_fd(ev, sh, fd, TEVENT_FD_READ, sdap_ldap_result, sh);
-    if (!sh->fde) return ENOMEM;
-
-    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], fde[%p], ldap[%p]\n",
-              sh, (int)sh->connected, sh->ops, sh->fde, sh->ldap));
-
-    return EOK;
-}
-
-#endif
-
 
 /* ==LDAP-Operations-Helpers============================================== */
 

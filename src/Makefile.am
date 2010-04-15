@@ -722,6 +722,7 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/sdap_async_accounts.c \
     providers/ldap/sdap_async_connection.c \
     providers/ldap/sdap_child_helpers.c \
+    providers/ldap/sdap_fd_events.c \
     providers/ldap/sdap.c \
     util/user_info_msg.c \
     util/sss_ldap.c \
@@ -793,6 +794,7 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/sdap_async_accounts.c \
     providers/ldap/sdap_async_connection.c \
     providers/ldap/sdap_child_helpers.c \
+    providers/ldap/sdap_fd_events.c \
     providers/ldap/sdap.c \
     util/user_info_msg.c \
     util/sss_ldap.c \
