@@ -1073,3 +1073,247 @@ ares_gettxt_wakeup(struct tevent_req *subreq)
 }
 
 #endif
+
+static struct ares_srv_reply *split_reply_list(struct ares_srv_reply *list)
+{
+    struct ares_srv_reply *single_step, *double_step, *prev;
+
+    if (!list) {
+        return NULL;
+    }
+
+    prev        = list;
+    single_step = list->next;
+    double_step = single_step->next;
+
+    while (double_step && double_step->next) {
+        prev = single_step;
+        single_step = single_step->next;
+        double_step = double_step->next->next;
+    }
+
+    prev->next = NULL;
+    return single_step;
+}
+
+static struct ares_srv_reply *merge_reply_list(struct ares_srv_reply *left,
+                                               struct ares_srv_reply *right)
+{
+    struct ares_srv_reply *l, *r;
+    struct ares_srv_reply *res, *res_start;
+
+    if (!left)
+        return right;
+    if (!right)
+        return left;
+
+    if (left->priority < right->priority) {
+        res_start = left;
+        l = left->next;
+        r = right;
+    } else {
+        res_start = right;
+        l = left;
+        r = right->next;
+    }
+
+    res = res_start;
+
+    while(l && r) {
+        if (l->priority < r->priority) {
+            res->next = l;
+            res = l;
+            l = l->next;
+        } else {
+            res->next = r;
+            res = r;
+            r = r->next;
+        }
+    }
+
+    res->next = l ? l : r;
+
+    return res_start;
+}
+
+/**
+ * sort linked list of struct ares_srv_reply by priority using merge sort.
+ *
+ * Merge sort is ideal for sorting linked lists as there is no problem
+ * with absence of random access into the list. The complexity is O(n log n)
+ *
+ * For reference, see Robert Sedgewick's "Algorithms in C", Addison-Wesley,
+ * ISBN 0-201-51425
+ */
+static struct ares_srv_reply *reply_priority_sort(struct ares_srv_reply *list)
+{
+    struct ares_srv_reply *half;
+
+    if (!list || !list->next)
+        return list;
+
+    half = split_reply_list(list);
+    list = merge_reply_list(reply_priority_sort(list),
+                            reply_priority_sort(half));
+
+    return list;
+}
+
+static int reply_weight_rearrange(TALLOC_CTX *mem_ctx,
+                                  int len,
+                                  struct ares_srv_reply **start,
+                                  struct ares_srv_reply **end)
+{
+    int i;
+    int total, selected;
+    int *totals;
+    struct ares_srv_reply *r, *prev, *tmp;
+    struct ares_srv_reply *new_start = NULL;
+    struct ares_srv_reply *new_end = NULL;
+
+    if (len <= 1) {
+        return EOK;
+    }
+
+    totals = talloc_array(mem_ctx, int, len);
+    if (!totals) {
+        return ENOMEM;
+    }
+
+    srand(time(NULL) * getpid());
+
+    /* promote all servers with weight==0 to the top */
+    r = *(start);
+    prev = NULL;
+    while (r != NULL) {
+        if (r->weight == 0) {
+            /* remove from the old list */
+            if (prev) {
+                prev->next = r->next;
+            } else {
+                *start = r->next;
+            }
+
+            /* add to the head of the new list */
+            tmp = r;
+            r = r->next;
+
+            tmp->next = *start;
+            *start = tmp;
+        } else {
+            prev = r;
+            r = r->next;
+        }
+    }
+    *end = prev ? prev : *start;
+
+    while (*start != NULL) {
+        /* Commpute the sum of the weights of those RRs, and with each RR
+         * associate the running sum in the selected order.
+         */
+        total = 0;
+        memset(totals, -1, sizeof(int) * len);
+        for (i = 0, r = *start; r != NULL; r=r->next, ++i) {
+            totals[i] = r->weight + total;
+            total = totals[i];
+        }
+
+        /* choose a  uniform random number between 0 and the sum computed
+         * (inclusive), and select the RR whose running sum value is the
+         * first in the selected order which is greater than or equal to
+         * the random number selected.
+         */
+        selected = (int)((total + 1) * (rand()/(RAND_MAX + 1.0)));
+        for (i = 0, r = *start, prev = NULL; r != NULL; r=r->next, ++i) {
+            if (totals[i] >= selected)
+                break;
+
+            prev = r;
+        }
+
+        if (r == NULL || totals[i] == -1) {
+            DEBUG(1, ("Bug: did not select any server!\n"));
+            return EIO;
+        }
+
+        /* remove r from the old list */
+        if (prev) {
+            prev->next = r->next;
+        } else {
+            *start = r->next;
+        }
+
+        /* add r to the end of the new list */
+        if (!new_start) {
+            new_start = r;
+            new_end = r;
+        } else {
+            new_end->next = r;
+            new_end = r;
+        }
+    }
+    new_end->next = NULL;
+
+    /* return the rearranged list */
+    *start = new_start;
+    *end = new_end;
+    talloc_free(totals);
+    return EOK;
+}
+
+int
+resolv_sort_srv_reply(TALLOC_CTX *mem_ctx, struct ares_srv_reply **reply)
+{
+    int ret;
+    struct ares_srv_reply *pri_start, *pri_end, *next, *prev_end;
+    int len;
+
+    /* RFC 2782 says: If there is precisely one SRV RR, and its Target is "."
+     * (the root domain), abort.
+     */
+    if (*reply && !(*reply)->next && strcmp((*reply)->host, ".") == 0) {
+        DEBUG(1, ("DNS returned only the root domain, aborting\n"));
+        return EIO;
+    }
+
+    /* sort the list by priority */
+    *reply = reply_priority_sort(*reply);
+
+    pri_start = *reply;
+    prev_end  = NULL;
+
+    while (pri_start) {
+        pri_end = pri_start;
+
+        /* Find nodes with the same priority */
+        len = 1;
+        while (pri_end->next && pri_end->priority == pri_end->next->priority) {
+            pri_end = pri_end->next;
+            len++;
+        }
+
+        /* rearrange each priority level according to the weight field */
+        next = pri_end->next;
+        pri_end->next = NULL;
+        ret = reply_weight_rearrange(mem_ctx, len, &pri_start, &pri_end);
+        if (ret) {
+            DEBUG(1, ("Error rearranging priority level [%d]: %s\n",
+                      ret, strerror(ret)));
+            return ret;
+        }
+
+        /* Hook the level back into the list */
+        if (prev_end) {
+            prev_end->next = pri_start;
+        } else {
+            *reply = pri_start;
+        }
+        pri_end->next = next;
+
+        /* Move on to the next level */
+        prev_end  = pri_end;
+        pri_start = next;
+    }
+
+    return EOK;
+}

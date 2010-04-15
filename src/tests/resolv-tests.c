@@ -541,6 +541,93 @@ static void resolv_free_req(struct tevent_context *ev,
     talloc_free(req);
 }
 
+START_TEST(test_resolv_sort_srv_reply)
+{
+    int ret;
+    struct ares_srv_reply *replies = NULL;
+    struct ares_srv_reply *r, *prev = NULL;
+    struct resolv_test_ctx *test_ctx;
+    int num_replies = 3;
+    int i;
+
+    ret = setup_resolv_test(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up test");
+        return;
+    }
+
+    check_leaks_push(test_ctx);
+
+    /* prepare linked list with reversed values */
+    for (i = 0; i<num_replies; i++) {
+        r = talloc_zero(test_ctx, struct ares_srv_reply);
+        fail_if(r == NULL);
+        r->priority = num_replies-i;
+        r->weight   = i;
+
+        if (!replies) {
+            replies = r;
+            prev = r;
+        } else {
+            prev->next = r;
+            prev = prev->next;
+        }
+    }
+
+    /* do the sort */
+    ret = resolv_sort_srv_reply(test_ctx, &replies);
+    fail_if(ret != EOK);
+
+    /* check if the list is sorted */
+    prev = NULL;
+    for (i = 1, r = replies; r; r=r->next, i++) {
+        talloc_zfree(prev);
+        prev = r;
+        fail_unless(r->priority == i);
+    }
+    talloc_zfree(prev);
+
+    /* check if the list is complete */
+    fail_unless(i-1 == num_replies);
+
+    /* test if the weighting algorithm runs..not much do
+     * deterministically test here since it is based on
+     * random weight-selection */
+    replies = NULL;
+    for (i = 0; i<num_replies; i++) {
+        r = talloc_zero(test_ctx, struct ares_srv_reply);
+        fail_if(r == NULL);
+        r->priority = i % 2 + 1;
+        r->weight   = i;
+
+        if (!replies) {
+            replies = r;
+            prev = r;
+        } else {
+            prev->next = r;
+            prev = prev->next;
+        }
+    }
+
+    /* do the sort */
+    ret = resolv_sort_srv_reply(test_ctx, &replies);
+    fail_if(ret != EOK);
+
+    /* clean up */
+    prev = NULL;
+    for (i = 1, r = replies; r; r=r->next, i++) {
+        talloc_zfree(prev);
+        prev = r;
+    }
+    talloc_zfree(prev);
+
+
+    /* check for leaks */
+    check_leaks_pop(test_ctx);
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
 START_TEST(test_resolv_free_req)
 {
     int ret = EOK;
@@ -602,6 +689,7 @@ Suite *create_resolv_suite(void)
     /* Do some testing */
     tcase_add_test(tc_resolv, test_copy_hostent);
     tcase_add_test(tc_resolv, test_resolv_ip_addr);
+    tcase_add_test(tc_resolv, test_resolv_sort_srv_reply);
     if (use_net_test) {
         tcase_add_test(tc_resolv, test_resolv_internet);
         tcase_add_test(tc_resolv, test_resolv_negative);
