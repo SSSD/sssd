@@ -88,6 +88,10 @@ int resolv_getsrv_recv(TALLOC_CTX *mem_ctx,
                        int *timeouts,
                        struct ares_srv_reply **reply_list);
 
+/* This is an implementation of section "Usage rules" of RFC 2782 */
+int
+resolv_sort_srv_reply(TALLOC_CTX *mem_ctx, struct ares_srv_reply **reply);
+
 /** Get TXT record **/
 struct tevent_req *resolv_gettxt_send(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
