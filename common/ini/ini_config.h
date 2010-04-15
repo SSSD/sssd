@@ -23,6 +23,9 @@
 #ifndef INI_CONFIG_H
 #define INI_CONFIG_H
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
 #include "collection.h"

@@ -34,8 +34,17 @@ dist_include_HEADERS = \
 lib_LTLIBRARIES = libini_config.la
 libini_config_la_SOURCES = \
     ini_config.c \
+    ini_config.h \
+    ini_get_value.c \
+    ini_get_array.c \
+    ini_list.c \
+    ini_print.c \
+    ini_parse.c \
+    ini_parse.h \
     ini_metadata.c \
-    ini_metadata.h
+    ini_metadata.h \
+    ini_defines.h
+
 
 libini_config_la_LIBADD = \
     -L$(topbuilddir)/collection \
