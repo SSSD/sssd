@@ -127,37 +127,11 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-#ifdef HAVE_LDAP_CONNCB
-    struct ldap_cb_data *cb_data;
-
-    /* add connection callback */
-    state->sh->conncb = talloc_zero(state->sh, struct ldap_conncb);
-    if (state->sh->conncb == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
-        ret = ENOMEM;
+    ret = setup_ldap_connection_callbacks(state->sh, state->ev);
+    if (ret != EOK) {
+        DEBUG(1, ("setup_ldap_connection_callbacks failed.\n"));
         goto fail;
     }
-
-    cb_data = talloc_zero(state->sh->conncb, struct ldap_cb_data);
-    if (cb_data == NULL) {
-        DEBUG(1, ("talloc_zero failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    cb_data->sh = state->sh;
-    cb_data->ev = state->ev;
-
-    state->sh->conncb->lc_add = sdap_ldap_connect_callback_add;
-    state->sh->conncb->lc_del = sdap_ldap_connect_callback_del;
-    state->sh->conncb->lc_arg = cb_data;
-
-    lret = ldap_set_option(state->sh->ldap, LDAP_OPT_CONNECT_CB,
-                           state->sh->conncb);
-    if (lret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("Failed to set connection callback\n"));
-        goto fail;
-    }
-#endif
 
     /* if we do not use start_tls the connection is not really connected yet
      * just fake an async procedure and leave connection to the bind call */
@@ -174,11 +148,8 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->sh->connected = true;
-#ifndef HAVE_LDAP_CONNCB
-    ret = sdap_install_ldap_callbacks(state->sh, state->ev);
+    ret = sdap_set_connected(state->sh, state->ev);
     if (ret) goto fail;
-#endif
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
     ret = sdap_op_add(state, ev, state->sh, msgid,
@@ -350,11 +321,8 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     DEBUG(8, ("ldap simple bind sent, msgid = %d\n", msgid));
 
     if (!sh->connected) {
-        sh->connected = true;
-#ifndef HAVE_LDAP_CONNCB
-        ret = sdap_install_ldap_callbacks(sh, ev);
+        ret = sdap_set_connected(sh, ev);
         if (ret) goto fail;
-#endif
     }
 
     /* FIXME: get timeouts from configuration, for now 5 secs. */
@@ -544,11 +512,8 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     }
 
     if (!sh->connected) {
-        sh->connected = true;
-#ifndef HAVE_LDAP_CONNCB
-        ret = sdap_install_ldap_callbacks(sh, ev);
+        ret = sdap_set_connected(sh, ev);
         if (ret) goto fail;
-#endif
     }
 
     tevent_req_post(req, ev);
@@ -980,6 +945,7 @@ static void sdap_cli_rootdse_step(struct tevent_req *req)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
+    int ret;
 
     subreq = sdap_get_rootdse_send(state, state->ev, state->opts, state->sh);
     if (!subreq) {
@@ -992,15 +958,11 @@ static void sdap_cli_rootdse_step(struct tevent_req *req)
     /* this rootdse search is performed before we actually do a bind,
      * so we need to set up the callbacks or we will never get notified
      * of a reply */
-        state->sh->connected = true;
-#ifndef HAVE_LDAP_CONNCB
-        int ret;
 
-        ret = sdap_install_ldap_callbacks(state->sh, state->ev);
+        ret = sdap_set_connected(state->sh, state->ev);
         if (ret) {
             tevent_req_error(req, ret);
         }
-#endif
     }
 }
 
