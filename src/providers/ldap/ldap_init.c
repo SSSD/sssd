@@ -46,9 +46,9 @@ struct bet_ops sdap_chpass_ops = {
     .finalize = sdap_shutdown
 };
 
-int sssm_ldap_init(struct be_ctx *bectx,
-                   struct bet_ops **ops,
-                   void **pvt_data)
+int sssm_ldap_id_init(struct be_ctx *bectx,
+                      struct bet_ops **ops,
+                      void **pvt_data)
 {
     struct sdap_id_ctx *ctx;
     const char *urls;

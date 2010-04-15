@@ -2338,8 +2338,8 @@ static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
     return funcptr;
 }
 
-int sssm_proxy_init(struct be_ctx *bectx,
-                    struct bet_ops **ops, void **pvt_data)
+int sssm_proxy_id_init(struct be_ctx *bectx,
+                       struct bet_ops **ops, void **pvt_data)
 {
     struct proxy_ctx *ctx;
     char *libname;
