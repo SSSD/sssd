@@ -95,7 +95,7 @@ struct sbus_interface be_interface = {
 
 static struct bet_data bet_data[] = {
     {BET_NULL, NULL, NULL},
-    {BET_ID, CONFDB_DOMAIN_ID_PROVIDER, "sssm_%s_init"},
+    {BET_ID, CONFDB_DOMAIN_ID_PROVIDER, "sssm_%s_id_init"},
     {BET_AUTH, CONFDB_DOMAIN_AUTH_PROVIDER, "sssm_%s_auth_init"},
     {BET_ACCESS, CONFDB_DOMAIN_ACCESS_PROVIDER, "sssm_%s_access_init"},
     {BET_CHPASS, CONFDB_DOMAIN_CHPASS_PROVIDER, "sssm_%s_chpass_init"},

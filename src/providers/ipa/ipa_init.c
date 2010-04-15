@@ -92,9 +92,9 @@ int common_ipa_init(struct be_ctx *bectx)
     return EOK;
 }
 
-int sssm_ipa_init(struct be_ctx *bectx,
-                  struct bet_ops **ops,
-                  void **pvt_data)
+int sssm_ipa_id_init(struct be_ctx *bectx,
+                     struct bet_ops **ops,
+                     void **pvt_data)
 {
     struct sdap_id_ctx *ctx;
     int ret;
@@ -263,9 +263,9 @@ int sssm_ipa_access_init(struct be_ctx *bectx,
         return ENOMEM;
     }
 
-    ret = sssm_ipa_init(bectx, ops, (void **) &ipa_access_ctx->sdap_ctx);
+    ret = sssm_ipa_id_init(bectx, ops, (void **) &ipa_access_ctx->sdap_ctx);
     if (ret != EOK) {
-        DEBUG(1, ("sssm_ipa_init failed.\n"));
+        DEBUG(1, ("sssm_ipa_id_init failed.\n"));
         goto done;
     }
 
