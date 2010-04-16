@@ -118,7 +118,11 @@ errno_t set_debug_file_from_fd(const int fd);
 #define FLAGS_PID_FILE 0x0004
 
 #ifndef talloc_zfree
-#define talloc_zfree(ptr) do { talloc_free(ptr); ptr = NULL; } while(0)
+#define talloc_zfree(ptr) do { \
+        TALLOC_CTX *_tmp_ctx = ptr; \
+        ptr = NULL; \
+        talloc_free(_tmp_ctx); \
+    } while(0)
 #endif
 
 #ifndef discard_const_p
