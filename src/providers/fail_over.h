@@ -30,6 +30,9 @@
 
 #include "resolv/async_resolv.h"
 
+#define FO_PROTO_TCP "tcp"
+#define FO_PROTO_UDP "udp"
+
 /* Some forward declarations that don't have to do anything with fail over. */
 struct hostent;
 struct tevent_context;
@@ -60,10 +63,14 @@ struct fo_server;
  * duration in seconds of how long a server or port will be considered
  * non-working after being marked as such.
  *
+ * The 'srv_retry_timeout' member specifies how long a SRV lookup
+ * is considered valid until we ask the server again.
+ *
  * The family_order member specifies the order of address families to
  * try when looking up the service.
  */
 struct fo_options {
+    time_t srv_retry_timeout;
     time_t retry_timeout;
     enum restrict_family family_order;
 };
@@ -100,6 +107,13 @@ int fo_add_server(struct fo_service *service,
                   const char *name,
                   int port,
                   void *user_data);
+
+
+int fo_add_srv_server(struct fo_service *service,
+                      const char *srv,
+                      const char *domain,
+                      const char *proto,
+                      void *user_data);
 
 /*
  * Request the first server from the service's list of servers. It is only
