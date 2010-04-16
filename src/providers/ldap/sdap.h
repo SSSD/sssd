@@ -150,6 +150,7 @@ enum sdap_basic_opt {
     SDAP_PWD_POLICY,
     SDAP_REFERRALS,
     SDAP_ACCOUNT_CACHE_EXPIRATION,
+    SDAP_DNS_SERVICE_NAME,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

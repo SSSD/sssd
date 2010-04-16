@@ -26,6 +26,11 @@
 #include "providers/fail_over.h"
 #include "db/sysdb.h"
 
+/* a special token, if used in place of the hostname, denotes that real
+ * hostnames should be looked up from DNS using SRV requests
+ */
+#define BE_SRV_IDENTIFIER  "_srv_"
+
 struct be_ctx;
 struct bet_ops;
 struct be_req;
@@ -147,10 +152,14 @@ void be_run_online_cb(struct be_ctx *be);
 typedef void (be_svc_callback_fn_t)(void *, struct fo_server *);
 
 int be_init_failover(struct be_ctx *ctx);
+int be_fo_is_srv_identifier(const char *server);
 int be_fo_add_service(struct be_ctx *ctx, const char *service_name);
 int be_fo_service_add_callback(TALLOC_CTX *memctx,
                                struct be_ctx *ctx, const char *service_name,
                                be_svc_callback_fn_t *fn, void *private_data);
+int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
+                         const char *query_service, const char *proto,
+                         const char *domain, void *user_data);
 int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
                      const char *server, int port, void *user_data);
 

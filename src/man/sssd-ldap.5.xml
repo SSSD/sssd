@@ -61,9 +61,8 @@
                             Specifies the list of URIs of the LDAP servers to which
                             SSSD should connect in the order of preference. Refer to the
                             <quote>FAILOVER</quote> section for more information on failover and server redundancy.
-                        </para>
-                        <para>
-                            Default: ldap://localhost
+                            If not specified, service discovery is enabled. For more information, refer
+                            to the <quote>SERVICE DISCOVERY</quote> section.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -632,11 +631,26 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_dns_service_name (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the service name to use when service
+                            discovery is enabled.
+                        </para>
+                        <para>
+                            Default: ldap
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
 
     <refsect1 id='example'>
         <title>EXAMPLE</title>

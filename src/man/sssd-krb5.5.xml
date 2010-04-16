@@ -72,6 +72,9 @@
                             see the <quote>FAILOVER</quote> section. An optional
                             port number (preceded by a colon) may be appended to
                             the addresses or hostnames.
+                            If empty, service discovery is enabled -
+                            for more information, refer to the
+                            <quote>SERVICE DISCOVERY</quote> section.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -261,6 +264,8 @@
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
 
     <refsect1 id='example'>
         <title>EXAMPLE</title>

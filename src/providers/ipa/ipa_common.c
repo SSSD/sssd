@@ -67,7 +67,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER }
+    { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
+    { "ldap_dns_service_name", DP_OPT_STRING, { SSS_LDAP_SRV_NAME }, NULL_STRING }
 };
 
 struct sdap_attr_map ipa_attr_map[] = {
@@ -156,12 +157,9 @@ int ipa_get_options(TALLOC_CTX *memctx,
         }
     }
 
-    /* FIXME: Make non-fatal once we have discovery */
     server = dp_opt_get_string(opts->basic, IPA_SERVER);
     if (!server) {
-        DEBUG(0, ("Can't find ipa server, missing option!\n"));
-        ret = EINVAL;
-        goto done;
+        DEBUG(1, ("No ipa server set, will use service discovery!\n"));
     }
 
     ipa_hostname = dp_opt_get_string(opts->basic, IPA_HOSTNAME);
@@ -538,6 +536,10 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     }
     service->krb5_service->realm = realm;
 
+    if (!servers) {
+        servers = BE_SRV_IDENTIFIER;
+    }
+
     /* split server parm into a list */
     ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
     if (ret != EOK) {
@@ -549,6 +551,18 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     for (i = 0; list[i]; i++) {
 
         talloc_steal(service, list[i]);
+
+        if (be_fo_is_srv_identifier(list[i])) {
+            ret = be_fo_add_srv_server(ctx, "IPA", "ldap",
+                                       FO_PROTO_TCP, ctx->domain->name, NULL);
+            if (ret) {
+                DEBUG(0, ("Failed to add server\n"));
+                goto done;
+            }
+
+            DEBUG(6, ("Added service lookup for service IPA\n"));
+            continue;
+        }
 
         ret = be_fo_add_server(ctx, "IPA", list[i], 0, NULL);
         if (ret && ret != EEXIST) {

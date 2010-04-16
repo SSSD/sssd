@@ -53,6 +53,11 @@ struct be_failover_ctx {
     struct be_svc_data *svcs;
 };
 
+int be_fo_is_srv_identifier(const char *server)
+{
+    return server && strcasecmp(server, BE_SRV_IDENTIFIER) == 0;
+}
+
 static int be_fo_get_options(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
                              struct fo_options *opts)
 {
@@ -61,6 +66,7 @@ static int be_fo_get_options(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
 
     /* todo get timeout from configuration */
     opts->retry_timeout = 30;
+    opts->srv_retry_timeout = 14400;
 
     ret = confdb_get_string(ctx->cdb, mem_ctx, ctx->conf_path,
                             CONFDB_DOMAIN_FAMILY_ORDER,
@@ -230,6 +236,32 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
     callback->private_data = private_data;
 
     DLIST_ADD(svc->callbacks, callback);
+
+    return EOK;
+}
+
+int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
+                         const char *query_service, const char *proto,
+                         const char *domain, void *user_data)
+{
+    struct be_svc_data *svc;
+    int ret;
+
+    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
+        if (strcmp(svc->name, service_name) == 0) {
+            break;
+        }
+    }
+    if (NULL == svc) {
+        return ENOENT;
+    }
+
+    ret = fo_add_srv_server(svc->fo_service, query_service,
+                            domain, proto, user_data);
+    if (ret && ret != EEXIST) {
+        DEBUG(1, ("Failed to add SRV lookup reference to failover service\n"));
+        return ret;
+    }
 
     return EOK;
 }

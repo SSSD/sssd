@@ -90,8 +90,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
 
     krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
     if (krb5_servers == NULL) {
-        DEBUG(0, ("Missing krb5_kdcip option!\n"));
-        return EINVAL;
+        DEBUG(1, ("Missing krb5_kdcip option, using service discovery!\n"));
     }
 
     krb5_realm = dp_opt_get_string(ctx->opts, KRB5_REALM);
@@ -108,8 +107,9 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
     }
 
     krb5_kpasswd_servers = dp_opt_get_string(ctx->opts, KRB5_KPASSWD);
-    if (krb5_kpasswd_servers == NULL) {
-        DEBUG(0, ("Missing krb5_kpasswd option, using KDC!\n"));
+    if (krb5_kpasswd_servers == NULL && krb5_servers != NULL) {
+        DEBUG(0, ("Missing krb5_kpasswd option and KDC set explicitly, "
+                  "will use KDC for pasword change operations!\n"));
         ctx->kpasswd_service = NULL;
     } else {
         ret = krb5_service_init(ctx, bectx, SSS_KRB5KPASSWD_FO_SRV,

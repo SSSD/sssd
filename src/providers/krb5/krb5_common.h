@@ -40,8 +40,8 @@
 #define KDCINFO_TMPL PUBCONF_PATH"/kdcinfo.%s"
 #define KPASSWDINFO_TMPL PUBCONF_PATH"/kpasswdinfo.%s"
 
-#define SSS_KRB5KDC_FO_SRV "KRB5KDC"
-#define SSS_KRB5KPASSWD_FO_SRV "KRB5KPASSWD"
+#define SSS_KRB5KDC_FO_SRV "KERBEROS"
+#define SSS_KRB5KPASSWD_FO_SRV "KPASSWD"
 
 enum krb5_opts {
     KRB5_KDC = 0,
