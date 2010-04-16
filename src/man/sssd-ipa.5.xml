@@ -82,6 +82,8 @@
                             on failover and server redundancy, see the
                             <quote>FAILOVER</quote> section.
                             This is optional if autodiscovery is enabled.
+                            For more information on service discovery, refer
+                            to the the <quote>SERVICE DISCOVERY</quote> section.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -119,6 +121,8 @@
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
 
     <refsect1 id='example'>
         <title>EXAMPLE</title>

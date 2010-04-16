@@ -159,4 +159,6 @@ const char *fo_get_server_name(struct fo_server *server);
 
 struct hostent *fo_get_server_hostent(struct fo_server *server);
 
+int fo_is_srv_lookup(struct fo_server *s);
+
 #endif /* !__FAIL_OVER_H__ */

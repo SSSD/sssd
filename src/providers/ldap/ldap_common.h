@@ -30,6 +30,8 @@
 #define PWD_POL_OPT_SHADOW "shadow"
 #define PWD_POL_OPT_MIT "mit_kerberos"
 
+#define SSS_LDAP_SRV_NAME "ldap"
+
 /* a fd the child process would log into */
 extern int ldap_child_debug_fd;
 
@@ -76,9 +78,9 @@ void sdap_pam_chpass_handler(struct be_req *breq);
 void sdap_handler_done(struct be_req *req, int dp_err,
                        int error, const char *errstr);
 
-int sdap_service_init(TALLOC_CTX *mmectx, struct be_ctx *ctx,
-                      const char *service_name, const char *urls,
-                      struct sdap_service **service);
+int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
+                      const char *service_name, const char *dns_service_name,
+                      const char *urls, struct sdap_service **_service);
 
 /* options parser */
 int ldap_get_options(TALLOC_CTX *memctx,

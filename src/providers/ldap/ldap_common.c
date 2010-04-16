@@ -31,7 +31,7 @@
 int ldap_child_debug_fd = -1;
 
 struct dp_option default_basic_opts[] = {
-    { "ldap_uri", DP_OPT_STRING, { "ldap://localhost" }, NULL_STRING },
+    { "ldap_uri", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_search_base", DP_OPT_STRING, { "dc=example,dc=com" }, NULL_STRING },
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
@@ -63,7 +63,8 @@ struct dp_option default_basic_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_pwd_policy", DP_OPT_STRING, { "none" } , NULL_STRING },
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
-    { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER }
+    { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
+    { "ldap_dns_service_name", DP_OPT_STRING, { SSS_LDAP_SRV_NAME }, NULL_STRING }
 };
 
 struct sdap_attr_map generic_attr_map[] = {
@@ -537,16 +538,31 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     if (!service) return;
 
     tmp = (const char *)fo_get_server_user_data(server);
-    if (tmp && ldap_is_ldap_url(tmp)) {
-        new_uri = talloc_strdup(service, tmp);
+
+    if (fo_is_srv_lookup(server)) {
+        if (!tmp) {
+            DEBUG(1, ("Unknown service, using ldap\n"));
+            tmp = SSS_LDAP_SRV_NAME;
+        }
+        new_uri = talloc_asprintf(service, "%s://%s:%d",
+                                  tmp,
+                                  fo_get_server_name(server),
+                                  fo_get_server_port(server));
     } else {
-        new_uri = talloc_asprintf(service, "ldap://%s",
-                                  fo_get_server_name(server));
+        if (tmp && ldap_is_ldap_url(tmp)) {
+            new_uri = talloc_strdup(service, tmp);
+        } else {
+            new_uri = talloc_asprintf(service, "ldap://%s",
+                                    fo_get_server_name(server));
+        }
     }
+
     if (!new_uri) {
         DEBUG(2, ("Failed to copy URI ...\n"));
         return;
     }
+
+    DEBUG(6, ("Constructed uri '%s'\n", new_uri));
 
     /* free old one and replace with new one */
     talloc_zfree(service->uri);
@@ -554,13 +570,14 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
 }
 
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
-                      const char *service_name, const char *urls,
-                      struct sdap_service **_service)
+                      const char *service_name, const char *dns_service_name,
+                      const char *urls, struct sdap_service **_service)
 {
     TALLOC_CTX *tmp_ctx;
     struct sdap_service *service;
     LDAPURLDesc *lud;
     char **list = NULL;
+    char *srv_user_data;
     int ret;
     int i;
 
@@ -587,6 +604,10 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
+    if (!urls) {
+        urls = BE_SRV_IDENTIFIER;
+    }
+
     /* split server parm into a list */
     ret = split_on_separator(tmp_ctx, urls, ',', true, &list, NULL);
     if (ret != EOK) {
@@ -596,6 +617,26 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
     /* now for each URI add a new server to the failover service */
     for (i = 0; list[i]; i++) {
+        if (be_fo_is_srv_identifier(list[i])) {
+            srv_user_data = talloc_strdup(service, dns_service_name);
+            if (!srv_user_data) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = be_fo_add_srv_server(ctx, service_name,
+                                       dns_service_name, FO_PROTO_TCP,
+                                       ctx->domain->name,
+                                       srv_user_data);
+            if (ret) {
+                DEBUG(0, ("Failed to add server\n"));
+                goto done;
+            }
+
+            DEBUG(6, ("Added service lookup\n"));
+            continue;
+        }
+
         ret = ldap_url_parse(list[i], &lud);
         if (ret != LDAP_SUCCESS) {
             DEBUG(0, ("Failed to parse ldap URI (%s)!\n", list[i]));

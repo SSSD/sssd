@@ -72,8 +72,7 @@ int common_ipa_init(struct be_ctx *bectx)
 
     ipa_servers = dp_opt_get_string(ipa_options->basic, IPA_SERVER);
     if (!ipa_servers) {
-        DEBUG(0, ("Missing ipa_server option!\n"));
-        return EINVAL;
+        DEBUG(1, ("Missing ipa_server option - using service discovery!\n"));
     }
 
     ipa_domain = dp_opt_get_string(ipa_options->basic, IPA_DOMAIN);

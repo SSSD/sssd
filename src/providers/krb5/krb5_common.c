@@ -334,6 +334,10 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
+    if (!servers) {
+        servers = BE_SRV_IDENTIFIER;
+    }
+
     ret = split_on_separator(tmp_ctx, servers, ',', true, &list, NULL);
     if (ret != EOK) {
         DEBUG(1, ("Failed to parse server list!\n"));
@@ -344,6 +348,23 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
         talloc_steal(service, list[i]);
         server_spec = talloc_strdup(service, list[i]);
+        if (!server_spec) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (be_fo_is_srv_identifier(server_spec)) {
+            ret = be_fo_add_srv_server(ctx, service_name, service_name,
+                                       FO_PROTO_TCP, ctx->domain->name, NULL);
+            if (ret) {
+                DEBUG(0, ("Failed to add server\n"));
+                goto done;
+            }
+
+            DEBUG(6, ("Added service lookup\n"));
+            continue;
+        }
+
         port_str = strrchr(server_spec, ':');
         if (port_str == NULL) {
             port = 0;
