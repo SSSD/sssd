@@ -110,6 +110,22 @@ do { \
 		} \
 } while (0)
 
+/* insert all elements from list2 after the given element 'el' in the
+ * first list */
+#define DLIST_ADD_LIST_AFTER(list1, el, list2, type) \
+do { \
+                if (!(list1) || !(el) || !(list2)) { \
+                    DLIST_CONCATENATE(list1, list2, type); \
+                } else { \
+                    type tmp; \
+                    for (tmp = (list2); tmp->next; tmp = tmp->next) ; \
+                    (list2)->prev = (el); \
+                    tmp->next = (el)->next; \
+                    (el)->next = (list2); \
+                    if ((el)->next != NULL) (el)->next->prev = tmp; \
+    } \
+} while (0);
+
 #define DLIST_FOR_EACH(p, list) \
 	for ((p) = (list); (p) != NULL; (p) = (p)->next)
 

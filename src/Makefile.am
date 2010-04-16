@@ -252,6 +252,11 @@ SSSD_TOOLS_OBJ = \
 
 SSSD_RESOLV_OBJ = \
     resolv/async_resolv.c
+if BUILD_ARES_DATA
+    SSSD_RESOLV_OBJ += \
+	resolv/ares/ares_parse_srv_reply.c \
+	resolv/ares/ares_data.c
+endif
 
 SSSD_FAILOVER_OBJ = \
     providers/fail_over.c \
@@ -553,9 +558,7 @@ SSSD_RESOLV_TESTS_OBJ = \
     $(SSSD_RESOLV_OBJ)
 if BUILD_ARES_DATA
     SSSD_RESOLV_TESTS_OBJ += \
-	resolv/ares/ares_parse_srv_reply.c \
-	resolv/ares/ares_parse_txt_reply.c \
-	resolv/ares/ares_data.c
+	resolv/ares/ares_parse_txt_reply.c
 endif
 
 resolv_tests_SOURCES = \
@@ -565,7 +568,7 @@ resolv_tests_SOURCES = \
 resolv_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS) \
-    -DBUILD_TXT_SRV
+    -DBUILD_TXT
 resolv_tests_LDADD = \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
