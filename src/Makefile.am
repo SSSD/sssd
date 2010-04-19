@@ -773,6 +773,7 @@ libsss_krb5_la_SOURCES = \
     providers/child_common.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_become_user.c \
+    providers/krb5/krb5_delayed_online_authentication.c \
     providers/krb5/krb5_auth.c \
     providers/krb5/krb5_common.c \
     providers/krb5/krb5_init.c \
@@ -782,6 +783,7 @@ libsss_krb5_la_CFLAGS = \
     $(DHASH_CFLAGS)
 libsss_krb5_la_LIBADD = \
     $(DHASH_LIBS) \
+    $(KEYUITLS_LIB) \
     $(KRB5_LIBS)
 libsss_krb5_la_LDFLAGS = \
     -version-info 1:0:0 \
@@ -813,6 +815,7 @@ libsss_ipa_la_SOURCES = \
     util/find_uid.c \
     providers/krb5/krb5_utils.c \
     providers/krb5/krb5_become_user.c \
+    providers/krb5/krb5_delayed_online_authentication.c \
     providers/krb5/krb5_common.c \
     providers/krb5/krb5_auth.c
 libsss_ipa_la_CFLAGS = \
@@ -823,6 +826,7 @@ libsss_ipa_la_CFLAGS = \
 libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
+    $(KEYUTILS_LIBS) \
     $(KRB5_LIBS)
 libsss_ipa_la_LDFLAGS = \
     -version-info 1:0:0 \

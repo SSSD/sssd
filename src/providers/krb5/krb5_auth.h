@@ -62,6 +62,7 @@ struct krb5child_req {
 };
 
 struct fo_service;
+struct deferred_auth_ctx;
 
 struct krb5_ctx {
     /* opts taken from kinit */
@@ -94,6 +95,8 @@ struct krb5_ctx {
     int child_debug_fd;
 
     pcre *illegal_path_re;
+
+    struct deferred_auth_ctx *deferred_auth_ctx;
 };
 
 void krb5_pam_handler(struct be_req *be_req);
@@ -104,4 +107,11 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                                   struct pam_data *pd,
                                   struct krb5_ctx *krb5_ctx);
 int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err);
+
+errno_t add_user_to_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
+                                                  struct pam_data *pd,
+                                                  uid_t uid);
+errno_t init_delayed_online_authentication(struct krb5_ctx *krb5_ctx,
+                                           struct be_ctx *be_ctx,
+                                           struct tevent_context *ev);
 #endif /* __KRB5_AUTH_H__ */

@@ -381,7 +381,7 @@ static void pam_reply(struct pam_auth_req *preq)
                     ret = sysdb_cache_auth(preq, sysdb,
                                            preq->domain, pd->user,
                                            pd->authtok, pd->authtok_size,
-                                           pctx->rctx->cdb,
+                                           pctx->rctx->cdb, false,
                                            &exp_date, &delay_until);
 
                     pam_cache_auth_done(preq, ret, exp_date, delay_until);

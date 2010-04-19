@@ -42,7 +42,8 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
     { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
     { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
-    { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "krb5_kpasswd", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "krb5_store_password_if_offline", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE }
 };
 
 errno_t check_and_export_options(struct dp_option *opts,

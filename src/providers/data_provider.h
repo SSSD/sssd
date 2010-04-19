@@ -22,10 +22,16 @@
 #ifndef __DATA_PROVIDER_H__
 #define __DATA_PROVIDER_H__
 
+#include "config.h"
+
 #include <stdint.h>
 #include <sys/un.h>
 #include <errno.h>
 #include <stdbool.h>
+#ifdef USE_KEYRING
+#include <sys/types.h>
+#include <keyutils.h>
+#endif
 #include "talloc.h"
 #include "tevent.h"
 #include "ldb.h"
@@ -178,9 +184,14 @@ struct pam_data {
     bool offline_auth;
     bool last_auth_saved;
     int priv;
+#ifdef USE_KEYRING
+    key_serial_t key_serial;
+#endif
 };
 
 /* from dp_auth_util.c */
+errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *old_pd,
+                      struct pam_data **new_pd);
 void pam_print_data(int l, struct pam_data *pd);
 int pam_add_response(struct pam_data *pd,
                      enum response_type type,

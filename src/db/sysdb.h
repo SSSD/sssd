@@ -471,6 +471,7 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
                      const uint8_t *authtok,
                      size_t authtok_size,
                      struct confdb_ctx *cdb,
+                     bool just_check,
                      time_t *_expire_date,
                      time_t *_delayed_until);
 

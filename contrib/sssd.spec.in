@@ -30,6 +30,7 @@ Requires: libdhash = %{dhash_version}-%{release}
 Requires: libcollection = %{collection_version}-%{release}
 Requires: libini_config = %{ini_config_version}-%{release}
 Requires: cyrus-sasl-gssapi
+Requires: keyutils-libs
 Requires(post): python
 Requires(preun):  initscripts chkconfig
 Requires(postun): /sbin/service
@@ -75,6 +76,7 @@ BuildRequires: doxygen
 BuildRequires: libselinux-devel
 BuildRequires: libsemanage-devel
 BuildRequires: bind-utils
+BuildRequires: keyutils-libs-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and

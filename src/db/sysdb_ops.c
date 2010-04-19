@@ -1988,6 +1988,7 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
                      const uint8_t *authtok,
                      size_t authtok_size,
                      struct confdb_ctx *cdb,
+                     bool just_check,
                      time_t *_expire_date,
                      time_t *_delayed_until)
 {
@@ -2120,6 +2121,11 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
         DEBUG(4, ("Hashes do match!\n"));
         authentication_successful = true;
 
+        if (just_check) {
+            ret = EOK;
+            goto done;
+        }
+
         ret = sysdb_attrs_add_time_t(update_attrs,
                                      SYSDB_LAST_LOGIN, time(NULL));
         if (ret != EOK) {
@@ -2168,8 +2174,12 @@ int sysdb_cache_auth(TALLOC_CTX *mem_ctx,
     }
 
 done:
-    *_expire_date = expire_date;
-    *_delayed_until = delayed_until;
+    if (_expire_date != NULL) {
+        *_expire_date = expire_date;
+    }
+    if (_delayed_until != NULL) {
+        *_delayed_until = delayed_until;
+    }
     if (password) for (i = 0; password[i]; i++) password[i] = 0;
     if (ret) {
         ldb_transaction_cancel(sysdb->ldb);

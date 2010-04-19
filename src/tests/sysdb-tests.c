@@ -1425,7 +1425,7 @@ static void cached_authentication_without_expiration(const char *username,
     ret = sysdb_cache_auth(data, test_ctx->sysdb,
                            test_ctx->domain, data->username,
                            (const uint8_t *)password, strlen(password),
-                           test_ctx->confdb, &expire_date, &delayed_until);
+                           test_ctx->confdb, false, &expire_date, &delayed_until);
 
     fail_unless(ret == expected_result, "sysdb_cache_auth request does not "
                                         "return expected result [%d].",
@@ -1487,7 +1487,7 @@ static void cached_authentication_with_expiration(const char *username,
     ret = sysdb_cache_auth(data, test_ctx->sysdb,
                            test_ctx->domain, data->username,
                            (const uint8_t *) password, strlen(password),
-                           test_ctx->confdb, &expire_date, &delayed_until);
+                           test_ctx->confdb, false, &expire_date, &delayed_until);
 
     fail_unless(ret == expected_result,
                 "sysdb_cache_auth request does not return expected "

@@ -548,6 +548,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_ccname_template',
              'krb5_keytab',
              'krb5_validate',
+             'krb5_store_password_if_offline',
              'krb5_auth_timeout'])
 
         options = domain.list_options()
@@ -719,6 +720,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
             'krb5_ccname_template',
             'krb5_keytab',
             'krb5_validate',
+            'krb5_store_password_if_offline',
             'krb5_auth_timeout']
 
         self.assertTrue(type(options) == dict,
@@ -865,6 +867,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
              'krb5_ccname_template',
              'krb5_keytab',
              'krb5_validate',
+             'krb5_store_password_if_offline',
              'krb5_auth_timeout'])
 
         options = domain.list_options()
