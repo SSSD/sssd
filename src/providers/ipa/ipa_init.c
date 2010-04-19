@@ -232,6 +232,15 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
+    if (dp_opt_get_bool(krb5_auth_ctx->opts, KRB5_STORE_PASSWORD_IF_OFFLINE)) {
+        ret = init_delayed_online_authentication(krb5_auth_ctx, bectx,
+                                                 bectx->ev);
+        if (ret != EOK) {
+            DEBUG(1, ("init_delayed_online_authentication failed.\n"));
+            goto done;
+        }
+    }
+
     ret = check_and_export_options(krb5_auth_ctx->opts, bectx->domain);
     if (ret != EOK) {
         DEBUG(1, ("check_and_export_opts failed.\n"));

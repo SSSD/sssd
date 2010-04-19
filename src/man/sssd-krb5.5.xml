@@ -238,6 +238,24 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>krb5_store_password_if_offline (boolean)</term>
+                    <listitem>
+                        <para>
+                            Store the password of the user if the provider is
+                            offline and use it to request a TGT when the
+                            provider gets online again.
+                        </para>
+                        <para>
+                            Please note that this feature currently only
+                            available on a Linux plattform.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

@@ -520,7 +520,7 @@ static void pam_reply(struct pam_auth_req *preq)
                     req = sysdb_cache_auth_send(preq, preq->cctx->ev, sysdb,
                                                 preq->domain, pd->user,
                                                 pd->authtok, pd->authtok_size,
-                                                pctx->rctx->cdb);
+                                                pctx->rctx->cdb, false);
                     if (req == NULL) {
                         DEBUG(1, ("Failed to setup offline auth.\n"));
                         /* this error is not fatal, continue */

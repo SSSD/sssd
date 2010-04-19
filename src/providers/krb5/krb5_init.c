@@ -121,6 +121,14 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         }
     }
 
+    if (dp_opt_get_bool(ctx->opts, KRB5_STORE_PASSWORD_IF_OFFLINE)) {
+        ret = init_delayed_online_authentication(ctx, bectx, bectx->ev);
+        if (ret != EOK) {
+            DEBUG(1, ("init_delayed_online_authentication failed.\n"));
+            goto fail;
+        }
+    }
+
     ret = check_and_export_options(ctx->opts, bectx->domain);
     if (ret != EOK) {
         DEBUG(1, ("check_and_export_options failed.\n"));

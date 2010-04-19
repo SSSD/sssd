@@ -2313,7 +2313,7 @@ static void cached_authentication_without_expiration(const char *username,
     req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
                                 test_ctx->domain, data->username,
                                 (const uint8_t *) password, strlen(password),
-                                test_ctx->confdb);
+                                test_ctx->confdb, false);
     fail_unless(req != NULL, "sysdb_cache_password_send failed.");
 
     tevent_req_set_callback(req, test_search_done, data);
@@ -2388,7 +2388,7 @@ static void cached_authentication_with_expiration(const char *username,
     req = sysdb_cache_auth_send(data, test_ctx->ev, test_ctx->sysdb,
                                 test_ctx->domain, data->username,
                                 (const uint8_t *) password, strlen(password),
-                                test_ctx->confdb);
+                                test_ctx->confdb, false);
     fail_unless(req != NULL, "sysdb_cache_password_send failed.");
 
     tevent_req_set_callback(req, test_search_done, data);

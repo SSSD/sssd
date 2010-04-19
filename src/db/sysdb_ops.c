@@ -4645,6 +4645,7 @@ struct sysdb_cache_auth_state {
     struct sss_domain_info *domain;
     struct sysdb_ctx *sysdb;
     struct confdb_ctx *cdb;
+    bool just_check;
     struct sysdb_attrs *update_attrs;
     bool authentication_successful;
     struct sysdb_handle *handle;
@@ -4724,7 +4725,8 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
                                          const char *name,
                                          const uint8_t *authtok,
                                          size_t authtok_size,
-                                         struct confdb_ctx *cdb)
+                                         struct confdb_ctx *cdb,
+                                         bool just_check)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
@@ -4774,6 +4776,7 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
     state->domain = domain;
     state->sysdb = sysdb;
     state->cdb = cdb;
+    state->just_check = just_check;
     state->update_attrs = NULL;
     state->authentication_successful = false;
     state->handle = NULL;
@@ -4887,6 +4890,11 @@ static void sysdb_cache_auth_get_attrs_done(struct tevent_req *subreq)
         /* TODO: probable good point for audit logging */
         DEBUG(4, ("Hashes do match!\n"));
         state->authentication_successful = true;
+
+        if (state->just_check) {
+            ret = EOK;
+            goto done;
+        }
 
         ret = sysdb_attrs_add_time_t(state->update_attrs, SYSDB_LAST_LOGIN,
                                      time(NULL));

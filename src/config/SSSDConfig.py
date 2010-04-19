@@ -98,6 +98,7 @@ option_strings = {
     'krb5_ccname_template' : _("Location of the user's credential cache"),
     'krb5_keytab' : _("Location of the keytab to validate credentials"),
     'krb5_validate' : _("Enable credential validation"),
+    'krb5_store_password_if_offline' : _("Store password if offline for later online authentication"),
 
     # [provider/krb5/chpass]
     'krb5_changepw_principal' : _('The principal of the change password service'),

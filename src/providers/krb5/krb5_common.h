@@ -53,6 +53,7 @@ enum krb5_opts {
     KRB5_KEYTAB,
     KRB5_VALIDATE,
     KRB5_KPASSWD,
+    KRB5_STORE_PASSWORD_IF_OFFLINE,
 
     KRB5_OPTS
 };

@@ -557,7 +557,8 @@ struct tevent_req *sysdb_cache_auth_send(TALLOC_CTX *mem_ctx,
                                          const char *name,
                                          const uint8_t *authtok,
                                          size_t authtok_size,
-                                         struct confdb_ctx *cdb);
+                                         struct confdb_ctx *cdb,
+                                         bool just_check);
 int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
                           time_t *delayed_until);
 

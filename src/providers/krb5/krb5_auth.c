@@ -437,10 +437,10 @@ static errno_t fork_child(struct tevent_req *req, struct tevent_context *ev,
         /* We need to keep the root privileges to read the keytab file if
          * validation is enabled, otherwise we can drop them here and run
          * krb5_child with user privileges.
-         * If authtok_size is zero we are offline and want to create an empty
-         * ccache file. In this case we can drop the privileges, too. */
+         * If we are offline and want to create an empty ccache file. In this
+         * case we can drop the privileges, too. */
         if (!dp_opt_get_bool(kr->krb5_ctx->opts, KRB5_VALIDATE) ||
-            kr->pd->authtok_size == 0) {
+            kr->is_offline) {
             ret = become_user(kr->uid, kr->gid);
             if (ret != EOK) {
                 DEBUG(1, ("become_user failed.\n"));
@@ -605,6 +605,7 @@ static void krb5_find_ccache_step(struct tevent_req *req);
 static void krb5_save_ccname_done(struct tevent_req *req);
 static void krb5_child_done(struct tevent_req *req);
 static void krb5_pam_handler_cache_done(struct tevent_req *treq);
+static void krb5_pam_handler_cache_auth_done(struct tevent_req *subreq);
 
 struct krb5_auth_state {
     struct tevent_context *ev;
@@ -973,42 +974,44 @@ static void krb5_find_ccache_step(struct tevent_req *req)
         DEBUG(9, ("Preparing for offline operation.\n"));
         kr->is_offline = true;
 
-        if (kr->valid_tgt_present) {
-            DEBUG(9, ("Valid TGT available, nothing to do.\n"));
+        if (kr->valid_tgt_present || kr->active_ccache_present) {
+            DEBUG(9, ("Valid TGT available or "
+                      "ccache file is already in use.\n"));
             msg = talloc_asprintf(pd, "%s=%s", CCACHE_ENV_NAME, kr->ccname);
             if (msg == NULL) {
                 DEBUG(1, ("talloc_asprintf failed.\n"));
-                ret = ENOMEM;
-                goto done;
+            } else {
+                ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(msg) + 1,
+                                       (uint8_t *) msg);
+                if (ret != EOK) {
+                    DEBUG(1, ("pam_add_response failed.\n"));
+                }
             }
 
-            ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(msg) + 1,
-                                   (uint8_t *) msg);
-            if (ret != EOK) {
-                DEBUG(1, ("pam_add_response failed.\n"));
+            if (dp_opt_get_bool(kr->krb5_ctx->opts,
+                                KRB5_STORE_PASSWORD_IF_OFFLINE)) {
+                subreq = sysdb_cache_auth_send(state, state->ev,
+                                               state->be_ctx->sysdb,
+                                               state->be_ctx->domain, pd->user,
+                                               pd->authtok, pd->authtok_size,
+                                               state->be_ctx->cdb, true);
+                if (subreq == NULL) {
+                    DEBUG(2, ("sysdb_cache_auth_send failed, "
+                              "delayed online authentication not possible.\n"));
+                    /* This is not a fatal error, we continue with standard
+                     * offline authentication. */
+                } else {
+                    tevent_req_set_callback(subreq,
+                                            krb5_pam_handler_cache_auth_done,
+                                            req);
+                    return;
+                }
             }
 
             state->pam_status = PAM_AUTHINFO_UNAVAIL;
             state->dp_err = DP_ERR_OFFLINE;
             ret = EOK;
             goto done;
-        }
-        memset(pd->authtok, 0, pd->authtok_size);
-        pd->authtok_size = 0;
-
-        if (kr->active_ccache_present) {
-            subreq = krb5_save_ccname_send(state, state->ev,
-                                           state->be_ctx->sysdb,
-                                           state->be_ctx->domain, pd->user,
-                                           kr->ccname);
-            if (subreq == NULL) {
-                DEBUG(1, ("krb5_save_ccname_send failed.\n"));
-                ret = ENOMEM;
-                goto done;
-            }
-
-            tevent_req_set_callback(subreq, krb5_save_ccname_done, req);
-            return;
         }
     }
 
@@ -1300,6 +1303,24 @@ static void krb5_save_ccname_done(struct tevent_req *subreq)
     }
 
     if (kr->is_offline) {
+        if (dp_opt_get_bool(kr->krb5_ctx->opts,KRB5_STORE_PASSWORD_IF_OFFLINE)) {
+            subreq = sysdb_cache_auth_send(state, state->ev,
+                                           state->be_ctx->sysdb,
+                                           state->be_ctx->domain, pd->user,
+                                           pd->authtok, pd->authtok_size,
+                                           state->be_ctx->cdb, true);
+            if (subreq == NULL) {
+                DEBUG(2, ("sysdb_cache_auth_send failed, "
+                          "delayed online authentication not possible.\n"));
+                /* This is not a fatal error, we continue with standard
+                 * offline authentication. */
+            } else {
+                tevent_req_set_callback(subreq,
+                                        krb5_pam_handler_cache_auth_done, req);
+                return;
+            }
+        }
+
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
         state->pam_status = PAM_AUTHINFO_UNAVAIL;
         state->dp_err = DP_ERR_OFFLINE;
@@ -1372,7 +1393,6 @@ static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     int ret;
 
-    /* password caching failures are not fatal errors */
     ret = sysdb_cache_password_recv(subreq);
     talloc_zfree(subreq);
 
@@ -1382,6 +1402,36 @@ static void krb5_pam_handler_cache_done(struct tevent_req *subreq)
         DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
                   ret, strerror(ret)));
     }
+
+    tevent_req_done(req);
+}
+
+static void krb5_pam_handler_cache_auth_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
+    struct pam_data *pd = state->pd;
+    struct krb5_ctx *krb5_ctx = state->kr->krb5_ctx;
+    int ret;
+    time_t expire_date;
+    time_t delayed_until;
+
+    ret = sysdb_cache_auth_recv(subreq, &expire_date, &delayed_until);
+    talloc_zfree(subreq);
+
+    if (ret) {
+        DEBUG(2, ("Offline authentication failed.\n"));
+    } else {
+        ret = add_user_to_delayed_online_authentication(krb5_ctx, pd,
+                                                        state->kr->uid);
+        if (ret != EOK) {
+            /* This error is not fatal */
+            DEBUG(1, ("add_user_to_delayed_online_authentication failed.\n"));
+        }
+    }
+
+    state->pam_status = PAM_AUTHINFO_UNAVAIL;
+    state->dp_err = DP_ERR_OFFLINE;
 
     tevent_req_done(req);
 }
