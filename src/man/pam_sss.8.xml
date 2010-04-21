@@ -85,6 +85,28 @@
         </para>
     </refsect1>
 
+    <refsect1 id='files'>
+        <title>FILES</title>
+        <para>If a password reset by root fails, because the corresponding SSSD
+        provider does not support password resets, an individual message can be
+        displayed. This message can e.g. contain instructions about how to reset
+        a password.</para>
+
+        <para>The message is read from the file
+        <filename>pam_sss_pw_reset_message.LOC</filename> where LOC stands for a
+        locale string returned by <citerefentry>
+        <refentrytitle>setlocale</refentrytitle><manvolnum>3</manvolnum>
+        </citerefentry>. If there is no matching file the content of
+        <filename>pam_sss_pw_reset_message.txt</filename> is displayed. Root
+        must be the owner of the files and only root may have read and write
+        permissions while all other users must have only read
+        permisssions.</para>
+
+        <para>These files are searched in the directory
+        <filename>/etc/sssd/customize/DOMAIN_NAME/</filename>. If no matching
+        file is present a generic message is displayed.</para>
+    </refsect1>
+
     <refsect1 id='see_also'>
         <title>SEE ALSO</title>
         <para>

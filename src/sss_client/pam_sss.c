@@ -35,6 +35,10 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <time.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <locale.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
@@ -52,6 +56,9 @@
 #define FLAGS_USE_AUTHTOK    (1 << 2)
 
 #define PWEXP_FLAG "pam_sss:password_expired_flag"
+
+#define PW_RESET_MSG_FILENAME_TEMPLATE SSSD_CONF_DIR"/customize/%s/pam_sss_pw_reset_message.%s"
+#define PW_RESET_MSG_MAX_SIZE 4096
 
 struct pam_items {
     const char* pam_service;
@@ -74,6 +81,7 @@ struct pam_items {
     size_t pam_newauthtok_size;
     pid_t cli_pid;
     const char *login_name;
+    char *domain_name;
 };
 
 #define DEBUG_MGS_LEN 1024
@@ -183,7 +191,7 @@ static size_t add_string_item(enum pam_item_type type, const char *str,
     return rp;
 }
 
-static void overwrite_and_free_authtoks(struct pam_items *pi)
+static void overwrite_and_free_pam_items(struct pam_items *pi)
 {
     if (pi->pam_authtok != NULL) {
         _pam_overwrite_n((void *)pi->pam_authtok, pi->pam_authtok_size);
@@ -196,6 +204,8 @@ static void overwrite_and_free_authtoks(struct pam_items *pi)
         free((void *)pi->pam_newauthtok);
         pi->pam_newauthtok = NULL;
     }
+
+    free(pi->domain_name);
 }
 
 static int pack_message_v3(struct pam_items *pi, size_t *size,
@@ -387,6 +397,162 @@ static int do_pam_conversation(pam_handle_t *pamh, const int msg_style,
     } while (state != SSS_PAM_CONV_DONE);
 
     return PAM_SUCCESS;
+}
+
+static errno_t display_pw_reset_message(pam_handle_t *pamh,
+                                        const char *domain_name,
+                                        const char *suffix)
+{
+    int ret;
+    struct stat stat_buf;
+    char *msg_buf = NULL;
+    int fd = -1;
+    size_t size;
+    size_t total_len;
+    char *filename = NULL;
+
+    if (strchr(suffix, '/') != NULL || strchr(domain_name, '/') != NULL) {
+        D(("Suffix [%s] or domain name [%s] contain illegal character.", suffix,
+           domain_name));
+        return EINVAL;
+    }
+
+    size = sizeof(PW_RESET_MSG_FILENAME_TEMPLATE) + strlen(domain_name) +
+           strlen(suffix);
+    filename = malloc(size);
+    if (filename == NULL) {
+        D(("malloc failed."));
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = snprintf(filename, size, PW_RESET_MSG_FILENAME_TEMPLATE, domain_name,
+                   suffix);
+    if (ret < 0 || ret >= size) {
+        D(("snprintf failed."));
+        ret = EFAULT;
+        goto done;
+    }
+
+    fd = open(filename, O_RDONLY);
+    if (fd == -1) {
+        ret = errno;
+        D(("open failed [%d][%s].\n", ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = fstat(fd, &stat_buf);
+    if (ret == -1) {
+        ret = errno;
+        D(("fstat failed [%d][%s].", ret, strerror(ret)));
+        goto done;
+    }
+
+    if (!S_ISREG(stat_buf.st_mode)) {
+        logger(pamh, LOG_ERR,
+               "Password reset message file is not a regular file.");
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (stat_buf.st_uid != 0 || stat_buf.st_gid != 0 ||
+        (stat_buf.st_mode & ~S_IFMT) != 0644) {
+        logger(pamh, LOG_ERR,"Permission error, "
+               "file [%s] must be owned by root with permissions 0644.",
+               filename);
+        ret = EPERM;
+        goto done;
+    }
+
+    if (stat_buf.st_size > PW_RESET_MSG_MAX_SIZE) {
+        logger(pamh, LOG_ERR, "Password reset message file is too large.");
+        ret = EFBIG;
+        goto done;
+    }
+
+    msg_buf = malloc(stat_buf.st_size + 1);
+    if (msg_buf == NULL) {
+        D(("malloc failed."));
+        ret = ENOMEM;
+        goto done;
+    }
+
+
+    total_len = 0;
+    while (total_len < stat_buf.st_size) {
+        ret = read(fd, msg_buf + total_len, stat_buf.st_size - total_len);
+        if (ret == -1) {
+            if (errno == EINTR) continue;
+            ret = errno;
+            D(("read failed [%d][%s].", ret, strerror(ret)));
+            goto done;
+        }
+        total_len += ret;
+    }
+
+    ret = close(fd);
+    fd = -1;
+    if (ret == -1) {
+        ret = errno;
+        D(("close failed [%d][%s].", ret, strerror(ret)));
+    }
+
+    if (total_len != stat_buf.st_size) {
+        D(("read fewer bytes [%d] than expected [%d].", total_len,
+           stat_buf.st_size));
+        ret = EIO;
+        goto done;
+    }
+
+    msg_buf[stat_buf.st_size] = '\0';
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, msg_buf, NULL, NULL);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+    }
+
+done:
+    if (fd != -1) {
+        close(fd);
+    }
+    free(msg_buf);
+    free(filename);
+
+    return ret;
+}
+
+static errno_t select_pw_reset_message(pam_handle_t *pamh, struct pam_items *pi)
+{
+    int ret;
+    char *locale;
+    const char *domain_name;
+
+    domain_name = pi->domain_name;
+    if (domain_name == NULL || *domain_name == '\0') {
+        D(("Domain name is unknown."));
+        return EINVAL;
+    }
+
+    locale = setlocale(LC_MESSAGES, NULL);
+
+    ret = -1;
+    if (locale != NULL) {
+        ret = display_pw_reset_message(pamh, domain_name, locale);
+    }
+
+    if (ret != 0) {
+        ret = display_pw_reset_message(pamh, domain_name, "txt");
+    }
+
+    if (ret != 0) {
+        ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
+                      _("Password reset by root is not supported."),
+                      NULL, NULL);
+        if (ret != PAM_SUCCESS) {
+            D(("do_pam_conversation failed."));
+        }
+    }
+
+    return ret;
 }
 
 static int user_info_offline_auth(pam_handle_t *pamh, size_t buflen,
@@ -679,7 +845,8 @@ static int eval_user_info_response(pam_handle_t *pamh, size_t buflen,
     return ret;
 }
 
-static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
+static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
+                         struct pam_items *pi)
 {
     int ret;
     size_t p=0;
@@ -727,7 +894,15 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf)
                 logger(pamh, LOG_INFO, "system info: [%s]", &buf[p]);
                 break;
             case SSS_PAM_DOMAIN_NAME:
+                if (buf[p + (len -1)] != '\0') {
+                    D(("domain name does not end with \\0."));
+                    break;
+                }
                 D(("domain name: [%s]", &buf[p]));
+                pi->domain_name = strdup((char *) &buf[p]);
+                if (pi->domain_name == NULL) {
+                    D(("strdup failed"));
+                }
                 break;
             case SSS_ENV_ITEM:
             case SSS_PAM_ENV_ITEM:
@@ -835,6 +1010,8 @@ static int get_pam_items(pam_handle_t *pamh, struct pam_items *pi)
     pi->login_name = pam_modutil_getlogin(pamh);
     if (pi->login_name == NULL) pi->login_name="";
 
+    pi->domain_name = NULL;
+
     return PAM_SUCCESS;
 }
 
@@ -896,7 +1073,7 @@ static int send_and_receive(pam_handle_t *pamh, struct pam_items *pi,
     }
 
     pam_status = ((int32_t *)repbuf)[0];
-    ret = eval_response(pamh, replen, repbuf);
+    ret = eval_response(pamh, replen, repbuf, pi);
     if (ret != PAM_SUCCESS) {
         D(("eval_response failed."));
         pam_status = ret;
@@ -1211,16 +1388,18 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 exp_data = malloc(sizeof(int));
                 if (exp_data == NULL) {
                     D(("malloc failed."));
-                    return PAM_BUF_ERR;
+                    ret = PAM_BUF_ERR;
+                    break;
                 }
                 *exp_data = 1;
                 ret = pam_set_data(pamh, PWEXP_FLAG, exp_data, free_exp_data);
                 if (ret != PAM_SUCCESS) {
                     D(("pam_set_data failed."));
-                    return ret;
+                    ret = ret;
+                    break;
                 }
 
-                return PAM_SUCCESS;
+                ret = PAM_SUCCESS;
             }
             break;
         case SSS_PAM_ACCT_MGMT:
@@ -1233,7 +1412,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 if (ret != PAM_SUCCESS) {
                     D(("do_pam_conversation failed."));
                 }
-                return PAM_NEW_AUTHTOK_REQD;
+                ret = PAM_NEW_AUTHTOK_REQD;
             }
             break;
         case SSS_PAM_CHAUTHTOK:
@@ -1250,6 +1429,17 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 }
             }
             break;
+        case SSS_PAM_CHAUTHTOK_PRELIM:
+            if (ret == PAM_PERM_DENIED && pi.pam_authtok_size == 0 &&
+                getuid() == 0 &&
+                pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) !=
+                                                                  PAM_SUCCESS) {
+
+                ret = select_pw_reset_message(pamh, &pi);
+                if (ret != 0) {
+                }
+                ret = PAM_PERM_DENIED;
+            }
         default:
             /* nothing to do */
             break;
@@ -1257,7 +1447,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
 
 
-    overwrite_and_free_authtoks(&pi);
+    overwrite_and_free_pam_items(&pi);
 
     return ret;
 }
