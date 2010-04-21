@@ -636,6 +636,14 @@ void sdap_pam_chpass_handler(struct be_req *breq)
         goto done;
     }
 
+    if (pd->priv == 1 && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM &&
+        pd->authtok_size == 0) {
+        DEBUG(4, ("Password reset by root is not supported.\n"));
+        pd->pam_status = PAM_PERM_DENIED;
+        dp_err = DP_ERR_OK;
+        goto done;
+    }
+
     DEBUG(2, ("starting password change request for user [%s].\n", pd->user));
 
     pd->pam_status = PAM_SYSTEM_ERR;

@@ -635,7 +635,14 @@ void krb5_pam_handler(struct be_req *be_req)
     switch (pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
         case SSS_PAM_CHAUTHTOK:
+            break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
+            if (pd->priv == 1 && pd->authtok_size == 0) {
+                DEBUG(4, ("Password reset by root is not supported.\n"));
+                pam_status = PAM_PERM_DENIED;
+                dp_err = DP_ERR_OK;
+                goto done;
+            }
             break;
         case SSS_PAM_ACCT_MGMT:
         case SSS_PAM_SETCRED:
