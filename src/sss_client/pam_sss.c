@@ -1201,36 +1201,61 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     ret = send_and_receive(pamh, &pi, task);
 
-/* We allow sssd to send the return code PAM_NEW_AUTHTOK_REQD during
- * authentication, see sss_cli.h for details */
-    if (ret == PAM_NEW_AUTHTOK_REQD && task == SSS_PAM_AUTHENTICATE) {
-        D(("Authtoken expired, trying to change it"));
+    switch (task) {
+        case SSS_PAM_AUTHENTICATE:
+            /* We allow sssd to send the return code PAM_NEW_AUTHTOK_REQD during
+             * authentication, see sss_cli.h for details */
+            if (ret == PAM_NEW_AUTHTOK_REQD) {
+                D(("Authtoken expired, trying to change it"));
 
-        exp_data = malloc(sizeof(int));
-        if (exp_data == NULL) {
-            D(("malloc failed."));
-            return PAM_BUF_ERR;
-        }
-        *exp_data = 1;
-        ret = pam_set_data(pamh, PWEXP_FLAG, exp_data, free_exp_data);
-        if (ret != PAM_SUCCESS) {
-            D(("pam_set_data failed."));
-            return ret;
-        }
+                exp_data = malloc(sizeof(int));
+                if (exp_data == NULL) {
+                    D(("malloc failed."));
+                    return PAM_BUF_ERR;
+                }
+                *exp_data = 1;
+                ret = pam_set_data(pamh, PWEXP_FLAG, exp_data, free_exp_data);
+                if (ret != PAM_SUCCESS) {
+                    D(("pam_set_data failed."));
+                    return ret;
+                }
 
-        return PAM_SUCCESS;
-    }
-
-    if (ret == PAM_SUCCESS && task == SSS_PAM_ACCT_MGMT &&
-        pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
+                return PAM_SUCCESS;
+            }
+            break;
+        case SSS_PAM_ACCT_MGMT:
+            if (ret == PAM_SUCCESS &&
+                pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
                                                                   PAM_SUCCESS) {
-        ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
-                _("Password expired. Change your password now."), NULL, NULL);
-        if (ret != PAM_SUCCESS) {
-            D(("do_pam_conversation failed."));
-        }
-        return PAM_NEW_AUTHTOK_REQD;
+                ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
+                               _("Password expired. Change your password now."),
+                               NULL, NULL);
+                if (ret != PAM_SUCCESS) {
+                    D(("do_pam_conversation failed."));
+                }
+                return PAM_NEW_AUTHTOK_REQD;
+            }
+            break;
+        case SSS_PAM_CHAUTHTOK:
+            if (ret != PAM_SUCCESS && ret != PAM_USER_UNKNOWN) {
+                ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
+                if (ret != PAM_SUCCESS) {
+                    D(("Failed to unset PAM_AUTHTOK [%s]",
+                       pam_strerror(pamh,ret)));
+                }
+                ret = pam_set_item(pamh, PAM_OLDAUTHTOK, NULL);
+                if (ret != PAM_SUCCESS) {
+                    D(("Failed to unset PAM_OLDAUTHTOK [%s]",
+                       pam_strerror(pamh,ret)));
+                }
+            }
+            break;
+        default:
+            /* nothing to do */
+            break;
     }
+
+
 
     overwrite_and_free_authtoks(&pi);
 
