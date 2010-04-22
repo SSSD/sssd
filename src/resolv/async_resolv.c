@@ -804,7 +804,6 @@ resolv_getsrv_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     state->timeouts = timeouts;
 
     if (status != ARES_SUCCESS) {
-        tevent_req_error(req, return_code(status));
         ret = return_code(status);
         goto fail;
     }
