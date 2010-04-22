@@ -46,6 +46,12 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async.h"
 
+/* MIT Kerberos has the same hardcoded warning interval of 7 days. Due to the
+ * fact that using the expiration time of a Kerberos password with LDAP
+ * authentication is presumably a rare case a separate config option is not
+ * necessary. */
+#define KERBEROS_PWEXPIRE_WARNING_TIME (7 * 24 * 60 * 60)
+
 enum pwexpire {
     PWEXPIRE_NONE = 0,
     PWEXPIRE_LDAP_PASSWORD_POLICY,
@@ -53,12 +59,42 @@ enum pwexpire {
     PWEXPIRE_SHADOW
 };
 
+static errno_t add_expired_warning(struct pam_data *pd, long exp_time)
+{
+    int ret;
+    uint32_t *data;
+
+    if (exp_time < 0 || exp_time > UINT32_MAX) {
+        DEBUG(1, ("Time to expire out of range.\n"));
+        return EINVAL;
+    }
+
+    data = talloc_array(pd, uint32_t, 2);
+    if (data == NULL) {
+        DEBUG(1, ("talloc_size failed.\n"));
+        return ENOMEM;
+    }
+
+    data[0] = SSS_PAM_USER_INFO_EXPIRE_WARN;
+    data[1] = (uint32_t) exp_time;
+
+    ret = pam_add_response(pd, SSS_PAM_USER_INFO, 2 * sizeof(uint32_t),
+                           (uint8_t *) data);
+    if (ret != EOK) {
+        DEBUG(1, ("pam_add_response failed.\n"));
+    }
+
+    return EOK;
+}
+
 static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
+                                       struct pam_data *pd,
                                        enum sdap_result *result)
 {
     char *end;
     struct tm tm;
     time_t expire_time;
+    int ret;
 
     memset(&tm, 0, sizeof(tm));
 
@@ -92,16 +128,27 @@ static errno_t check_pwexpire_kerberos(const char *expire_date, time_t now,
         *result = SDAP_AUTH_PW_EXPIRED;
     } else {
         *result = SDAP_AUTH_SUCCESS;
+
+        if (pd != NULL &&
+            difftime(now + KERBEROS_PWEXPIRE_WARNING_TIME, expire_time) > 0.0) {
+            ret = add_expired_warning(pd, (long) difftime(expire_time, now));
+            if (ret != EOK) {
+                DEBUG(1, ("add_expired_warning failed.\n"));
+            }
+        }
     }
 
     return EOK;
 }
 
 static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
+                                     struct pam_data *pd,
                                      enum sdap_result *result)
 {
     long today;
     long password_age;
+    long exp;
+    int ret;
 
     if (spwd->sp_lstchg <= 0) {
         DEBUG(4, ("Last change day is not set, new password needed.\n"));
@@ -132,7 +179,21 @@ static errno_t check_pwexpire_shadow(struct spwd *spwd, time_t now,
         return EOK;
     }
 
-/* TODO: evaluate spwd->min and spwd->warn */
+    if (pd != NULL && spwd->sp_max != -1 && spwd->sp_warn != -1 &&
+        password_age > spwd->sp_max - spwd->sp_warn ) {
+
+        /* add_expired_warning() expects time in seconds */
+        exp = (spwd->sp_max - password_age) * (60 * 60 * 24);
+        if (exp == 0) {
+            /* Seconds until next midnight */
+            exp = ((today + 1) * (60 * 60 * 24)) - now;
+        }
+
+        ret = add_expired_warning(pd, exp);
+        if (ret != EOK) {
+            DEBUG(1, ("add_expired_warning failed.\n"));
+        }
+    }
 
     *result = SDAP_AUTH_SUCCESS;
     return EOK;
@@ -745,7 +806,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
     if (result == SDAP_AUTH_SUCCESS) {
         switch (pw_expire_type) {
             case PWEXPIRE_SHADOW:
-                ret = check_pwexpire_shadow(pw_expire_data, time(NULL),
+                ret = check_pwexpire_shadow(pw_expire_data, time(NULL), NULL,
                                             &result);
                 if (ret != EOK) {
                     DEBUG(1, ("check_pwexpire_shadow failed.\n"));
@@ -754,7 +815,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
                 }
                 break;
             case PWEXPIRE_KERBEROS:
-                ret = check_pwexpire_kerberos(pw_expire_data, time(NULL),
+                ret = check_pwexpire_kerberos(pw_expire_data, time(NULL), NULL,
                                               &result);
                 if (ret != EOK) {
                     DEBUG(1, ("check_pwexpire_kerberos failed.\n"));
@@ -954,7 +1015,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
         switch (pw_expire_type) {
             case PWEXPIRE_SHADOW:
                 ret = check_pwexpire_shadow(pw_expire_data, time(NULL),
-                                            &result);
+                                            state->pd, &result);
                 if (ret != EOK) {
                     DEBUG(1, ("check_pwexpire_shadow failed.\n"));
                     state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -963,7 +1024,7 @@ static void sdap_pam_auth_done(struct tevent_req *req)
                 break;
             case PWEXPIRE_KERBEROS:
                 ret = check_pwexpire_kerberos(pw_expire_data, time(NULL),
-                                              &result);
+                                              state->pd, &result);
                 if (ret != EOK) {
                     DEBUG(1, ("check_pwexpire_kerberos failed.\n"));
                     state->pd->pam_status = PAM_SYSTEM_ERR;
