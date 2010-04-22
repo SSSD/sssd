@@ -309,6 +309,257 @@ int ref_array_free_test(void)
     return EOK;
 }
 
+int ref_array_adv_test(void)
+{
+    int error = EOK;
+    const char *lines[] = { "line0",
+                            "line1",
+                            "line2",
+                            "line3",
+                            "line4",
+                            "line5",
+                            "line6",
+                            "line7",
+                            "line8",
+                            "line9" };
+    char text[] = "Deleting: ";
+    char *str;
+    uint32_t i;
+    struct ref_array *ra;
+    char *ret;
+    void *ptr;
+    int expected[] = { 0, 1, 7, 8, 9 };
+    int expected2[] = { 1, 7, 8, 9, 0 };
+
+    error = ref_array_create(&ra,
+                             sizeof(char *),
+                             1,
+                             array_cleanup,
+                             (char *)text);
+    if (error) {
+        printf("Failed to create array %d\n", error);
+        return error;
+    }
+
+    for (i = 0; i < 5;i++) {
+
+        str = strdup(lines[i]);
+
+        error = ref_array_append(ra, &str);
+        if (error) {
+            ref_array_destroy(ra);
+            printf("Failed to append line %d, error %d\n",
+                    i, error);
+            return error;
+        }
+    }
+
+    RAOUT(printf("\nInitial array.\n"));
+
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("%s\n", ret));
+            i++;
+        }
+        else break;
+    }
+
+
+    /* Try to remove invalid entry */
+    error = ref_array_remove(ra, 1000);
+    if (error != ERANGE) {
+        ref_array_destroy(ra);
+        printf("Removing entry expected error got success.\n");
+        return -1;
+    }
+
+    /* Try to insert invalid entry */
+    error = ref_array_insert(ra, 1000, &text);
+    if (error != ERANGE) {
+        ref_array_destroy(ra);
+        printf("Inserting entry expected error got success.\n");
+        return -1;
+    }
+
+    /* Try to replace invalid entry */
+    error = ref_array_replace(ra, 1000, &text);
+    if (error != ERANGE) {
+        ref_array_destroy(ra);
+        printf("Replacing entry expected error got success.\n");
+        return -1;
+    }
+
+    /* Insert several entries */
+    for (i = 9; i > 4; i--) {
+
+        str = strdup(lines[i]);
+
+        error = ref_array_insert(ra, 9 - i, &str);
+        if (error) {
+            ref_array_destroy(ra);
+            free(str);
+            printf("Failed to insert line %d, error %d\n",
+                    i, error);
+            return error;
+        }
+    }
+
+    /* Displpay array contents */
+    RAOUT(printf("\nArray with inserted values.\n"));
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("%s\n", ret));
+            i++;
+        }
+        else break;
+    }
+
+    /* Replace everything */
+    for (i = 0; i < 10;i++) {
+
+        str = strdup(lines[i]);
+
+        error = ref_array_replace(ra, i, &str);
+        if (error) {
+            ref_array_destroy(ra);
+            free(str);
+            printf("Failed to replace line %d, error %d\n",
+                    i, error);
+            return error;
+        }
+    }
+
+    /* Displpay array contents */
+    RAOUT(printf("\nArray with replaced values.\n"));
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("%s\n", ret));
+            i++;
+        }
+        else break;
+    }
+
+    /* Reset */
+    ref_array_reset(ra);
+
+    /* Displpay array contents */
+    RAOUT(printf("\nEmpty array.\n"));
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("%s\n", ret));
+            i++;
+        }
+        else break;
+    }
+
+    /* Add everything */
+    for (i = 0; i < 10;i++) {
+
+        str = strdup(lines[i]);
+
+        error = ref_array_insert(ra, i, &str);
+        if (error) {
+            ref_array_destroy(ra);
+            free(str);
+            printf("Failed to insert into array %d\n", error);
+            return error;
+        }
+    }
+
+    /* Displpay array contents */
+    RAOUT(printf("\nAll added back.\n"));
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("%s\n", ret));
+            i++;
+        }
+        else break;
+    }
+
+    /* Remove part */
+    for (i = 0; i < 5;i++) {
+
+        error = ref_array_remove(ra, 2);
+        if (error) {
+            ref_array_destroy(ra);
+            printf("Failed to remive item from array %d\n", error);
+            return error;
+        }
+    }
+
+    /* Displpay array contents */
+    RAOUT(printf("\nCleaned array.\n"));
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("%s\n", ret));
+            i++;
+        }
+        else break;
+    }
+
+    RAOUT(printf("\n\nChecking for expected contents\n\n"));
+
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("Comparing:\n[%s]\n[%s]\n\n",
+                  ret, lines[expected[i]]));
+            if (strcmp(ret, lines[expected[i]]) != 0) {
+                printf("Unexpected contents of the array.\n");
+                ref_array_destroy(ra);
+                return -1;
+            }
+            i++;
+        }
+        else break;
+    }
+
+    RAOUT(printf("\n\nSwap test\n\n"));
+
+    if ((error = ref_array_swap(ra, 0, 1)) ||
+        (error = ref_array_swap(ra, 1, 2)) ||
+        (error = ref_array_swap(ra, 2, 3)) ||
+        (error = ref_array_swap(ra, 3, 4))) {
+        ref_array_destroy(ra);
+        printf("Failed to to swap %d\n", error);
+        return error;
+    }
+
+    i = 0;
+    for (;;) {
+        ptr = ref_array_get(ra, i, &ret);
+        if (ptr) {
+            RAOUT(printf("Comparing:\n[%s]\n[%s]\n\n",
+                  ret, lines[expected2[i]]));
+            if (strcmp(ret, lines[expected2[i]]) != 0) {
+                printf("Unexpected contents of the array.\n");
+                ref_array_destroy(ra);
+                return -1;
+            }
+            i++;
+        }
+        else break;
+    }
+
+    RAOUT(printf("\n\nDone!!!\n\n"));
+
+    ref_array_destroy(ra);
+    return EOK;
+}
+
 
 
 /* Main function of the unit test */
@@ -317,6 +568,7 @@ int main(int argc, char *argv[])
     int error = 0;
     test_fn tests[] = { ref_array_basic_test,
                         ref_array_free_test,
+                        ref_array_adv_test,
                         NULL };
     test_fn t;
     int i = 0;

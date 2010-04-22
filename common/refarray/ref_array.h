@@ -77,6 +77,7 @@ typedef enum
     REF_ARRAY_DELETE,
 } ref_array_del_enum;
 
+
 /**
  * @brief Element cleanup callback
  *
@@ -197,6 +198,120 @@ int ref_array_getlen(struct ref_array *ra, uint32_t *len);
  * @return Length of the array. Returns 0 if the array is invalid.
  */
 uint32_t ref_array_len(struct ref_array *ra);
+
+/**
+ * @brief Insert a new element into the array
+ *
+ * Inserts an element into the array.
+ * If idx is 0 the element will be added
+ * to the beginning of the array,
+ * if idx is 1 the element will be added
+ * after the first element of the array
+ * and so on.
+ * If index is greater than the number of
+ * elements in the array the function
+ * returns error.
+ *
+ * @param[in]  ra        Existing array object.
+ * @param[in]  idx       Index of the array element.
+ * @param[in]  element   Pointer to data.
+ *                       The number of bytes
+ *                       defined at the array creation
+ *                       as the array size will be copied
+ *                       into the array element.
+ *
+ * @return 0 - Success.
+ * @return ENOMEM - No memory.
+ * @return EINVAL - Invalid argument.
+ * @return ERANGE - Index is our of range.
+ */
+int ref_array_insert(struct ref_array *ra,
+                     uint32_t idx,
+                     void *element);
+/**
+ * @brief Replace element in the array
+ *
+ * Replace an element of the array
+ * identified by index with a new value.
+ * If index is greater than the number of
+ * elements in the array the function
+ * returns error.
+ *
+ * @param[in]  ra        Existing array object.
+ * @param[in]  idx       Index of the array element.
+ * @param[in]  element   Pointer to data.
+ *                       The number of bytes
+ *                       defined at the array creation
+ *                       as the array size will be copied
+ *                       into the array element.
+ *
+ * @return 0 - Success.
+ * @return ENOMEM - No memory.
+ * @return EINVAL - Invalid argument.
+ * @return ERANGE - Index is our of range.
+ */
+int ref_array_replace(struct ref_array *ra,
+                      uint32_t idx,
+                      void *element);
+
+
+/**
+ * @brief Remove element from the array
+ *
+ * The element is removed and the length
+ * is decreased by 1.
+ * If index is greater than the number of
+ * elements in the array the function
+ * returns error.
+ *
+ * @param[in]  ra        Existing array object.
+ * @param[in]  idx       Index of the array element.
+ *
+ * @return 0 - Success.
+ * @return EINVAL - Invalid argument.
+ * @return ERANGE - Index is our of range.
+ */
+int ref_array_remove(struct ref_array *ra,
+                     uint32_t idx);
+
+
+/**
+ * @brief Swap two elements in the array
+ *
+ * If any of the indexes is greater than
+ * the number of elements in the array
+ * the function returns error.
+ *
+ * @param[in]  ra        Existing array object.
+ * @param[in]  idx1      Index of the array element.
+ * @param[in]  idx2      Index of the array element.
+ *
+ * @return 0 - Success.
+ * @return EINVAL - Invalid argument.
+ * @return ERANGE - Index is our of range.
+ * @return ENOMEM - No memory.
+ */
+int ref_array_swap(struct ref_array *ra,
+                   uint32_t idx1,
+                   uint32_t idx2);
+
+
+/**
+ * @brief Reset array
+ *
+ * Function clears all contents without destroying
+ * the object. The delete callback will be called
+ * for every element of the array from the beginning
+ * to the end passing in REF_ARRAY_DESTROY value.
+ * All the storage for the array will be deallocated.
+ * After the call the array will be empty as if just created.
+ *
+ *
+ * @param[in]  ra        Existing array object.
+ * No return value.
+ *
+ */
+void ref_array_reset(struct ref_array *ra);
 
 /**
  * @}

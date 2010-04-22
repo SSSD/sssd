@@ -194,7 +194,7 @@ int ref_array_append(struct ref_array *ra, void *element)
         error = ref_array_grow(ra);
         if (error) {
             TRACE_ERROR_NUMBER("Failed to grow array.", error);
-            return EINVAL;
+            return error;
         }
     }
 
@@ -271,6 +271,201 @@ uint32_t ref_array_len(struct ref_array *ra)
     return ra->len;
 }
 
+
+/* Insert a new element into the array */
+int ref_array_insert(struct ref_array *ra,
+                     uint32_t idx,
+                     void *element)
+{
+    int error = EOK;
+    uint32_t i;
+
+    TRACE_FLOW_STRING("ref_array_insert", "Entry");
+
+    if ((!ra) || (!element)) {
+        TRACE_ERROR_NUMBER("Uninitialized argument.", EINVAL);
+        return EINVAL;
+    }
+
+    if (idx > ra->len) {
+        TRACE_ERROR_NUMBER("Index is out of range", ERANGE);
+        return ERANGE;
+    }
+
+    /* Do we have enough room for a new element? */
+    if (ra->size == ra->len) {
+        error = ref_array_grow(ra);
+        if (error) {
+            TRACE_ERROR_NUMBER("Failed to grow array.", error);
+            return error;
+        }
+    }
+
+    /* Shift elements right */
+    for (i = ra->len; i >= (idx + 1); i--) {
+        memcpy((unsigned char *)(ra->storage) + i * ra->elsize,
+               (unsigned char *)(ra->storage) + (i - 1) * ra->elsize,
+               ra->elsize);
+    }
+
+    /* Overwrite element */
+    memcpy((unsigned char *)(ra->storage) + idx * ra->elsize,
+           element,
+           ra->elsize);
+
+    ra->len++;
+
+    TRACE_FLOW_STRING("ref_array_insert", "Exit");
+    return error;
+
+}
+
+
+/* Replace element in the array */
+int ref_array_replace(struct ref_array *ra,
+                      uint32_t idx,
+                      void *element)
+{
+    int error = EOK;
+
+    TRACE_FLOW_STRING("ref_array_replace", "Entry");
+
+    if ((!ra) || (!element)) {
+        TRACE_ERROR_NUMBER("Uninitialized argument.", EINVAL);
+        return EINVAL;
+    }
+
+    if (idx > ra->len) {
+        TRACE_ERROR_NUMBER("Index is out of range", ERANGE);
+        return ERANGE;
+    }
+
+    /* Clear old element */
+    ra->cb((unsigned char *)(ra->storage) + idx * ra->elsize,
+           REF_ARRAY_DELETE, ra->cb_data);
+
+    /* Overwrite element */
+    memcpy((unsigned char *)(ra->storage) + idx * ra->elsize,
+           element,
+           ra->elsize);
+
+
+    TRACE_FLOW_STRING("ref_array_replace", "Exit");
+    return error;
+}
+
+
+/* Remove element from the array */
+int ref_array_remove(struct ref_array *ra,
+                     uint32_t idx)
+{
+    int error = EOK;
+    uint32_t i;
+
+    TRACE_FLOW_STRING("ref_array_remove", "Entry");
+
+    if (!ra) {
+        TRACE_ERROR_NUMBER("Uninitialized argument.", EINVAL);
+        return EINVAL;
+    }
+
+    if (idx >= ra->len) {
+        TRACE_ERROR_NUMBER("Index is out of range", ERANGE);
+        return ERANGE;
+    }
+
+    /* Clear old element */
+    ra->cb((unsigned char *)(ra->storage) + idx * ra->elsize,
+           REF_ARRAY_DELETE, ra->cb_data);
+
+    /* Shift elements left */
+    for (i = idx + 1; i < ra->len; i++) {
+        memcpy((unsigned char *)(ra->storage) + (i - 1) * ra->elsize,
+               (unsigned char *)(ra->storage) +  i * ra->elsize,
+               ra->elsize);
+    }
+
+    ra->len--;
+
+    TRACE_FLOW_STRING("ref_array_remove", "Exit");
+    return error;
+}
+
+/* Reset array */
+void ref_array_reset(struct ref_array *ra)
+{
+    int idx;
+
+    TRACE_FLOW_STRING("ref_array_reset", "Entry");
+
+    /* Check if array is not NULL */
+    if (!ra) {
+        TRACE_ERROR_STRING("Uninitialized array.", "Coding error???");
+        return;
+    }
+
+    if (ra->cb) {
+        for (idx = 0; idx < ra->len; idx++) {
+            ra->cb((unsigned char *)(ra->storage) + idx * ra->elsize,
+                    REF_ARRAY_DESTROY, ra->cb_data);
+        }
+    }
+
+    free(ra->storage);
+    ra->storage = NULL;
+    ra->size = 0;
+    ra->len = 0;
+
+    TRACE_FLOW_STRING("ref_array_reset", "Exit");
+}
+
+/* Swap two elements in the array */
+int ref_array_swap(struct ref_array *ra,
+                   uint32_t idx1,
+                   uint32_t idx2)
+{
+    int error = EOK;
+    void *temp = NULL;
+
+    TRACE_FLOW_STRING("ref_array_swap", "Entry");
+
+    if (!ra) {
+        TRACE_ERROR_NUMBER("Uninitialized argument.", EINVAL);
+        return EINVAL;
+    }
+
+    if ((idx1 >= ra->len) ||
+        (idx2 >= ra->len)) {
+        TRACE_ERROR_NUMBER("Index is out of range", ERANGE);
+        return ERANGE;
+    }
+
+    if (idx1 == idx2) {
+        TRACE_FLOW_STRING("ref_array_swap", "Noop return");
+        return EOK;
+    }
+
+    temp = malloc(ra->elsize);
+    if (!temp) {
+        TRACE_FLOW_STRING("Failed to allocate memory for temp storage.", "");
+        return ENOMEM;
+    }
+
+    memcpy(temp,
+           (unsigned char *)(ra->storage) +  idx2 * ra->elsize,
+           ra->elsize);
+    memcpy((unsigned char *)(ra->storage) +  idx2 * ra->elsize,
+           (unsigned char *)(ra->storage) +  idx1 * ra->elsize,
+           ra->elsize);
+    memcpy((unsigned char *)(ra->storage) +  idx1 * ra->elsize,
+           temp,
+           ra->elsize);
+
+    free(temp);
+
+    TRACE_FLOW_STRING("ref_array_swap", "Exit");
+    return error;
+}
 
 /* Debug function */
 void ref_array_debug(struct ref_array *ra)
