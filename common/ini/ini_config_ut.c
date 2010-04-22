@@ -1319,7 +1319,7 @@ int main(int argc, char *argv[])
 
     if ((argc > 1) && (strcmp(argv[1], "-v") == 0)) verbose = 1;
 
-    printf("Start\n");
+    COLOUT(printf("Start\n"));
 
     srcdir = getenv("srcdir");
     if(srcdir) {
@@ -1343,6 +1343,6 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    printf("Success!\n");
+    COLOUT(printf("Success!\n"));
     return 0;
 }
