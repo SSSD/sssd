@@ -6,7 +6,7 @@
     Authors:
         Sumit Bose <sbose@redhat.com>
 
-    Copyright (C) 2009 Red Hat
+    Copyright (C) 2009-2010 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -44,74 +44,6 @@
 #else
 #define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
 #endif
-
-static errno_t add_krb5_env(struct dp_option *opts, const char *ccname,
-                            struct pam_data *pd)
-{
-    int ret;
-    const char *dummy;
-    char *env;
-    TALLOC_CTX *tmp_ctx = NULL;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(1, ("talloc_new failed.\n"));
-        return ENOMEM;
-    }
-
-    if (ccname != NULL) {
-        env = talloc_asprintf(tmp_ctx, "%s=%s",CCACHE_ENV_NAME, ccname);
-        if (env == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env)+1,
-                               (uint8_t *) env);
-        if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
-            goto done;
-        }
-    }
-
-    dummy = dp_opt_get_cstring(opts, KRB5_REALM);
-    if (dummy != NULL) {
-        env = talloc_asprintf(tmp_ctx, "%s=%s", SSSD_KRB5_REALM, dummy);
-        if (env == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env)+1,
-                               (uint8_t *) env);
-        if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
-            goto done;
-        }
-    }
-
-    dummy = dp_opt_get_cstring(opts, KRB5_KDC);
-    if (dummy != NULL) {
-        env = talloc_asprintf(tmp_ctx, "%s=%s", SSSD_KRB5_KDC, dummy);
-        if (env == NULL) {
-            DEBUG(1, ("talloc_asprintf failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env)+1,
-                               (uint8_t *) env);
-        if (ret != EOK) {
-            DEBUG(1, ("pam_add_response failed.\n"));
-            goto done;
-        }
-    }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
 
 static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
                                             bool *result)
@@ -1113,10 +1045,10 @@ static void krb5_child_done(struct tevent_req *subreq)
     uint8_t *buf = NULL;
     ssize_t len = -1;
     ssize_t pref_len;
-    int p;
-    int32_t *msg_status;
-    int32_t *msg_type;
-    int32_t *msg_len;
+    size_t p;
+    int32_t msg_status;
+    int32_t msg_type;
+    int32_t msg_len;
 
     ret = handle_child_recv(subreq, pd, &buf, &len);
     talloc_zfree(kr->timeout_handler);
@@ -1133,48 +1065,83 @@ static void krb5_child_done(struct tevent_req *subreq)
         return;
     }
 
-    if ((size_t) len < 3*sizeof(int32_t)) {
+    /* A buffer with the following structure is expected.
+     * int32_t status of the request (required)
+     * message (zero or more)
+     *
+     * A message consists of:
+     * int32_t type of the message
+     * int32_t length of the following data
+     * uint8_t[len] data
+     */
+
+    if ((size_t) len < sizeof(int32_t)) {
         DEBUG(1, ("message too short.\n"));
         ret = EINVAL;
         goto done;
     }
 
     p=0;
-    msg_status = ((int32_t *)(buf+p));
-    p += sizeof(int32_t);
+    SAFEALIGN_COPY_INT32(&msg_status, buf+p, &p);
 
-    msg_type = ((int32_t *)(buf+p));
-    p += sizeof(int32_t);
+    while (p < len) {
+        SAFEALIGN_COPY_INT32(&msg_type, buf+p, &p);
+        SAFEALIGN_COPY_INT32(&msg_len, buf+p, &p);
 
-    msg_len = ((int32_t *)(buf+p));
-    p += sizeof(int32_t);
+        DEBUG(9, ("child response [%d][%d][%d].\n", msg_status, msg_type,
+                                                    msg_len));
 
-    DEBUG(4, ("child response [%d][%d][%d].\n", *msg_status, *msg_type,
-                                                *msg_len));
+        if ((p + msg_len) > len) {
+            DEBUG(1, ("message format error [%d] > [%d].\n", p+msg_len, len));
+            ret = EINVAL;
+            goto done;
+        }
 
-    if ((p + *msg_len) != len) {
-        DEBUG(1, ("message format error [%d] != [%d].\n", p+*msg_len, len));
-        goto done;
-    }
+        /* We need to save the name of the credential cache file. To find it
+         * we check if the data part of a message starts with
+         * CCACHE_ENV_NAME"=". pref_len also counts the trailing '=' because
+         * sizeof() counts the trailing '\0' of a string. */
+        pref_len = sizeof(CCACHE_ENV_NAME);
+        if (msg_len > pref_len &&
+            strncmp((const char *) &buf[p], CCACHE_ENV_NAME"=", pref_len) == 0) {
+            kr->ccname = talloc_strndup(kr, (char *) &buf[p+pref_len],
+                                        msg_len-pref_len);
+            if (kr->ccname == NULL) {
+                DEBUG(1, ("talloc_strndup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
 
-    if (*msg_status != PAM_SUCCESS && *msg_status != PAM_AUTHINFO_UNAVAIL &&
-        *msg_status != PAM_AUTHTOK_LOCK_BUSY) {
-        state->pam_status = *msg_status;
-        state->dp_err = DP_ERR_OK;
-
-        ret = pam_add_response(pd, *msg_type, *msg_len, &buf[p]);
+        ret = pam_add_response(pd, msg_type, msg_len, &buf[p]);
         if (ret != EOK) {
             /* This is not a fatal error */
             DEBUG(1, ("pam_add_response failed.\n"));
         }
+        p += msg_len;
 
+        if ((p < len) && (p + 2*sizeof(int32_t) >= len)) {
+            DEBUG(1, ("The remainder of the message is too short.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    /* If the child request failed, but did not return an offline error code,
+     * return with the status */
+    if (msg_status != PAM_SUCCESS && msg_status != PAM_AUTHINFO_UNAVAIL &&
+        msg_status != PAM_AUTHTOK_LOCK_BUSY) {
+        state->pam_status = msg_status;
+        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     } else {
-        state->pam_status = *msg_status;
+        state->pam_status = msg_status;
     }
 
-    if (*msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+    /* If the child request was successful and we run the first pass of the
+     * change password request just return success. */
+    if (msg_status == PAM_SUCCESS && pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         state->pam_status = PAM_SUCCESS;
         state->dp_err = DP_ERR_OK;
         ret = EOK;
@@ -1184,7 +1151,7 @@ static void krb5_child_done(struct tevent_req *subreq)
     /* if using a dedicated kpasswd server.. */
     if (kr->kpasswd_srv != NULL) {
         /* ..which is unreachable by now.. */
-        if (*msg_status == PAM_AUTHTOK_LOCK_BUSY) {
+        if (msg_status == PAM_AUTHTOK_LOCK_BUSY) {
             fo_set_port_status(kr->kpasswd_srv, PORT_NOT_WORKING);
             /* ..try to resolve next kpasswd server */
             if (krb5_next_kpasswd(req) == NULL) {
@@ -1199,8 +1166,8 @@ static void krb5_child_done(struct tevent_req *subreq)
     /* if the KDC for auth (PAM_AUTHINFO_UNAVAIL) or
      * chpass (PAM_AUTHTOK_LOCK_BUSY) was not available while using KDC
      * also for chpass operation... */
-    if (*msg_status == PAM_AUTHINFO_UNAVAIL ||
-        (kr->kpasswd_srv == NULL && *msg_status == PAM_AUTHTOK_LOCK_BUSY)) {
+    if (msg_status == PAM_AUTHINFO_UNAVAIL ||
+        (kr->kpasswd_srv == NULL && msg_status == PAM_AUTHTOK_LOCK_BUSY)) {
         if (kr->srv != NULL) {
             fo_set_port_status(kr->srv, PORT_NOT_WORKING);
             /* ..try to resolve next KDC */
@@ -1213,19 +1180,15 @@ static void krb5_child_done(struct tevent_req *subreq)
         fo_set_port_status(kr->srv, PORT_WORKING);
     }
 
-    pref_len = strlen(CCACHE_ENV_NAME)+1;
-    if (*msg_len > pref_len &&
-        strncmp((const char *) &buf[p], CCACHE_ENV_NAME"=", pref_len) == 0) {
-        kr->ccname = talloc_strndup(kr, (char *) &buf[p+pref_len],
-                                   *msg_len-pref_len);
-        if (kr->ccname == NULL) {
-            DEBUG(1, ("talloc_strndup failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        DEBUG(1, ("Missing ccache name in child response [%.*s].\n", *msg_len,
-                                                                     &buf[p]));
+    /* The following cases are left now:
+     *  - offline (msg_status == PAM_AUTHINFO_UNAVAIL or
+     *             msg_status == PAM_AUTHTOK_LOCK_BUSY)
+     *  - successful authentication or password change
+     *
+     *  For all these cases we expect that one of the messages for the
+     *  received buffer contains the name of the credential cache file. */
+    if (kr->ccname == NULL) {
+        DEBUG(1, ("Missing ccache name in child response.\n"));
         ret = EINVAL;
         goto done;
     }
@@ -1325,17 +1288,8 @@ static void krb5_save_ccname_done(struct tevent_req *subreq)
     struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
     struct krb5child_req *kr = state->kr;
     struct pam_data *pd = state->pd;
-    struct krb5_ctx *krb5_ctx = kr->krb5_ctx;
     int ret;
     char *password = NULL;
-
-    if (pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) {
-        ret = add_krb5_env(krb5_ctx->opts, kr->ccname, pd);
-        if (ret != EOK) {
-            DEBUG(1, ("add_krb5_env failed.\n"));
-            goto done;
-        }
-    }
 
     ret = sysdb_set_user_attr_recv(subreq);
     talloc_zfree(subreq);

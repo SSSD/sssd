@@ -888,7 +888,7 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
         switch(type) {
             case SSS_PAM_SYSTEM_INFO:
                 if (buf[p + (len -1)] != '\0') {
-                    D(("user info does not end with \\0."));
+                    D(("system info does not end with \\0."));
                     break;
                 }
                 logger(pamh, LOG_INFO, "system info: [%s]", &buf[p]);
@@ -938,6 +938,18 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                 ret = eval_user_info_response(pamh, len, &buf[p]);
                 if (ret != PAM_SUCCESS) {
                     D(("eval_user_info_response failed"));
+                }
+                break;
+            case SSS_PAM_TEXT_MSG:
+                if (buf[p + (len -1)] != '\0') {
+                    D(("system info does not end with \\0."));
+                    break;
+                }
+
+                ret = do_pam_conversation(pamh, PAM_TEXT_INFO, (char *) &buf[p],
+                                          NULL, NULL);
+                if (ret != PAM_SUCCESS) {
+                    D(("do_pam_conversation failed."));
                 }
                 break;
             default:
