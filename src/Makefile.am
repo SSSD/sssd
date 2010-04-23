@@ -221,6 +221,7 @@ SSSD_UTIL_OBJ = \
     db/sysdb_search.c \
     monitor/monitor_sbus.c \
     providers/dp_auth_util.c \
+    providers/dp_pam_data_util.c \
     providers/dp_sbus.c \
     sbus/sbus_client.c \
     sbus/sssd_dbus_common.c \
@@ -825,6 +826,7 @@ krb5_child_SOURCES = \
     providers/krb5/krb5_become_user.c \
     providers/krb5/krb5_child.c \
     providers/child_common.c \
+    providers/dp_pam_data_util.c \
     util/user_info_msg.c \
     util/sss_krb5.c
 krb5_child_CFLAGS = \
