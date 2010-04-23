@@ -316,9 +316,13 @@ enum response_type {
                           * @param String, zero terminated, of the form
                           * name=value. See putenv(3) and pam_putenv(3) for
                           * details. */
-    SSS_PAM_USER_INFO    /**< A message which should be displayed to the user.
+    SSS_PAM_USER_INFO,   /**< A message which should be displayed to the user.
                           * @param User info message, see #user_info_type
                           * for details. */
+    SSS_PAM_TEXT_MSG,    /**< A plain text message which should be displayed to
+                          * the user.This should only be used in the case where
+                          * it is not possile to use SSS_PAM_USER_INFO.
+                          * @param A zero terminated string. */
 };
 
 /**

@@ -6,7 +6,7 @@
     Authors:
         Sumit Bose <sbose@redhat.com>
 
-    Copyright (C) 2009 Red Hat
+    Copyright (C) 2009-2010 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -102,6 +102,36 @@ static const char *__krb5_error_msg;
     DEBUG(level, ("%d: [%d][%s]\n", __LINE__, krb5_error, __krb5_error_msg)); \
     sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
 } while(0);
+
+
+static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
+                                         const char *name, const char *banner,
+                                         int num_prompts, krb5_prompt prompts[])
+{
+    int ret;
+    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+
+    if (num_prompts != 0) {
+        DEBUG(1, ("Cannot handle password prompts.\n"));
+        return KRB5_LIBOS_CANTREADPWD;
+    }
+
+    if (banner == NULL || *banner == '\0') {
+        DEBUG(5, ("Prompter called with empty banner, nothing to do.\n"));
+        return EOK;
+    }
+
+    DEBUG(9, ("Prompter called with [%s].\n", banner));
+
+    ret = pam_add_response(kr->pd, SSS_PAM_TEXT_MSG, strlen(banner)+1,
+                           (const uint8_t *) banner);
+    if (ret != EOK) {
+        DEBUG(1, ("pam_add_response failed.\n"));
+    }
+
+    return EOK;
+}
+
 
 static krb5_error_code create_empty_cred(struct krb5_req *kr, krb5_creds **_cred)
 {
@@ -247,22 +277,49 @@ done:
     return kerr;
 }
 
-static errno_t pack_response_packet(struct response *resp, int status, int type,
-                                    size_t len, const uint8_t *data)
+static errno_t pack_response_packet(struct response *resp, int status,
+                                    struct pam_data *pd)
 {
+    size_t size = 0;
     size_t p = 0;
+    struct response_data *pdr;
 
-    resp->buf = talloc_array(resp, uint8_t,
-                             3*sizeof(int32_t) + len);
+    /* A buffer with the following structure must be created:
+     * int32_t status of the request (required)
+     * message (zero or more)
+     *
+     * A message consists of:
+     * int32_t type of the message
+     * int32_t length of the following data
+     * uint8_t[len] data
+     */
+
+    size = sizeof(int32_t);
+
+    pdr = pd->resp_list;
+    while (pdr != NULL) {
+        size += 2*sizeof(int32_t) + pdr->len;
+        pdr = pdr->next;
+    }
+
+
+    resp->buf = talloc_array(resp, uint8_t, size);
     if (!resp->buf) {
         DEBUG(1, ("Insufficient memory to create message.\n"));
         return ENOMEM;
     }
 
     SAFEALIGN_SET_INT32(&resp->buf[p], status, &p);
-    SAFEALIGN_SET_INT32(&resp->buf[p], type, &p);
-    SAFEALIGN_SET_INT32(&resp->buf[p], len, &p);
-    safealign_memcpy(&resp->buf[p], data, len, &p);
+
+    pdr = pd->resp_list;
+    while(pdr != NULL) {
+        SAFEALIGN_SET_INT32(&resp->buf[p], pdr->type, &p);
+        SAFEALIGN_SET_INT32(&resp->buf[p], pdr->len, &p);
+        safealign_memcpy(&resp->buf[p], pdr->data, pdr->len, &p);
+
+        pdr = pdr->next;
+    }
+
 
     resp->size = p;
 
@@ -271,15 +328,12 @@ static errno_t pack_response_packet(struct response *resp, int status, int type,
 
 static struct response *prepare_response_message(struct krb5_req *kr,
                                                  krb5_error_code kerr,
-                                                 char *user_error_message,
                                                  int pam_status)
 {
     char *msg = NULL;
     const char *krb5_msg = NULL;
     int ret;
     struct response *resp;
-    size_t user_resp_len;
-    uint8_t *user_resp;
 
     resp = talloc_zero(kr, struct response);
     if (resp == NULL) {
@@ -289,9 +343,8 @@ static struct response *prepare_response_message(struct krb5_req *kr,
 
     if (kerr == 0) {
         if(kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
-            ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_SYSTEM_INFO,
-                                       strlen("success") + 1,
-                                       (const uint8_t *) "success");
+            pam_status = PAM_SUCCESS;
+            ret = EOK;
         } else {
             if (kr->ccname == NULL) {
                 DEBUG(1, ("Error obtaining ccname.\n"));
@@ -304,44 +357,28 @@ static struct response *prepare_response_message(struct krb5_req *kr,
                 return NULL;
             }
 
-            ret = pack_response_packet(resp, PAM_SUCCESS, SSS_PAM_ENV_ITEM,
-                                       strlen(msg) + 1, (uint8_t *) msg);
+            pam_status = PAM_SUCCESS;
+            ret = pam_add_response(kr->pd, SSS_PAM_ENV_ITEM, strlen(msg) + 1,
+                                   (uint8_t *) msg);
             talloc_zfree(msg);
         }
     } else {
-        if (user_error_message != NULL) {
-            ret = pack_user_info_chpass_error(kr, user_error_message,
-                                              &user_resp_len, &user_resp);
-            if (ret != EOK) {
-                DEBUG(1, ("pack_user_info_chpass_error failed.\n"));
-                talloc_zfree(user_error_message);
-            } else {
-                ret = pack_response_packet(resp, pam_status, SSS_PAM_USER_INFO,
-                                           user_resp_len, user_resp);
-                if (ret != EOK) {
-                    DEBUG(1, ("pack_response_packet failed.\n"));
-                    talloc_zfree(user_error_message);
-                }
-            }
+        krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
+        if (krb5_msg == NULL) {
+            DEBUG(1, ("sss_krb5_get_error_message failed.\n"));
+            return NULL;
         }
 
-        if (user_error_message == NULL) {
-            krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
-            if (krb5_msg == NULL) {
-                DEBUG(1, ("sss_krb5_get_error_message failed.\n"));
-                return NULL;
-            }
-
-            ret = pack_response_packet(resp, pam_status, SSS_PAM_SYSTEM_INFO,
-                                       strlen(krb5_msg) + 1,
-                                       (const uint8_t *) krb5_msg);
-            sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
-        } else {
-
-        }
-
+        ret = pam_add_response(kr->pd, SSS_PAM_SYSTEM_INFO,
+                               strlen(krb5_msg) + 1,
+                               (const uint8_t *) krb5_msg);
+        sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
+    }
+    if (ret != EOK) {
+        DEBUG(1, ("pam_add_response failed.\n"));
     }
 
+    ret = pack_response_packet(resp, pam_status, kr->pd);
     if (ret != EOK) {
         DEBUG(1, ("pack_response_packet failed.\n"));
         return NULL;
@@ -350,15 +387,14 @@ static struct response *prepare_response_message(struct krb5_req *kr,
     return resp;
 }
 
-static errno_t sendresponse(int fd, krb5_error_code kerr,
-                            char *user_error_message, int pam_status,
+static errno_t sendresponse(int fd, krb5_error_code kerr, int pam_status,
                             struct krb5_req *kr)
 {
     struct response *resp;
     size_t written;
     int ret;
 
-    resp = prepare_response_message(kr, kerr, user_error_message, pam_status);
+    resp = prepare_response_message(kr, kerr, pam_status);
     if (resp == NULL) {
         DEBUG(1, ("prepare_response_message failed.\n"));
         return ENOMEM;
@@ -481,8 +517,8 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     int ret;
 
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        password, NULL, NULL, 0, NULL,
-                                        kr->options);
+                                        password, sss_krb5_prompter, kr, 0,
+                                        NULL, kr->options);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         return kerr;
@@ -533,6 +569,9 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     krb5_data result_code_string;
     krb5_data result_string;
     char *user_error_message = NULL;
+    size_t user_resp_len;
+    uint8_t *user_resp;
+    krb5_prompter_fct prompter = sss_krb5_prompter;
 
     pass_str = talloc_strndup(kr, (const char *) kr->pd->authtok,
                               kr->pd->authtok_size);
@@ -542,8 +581,13 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
+    if (kr->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
+        /* We do not need a password expiration warning here. */
+        prompter = NULL;
+    }
+
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                        pass_str, NULL, NULL, 0,
+                                        pass_str, prompter, kr, 0,
                                         kr->krb5_ctx->changepw_principle,
                                         kr->options);
     if (kerr != 0) {
@@ -612,6 +656,20 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
             }
         }
 
+        if (user_error_message != NULL) {
+            ret = pack_user_info_chpass_error(kr->pd, user_error_message,
+                                              &user_resp_len, &user_resp);
+            if (ret != EOK) {
+                DEBUG(1, ("pack_user_info_chpass_error failed.\n"));
+            } else {
+                ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, user_resp_len,
+                                       user_resp);
+                if (ret != EOK) {
+                    DEBUG(1, ("pack_response_packet failed.\n"));
+                }
+            }
+        }
+
         pam_status = PAM_AUTHTOK_ERR;
         goto sendresponse;
     }
@@ -631,7 +689,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
     }
 
 sendresponse:
-    ret = sendresponse(fd, kerr, user_error_message, pam_status, kr);
+    ret = sendresponse(fd, kerr, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }
@@ -662,7 +720,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
        So we validate the password by trying to get a changepw ticket. */
     if (kerr == KRB5KDC_ERR_KEY_EXP) {
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
-                                            pass_str, NULL, NULL, 0,
+                                            pass_str, sss_krb5_prompter, kr, 0,
                                             kr->krb5_ctx->changepw_principle,
                                             kr->options);
         krb5_free_cred_contents(kr->ctx, kr->creds);
@@ -693,7 +751,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
     }
 
 sendresponse:
-    ret = sendresponse(fd, kerr, NULL, pam_status, kr);
+    ret = sendresponse(fd, kerr, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }
@@ -712,7 +770,7 @@ static errno_t create_empty_ccache(int fd, struct krb5_req *kr)
         pam_status = PAM_SYSTEM_ERR;
     }
 
-    ret = sendresponse(fd, ret, NULL, pam_status, kr);
+    ret = sendresponse(fd, ret, pam_status, kr);
     if (ret != EOK) {
         DEBUG(1, ("sendresponse failed.\n"));
     }
@@ -873,6 +931,15 @@ static int krb5_setup(struct krb5_req *kr, uint32_t offline)
     }
 
     kerr = sss_krb5_get_init_creds_opt_alloc(kr->ctx, &kr->options);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        goto failed;
+    }
+
+    /* A prompter is used to catch messages about when a password will
+     * expired. The library shall not use the prompter to ask for a new password
+     * but shall return KRB5KDC_ERR_KEY_EXP. */
+    krb5_get_init_creds_opt_set_change_password_prompt(kr->options, 0);
     if (kerr != 0) {
         KRB5_DEBUG(1, kerr);
         goto failed;
