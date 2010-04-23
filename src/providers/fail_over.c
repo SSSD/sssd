@@ -74,6 +74,8 @@ struct fo_server {
 struct server_common {
     REFCOUNT_COMMON;
 
+    struct fo_ctx *ctx;
+
     struct server_common *prev;
     struct server_common *next;
 
@@ -313,6 +315,20 @@ get_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name,
     return ENOENT;
 }
 
+static int server_common_destructor(void *memptr)
+{
+    struct server_common *common;
+
+    common = talloc_get_type(memptr, struct server_common);
+    if (common->request_list) {
+        DEBUG(1, ("BUG: pending requests still associated with this server\n"));
+        return -1;
+    }
+    DLIST_REMOVE(common->ctx->server_common_list, common);
+
+    return 0;
+}
+
 static struct server_common *
 create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
 {
@@ -328,6 +344,7 @@ create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
         return NULL;
     }
 
+    common->ctx = ctx;
     common->prev = NULL;
     common->next = NULL;
     common->hostent = NULL;
@@ -336,6 +353,7 @@ create_server_common(TALLOC_CTX *mem_ctx, struct fo_ctx *ctx, const char *name)
     common->last_status_change.tv_sec = 0;
     common->last_status_change.tv_usec = 0;
 
+    talloc_set_destructor((TALLOC_CTX *) common, server_common_destructor);
     DLIST_ADD_END(ctx->server_common_list, common, struct server_common *);
     return common;
 }
@@ -452,7 +470,12 @@ set_lookup_hook(struct fo_server *server, struct tevent_req *req)
         talloc_free(request);
         return ENOMEM;
     }
-    request->server_common = server->common;
+    request->server_common = rc_reference(request, struct server_common,
+                                          server->common);
+    if (request->server_common == NULL) {
+        talloc_free(request);
+        return ENOMEM;
+    }
     request->req = req;
     DLIST_ADD(server->common->request_list, request);
     talloc_set_destructor(request, resolve_service_request_destructor);
