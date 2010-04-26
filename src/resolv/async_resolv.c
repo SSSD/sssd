@@ -325,7 +325,7 @@ recreate_ares_channel(struct resolv_ctx *ctx)
     DEBUG(4, ("Initializing new c-ares channel\n"));
     /* FIXME: the options would contain
      * the nameservers to contact, the domains
-     * to search, timeout... => get from confdb
+     * to search... => get from confdb
      */
     options.sock_state_cb = fd_event;
     options.sock_state_cb_data = ctx;
@@ -357,6 +357,10 @@ resolv_init(TALLOC_CTX *mem_ctx, struct tevent_context *ev_ctx,
 {
     int ret;
     struct resolv_ctx *ctx;
+
+    if (timeout < 1) {
+        return EINVAL;
+    }
 
     ctx = talloc_zero(mem_ctx, struct resolv_ctx);
     if (ctx == NULL)

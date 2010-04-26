@@ -641,6 +641,21 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>dns_resolver_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Defines the amount of time (in seconds) to wait for a reply from
+                            the DNS resolver before assuming that it is unreachable. If this
+                            timeout is reached, the domain will continue to operate in
+                            offline mode.
+                        </para>
+                        <para>
+                            Default: 5
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 
