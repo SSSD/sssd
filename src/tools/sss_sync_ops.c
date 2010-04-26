@@ -198,8 +198,8 @@ int usermod(TALLOC_CTX *mem_ctx,
             struct sysdb_ctx *sysdb,
             struct ops_ctx *data)
 {
-    struct sysdb_attrs *attrs;
-    struct ldb_dn *member_dn;
+    struct sysdb_attrs *attrs = NULL;
+    struct ldb_dn *member_dn = NULL;
     int ret;
 
     if (data->addgroups || data->rmgroups) {
@@ -258,8 +258,8 @@ int groupmod(TALLOC_CTX *mem_ctx,
              struct sysdb_ctx *sysdb,
              struct ops_ctx *data)
 {
-    struct sysdb_attrs *attrs;
-    struct ldb_dn *member_dn;
+    struct sysdb_attrs *attrs = NULL;
+    struct ldb_dn *member_dn = NULL;
     int ret;
 
     if (data->addgroups || data->rmgroups) {

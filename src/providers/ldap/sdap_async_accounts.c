@@ -56,10 +56,12 @@ static int sdap_save_user(TALLOC_CTX *memctx,
 
     ret = sysdb_attrs_get_el(attrs,
                              opts->user_map[SDAP_AT_USER_NAME].sys_name, &el);
-    if (ret) goto fail;
     if (el->num_values == 0) {
         ret = EINVAL;
-        goto fail;
+    }
+    if (ret) {
+        DEBUG(1, ("Failed to save the user - entry has no name attribute\n"));
+        return ret;
     }
     name = (const char *)el->values[0].data;
 

@@ -430,14 +430,18 @@ static int get_pw_uid(TALLOC_CTX *mem_ctx,
     pwd = talloc_zero(tmpctx, struct passwd);
     if (!pwd) {
         ret = ENOMEM;
-        goto done;
+        DEBUG(1, ("proxy -> getpwuid_r failed for '%d': [%d] %s\n",
+                  uid, ret, strerror(ret)));
+        return ret;
     }
 
     buflen = DEFAULT_BUFSIZE;
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
         ret = ENOMEM;
-        goto done;
+        DEBUG(1, ("proxy -> getpwuid_r failed for '%d': [%d] %s\n",
+                  uid, ret, strerror(ret)));
+        return ret;
     }
 
     status = ctx->ops.getpwuid_r(uid, pwd, buffer, buflen, &ret);
@@ -687,14 +691,18 @@ static int get_gr_name(TALLOC_CTX *mem_ctx,
     grp = talloc(tmpctx, struct group);
     if (!grp) {
         ret = ENOMEM;
-        goto done;
+        DEBUG(1, ("proxy -> getgrnam_r failed for '%s': [%d] %s\n",
+                  name, ret, strerror(ret)));
+        return ret;
     }
 
     buflen = DEFAULT_BUFSIZE;
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
         ret = ENOMEM;
-        goto done;
+        DEBUG(1, ("proxy -> getgrnam_r failed for '%s': [%d] %s\n",
+                  name, ret, strerror(ret)));
+        return ret;
     }
 
     /* FIXME: should we move this call outside the transaction to keep the
@@ -835,14 +843,18 @@ static int get_gr_gid(TALLOC_CTX *mem_ctx,
     grp = talloc(tmpctx, struct group);
     if (!grp) {
         ret = ENOMEM;
-        goto done;
+        DEBUG(1, ("proxy -> getgrgid_r failed for '%d': [%d] %s\n",
+                  gid, ret, strerror(ret)));
+        return ret;
     }
 
     buflen = DEFAULT_BUFSIZE;
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
         ret = ENOMEM;
-        goto done;
+        DEBUG(1, ("proxy -> getgrgid_r failed for '%d': [%d] %s\n",
+                  gid, ret, strerror(ret)));
+        return ret;
     }
 
 again:
