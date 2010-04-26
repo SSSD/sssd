@@ -93,6 +93,7 @@ static int be_fo_get_options(TALLOC_CTX *mem_ctx, struct be_ctx *ctx,
 int be_init_failover(struct be_ctx *ctx)
 {
     int ret;
+    int fo_timeout;
     struct fo_options fopts;
 
     if (ctx->be_fo != NULL) {
@@ -104,7 +105,14 @@ int be_init_failover(struct be_ctx *ctx)
         return ENOMEM;
     }
 
-    ret = resolv_init(ctx, ctx->ev, 5, &ctx->be_fo->resolv);
+    ret = confdb_get_int(ctx->cdb, ctx, ctx->conf_path,
+                         CONFDB_DOMAIN_RESOLV_TIMEOUT,
+                         5, &fo_timeout);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = resolv_init(ctx, ctx->ev, fo_timeout, &ctx->be_fo->resolv);
     if (ret != EOK) {
         talloc_zfree(ctx->be_fo);
         return ret;

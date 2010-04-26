@@ -81,6 +81,7 @@ option_strings = {
     'entry_cache_timeout' : _('Entry cache timeout length (seconds)'),
     'lookup_family_order' : _('Restrict or prefer a specific address family when performing DNS lookups'),
     'account_cache_expiration' : _('How long to keep cached entries after last successful login (days)'),
+    'dns_resolver_timeout' : _('How long to wait for replies from DNS when resolving servers (seconds)'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),
