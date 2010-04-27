@@ -1330,6 +1330,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                    int pam_flags, int argc, const char **argv)
 {
     int ret;
+    int pam_status;
     struct pam_items pi;
     uint32_t flags = 0;
     int *exp_data;
@@ -1376,34 +1377,32 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             return PAM_SYSTEM_ERR;
     }
 
-    ret = send_and_receive(pamh, &pi, task);
+    pam_status = send_and_receive(pamh, &pi, task);
 
     switch (task) {
         case SSS_PAM_AUTHENTICATE:
             /* We allow sssd to send the return code PAM_NEW_AUTHTOK_REQD during
              * authentication, see sss_cli.h for details */
-            if (ret == PAM_NEW_AUTHTOK_REQD) {
+            if (pam_status == PAM_NEW_AUTHTOK_REQD) {
                 D(("Authtoken expired, trying to change it"));
 
                 exp_data = malloc(sizeof(int));
                 if (exp_data == NULL) {
                     D(("malloc failed."));
-                    ret = PAM_BUF_ERR;
+                    pam_status = PAM_BUF_ERR;
                     break;
                 }
                 *exp_data = 1;
-                ret = pam_set_data(pamh, PWEXP_FLAG, exp_data, free_exp_data);
-                if (ret != PAM_SUCCESS) {
-                    D(("pam_set_data failed."));
-                    ret = ret;
-                    break;
-                }
 
-                ret = PAM_SUCCESS;
+                pam_status = pam_set_data(pamh, PWEXP_FLAG, exp_data,
+                                          free_exp_data);
+                if (pam_status != PAM_SUCCESS) {
+                    D(("pam_set_data failed."));
+                }
             }
             break;
         case SSS_PAM_ACCT_MGMT:
-            if (ret == PAM_SUCCESS &&
+            if (pam_status == PAM_SUCCESS &&
                 pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
                                                                   PAM_SUCCESS) {
                 ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
@@ -1412,11 +1411,11 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
                 if (ret != PAM_SUCCESS) {
                     D(("do_pam_conversation failed."));
                 }
-                ret = PAM_NEW_AUTHTOK_REQD;
+                pam_status = PAM_NEW_AUTHTOK_REQD;
             }
             break;
         case SSS_PAM_CHAUTHTOK:
-            if (ret != PAM_SUCCESS && ret != PAM_USER_UNKNOWN) {
+            if (pam_status != PAM_SUCCESS && pam_status != PAM_USER_UNKNOWN) {
                 ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
                 if (ret != PAM_SUCCESS) {
                     D(("Failed to unset PAM_AUTHTOK [%s]",
@@ -1430,15 +1429,15 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
             }
             break;
         case SSS_PAM_CHAUTHTOK_PRELIM:
-            if (ret == PAM_PERM_DENIED && pi.pam_authtok_size == 0 &&
+            if (pam_status == PAM_PERM_DENIED && pi.pam_authtok_size == 0 &&
                 getuid() == 0 &&
                 pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) !=
                                                                   PAM_SUCCESS) {
 
                 ret = select_pw_reset_message(pamh, &pi);
                 if (ret != 0) {
+                    D(("select_pw_reset_message failed.\n"));
                 }
-                ret = PAM_PERM_DENIED;
             }
         default:
             /* nothing to do */
@@ -1449,7 +1448,7 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
 
     overwrite_and_free_pam_items(&pi);
 
-    return ret;
+    return pam_status;
 }
 
 PAM_EXTERN int pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc,
