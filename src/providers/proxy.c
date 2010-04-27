@@ -277,6 +277,16 @@ static void proxy_pam_handler(struct be_req *req) {
 static void proxy_reply(struct be_req *req, int dp_err,
                         int error, const char *errstr)
 {
+    if (!req->be_ctx->offstat.offline) {
+        /* This action took place online.
+         * Fire any online callbacks if necessary.
+         * Note: we're checking the offline value directly,
+         * because if the activity took a long time to
+         * complete, calling be_is_offline() might report false
+         * incorrectly.
+         */
+        be_run_online_cb(req->be_ctx);
+    }
     return req->fn(req, dp_err, error, errstr);
 }
 
