@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <locale.h>
+#include <stdbool.h>
 
 #include <security/pam_modules.h>
 #include <security/pam_ext.h>
@@ -59,6 +60,8 @@
 
 #define PW_RESET_MSG_FILENAME_TEMPLATE SSSD_CONF_DIR"/customize/%s/pam_sss_pw_reset_message.%s"
 #define PW_RESET_MSG_MAX_SIZE 4096
+
+#define OPT_RETRY_KEY "retry="
 
 struct pam_items {
     const char* pam_service;
@@ -204,6 +207,9 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
         free((void *)pi->pam_newauthtok);
         pi->pam_newauthtok = NULL;
     }
+
+    pi->pamstack_authtok = NULL;
+    pi->pamstack_oldauthtok = NULL;
 
     free(pi->domain_name);
 }
@@ -1201,8 +1207,10 @@ static int prompt_new_password(pam_handle_t *pamh, struct pam_items *pi)
 }
 
 static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
-                      uint32_t *flags)
+                      uint32_t *flags, int *retries)
 {
+    char *ep;
+
     for (; argc-- > 0; ++argv) {
         if (strcmp(*argv, "forward_pass") == 0) {
             *flags |= FLAGS_FORWARD_PASS;
@@ -1210,6 +1218,28 @@ static void eval_argv(pam_handle_t *pamh, int argc, const char **argv,
             *flags |= FLAGS_USE_FIRST_PASS;
         } else if (strcmp(*argv, "use_authtok") == 0) {
             *flags |= FLAGS_USE_AUTHTOK;
+        } else if (strncmp(*argv, OPT_RETRY_KEY, strlen(OPT_RETRY_KEY)) == 0) {
+            if (*(*argv+6) == '\0') {
+                logger(pamh, LOG_ERR, "Missing argument to option retry.");
+                *retries = 0;
+            } else {
+                errno = 0;
+                *retries = strtol(*argv+6, &ep, 10);
+                if (errno != 0) {
+                    D(("strtol failed [%d][%s]", errno, strerror(errno)));
+                    *retries = 0;
+                }
+                if (*ep != '\0') {
+                    logger(pamh, LOG_ERR, "Argument to option retry contains "
+                                          "extra characters.");
+                    *retries = 0;
+                }
+                if (*retries < 0) {
+                    logger(pamh, LOG_ERR, "Argument to option retry must not "
+                                          "be negative.");
+                    *retries = 0;
+                }
+            }
         } else {
             logger(pamh, LOG_WARNING, "unknown option: %s", *argv);
         }
@@ -1334,12 +1364,14 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
     struct pam_items pi;
     uint32_t flags = 0;
     int *exp_data;
+    bool retry = false;
+    int retries = 0;
 
     bindtextdomain(PACKAGE, LOCALEDIR);
 
     D(("Hello pam_sssd: %d", task));
 
-    eval_argv(pamh, argc, argv, &flags);
+    eval_argv(pamh, argc, argv, &flags, &retries);
 
     ret = get_pam_items(pamh, &pi);
     if (ret != PAM_SUCCESS) {
@@ -1347,106 +1379,129 @@ static int pam_sss(enum sss_cli_command task, pam_handle_t *pamh,
         return ret;
     }
 
-    switch(task) {
-        case SSS_PAM_AUTHENTICATE:
-            ret = get_authtok_for_authentication(pamh, &pi, flags);
+    do {
+        retry = false;
+
+        switch(task) {
+            case SSS_PAM_AUTHENTICATE:
+                ret = get_authtok_for_authentication(pamh, &pi, flags);
+                if (ret != PAM_SUCCESS) {
+                    D(("failed to get authentication token: %s",
+                       pam_strerror(pamh, ret)));
+                    return ret;
+                }
+                break;
+            case SSS_PAM_CHAUTHTOK:
+                ret = get_authtok_for_password_change(pamh, &pi, flags, pam_flags);
+                if (ret != PAM_SUCCESS) {
+                    D(("failed to get tokens for password change: %s",
+                       pam_strerror(pamh, ret)));
+                    return ret;
+                }
+                if (pam_flags & PAM_PRELIM_CHECK) {
+                    task = SSS_PAM_CHAUTHTOK_PRELIM;
+                }
+                break;
+            case SSS_PAM_ACCT_MGMT:
+            case SSS_PAM_SETCRED:
+            case SSS_PAM_OPEN_SESSION:
+            case SSS_PAM_CLOSE_SESSION:
+                break;
+            default:
+                D(("Illegal task [%d]", task));
+                return PAM_SYSTEM_ERR;
+        }
+
+        pam_status = send_and_receive(pamh, &pi, task);
+
+        switch (task) {
+            case SSS_PAM_AUTHENTICATE:
+                /* We allow sssd to send the return code PAM_NEW_AUTHTOK_REQD during
+                 * authentication, see sss_cli.h for details */
+                if (pam_status == PAM_NEW_AUTHTOK_REQD) {
+                    D(("Authtoken expired, trying to change it"));
+
+                    exp_data = malloc(sizeof(int));
+                    if (exp_data == NULL) {
+                        D(("malloc failed."));
+                        pam_status = PAM_BUF_ERR;
+                        break;
+                    }
+                    *exp_data = 1;
+
+                    pam_status = pam_set_data(pamh, PWEXP_FLAG, exp_data,
+                                              free_exp_data);
+                    if (pam_status != PAM_SUCCESS) {
+                        D(("pam_set_data failed."));
+                    }
+                }
+                break;
+            case SSS_PAM_ACCT_MGMT:
+                if (pam_status == PAM_SUCCESS &&
+                    pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
+                                                                      PAM_SUCCESS) {
+                    ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
+                                   _("Password expired. Change your password now."),
+                                   NULL, NULL);
+                    if (ret != PAM_SUCCESS) {
+                        D(("do_pam_conversation failed."));
+                    }
+                    pam_status = PAM_NEW_AUTHTOK_REQD;
+                }
+                break;
+            case SSS_PAM_CHAUTHTOK:
+                if (pam_status != PAM_SUCCESS && pam_status != PAM_USER_UNKNOWN) {
+                    ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to unset PAM_AUTHTOK [%s]",
+                           pam_strerror(pamh,ret)));
+                    }
+                    ret = pam_set_item(pamh, PAM_OLDAUTHTOK, NULL);
+                    if (ret != PAM_SUCCESS) {
+                        D(("Failed to unset PAM_OLDAUTHTOK [%s]",
+                           pam_strerror(pamh,ret)));
+                    }
+                }
+                break;
+            case SSS_PAM_CHAUTHTOK_PRELIM:
+                if (pam_status == PAM_PERM_DENIED && pi.pam_authtok_size == 0 &&
+                    getuid() == 0 &&
+                    pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) !=
+                                                                      PAM_SUCCESS) {
+
+                    ret = select_pw_reset_message(pamh, &pi);
+                    if (ret != 0) {
+                        D(("select_pw_reset_message failed.\n"));
+                    }
+                }
+            default:
+                /* nothing to do */
+                break;
+        }
+
+        overwrite_and_free_pam_items(&pi);
+
+        D(("retries [%d].", retries));
+
+        if (pam_status != PAM_SUCCESS &&
+            (task == SSS_PAM_AUTHENTICATE || task == SSS_PAM_CHAUTHTOK_PRELIM) &&
+            retries > 0) {
+            retry = true;
+            retries--;
+
+            flags &= !FLAGS_USE_FIRST_PASS;
+            ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
             if (ret != PAM_SUCCESS) {
-                D(("failed to get authentication token: %s",
-                   pam_strerror(pamh, ret)));
-                return ret;
+                D(("Failed to unset PAM_AUTHTOK [%s]",
+                   pam_strerror(pamh,ret)));
             }
-            break;
-        case SSS_PAM_CHAUTHTOK:
-            ret = get_authtok_for_password_change(pamh, &pi, flags, pam_flags);
+            ret = pam_set_item(pamh, PAM_OLDAUTHTOK, NULL);
             if (ret != PAM_SUCCESS) {
-                D(("failed to get tokens for password change: %s",
-                   pam_strerror(pamh, ret)));
-                return ret;
+                D(("Failed to unset PAM_OLDAUTHTOK [%s]",
+                   pam_strerror(pamh,ret)));
             }
-            if (pam_flags & PAM_PRELIM_CHECK) {
-                task = SSS_PAM_CHAUTHTOK_PRELIM;
-            }
-            break;
-        case SSS_PAM_ACCT_MGMT:
-        case SSS_PAM_SETCRED:
-        case SSS_PAM_OPEN_SESSION:
-        case SSS_PAM_CLOSE_SESSION:
-            break;
-        default:
-            D(("Illegal task [%d]", task));
-            return PAM_SYSTEM_ERR;
-    }
-
-    pam_status = send_and_receive(pamh, &pi, task);
-
-    switch (task) {
-        case SSS_PAM_AUTHENTICATE:
-            /* We allow sssd to send the return code PAM_NEW_AUTHTOK_REQD during
-             * authentication, see sss_cli.h for details */
-            if (pam_status == PAM_NEW_AUTHTOK_REQD) {
-                D(("Authtoken expired, trying to change it"));
-
-                exp_data = malloc(sizeof(int));
-                if (exp_data == NULL) {
-                    D(("malloc failed."));
-                    pam_status = PAM_BUF_ERR;
-                    break;
-                }
-                *exp_data = 1;
-
-                pam_status = pam_set_data(pamh, PWEXP_FLAG, exp_data,
-                                          free_exp_data);
-                if (pam_status != PAM_SUCCESS) {
-                    D(("pam_set_data failed."));
-                }
-            }
-            break;
-        case SSS_PAM_ACCT_MGMT:
-            if (pam_status == PAM_SUCCESS &&
-                pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) ==
-                                                                  PAM_SUCCESS) {
-                ret = do_pam_conversation(pamh, PAM_TEXT_INFO,
-                               _("Password expired. Change your password now."),
-                               NULL, NULL);
-                if (ret != PAM_SUCCESS) {
-                    D(("do_pam_conversation failed."));
-                }
-                pam_status = PAM_NEW_AUTHTOK_REQD;
-            }
-            break;
-        case SSS_PAM_CHAUTHTOK:
-            if (pam_status != PAM_SUCCESS && pam_status != PAM_USER_UNKNOWN) {
-                ret = pam_set_item(pamh, PAM_AUTHTOK, NULL);
-                if (ret != PAM_SUCCESS) {
-                    D(("Failed to unset PAM_AUTHTOK [%s]",
-                       pam_strerror(pamh,ret)));
-                }
-                ret = pam_set_item(pamh, PAM_OLDAUTHTOK, NULL);
-                if (ret != PAM_SUCCESS) {
-                    D(("Failed to unset PAM_OLDAUTHTOK [%s]",
-                       pam_strerror(pamh,ret)));
-                }
-            }
-            break;
-        case SSS_PAM_CHAUTHTOK_PRELIM:
-            if (pam_status == PAM_PERM_DENIED && pi.pam_authtok_size == 0 &&
-                getuid() == 0 &&
-                pam_get_data(pamh, PWEXP_FLAG, (const void **) &exp_data) !=
-                                                                  PAM_SUCCESS) {
-
-                ret = select_pw_reset_message(pamh, &pi);
-                if (ret != 0) {
-                    D(("select_pw_reset_message failed.\n"));
-                }
-            }
-        default:
-            /* nothing to do */
-            break;
-    }
-
-
-
-    overwrite_and_free_pam_items(&pi);
+        }
+    } while(retry);
 
     return pam_status;
 }
