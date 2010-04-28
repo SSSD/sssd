@@ -31,6 +31,9 @@
             <arg choice='opt'>
                 <replaceable>use_authtok</replaceable>
             </arg>
+            <arg choice='opt'>
+                <replaceable>retry=N</replaceable>
+            </arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -73,6 +76,20 @@
                     <para>When password changing enforce the module to set the
                     new password to the one provided by a previously stacked
                     password module.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>retry=N</option>
+                </term>
+                <listitem>
+                    <para>If specified the user is asked another N times for a
+                    password if authentication fails. Default is 0.</para>
+                    <para>Please note that this option might not work as
+                    expected if the application calling PAM handles the user
+                    dialog on its own. A typical example is
+                    <command>sshd</command> with
+                    <option>PasswordAuthentication</option>.</para>
                 </listitem>
             </varlistentry>
         </variablelist>
