@@ -478,6 +478,7 @@ struct auth_state {
     struct fo_server *srv;
 };
 
+static struct tevent_req *auth_get_server(struct tevent_req *req);
 static void auth_resolve_done(struct tevent_req *subreq);
 static void auth_connect_done(struct tevent_req *subreq);
 static void auth_get_user_dn_done(struct tevent_req *subreq);
@@ -489,7 +490,7 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
                                     const char *username,
                                     struct dp_opt_blob password)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct auth_state *state;
 
     req = tevent_req_create(memctx, &state, struct auth_state);
@@ -501,16 +502,34 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->password = password;
     state->srv = NULL;
 
-    subreq = be_resolve_server_send(state, ev, ctx->be, ctx->service->name);
-    if (!subreq) goto fail;
-
-    tevent_req_set_callback(subreq, auth_resolve_done, req);
+    if (!auth_get_server(req)) goto fail;
 
     return req;
 
 fail:
     talloc_zfree(req);
     return NULL;
+}
+
+static struct tevent_req *auth_get_server(struct tevent_req *req)
+{
+    struct tevent_req *next_req;
+    struct auth_state *state = tevent_req_data(req,
+                                               struct auth_state);
+
+     /* NOTE: this call may cause service->uri to be refreshed
+      * with a new valid server. Do not use service->uri before */
+    next_req = be_resolve_server_send(state,
+                                      state->ev,
+                                      state->ctx->be,
+                                      state->ctx->service->name);
+    if (!next_req) {
+        DEBUG(1, ("be_resolve_server_send failed.\n"));
+        return NULL;
+    }
+
+    tevent_req_set_callback(next_req, auth_resolve_done, req);
+    return next_req;
 }
 
 static void auth_resolve_done(struct tevent_req *subreq)
@@ -524,7 +543,9 @@ static void auth_resolve_done(struct tevent_req *subreq)
     ret = be_resolve_server_recv(subreq, &state->srv);
     talloc_zfree(subreq);
     if (ret) {
-        tevent_req_error(req, ret);
+        /* all servers have been tried and none
+         * was found good, go offline */
+        tevent_req_error(req, EIO);
         return;
     }
 
@@ -552,6 +573,12 @@ static void auth_connect_done(struct tevent_req *subreq)
         if (state->srv) {
             /* mark this server as bad if connection failed */
             fo_set_port_status(state->srv, PORT_NOT_WORKING);
+        }
+        if (ret == ETIMEDOUT) {
+            if (auth_get_server(req) == NULL) {
+                tevent_req_error(req, ENOMEM);
+            }
+            return;
         }
 
         tevent_req_error(req, ret);

@@ -790,7 +790,11 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                            false, NULL, NULL, NULL, 0, &msgid);
     if (lret != LDAP_SUCCESS) {
         DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
-        ret = EIO;
+        if (lret == LDAP_SERVER_DOWN) {
+            ret = ETIMEDOUT;
+        } else {
+            ret = EIO;
+        }
         goto fail;
     }
     DEBUG(8, ("ldap_search_ext called, msgid = %d\n", msgid));
