@@ -1119,6 +1119,9 @@ int sdap_cli_connect_recv(struct tevent_req *req,
     }
 
     if (gsh) {
+        if (*gsh) {
+            talloc_zfree(*gsh);
+        }
         *gsh = talloc_steal(memctx, state->sh);
         if (!*gsh) {
             return ENOMEM;

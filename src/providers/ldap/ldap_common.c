@@ -359,7 +359,7 @@ void sdap_mark_offline(struct sdap_id_ctx *ctx)
     if (ctx->gsh) {
         /* make sure we mark the connection as gone when we go offline so that
          * we do not try to reuse a bad connection by mistale later */
-        talloc_zfree(ctx->gsh);
+        ctx->gsh->connected = false;
     }
 
     be_mark_offline(ctx->be);
