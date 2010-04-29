@@ -74,6 +74,12 @@ struct sdap_handle {
     struct sdap_fd_events *sdap_fd_events;
 
     struct sdap_op *ops;
+
+    /* during release we need to lock access to the handler
+     * from the destructor to avoid recursion */
+    bool destructor_lock;
+    /* mark when it is safe to finally release the handler memory */
+    bool release_memory;
 };
 
 struct sdap_service {
