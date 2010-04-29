@@ -84,35 +84,57 @@ static int sdap_handle_destructor(void *mem)
 {
     struct sdap_handle *sh = talloc_get_type(mem, struct sdap_handle);
 
-    sdap_handle_release(sh);
+    /* if the structure is currently locked, then mark it to be released
+     * and prevent talloc from freeing the memory */
+    if (sh->destructor_lock) {
+        sh->release_memory = true;
+        return -1;
+    }
 
+    sdap_handle_release(sh);
     return 0;
 }
 
 static void sdap_handle_release(struct sdap_handle *sh)
 {
-    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], ldap[%p]\n",
-              sh, (int)sh->connected, sh->ops, sh->ldap));
+    struct sdap_op *op;
 
-    if (sh->connected) {
-        struct sdap_op *op;
+    DEBUG(8, ("Trace: sh[%p], connected[%d], ops[%p], ldap[%p], "
+              "destructor_lock[%d], release_memory[%d]\n",
+              sh, (int)sh->connected, sh->ops, sh->ldap,
+              (int)sh->destructor_lock, (int)sh->release_memory));
 
-        talloc_zfree(sh->sdap_fd_events);
+    if (sh->destructor_lock) return;
+    sh->destructor_lock = true;
 
-        while (sh->ops) {
-            op = sh->ops;
-            op->callback(op, NULL, EIO, op->data);
-            /* calling the callback may result in freeing the op */
-            /* check if it is still the same or avoid freeing */
-            if (op == sh->ops) talloc_free(op);
-        }
+    /* make sure nobody tries to reuse this connection from now on */
+    sh->connected = false;
 
-        if (sh->ldap) {
-            ldap_unbind_ext(sh->ldap, NULL, NULL);
-        }
-        sh->connected = false;
+    talloc_zfree(sh->sdap_fd_events);
+
+    while (sh->ops) {
+        op = sh->ops;
+        op->callback(op, NULL, EIO, op->data);
+        /* calling the callback may result in freeing the op */
+        /* check if it is still the same or avoid freeing */
+        if (op == sh->ops) talloc_free(op);
+    }
+
+    if (sh->ldap) {
+        ldap_unbind_ext(sh->ldap, NULL, NULL);
         sh->ldap = NULL;
-        sh->ops = NULL;
+    }
+
+    /* ok, we have done the job, unlock now */
+    sh->destructor_lock = false;
+
+    /* finally if a destructor was ever called, free sh before
+     * exiting */
+    if (sh->release_memory) {
+        /* neutralize the destructor as we already handled
+         * all was needed to be released */
+        talloc_set_destructor((TALLOC_CTX *)sh, NULL);
+        talloc_free(sh);
     }
 }
 
