@@ -99,8 +99,6 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
 
     if (!sdap_connected(ctx)) {
 
-        if (ctx->gsh) talloc_zfree(ctx->gsh);
-
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_cli_connect_send(state, ev, ctx->opts,
@@ -299,8 +297,6 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     if (!sdap_connected(ctx)) {
 
-        if (ctx->gsh) talloc_zfree(ctx->gsh);
-
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
         subreq = sdap_cli_connect_send(state, ev, ctx->opts,
@@ -464,8 +460,6 @@ static struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
     if (ret != EOK) goto fail;
 
     if (!sdap_connected(ctx)) {
-
-        if (ctx->gsh) talloc_zfree(ctx->gsh);
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
@@ -654,13 +648,43 @@ void sdap_account_info_handler(struct be_req *breq)
     if (ret != EOK) return sdap_handler_done(breq, DP_ERR_FATAL, ret, err);
 }
 
+static void sdap_account_info_immediate(struct tevent_context *ctx,
+                                        struct tevent_immediate *im,
+                                        void *private_data)
+{
+    struct be_req *breq = talloc_get_type(private_data, struct be_req);
+
+    sdap_account_info_handler(breq);
+}
+
+static int sdap_account_info_restart(struct be_req *breq)
+{
+    struct tevent_immediate *im;
+
+    breq->restarts++;
+    if (breq->restarts > MAX_BE_REQ_RESTARTS) {
+        return ELOOP;
+    }
+
+    im = tevent_create_immediate(breq);
+    if (!im) {
+        return ENOMEM;
+    }
+
+    /* schedule a completely new event to avoid deep recursions */
+    tevent_schedule_immediate(im, breq->be_ctx->ev,
+                              sdap_account_info_immediate, breq);
+
+    return EOK;
+}
+
 static void sdap_account_info_users_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sdap_id_ctx *ctx;
     int dp_err = DP_ERR_OK;
     const char *error = NULL;
-    int ret;
+    int ret, err;
 
     ret = users_get_recv(req);
     talloc_zfree(req);
@@ -674,9 +698,9 @@ static void sdap_account_info_users_done(struct tevent_req *req)
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             if (sdap_check_gssapi_reconnect(ctx)) {
-                talloc_zfree(ctx->gsh);
-                sdap_account_info_handler(breq);
-                return;
+                ctx->gsh->connected = false;
+                err = sdap_account_info_restart(breq);
+                if (err == EOK) return;
             }
             sdap_mark_offline(ctx);
         }
@@ -691,7 +715,7 @@ static void sdap_account_info_groups_done(struct tevent_req *req)
     struct sdap_id_ctx *ctx;
     int dp_err = DP_ERR_OK;
     const char *error = NULL;
-    int ret;
+    int ret, err;
 
     ret = groups_get_recv(req);
     talloc_zfree(req);
@@ -705,9 +729,9 @@ static void sdap_account_info_groups_done(struct tevent_req *req)
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             if (sdap_check_gssapi_reconnect(ctx)) {
-                talloc_zfree(ctx->gsh);
-                sdap_account_info_handler(breq);
-                return;
+                ctx->gsh->connected = false;
+                err = sdap_account_info_restart(breq);
+                if (err == EOK) return;
             }
             sdap_mark_offline(ctx);
         }
@@ -736,8 +760,8 @@ static void sdap_account_info_initgr_done(struct tevent_req *req)
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             if (sdap_check_gssapi_reconnect(ctx)) {
-                talloc_zfree(ctx->gsh);
-                sdap_account_info_handler(breq);
+                ctx->gsh->connected = false;
+                sdap_account_info_restart(breq);
                 return;
             }
             sdap_mark_offline(ctx);

@@ -405,7 +405,7 @@ static int be_get_account_info(DBusMessage *message, struct sbus_connection *con
     }
 
     /* process request */
-    be_req = talloc(becli, struct be_req);
+    be_req = talloc_zero(becli, struct be_req);
     if (!be_req) {
         err_maj = DP_ERR_FATAL;
         err_min = ENOMEM;

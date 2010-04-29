@@ -325,10 +325,6 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     }
 
     if (sdap_ctx->gsh == NULL || ! sdap_ctx->gsh->connected) {
-        if (sdap_ctx->gsh != NULL) {
-            talloc_zfree(sdap_ctx->gsh);
-        }
-
         subreq = sdap_cli_connect_send(state, ev, sdap_ctx->opts,
                                        sdap_ctx->be, sdap_ctx->service, NULL);
         if (!subreq) {
@@ -780,10 +776,6 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     }
 
     if (sdap_ctx->gsh == NULL || ! sdap_ctx->gsh->connected) {
-        if (sdap_ctx->gsh != NULL) {
-            talloc_zfree(sdap_ctx->gsh);
-        }
-
         subreq = sdap_cli_connect_send(state, ev, sdap_ctx->opts,
                                        sdap_ctx->be, sdap_ctx->service, NULL);
         if (!subreq) {

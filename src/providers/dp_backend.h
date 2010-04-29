@@ -103,6 +103,8 @@ struct bet_ops {
     be_req_fn_t finalize;
 };
 
+#define MAX_BE_REQ_RESTARTS 2
+
 struct be_req {
     struct be_client *becli;
     struct be_ctx *be_ctx;
@@ -110,6 +112,8 @@ struct be_req {
 
     be_async_callback_t fn;
     void *pvt;
+
+    int restarts;
 };
 
 struct be_acct_req {

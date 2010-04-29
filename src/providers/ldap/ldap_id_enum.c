@@ -143,12 +143,14 @@ int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv)
     return EOK;
 }
 
+#define MAX_ENUM_RESTARTS 3
 
 struct global_enum_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
 
     bool purge;
+    int restarts;
 };
 
 static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
@@ -162,6 +164,8 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
                                           bool purge);
 static void ldap_id_enum_groups_done(struct tevent_req *subreq);
 static void ldap_id_enum_cleanup_done(struct tevent_req *subreq);
+static int ldap_id_enum_users_restart(struct tevent_req *req);
+static int ldap_id_enum_groups_restart(struct tevent_req *req);
 
 static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
                                                  struct sdap_id_ctx *ctx)
@@ -175,6 +179,7 @@ static struct tevent_req *ldap_id_enumerate_send(struct tevent_context *ev,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->restarts = 0;
 
     ctx->last_enum = tevent_timeval_current();
 
@@ -203,6 +208,7 @@ static void ldap_id_enum_users_done(struct tevent_req *subreq)
                                                  struct global_enum_state);
     enum tevent_req_state tstate;
     uint64_t err = 0;
+    int ret;
 
     if (tevent_req_is_error(subreq, &tstate, &err)) {
         if (tstate != TEVENT_REQ_USER_ERROR) {
@@ -228,12 +234,9 @@ fail:
                   (int)err, strerror(err)));
 
         if (sdap_check_gssapi_reconnect(state->ctx)) {
-            talloc_zfree(state->ctx->gsh);
-            subreq = enum_users_send(state, state->ev, state->ctx, state->purge);
-            if (subreq != NULL) {
-                tevent_req_set_callback(subreq, ldap_id_enum_users_done, req);
-                return;
-            }
+            state->ctx->gsh->connected = false;
+            ret = ldap_id_enum_users_restart(req);
+            if (ret == EOK) return;
         }
         sdap_mark_offline(state->ctx);
     }
@@ -250,6 +253,7 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
                                                  struct global_enum_state);
     enum tevent_req_state tstate;
     uint64_t err = 0;
+    int ret;
 
     if (tevent_req_is_error(subreq, &tstate, &err)) {
         if (tstate != TEVENT_REQ_USER_ERROR) {
@@ -278,12 +282,9 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
 fail:
     /* check if credentials are expired otherwise go offline on failures */
     if (sdap_check_gssapi_reconnect(state->ctx)) {
-        talloc_zfree(state->ctx->gsh);
-        subreq = enum_groups_send(state, state->ev, state->ctx, state->purge);
-        if (subreq != NULL) {
-            tevent_req_set_callback(subreq, ldap_id_enum_groups_done, req);
-            return;
-        }
+        state->ctx->gsh->connected = false;
+        ret = ldap_id_enum_groups_restart(req);
+        if (ret == EOK) return;
     }
     sdap_mark_offline(state->ctx);
     DEBUG(1, ("Failed to enumerate groups (%d [%s]), retrying later!\n",
@@ -297,6 +298,88 @@ static void ldap_id_enum_cleanup_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     talloc_zfree(subreq);
     tevent_req_done(req);
+}
+
+static void ldap_id_enum_users_immediate(struct tevent_context *ctx,
+                                         struct tevent_immediate *im,
+                                         void *private_data)
+{
+    struct tevent_req *req = talloc_get_type(private_data,
+                                             struct tevent_req);
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+    struct tevent_req *subreq;
+
+    subreq = enum_users_send(state, state->ev, state->ctx, state->purge);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ldap_id_enum_users_done, req);
+}
+
+static int ldap_id_enum_users_restart(struct tevent_req *req)
+{
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+    struct tevent_immediate *im;
+
+    state->restarts++;
+    if (state->restarts < MAX_ENUM_RESTARTS) {
+        return ELOOP;
+    }
+
+    im = tevent_create_immediate(req);
+    if (!im) {
+        return ENOMEM;
+    }
+
+    /* schedule a completely new event to avoid deep recursions */
+    tevent_schedule_immediate(im, state->ev,
+                              ldap_id_enum_users_immediate, req);
+
+    return EOK;
+}
+
+static void ldap_id_enum_groups_immediate(struct tevent_context *ctx,
+                                          struct tevent_immediate *im,
+                                          void *private_data)
+{
+    struct tevent_req *req = talloc_get_type(private_data,
+                                             struct tevent_req);
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+    struct tevent_req *subreq;
+
+    subreq = enum_groups_send(state, state->ev, state->ctx, state->purge);
+    if (subreq == NULL) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, ldap_id_enum_groups_done, req);
+}
+
+static int ldap_id_enum_groups_restart(struct tevent_req *req)
+{
+    struct global_enum_state *state = tevent_req_data(req,
+                                                 struct global_enum_state);
+    struct tevent_immediate *im;
+
+    state->restarts++;
+    if (state->restarts < MAX_ENUM_RESTARTS) {
+        return ELOOP;
+    }
+
+    im = tevent_create_immediate(req);
+    if (!im) {
+        return ENOMEM;
+    }
+
+    /* schedule a completely new event to avoid deep recursions */
+    tevent_schedule_immediate(im, state->ev,
+                              ldap_id_enum_groups_immediate, req);
+
+    return EOK;
 }
 
 
@@ -356,8 +439,6 @@ static struct tevent_req *enum_users_send(TALLOC_CTX *memctx,
     if (ret != EOK) goto fail;
 
     if (!sdap_connected(ctx)) {
-
-        if (ctx->gsh) talloc_zfree(ctx->gsh);
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
@@ -511,8 +592,6 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     if (ret != EOK) goto fail;
 
     if (!sdap_connected(ctx)) {
-
-        if (ctx->gsh) talloc_zfree(ctx->gsh);
 
         /* FIXME: add option to decide if tls should be used
          * or SASL/GSSAPI, etc ... */
