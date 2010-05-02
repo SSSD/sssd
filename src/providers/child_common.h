@@ -45,6 +45,18 @@ struct io_buffer {
     size_t size;
 };
 
+/* Callback to be invoked when a sigchld handler is called.
+ * The tevent_signal * associated with the handler will be
+ * freed automatically when this function returns.
+ */
+typedef void (*sss_child_callback_t)(int child_status,
+                                     struct tevent_signal *sige,
+                                     void *pvt);
+
+/* Set up child termination signal handler */
+int child_handler_setup(struct tevent_context *ev, int pid,
+                        sss_child_callback_t cb, void *pvt);
+
 /* Async communication with the child process via a pipe */
 struct tevent_req *write_pipe_send(TALLOC_CTX *mem_ctx,
                                    struct tevent_context *ev,

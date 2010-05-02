@@ -77,7 +77,8 @@ static int sdap_child_destructor(void *ptr)
     return 0;
 }
 
-static errno_t sdap_fork_child(struct sdap_child *child)
+static errno_t sdap_fork_child(struct tevent_context *ev,
+                               struct sdap_child *child)
 {
     int pipefd_to_child[2];
     int pipefd_from_child[2];
@@ -117,6 +118,11 @@ static errno_t sdap_fork_child(struct sdap_child *child)
         close(pipefd_to_child[0]);
         fd_nonblocking(child->read_from_child_fd);
         fd_nonblocking(child->write_to_child_fd);
+
+        ret = child_handler_setup(ev, pid, NULL, NULL);
+        if (ret != EOK) {
+            return ret;
+        }
 
     } else { /* error */
         err = errno;
@@ -275,7 +281,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sdap_fork_child(state->child);
+    ret = sdap_fork_child(state->ev, state->child);
     if (ret != EOK) {
         DEBUG(1, ("sdap_fork_child failed.\n"));
         goto fail;
@@ -422,7 +428,6 @@ int setup_child(struct sdap_id_ctx *ctx)
 {
     int ret;
     const char *mech;
-    struct tevent_signal *sige;
     unsigned v;
     FILE *debug_filep;
 
@@ -430,13 +435,6 @@ int setup_child(struct sdap_id_ctx *ctx)
                              SDAP_SASL_MECH);
     if (!mech) {
         return EOK;
-    }
-
-    sige = tevent_add_signal(ctx->be->ev, ctx, SIGCHLD, SA_SIGINFO,
-                             child_sig_handler, NULL);
-    if (sige == NULL) {
-        DEBUG(1, ("tevent_add_signal failed.\n"));
-        return ENOMEM;
     }
 
     if (debug_to_file != 0 && ldap_child_debug_fd == -1) {

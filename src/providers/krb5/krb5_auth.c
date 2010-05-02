@@ -533,6 +533,12 @@ static errno_t fork_child(struct tevent_req *req, struct tevent_context *ev,
         fd_nonblocking(kr->read_from_child_fd);
         fd_nonblocking(kr->write_to_child_fd);
 
+        ret = child_handler_setup(ev, pid, NULL, NULL);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not set up child signal handler\n"));
+            return ret;
+        }
+
         err = activate_child_timeout_handler(req, ev, kr);
         if (err != EOK) {
             DEBUG(1, ("activate_child_timeout_handler failed.\n"));
