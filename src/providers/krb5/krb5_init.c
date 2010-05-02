@@ -141,7 +141,6 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         goto fail;
     }
     talloc_steal(sige, sig_realm);
-
     if (debug_to_file != 0) {
         ret = open_debug_file_ex("krb5_child", &debug_filep);
         if (ret != EOK) {

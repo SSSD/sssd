@@ -33,6 +33,42 @@
 #include "db/sysdb.h"
 #include "providers/child_common.h"
 
+struct sss_child_ctx {
+    struct tevent_signal *sige;
+    pid_t pid;
+    int child_status;
+    sss_child_callback_t cb;
+    void *pvt;
+};
+
+int child_handler_setup(struct tevent_context *ev, int pid,
+                        sss_child_callback_t cb, void *pvt)
+{
+    struct sss_child_ctx *child_ctx;
+
+    DEBUG(8, ("Setting up signal handler up for pid [%d]\n", pid));
+
+    child_ctx = talloc_zero(ev, struct sss_child_ctx);
+    if (child_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    child_ctx->sige = tevent_add_signal(ev, child_ctx, SIGCHLD, SA_SIGINFO,
+                                        child_sig_handler, child_ctx);
+    if(!child_ctx->sige) {
+        /* Error setting up signal handler */
+        talloc_free(child_ctx);
+        return ENOMEM;
+    }
+
+    child_ctx->pid = pid;
+    child_ctx->cb = cb;
+    child_ctx->pvt = pvt;
+
+    DEBUG(8, ("Signal handler set up for pid [%d]\n", pid));
+    return EOK;
+}
+
 /* Async communication with the child process via a pipe */
 
 struct write_pipe_state {
@@ -256,35 +292,69 @@ void fd_nonblocking(int fd)
     return;
 }
 
+static void child_invoke_callback(struct tevent_context *ev,
+                                  struct tevent_immediate *imm,
+                                  void *pvt);
 void child_sig_handler(struct tevent_context *ev,
                        struct tevent_signal *sige, int signum,
                        int count, void *__siginfo, void *pvt)
 {
-    int ret;
-    int child_status;
+    int ret, err;
+    struct sss_child_ctx *child_ctx;
+    struct tevent_immediate *imm;
 
-    DEBUG(7, ("Waiting for [%d] childeren.\n", count));
-    do {
-        errno = 0;
-        ret = waitpid(-1, &child_status, WNOHANG);
+    if (count <= 0) {
+        DEBUG(0, ("SIGCHLD handler called with invalid child count\n"));
+        return;
+    }
 
-        if (ret == -1) {
-            DEBUG(1, ("waitpid failed [%d][%s].\n", errno, strerror(errno)));
-        } else if (ret == 0) {
-            DEBUG(1, ("waitpid did not found a child with changed status.\n"));
-        } else  {
-            if (WEXITSTATUS(child_status) != 0) {
-                DEBUG(1, ("child [%d] failed with status [%d].\n", ret,
-                          child_status));
-            } else {
-                DEBUG(4, ("child [%d] finished successful.\n", ret));
-            }
+    child_ctx = talloc_get_type(pvt, struct sss_child_ctx);
+    DEBUG(7, ("Waiting for child [%d].\n", child_ctx->pid));
+
+    errno = 0;
+    ret = waitpid(child_ctx->pid, &child_ctx->child_status, WNOHANG);
+
+    if (ret == -1) {
+        err = errno;
+        DEBUG(1, ("waitpid failed [%d][%s].\n", err, strerror(err)));
+    } else if (ret == 0) {
+        DEBUG(1, ("waitpid did not found a child with changed status.\n"));
+    } else if WIFEXITED(child_ctx->child_status) {
+        if (WEXITSTATUS(child_ctx->child_status) != 0) {
+            DEBUG(1, ("child [%d] failed with status [%d].\n", ret,
+                      child_ctx->child_status));
+        } else {
+            DEBUG(4, ("child [%d] finished successfully.\n", ret));
         }
 
-        --count;
-    } while (count < 0);
+        /* Invoke the callback in a tevent_immediate handler
+         * so that it is safe to free the tevent_signal *
+         */
+        imm = tevent_create_immediate(ev);
+        if (imm == NULL) {
+            DEBUG(0, ("Out of memory invoking sig handler callback\n"));
+            return;
+        }
+
+        tevent_schedule_immediate(imm, ev,child_invoke_callback,
+                                  child_ctx);
+    }
 
     return;
+}
+
+static void child_invoke_callback(struct tevent_context *ev,
+                                  struct tevent_immediate *imm,
+                                  void *pvt)
+{
+    struct sss_child_ctx *child_ctx =
+            talloc_get_type(pvt, struct sss_child_ctx);
+    if (child_ctx->cb) {
+        child_ctx->cb(child_ctx->child_status, child_ctx->sige, child_ctx->pvt);
+    }
+
+    /* Stop monitoring for this child */
+    talloc_free(child_ctx);
 }
 
 static errno_t prepare_child_argv(TALLOC_CTX *mem_ctx,

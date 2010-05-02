@@ -164,7 +164,6 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     struct ipa_auth_ctx *ipa_auth_ctx;
     struct krb5_ctx *krb5_auth_ctx;
     struct sdap_auth_ctx *sdap_auth_ctx;
-    struct tevent_signal *sige;
     FILE *debug_filep;
     unsigned v;
     int ret;
@@ -236,20 +235,6 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
     if (ret != EOK) {
         DEBUG(1, ("check_and_export_opts failed.\n"));
         goto done;
-    }
-
-    if (ipa_options->id_ctx == NULL) {
-        DEBUG(9, ("Adding SIGCHLD handler for Kerberos child.\n"));
-        sige = tevent_add_signal(bectx->ev, krb5_auth_ctx, SIGCHLD, SA_SIGINFO,
-                                 child_sig_handler, NULL);
-        if (sige == NULL) {
-            DEBUG(1, ("tevent_add_signal failed.\n"));
-            ret = ENOMEM;
-            goto done;
-        }
-    } else {
-        DEBUG(9, ("IPA id provider already initialized, "
-                  "assuming that a SIGCHLD handler is already in place.\n"));
     }
 
     if (debug_to_file != 0) {
