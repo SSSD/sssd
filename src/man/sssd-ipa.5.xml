@@ -100,6 +100,34 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ipa_dyndns_update (boolean)</term>
+                    <listitem>
+                        <para>
+                            Optional. This option tells SSSD to automatically
+                            update the DNS server built into FreeIPA v2 with
+                            the IP address of this client.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_dyndns_iface (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Applicable only when ipa_dyndns_update
+                            is true. Choose the interface whose IP address
+                            should be used for dynamic DNS updates.
+                        </para>
+                        <para>
+                            Default: Use the IP address of the IPA LDAP connection
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_validate (boolean)</term>
                     <listitem>
                         <para>

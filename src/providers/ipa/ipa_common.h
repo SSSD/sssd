@@ -46,6 +46,8 @@ enum ipa_basic_opt {
     IPA_DOMAIN = 0,
     IPA_SERVER,
     IPA_HOSTNAME,
+    IPA_DYNDNS_UPDATE,
+    IPA_DYNDNS_IFACE,
 
     IPA_OPTS_BASIC /* opts counter */
 };
