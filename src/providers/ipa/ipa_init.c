@@ -33,6 +33,7 @@
 #include "providers/ipa/ipa_auth.h"
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_timerules.h"
+#include "providers/ipa/ipa_dyndns.h"
 
 struct ipa_options *ipa_options = NULL;
 
@@ -96,6 +97,8 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
                      void **pvt_data)
 {
     struct sdap_id_ctx *ctx;
+    struct stat stat_buf;
+    errno_t err;
     int ret;
 
     if (!ipa_options) {
@@ -126,6 +129,44 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
     if (ret != EOK) {
         goto done;
     }
+
+    if(dp_opt_get_bool(ipa_options->basic, IPA_DYNDNS_UPDATE)) {
+        /* Perform automatic DNS updates when the
+         * IP address changes.
+         * Register a callback for successful LDAP
+         * reconnections. This is the easiest way to
+         * identify that we have gone online.
+         */
+
+        /* Ensure that nsupdate exists */
+        errno = 0;
+        ret = stat(NSUPDATE_PATH, &stat_buf);
+        if (ret == -1) {
+            err = errno;
+            if (err == ENOENT) {
+                DEBUG(0, ("%s does not exist. Dynamic DNS updates disabled\n",
+                          NSUPDATE_PATH));
+            }
+            else {
+                DEBUG(0, ("Could not set up dynamic DNS updates: [%d][%s]\n",
+                          err, strerror(err)));
+            }
+        }
+        else {
+            /* nsupdate is available. Dynamic updates
+             * are supported
+             */
+            ret = be_add_online_cb(ctx, ctx->be,
+                                   ipa_dyndns_update,
+                                   ipa_options, NULL);
+            if (ret != EOK) {
+                DEBUG(1,("Failure setting up automatic DNS update\n"));
+                /* We will continue without DNS updating */
+            }
+        }
+    }
+
+
 
     ret = setup_tls_config(ctx->opts->basic);
     if (ret != EOK) {

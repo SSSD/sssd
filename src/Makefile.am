@@ -349,6 +349,7 @@ dist_noinst_HEADERS = \
     providers/ipa/ipa_access.h \
     providers/ipa/ipa_timerules.h \
     providers/ipa/ipa_auth.h \
+    providers/ipa/ipa_dyndns.h \
     tools/tools_util.h \
     tools/sss_sync_ops.h \
     resolv/async_resolv.h \
@@ -789,6 +790,7 @@ libsss_ipa_la_SOURCES = \
     providers/ipa/ipa_auth.c \
     providers/ipa/ipa_access.c \
     providers/ipa/ipa_timerules.c \
+    providers/ipa/ipa_dyndns.c \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \
     providers/ldap/ldap_id_cleanup.c \
