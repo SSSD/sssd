@@ -74,6 +74,7 @@ BuildRequires: check-devel
 BuildRequires: doxygen
 BuildRequires: libselinux-devel
 BuildRequires: libsemanage-devel
+BuildRequires: bind-utils
 
 %description
 Provides a set of daemons to manage access to remote directories and

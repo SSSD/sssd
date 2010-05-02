@@ -87,6 +87,8 @@ option_strings = {
     'ipa_domain' : _('IPA domain'),
     'ipa_server' : _('IPA server address'),
     'ipa_hostname' : _('IPA client hostname'),
+    'ipa_dyndns_update' : _("Whether to automatically update the client's DNS entry in FreeIPA"),
+    'ipa_dyndns_iface' : _("The interface whose IP should be used for dynamic DNS updates"),
 
     # [provider/krb5]
     'krb5_kdcip' : _('Kerberos server address'),

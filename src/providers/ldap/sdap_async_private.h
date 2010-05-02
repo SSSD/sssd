@@ -34,6 +34,8 @@ void sdap_ldap_result(struct tevent_context *ev, struct tevent_fd *fde,
 int setup_ldap_connection_callbacks(struct sdap_handle *sh,
                                     struct tevent_context *ev);
 
+int get_fd_from_ldap(LDAP *ldap, int *fd);
+
 errno_t sdap_set_connected(struct sdap_handle *sh, struct tevent_context *ev);
 
 int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
