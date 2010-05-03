@@ -1270,7 +1270,8 @@ enum check_result check_service(struct pam_data *pd,
         return RULE_APPLICABLE;
     } else {
         for (i = 0; i < el->num_values; i++) {
-            if (strncasecmp(pd->service, (const char *) el->values[i].data,
+            if (strlen(pd->service) == el->values[i].length &&
+                strncasecmp(pd->service, (const char *) el->values[i].data,
                             el->values[i].length) == 0) {
                 DEBUG(9, ("Service [%s] found, rule applies.\n",
                           pd->service));
