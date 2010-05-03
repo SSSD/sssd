@@ -1360,7 +1360,7 @@ enum check_result check_user(struct hbac_ctx *hbac_ctx,
         return RULE_ERROR;
     }
     if (el->num_values == 0) {
-        DEBUG(9, ("USer category is not set.\n"));
+        DEBUG(9, ("User category is not set.\n"));
     } else {
         for (i = 0; i < el->num_values; i++) {
             if (strncasecmp("all", (const char *) el->values[i].data,
@@ -1381,7 +1381,7 @@ enum check_result check_user(struct hbac_ctx *hbac_ctx,
     }
     if (el->num_values == 0) {
         DEBUG(9, ("No user specified, rule does not apply.\n"));
-        return RULE_APPLICABLE;
+        return RULE_NOT_APPLICABLE;
     } else {
         for (i = 0; i < el->num_values; i++) {
             DEBUG(9, ("Searching matches for [%.*s].\n", el->values[i].length,
