@@ -965,6 +965,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
         break;
     }
 
+    ret = EOK;
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
