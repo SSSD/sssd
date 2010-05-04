@@ -586,7 +586,7 @@ static int user_info_offline_auth(pam_handle_t *pamh, size_t buflen,
     }
 
     ret = snprintf(user_msg, sizeof(user_msg), "%s%s%s.",
-               _("Offline authentication"),
+               _("Authenticated with cached credentials"),
               expire_str[0] ? _(", your cached password will expire at: ") : "",
               expire_str[0] ? expire_str : "");
     if (ret < 0 || ret >= sizeof(user_msg)) {
@@ -712,7 +712,7 @@ static int user_info_offline_auth_delayed(pam_handle_t *pamh, size_t buflen,
     }
 
     ret = snprintf(user_msg, sizeof(user_msg), "%s%s.",
-                   _("Offline authentication, authentication is denied until: "),
+                   _("Authentication is denied until: "),
                    delay_str);
     if (ret < 0 || ret >= sizeof(user_msg)) {
         D(("snprintf failed."));
