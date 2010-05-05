@@ -48,12 +48,14 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
 {
     struct krb5_ctx *ctx = NULL;
     int ret;
+    struct tevent_signal *sige;
     unsigned v;
     FILE *debug_filep;
     const char *krb5_servers;
     const char *krb5_kpasswd_servers;
     const char *krb5_realm;
     const char *errstr;
+    char *sig_realm;
     int errval;
     int errpos;
 
@@ -124,6 +126,22 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
         DEBUG(1, ("check_and_export_options failed.\n"));
         goto fail;
     }
+
+
+    BlockSignals(false, SIGTERM);
+    sig_realm = talloc_strdup(ctx, krb5_realm);
+    if (sig_realm == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    sige = tevent_add_signal(bectx->ev, ctx, SIGTERM, SA_SIGINFO,
+                             krb5_finalize, sig_realm);
+    if (sige == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    talloc_steal(sige, sig_realm);
 
     if (debug_to_file != 0) {
         ret = open_debug_file_ex("krb5_child", &debug_filep);

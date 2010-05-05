@@ -413,3 +413,43 @@ done:
     return ret;
 }
 
+void krb5_finalize(struct tevent_context *ev,
+                   struct tevent_signal *se,
+                   int signum,
+                   int count,
+                   void *siginfo,
+                   void *private_data)
+{
+    char *realm = (char *)private_data;
+    int ret;
+    errno_t err;
+    char *file;
+
+    file = talloc_asprintf(se, KDCINFO_TMPL, realm);
+    if(file == NULL) {
+        sig_term(signum);
+    }
+    errno = 0;
+    ret = unlink(file);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(5, ("Could not remove [%s], [%d][%s]\n", file,
+                  err, strerror(err)));
+    }
+
+    errno = 0;
+    file = talloc_asprintf(se, KPASSWDINFO_TMPL, realm);
+    if(file == NULL) {
+        sig_term(signum);
+    }
+
+    errno = 0;
+    ret = unlink(file);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(5, ("Could not remove [%s], [%d][%s]\n", file,
+                  err, strerror(err)));
+    }
+
+    sig_term(signum);
+}
