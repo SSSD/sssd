@@ -178,7 +178,7 @@ static void sig_hup(int sig)
 	return;
 }
 
-static void sig_term(int sig)
+void sig_term(int sig)
 {
 #if HAVE_GETPGRP
 	static int done_sigterm;

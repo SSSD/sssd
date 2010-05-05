@@ -75,4 +75,11 @@ errno_t write_krb5info_file(const char *realm, const char *kdc,
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *servers,
                       const char *realm, struct krb5_service **_service);
+
+void krb5_finalize(struct tevent_context *ev,
+                   struct tevent_signal *se,
+                   int signum,
+                   int count,
+                   void *siginfo,
+                   void *private_data);
 #endif /* __KRB5_COMMON_H__ */
