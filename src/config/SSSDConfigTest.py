@@ -543,6 +543,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         control_list.extend(
             ['krb5_kdcip',
              'krb5_realm',
+             'krb5_kpasswd',
              'krb5_ccachedir',
              'krb5_ccname_template',
              'krb5_keytab',
@@ -715,6 +716,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         control_list = [
             'krb5_kdcip',
             'krb5_realm',
+            'krb5_kpasswd',
             'krb5_ccachedir',
             'krb5_ccname_template',
             'krb5_keytab',
@@ -860,6 +862,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         control_list.extend(
             ['krb5_kdcip',
              'krb5_realm',
+             'krb5_kpasswd',
              'krb5_ccachedir',
              'krb5_ccname_template',
              'krb5_keytab',
