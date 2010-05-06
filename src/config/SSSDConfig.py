@@ -151,6 +151,9 @@ option_strings = {
     # [provider/ldap/auth]
     'ldap_pwd_policy' : _('Policy to evaluate the password expiration'),
 
+    # [provider/ldap/access]
+    'ldap_access_filter' : _('LDAP filter to determine access privileges'),
+
     # [provider/simple/access]
     'simple_allow_users' : _('Comma separated list of allowed users'),
     'simple_deny_users' : _('Comma separated list of prohibited users'),

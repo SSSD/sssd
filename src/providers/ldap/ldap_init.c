@@ -25,6 +25,7 @@
 #include "providers/child_common.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/ldap/sdap_access.h"
 
 static void sdap_shutdown(struct be_req *req);
 
@@ -46,6 +47,12 @@ struct bet_ops sdap_chpass_ops = {
     .finalize = sdap_shutdown
 };
 
+/* Access Handler */
+struct bet_ops sdap_access_ops = {
+    .handler = sdap_pam_access_handler,
+    .finalize = sdap_shutdown
+};
+
 int sssm_ldap_id_init(struct be_ctx *bectx,
                       struct bet_ops **ops,
                       void **pvt_data)
@@ -54,6 +61,15 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
     const char *urls;
     const char *dns_service_name;
     int ret;
+
+    /* If we're already set up, just return that */
+    if(bectx->bet_info[BET_ID].mod_name &&
+       strcmp("LDAP", bectx->bet_info[BET_ID].mod_name)) {
+        DEBUG(8, ("Re-using sdap_id_ctx for this provider\n"));
+        *ops = bectx->bet_info[BET_ID].bet_ops;
+        *pvt_data = bectx->bet_info[BET_ID].pvt_bet_data;
+        return EOK;
+    }
 
     ctx = talloc_zero(bectx, struct sdap_id_ctx);
     if (!ctx) return ENOMEM;
@@ -183,6 +199,46 @@ int sssm_ldap_chpass_init(struct be_ctx *bectx,
 
     *ops = &sdap_chpass_ops;
 
+    return ret;
+}
+
+int sssm_ldap_access_init(struct be_ctx *bectx,
+                          struct bet_ops **ops,
+                          void **pvt_data)
+{
+    int ret;
+    struct sdap_access_ctx *access_ctx;
+
+    access_ctx = talloc_zero(bectx, struct sdap_access_ctx);
+    if(access_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sssm_ldap_id_init(bectx, ops, (void **)&access_ctx->id_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("sssm_ldap_id_init failed.\n"));
+        goto done;
+    }
+
+    access_ctx->filter = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
+                                            SDAP_ACCESS_FILTER);
+    if (access_ctx->filter == NULL) {
+        /* It's okay if this is NULL. In that case we will simply act
+         * like the 'deny' provider.
+         */
+        DEBUG(0, ("Warning: access_provider=ldap set, "
+                  "but no ldap_access_filter configured. "
+                  "All domain users will be denied access.\n"));
+    }
+
+    *ops = &sdap_access_ops;
+    *pvt_data = access_ctx;
+
+done:
+    if (ret != EOK) {
+        talloc_free(access_ctx);
+    }
     return ret;
 }
 

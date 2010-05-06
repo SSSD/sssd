@@ -35,7 +35,7 @@ struct ipa_service {
 /* the following defines are used to keep track of the options in the ldap
  * module, so that if they change and ipa is not updated correspondingly
  * this will trigger a runtime abort error */
-#define IPA_OPTS_BASIC_TEST 34
+#define IPA_OPTS_BASIC_TEST 35
 
 /* the following define is used to keep track of the options in the krb5
  * module, so that if they change and ipa is not updated correspondingly
