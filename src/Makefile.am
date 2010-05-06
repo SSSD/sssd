@@ -343,6 +343,7 @@ dist_noinst_HEADERS = \
     providers/krb5/krb5_utils.h \
     providers/ldap/ldap_common.h \
     providers/ldap/sdap.h \
+    providers/ldap/sdap_access.h \
     providers/ldap/sdap_async.h \
     providers/ldap/sdap_async_private.h \
     providers/ipa/ipa_common.h \
@@ -720,6 +721,7 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/ldap_id.c \
     providers/ldap/ldap_id_enum.c \
     providers/ldap/ldap_id_cleanup.c \
+    providers/ldap/sdap_access.c \
     providers/ldap/ldap_auth.c \
     providers/ldap/ldap_init.c \
     providers/ldap/ldap_common.c \

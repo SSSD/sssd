@@ -644,6 +644,45 @@
                     </listitem>
                 </varlistentry>
 
+                <varlistentry>
+                    <term>ldap_access_filter (string)</term>
+                    <listitem>
+                        <para>
+                            If using access_provider = ldap, this option is
+                            mandatory. It specifies an LDAP search filter
+                            criteria that must be met for the user to be
+                            granted access on this host. If
+                            access_provider = ldap and this option is
+                            not set, it will result in all users being
+                            denied access. Use access_provider = allow to
+                            change this default behavior.
+                        </para>
+                        <para>
+                            Example:
+                        </para>
+                        <programlisting>
+access_provider = ldap
+ldap_access_filter = memberOf=cn=allowedusers,ou=Groups,dc=example,dc=com
+                        </programlisting>
+                        <para>
+                            This example means that access to this host is
+                            restricted to members of the "allowedusers" group
+                            in ldap.
+                        </para>
+                        <para>
+                            Offline caching for this feature is limited to
+                            determining whether the user's last online login
+                            was granted access permission. If they were
+                            granted access during their last login, they will
+                            continue to be granted access while offline and
+                            vice-versa.
+                        </para>
+                        <para>
+                            Default: Empty
+                        </para>
+                    </listitem>
+                </varlistentry>
+
             </variablelist>
         </para>
     </refsect1>

@@ -176,6 +176,16 @@ int sysdb_attrs_add_string(struct sysdb_attrs *attrs,
     return sysdb_attrs_add_val(attrs, name, &v);
 }
 
+int sysdb_attrs_add_bool(struct sysdb_attrs *attrs,
+                         const char *name, bool value)
+{
+    if(value) {
+        return sysdb_attrs_add_string(attrs, name, "TRUE");
+    }
+
+    return sysdb_attrs_add_string(attrs, name, "FALSE");
+}
+
 int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
                              const char *name, char *str)
 {
