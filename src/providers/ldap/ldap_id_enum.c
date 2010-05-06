@@ -234,7 +234,9 @@ fail:
                   (int)err, strerror(err)));
 
         if (sdap_check_gssapi_reconnect(state->ctx)) {
-            state->ctx->gsh->connected = false;
+            if (state->ctx->gsh) {
+                state->ctx->gsh->connected = false;
+            }
             ret = ldap_id_enum_users_restart(req);
             if (ret == EOK) return;
         }
@@ -282,7 +284,9 @@ static void ldap_id_enum_groups_done(struct tevent_req *subreq)
 fail:
     /* check if credentials are expired otherwise go offline on failures */
     if (sdap_check_gssapi_reconnect(state->ctx)) {
-        state->ctx->gsh->connected = false;
+        if (state->ctx->gsh) {
+            state->ctx->gsh->connected = false;
+        }
         ret = ldap_id_enum_groups_restart(req);
         if (ret == EOK) return;
     }

@@ -724,96 +724,76 @@ static int sdap_account_info_restart(struct be_req *breq)
     return EOK;
 }
 
-static void sdap_account_info_users_done(struct tevent_req *req)
+static void sdap_account_info_common_done(int ret, struct be_req *breq,
+                                          const char *str_on_err)
 {
-    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
     struct sdap_id_ctx *ctx;
     int dp_err = DP_ERR_OK;
-    const char *error = NULL;
-    int ret, err;
+    const char *errstr = NULL;
+    errno_t err;
 
-    ret = users_get_recv(req);
-    talloc_zfree(req);
-
-    if (ret) {
+    if (ret != EOK) {
         dp_err = DP_ERR_FATAL;
-        error = "Enum Users Failed";
+        errstr = str_on_err;
 
         if (ret == ETIMEDOUT || ret == EFAULT || ret == EIO) {
-            dp_err = DP_ERR_OFFLINE;
             ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
                                   struct sdap_id_ctx);
             if (sdap_check_gssapi_reconnect(ctx)) {
-                ctx->gsh->connected = false;
+                if (ctx->gsh) {
+                    /* Mark the connection as false so we don't try to use an
+                     * invalid connection by mistake later.
+                     * If the global sdap handler is NULL, it's ok not to do
+                     * anything here. It's always checked by sdap_connected()
+                     * before being used.
+                     */
+                    ctx->gsh->connected = false;
+                }
                 err = sdap_account_info_restart(breq);
                 if (err == EOK) return;
             }
+
+            /* Couldn't reconnect, that was our last try
+             * Go offline now
+             */
+            dp_err = DP_ERR_OFFLINE;
             sdap_mark_offline(ctx);
         }
     }
 
-    sdap_handler_done(breq, dp_err, ret, error);
+    sdap_handler_done(breq, dp_err, ret, errstr);
+}
+
+static void sdap_account_info_users_done(struct tevent_req *req)
+{
+    struct be_req *breq = tevent_req_callback_data(req, struct be_req);
+    int ret;
+
+    ret = users_get_recv(req);
+    talloc_zfree(req);
+
+    sdap_account_info_common_done(ret, breq, "User lookup failed");
 }
 
 static void sdap_account_info_groups_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    struct sdap_id_ctx *ctx;
-    int dp_err = DP_ERR_OK;
-    const char *error = NULL;
-    int ret, err;
+    int ret;
 
     ret = groups_get_recv(req);
     talloc_zfree(req);
 
-    if (ret) {
-        dp_err = DP_ERR_FATAL;
-        error = "Enum Groups Failed";
-
-        if (ret == ETIMEDOUT || ret == EFAULT || ret == EIO) {
-            dp_err = DP_ERR_OFFLINE;
-            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
-                                  struct sdap_id_ctx);
-            if (sdap_check_gssapi_reconnect(ctx)) {
-                ctx->gsh->connected = false;
-                err = sdap_account_info_restart(breq);
-                if (err == EOK) return;
-            }
-            sdap_mark_offline(ctx);
-        }
-    }
-
-    return sdap_handler_done(breq, dp_err, ret, error);
+    sdap_account_info_common_done(ret, breq, "Group lookup failed");
 }
 
 static void sdap_account_info_initgr_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    struct sdap_id_ctx *ctx;
-    int dp_err = DP_ERR_OK;
-    const char *error = NULL;
     int ret;
 
     ret = groups_by_user_recv(req);
     talloc_zfree(req);
 
-    if (ret) {
-        dp_err = DP_ERR_FATAL;
-        error = "Init Groups Failed";
-
-        if (ret == ETIMEDOUT || ret == EFAULT || ret == EIO) {
-            dp_err = DP_ERR_OFFLINE;
-            ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
-                                  struct sdap_id_ctx);
-            if (sdap_check_gssapi_reconnect(ctx)) {
-                ctx->gsh->connected = false;
-                sdap_account_info_restart(breq);
-                return;
-            }
-            sdap_mark_offline(ctx);
-        }
-    }
-
-    return sdap_handler_done(breq, dp_err, ret, error);
+    sdap_account_info_common_done(ret, breq, "Init Groups Failed");
 }
 
