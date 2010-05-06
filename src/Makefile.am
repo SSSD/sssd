@@ -6,6 +6,11 @@ builddir ?= .
 
 DOXYGEN = @DOXYGEN@
 
+DISTSETUPOPTS =
+if HAVE_DEBIAN
+DISTSETUPOPTS += --install-layout=deb
+endif
+
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 ldblibdir = @ldblibdir@
@@ -984,9 +989,9 @@ all-local:
 
 install-exec-hook: installsssddirs
 	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/config/.files; \
+		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/config/.files; \
 	else \
-		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/config/.files; \
+		cd $(srcdir)/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/config/.files; \
 	fi
 	mkdir -p doc $(DESTDIR)/$(docdir); cp -a doc $(DESTDIR)/$(docdir)/
 
