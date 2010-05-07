@@ -1,0 +1,37 @@
+
+         SSSD - System Security Services Daemon
+         --------------------------------------
+
+  Introduction
+  ------------
+  SSSD provides a set of daemons to manage access to remote directories and
+  authentication mechanisms such as LDAP, Kerberos or FreeIPA. It provides
+  an NSS and PAM interface toward the system and a pluggable backend system
+  to connect to multiple different account sources.
+
+  More information about SSSD can be found on its project page - 
+  <http://fedorahosted.org/sssd/>
+
+  Building and installation
+  -------------------------
+  Please see the file BUILD.txt for details
+
+  Documentation
+  -------------
+  The most up-to-date documentation can be found at
+  <http://fedorahosted.org/sssd/wiki/HOWTO_Configure>
+
+  Licensing
+  ---------
+  Please see the file called COPYING.
+
+  Contacts
+  --------
+  There are several ways to contact us:
+
+     * the sssd-devel mailing list:
+       <https://fedorahosted.org/mailman/listinfo/sssd-devel>
+
+     * the #freeipa IRC channel on freenode:
+       irc://irc.freenode.net/freeipa
+
