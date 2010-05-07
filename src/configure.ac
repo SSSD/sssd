@@ -94,7 +94,6 @@ m4_include([external/python.m4])
 m4_include([external/selinux.m4])
 m4_include([external/crypto.m4])
 m4_include([external/nscd.m4])
-m4_include([external/nsupdate.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])

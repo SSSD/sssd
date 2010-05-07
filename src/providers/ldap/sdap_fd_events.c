@@ -33,20 +33,6 @@ struct sdap_fd_events {
 #endif
 };
 
-int get_fd_from_ldap(LDAP *ldap, int *fd)
-{
-    int ret;
-
-    ret = ldap_get_option(ldap, LDAP_OPT_DESC, fd);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(1, ("Failed to get fd from ldap!!\n"));
-        *fd = -1;
-        return EIO;
-    }
-
-    return EOK;
-}
-
 #ifdef HAVE_LDAP_CONNCB
 static int remove_connection_callback(TALLOC_CTX *mem_ctx)
 {
@@ -148,6 +134,20 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
 }
 
 #else
+
+static int get_fd_from_ldap(LDAP *ldap, int *fd)
+{
+    int ret;
+
+    ret = ldap_get_option(ldap, LDAP_OPT_DESC, fd);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to get fd from ldap!!\n"));
+        *fd = -1;
+        return EIO;
+    }
+
+    return EOK;
+}
 
 static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
                                        struct tevent_context *ev)
