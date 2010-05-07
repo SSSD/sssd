@@ -486,6 +486,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     char *realm;
     int ret;
     int i;
+    struct tevent_req *req;
 
     tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
@@ -563,6 +564,14 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         DEBUG(1, ("Failed to add failover callback!\n"));
         goto done;
     }
+
+    req = be_resolve_server_send(memctx, ctx->ev, ctx, "IPA");
+    if (req == NULL) {
+        DEBUG(1, ("be_resolve_server_send failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+    tevent_req_set_callback(req, krb5_init_resolve_done, service->krb5_service);
 
     ret = EOK;
 
