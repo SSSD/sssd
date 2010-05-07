@@ -706,7 +706,7 @@ static int parse_periodic_monthly(TALLOC_CTX *ctx,
         JMP_NEOK(ret);
         ret = copy_substring(mpctx, str, "interval_day", &match);
         JMP_NEOK(ret);
-        BUFFER_OR_JUMP(ctx, per->day_of_month, DAY_OF_MONTH_BUFSIZE);
+        BUFFER_OR_JUMP(per, per->day_of_month, DAY_OF_MONTH_BUFSIZE);
         ret = interval2bitfield(mpctx, per->day_of_month, match,
                                 1, DAY_OF_MONTH_MAX, NULL);
         JMP_NEOK(ret);
@@ -754,7 +754,7 @@ static int parse_periodic_yearly(TALLOC_CTX *ctx,
     if (ret == EOK) {
         ret = copy_substring(ypctx, str, "day_of_year", &match);
         JMP_NEOK(ret);
-        BUFFER_OR_JUMP(ypctx, per->day_of_year, DAY_OF_YEAR_BUFSIZE);
+        BUFFER_OR_JUMP(per, per->day_of_year, DAY_OF_YEAR_BUFSIZE);
         ret = interval2bitfield(ypctx, per->day_of_year, match,
                                 1, DAY_OF_YEAR_MAX, NULL);
         JMP_NEOK(ret);
@@ -766,7 +766,7 @@ static int parse_periodic_yearly(TALLOC_CTX *ctx,
     if (ret == EOK) {
         ret = copy_substring(ypctx, str, "week_of_year", &match);
         JMP_NEOK(ret);
-        BUFFER_OR_JUMP(ypctx, per->week_of_year, WEEK_OF_YEAR_BUFSIZE);
+        BUFFER_OR_JUMP(per, per->week_of_year, WEEK_OF_YEAR_BUFSIZE);
         ret = interval2bitfield(ypctx, per->week_of_year, match,
                                 1, WEEK_OF_YEAR_MAX, NULL);
         JMP_NEOK(ret);
@@ -787,7 +787,7 @@ static int parse_periodic_yearly(TALLOC_CTX *ctx,
     talloc_free(match);
     ret = copy_substring(ypctx, str, "month_number", &match);
     JMP_NEOK(ret);
-    BUFFER_OR_JUMP(ypctx, per->month, MONTH_BUFSIZE);
+    BUFFER_OR_JUMP(per, per->month, MONTH_BUFSIZE);
     ret = interval2bitfield(ypctx, per->month, match,
                             1, MONTH_MAX, names_months);
     JMP_NEOK(ret);
