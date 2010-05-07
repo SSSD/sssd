@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon_ja\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-04-12 09:30-0400\n"
+"POT-Creation-Date: 2010-05-07 16:27-0400\n"
 "PO-Revision-Date: 2009-11-18 09:48+1000\n"
 "Last-Translator: Noriko Mizumoto <noriko@fedoraproject.org>\n"
 "Language-Team: Japanese <fedora-trans-ja@redhat.com>\n"
@@ -160,328 +160,372 @@ msgstr ""
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 
-#: config/SSSDConfig.py:86
-msgid "IPA domain"
+#: config/SSSDConfig.py:84
+msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
 
 #: config/SSSDConfig.py:87
-msgid "IPA server address"
+msgid "IPA domain"
 msgstr ""
 
 #: config/SSSDConfig.py:88
+msgid "IPA server address"
+msgstr ""
+
+#: config/SSSDConfig.py:89
 msgid "IPA client hostname"
 msgstr ""
 
-#: config/SSSDConfig.py:91 config/SSSDConfig.py:120
+#: config/SSSDConfig.py:90
+msgid "Whether to automatically update the client's DNS entry in FreeIPA"
+msgstr ""
+
+#: config/SSSDConfig.py:91
+msgid "The interface whose IP should be used for dynamic DNS updates"
+msgstr ""
+
+#: config/SSSDConfig.py:94 config/SSSDConfig.py:124
 msgid "Kerberos server address"
 msgstr ""
 
-#: config/SSSDConfig.py:92 config/SSSDConfig.py:121
+#: config/SSSDConfig.py:95 config/SSSDConfig.py:125
 msgid "Kerberos realm"
 msgstr ""
 
-#: config/SSSDConfig.py:93
+#: config/SSSDConfig.py:96
 msgid "Authentication timeout"
 msgstr ""
 
-#: config/SSSDConfig.py:96
+#: config/SSSDConfig.py:99
 msgid "Directory to store credential caches"
 msgstr ""
 
-#: config/SSSDConfig.py:97
+#: config/SSSDConfig.py:100
 msgid "Location of the user's credential cache"
 msgstr ""
 
-#: config/SSSDConfig.py:98
+#: config/SSSDConfig.py:101
 msgid "Location of the keytab to validate credentials"
 msgstr ""
 
-#: config/SSSDConfig.py:99
+#: config/SSSDConfig.py:102
 msgid "Enable credential validation"
 msgstr ""
 
-#: config/SSSDConfig.py:102
-msgid "The principal of the change password service"
-msgstr ""
-
 #: config/SSSDConfig.py:103
-msgid "Server where the change password service is running if not on the KDC"
+msgid "Store password if offline for later online authentication"
 msgstr ""
 
 #: config/SSSDConfig.py:106
-msgid "ldap_uri, The URI of the LDAP server"
+msgid "The principal of the change password service"
 msgstr ""
 
 #: config/SSSDConfig.py:107
-msgid "The default base DN"
-msgstr ""
-
-#: config/SSSDConfig.py:108
-msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr ""
-
-#: config/SSSDConfig.py:109
-msgid "The default bind DN"
+msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 
 #: config/SSSDConfig.py:110
-msgid "The type of the authentication token of the default bind DN"
+msgid "ldap_uri, The URI of the LDAP server"
 msgstr ""
 
 #: config/SSSDConfig.py:111
-msgid "The authentication token of the default bind DN"
+msgid "The default base DN"
 msgstr ""
 
 #: config/SSSDConfig.py:112
-msgid "Length of time to attempt connection"
+msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr ""
 
 #: config/SSSDConfig.py:113
-msgid "Length of time to attempt synchronous LDAP operations"
+msgid "The default bind DN"
 msgstr ""
 
 #: config/SSSDConfig.py:114
-msgid "Length of time between attempts to reconnect while offline"
+msgid "The type of the authentication token of the default bind DN"
 msgstr ""
 
 #: config/SSSDConfig.py:115
-msgid "File that contains CA certificates"
+msgid "The authentication token of the default bind DN"
 msgstr ""
 
 #: config/SSSDConfig.py:116
-msgid "Path to CA certificate directory"
+msgid "Length of time to attempt connection"
 msgstr ""
 
 #: config/SSSDConfig.py:117
-msgid "Require TLS certificate verification"
+msgid "Length of time to attempt synchronous LDAP operations"
 msgstr ""
 
 #: config/SSSDConfig.py:118
-msgid "Specify the sasl mechanism to use"
+msgid "Length of time between attempts to reconnect while offline"
 msgstr ""
 
 #: config/SSSDConfig.py:119
-msgid "Specify the sasl authorization id to use"
+msgid "File that contains CA certificates"
+msgstr ""
+
+#: config/SSSDConfig.py:120
+msgid "Path to CA certificate directory"
+msgstr ""
+
+#: config/SSSDConfig.py:121
+msgid "Require TLS certificate verification"
 msgstr ""
 
 #: config/SSSDConfig.py:122
-msgid "Kerberos service keytab"
+msgid "Specify the sasl mechanism to use"
 msgstr ""
 
 #: config/SSSDConfig.py:123
-msgid "Use Kerberos auth for LDAP connection"
+msgid "Specify the sasl authorization id to use"
 msgstr ""
 
-#: config/SSSDConfig.py:124
-msgid "Follow LDAP referrals"
+#: config/SSSDConfig.py:126
+msgid "Kerberos service keytab"
 msgstr ""
 
 #: config/SSSDConfig.py:127
-msgid "Length of time to wait for a search request"
+msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
 #: config/SSSDConfig.py:128
-msgid "Length of time between enumeration updates"
-msgstr ""
-
-#: config/SSSDConfig.py:129
-msgid "Require TLS for ID lookups"
-msgstr ""
-
-#: config/SSSDConfig.py:130
-msgid "Base DN for user lookups"
+msgid "Follow LDAP referrals"
 msgstr ""
 
 #: config/SSSDConfig.py:131
-msgid "Scope of user lookups"
+msgid "Length of time to wait for a search request"
 msgstr ""
 
 #: config/SSSDConfig.py:132
-msgid "Filter for user lookups"
+msgid "Length of time between enumeration updates"
 msgstr ""
 
 #: config/SSSDConfig.py:133
-msgid "Objectclass for users"
+msgid "Require TLS for ID lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:134
-msgid "Username attribute"
+msgid "Base DN for user lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:135
-msgid "UID attribute"
+msgid "Scope of user lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:136
-msgid "Primary GID attribute"
+msgid "Filter for user lookups"
 msgstr ""
 
 #: config/SSSDConfig.py:137
-msgid "GECOS attribute"
+msgid "Objectclass for users"
 msgstr ""
 
 #: config/SSSDConfig.py:138
-msgid "Home directory attribute"
+msgid "Username attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:139
-msgid "Shell attribute"
+msgid "UID attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:140
-msgid "UUID attribute"
+msgid "Primary GID attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:141
-msgid "User principal attribute (for Kerberos)"
+msgid "GECOS attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:142
-msgid "Full Name"
+msgid "Home directory attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:143
-msgid "memberOf attribute"
+msgid "Shell attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:144
-msgid "Modification time attribute"
+msgid "UUID attribute"
+msgstr ""
+
+#: config/SSSDConfig.py:145
+msgid "User principal attribute (for Kerberos)"
+msgstr ""
+
+#: config/SSSDConfig.py:146
+msgid "Full Name"
 msgstr ""
 
 #: config/SSSDConfig.py:147
-msgid "Policy to evaluate the password expiration"
+msgid "memberOf attribute"
 msgstr ""
 
-#: config/SSSDConfig.py:150
-msgid "Comma separated list of allowed users"
+#: config/SSSDConfig.py:148
+msgid "Modification time attribute"
 msgstr ""
 
 #: config/SSSDConfig.py:151
-msgid "Comma separated list of prohibited users"
+msgid "Policy to evaluate the password expiration"
 msgstr ""
 
 #: config/SSSDConfig.py:154
-msgid "Default shell, /bin/bash"
+msgid "Comma separated list of allowed users"
 msgstr ""
 
 #: config/SSSDConfig.py:155
-msgid "Base for home directories"
+msgid "Comma separated list of prohibited users"
 msgstr ""
 
 #: config/SSSDConfig.py:158
+msgid "Default shell, /bin/bash"
+msgstr ""
+
+#: config/SSSDConfig.py:159
+msgid "Base for home directories"
+msgstr ""
+
+#: config/SSSDConfig.py:162
 msgid "The name of the NSS library to use"
 msgstr ""
 
-#: config/SSSDConfig.py:161
+#: config/SSSDConfig.py:165
 msgid "PAM stack to use"
 msgstr ""
 
-#: monitor/monitor.c:2187
+#: monitor/monitor.c:2189
 msgid "Become a daemon (default)"
 msgstr ""
 
-#: monitor/monitor.c:2189
+#: monitor/monitor.c:2191
 msgid "Run interactive (not a daemon)"
 msgstr ""
 
-#: monitor/monitor.c:2191
+#: monitor/monitor.c:2193
 msgid "Specify a non-default config file"
 msgstr ""
 
-#: monitor/monitor.c:2217
+#: monitor/monitor.c:2219
 msgid "sssd must be run as root\n"
 msgstr ""
 
-#: monitor/monitor.c:2252
+#: monitor/monitor.c:2254
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
 msgstr ""
 
-#: monitor/monitor.c:2262
+#: monitor/monitor.c:2264
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
 msgstr ""
 
-#: monitor/monitor.c:2267
+#: monitor/monitor.c:2269
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:918 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:920 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:320
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: providers/data_provider_be.c:1156
+#: providers/data_provider_be.c:1294
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: sss_client/pam_sss.c:354
+#: sss_client/common.c:727
+msgid "Privileged socket has wrong ownership or permissions."
+msgstr ""
+
+#: sss_client/common.c:730
+msgid "Public socket has wrong ownership or permissions."
+msgstr ""
+
+#: sss_client/common.c:733
+msgid "Unexpected format of the server credential message."
+msgstr ""
+
+#: sss_client/common.c:736
+msgid "SSSD is not run by root."
+msgstr ""
+
+#: sss_client/common.c:741
+msgid "An error occurred, but no description can be found."
+msgstr ""
+
+#: sss_client/common.c:747
+msgid "Unexpected error while looking for an error description"
+msgstr ""
+
+#: sss_client/pam_sss.c:370
 msgid "Passwords do not match"
 msgstr ""
 
-#: sss_client/pam_sss.c:423
-msgid "Offline authentication"
+#: sss_client/pam_sss.c:554
+msgid "Password reset by root is not supported."
 msgstr ""
 
-#: sss_client/pam_sss.c:424
+#: sss_client/pam_sss.c:595
+msgid "Authenticated with cached credentials"
+msgstr ""
+
+#: sss_client/pam_sss.c:596
 msgid ", your cached password will expire at: "
 msgstr ""
 
-#: sss_client/pam_sss.c:454
+#: sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
-#: sss_client/pam_sss.c:500
+#: sss_client/pam_sss.c:672
 #, c-format
 msgid "Your password will expire in %d %s."
 msgstr ""
 
-#: sss_client/pam_sss.c:549
-msgid "Offline authentication, authentication is denied until: "
+#: sss_client/pam_sss.c:721
+msgid "Authentication is denied until: "
 msgstr ""
 
-#: sss_client/pam_sss.c:576
+#: sss_client/pam_sss.c:748
 msgid "System is offline, password change not possible"
 msgstr ""
 
-#: sss_client/pam_sss.c:606 sss_client/pam_sss.c:619
+#: sss_client/pam_sss.c:778 sss_client/pam_sss.c:791
 msgid "Password change failed. "
 msgstr ""
 
-#: sss_client/pam_sss.c:609 sss_client/pam_sss.c:620
+#: sss_client/pam_sss.c:781 sss_client/pam_sss.c:792
 msgid "Server message: "
 msgstr ""
 
-#: sss_client/pam_sss.c:997
+#: sss_client/pam_sss.c:1195
 msgid "New Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:998
+#: sss_client/pam_sss.c:1196
 msgid "Reenter new Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:1056
+#: sss_client/pam_sss.c:1278
 msgid "Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:1088
+#: sss_client/pam_sss.c:1310
 msgid "Current Password: "
 msgstr ""
 
-#: sss_client/pam_sss.c:1225
+#: sss_client/pam_sss.c:1456
 msgid "Password expired. Change your password now."
 msgstr ""
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 1.1.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-04-12 09:30-0400\n"
+"POT-Creation-Date: 2010-05-07 16:27-0400\n"
 "PO-Revision-Date: 2010-03-22 22:00+0800\n"
 "Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
 "Language-Team: Fedora-trans-zh_tw <trans-zh_tw@lists.fedoraproject.org>\n"
@@ -170,256 +170,272 @@ msgstr ""
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 
-#: config/SSSDConfig.py:86
+#: config/SSSDConfig.py:84
+msgid "How long to wait for replies from DNS when resolving servers (seconds)"
+msgstr ""
+
+#: config/SSSDConfig.py:87
 msgid "IPA domain"
 msgstr "IPA 網域"
 
-#: config/SSSDConfig.py:87
+#: config/SSSDConfig.py:88
 msgid "IPA server address"
 msgstr "IPA 伺服器位址"
 
-#: config/SSSDConfig.py:88
+#: config/SSSDConfig.py:89
 msgid "IPA client hostname"
 msgstr "IPA 客戶端主機名稱"
 
-#: config/SSSDConfig.py:91 config/SSSDConfig.py:120
+#: config/SSSDConfig.py:90
+msgid "Whether to automatically update the client's DNS entry in FreeIPA"
+msgstr ""
+
+#: config/SSSDConfig.py:91
+msgid "The interface whose IP should be used for dynamic DNS updates"
+msgstr ""
+
+#: config/SSSDConfig.py:94 config/SSSDConfig.py:124
 msgid "Kerberos server address"
 msgstr "Kerberos 伺服器位址"
 
-#: config/SSSDConfig.py:92 config/SSSDConfig.py:121
+#: config/SSSDConfig.py:95 config/SSSDConfig.py:125
 msgid "Kerberos realm"
 msgstr ""
 
-#: config/SSSDConfig.py:93
+#: config/SSSDConfig.py:96
 msgid "Authentication timeout"
 msgstr "認證逾時"
 
-#: config/SSSDConfig.py:96
+#: config/SSSDConfig.py:99
 msgid "Directory to store credential caches"
 msgstr "儲存憑證快取的目錄"
 
-#: config/SSSDConfig.py:97
+#: config/SSSDConfig.py:100
 msgid "Location of the user's credential cache"
 msgstr "使用者憑證快取的位置"
 
-#: config/SSSDConfig.py:98
+#: config/SSSDConfig.py:101
 msgid "Location of the keytab to validate credentials"
 msgstr "驗證憑證用的金鑰表格位置"
 
-#: config/SSSDConfig.py:99
+#: config/SSSDConfig.py:102
 msgid "Enable credential validation"
 msgstr "啟用憑證驗證"
 
-#: config/SSSDConfig.py:102
-msgid "The principal of the change password service"
-msgstr "變更密碼的服務其原則"
-
 #: config/SSSDConfig.py:103
-msgid "Server where the change password service is running if not on the KDC"
+msgid "Store password if offline for later online authentication"
 msgstr ""
 
 #: config/SSSDConfig.py:106
-msgid "ldap_uri, The URI of the LDAP server"
-msgstr ""
+msgid "The principal of the change password service"
+msgstr "變更密碼的服務其原則"
 
 #: config/SSSDConfig.py:107
-msgid "The default base DN"
-msgstr ""
-
-#: config/SSSDConfig.py:108
-msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr ""
-
-#: config/SSSDConfig.py:109
-msgid "The default bind DN"
+msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 
 #: config/SSSDConfig.py:110
-msgid "The type of the authentication token of the default bind DN"
+msgid "ldap_uri, The URI of the LDAP server"
 msgstr ""
 
 #: config/SSSDConfig.py:111
-msgid "The authentication token of the default bind DN"
+msgid "The default base DN"
 msgstr ""
 
 #: config/SSSDConfig.py:112
-msgid "Length of time to attempt connection"
+msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr ""
 
 #: config/SSSDConfig.py:113
-msgid "Length of time to attempt synchronous LDAP operations"
+msgid "The default bind DN"
 msgstr ""
 
 #: config/SSSDConfig.py:114
-msgid "Length of time between attempts to reconnect while offline"
+msgid "The type of the authentication token of the default bind DN"
 msgstr ""
 
 #: config/SSSDConfig.py:115
+msgid "The authentication token of the default bind DN"
+msgstr ""
+
+#: config/SSSDConfig.py:116
+msgid "Length of time to attempt connection"
+msgstr ""
+
+#: config/SSSDConfig.py:117
+msgid "Length of time to attempt synchronous LDAP operations"
+msgstr ""
+
+#: config/SSSDConfig.py:118
+msgid "Length of time between attempts to reconnect while offline"
+msgstr ""
+
+#: config/SSSDConfig.py:119
 #, fuzzy
 msgid "File that contains CA certificates"
 msgstr "含有 CA 憑證的檔案"
 
-#: config/SSSDConfig.py:116
+#: config/SSSDConfig.py:120
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: config/SSSDConfig.py:117
+#: config/SSSDConfig.py:121
 msgid "Require TLS certificate verification"
 msgstr "需要 TLS 憑證驗證"
 
-#: config/SSSDConfig.py:118
+#: config/SSSDConfig.py:122
 msgid "Specify the sasl mechanism to use"
 msgstr "指定要使用的 sasl 機制"
 
-#: config/SSSDConfig.py:119
+#: config/SSSDConfig.py:123
 msgid "Specify the sasl authorization id to use"
 msgstr "指定要使用的 sasl 認證 id"
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:126
 msgid "Kerberos service keytab"
 msgstr ""
 
-#: config/SSSDConfig.py:123
+#: config/SSSDConfig.py:127
 msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
-#: config/SSSDConfig.py:124
+#: config/SSSDConfig.py:128
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:131
 msgid "Length of time to wait for a search request"
 msgstr "搜尋請求的等候時間長度"
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:132
 #, fuzzy
 msgid "Length of time between enumeration updates"
 msgstr "在列舉更新之間的長度"
 
-#: config/SSSDConfig.py:129
+#: config/SSSDConfig.py:133
 msgid "Require TLS for ID lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:130
+#: config/SSSDConfig.py:134
 msgid "Base DN for user lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:131
+#: config/SSSDConfig.py:135
 msgid "Scope of user lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:132
+#: config/SSSDConfig.py:136
 msgid "Filter for user lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:133
+#: config/SSSDConfig.py:137
 msgid "Objectclass for users"
 msgstr ""
 
-#: config/SSSDConfig.py:134
+#: config/SSSDConfig.py:138
 msgid "Username attribute"
 msgstr ""
 
-#: config/SSSDConfig.py:135
+#: config/SSSDConfig.py:139
 #, fuzzy
 msgid "UID attribute"
 msgstr "UID 屬性"
 
-#: config/SSSDConfig.py:136
+#: config/SSSDConfig.py:140
 #, fuzzy
 msgid "Primary GID attribute"
 msgstr "主要 GID 屬性"
 
-#: config/SSSDConfig.py:137
+#: config/SSSDConfig.py:141
 #, fuzzy
 msgid "GECOS attribute"
 msgstr "GEOS 屬性"
 
-#: config/SSSDConfig.py:138
+#: config/SSSDConfig.py:142
 #, fuzzy
 msgid "Home directory attribute"
 msgstr "家目錄屬性"
 
-#: config/SSSDConfig.py:139
+#: config/SSSDConfig.py:143
 #, fuzzy
 msgid "Shell attribute"
 msgstr "Shell 屬性"
 
-#: config/SSSDConfig.py:140
+#: config/SSSDConfig.py:144
 #, fuzzy
 msgid "UUID attribute"
 msgstr "UUID 屬性"
 
-#: config/SSSDConfig.py:141
+#: config/SSSDConfig.py:145
 #, fuzzy
 msgid "User principal attribute (for Kerberos)"
 msgstr "使用者原則屬性（供 Kerberos 使用）"
 
-#: config/SSSDConfig.py:142
+#: config/SSSDConfig.py:146
 msgid "Full Name"
 msgstr "全名"
 
-#: config/SSSDConfig.py:143
+#: config/SSSDConfig.py:147
 msgid "memberOf attribute"
 msgstr ""
 
-#: config/SSSDConfig.py:144
+#: config/SSSDConfig.py:148
 #, fuzzy
 msgid "Modification time attribute"
 msgstr "修改時間屬性"
 
-#: config/SSSDConfig.py:147
+#: config/SSSDConfig.py:151
 msgid "Policy to evaluate the password expiration"
 msgstr "評估密碼過期時效的策略"
 
-#: config/SSSDConfig.py:150
+#: config/SSSDConfig.py:154
 msgid "Comma separated list of allowed users"
 msgstr "許可的使用者清單，請使用半形逗號作為分隔"
 
-#: config/SSSDConfig.py:151
+#: config/SSSDConfig.py:155
 msgid "Comma separated list of prohibited users"
 msgstr "被禁止的使用者清單，請使用半形逗號作為分隔"
 
-#: config/SSSDConfig.py:154
+#: config/SSSDConfig.py:158
 msgid "Default shell, /bin/bash"
 msgstr "預設 shell，/bin/bash"
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:159
 #, fuzzy
 msgid "Base for home directories"
 msgstr "家目錄的基礎"
 
-#: config/SSSDConfig.py:158
+#: config/SSSDConfig.py:162
 msgid "The name of the NSS library to use"
 msgstr "要使用的 NSS 函式庫名稱"
 
-#: config/SSSDConfig.py:161
+#: config/SSSDConfig.py:165
 msgid "PAM stack to use"
 msgstr "要使用的 PAM 堆疊"
 
-#: monitor/monitor.c:2187
+#: monitor/monitor.c:2189
 msgid "Become a daemon (default)"
 msgstr "作為幕後程式 (預設)"
 
-#: monitor/monitor.c:2189
+#: monitor/monitor.c:2191
 msgid "Run interactive (not a daemon)"
 msgstr "以互動方式執行 (非幕後程式)"
 
-#: monitor/monitor.c:2191
+#: monitor/monitor.c:2193
 msgid "Specify a non-default config file"
 msgstr "指定非預設的配置檔"
 
-#: monitor/monitor.c:2217
+#: monitor/monitor.c:2219
 msgid "sssd must be run as root\n"
 msgstr "sssd 必須以 root 身分執行\n"
 
-#: monitor/monitor.c:2252
+#: monitor/monitor.c:2254
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
 msgstr ""
 
-#: monitor/monitor.c:2262
+#: monitor/monitor.c:2264
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -427,86 +443,115 @@ msgid ""
 msgstr ""
 "無法讀取配置檔 %s，請確認權限是否為 0600 並且檔案是由 root.root 所擁有\n"
 
-#: monitor/monitor.c:2267
+#: monitor/monitor.c:2269
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
 #: util/util.h:61
 msgid "Debug level"
 msgstr "除錯層級"
 
-#: providers/krb5/krb5_child.c:918 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:318
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "加入除錯時間戳記"
 
-#: providers/krb5/krb5_child.c:920 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:320
 #, fuzzy
 msgid "An open file descriptor for the debug logs"
 msgstr "供除錯日誌使用的開啟檔案描述符"
 
-#: providers/data_provider_be.c:1156
+#: providers/data_provider_be.c:1294
 #, fuzzy
 msgid "Domain of the information provider (mandatory)"
 msgstr "資訊提供者的網域（委任）"
 
-#: sss_client/pam_sss.c:354
+#: sss_client/common.c:727
+msgid "Privileged socket has wrong ownership or permissions."
+msgstr ""
+
+#: sss_client/common.c:730
+msgid "Public socket has wrong ownership or permissions."
+msgstr ""
+
+#: sss_client/common.c:733
+#, fuzzy
+msgid "Unexpected format of the server credential message."
+msgstr "使用者憑證快取的位置"
+
+#: sss_client/common.c:736
+msgid "SSSD is not run by root."
+msgstr ""
+
+#: sss_client/common.c:741
+msgid "An error occurred, but no description can be found."
+msgstr ""
+
+#: sss_client/common.c:747
+msgid "Unexpected error while looking for an error description"
+msgstr ""
+
+#: sss_client/pam_sss.c:370
 msgid "Passwords do not match"
 msgstr "密碼不相符"
 
-#: sss_client/pam_sss.c:423
-msgid "Offline authentication"
-msgstr "離線認證"
+#: sss_client/pam_sss.c:554
+msgid "Password reset by root is not supported."
+msgstr ""
 
-#: sss_client/pam_sss.c:424
+#: sss_client/pam_sss.c:595
+msgid "Authenticated with cached credentials"
+msgstr ""
+
+#: sss_client/pam_sss.c:596
 msgid ", your cached password will expire at: "
 msgstr "，您快取的密碼將在此刻過期："
 
-#: sss_client/pam_sss.c:454
+#: sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
-#: sss_client/pam_sss.c:500
+#: sss_client/pam_sss.c:672
 #, fuzzy, c-format
 msgid "Your password will expire in %d %s."
 msgstr "，您快取的密碼將在此刻過期："
 
-#: sss_client/pam_sss.c:549
+#: sss_client/pam_sss.c:721
 #, fuzzy
-msgid "Offline authentication, authentication is denied until: "
+msgid "Authentication is denied until: "
 msgstr "離線認證，認證被定義到："
 
-#: sss_client/pam_sss.c:576
+#: sss_client/pam_sss.c:748
 msgid "System is offline, password change not possible"
 msgstr "系統已離線，不可能作密碼變更"
 
-#: sss_client/pam_sss.c:606 sss_client/pam_sss.c:619
+#: sss_client/pam_sss.c:778 sss_client/pam_sss.c:791
 msgid "Password change failed. "
 msgstr "密碼變更失敗。"
 
-#: sss_client/pam_sss.c:609 sss_client/pam_sss.c:620
+#: sss_client/pam_sss.c:781 sss_client/pam_sss.c:792
 msgid "Server message: "
 msgstr "伺服器訊息："
 
-#: sss_client/pam_sss.c:997
+#: sss_client/pam_sss.c:1195
 msgid "New Password: "
 msgstr "新密碼："
 
-#: sss_client/pam_sss.c:998
+#: sss_client/pam_sss.c:1196
 msgid "Reenter new Password: "
 msgstr "再次輸入新密碼："
 
-#: sss_client/pam_sss.c:1056
+#: sss_client/pam_sss.c:1278
 msgid "Password: "
 msgstr "密碼："
 
-#: sss_client/pam_sss.c:1088
+#: sss_client/pam_sss.c:1310
 msgid "Current Password: "
 msgstr "目前的密碼："
 
-#: sss_client/pam_sss.c:1225
+#: sss_client/pam_sss.c:1456
 msgid "Password expired. Change your password now."
 msgstr "密碼已過期。請立刻變更您的密碼。"
 
@@ -915,3 +960,6 @@ msgstr "%s 必須以 root 身分執行\n"
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
 msgstr "傳送除錯輸出到檔案而不是標準輸出"
+
+#~ msgid "Offline authentication"
+#~ msgstr "離線認證"
