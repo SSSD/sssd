@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-05-07 16:27-0400\n"
-"PO-Revision-Date: 2010-03-15 14:21+0100\n"
+"PO-Revision-Date: 2010-05-08 14:28+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -167,6 +167,8 @@ msgstr ""
 #: config/SSSDConfig.py:84
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
+"Jak długo czekać na odpowiedzi od DNS podczas rozwiązywania serwerów "
+"(sekundy)"
 
 #: config/SSSDConfig.py:87
 msgid "IPA domain"
@@ -182,11 +184,13 @@ msgstr "Nazwa komputera klienta IPA"
 
 #: config/SSSDConfig.py:90
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
-msgstr ""
+msgstr "Czy automatycznie aktualizować wpis DNS klienta w FreeIPA"
 
 #: config/SSSDConfig.py:91
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
+"Interfejs, którego adres IP powinien być używany do dynamicznych "
+"aktualizacji DNS"
 
 #: config/SSSDConfig.py:94 config/SSSDConfig.py:124
 msgid "Kerberos server address"
@@ -220,6 +224,8 @@ msgstr "Włącza sprawdzanie danych uwierzytelniających"
 #: config/SSSDConfig.py:103
 msgid "Store password if offline for later online authentication"
 msgstr ""
+"Przechowuje hasło, jeśli znajduje się w trybie offline do dalszego "
+"uwierzytelnienia w trybie online"
 
 #: config/SSSDConfig.py:106
 msgid "The principal of the change password service"
@@ -268,13 +274,12 @@ msgid "Length of time between attempts to reconnect while offline"
 msgstr "Czas między próbami ponownego połączenia w trybie offline"
 
 #: config/SSSDConfig.py:119
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "plik zawierający certyfikaty CA"
+msgstr "Plik zawierający certyfikaty CA"
 
 #: config/SSSDConfig.py:120
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Ścieżka do katalogu certyfikatów CA"
 
 #: config/SSSDConfig.py:121
 msgid "Require TLS certificate verification"
@@ -309,9 +314,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Czas między aktualizacjami wyliczania"
 
 #: config/SSSDConfig.py:133
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Wymaga TLS dla wyszukiwania identyfikatorów, fałsz"
+msgstr "Wymaga TLS dla wyszukiwania identyfikatorów"
 
 #: config/SSSDConfig.py:134
 msgid "Base DN for user lookups"
@@ -436,7 +440,7 @@ msgstr ""
 
 #: monitor/monitor.c:2269
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Nie można wczytać bazy danych konfiguracji\n"
 
 #: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
 #: util/util.h:61
@@ -458,28 +462,27 @@ msgstr "Domena dostawcy informacji (wymagane)"
 
 #: sss_client/common.c:727
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Uprawnione gniazdo posiada błędnego właściciela lub uprawnienia."
 
 #: sss_client/common.c:730
 msgid "Public socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Publiczne gniazdo posiada błędnego właściciela lub uprawnienia."
 
 #: sss_client/common.c:733
-#, fuzzy
 msgid "Unexpected format of the server credential message."
-msgstr "Położenie pamięci podręcznej danych uwierzytelniających użytkownika"
+msgstr "Nieoczekiwany format komunikatu uwierzytelniającego serwera."
 
 #: sss_client/common.c:736
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "SSSD nie zostało uruchomione jako root."
 
 #: sss_client/common.c:741
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Wystąpił błąd, ale nie można odnaleźć opisu."
 
 #: sss_client/common.c:747
 msgid "Unexpected error while looking for an error description"
-msgstr ""
+msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 
 #: sss_client/pam_sss.c:370
 msgid "Passwords do not match"
@@ -487,11 +490,12 @@ msgstr "Hasła nie zgadzają się"
 
 #: sss_client/pam_sss.c:554
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "Przywrócenie hasło przez roota nie jest obsługiwane."
 
 #: sss_client/pam_sss.c:595
 msgid "Authenticated with cached credentials"
 msgstr ""
+"Uwierzytelniono za pomocą danych uwierzytelniających w pamięci podręcznej"
 
 #: sss_client/pam_sss.c:596
 msgid ", your cached password will expire at: "
@@ -500,18 +504,16 @@ msgstr ", hasło w pamięci podręcznej wygaśnie za: "
 #: sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "Hasło wygasło. Pozostało %d możliwych logowań."
 
 #: sss_client/pam_sss.c:672
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr ", hasło w pamięci podręcznej wygaśnie za: "
+msgstr "Hasło wygaśnie za %d %s."
 
 #: sss_client/pam_sss.c:721
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr ""
-"Uwierzytelnianie w trybie offline, uwierzytelnianie jest zabronione do: "
+msgstr "Uwierzytelnianie jest zabronione do: "
 
 #: sss_client/pam_sss.c:748
 msgid "System is offline, password change not possible"
@@ -589,7 +591,7 @@ msgstr "Proszę podać alternatywny katalog szkieletu"
 
 #: tools/sss_useradd.c:125 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "Użytkownik SELinuksa dla loginu użytkownika"
 
 #: tools/sss_useradd.c:139 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:159
@@ -647,7 +649,7 @@ msgstr "Wybrany UID jest spoza dozwolonego zakresu\n"
 
 #: tools/sss_useradd.c:279 tools/sss_usermod.c:242
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Nie można ustawić kontekstu logowania SELinuksa\n"
 
 #: tools/sss_useradd.c:296
 msgid "Cannot get info about the user\n"
@@ -853,7 +855,7 @@ msgstr "Wymusza usunięcie plików, których właścicielem nie jest użytkownik
 
 #: tools/sss_userdel.c:150
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Usuwa procesy użytkownika przed jego usunięciem"
 
 #: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
@@ -867,25 +869,26 @@ msgstr ""
 
 #: tools/sss_userdel.c:285
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Nie można przywrócić kontekstu logowania SELinuksa\n"
 
 #: tools/sss_userdel.c:297
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
+"OSTRZEŻENIE: użytkownik (UID %lu) był zalogowany podczas jego usuwania.\n"
 
 #: tools/sss_userdel.c:302
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
+msgstr "Nie można określić, czy użytkownik był zalogowany na tej platformie"
 
 #: tools/sss_userdel.c:307
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Błąd podczas sprawdzania, czy użytkownik był zalogowany\n"
 
 #: tools/sss_userdel.c:314
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr ""
+msgstr "Polecenie po usunięciu się nie powiodło: %s\n"
 
 #: tools/sss_userdel.c:326
 msgid "Not removing home dir - not owned by user\n"
@@ -969,6 +972,3 @@ msgstr "%s musi zostać uruchomione jako root\n"
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
-
-#~ msgid "Offline authentication"
-#~ msgstr "Uwierzytelnienie w trybie offline"
