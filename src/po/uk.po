@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-05-07 16:27-0400\n"
-"PO-Revision-Date: 2010-03-17 19:38+0200\n"
+"PO-Revision-Date: 2010-05-08 22:42+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
 "MIME-Version: 1.0\n"
@@ -171,6 +171,8 @@ msgstr ""
 #: config/SSSDConfig.py:84
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
+"Тривалість очікування на відповідь від DNS під час визначення адрес серверів "
+"(у секундах)"
 
 #: config/SSSDConfig.py:87
 msgid "IPA domain"
@@ -187,10 +189,13 @@ msgstr "Назва вузла клієнта IPA"
 #: config/SSSDConfig.py:90
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
+"Визначає, чи слід автоматично оновлювати запис DNS клієнтського вузла у "
+"FreeIPA"
 
 #: config/SSSDConfig.py:91
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
+"Інтерфейс, чию адресу IP має бути використано для динамічних оновлень DNS"
 
 #: config/SSSDConfig.py:94 config/SSSDConfig.py:124
 msgid "Kerberos server address"
@@ -222,7 +227,7 @@ msgstr "Увімкнути перевірку реєстраційних дан�
 
 #: config/SSSDConfig.py:103
 msgid "Store password if offline for later online authentication"
-msgstr ""
+msgstr "Зберігати пароль у автономному режимі для розпізнавання у мережі"
 
 #: config/SSSDConfig.py:106
 msgid "The principal of the change password service"
@@ -273,13 +278,12 @@ msgstr ""
 "режимі"
 
 #: config/SSSDConfig.py:119
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "файл, що містить сертифікати CA"
+msgstr "Файл, що містить сертифікати CA"
 
 #: config/SSSDConfig.py:120
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Шлях до каталогу сертифікатів CA"
 
 #: config/SSSDConfig.py:121
 msgid "Require TLS certificate verification"
@@ -314,9 +318,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Проміжок часу між оновленнями нумерації"
 
 #: config/SSSDConfig.py:133
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Вимагати TLS для пошуків ідентифікаторів, вимкнено"
+msgstr "Вимагати TLS для пошуків ідентифікаторів"
 
 #: config/SSSDConfig.py:134
 msgid "Base DN for user lookups"
@@ -442,7 +445,7 @@ msgstr ""
 
 #: monitor/monitor.c:2269
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Не вдалося завантажити базу даних налаштувань\n"
 
 #: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
 #: util/util.h:61
@@ -464,28 +467,27 @@ msgstr "Домен надання відомостей (обов’язкови�
 
 #: sss_client/common.c:727
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
+msgstr "У привілейованого сокета помилковий власник або права доступу."
 
 #: sss_client/common.c:730
 msgid "Public socket has wrong ownership or permissions."
-msgstr ""
+msgstr "У відкритого сокета помилковий власник або права доступу."
 
 #: sss_client/common.c:733
-#, fuzzy
 msgid "Unexpected format of the server credential message."
-msgstr "Адреса кешу реєстраційних даних користувача"
+msgstr "Некоректний формат повідомлення щодо реєстраційних даних сервера."
 
 #: sss_client/common.c:736
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "SSSD запущено не від імені користувача root."
 
 #: sss_client/common.c:741
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Сталася помилка, але не вдалося знайти її опису."
 
 #: sss_client/common.c:747
 msgid "Unexpected error while looking for an error description"
-msgstr ""
+msgstr "Неочікувана помилка під час пошуку опису помилки"
 
 #: sss_client/pam_sss.c:370
 msgid "Passwords do not match"
@@ -493,11 +495,11 @@ msgstr "Паролі не збігаються"
 
 #: sss_client/pam_sss.c:554
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "Підтримки скидання пароля користувачем root не передбачено."
 
 #: sss_client/pam_sss.c:595
 msgid "Authenticated with cached credentials"
-msgstr ""
+msgstr "Розпізнано за реєстраційними даними з кешу"
 
 #: sss_client/pam_sss.c:596
 msgid ", your cached password will expire at: "
@@ -506,17 +508,16 @@ msgstr ", строк дії вашого кешованого пароля за�
 #: sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "Строк дії вашого пароля вичерпано. Залишилося %d резервних входи."
 
 #: sss_client/pam_sss.c:672
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr ", строк дії вашого кешованого пароля завершиться: "
+msgstr "Строк дії вашого пароля завершиться за %d %s."
 
 #: sss_client/pam_sss.c:721
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr "Автономне розпізнавання, розпізнавання заборонено до: "
+msgstr "Розпізнавання заборонено до: "
 
 #: sss_client/pam_sss.c:748
 msgid "System is offline, password change not possible"
@@ -594,7 +595,7 @@ msgstr "Вказати альтернативний основний катал�
 
 #: tools/sss_useradd.c:125 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "Ім’я користувача SELinux для входу до системи"
 
 #: tools/sss_useradd.c:139 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:159
@@ -653,7 +654,7 @@ msgstr ""
 
 #: tools/sss_useradd.c:279 tools/sss_usermod.c:242
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Не вдалося встановити контекст входу SELinux\n"
 
 #: tools/sss_useradd.c:296
 msgid "Cannot get info about the user\n"
@@ -860,7 +861,7 @@ msgstr "Примусово вилучити файли, які не належа
 
 #: tools/sss_userdel.c:150
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Припинити роботу процесів користувача перед вилученням його запису"
 
 #: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
@@ -874,25 +875,28 @@ msgstr ""
 
 #: tools/sss_userdel.c:285
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Не вдалося відновити початковий контекст входу SELinux\n"
 
 #: tools/sss_userdel.c:297
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
 msgstr ""
+"ПОПЕРЕДЖЕННЯ: користувач (uid %lu) все ще працював у системі на час "
+"вилучення його запису.\n"
 
 #: tools/sss_userdel.c:302
 msgid "Cannot determine if the user was logged in on this platform"
 msgstr ""
+"Не вдалося визначити, чи увійшов користувач до системи на цій платформі"
 
 #: tools/sss_userdel.c:307
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Помилка під час перевірки входу користувача до системи\n"
 
 #: tools/sss_userdel.c:314
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr ""
+msgstr "Помилка команди, яку слід було виконати після вилучення запису: %s\n"
 
 #: tools/sss_userdel.c:326
 msgid "Not removing home dir - not owned by user\n"
