@@ -93,22 +93,15 @@ msgstr "O valor do campo da senha que o fornecedor NSS deve retornar"
 
 #: config/SSSDConfig.py:63
 msgid "How long to allow cached logins between online logins (days)"
-msgstr ""
-"Durante quanto tempo devem ser permitidas as caches de sessões entre sessões "
-"online (dias)"
+msgstr "Durante quanto tempo devem ser permitidas as caches de sessões entre sessões online (dias)"
 
 #: config/SSSDConfig.py:64
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
-"Quantas tentativas falhadas de inicio de sessão são permitidas quando offline"
+msgstr "Quantas tentativas falhadas de inicio de sessão são permitidas quando offline"
 
 #: config/SSSDConfig.py:65
-msgid ""
-"How long (minutes) to deny login after offline_failed_login_attempts has "
-"been reached"
-msgstr ""
-"Quanto tempo (minutos) para negar a sessão após "
-"offline_failed_login_attempts ter sido atingido"
+msgid "How long (minutes) to deny login after offline_failed_login_attempts has been reached"
+msgstr "Quanto tempo (minutos) para negar a sessão após offline_failed_login_attempts ter sido atingido"
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
@@ -159,17 +152,12 @@ msgid "Entry cache timeout length (seconds)"
 msgstr "Validade da cache (segundos)"
 
 #: config/SSSDConfig.py:82
-msgid ""
-"Restrict or prefer a specific address family when performing DNS lookups"
-msgstr ""
-"Restringir ou preferir famílias de endereços especificas quando efectua "
-"consultas DNS"
+msgid "Restrict or prefer a specific address family when performing DNS lookups"
+msgstr "Restringir ou preferir famílias de endereços especificas quando efectua consultas DNS"
 
 #: config/SSSDConfig.py:83
 msgid "How long to keep cached entries after last successful login (days)"
-msgstr ""
-"Durante quanto tempo devem ser permitidas as caches de sessões entre sessões "
-"bem sucedidas (dias)"
+msgstr "Durante quanto tempo devem ser permitidas as caches de sessões entre sessões bem sucedidas (dias)"
 
 #: config/SSSDConfig.py:86
 msgid "IPA domain"
@@ -217,9 +205,7 @@ msgstr "O principal do serviço de alteração de senha"
 
 #: config/SSSDConfig.py:103
 msgid "Server where the change password service is running if not on the KDC"
-msgstr ""
-"Servidor onde está em execução o serviço de alteração de senha, se não "
-"coincide com o KDC"
+msgstr "Servidor onde está em execução o serviço de alteração de senha, se não coincide com o KDC"
 
 #: config/SSSDConfig.py:106
 msgid "ldap_uri, The URI of the LDAP server"
@@ -258,13 +244,12 @@ msgid "Length of time between attempts to reconnect while offline"
 msgstr "Tempo de espera entre tentativas para re-conectar quando desligado"
 
 #: config/SSSDConfig.py:115
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "ficheiro que contêm os certificados CA"
+msgstr "Ficheiro que contêm os certificados CA"
 
 #: config/SSSDConfig.py:116
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Caminho para o directório do certificado CA"
 
 #: config/SSSDConfig.py:117
 msgid "Require TLS certificate verification"
@@ -299,9 +284,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Período de tempo entre enumeração de actualizações"
 
 #: config/SSSDConfig.py:129
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Requer TLS para consultas de ID, falso"
+msgstr "Requer TLS para consultas de ID"
 
 #: config/SSSDConfig.py:130
 msgid "Base DN for user lookups"
@@ -408,26 +392,17 @@ msgid "sssd must be run as root\n"
 msgstr "sssd tem de executar como root\n"
 
 #: monitor/monitor.c:2252
-msgid ""
-"nscd socket was detected.  As nscd caching capabilities may conflict with "
-"SSSD, it is recommended to not run nscd in parallel with SSSD\n"
-msgstr ""
-"foi detectado um socket nscd. As capacidades de caching do nscd podem entrar "
-"em conflito com o SSSD. Não é recomendado executar o nscd em paralelo com o "
-"SSSD\n"
+msgid "nscd socket was detected.  As nscd caching capabilities may conflict with SSSD, it is recommended to not run nscd in parallel with SSSD\n"
+msgstr "foi detectado um socket nscd. As capacidades de caching do nscd podem entrar em conflito com o SSSD. Não é recomendado executar o nscd em paralelo com o SSSD\n"
 
 #: monitor/monitor.c:2262
 #, c-format
-msgid ""
-"Cannot read config file %s, please check if permissions are 0600 and the "
-"file is owned by root.root\n"
-msgstr ""
-"Incapaz de ler o ficheiro de configuração %s. Por favor, verifique se as "
-"permissões são 0600 e se o ficheiro pertence a root.root\n"
+msgid "Cannot read config file %s, please check if permissions are 0600 and the file is owned by root.root\n"
+msgstr "Incapaz de ler o ficheiro de configuração %s. Por favor, verifique se as permissões são 0600 e se o ficheiro pertence a root.root\n"
 
 #: monitor/monitor.c:2267
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Não é possível carregar a configuração da base de dados\n"
 
 #: providers/krb5/krb5_child.c:916 providers/ldap/ldap_child.c:316
 #: util/util.h:61
@@ -462,12 +437,12 @@ msgstr ", a sua senha guardada em cache irá expirar em: "
 #: sss_client/pam_sss.c:454
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "A sua senha expirou. Restam-lhe %d sessões de tolerância."
 
 #: sss_client/pam_sss.c:500
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr ", a sua senha guardada em cache irá expirar em: "
+msgstr "A sua senha irá expirar em %d %s."
 
 #: sss_client/pam_sss.c:549
 msgid "Offline authentication, authentication is denied until: "
@@ -615,8 +590,7 @@ msgstr "Incapaz de obter informação acerca do utilizador\n"
 
 #: tools/sss_useradd.c:287
 msgid "User's home directory already exists, not copying data from skeldir\n"
-msgstr ""
-"A pasta pessoal do utilizador já existe. Conteúdo skeldir não copiado\n"
+msgstr "A pasta pessoal do utilizador já existe. Conteúdo skeldir não copiado\n"
 
 #: tools/sss_useradd.c:290
 #, c-format
@@ -674,12 +648,8 @@ msgid "Group %s is outside the defined ID range for domain\n"
 msgstr "O grupo %s está fora do intervalo de IDs para o domínio\n"
 
 #: tools/sss_groupdel.c:121
-msgid ""
-"No such group in local domain. Removing groups only allowed in local "
-"domain.\n"
-msgstr ""
-"Grupo não existe no domínio local. Apenas é permitido remover grupos no "
-"domínio local.\n"
+msgid "No such group in local domain. Removing groups only allowed in local domain.\n"
+msgstr "Grupo não existe no domínio local. Apenas é permitido remover grupos no domínio local.\n"
 
 #: tools/sss_groupdel.c:126
 msgid "Internal error. Could not remove group.\n"
@@ -698,12 +668,8 @@ msgid "Specify group to modify\n"
 msgstr "Especifique grupo a modificar\n"
 
 #: tools/sss_groupmod.c:130
-msgid ""
-"Cannot find group in local domain, modifying groups is allowed only in local "
-"domain\n"
-msgstr ""
-"Grupo não foi encontrado no domínio local. Apenas é permitido modificar "
-"grupos no domínio local\n"
+msgid "Cannot find group in local domain, modifying groups is allowed only in local domain\n"
+msgstr "Grupo não foi encontrado no domínio local. Apenas é permitido modificar grupos no domínio local\n"
 
 #: tools/sss_groupmod.c:151 tools/sss_groupmod.c:178
 msgid "Member groups must be in the same domain as parent group\n"
@@ -712,23 +678,16 @@ msgstr "Grupos membro têm de estar no mesmo domínio do grupo pai\n"
 #: tools/sss_groupmod.c:159 tools/sss_groupmod.c:186 tools/sss_usermod.c:180
 #: tools/sss_usermod.c:207
 #, c-format
-msgid ""
-"Cannot find group %s in local domain, only groups in local domain are "
-"allowed\n"
-msgstr ""
-"Grupo %s não foi encontrado no domínio local. Apenas são permitidos grupos "
-"no domínio local\n"
+msgid "Cannot find group %s in local domain, only groups in local domain are allowed\n"
+msgstr "Grupo %s não foi encontrado no domínio local. Apenas são permitidos grupos no domínio local\n"
 
 #: tools/sss_groupmod.c:220
 msgid "Could not modify group - check if member group names are correct\n"
-msgstr ""
-"Incapaz de modificar grupo - verifique que o nome do grupo membro está "
-"correcto\n"
+msgstr "Incapaz de modificar grupo - verifique que o nome do grupo membro está correcto\n"
 
 #: tools/sss_groupmod.c:224
 msgid "Could not modify group - check if groupname is correct\n"
-msgstr ""
-"Incapaz de modificar grupo - verifique que o nome do grupo está correcto\n"
+msgstr "Incapaz de modificar grupo - verifique que o nome do grupo está correcto\n"
 
 #: tools/sss_groupmod.c:228
 msgid "Transaction error. Could not modify group.\n"
@@ -780,12 +739,8 @@ msgid "Specify group to show\n"
 msgstr "Especifique grupo a apresentar\n"
 
 #: tools/sss_groupshow.c:698
-msgid ""
-"No such group in local domain. Printing groups only allowed in local "
-"domain.\n"
-msgstr ""
-"Grupo não existe no domínio local. Grupos de impressão apenas permitidos no "
-"domínio local.\n"
+msgid "No such group in local domain. Printing groups only allowed in local domain.\n"
+msgstr "Grupo não existe no domínio local. Grupos de impressão apenas permitidos no domínio local.\n"
 
 #: tools/sss_groupshow.c:703
 msgid "Internal error. Could not print group.\n"
@@ -848,11 +803,8 @@ msgid "Cannot remove homedir: %s\n"
 msgstr "Incapaz de remover pasta pessoal: %s\n"
 
 #: tools/sss_userdel.c:334
-msgid ""
-"No such user in local domain. Removing users only allowed in local domain.\n"
-msgstr ""
-"Utilizador não existe no domínio local. Apenas é permitido remover "
-"utilizadores no domínio local.\n"
+msgid "No such user in local domain. Removing users only allowed in local domain.\n"
+msgstr "Utilizador não existe no domínio local. Apenas é permitido remover utilizadores no domínio local.\n"
 
 #: tools/sss_userdel.c:339
 msgid "Internal error. Could not remove user.\n"
@@ -883,18 +835,12 @@ msgid "Specify user to modify\n"
 msgstr "Especifique utilizador a modificar\n"
 
 #: tools/sss_usermod.c:148
-msgid ""
-"Cannot find user in local domain, modifying users is allowed only in local "
-"domain\n"
-msgstr ""
-"Utilizador não foi encontrado no domínio local. Apenas é permitido modificar "
-"utilizadores no domínio local\n"
+msgid "Cannot find user in local domain, modifying users is allowed only in local domain\n"
+msgstr "Utilizador não foi encontrado no domínio local. Apenas é permitido modificar utilizadores no domínio local\n"
 
 #: tools/sss_usermod.c:250
 msgid "Could not modify user - check if group names are correct\n"
-msgstr ""
-"Incapaz de modificar utilizador - verifique se o nome do grupo está "
-"correcto\n"
+msgstr "Incapaz de modificar utilizador - verifique se o nome do grupo está correcto\n"
 
 #: tools/sss_usermod.c:254
 msgid "Could not modify user - user already member of groups?\n"
