@@ -607,14 +607,21 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    int    timeout,
                                    const char *keytab,
                                    const char *principal,
-                                   const char *realm)
+                                   const char *realm,
+                                   int lifetime)
 {
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct sdap_kinit_state *state;
     int ret;
 
-    DEBUG(6, ("Attempting kinit (%s, %s, %s)\n", keytab, principal, realm));
+    DEBUG(6, ("Attempting kinit (%s, %s, %s, %d)\n", keytab, principal, realm,
+                                                     lifetime));
+
+    if (lifetime < 0 || lifetime > INT32_MAX) {
+        DEBUG(1, ("Ticket lifetime out of range.\n"));
+        return NULL;
+    }
 
     req = tevent_req_create(memctx, &state, struct sdap_kinit_state);
     if (!req) return NULL;
@@ -629,7 +636,8 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
         }
     }
 
-    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, timeout);
+    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, lifetime,
+                               timeout);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
@@ -1055,7 +1063,9 @@ static void sdap_cli_kinit_step(struct tevent_req *req)
                         dp_opt_get_string(state->opts->basic,
                                                    SDAP_SASL_AUTHID),
                         dp_opt_get_string(state->opts->basic,
-                                                   SDAP_KRB5_REALM));
+                                                   SDAP_KRB5_REALM),
+                        dp_opt_get_int(state->opts->basic,
+                                                   SDAP_KRB5_TICKET_LIFETIME));
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;

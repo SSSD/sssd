@@ -40,6 +40,7 @@ struct input_buffer {
     const char *realm_str;
     const char *princ_str;
     const char *keytab_name;
+    krb5_deltat lifetime;
 };
 
 static errno_t unpack_buffer(uint8_t *buf, size_t size,
@@ -86,6 +87,10 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
         p += len;
     }
 
+    /* ticket lifetime */
+    SAFEALIGN_COPY_INT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
+    DEBUG(7, ("lifetime: %d\n", ibuf->lifetime));
+
     return EOK;
 }
 
@@ -118,6 +123,7 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                   const char *realm_str,
                                   const char *princ_str,
                                   const char *keytab_name,
+                                  const krb5_deltat lifetime,
                                   const char **ccname_out)
 {
     char *ccname;
@@ -220,8 +226,7 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_get_init_creds_opt_set_address_list(&options, NULL);
     krb5_get_init_creds_opt_set_forwardable(&options, 0);
     krb5_get_init_creds_opt_set_proxiable(&options, 0);
-    /* set a very short lifetime, we don't keep the ticket around */
-    krb5_get_init_creds_opt_set_tkt_life(&options, 300);
+    krb5_get_init_creds_opt_set_tkt_life(&options, lifetime);
 
     krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                         keytab, 0, NULL, &options);
@@ -392,7 +397,7 @@ int main(int argc, const char *argv[])
 
     kerr = ldap_child_get_tgt_sync(main_ctx,
                                    ibuf->realm_str, ibuf->princ_str,
-                                   ibuf->keytab_name, &ccname);
+                                   ibuf->keytab_name, ibuf->lifetime, &ccname);
     if (kerr != EOK) {
         DEBUG(1, ("ldap_child_get_tgt_sync failed.\n"));
         /* Do not return, must report failure */
