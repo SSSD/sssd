@@ -642,9 +642,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain.add_provider('krb5', 'auth')
 
         backup_list = control_list[:]
-        control_list.extend(
-            ['krb5_kdcip',
-             'krb5_realm'])
+        control_list.extend(['krb5_realm'])
 
         options = domain.list_mandatory_options()
 
