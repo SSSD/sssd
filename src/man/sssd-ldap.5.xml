@@ -569,6 +569,19 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_krb5_ticket_lifetime (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the lifetime in seconds of the TGT if
+                            GSSAPI is used.
+                        </para>
+                        <para>
+                            Default: 86400 (24 hours)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>

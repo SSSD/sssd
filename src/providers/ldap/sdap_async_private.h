@@ -58,6 +58,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
                                      const char *realm_str,
                                      const char *princ_str,
                                      const char *keytab_name,
+                                     int32_t lifetime,
                                      int timeout);
 
 int sdap_get_tgt_recv(struct tevent_req *req,

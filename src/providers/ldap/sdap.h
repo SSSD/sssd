@@ -152,6 +152,7 @@ enum sdap_basic_opt {
     SDAP_ACCOUNT_CACHE_EXPIRATION,
     SDAP_DNS_SERVICE_NAME,
     SDAP_ACCESS_FILTER,
+    SDAP_KRB5_TICKET_LIFETIME,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

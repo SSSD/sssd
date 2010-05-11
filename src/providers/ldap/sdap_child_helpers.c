@@ -137,6 +137,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
                                           const char *realm_str,
                                           const char *princ_str,
                                           const char *keytab_name,
+                                          int32_t lifetime,
                                           struct io_buffer **io_buf)
 {
     struct io_buffer *buf;
@@ -148,7 +149,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    buf->size = 3 * sizeof(uint32_t);
+    buf->size = 4 * sizeof(uint32_t);
     if (realm_str) {
         buf->size += strlen(realm_str);
     }
@@ -193,6 +194,9 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
     } else {
         SAFEALIGN_SET_UINT32(&buf->data[rp], 0, &rp);
     }
+
+    /* lifetime */
+    SAFEALIGN_SET_UINT32(&buf->data[rp], lifetime, &rp);
 
     *io_buf = buf;
     return EOK;
@@ -248,6 +252,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
                                      const char *realm_str,
                                      const char *princ_str,
                                      const char *keytab_name,
+                                     int32_t lifetime,
                                      int timeout)
 {
     struct tevent_req *req, *subreq;
@@ -274,7 +279,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
 
     /* prepare the data to pass to child */
     ret = create_tgt_req_send_buffer(state,
-                                     realm_str, princ_str, keytab_name,
+                                     realm_str, princ_str, keytab_name, lifetime,
                                      &buf);
     if (ret != EOK) {
         DEBUG(1, ("create_tgt_req_send_buffer failed.\n"));

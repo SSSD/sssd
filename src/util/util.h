@@ -198,6 +198,11 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
     safealign_memcpy(dest, src, sizeof(uint32_t), pctr); \
 } while(0)
 
+#define SAFEALIGN_COPY_INT32_CHECK(dest, src, len, pctr) do { \
+    if ((*(pctr) + sizeof(int32_t)) > (len)) return EINVAL; \
+    safealign_memcpy(dest, src, sizeof(int32_t), pctr); \
+} while(0)
+
 #include "util/dlinklist.h"
 
 /* From debug.c */

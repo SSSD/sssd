@@ -65,7 +65,8 @@ struct dp_option default_basic_opts[] = {
     { "ldap_referrals", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE },
     { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_dns_service_name", DP_OPT_STRING, { SSS_LDAP_SRV_NAME }, NULL_STRING },
-    { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_krb5_ticket_lifetime", DP_OPT_NUMBER, { .number = (24 * 60 * 60) }, NULL_NUMBER }
 };
 
 struct sdap_attr_map generic_attr_map[] = {
