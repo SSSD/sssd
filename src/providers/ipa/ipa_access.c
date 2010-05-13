@@ -91,7 +91,7 @@ static void ipa_access_reply(struct be_req *be_req, int pam_status)
     pd = talloc_get_type(be_req->req_data, struct pam_data);
     pd->pam_status = pam_status;
 
-    if (pam_status == PAM_SUCCESS) {
+    if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
         be_req->fn(be_req, DP_ERR_OK, pam_status, NULL);
     } else {
         be_req->fn(be_req, DP_ERR_FATAL, pam_status, NULL);
