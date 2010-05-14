@@ -223,7 +223,7 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
     const char *dummy;
 
     ctx = calloc(1,sizeof(struct sssd_ctx));
-    if (ctx == NULL) return ENOMEM;
+    if (ctx == NULL) return KRB5_PLUGIN_NO_HANDLE;
 
     dummy = getenv(SSSD_KRB5_LOCATOR_DEBUG);
     if (dummy == NULL) {
@@ -280,7 +280,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         ctx->sssd_realm = strdup(realm);
         if (ctx->sssd_realm == NULL) {
             PLUGIN_DEBUG(("strdup failed.\n"));
-            return ENOMEM;
+            return KRB5_PLUGIN_NO_HANDLE;
         }
 
         ret = get_krb5info(realm, ctx, locate_service_kdc);
@@ -326,7 +326,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         case locate_service_krb524:
             return KRB5_PLUGIN_NO_HANDLE;
         default:
-            return EINVAL;
+            return KRB5_PLUGIN_NO_HANDLE;
     }
 
     switch (family) {
@@ -343,7 +343,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         case SOCK_DGRAM:
             break;
         default:
-            return EINVAL;
+            return KRB5_PLUGIN_NO_HANDLE;
     }
 
     if (strcmp(realm, ctx->sssd_realm) != 0)
@@ -353,7 +353,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
     ret = snprintf(port_str, PORT_STR_SIZE-1, "%u", port);
     if (ret < 0 || ret >= (PORT_STR_SIZE-1)) {
         PLUGIN_DEBUG(("snprintf failed.\n"));
-        return EFAULT;
+        return KRB5_PLUGIN_NO_HANDLE;
     }
 
     memset(&ai_hints, 0, sizeof(struct addrinfo));
@@ -368,7 +368,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             PLUGIN_DEBUG(("getaddrinfo failed [%d][%s].\n", errno,
                                                             strerror(errno)));
         }
-        return EFAULT;
+        return KRB5_PLUGIN_NO_HANDLE;
     }
 
     PLUGIN_DEBUG(("addr[%s:%s] family[%d] socktype[%d]\n", addr, port_str,
