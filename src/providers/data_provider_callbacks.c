@@ -180,3 +180,25 @@ void be_run_online_cb(struct be_ctx *be) {
         DEBUG(9, ("Online call back list is empty, nothing to do.\n"));
     }
 }
+
+int be_add_offline_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
+                      void *pvt, struct be_cb **offline_cb)
+{
+    return be_add_cb(mem_ctx, ctx, cb, pvt, &ctx->offline_cb_list, offline_cb);
+}
+
+void be_run_offline_cb(struct be_ctx *be) {
+    int ret;
+
+    if (be->offline_cb_list) {
+        DEBUG(3, ("Going offline. Running callbacks.\n"));
+
+        ret = be_run_cb(be, be->offline_cb_list);
+        if (ret != EOK) {
+            DEBUG(1, ("be_run_cb failed.\n"));
+        }
+
+    } else {
+        DEBUG(9, ("Offline call back list is empty, nothing to do.\n"));
+    }
+}
