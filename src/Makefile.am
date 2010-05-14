@@ -399,6 +399,7 @@ sssd_be_SOURCES = \
     providers/data_provider_be.c \
     providers/data_provider_fo.c \
     providers/data_provider_opts.c \
+    providers/data_provider_callbacks.c \
     $(SSSD_FAILOVER_OBJ) \
     $(SSSD_UTIL_OBJ)
 sssd_be_LDADD = $(SSSD_LIBS) $(CARES_LIBS)

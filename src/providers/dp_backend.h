@@ -40,7 +40,7 @@ typedef void (*be_shutdown_fn)(void *);
 typedef void (*be_req_fn_t)(struct be_req *);
 typedef void (*be_async_callback_t)(struct be_req *, int, int, const char *);
 
-typedef void (*be_conn_online_callback_t)(void *);
+typedef void (*be_callback_t)(void *);
 
 enum bet_type {
     BET_NULL = 0,
@@ -83,7 +83,7 @@ struct be_client {
 
 struct be_failover_ctx;
 
-struct be_conn_online_cb;
+struct be_cb;
 
 struct be_ctx {
     struct tevent_context *ev;
@@ -97,7 +97,7 @@ struct be_ctx {
     /* Functions to be invoked when the
      * backend goes online
      */
-    struct be_conn_online_cb *online_cb_list;
+    struct be_cb *online_cb_list;
     bool run_online_cb;
 
     struct be_offline_status offstat;
@@ -143,9 +143,9 @@ void be_mark_offline(struct be_ctx *ctx);
 
 int be_add_online_cb(TALLOC_CTX *mem_ctx,
                      struct be_ctx *ctx,
-                     be_conn_online_callback_t cb,
+                     be_callback_t cb,
                      void *pvt,
-                     struct be_conn_online_cb **online_cb);
+                     struct be_cb **online_cb);
 void be_run_online_cb(struct be_ctx *be);
 
 /* from data_provider_fo.c */
