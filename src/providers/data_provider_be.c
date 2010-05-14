@@ -167,6 +167,7 @@ void be_mark_offline(struct be_ctx *ctx)
     ctx->offstat.went_offline = time(NULL);
     ctx->offstat.offline = true;
     ctx->run_online_cb = true;
+    be_run_offline_cb(ctx);
 }
 
 static int be_check_online(DBusMessage *message, struct sbus_connection *conn)

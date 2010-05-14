@@ -95,10 +95,11 @@ struct be_ctx {
     struct be_failover_ctx *be_fo;
 
     /* Functions to be invoked when the
-     * backend goes online
+     * backend goes online or offline
      */
     struct be_cb *online_cb_list;
     bool run_online_cb;
+    struct be_cb *offline_cb_list;
 
     struct be_offline_status offstat;
 
@@ -147,6 +148,13 @@ int be_add_online_cb(TALLOC_CTX *mem_ctx,
                      void *pvt,
                      struct be_cb **online_cb);
 void be_run_online_cb(struct be_ctx *be);
+
+int be_add_offline_cb(TALLOC_CTX *mem_ctx,
+                     struct be_ctx *ctx,
+                     be_callback_t cb,
+                     void *pvt,
+                     struct be_cb **online_cb);
+void be_run_offline_cb(struct be_ctx *be);
 
 /* from data_provider_fo.c */
 typedef void (be_svc_callback_fn_t)(void *, struct fo_server *);
