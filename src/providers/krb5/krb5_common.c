@@ -435,6 +435,44 @@ done:
     return ret;
 }
 
+
+static errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm)
+{
+    int ret;
+    errno_t err;
+    char *file;
+
+    file = talloc_asprintf(mem_ctx, KDCINFO_TMPL, realm);
+    if(file == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        return ENOMEM;
+    }
+
+    errno = 0;
+    ret = unlink(file);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(5, ("Could not remove [%s], [%d][%s]\n", file,
+                  err, strerror(err)));
+    }
+
+    file = talloc_asprintf(mem_ctx, KPASSWDINFO_TMPL, realm);
+    if(file == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        return ENOMEM;
+    }
+
+    errno = 0;
+    ret = unlink(file);
+    if (ret == -1) {
+        err = errno;
+        DEBUG(5, ("Could not remove [%s], [%d][%s]\n", file,
+                  err, strerror(err)));
+    }
+
+    return EOK;
+}
+
 void krb5_finalize(struct tevent_context *ev,
                    struct tevent_signal *se,
                    int signum,
@@ -444,33 +482,10 @@ void krb5_finalize(struct tevent_context *ev,
 {
     char *realm = (char *)private_data;
     int ret;
-    errno_t err;
-    char *file;
 
-    file = talloc_asprintf(se, KDCINFO_TMPL, realm);
-    if(file == NULL) {
-        sig_term(signum);
-    }
-    errno = 0;
-    ret = unlink(file);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(5, ("Could not remove [%s], [%d][%s]\n", file,
-                  err, strerror(err)));
-    }
-
-    errno = 0;
-    file = talloc_asprintf(se, KPASSWDINFO_TMPL, realm);
-    if(file == NULL) {
-        sig_term(signum);
-    }
-
-    errno = 0;
-    ret = unlink(file);
-    if (ret == -1) {
-        err = errno;
-        DEBUG(5, ("Could not remove [%s], [%d][%s]\n", file,
-                  err, strerror(err)));
+    ret = remove_krb5_info_files(se, realm);
+    if (ret != EOK) {
+        DEBUG(1, ("remove_krb5_info_files failed.\n"));
     }
 
     sig_term(signum);
