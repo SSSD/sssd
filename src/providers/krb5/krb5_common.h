@@ -83,5 +83,4 @@ void krb5_finalize(struct tevent_context *ev,
                    int count,
                    void *siginfo,
                    void *private_data);
-void krb5_init_resolve_done(struct tevent_req *req);
 #endif /* __KRB5_COMMON_H__ */
