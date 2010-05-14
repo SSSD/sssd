@@ -473,6 +473,46 @@ static errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm)
     return EOK;
 }
 
+void remove_krb5_info_files_callback(void *pvt)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct remove_info_files_ctx *ctx = talloc_get_type(pvt,
+                                                  struct remove_info_files_ctx);
+
+    ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,
+                                              ctx->kdc_service_name);
+    if (ret != EOK) {
+        DEBUG(1, ("be_fo_run_callbacks_at_next_request failed, "
+                  "krb5 info files will not be removed, because "
+                  "it is unclear if they will be recreated properly.\n"));
+        return;
+    }
+    if (ctx->kpasswd_service_name != NULL) {
+        ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,
+                                            ctx->kpasswd_service_name);
+        if (ret != EOK) {
+            DEBUG(1, ("be_fo_run_callbacks_at_next_request failed, "
+                      "krb5 info files will not be removed, because "
+                      "it is unclear if they will be recreated properly.\n"));
+            return;
+        }
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed, cannot remove krb5 info files.\n"));
+        return;
+    }
+
+    ret = remove_krb5_info_files(tmp_ctx, ctx->realm);
+    if (ret != EOK) {
+        DEBUG(1, ("remove_krb5_info_files failed.\n"));
+    }
+
+    talloc_zfree(tmp_ctx);
+}
+
 void krb5_finalize(struct tevent_context *ev,
                    struct tevent_signal *se,
                    int signum,
@@ -489,4 +529,61 @@ void krb5_finalize(struct tevent_context *ev,
     }
 
     sig_term(signum);
+}
+
+errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,
+                                      struct krb5_ctx *krb5_ctx)
+{
+    int ret;
+    struct remove_info_files_ctx *ctx;
+    const char *krb5_realm;
+
+    if (krb5_ctx->service == NULL || krb5_ctx->service->name == NULL) {
+        DEBUG(1, ("Missing KDC service name!\n"));
+        return EINVAL;
+    }
+
+    ctx = talloc_zero(krb5_ctx, struct remove_info_files_ctx);
+    if (ctx == NULL) {
+        DEBUG(1, ("talloc_zfree failed.\n"));
+        return ENOMEM;
+    }
+
+    krb5_realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+    if (krb5_realm == NULL) {
+        DEBUG(1, ("Missing krb5_realm option!\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    ctx->realm = talloc_strdup(ctx, krb5_realm);
+    if (ctx->realm == NULL) {
+        DEBUG(1, ("talloc_strdup failed!\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ctx->be_ctx = be_ctx;
+    ctx->kdc_service_name = krb5_ctx->service->name;
+    if (krb5_ctx->kpasswd_service == NULL) {
+        ctx->kpasswd_service_name =NULL;
+    } else {
+        ctx->kpasswd_service_name = krb5_ctx->kpasswd_service->name;
+    }
+
+    ret = be_add_offline_cb(ctx, be_ctx, remove_krb5_info_files_callback, ctx,
+                            NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("be_add_offline_cb failed.\n"));
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_zfree(ctx);
+    }
+
+    return ret;
 }
