@@ -515,6 +515,7 @@ krb5_utils_tests_SOURCES = \
     providers/krb5/krb5_common.c \
     providers/data_provider_fo.c \
     providers/data_provider_opts.c \
+    providers/data_provider_callbacks.c \
     $(SSSD_FAILOVER_OBJ) \
     $(SSSD_UTIL_OBJ)
 krb5_utils_tests_CFLAGS = \

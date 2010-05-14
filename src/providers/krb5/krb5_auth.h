@@ -37,8 +37,6 @@
 
 #define ILLEGAL_PATH_PATTERN "//|/\\./|/\\.\\./"
 
-typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
-
 struct krb5child_req {
     pid_t child_pid;
     int read_from_child_fd;
@@ -59,44 +57,6 @@ struct krb5child_req {
     struct fo_server *kpasswd_srv;
     bool active_ccache_present;
     bool valid_tgt_present;
-};
-
-struct fo_service;
-struct deferred_auth_ctx;
-
-struct krb5_ctx {
-    /* opts taken from kinit */
-    /* in seconds */
-    krb5_deltat starttime;
-    krb5_deltat lifetime;
-    krb5_deltat rlife;
-
-    int forwardable;
-    int proxiable;
-    int addresses;
-
-    int not_forwardable;
-    int not_proxiable;
-    int no_addresses;
-
-    int verbose;
-
-    char* principal_name;
-    char* service_name;
-    char* keytab_name;
-    char* k5_cache_name;
-    char* k4_cache_name;
-
-    action_type action;
-
-    struct dp_option *opts;
-    struct krb5_service *service;
-    struct krb5_service *kpasswd_service;
-    int child_debug_fd;
-
-    pcre *illegal_path_re;
-
-    struct deferred_auth_ctx *deferred_auth_ctx;
 };
 
 void krb5_pam_handler(struct be_req *be_req);

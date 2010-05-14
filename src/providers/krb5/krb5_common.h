@@ -58,10 +58,57 @@ enum krb5_opts {
     KRB5_OPTS
 };
 
+typedef enum { INIT_PW, INIT_KT, RENEW, VALIDATE } action_type;
+
 struct krb5_service {
     char *name;
     char *address;
     char *realm;
+};
+
+struct fo_service;
+struct deferred_auth_ctx;
+
+struct krb5_ctx {
+    /* opts taken from kinit */
+    /* in seconds */
+    krb5_deltat starttime;
+    krb5_deltat lifetime;
+    krb5_deltat rlife;
+
+    int forwardable;
+    int proxiable;
+    int addresses;
+
+    int not_forwardable;
+    int not_proxiable;
+    int no_addresses;
+
+    int verbose;
+
+    char* principal_name;
+    char* service_name;
+    char* keytab_name;
+    char* k5_cache_name;
+    char* k4_cache_name;
+
+    action_type action;
+
+    struct dp_option *opts;
+    struct krb5_service *service;
+    struct krb5_service *kpasswd_service;
+    int child_debug_fd;
+
+    pcre *illegal_path_re;
+
+    struct deferred_auth_ctx *deferred_auth_ctx;
+};
+
+struct remove_info_files_ctx {
+    char *realm;
+    struct be_ctx *be_ctx;
+    const char *kdc_service_name;
+    const char *kpasswd_service_name;
 };
 
 errno_t check_and_export_options(struct dp_option *opts,
@@ -77,10 +124,15 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *servers,
                       const char *realm, struct krb5_service **_service);
 
+void remove_krb5_info_files_callback(void *pvt);
+
 void krb5_finalize(struct tevent_context *ev,
                    struct tevent_signal *se,
                    int signum,
                    int count,
                    void *siginfo,
                    void *private_data);
+
+errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,
+                                      struct krb5_ctx *krb_ctx);
 #endif /* __KRB5_COMMON_H__ */

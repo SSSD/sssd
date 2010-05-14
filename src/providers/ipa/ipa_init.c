@@ -287,6 +287,12 @@ int sssm_ipa_auth_init(struct be_ctx *bectx,
         goto done;
     }
 
+    ret = krb5_install_offline_callback(bectx, krb5_auth_ctx);
+    if (ret != EOK) {
+        DEBUG(1, ("krb5_install_offline_callback failed.\n"));
+        goto done;
+    }
+
     if (debug_to_file != 0) {
         ret = open_debug_file_ex("krb5_child", &debug_filep);
         if (ret != EOK) {
