@@ -587,3 +587,36 @@ done:
 
     return ret;
 }
+
+errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
+                                     struct krb5_ctx *krb5_ctx)
+{
+    const char *krb5_realm;
+    char *sig_realm;
+    struct tevent_signal *sige;
+
+    BlockSignals(false, SIGTERM);
+
+    krb5_realm = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
+    if (krb5_realm == NULL) {
+        DEBUG(1, ("Missing krb5_realm option!\n"));
+        return EINVAL;
+    }
+
+    sig_realm = talloc_strdup(krb5_ctx, krb5_realm);
+    if (sig_realm == NULL) {
+        DEBUG(1, ("talloc_strdup failed!\n"));
+        return ENOMEM;
+    }
+
+    sige = tevent_add_signal(ev, krb5_ctx, SIGTERM, SA_SIGINFO, krb5_finalize,
+                             sig_realm);
+    if (sige == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        talloc_free(sig_realm);
+        return ENOMEM;
+    }
+    talloc_steal(sige, sig_realm);
+
+    return EOK;
+}

@@ -135,4 +135,7 @@ void krb5_finalize(struct tevent_context *ev,
 
 errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,
                                       struct krb5_ctx *krb_ctx);
+
+errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
+                                     struct krb5_ctx *krb5_ctx);
 #endif /* __KRB5_COMMON_H__ */
