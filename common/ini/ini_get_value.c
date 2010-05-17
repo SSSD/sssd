@@ -104,7 +104,7 @@ static long long get_llong_config_value(struct collection_item *item,
     char *endptr;
     long long val = 0;
 
-    TRACE_FLOW_STRING("get_long_config_value", "Entry");
+    TRACE_FLOW_STRING("get_llong_config_value", "Entry");
 
     /* Do we have the item ? */
     if ((item == NULL) ||
@@ -136,7 +136,7 @@ static long long get_llong_config_value(struct collection_item *item,
         return def;
     }
 
-    TRACE_FLOW_NUMBER("get_long_config_value returning", (long)val);
+    TRACE_FLOW_NUMBER("get_llong_config_value returning", (long)val);
     return val;
 }
 
@@ -183,7 +183,7 @@ static unsigned long long get_ullong_config_value(struct collection_item *item,
         return def;
     }
 
-    TRACE_FLOW_NUMBER("get_ullong_config_value returning", (long)val);
+    TRACE_FLOW_NUMBER("get_ullong_config_value returning", val);
     return val;
 }
 
@@ -291,6 +291,72 @@ unsigned long get_ulong_config_value(struct collection_item *item,
     return (unsigned long)val;
 }
 
+/* Get int32_t value from config item */
+int32_t get_int32_config_value(struct collection_item *item,
+                               int strict,
+                               int32_t def,
+                               int *error)
+{
+    int val = 0;
+
+    TRACE_FLOW_STRING("get_int32_config_value", "Entry");
+
+    val = get_int_config_value(item, strict, (int)def, error);
+
+    TRACE_FLOW_SNUMBER("get_int32_config_value returning", (int32_t)val);
+    return (int32_t)val;
+}
+
+/* Get uint32_t value from config item */
+uint32_t get_uint32_config_value(struct collection_item *item,
+                                 int strict,
+                                 uint32_t def,
+                                 int *error)
+{
+    unsigned val = 0;
+
+    TRACE_FLOW_STRING("get_uint32_config_value", "Entry");
+
+    val = get_unsigned_config_value(item, strict, (unsigned)def, error);
+
+    TRACE_FLOW_NUMBER("get_uint32_config_value returning", (uint32_t)val);
+    return (uint32_t)val;
+}
+
+/* Get int64_t value from config item */
+int64_t get_int64_config_value(struct collection_item *item,
+                               int strict,
+                               int64_t def,
+                               int *error)
+{
+    long long val = 0;
+
+    TRACE_FLOW_STRING("get_int64_config_value", "Entry");
+
+    val = get_llong_config_value(item, strict, (long long)def, error);
+
+    TRACE_FLOW_SLNUMBER("get_int64_config_value returning", (int64_t)val);
+    return (int64_t)val;
+}
+
+/* Get uint64_t value from config item */
+uint64_t get_uint64_config_value(struct collection_item *item,
+                                 int strict,
+                                 uint64_t def,
+                                 int *error)
+{
+    unsigned long long val = 0;
+
+    TRACE_FLOW_STRING("get_uint64_config_value", "Entry");
+
+    val = get_ullong_config_value(item,
+                                  strict,
+                                  (unsigned long long)def,
+                                  error);
+
+    TRACE_FLOW_LNUMBER("get_uint64_config_value returning", (uint64_t)val);
+    return (uint64_t)val;
+}
 
 /* Get double value */
 double get_double_config_value(struct collection_item *item,
@@ -332,7 +398,7 @@ double get_double_config_value(struct collection_item *item,
         val = def;
     }
 
-    TRACE_FLOW_NUMBER("get_double_config_value returning", val);
+    TRACE_FLOW_DOUBLE("get_double_config_value returning", val);
     return val;
 }
 

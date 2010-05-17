@@ -1172,6 +1172,186 @@ unsigned long get_ulong_config_value(struct collection_item *item,
                                      int *error);
 
 /**
+ * @brief Convert item value to integer number.
+ *
+ * This is a conversion function.
+ * It converts the value read from the INI file
+ * and stored in the configuration item
+ * into an int32_t number. Any of the conversion
+ * functions can be used to try to convert the value
+ * stored as a string inside the item.
+ * The results can be different depending upon
+ * how the caller tries to interpret the value.
+ * If "strict" parameter is non zero the function will fail
+ * if there are more characters after the last digit.
+ * The value range is from INT_MIN to INT_MAX.
+ *
+ * @param[in]  item             Item to interpret.
+ *                              It must be retrieved using
+ *                              \ref get_config_item().
+ * @param[in]  strict           Fail the function if
+ *                              the symbol after last digit
+ *                              is not valid.
+ * @param[in]  def              Default value to use if
+ *                              conversion failed.
+ * @param[out] error            Variable will get the value
+ *                              of the error code if
+ *                              error happened.
+ *                              Can be NULL. In this case
+ *                              function does not set
+ *                              the code.
+ *                              Codes:
+ *                              - 0 - Success.
+ *                              - EINVAL - Argument is invalid.
+ *                              - EIO - Conversion failed due
+ *                                invalid characters.
+ *                              - ERANGE - Value is out of range.
+ *
+ * @return Converted value.
+ * In case of failure the function returns default value and
+ * sets error code into the provided variable.
+ */
+int32_t get_int32_config_value(struct collection_item *item,
+                               int strict,
+                               int32_t def,
+                               int *error);
+
+/**
+ * @brief Convert item value to integer number.
+ *
+ * This is a conversion function.
+ * It converts the value read from the INI file
+ * and stored in the configuration item
+ * into an uint32_t number. Any of the conversion
+ * functions can be used to try to convert the value
+ * stored as a string inside the item.
+ * The results can be different depending upon
+ * how the caller tries to interpret the value.
+ * If "strict" parameter is non zero the function will fail
+ * if there are more characters after the last digit.
+ * The value range is from 0 to ULONG_MAX.
+ *
+ * @param[in]  item             Item to interpret.
+ *                              It must be retrieved using
+ *                              \ref get_config_item().
+ * @param[in]  strict           Fail the function if
+ *                              the symbol after last digit
+ *                              is not valid.
+ * @param[in]  def              Default value to use if
+ *                              conversion failed.
+ * @param[out] error            Variable will get the value
+ *                              of the error code if
+ *                              error happened.
+ *                              Can be NULL. In this case
+ *                              function does not set
+ *                              the code.
+ *                              Codes:
+ *                              - 0 - Success.
+ *                              - EINVAL - Argument is invalid.
+ *                              - EIO - Conversion failed due
+ *                                invalid characters.
+ *                              - ERANGE - Value is out of range.
+ *
+ * @return Converted value.
+ * In case of failure the function returns default value and
+ * sets error code into the provided variable.
+ */
+uint32_t get_uint32_config_value(struct collection_item *item,
+                                 int strict,
+                                 uint32_t def,
+                                 int *error);
+
+/**
+ * @brief Convert item value to integer number.
+ *
+ * This is a conversion function.
+ * It converts the value read from the INI file
+ * and stored in the configuration item
+ * into an int64_t number. Any of the conversion
+ * functions can be used to try to convert the value
+ * stored as a string inside the item.
+ * The results can be different depending upon
+ * how the caller tries to interpret the value.
+ * If "strict" parameter is non zero the function will fail
+ * if there are more characters after the last digit.
+ * The value range is from LLONG_MIN to LLONG_MAX.
+ *
+ * @param[in]  item             Item to interpret.
+ *                              It must be retrieved using
+ *                              \ref get_config_item().
+ * @param[in]  strict           Fail the function if
+ *                              the symbol after last digit
+ *                              is not valid.
+ * @param[in]  def              Default value to use if
+ *                              conversion failed.
+ * @param[out] error            Variable will get the value
+ *                              of the error code if
+ *                              error happened.
+ *                              Can be NULL. In this case
+ *                              function does not set
+ *                              the code.
+ *                              Codes:
+ *                              - 0 - Success.
+ *                              - EINVAL - Argument is invalid.
+ *                              - EIO - Conversion failed due
+ *                                invalid characters.
+ *                              - ERANGE - Value is out of range.
+ *
+ * @return Converted value.
+ * In case of failure the function returns default value and
+ * sets error code into the provided variable.
+ */
+int64_t get_int64_config_value(struct collection_item *item,
+                               int strict,
+                               int64_t def,
+                               int *error);
+
+/**
+ * @brief Convert item value to integer number.
+ *
+ * This is a conversion function.
+ * It converts the value read from the INI file
+ * and stored in the configuration item
+ * into an uint64_t number. Any of the conversion
+ * functions can be used to try to convert the value
+ * stored as a string inside the item.
+ * The results can be different depending upon
+ * how the caller tries to interpret the value.
+ * If "strict" parameter is non zero the function will fail
+ * if there are more characters after the last digit.
+ * The value range is from 0 to ULLONG_MAX.
+ *
+ * @param[in]  item             Item to interpret.
+ *                              It must be retrieved using
+ *                              \ref get_config_item().
+ * @param[in]  strict           Fail the function if
+ *                              the symbol after last digit
+ *                              is not valid.
+ * @param[in]  def              Default value to use if
+ *                              conversion failed.
+ * @param[out] error            Variable will get the value
+ *                              of the error code if
+ *                              error happened.
+ *                              Can be NULL. In this case
+ *                              function does not set
+ *                              the code.
+ *                              Codes:
+ *                              - 0 - Success.
+ *                              - EINVAL - Argument is invalid.
+ *                              - EIO - Conversion failed due
+ *                                invalid characters.
+ *                              - ERANGE - Value is out of range.
+ *
+ * @return Converted value.
+ * In case of failure the function returns default value and
+ * sets error code into the provided variable.
+ */
+uint64_t get_uint64_config_value(struct collection_item *item,
+                                 int strict,
+                                 uint64_t def,
+                                 int *error);
+
+/**
  * @brief Convert item value to floating point number.
  *
  * This is a conversion function.

@@ -163,7 +163,7 @@ int read_line(FILE *file,
 
     /* Copy key into provided buffer */
     if(i >= MAX_KEY) {
-        TRACE_ERROR_STRING("Section name is too long", buf);
+        TRACE_ERROR_STRING("Key name is too long", buf);
         *ext_error = ERR_LONGKEY;
         return RET_INVALID;
     }

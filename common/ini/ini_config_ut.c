@@ -480,6 +480,11 @@ int get_test(void)
     long *array;
     double *darray;
     char **prop_array;
+    int32_t val_int32;
+    uint32_t val_uint32;
+    int64_t val_int64;
+    uint64_t val_uint64;
+
 
     COLOUT(printf("\n\n===== GET TEST START ======\n"));
     COLOUT(printf("Reading collection\n"));
@@ -1059,6 +1064,146 @@ int get_test(void)
 
     COLOUT(for (i=0;i<size;i++) printf("Attribute: [%s]\n", prop_array[i]));
     free_attribute_list(prop_array);
+
+
+    /***************************************/
+    /* Test special types                  */
+    /***************************************/
+    COLOUT(printf("Test int32_t\n"));
+
+    item = NULL;
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "int32_t",
+                            ini_config,
+                            &item);
+    if (error) {
+        printf("Expected success but got error! %d\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Item should be found */
+    if (item == NULL) {
+        printf("Expected success but got NULL.\n");
+        free_ini_config(ini_config);
+        return -1;
+    }
+
+    COLOUT(col_debug_item(item));
+
+    error = 0;
+    val_int32 = get_int32_config_value(item, 1, 0, &error);
+    if (error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    COLOUT(printf("Value: %d\n", val_int32));
+
+    /***************************************/
+
+    COLOUT(printf("Test uint32_t\n"));
+
+    item = NULL;
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "uint32_t",
+                            ini_config,
+                            &item);
+    if (error) {
+        printf("Expected success but got error! %d\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Item should be found */
+    if (item == NULL) {
+        printf("Expected success but got NULL.\n");
+        free_ini_config(ini_config);
+        return -1;
+    }
+
+    COLOUT(col_debug_item(item));
+
+    error = 0;
+    val_uint32 = get_uint32_config_value(item, 1, 0, &error);
+    if (error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+   }
+
+    COLOUT(printf("Value: %u\n", val_uint32));
+
+    /***************************************/
+
+    COLOUT(printf("Test int64_t\n"));
+
+    item = NULL;
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "int64_t",
+                            ini_config,
+                            &item);
+    if (error) {
+        printf("Expected success but got error! %d\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Item should be found */
+    if (item == NULL) {
+        printf("Expected success but got NULL.\n");
+        free_ini_config(ini_config);
+        return -1;
+    }
+
+    COLOUT(col_debug_item(item));
+
+    error = 0;
+    val_int64 = get_int64_config_value(item, 1, 0, &error);
+    if (error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    COLOUT(printf("Value: %lld\n", (long long)val_int64));
+
+    /***************************************/
+
+    COLOUT(printf("Test uint32_t\n"));
+
+    item = NULL;
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "uint64_t",
+                            ini_config,
+                            &item);
+    if (error) {
+        printf("Expected success but got error! %d\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Item should be found */
+    if (item == NULL) {
+        printf("Expected success but got NULL.\n");
+        free_ini_config(ini_config);
+        return -1;
+    }
+
+    COLOUT(col_debug_item(item));
+
+    error = 0;
+    val_uint64 = get_uint64_config_value(item, 1, 0, &error);
+    if (error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    COLOUT(printf("Value: %llu\n", (unsigned long long)val_uint64));
+
+    /***************************************/
 
     free_ini_config(ini_config);
     COLOUT(printf("Done with get test!\n"));
