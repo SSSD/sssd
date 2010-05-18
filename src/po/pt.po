@@ -524,7 +524,7 @@ msgstr "Indique um directório skeleton alternativo"
 
 #: tools/sss_useradd.c:102 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "O utilizador SELinux para a sessão do utilizador"
 
 #: tools/sss_useradd.c:116 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:631 tools/sss_userdel.c:159
@@ -582,7 +582,7 @@ msgstr "O UID seleccionado está fora do intervalo permitido\n"
 
 #: tools/sss_useradd.c:257 tools/sss_usermod.c:240
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Não foi possível definir o contexto SELinux para a sessão\n"
 
 #: tools/sss_useradd.c:273
 msgid "Cannot get info about the user\n"
@@ -760,7 +760,7 @@ msgstr "Forçar a remoção de ficheiros não pertencentes ao utilizador"
 
 #: tools/sss_userdel.c:150
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Mate os processos do utilizador antes de o remover"
 
 #: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
@@ -773,25 +773,25 @@ msgstr "O utilizador %s está fora do intervalo de IDs para o domínio\n"
 
 #: tools/sss_userdel.c:280
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Não foi possível redefinir o contexto SELinux para a sessão\n"
 
 #: tools/sss_userdel.c:292
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
-msgstr ""
+msgstr "AVISO: O utilizador (uid %lu) ainda estava numa sessão quando foi removido.\n"
 
 #: tools/sss_userdel.c:297
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
+msgstr "Não foi possível determinar se o utilizador estava autenticado nesta plataforma"
 
 #: tools/sss_userdel.c:302
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Erro ao verificar se o utilizador estava autenticado\n"
 
 #: tools/sss_userdel.c:309
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr ""
+msgstr "O comando após-remoção falhou: %s\n"
 
 #: tools/sss_userdel.c:321
 msgid "Not removing home dir - not owned by user\n"
