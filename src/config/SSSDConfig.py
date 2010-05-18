@@ -115,7 +115,6 @@ option_strings = {
     'ldap_default_authtok' : _('The authentication token of the default bind DN'),
     'ldap_network_timeout' : _('Length of time to attempt connection'),
     'ldap_opt_timeout' : _('Length of time to attempt synchronous LDAP operations'),
-    'ldap_offline_timeout' : _('Length of time between attempts to reconnect while offline'),
     'ldap_tls_cacert' : _('File that contains CA certificates'),
     'ldap_tls_cacertdir' : _('Path to CA certificate directory'),
     'ldap_tls_reqcert' : _('Require TLS certificate verification'),

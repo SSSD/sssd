@@ -47,7 +47,6 @@ struct dp_option default_basic_opts[] = {
     { "ldap_group_search_scope", DP_OPT_STRING, { "sub" }, NULL_STRING },
     { "ldap_group_search_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_schema", DP_OPT_STRING, { "rfc2307" }, NULL_STRING },
-    { "ldap_offline_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
     { "ldap_force_upper_case_realm", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_enumeration_refresh_timeout", DP_OPT_NUMBER, { .number = 300 }, NULL_NUMBER },
     { "ldap_purge_cache_timeout", DP_OPT_NUMBER, { .number = 10800 }, NULL_NUMBER },

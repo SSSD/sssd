@@ -73,6 +73,10 @@ class SSSDConfigFile(SSSDChangeConf):
         for domain in [ s for s in self.sections() if s['name'].startswith("domain/") ]:
             self.delete_option_subtree(domain['value'], 'option', 'magic_private_groups')
 
+        # remove ldap_offline_timeout from all domains
+        for domain in [ s for s in self.sections() if s['name'].startswith("domain/") ]:
+            self.delete_option_subtree(domain['value'], 'option', 'ldap_offline_timeout')
+
     def _update_option(self, to_section_name, from_section_name, opts):
         to_section = [ s for s in self.sections() if s['name'].strip() == to_section_name ]
         from_section = [ s for s in self.sections() if s['name'].strip() == from_section_name ]
