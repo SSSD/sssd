@@ -42,6 +42,7 @@ struct be_svc_data {
     struct fo_service *fo_service;
 
     struct fo_server *last_good_srv;
+    bool run_callbacks;
 
     struct be_svc_callback *callbacks;
 };
@@ -414,9 +415,11 @@ static void be_resolve_server_done(struct tevent_req *subreq)
                   fo_get_server_name(state->srv), ipaddr));
     }
 
-    /* now call all svc callbacks if server changed */
-    if (state->srv != state->svc->last_good_srv) {
+    /* now call all svc callbacks if server changed or if it is explicitly
+     * requested */
+    if (state->srv != state->svc->last_good_srv || state->svc->run_callbacks) {
         state->svc->last_good_srv = state->srv;
+        state->svc->run_callbacks = false;
 
         DLIST_FOR_EACH(callback, state->svc->callbacks) {
             callback->fn(callback->private_data, state->srv);
@@ -440,3 +443,21 @@ int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv)
     return EOK;
 }
 
+int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
+                                        const char *service_name)
+{
+    struct be_svc_data *svc;
+
+    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
+        if (strcmp(svc->name, service_name) == 0) {
+            break;
+        }
+    }
+    if (NULL == svc) {
+        return ENOENT;
+    }
+
+    svc->run_callbacks = true;
+
+    return EOK;
+}
