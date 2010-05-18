@@ -177,4 +177,6 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
                                           const char *service_name);
 int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv);
 
+int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
+                                        const char *service_name);
 #endif /* __DP_BACKEND_H___ */
