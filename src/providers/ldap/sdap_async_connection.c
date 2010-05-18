@@ -55,8 +55,10 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     struct timeval tv;
     int ver;
     int lret;
+    int optret;
     int ret = EOK;
     int msgid;
+    char *errmsg = NULL;
     bool ldap_referrals;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
@@ -144,7 +146,19 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &msgid);
     if (lret != LDAP_SUCCESS) {
-        DEBUG(3, ("ldap_start_tls failed: [%s]\n", ldap_err2string(lret)));
+        optret = ldap_get_option(state->sh->ldap,
+                                 LDAP_OPT_DIAGNOSTIC_MESSAGE,
+                                 (void*)&errmsg);
+        if (optret == LDAP_SUCCESS) {
+            DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
+                      ldap_err2string(lret),
+                      errmsg));
+            ldap_memfree(errmsg);
+        }
+        else {
+            DEBUG(3, ("ldap_start_tls failed: [%s]\n",
+                      ldap_err2string(lret)));
+        }
         goto fail;
     }
 
@@ -183,7 +197,9 @@ static void sdap_connect_done(struct sdap_op *op,
     struct sdap_connect_state *state = tevent_req_data(req,
                                           struct sdap_connect_state);
     char *errmsg;
+    char *tlserr;
     int ret;
+    int optret;
 
     if (error) {
         tevent_req_error(req, error);
@@ -212,8 +228,21 @@ static void sdap_connect_done(struct sdap_op *op,
 /* FIXME: take care that ldap_install_tls might block */
     ret = ldap_install_tls(state->sh->ldap);
     if (ret != LDAP_SUCCESS) {
-        DEBUG(1, ("ldap_install_tls failed: [%d][%s]\n", ret,
-                  ldap_err2string(ret)));
+
+        optret = ldap_get_option(state->sh->ldap,
+                                 LDAP_OPT_DIAGNOSTIC_MESSAGE,
+                                 (void*)&tlserr);
+        if (optret == LDAP_SUCCESS) {
+            DEBUG(3, ("ldap_install_tls failed: [%s] [%s]\n",
+                      ldap_err2string(ret),
+                      tlserr));
+            ldap_memfree(tlserr);
+        }
+        else {
+            DEBUG(3, ("ldap_install_tls failed: [%s]\n",
+                      ldap_err2string(ret)));
+        }
+
         state->result = ret;
         tevent_req_error(req, EIO);
         return;
