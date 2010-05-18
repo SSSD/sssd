@@ -130,6 +130,16 @@ int sssm_ipa_id_init(struct be_ctx *bectx,
         goto done;
     }
 
+    /* FIXME: This is a workaround for 1.2.0. In the future, we need to have
+     * separate timeouts for enumeration operations
+     * If enumeration is enabled and the search timeout is less
+     * than 30s, force it to a minimum of 30s.
+     */
+    if(bectx->domain->enumerate &&
+            dp_opt_get_int(ctx->opts->basic, SDAP_SEARCH_TIMEOUT) < 30) {
+        dp_opt_set_int(ctx->opts->basic, SDAP_SEARCH_TIMEOUT, 30);
+    }
+
     if(dp_opt_get_bool(ipa_options->basic, IPA_DYNDNS_UPDATE)) {
         /* Perform automatic DNS updates when the
          * IP address changes.

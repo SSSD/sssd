@@ -42,7 +42,7 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "ldap_default_bind_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "ldap_default_authtok_type", DP_OPT_STRING, NULL_STRING, NULL_STRING},
     { "ldap_default_authtok", DP_OPT_BLOB, NULL_BLOB, NULL_BLOB },
-    { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 60 }, NULL_NUMBER },
+    { "ldap_search_timeout", DP_OPT_NUMBER, { .number = 5 }, NULL_NUMBER },
     { "ldap_network_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_opt_timeout", DP_OPT_NUMBER, { .number = 6 }, NULL_NUMBER },
     { "ldap_tls_reqcert", DP_OPT_STRING, { "hard" }, NULL_STRING },

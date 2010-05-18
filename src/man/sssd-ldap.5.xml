@@ -386,6 +386,31 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_search_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout (in seconds) that ldap
+                            searches are allowed to run before they are
+                            cancelled and cached results are returned (and
+                            offline mode is entered)
+                        </para>
+                        <para>
+                            Default: 5 (When enumerate = False)
+                        </para>
+                        <para>
+                            Default: 30 (When enumerate = True - this option
+                            will be forced to a minumum of 30s in this case)
+                        </para>
+                        <para>
+                            Note: this option is subject to change in future
+                            versions of the SSSD. It will likely be replaced
+                            at some point by a series of timeouts for
+                            specific lookup types.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_network_timeout (integer)</term>
                     <listitem>
                         <para>
