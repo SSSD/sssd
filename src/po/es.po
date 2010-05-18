@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-07 16:27-0400\n"
+"POT-Creation-Date: 2010-05-18 12:18-0400\n"
 "PO-Revision-Date: 2010-03-15 11:40-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -197,11 +197,11 @@ msgstr ""
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
-#: config/SSSDConfig.py:94 config/SSSDConfig.py:124
+#: config/SSSDConfig.py:94 config/SSSDConfig.py:123
 msgid "Kerberos server address"
 msgstr "Dirección del servidor Kerberos"
 
-#: config/SSSDConfig.py:95 config/SSSDConfig.py:125
+#: config/SSSDConfig.py:95 config/SSSDConfig.py:124
 msgid "Kerberos realm"
 msgstr "Reinado Kerberos"
 
@@ -272,41 +272,42 @@ msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Tiempo durante el que se intentará operaciones LDAP sincrónicas"
 
 #: config/SSSDConfig.py:118
-msgid "Length of time between attempts to reconnect while offline"
-msgstr "Tiempo entre intentos de reconexión cuando esté fuera de línea"
-
-#: config/SSSDConfig.py:119
 #, fuzzy
 msgid "File that contains CA certificates"
 msgstr "archivo que contiene los certificados CA"
 
-#: config/SSSDConfig.py:120
+#: config/SSSDConfig.py:119
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: config/SSSDConfig.py:121
+#: config/SSSDConfig.py:120
 msgid "Require TLS certificate verification"
 msgstr "Requiere la verificación de certificado TLS"
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:121
 msgid "Specify the sasl mechanism to use"
 msgstr "Especificar el mecanismo sasl a usar"
 
-#: config/SSSDConfig.py:123
+#: config/SSSDConfig.py:122
 msgid "Specify the sasl authorization id to use"
 msgstr "Especifique el id de autorización sasl a usar"
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:125
 msgid "Kerberos service keytab"
 msgstr "Tabla de clave del servicio Kerberos"
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:126
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Usar auth Kerberos para la conexión LDAP"
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:127
 msgid "Follow LDAP referrals"
 msgstr "Seguir referencias LDAP"
+
+#: config/SSSDConfig.py:128
+#, fuzzy
+msgid "Lifetime of TGT for LDAP connection"
+msgstr "Usar auth Kerberos para la conexión LDAP"
 
 #: config/SSSDConfig.py:131
 msgid "Length of time to wait for a search request"
@@ -386,26 +387,30 @@ msgid "Policy to evaluate the password expiration"
 msgstr "Política para evaluar el vencimiento de la contraseña"
 
 #: config/SSSDConfig.py:154
+msgid "LDAP filter to determine access privileges"
+msgstr ""
+
+#: config/SSSDConfig.py:157
 msgid "Comma separated list of allowed users"
 msgstr "Lista separada por comas de usuarios autorizados"
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:158
 msgid "Comma separated list of prohibited users"
 msgstr "Lista separada por comas de usuarios prohibidos"
 
-#: config/SSSDConfig.py:158
+#: config/SSSDConfig.py:161
 msgid "Default shell, /bin/bash"
 msgstr "Shell predeterminado, /bin/bash"
 
-#: config/SSSDConfig.py:159
+#: config/SSSDConfig.py:162
 msgid "Base for home directories"
 msgstr "Base de los directorios de inicio"
 
-#: config/SSSDConfig.py:162
+#: config/SSSDConfig.py:165
 msgid "The name of the NSS library to use"
 msgstr "Nombre de la biblioteca NSS a usar"
 
-#: config/SSSDConfig.py:165
+#: config/SSSDConfig.py:168
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
@@ -447,21 +452,21 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:321
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Nive de depuración"
 
-#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:323
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Agregar marcas de tiempo de depuración"
 
-#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:325
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: providers/data_provider_be.c:1294
+#: providers/data_provider_be.c:1158
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
@@ -972,6 +977,9 @@ msgstr "%s se debe ejecutar como root\n"
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
 msgstr "Envia el resultado de la depuración hacia archivos en lugar de stderr"
+
+#~ msgid "Length of time between attempts to reconnect while offline"
+#~ msgstr "Tiempo entre intentos de reconexión cuando esté fuera de línea"
 
 #~ msgid "Offline authentication"
 #~ msgstr "Autenticación fuera de línea."

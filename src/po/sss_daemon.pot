@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-07 16:27-0400\n"
+"POT-Creation-Date: 2010-05-18 12:18-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -183,11 +183,11 @@ msgstr ""
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
-#: config/SSSDConfig.py:94 config/SSSDConfig.py:124
+#: config/SSSDConfig.py:94 config/SSSDConfig.py:123
 msgid "Kerberos server address"
 msgstr ""
 
-#: config/SSSDConfig.py:95 config/SSSDConfig.py:125
+#: config/SSSDConfig.py:95 config/SSSDConfig.py:124
 msgid "Kerberos realm"
 msgstr ""
 
@@ -256,39 +256,39 @@ msgid "Length of time to attempt synchronous LDAP operations"
 msgstr ""
 
 #: config/SSSDConfig.py:118
-msgid "Length of time between attempts to reconnect while offline"
-msgstr ""
-
-#: config/SSSDConfig.py:119
 msgid "File that contains CA certificates"
 msgstr ""
 
-#: config/SSSDConfig.py:120
+#: config/SSSDConfig.py:119
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: config/SSSDConfig.py:121
+#: config/SSSDConfig.py:120
 msgid "Require TLS certificate verification"
 msgstr ""
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:121
 msgid "Specify the sasl mechanism to use"
 msgstr ""
 
-#: config/SSSDConfig.py:123
+#: config/SSSDConfig.py:122
 msgid "Specify the sasl authorization id to use"
 msgstr ""
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:125
 msgid "Kerberos service keytab"
 msgstr ""
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:126
 msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:127
 msgid "Follow LDAP referrals"
+msgstr ""
+
+#: config/SSSDConfig.py:128
+msgid "Lifetime of TGT for LDAP connection"
 msgstr ""
 
 #: config/SSSDConfig.py:131
@@ -368,26 +368,30 @@ msgid "Policy to evaluate the password expiration"
 msgstr ""
 
 #: config/SSSDConfig.py:154
+msgid "LDAP filter to determine access privileges"
+msgstr ""
+
+#: config/SSSDConfig.py:157
 msgid "Comma separated list of allowed users"
 msgstr ""
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:158
 msgid "Comma separated list of prohibited users"
 msgstr ""
 
-#: config/SSSDConfig.py:158
+#: config/SSSDConfig.py:161
 msgid "Default shell, /bin/bash"
 msgstr ""
 
-#: config/SSSDConfig.py:159
+#: config/SSSDConfig.py:162
 msgid "Base for home directories"
 msgstr ""
 
-#: config/SSSDConfig.py:162
+#: config/SSSDConfig.py:165
 msgid "The name of the NSS library to use"
 msgstr ""
 
-#: config/SSSDConfig.py:165
+#: config/SSSDConfig.py:168
 msgid "PAM stack to use"
 msgstr ""
 
@@ -424,21 +428,21 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:321
 #: util/util.h:61
 msgid "Debug level"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:323
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:325
 msgid "An open file descriptor for the debug logs"
 msgstr ""
 
-#: providers/data_provider_be.c:1294
+#: providers/data_provider_be.c:1158
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 

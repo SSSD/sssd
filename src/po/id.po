@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-07 16:27-0400\n"
+"POT-Creation-Date: 2010-05-18 12:18-0400\n"
 "PO-Revision-Date: 2010-03-09 10:34+0700\n"
 "Last-Translator: Teguh DC <dheche@songolimo.net>\n"
 "Language-Team: Fedora Indonesia <trans-id@lists.fedoraproject.org>\n"
@@ -184,11 +184,11 @@ msgstr ""
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
-#: config/SSSDConfig.py:94 config/SSSDConfig.py:124
+#: config/SSSDConfig.py:94 config/SSSDConfig.py:123
 msgid "Kerberos server address"
 msgstr "Alamat server Kerberos"
 
-#: config/SSSDConfig.py:95 config/SSSDConfig.py:125
+#: config/SSSDConfig.py:95 config/SSSDConfig.py:124
 msgid "Kerberos realm"
 msgstr "Realm Kerberos"
 
@@ -257,41 +257,42 @@ msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Lamanya waktu untuk mencoba operasi LDAP yang sinkron"
 
 #: config/SSSDConfig.py:118
-msgid "Length of time between attempts to reconnect while offline"
-msgstr "Lamanya waktu antara upaya untuk menyambung kembali saat luring"
-
-#: config/SSSDConfig.py:119
 #, fuzzy
 msgid "File that contains CA certificates"
 msgstr "berkas yang berisi sertifikat CA"
 
-#: config/SSSDConfig.py:120
+#: config/SSSDConfig.py:119
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: config/SSSDConfig.py:121
+#: config/SSSDConfig.py:120
 msgid "Require TLS certificate verification"
 msgstr "Membutuhkan verifikasi sertifikat TLS"
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:121
 msgid "Specify the sasl mechanism to use"
 msgstr "Tentukan mekanisme sasl yang digunakan"
 
-#: config/SSSDConfig.py:123
+#: config/SSSDConfig.py:122
 msgid "Specify the sasl authorization id to use"
 msgstr "Tentukan id otorisasi sasl yang digunakan"
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:125
 msgid "Kerberos service keytab"
 msgstr "Keytab layanan Kerberos"
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:126
 msgid "Use Kerberos auth for LDAP connection"
 msgstr "Gunakan otentikasi Kerberos untuk koneksi LDAP"
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:127
 msgid "Follow LDAP referrals"
 msgstr ""
+
+#: config/SSSDConfig.py:128
+#, fuzzy
+msgid "Lifetime of TGT for LDAP connection"
+msgstr "Gunakan otentikasi Kerberos untuk koneksi LDAP"
 
 #: config/SSSDConfig.py:131
 msgid "Length of time to wait for a search request"
@@ -371,26 +372,30 @@ msgid "Policy to evaluate the password expiration"
 msgstr ""
 
 #: config/SSSDConfig.py:154
+msgid "LDAP filter to determine access privileges"
+msgstr ""
+
+#: config/SSSDConfig.py:157
 msgid "Comma separated list of allowed users"
 msgstr "Daftar pengguna yang diijinkan dalam format yang dipisahkan koma"
 
-#: config/SSSDConfig.py:155
+#: config/SSSDConfig.py:158
 msgid "Comma separated list of prohibited users"
 msgstr "Daftar pengguna yang tidak diijinkan dalam format yang dipisahkan koma"
 
-#: config/SSSDConfig.py:158
+#: config/SSSDConfig.py:161
 msgid "Default shell, /bin/bash"
 msgstr "Shell default, /bin/bash"
 
-#: config/SSSDConfig.py:159
+#: config/SSSDConfig.py:162
 msgid "Base for home directories"
 msgstr ""
 
-#: config/SSSDConfig.py:162
+#: config/SSSDConfig.py:165
 msgid "The name of the NSS library to use"
 msgstr ""
 
-#: config/SSSDConfig.py:165
+#: config/SSSDConfig.py:168
 msgid "PAM stack to use"
 msgstr ""
 
@@ -428,22 +433,22 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:316
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:321
 #: util/util.h:61
 msgid "Debug level"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:318
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:323
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:320
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:325
 #, fuzzy
 msgid "An open file descriptor for the debug logs"
 msgstr "Mengatur verbosity dari pencatatan debug"
 
-#: providers/data_provider_be.c:1294
+#: providers/data_provider_be.c:1158
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
@@ -951,6 +956,9 @@ msgstr "%s harus dijalankan sebagai root\n"
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
+
+#~ msgid "Length of time between attempts to reconnect while offline"
+#~ msgstr "Lamanya waktu antara upaya untuk menyambung kembali saat luring"
 
 #~ msgid "Offline authentication"
 #~ msgstr "Otentikasi luring"
