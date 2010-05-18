@@ -117,4 +117,5 @@ int groups_get_recv(struct tevent_req *req);
 /* setup child logging */
 int setup_child(struct sdap_id_ctx *ctx);
 
+void sdap_gsh_disconnect_callback(void *pvt);
 #endif /* _LDAP_COMMON_H_ */

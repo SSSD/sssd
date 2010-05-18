@@ -6,7 +6,7 @@
     Authors:
         Simo Sorce <ssorce@redhat.com>
 
-    Copyright (C) 2008-2009 Red Hat
+    Copyright (C) 2008-2010 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -675,3 +675,11 @@ done:
     return ret;
 }
 
+void sdap_gsh_disconnect_callback(void *pvt)
+{
+    struct sdap_id_ctx *ctx = talloc_get_type(pvt, struct sdap_id_ctx);
+
+    if (ctx->gsh) {
+        ctx->gsh->connected = false;
+    }
+}
