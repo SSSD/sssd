@@ -64,7 +64,7 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
 
     /* If we're already set up, just return that */
     if(bectx->bet_info[BET_ID].mod_name &&
-       strcmp("LDAP", bectx->bet_info[BET_ID].mod_name)) {
+       strcmp("ldap", bectx->bet_info[BET_ID].mod_name) == 0) {
         DEBUG(8, ("Re-using sdap_id_ctx for this provider\n"));
         *ops = bectx->bet_info[BET_ID].bet_ops;
         *pvt_data = bectx->bet_info[BET_ID].pvt_bet_data;
