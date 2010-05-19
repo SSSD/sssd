@@ -435,6 +435,24 @@
                         <para>
                             Default: FALSE
                         </para>
+                        <para>
+                            Note: Enabling enumeration has a moderate
+                            performance impact on SSSD while enumeration
+                            is running. It may take up to several minutes
+                            after SSSD startup to fully complete enumerations.
+                            During this time, individual requests for
+                            information will go directly to LDAP, though it
+                            may be slow, due to the heavy enumeration
+                            processing.
+                        </para>
+                        <para>
+                            Further, enabling enumeration may increase the time
+                            necessary to detect network disconnection, as
+                            longer timeouts are required to ensure that
+                            enumeration lookups are completed successfully.
+                            For more information, refer to the man pages for
+                            the specific id_provider in use.
+                        </para>
                     </listitem>
                 </varlistentry>
 
@@ -848,7 +866,7 @@ cache_credentials = true
 
 min_id = 10000
 max_id = 20000
-enumerate = true
+enumerate = False
 </programlisting>
         </para>
     </refsect1>
