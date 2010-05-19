@@ -99,17 +99,6 @@ static void pam_dp_reconnect_init(struct sbus_connection *conn, int status, void
     /* pam_shutdown(rctx); */
 }
 
-static errno_t pam_get_config(struct pam_ctx *pctx,
-                              struct resp_ctx *rctx,
-                              struct confdb_ctx *cdb)
-{
-    int ret = EOK;
-    ret = confdb_get_int(cdb, pctx, CONFDB_PAM_CONF_ENTRY,
-                         CONFDB_PAM_CRED_TIMEOUT, 0,
-                         &pctx->cred_expiration);
-    return ret;
-}
-
 static int pam_process_init(TALLOC_CTX *mem_ctx,
                             struct tevent_context *ev,
                             struct confdb_ctx *cdb)
@@ -140,7 +129,6 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     }
 
     pctx->rctx->pvt_ctx = pctx;
-    ret = pam_get_config(pctx, pctx->rctx, pctx->rctx->cdb);
 
     /* Enable automatic reconnection to the Data Provider */
 
