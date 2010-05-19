@@ -58,7 +58,8 @@ static void sbus_dispatch(struct tevent_context *ev,
 
     if (conn->retries > 0) {
         DEBUG(6, ("SBUS is reconnecting. Deferring.\n"));
-        /* Currently trying to reconnect, defer dispatch */
+        /* Currently trying to reconnect, defer dispatch for 30ms */
+        tv = tevent_timeval_current_ofs(0, 30);
         new_event = tevent_add_timer(ev, conn, tv, sbus_dispatch, conn);
         if (new_event == NULL) {
             DEBUG(0,("Could not defer dispatch!\n"));
