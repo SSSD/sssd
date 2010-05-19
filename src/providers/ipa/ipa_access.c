@@ -31,7 +31,8 @@
 #include "providers/ipa/ipa_access.h"
 #include "providers/ipa/ipa_timerules.h"
 
-#define IPA_HOST_MEMBEROF "memberOf"
+#define OBJECTCLASS "objectclass"
+#define IPA_MEMBEROF "memberOf"
 #define IPA_HOST_SERVERHOSTNAME "serverHostName"
 #define IPA_HOST_FQDN "fqdn"
 #define IPA_ACCESS_RULE_TYPE "accessRuleType"
@@ -47,14 +48,21 @@
 #define IPA_MEMBER_HOST "memberHost"
 #define IPA_HOST_CATEGORY "hostCategory"
 #define IPA_CN "cn"
+#define IPA_MEMBER_SERVICE "memberService"
+#define IPA_SERVICE_CATEGORY "serviceCategory"
+#define IPA_SERVICEGROUP_MEMBER "member"
 
 #define IPA_HOST_BASE_TMPL "cn=computers,cn=accounts,%s"
 #define IPA_HBAC_BASE_TMPL "cn=hbac,%s"
+#define IPA_SERVICES_BASE_TMPL "cn=hbacservices,cn=accounts,%s"
+#define IPA_SERVICEGROUPS_BASE_TMPL "cn=hbacservicegroups,cn=accounts,%s"
 
 #define SYSDB_HBAC_BASE_TMPL "cn=hbac,"SYSDB_TMPL_CUSTOM_BASE
 
 #define HBAC_RULES_SUBDIR "hbac_rules"
 #define HBAC_HOSTS_SUBDIR "hbac_hosts"
+#define HBAC_SERVICES_SUBDIR "hbac_services"
+#define HBAC_SERVICEGROUPS_SUBDIR "hbac_servicegroups"
 
 static errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
                                 struct ldb_message **msgs,
@@ -98,6 +106,490 @@ static void ipa_access_reply(struct be_req *be_req, int pam_status)
     }
 }
 
+struct hbac_get_service_data_state {
+    struct tevent_context *ev;
+    struct sdap_id_ctx *sdap_ctx;
+    struct sysdb_ctx *sysdb;
+    struct sysdb_handle *handle;
+    const char *basedn;
+    bool offline;
+
+    char *services_filter;
+    char *services_search_base;
+    const char **services_attrs;
+    struct sysdb_attrs **services_reply_list;
+    size_t services_reply_count;
+
+    char *servicegroups_filter;
+    char *servicegroups_search_base;
+    const char **servicegroups_attrs;
+    struct sysdb_attrs **servicegroups_reply_list;
+    size_t servicegroups_reply_count;
+
+    size_t current_item;
+};
+
+static void hbac_get_services_connect_done(struct tevent_req *subreq);
+static void hbac_services_get_done(struct tevent_req *subreq);
+static void hbac_get_servicegroups(struct tevent_req *req);
+static void hbac_servicegroups_get_done(struct tevent_req *subreq);
+
+struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
+                                              struct tevent_context *ev,
+                                               bool offline,
+                                               struct sdap_id_ctx *sdap_ctx,
+                                               struct sysdb_ctx *sysdb,
+                                               const char *basedn)
+{
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq = NULL;
+    struct hbac_get_service_data_state *state;
+    int ret;
+    struct ldb_message **msgs;
+
+    req = tevent_req_create(memctx, &state, struct hbac_get_service_data_state);
+    if (req == NULL) {
+        DEBUG(1, ("tevent_req_create failed.\n"));
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->offline = offline;
+    state->sdap_ctx = sdap_ctx;
+    state->sysdb = sysdb;
+    state->handle = NULL;
+    state->basedn = basedn;
+
+    state->services_reply_list = NULL;
+    state->services_reply_count = 0;
+
+    state->servicegroups_filter = NULL;
+    state->servicegroups_search_base = NULL;
+    state->servicegroups_attrs = NULL;
+    state->servicegroups_reply_list = NULL;
+    state->servicegroups_reply_count = 0;
+
+    state->current_item = 0;
+
+    state->services_search_base = talloc_asprintf(state, IPA_SERVICES_BASE_TMPL,
+                                              basedn);
+    if (state->services_search_base == NULL) {
+        DEBUG(1, ("Failed to create service search base.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->services_attrs = talloc_array(state, const char *, 7);
+    if (state->services_attrs == NULL) {
+        DEBUG(1, ("Failed to allocate service attribute list.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->services_attrs[0] = IPA_CN;
+    state->services_attrs[1] = SYSDB_ORIG_DN;
+    state->services_attrs[2] = IPA_UNIQUE_ID;
+    state->services_attrs[3] = IPA_MEMBEROF;
+    state->services_attrs[4] = SYSDB_ORIG_MEMBEROF;
+    state->services_attrs[5] = OBJECTCLASS;
+    state->services_attrs[6] = NULL;
+
+    state->services_filter = talloc_asprintf(state,
+                                            "(objectclass=ipaHBACService)");
+    if (state->services_filter == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    DEBUG(9, ("Services filter: [%s].\n", state->services_filter));
+
+    if (offline) {
+        ret = sysdb_search_custom(state, state->sysdb,
+                                  state->sdap_ctx->be->domain,
+                                  state->services_filter, HBAC_SERVICES_SUBDIR,
+                                  state->services_attrs,
+                                  &state->services_reply_count, &msgs);
+        if (ret) {
+            DEBUG(1, ("sysdb_search_custom failed.\n"));
+            goto fail;
+        }
+
+        ret = msgs2attrs_array(state, state->services_reply_count, msgs,
+                               &state->services_reply_list);
+        talloc_zfree(msgs);
+        if (ret != EOK) {
+            DEBUG(1, ("msgs2attrs_array failed.\n"));
+            goto fail;
+        }
+        hbac_get_servicegroups(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    if (sdap_ctx->gsh == NULL || ! sdap_ctx->gsh->connected) {
+        subreq = sdap_cli_connect_send(state, ev, sdap_ctx->opts,
+                                       sdap_ctx->be, sdap_ctx->service, NULL);
+        if (!subreq) {
+            DEBUG(1, ("sdap_cli_connect_send failed.\n"));
+            ret = ENOMEM;
+            goto fail;
+        }
+
+        tevent_req_set_callback(subreq, hbac_get_services_connect_done, req);
+
+        return req;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev,
+                                   state->sdap_ctx->opts,
+                                   state->sdap_ctx->gsh,
+                                   state->services_search_base,
+                                   LDAP_SCOPE_SUB,
+                                   state->services_filter,
+                                   state->services_attrs,
+                                   NULL, 0);
+
+    if (subreq == NULL) {
+        DEBUG(1, ("sdap_get_generic_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, hbac_services_get_done, req);
+
+    return req;
+
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void hbac_get_services_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct hbac_get_service_data_state *state = tevent_req_data(req,
+                                            struct hbac_get_service_data_state);
+    int ret;
+
+    ret = sdap_cli_connect_recv(subreq, state->sdap_ctx, &state->sdap_ctx->gsh,
+                                NULL);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev,
+                                   state->sdap_ctx->opts,
+                                   state->sdap_ctx->gsh,
+                                   state->services_search_base,
+                                   LDAP_SCOPE_SUB,
+                                   state->services_filter,
+                                   state->services_attrs,
+                                   NULL, 0);
+
+    if (subreq == NULL) {
+        DEBUG(1, ("sdap_get_generic_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, hbac_services_get_done, req);
+    return;
+
+fail:
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void hbac_services_get_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct hbac_get_service_data_state *state = tevent_req_data(req,
+                                            struct hbac_get_service_data_state);
+    int ret;
+
+    ret = sdap_get_generic_recv(subreq, state, &state->services_reply_count,
+                                &state->services_reply_list);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    hbac_get_servicegroups(req);
+    return;
+}
+
+static void hbac_get_servicegroups(struct tevent_req *req)
+{
+    struct hbac_get_service_data_state *state = tevent_req_data(req,
+                                            struct hbac_get_service_data_state);
+    int ret;
+    struct ldb_message **msgs;
+    struct tevent_req *subreq;
+
+    state->servicegroups_search_base = talloc_asprintf(state,
+                                                    IPA_SERVICEGROUPS_BASE_TMPL,
+                                                    state->basedn);
+    if (state->servicegroups_search_base == NULL) {
+        DEBUG(1, ("Failed to create service groups search base.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->servicegroups_attrs = talloc_array(state, const char *, 8);
+    if (state->servicegroups_attrs == NULL) {
+        DEBUG(1, ("Failed to allocate servicegroup attribute list.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+    state->servicegroups_attrs[0] = IPA_CN;
+    state->servicegroups_attrs[1] = IPA_SERVICEGROUP_MEMBER;
+    state->servicegroups_attrs[2] = SYSDB_ORIG_DN;
+    state->servicegroups_attrs[3] = IPA_UNIQUE_ID;
+    state->servicegroups_attrs[4] = IPA_MEMBEROF;
+    state->servicegroups_attrs[5] = SYSDB_ORIG_MEMBEROF;
+    state->servicegroups_attrs[6] = OBJECTCLASS;
+    state->servicegroups_attrs[7] = NULL;
+
+    state->servicegroups_filter = talloc_asprintf(state,
+                                           "(objectclass=ipaHBACServiceGroup)");
+    if (state->servicegroups_filter == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    DEBUG(9, ("Services filter: [%s].\n", state->servicegroups_filter));
+
+    if (state->offline) {
+        ret = sysdb_search_custom(state, state->sysdb,
+                                  state->sdap_ctx->be->domain,
+                                  state->servicegroups_filter,
+                                  HBAC_SERVICEGROUPS_SUBDIR,
+                                  state->servicegroups_attrs,
+                                  &state->servicegroups_reply_count, &msgs);
+        if (ret) {
+            DEBUG(1, ("sysdb_search_custom failed.\n"));
+            goto fail;
+        }
+
+        ret = msgs2attrs_array(state, state->servicegroups_reply_count, msgs,
+                               &state->servicegroups_reply_list);
+        talloc_zfree(msgs);
+        if (ret != EOK) {
+            DEBUG(1, ("msgs2attrs_array failed.\n"));
+            goto fail;
+        }
+        tevent_req_done(req);
+        return;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev,
+                                   state->sdap_ctx->opts,
+                                   state->sdap_ctx->gsh,
+                                   state->servicegroups_search_base,
+                                   LDAP_SCOPE_SUB,
+                                   state->servicegroups_filter,
+                                   state->servicegroups_attrs,
+                                   NULL, 0);
+
+    if (subreq == NULL) {
+        DEBUG(1, ("sdap_get_generic_send failed.\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    tevent_req_set_callback(subreq, hbac_servicegroups_get_done, req);
+    return;
+
+fail:
+    tevent_req_error(req, ret);
+    return;
+}
+
+static void hbac_servicegroups_get_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct hbac_get_service_data_state *state = tevent_req_data(req,
+                                            struct hbac_get_service_data_state);
+    int ret;
+    bool in_transaction = false;
+    struct ldb_dn *base_dn;
+    int i;
+    struct ldb_message_element *el;
+    char *object_name;
+
+    ret = sdap_get_generic_recv(subreq, state,
+                                &state->servicegroups_reply_count,
+                                &state->servicegroups_reply_list);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if ((state->services_reply_count == 0 &&
+         state->servicegroups_reply_count == 0)|| state->offline) {
+        tevent_req_done(req);
+        return;
+    }
+
+    ret = sysdb_transaction_start(state->sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_transaction_start failed.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+    in_transaction = true;
+
+    base_dn = sysdb_custom_subtree_dn(state->sysdb, state,
+                                      state->sdap_ctx->be->domain->name,
+                                      HBAC_SERVICES_SUBDIR);
+    if (base_dn == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_delete_recursive(state, state->sysdb, base_dn, true);
+    if (ret) {
+        DEBUG(1, ("sysdb_delete_recursive failed.\n"));
+        goto fail;
+    }
+
+    base_dn = sysdb_custom_subtree_dn(state->sysdb, state,
+                                      state->sdap_ctx->be->domain->name,
+                                      HBAC_SERVICEGROUPS_SUBDIR);
+    if (base_dn == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    ret = sysdb_delete_recursive(state, state->sysdb, base_dn, true);
+    if (ret) {
+        DEBUG(1, ("sysdb_delete_recursive failed.\n"));
+        goto fail;
+    }
+
+    for (i = 0; i < state->services_reply_count; i++) {
+        ret = sysdb_attrs_get_el(state->services_reply_list[i], IPA_UNIQUE_ID,
+                                 &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            goto fail;
+        }
+        if (el->num_values == 0) {
+            ret = EINVAL;
+            goto fail;
+        }
+        object_name = talloc_strndup(state, (const char *)el->values[0].data,
+                                     el->values[0].length);
+        if (object_name == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        DEBUG(9, ("Object name: [%s].\n", object_name));
+
+        ret = sysdb_attrs_replace_name(state->services_reply_list[i],
+                                       IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
+            goto fail;
+        }
+
+        ret = sysdb_store_custom(state, state->sysdb,
+                                 state->sdap_ctx->be->domain, object_name,
+                                 HBAC_SERVICES_SUBDIR,
+                                 state->services_reply_list[i]);
+        if (ret) {
+            DEBUG(1, ("sysdb_store_custom failed.\n"));
+            goto fail;
+        }
+    }
+    for (i = 0; i < state->servicegroups_reply_count; i++) {
+        ret = sysdb_attrs_get_el(state->servicegroups_reply_list[i],
+                                 IPA_UNIQUE_ID, &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            goto fail;
+        }
+        if (el->num_values == 0) {
+            ret = EINVAL;
+            goto fail;
+        }
+        object_name = talloc_strndup(state, (const char *)el->values[0].data,
+                                     el->values[0].length);
+        if (object_name == NULL) {
+            ret = ENOMEM;
+            goto fail;
+        }
+        DEBUG(9, ("Object name: [%s].\n", object_name));
+
+        ret = sysdb_attrs_replace_name(state->servicegroups_reply_list[i],
+                                       IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
+            goto fail;
+        }
+
+        ret = sysdb_store_custom(state, state->sysdb,
+                                 state->sdap_ctx->be->domain, object_name,
+                                 HBAC_SERVICEGROUPS_SUBDIR,
+                                 state->servicegroups_reply_list[i]);
+        if (ret) {
+            DEBUG(1, ("sysdb_store_custom failed.\n"));
+            goto fail;
+        }
+    }
+
+    ret = sysdb_transaction_commit(state->sysdb);
+    if (ret) {
+        DEBUG(1, ("sysdb_transaction_commit failed.\n"));
+        goto fail;
+    }
+    in_transaction = false;
+
+    tevent_req_done(req);
+    return;
+
+fail:
+    if (in_transaction) {
+        sysdb_transaction_cancel(state->sysdb);
+    }
+    tevent_req_error(req, ret);
+    return;
+}
+
+static int hbac_get_service_data_recv(struct tevent_req *req,
+                                  TALLOC_CTX *memctx,
+                                  size_t *hbac_services_count,
+                                  struct sysdb_attrs ***hbac_services_list,
+                                  size_t *hbac_servicegroups_count,
+                                  struct sysdb_attrs ***hbac_servicegroups_list)
+{
+    struct hbac_get_service_data_state *state = tevent_req_data(req,
+                                            struct hbac_get_service_data_state);
+    int i;
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    *hbac_services_count = state->services_reply_count;
+    *hbac_services_list = talloc_steal(memctx, state->services_reply_list);
+    for (i = 0; i < state->services_reply_count; i++) {
+        talloc_steal(memctx, state->services_reply_list[i]);
+    }
+
+    *hbac_servicegroups_count = state->servicegroups_reply_count;
+    *hbac_servicegroups_list = talloc_steal(memctx,
+                                               state->servicegroups_reply_list);
+    for (i = 0; i < state->servicegroups_reply_count; i++) {
+        talloc_steal(memctx, state->servicegroups_reply_list[i]);
+    }
+    return EOK;
+}
 
 static int hbac_get_user_info(TALLOC_CTX *memctx,
                               struct be_ctx *be_ctx,
@@ -299,7 +791,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         ret = ENOMEM;
         goto fail;
     }
-    state->host_attrs[0] = IPA_HOST_MEMBEROF;
+    state->host_attrs[0] = IPA_MEMBEROF;
     state->host_attrs[1] = IPA_HOST_SERVERHOSTNAME;
     state->host_attrs[2] = IPA_HOST_FQDN;
     state->host_attrs[3] = "objectClass";
@@ -579,7 +1071,7 @@ static void hbac_get_host_memberof(struct tevent_req *req,
 
 
         ret = sysdb_attrs_replace_name(state->host_reply_list[i],
-                                    IPA_HOST_MEMBEROF, SYSDB_ORIG_MEMBEROF);
+                                       IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF);
         if (ret != EOK) {
             DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
             goto fail;
@@ -697,7 +1189,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->hbac_attrs = talloc_array(state, const char *, 16);
+    state->hbac_attrs = talloc_array(state, const char *, 18);
     if (state->hbac_attrs == NULL) {
         DEBUG(1, ("Failed to allocate HBAC attribute list.\n"));
         ret = ENOMEM;
@@ -714,11 +1206,13 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     state->hbac_attrs[8] = IPA_UNIQUE_ID;
     state->hbac_attrs[9] = IPA_ENABLED_FLAG;
     state->hbac_attrs[10] = IPA_CN;
-    state->hbac_attrs[11] = "objectclass";
+    state->hbac_attrs[11] = OBJECTCLASS;
     state->hbac_attrs[12] = IPA_MEMBER_HOST;
     state->hbac_attrs[13] = IPA_HOST_CATEGORY;
-    state->hbac_attrs[14] = SYSDB_ORIG_DN;
-    state->hbac_attrs[15] = NULL;
+    state->hbac_attrs[14] = IPA_MEMBER_SERVICE;
+    state->hbac_attrs[15] = IPA_SERVICE_CATEGORY;
+    state->hbac_attrs[16] = SYSDB_ORIG_DN;
+    state->hbac_attrs[17] = NULL;
 
     state->hbac_filter = talloc_asprintf(state,
                                          "(&(objectclass=ipaHBACRule)"
@@ -1004,41 +1498,129 @@ enum check_result {
     RULE_ERROR
 };
 
-enum check_result check_service(struct pam_data *pd,
+static errno_t get_service_data(const char *cn, size_t count,
+                                struct sysdb_attrs **list, const char **dn,
+                                struct ldb_message_element **mof)
+{
+    int ret;
+    int i;
+    int j;
+    struct ldb_message_element *el;
+
+    for (i = 0; i < count; i++) {
+        ret = sysdb_attrs_get_el(list[i], IPA_CN, &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            return ENOENT;
+        }
+        if (el->num_values == 0) {
+            DEBUG(9, ("No cn found.\n"));
+            return ENOENT;
+        } else {
+            for (j = 0; j < el->num_values; j++) {
+                if (strncmp(cn, (const char *) el->values[j].data,
+                            el->values[j].length) == 0) {
+
+                    ret = sysdb_attrs_get_string(list[i], SYSDB_ORIG_DN, dn);
+                    if (ret != EOK) {
+                        DEBUG(1, ("sysdb_attrs_get_string failed.\n"));
+                        return ret;
+                    }
+
+                    ret = sysdb_attrs_get_el(list[i], SYSDB_ORIG_MEMBEROF, mof);
+                    if (ret != EOK) {
+                        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+                        return ret;
+                    }
+
+                    return EOK;
+                }
+            }
+        }
+    }
+
+    return ENOENT;
+}
+
+enum check_result check_service(struct hbac_ctx *hbac_ctx,
                                 struct sysdb_attrs *rule_attrs)
 {
     int ret;
     int i;
+    int g;
     struct ldb_message_element *el;
+    const char *service_dn;
+    struct ldb_message_element *service_memberof;
 
-    if (pd->service == NULL) {
+    if (hbac_ctx->pd->service == NULL) {
         DEBUG(1, ("No service in pam data, assuming error.\n"));
         return RULE_ERROR;
     }
 
-    ret = sysdb_attrs_get_el(rule_attrs, IPA_SERVICE_NAME, &el);
+    ret = sysdb_attrs_get_el(rule_attrs, IPA_SERVICE_CATEGORY, &el);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
         return RULE_ERROR;
     }
     if (el->num_values == 0) {
-        DEBUG(9, ("No services in rule specified, assuming rule applies.\n"));
-        return RULE_APPLICABLE;
+        DEBUG(9, ("Service category is not set.\n"));
     } else {
         for (i = 0; i < el->num_values; i++) {
-            if (strlen(pd->service) == el->values[i].length &&
-                strncasecmp(pd->service, (const char *) el->values[i].data,
+            if (strncasecmp("all", (const char *) el->values[i].data,
                             el->values[i].length) == 0) {
-                DEBUG(9, ("Service [%s] found, rule applies.\n",
-                          pd->service));
+                DEBUG(9, ("Service category is set to 'all', rule applies.\n"));
                 return RULE_APPLICABLE;
             }
+            DEBUG(9, ("Unsupported service category [%.*s].\n",
+                      el->values[i].length,
+                      (char *) el->values[i].data));
         }
-        DEBUG(9, ("No matching service found, rule does not apply.\n"));
+    }
+
+    ret = get_service_data(hbac_ctx->pd->service, hbac_ctx->hbac_services_count,
+                           hbac_ctx->hbac_services_list, &service_dn,
+                           &service_memberof);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot find original DN for service [%s].\n",
+                  hbac_ctx->pd->service));
+        return RULE_ERROR;
+    }
+    DEBUG(9, ("OriginalDN for service [%s]: [%s].\n", hbac_ctx->pd->service,
+              service_dn));
+
+    ret = sysdb_attrs_get_el(rule_attrs, IPA_MEMBER_SERVICE, &el);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+        return RULE_ERROR;
+    }
+    if (el->num_values == 0) {
+        DEBUG(9, ("No service or service group specified, rule does not apply.\n"));
         return RULE_NOT_APPLICABLE;
     }
 
-    return RULE_ERROR;
+    for (i = 0; i < el->num_values; i++) {
+        if (strncmp(service_dn, (const char *) el->values[i].data,
+                    el->values[i].length) == 0) {
+            DEBUG(9, ("Service [%s] found in the list of allowed "
+                      "services.\n", hbac_ctx->pd->service));
+            return RULE_APPLICABLE;
+        }
+
+        for (g = 0; g < service_memberof->num_values; g++) {
+            if (service_memberof->values[g].length == el->values[i].length &&
+                strncmp((const char *) service_memberof->values[g].data,
+                        (const char *) el->values[i].data,
+                        el->values[i].length) == 0) {
+                DEBUG(9, ("Service [%s] is a member of a group in the list of "
+                          "allowed service groups.\n", hbac_ctx->pd->service));
+                return RULE_APPLICABLE;
+            }
+        }
+    }
+
+    DEBUG(9, ("Service [%s] was not found in the list of allowed services and "
+              "service groups.\n", hbac_ctx->pd->service));
+    return RULE_NOT_APPLICABLE;
 }
 
 enum check_result check_access_time(struct time_rules_ctx *tr_ctx,
@@ -1325,7 +1907,7 @@ static errno_t check_if_rule_applies(struct hbac_ctx *hbac_ctx,
         return EINVAL;
     }
 
-    ret = check_service(pd, rule_attrs);
+    ret = check_service(hbac_ctx, rule_attrs);
     if (ret != RULE_APPLICABLE) {
         goto not_applicable;
     }
@@ -1399,6 +1981,7 @@ static int evaluate_ipa_hbac_rules(struct hbac_ctx *hbac_ctx,
 
 static void hbac_get_host_info_done(struct tevent_req *req);
 static void hbac_get_rules_done(struct tevent_req *req);
+static void hbac_get_service_data_done(struct tevent_req *req);
 
 void ipa_access_handler(struct be_req *be_req)
 {
@@ -1533,14 +2116,47 @@ fail:
 static void hbac_get_rules_done(struct tevent_req *req)
 {
     struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
+    struct be_req *be_req = hbac_ctx->be_req;
+    int ret;
+    int pam_status = PAM_SYSTEM_ERR;
+
+    ret = hbac_get_rules_recv(req, hbac_ctx, &hbac_ctx->hbac_rule_count,
+                              &hbac_ctx->hbac_rule_list);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        goto failed;
+    }
+
+    req = hbac_get_service_data_send(hbac_ctx, be_req->be_ctx->ev,
+                                     hbac_ctx->offline, hbac_ctx->sdap_ctx,
+                                     be_req->be_ctx->sysdb,
+                                     hbac_ctx->ldap_basedn);
+    if (req == NULL) {
+        DEBUG(1, ("hbac_get_service_data_send failed.\n"));
+        goto failed;
+    }
+
+    tevent_req_set_callback(req, hbac_get_service_data_done, hbac_ctx);
+    return;
+
+failed:
+    ipa_access_reply(be_req, pam_status);
+}
+
+static void hbac_get_service_data_done(struct tevent_req *req)
+{
+    struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
     struct pam_data *pd = hbac_ctx->pd;
     struct be_req *be_req = hbac_ctx->be_req;
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
     bool access_allowed = false;
 
-    ret = hbac_get_rules_recv(req, hbac_ctx, &hbac_ctx->hbac_rule_count,
-                              &hbac_ctx->hbac_rule_list);
+    ret = hbac_get_service_data_recv(req, hbac_ctx,
+                                     &hbac_ctx->hbac_services_count,
+                                     &hbac_ctx->hbac_services_list,
+                                     &hbac_ctx->hbac_servicegroups_count,
+                                     &hbac_ctx->hbac_servicegroups_list);
     talloc_zfree(req);
     if (ret != EOK) {
         goto failed;
