@@ -23,7 +23,7 @@
 
 bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
 {
-    dbus_bool_t db_ret;
+    int ret;
 
     if (pd->user == NULL) return false;
     if (pd->service == NULL) pd->service = talloc_strdup(pd, "");
@@ -32,78 +32,52 @@ bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd)
     if (pd->rhost == NULL) pd->rhost = talloc_strdup(pd, "");
 
 
-    db_ret = dbus_message_append_args(msg,
-                                      DBUS_TYPE_INT32,  &(pd->cmd),
-                                      DBUS_TYPE_STRING, &(pd->user),
-                                      DBUS_TYPE_STRING, &(pd->service),
-                                      DBUS_TYPE_STRING, &(pd->tty),
-                                      DBUS_TYPE_STRING, &(pd->ruser),
-                                      DBUS_TYPE_STRING, &(pd->rhost),
-                                      DBUS_TYPE_UINT32, &(pd->authtok_type),
-                                      DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                          &(pd->authtok),
-                                          (pd->authtok_size),
-                                      DBUS_TYPE_UINT32, &(pd->newauthtok_type),
-                                      DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                          &(pd->newauthtok),
-                                          pd->newauthtok_size,
-                                      DBUS_TYPE_INT32, &(pd->priv),
-                                      DBUS_TYPE_UINT32, &(pd->cli_pid),
-                                      DBUS_TYPE_INVALID);
-
-    return db_ret;
-}
-
-bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
-                           struct pam_data **new_pd, DBusError *dbus_error)
-{
-    dbus_bool_t db_ret;
-    int ret;
-    struct pam_data pd;
-
-    memset(&pd, 0, sizeof(pd));
-
-    db_ret = dbus_message_get_args(msg, dbus_error,
-                                   DBUS_TYPE_INT32,  &(pd.cmd),
-                                   DBUS_TYPE_STRING, &(pd.user),
-                                   DBUS_TYPE_STRING, &(pd.service),
-                                   DBUS_TYPE_STRING, &(pd.tty),
-                                   DBUS_TYPE_STRING, &(pd.ruser),
-                                   DBUS_TYPE_STRING, &(pd.rhost),
-                                   DBUS_TYPE_UINT32, &(pd.authtok_type),
+    ret = dbus_message_append_args(msg,
+                                   DBUS_TYPE_INT32,  &(pd->cmd),
+                                   DBUS_TYPE_STRING, &(pd->user),
+                                   DBUS_TYPE_STRING, &(pd->service),
+                                   DBUS_TYPE_STRING, &(pd->tty),
+                                   DBUS_TYPE_STRING, &(pd->ruser),
+                                   DBUS_TYPE_STRING, &(pd->rhost),
+                                   DBUS_TYPE_UINT32, &(pd->authtok_type),
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                       &(pd.authtok),
-                                       &(pd.authtok_size),
-                                   DBUS_TYPE_UINT32, &(pd.newauthtok_type),
+                                       &(pd->authtok),
+                                       (pd->authtok_size),
+                                   DBUS_TYPE_UINT32, &(pd->newauthtok_type),
                                    DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
-                                       &(pd.newauthtok),
-                                       &(pd.newauthtok_size),
-                                   DBUS_TYPE_INT32, &(pd.priv),
-                                   DBUS_TYPE_UINT32, &(pd.cli_pid),
+                                       &(pd->newauthtok),
+                                       pd->newauthtok_size,
+                                   DBUS_TYPE_INT32, &(pd->priv),
+                                   DBUS_TYPE_UINT32, &(pd->cli_pid),
                                    DBUS_TYPE_INVALID);
 
-    if (!db_ret) {
-        DEBUG(1, ("dbus_message_get_args failed.\n"));
-        return false;
-    }
+    return ret;
+}
 
-    ret = copy_pam_data(mem_ctx, &pd, new_pd);
-    if (ret != EOK) {
-        DEBUG(1, ("copy_pam_data failed.\n"));
-        return false;
-    }
+bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd, DBusError *dbus_error)
+{
+    int ret;
 
-    if (pd.authtok_size != 0 && pd.authtok != NULL) {
-        memset(pd.authtok, 0, pd.authtok_size);
-        pd.authtok_size = 0;
-    }
+    ret = dbus_message_get_args(msg, dbus_error,
+                                DBUS_TYPE_INT32,  &(pd->cmd),
+                                DBUS_TYPE_STRING, &(pd->user),
+                                DBUS_TYPE_STRING, &(pd->service),
+                                DBUS_TYPE_STRING, &(pd->tty),
+                                DBUS_TYPE_STRING, &(pd->ruser),
+                                DBUS_TYPE_STRING, &(pd->rhost),
+                                DBUS_TYPE_UINT32, &(pd->authtok_type),
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(pd->authtok),
+                                    &(pd->authtok_size),
+                                DBUS_TYPE_UINT32, &(pd->newauthtok_type),
+                                DBUS_TYPE_ARRAY, DBUS_TYPE_BYTE,
+                                    &(pd->newauthtok),
+                                    &(pd->newauthtok_size),
+                                DBUS_TYPE_INT32, &(pd->priv),
+                                DBUS_TYPE_UINT32, &(pd->cli_pid),
+                                DBUS_TYPE_INVALID);
 
-    if (pd.newauthtok_size != 0 && pd.newauthtok != NULL) {
-        memset(pd.newauthtok, 0, pd.newauthtok_size);
-        pd.newauthtok_size = 0;
-    }
-
-    return true;
+    return ret;
 }
 
 bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd)

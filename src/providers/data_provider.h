@@ -187,8 +187,8 @@ int pam_add_response(struct pam_data *pd,
                      int len, const uint8_t *data);
 
 bool dp_pack_pam_request(DBusMessage *msg, struct pam_data *pd);
-bool dp_unpack_pam_request(DBusMessage *msg, TALLOC_CTX *mem_ctx,
-                           struct pam_data **new_pd, DBusError *dbus_error);
+bool dp_unpack_pam_request(DBusMessage *msg, struct pam_data *pd,
+                           DBusError *dbus_error);
 
 bool dp_pack_pam_response(DBusMessage *msg, struct pam_data *pd);
 bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd,
