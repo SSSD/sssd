@@ -536,10 +536,13 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req->fn = be_pam_handler_callback;
     be_req->pvt = reply;
 
-    pd = talloc_zero(be_req, struct pam_data);
-    if (!pd) {
+    dbus_error_init(&dbus_error);
+
+    ret = dp_unpack_pam_request(message, be_req, &pd, &dbus_error);
+    if (!ret) {
+        DEBUG(1,("Failed, to parse message!\n"));
         talloc_free(be_req);
-        return ENOMEM;
+        return EIO;
     }
 
     pd->pam_status = PAM_SYSTEM_ERR;
@@ -549,14 +552,6 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
         return ENOMEM;
     }
 
-    dbus_error_init(&dbus_error);
-
-    ret = dp_unpack_pam_request(message, pd, &dbus_error);
-    if (!ret) {
-        DEBUG(1,("Failed, to parse message!\n"));
-        talloc_free(be_req);
-        return EIO;
-    }
 
     DEBUG(4, ("Got request with the following data\n"));
     DEBUG_PAM_DATA(4, pd);
