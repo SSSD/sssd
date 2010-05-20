@@ -163,21 +163,23 @@ int be_add_online_cb(TALLOC_CTX *mem_ctx, struct be_ctx *ctx, be_callback_t cb,
 void be_run_online_cb(struct be_ctx *be) {
     int ret;
 
-    if (be->run_online_cb && be->online_cb_list) {
+    if (be->run_online_cb) {
         /* Reset the flag. We only want to run these
          * callbacks when transitioning to online
          */
         be->run_online_cb = false;
 
-        DEBUG(3, ("Going online. Running callbacks.\n"));
+        if (be->online_cb_list) {
+            DEBUG(3, ("Going online. Running callbacks.\n"));
 
-        ret = be_run_cb(be, be->online_cb_list);
-        if (ret != EOK) {
-            DEBUG(1, ("be_run_cb failed.\n"));
+            ret = be_run_cb(be, be->online_cb_list);
+            if (ret != EOK) {
+                DEBUG(1, ("be_run_cb failed.\n"));
+            }
+
+        } else {
+            DEBUG(9, ("Online call back list is empty, nothing to do.\n"));
         }
-
-    } else {
-        DEBUG(9, ("Online call back list is empty, nothing to do.\n"));
     }
 }
 
