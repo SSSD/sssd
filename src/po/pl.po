@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-05-18 12:18-0400\n"
-"PO-Revision-Date: 2010-05-08 14:28+0200\n"
+"PO-Revision-Date: 2010-05-18 23:10+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -302,9 +302,8 @@ msgid "Follow LDAP referrals"
 msgstr "Podąża za odsyłaniami LDAP"
 
 #: config/SSSDConfig.py:128
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Używa uwierzytelniania Kerberos dla połączenia LDAP"
+msgstr "Czas trwania TGT dla połączenia LDAP"
 
 #: config/SSSDConfig.py:131
 msgid "Length of time to wait for a search request"
@@ -384,7 +383,7 @@ msgstr "Polityka do oszacowania wygaszenia hasła"
 
 #: config/SSSDConfig.py:154
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "Filtr LDAP do określenia uprawnień dostępu"
 
 #: config/SSSDConfig.py:157
 msgid "Comma separated list of allowed users"
@@ -977,6 +976,3 @@ msgstr "%s musi zostać uruchomione jako root\n"
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
-
-#~ msgid "Length of time between attempts to reconnect while offline"
-#~ msgstr "Czas między próbami ponownego połączenia w trybie offline"
