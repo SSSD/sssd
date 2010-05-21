@@ -3,10 +3,10 @@ AC_ARG_WITH([os],
            )
 osname=""
 if test x"$with_os" != x ; then
-    if test x"$with_os" == xfedora -o \
-            x"$with_os" == xredhat -o \
-            x"$with_os" == xsuse -o \
-            x"$with_os" == xdebian ; then
+    if test x"$with_os" = xfedora || \
+       test x"$with_os" = xredhat || \
+       test x"$with_os" = xsuse || \
+       test x"$with_os" = xdebian ; then
         osname=$with_os
     else
         AC_MSG_ERROR([Illegal value -$with_os- for option --with-os])
@@ -27,10 +27,10 @@ if test x"$osname" = x ; then
     AC_MSG_NOTICE([Detected operating system type: $osname])
 fi
 
-AM_CONDITIONAL([HAVE_FEDORA], [test x"$osname" == xfedora])
-AM_CONDITIONAL([HAVE_REDHAT], [test x"$osname" == xredhat])
-AM_CONDITIONAL([HAVE_SUSE], [test x"$osname" == xsuse])
-AM_CONDITIONAL([HAVE_DEBIAN], [test x"$osname" == xdebian])
+AM_CONDITIONAL([HAVE_FEDORA], [test x"$osname" = xfedora])
+AM_CONDITIONAL([HAVE_REDHAT], [test x"$osname" = xredhat])
+AM_CONDITIONAL([HAVE_SUSE], [test x"$osname" = xsuse])
+AM_CONDITIONAL([HAVE_DEBIAN], [test x"$osname" = xdebian])
 
 AC_CHECK_MEMBERS([struct ucred.pid, struct ucred.uid, struct ucred.gid], , ,
                  [[#define _GNU_SOURCE

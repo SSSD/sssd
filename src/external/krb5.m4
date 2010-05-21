@@ -58,5 +58,5 @@ AC_CHECK_HEADER([krb5/locate_plugin.h],
                 [have_locate_plugin=no]
                 [AC_MSG_NOTICE([Kerberos locator plugin cannot be build])])
 AM_CONDITIONAL([BUILD_KRB5_LOCATOR_PLUGIN],
-               [test x$have_locate_plugin == xyes -a x$build_locator == xyes])
+               [test x$have_locate_plugin = xyes -a x$build_locator = xyes])
 

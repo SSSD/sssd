@@ -123,7 +123,7 @@ AC_DEFUN([WITH_MANPAGES],
                 [],
                 with_manpages=yes
                )
-    if test x"$with_manpages" == xyes; then
+    if test x"$with_manpages" = xyes; then
         HAVE_MANPAGES=1
         AC_SUBST(HAVE_MANPAGES)
     fi
@@ -167,7 +167,7 @@ AC_DEFUN([WITH_PYTHON_BINDINGS],
                 [],
                 with_python_bindings=yes
                )
-    if test x"$with_python_bindings" == xyes; then
+    if test x"$with_python_bindings" = xyes; then
         HAVE_PYTHON_BINDINGS=1
         AC_SUBST(HAVE_PYTHON_BINDINGS)
     fi
@@ -183,7 +183,7 @@ AC_DEFUN([WITH_SELINUX],
                 [],
                 with_selinux=yes
                )
-    if test x"$with_selinux" == xyes; then
+    if test x"$with_selinux" = xyes; then
         HAVE_SELINUX=1
         AC_SUBST(HAVE_SELINUX)
         AC_DEFINE_UNQUOTED(HAVE_SELINUX, 1, [Build with SELinux support])
@@ -212,7 +212,7 @@ AC_DEFUN([WITH_NSCD],
                 [],
                 with_nscd=yes
                )
-    if test x"$with_nscd" == xyes; then
+    if test x"$with_nscd" = xyes; then
         AC_DEFINE_UNQUOTED(HAVE_NSCD, 1, [flush nscd cache after local domain operations])
     fi
   ])
@@ -226,7 +226,7 @@ AC_DEFUN([WITH_SEMANAGE],
                 [],
                 with_semanage=yes
                )
-    if test x"$with_semanage" == xyes; then
+    if test x"$with_semanage" = xyes; then
         HAVE_SEMANAGE=1
         AC_SUBST(HAVE_SEMANAGE)
         AC_DEFINE_UNQUOTED(HAVE_SEMANAGE, 1, [Build with SELinux support])
