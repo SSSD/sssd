@@ -282,11 +282,17 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
     /* set krb realm */
     if (NULL == dp_opt_get_string(ipa_opts->id->basic, SDAP_KRB5_REALM)) {
         realm = dp_opt_get_string(ipa_opts->basic, IPA_DOMAIN);
-        for (i = 0; realm[i]; i++) {
-            realm[i] = toupper(realm[i]);
+        value = talloc_strdup(tmpctx, realm);
+        if (value == NULL) {
+            DEBUG(1, ("talloc_strdup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        for (i = 0; value[i]; i++) {
+            value[i] = toupper(value[i]);
         }
         ret = dp_opt_set_string(ipa_opts->id->basic,
-                                SDAP_KRB5_REALM, realm);
+                                SDAP_KRB5_REALM, value);
         if (ret != EOK) {
             goto done;
         }
@@ -370,6 +376,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
                          struct dp_option **_opts)
 {
     char *value;
+    char *copy = NULL;
     int ret;
     int i;
 
@@ -402,10 +409,16 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
             ret = ENOMEM;
             goto done;
         }
-        for (i = 0; value[i]; i++) {
-            value[i] = toupper(value[i]);
+        copy = talloc_strdup(ipa_opts->auth, value);
+        if (copy == NULL) {
+            DEBUG(1, ("talloc_strdup failed.\n"));
+            ret = ENOMEM;
+            goto done;
         }
-        ret = dp_opt_set_string(ipa_opts->auth, KRB5_REALM, value);
+        for (i = 0; copy[i]; i++) {
+            copy[i] = toupper(copy[i]);
+        }
+        ret = dp_opt_set_string(ipa_opts->auth, KRB5_REALM, copy);
         if (ret != EOK) {
             goto done;
         }
@@ -418,6 +431,7 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     ret = EOK;
 
 done:
+    talloc_free(copy);
     if (ret != EOK) {
         talloc_zfree(ipa_opts->auth);
     }
