@@ -136,3 +136,102 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 
     return EOK;
 }
+
+static void free_args(char **args)
+{
+    int i;
+
+    if (args) {
+        for (i = 0; args[i]; i++) free(args[i]);
+        free(args);
+    }
+}
+
+/* parse a string into arguments.
+ * arguments are separated by a space
+ * '\' is an escape character and can be used only to escape
+ * itself or the white space.
+ */
+char **parse_args(const char *str)
+{
+    const char *p;
+    char **ret, **r;
+    char *tmp;
+    int num;
+    int i, e;
+
+    tmp = malloc(strlen(str) + 1);
+    if (!tmp) return NULL;
+
+    ret = NULL;
+    num = 0;
+    e = 0;
+    i = 0;
+    p = str;
+    while (*p) {
+        switch (*p) {
+        case '\\':
+            if (e) {
+                tmp[i] = '\\';
+                i++;
+                e = 0;
+            } else {
+                e = 1;
+            }
+            break;
+        case ' ':
+            if (e) {
+                tmp[i] = ' ';
+                i++;
+                e = 0;
+            } else {
+                tmp[i] = '\0';
+                i++;
+            }
+            break;
+        default:
+            if (e) {
+                tmp[i] = '\\';
+                i++;
+                e = 0;
+            }
+            tmp[i] = *p;
+            i++;
+            break;
+        }
+
+        p++;
+
+        /* check if this was the last char */
+        if (*p == '\0') {
+            if (e) {
+                tmp[i] = '\\';
+                i++;
+                e = 0;
+            }
+            tmp[i] = '\0';
+            i++;
+        }
+        if (tmp[i-1] != '\0' || strlen(tmp) == 0) {
+            /* check next char and skip multiple spaces */
+            continue;
+        }
+
+        r = realloc(ret, (num + 2) * sizeof(char *));
+        if (!r) goto fail;
+        ret = r;
+        ret[num+1] = NULL;
+        ret[num] = strdup(tmp);
+        if (!ret[num]) goto fail;
+        num++;
+        i = 0;
+    }
+
+    free(tmp);
+    return ret;
+
+fail:
+    free(tmp);
+    free_args(ret);
+    return NULL;
+}

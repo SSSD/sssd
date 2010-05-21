@@ -317,4 +317,6 @@ errno_t check_and_open_readonly(const char *filename, int *fd, const uid_t uid,
 /* from util.c */
 int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, char ***_list, int *size);
+
+char **parse_args(const char *str);
 #endif /* __SSSD_UTIL_H__ */
