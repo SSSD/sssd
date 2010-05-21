@@ -514,9 +514,16 @@ static void ipa_dyndns_child_handler(int child_status,
 {
     struct tevent_req *req = talloc_get_type(pvt, struct tevent_req);
 
-    if (WEXITSTATUS(child_status) != 0) {
+    if (WIFEXITED(child_status) && WEXITSTATUS(child_status) != 0) {
         DEBUG(1, ("Dynamic DNS child failed with status [%d]\n",
                   child_status));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    if WIFSIGNALED(child_status) {
+        DEBUG(1, ("Dynamic DNS child was terminated by signal [%d]\n",
+                  WTERMSIG(child_status)));
         tevent_req_error(req, EIO);
         return;
     }
