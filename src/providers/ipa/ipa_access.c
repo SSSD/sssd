@@ -1502,9 +1502,9 @@ enum check_result check_remote_hosts(const char *rhost,
     return RULE_ERROR;
 }
 
-static errno_t check_if_rule_applies(enum hbac_result *result,
-                                     struct hbac_ctx *hbac_ctx,
-                                     struct sysdb_attrs *rule_attrs) {
+static errno_t check_if_rule_applies(struct hbac_ctx *hbac_ctx,
+                                     struct sysdb_attrs *rule_attrs,
+                                     enum hbac_result *result) {
     int ret;
     struct ldb_message_element *el;
     enum hbac_result rule_type;
@@ -1528,6 +1528,24 @@ static errno_t check_if_rule_applies(enum hbac_result *result,
         return ENOMEM;
     }
     DEBUG(9, ("Processsing rule [%s].\n", rule_name));
+
+    ret = sysdb_attrs_get_el(rule_attrs, IPA_ENABLED_FLAG, &el);
+    if (ret != EOK) {
+        DEBUG(1, ("Failed to find out if rule is enabled or not, "
+                  "assuming it is enabled.\n"));
+    } else {
+        if (el->num_values == 0) {
+            DEBUG(1, ("Failed to find out if rule is enabled or not, "
+                      "assuming it is enabled.\n"));
+        } else {
+            if (strncasecmp("false", (const char*) el->values[0].data,
+                            el->values[0].length) == 0) {
+                DEBUG(7, ("Rule is disabled.\n"));
+                *result = HBAC_NOT_APPLICABLE;
+                return EOK;
+            }
+        }
+    }
 
     /* rule type */
     ret = sysdb_attrs_get_el(rule_attrs, IPA_ACCESS_RULE_TYPE, &el);
@@ -1596,8 +1614,8 @@ static int evaluate_ipa_hbac_rules(struct hbac_ctx *hbac_ctx,
 
     for (i = 0; i < hbac_ctx->hbac_rule_count ; i++) {
 
-        ret = check_if_rule_applies(&result, hbac_ctx,
-                                    hbac_ctx->hbac_rule_list[i]);
+        ret = check_if_rule_applies(hbac_ctx, hbac_ctx->hbac_rule_list[i],
+                                    &result);
         if (ret != EOK) {
             DEBUG(1, ("check_if_rule_applies failed.\n"));
             return ret;
