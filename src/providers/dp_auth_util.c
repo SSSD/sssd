@@ -262,7 +262,7 @@ bool dp_unpack_pam_response(DBusMessage *msg, struct pam_data *pd, DBusError *db
     return true;
 }
 
-static void id_callback(DBusPendingCall *pending, void *ptr)
+void dp_id_callback(DBusPendingCall *pending, void *ptr)
 {
     DBusMessage *reply;
     DBusError dbus_error;
@@ -353,7 +353,7 @@ int dp_common_send_id(struct sbus_connection *conn, uint16_t version,
         return EIO;
     }
 
-    retval = sbus_conn_send(conn, msg, 30000, id_callback, NULL, NULL);
+    retval = sbus_conn_send(conn, msg, 30000, dp_id_callback, NULL, NULL);
 
     dbus_message_unref(msg);
     return retval;
