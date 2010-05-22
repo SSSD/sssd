@@ -24,6 +24,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <dlfcn.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include <security/pam_appl.h>
 #include <security/pam_modules.h>
@@ -31,6 +33,8 @@
 #include "util/util.h"
 #include "providers/dp_backend.h"
 #include "db/sysdb.h"
+#include "proxy.h"
+#include <dhash.h>
 
 struct proxy_nss_ops {
     enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
@@ -65,6 +69,29 @@ struct proxy_ctx {
 struct proxy_auth_ctx {
     struct be_ctx *be;
     char *pam_target;
+
+    uint32_t max_children;
+    uint32_t running;
+    uint32_t next_id;
+    hash_table_t *request_table;
+    struct sbus_connection *sbus_srv;
+    int timeout_ms;
+};
+
+static int client_registration(DBusMessage *message,
+                               struct sbus_connection *conn);
+
+static struct sbus_method proxy_methods[] = {
+    { DP_METHOD_REGISTER, client_registration },
+    { NULL, NULL }
+};
+
+struct sbus_interface proxy_interface = {
+    DP_INTERFACE,
+    DP_PATH,
+    SBUS_DEFAULT_VTABLE,
+    proxy_methods,
+    NULL
 };
 
 struct authtok_conv {
@@ -72,62 +99,24 @@ struct authtok_conv {
     uint8_t *authtok;
 };
 
-static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
-                            struct pam_response **response,
-                            void *appdata_ptr) {
-    int i;
-    struct pam_response *reply;
-    struct authtok_conv *auth_data;
-
-    auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
-
-    if (num_msg <= 0) return PAM_CONV_ERR;
-
-    reply = (struct pam_response *) calloc(num_msg,
-                                           sizeof(struct pam_response));
-    if (reply == NULL) return PAM_CONV_ERR;
-
-    for (i=0; i < num_msg; i++) {
-        switch( msgm[i]->msg_style ) {
-            case PAM_PROMPT_ECHO_OFF:
-                DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
-                reply[i].resp_retcode = 0;
-                reply[i].resp = calloc(auth_data->authtok_size + 1,
-                                       sizeof(char));
-                if (reply[i].resp == NULL) goto failed;
-                memcpy(reply[i].resp, auth_data->authtok, auth_data->authtok_size);
-
-                break;
-            default:
-                DEBUG(1, ("Conversation style %d not supported.\n",
-                           msgm[i]->msg_style));
-                goto failed;
-        }
-    }
-
-    *response = reply;
-    reply = NULL;
-
-    return PAM_SUCCESS;
-
-failed:
-    free(reply);
-    return PAM_CONV_ERR;
-}
+struct proxy_client_ctx {
+    struct be_req *be_req;
+    struct proxy_auth_ctx *auth_ctx;
+};
 
 static void proxy_pam_handler_cache_done(struct tevent_req *treq);
 static void proxy_reply(struct be_req *req, int dp_err,
                         int error, const char *errstr);
 
+static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
+                                           struct proxy_auth_ctx *ctx,
+                                           struct be_req *be_req);
+static void proxy_child_done(struct tevent_req *child_req);
 static void proxy_pam_handler(struct be_req *req) {
-    int ret;
-    int pam_status;
-    pam_handle_t *pamh=NULL;
-    struct authtok_conv *auth_data;
-    struct pam_conv conv;
     struct pam_data *pd;
-    struct proxy_auth_ctx *ctx;;
-    bool cache_auth_data = false;
+    struct proxy_auth_ctx *ctx;
+    struct tevent_req *child_req = NULL;
+    struct proxy_client_ctx *client_ctx;
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
@@ -158,139 +147,793 @@ static void proxy_pam_handler(struct be_req *req) {
             return;
     }
 
-    conv.conv=proxy_internal_conv;
-    auth_data = talloc_zero(req, struct authtok_conv);
-    conv.appdata_ptr=auth_data;
+    client_ctx = talloc(req, struct proxy_client_ctx);
+    if (client_ctx == NULL) {
+        proxy_reply(req, DP_ERR_FATAL, ENOMEM, NULL);
+        return;
+    }
+    client_ctx->auth_ctx = ctx;
+    client_ctx->be_req = req;
 
-    ret = pam_start(ctx->pam_target, pd->user, &conv, &pamh);
-    if (ret == PAM_SUCCESS) {
-        DEBUG(1, ("Pam transaction started.\n"));
-        ret = pam_set_item(pamh, PAM_TTY, pd->tty);
-        if (ret != PAM_SUCCESS) {
-            DEBUG(1, ("Setting PAM_TTY failed: %s.\n", pam_strerror(pamh, ret)));
-        }
-        ret = pam_set_item(pamh, PAM_RUSER, pd->ruser);
-        if (ret != PAM_SUCCESS) {
-            DEBUG(1, ("Setting PAM_RUSER failed: %s.\n", pam_strerror(pamh, ret)));
-        }
-        ret = pam_set_item(pamh, PAM_RHOST, pd->rhost);
-        if (ret != PAM_SUCCESS) {
-            DEBUG(1, ("Setting PAM_RHOST failed: %s.\n", pam_strerror(pamh, ret)));
-        }
-        switch (pd->cmd) {
-            case SSS_PAM_AUTHENTICATE:
-                auth_data->authtok_size = pd->authtok_size;
-                auth_data->authtok = pd->authtok;
-                pam_status = pam_authenticate(pamh, 0);
-                if ((pam_status == PAM_SUCCESS) &&
-                    (req->be_ctx->domain->cache_credentials)) {
-                    cache_auth_data = true;
-                }
-                break;
-            case SSS_PAM_SETCRED:
-                pam_status=pam_setcred(pamh, 0);
-                break;
-            case SSS_PAM_ACCT_MGMT:
-                pam_status=pam_acct_mgmt(pamh, 0);
-                break;
-            case SSS_PAM_OPEN_SESSION:
-                pam_status=pam_open_session(pamh, 0);
-                break;
-            case SSS_PAM_CLOSE_SESSION:
-                pam_status=pam_close_session(pamh, 0);
-                break;
-            case SSS_PAM_CHAUTHTOK:
-                if (pd->priv != 1) {
-                    auth_data->authtok_size = pd->authtok_size;
-                    auth_data->authtok = pd->authtok;
-                    pam_status = pam_authenticate(pamh, 0);
-                    if (pam_status != PAM_SUCCESS) break;
-                }
-                auth_data->authtok_size = pd->newauthtok_size;
-                auth_data->authtok = pd->newauthtok;
-                pam_status = pam_chauthtok(pamh, 0);
-                if ((pam_status == PAM_SUCCESS) &&
-                    (req->be_ctx->domain->cache_credentials)) {
-                    cache_auth_data = true;
-                }
-                break;
-            case SSS_PAM_CHAUTHTOK_PRELIM:
-                if (pd->priv != 1) {
-                    auth_data->authtok_size = pd->authtok_size;
-                    auth_data->authtok = pd->authtok;
-                    pam_status = pam_authenticate(pamh, 0);
-                } else {
-                    pam_status = PAM_SUCCESS;
-                }
-                break;
-            default:
-                DEBUG(1, ("unknown PAM call\n"));
-                pam_status=PAM_ABORT;
-        }
+    /* Queue the request and spawn a child if there
+     * is an available slot.
+     */
+    child_req = proxy_child_send(req, ctx, req);
+    if (child_req == NULL) {
+        /* Could not queue request
+         * Return an error
+         */
+        proxy_reply(req, DP_ERR_FATAL, EINVAL, "Could not queue request\n");
+        return;
+    }
+    tevent_req_set_callback(child_req, proxy_child_done, client_ctx);
+    return;
+}
 
-        DEBUG(4, ("Pam result: [%d][%s]\n", pam_status,
-                  pam_strerror(pamh, pam_status)));
+struct pc_init_ctx;
+struct proxy_child_ctx {
+    struct proxy_auth_ctx *auth_ctx;
+    struct be_req *be_req;
+    struct pam_data *pd;
 
-        if (pam_status == PAM_AUTHINFO_UNAVAIL) {
-            be_mark_offline(req->be_ctx);
-        }
+    uint32_t id;
+    pid_t pid;
+    bool running;
 
-        ret = pam_end(pamh, pam_status);
-        if (ret != PAM_SUCCESS) {
-            pamh=NULL;
-            DEBUG(1, ("Cannot terminate pam transaction.\n"));
-        }
+    struct sbus_connection *conn;
+    struct tevent_timer *timer;
 
-    } else {
-        DEBUG(1, ("Failed to initialize pam transaction.\n"));
-        pam_status = PAM_SYSTEM_ERR;
+    struct tevent_req *init_req;
+};
+
+static int proxy_child_destructor(TALLOC_CTX *ctx)
+{
+    struct proxy_child_ctx *child_ctx =
+            talloc_get_type(ctx, struct proxy_child_ctx);
+    hash_key_t key;
+
+    DEBUG(8, ("Removing proxy child id [%d]\n", child_ctx->id));
+    key.type = HASH_KEY_ULONG;
+    key.ul = child_ctx->id;
+    hash_delete(child_ctx->auth_ctx->request_table, &key);
+    return 0;
+}
+
+static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
+                                              struct proxy_child_ctx *child_ctx,
+                                              struct proxy_auth_ctx *auth_ctx);
+static void proxy_child_init_done(struct tevent_req *subreq);
+static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
+                                           struct proxy_auth_ctx *auth_ctx,
+                                           struct be_req *be_req)
+{
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct proxy_child_ctx *state;
+    int hret;
+    hash_key_t key;
+    hash_value_t value;
+    uint32_t first;
+
+    req = tevent_req_create(mem_ctx, &state, struct proxy_child_ctx);
+    if (req == NULL) {
+        DEBUG(1, ("Could not send PAM request to child\n"));
+        return NULL;
     }
 
-    pd->pam_status = pam_status;
+    state->be_req = be_req;
+    state->auth_ctx = auth_ctx;
+    state->pd = talloc_get_type(be_req->req_data, struct pam_data);
 
-    if (cache_auth_data) {
-        struct tevent_req *subreq;
-        char *password;
+    /* Find an available key */
+    key.type = HASH_KEY_ULONG;
+    key.ul = auth_ctx->next_id;
 
-        password = talloc_size(req, auth_data->authtok_size + 1);
+    first = auth_ctx->next_id;
+    while (auth_ctx->next_id == 0 ||
+            hash_has_key(auth_ctx->request_table, &key)) {
+        /* Handle overflow, zero is a reserved value
+         * Also handle the unlikely case where the next ID
+         * is still awaiting being run
+         */
+        auth_ctx->next_id++;
+        key.ul = auth_ctx->next_id;
+
+        if (auth_ctx->next_id == first) {
+            /* We've looped through all possible integers! */
+            DEBUG(0, ("Serious error: queue is too long!\n"));
+            talloc_zfree(req);
+            return NULL;
+        }
+    }
+
+    state->id = auth_ctx->next_id;
+    auth_ctx->next_id++;
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = req;
+    DEBUG(8, ("Queueing request [%d]\n", key.ul));
+    hret = hash_enter(auth_ctx->request_table,
+                      &key, &value);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(1, ("Could not add request to the queue\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    talloc_set_destructor((TALLOC_CTX *) state,
+                          proxy_child_destructor);
+
+    if (auth_ctx->running < auth_ctx->max_children) {
+        /* There's an available slot; start a child
+         * to handle the request
+         */
+
+        auth_ctx->running++;
+        subreq = proxy_child_init_send(auth_ctx, state, auth_ctx);
+        if (!subreq) {
+            DEBUG(1, ("Could not fork child process\n"));
+            auth_ctx->running--;
+            talloc_zfree(req);
+            return NULL;
+        }
+        tevent_req_set_callback(subreq, proxy_child_init_done, req);
+
+        state->running = true;
+    }
+
+    /* If there was no available slot, it will be queued
+     * until a slot is available
+     */
+    return req;
+}
+
+struct pc_init_ctx {
+    char *command;
+    pid_t pid;
+    struct tevent_timer *timeout;
+    struct tevent_signal *sige;
+    struct proxy_child_ctx *child_ctx;
+    struct sbus_connection *conn;
+};
+
+static int pc_init_destructor (TALLOC_CTX *ctx)
+{
+    struct pc_init_ctx *init_ctx =
+            talloc_get_type(ctx, struct pc_init_ctx);
+
+    /* If the init request has died, forcibly kill the child */
+    kill(init_ctx->pid, SIGKILL);
+    return 0;
+}
+
+static void pc_init_sig_handler(struct tevent_context *ev,
+                           struct tevent_signal *sige, int signum,
+                           int count, void *__siginfo, void *pvt);
+static void pc_init_timeout(struct tevent_context *ev,
+                            struct tevent_timer *te,
+                            struct timeval t, void *ptr);
+static struct tevent_req *proxy_child_init_send(TALLOC_CTX *mem_ctx,
+                                              struct proxy_child_ctx *child_ctx,
+                                              struct proxy_auth_ctx *auth_ctx)
+{
+    struct tevent_req *req;
+    struct pc_init_ctx *state;
+    char **proxy_child_args;
+    struct timeval tv;
+    errno_t ret;
+    pid_t pid;
+
+    req = tevent_req_create(mem_ctx, &state, struct pc_init_ctx);
+    if (req == NULL) {
+        DEBUG(1, ("Could not create tevent_req\n"));
+        return NULL;
+    }
+
+    state->child_ctx = child_ctx;
+
+    state->command = talloc_asprintf(req,
+            "%s/proxy_child -d %d%s%s --domain %s --id %d",
+            SSSD_LIBEXEC_PATH, debug_level,
+            (debug_timestamps ? "" : " --debug-timestamps=0"),
+            (debug_to_file ? " --debug-to-files" : ""),
+            auth_ctx->be->domain->name,
+            child_ctx->id);
+    if (state->command == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        return NULL;
+    }
+
+    DEBUG(7, ("Starting proxy child with args [%s]\n", state->command));
+
+    pid = fork();
+    if (pid < 0) {
+        ret = errno;
+        DEBUG(1, ("fork failed [%d][%s].\n", ret, strerror(ret)));
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    if (pid == 0) { /* child */
+        proxy_child_args = parse_args(state->command);
+        execvp(proxy_child_args[0], proxy_child_args);
+
+        ret = errno;
+        DEBUG(0, ("Could not start proxy child [%s]: [%d][%s].\n",
+                  state->command, ret, strerror(ret)));
+
+        _exit(1);
+    }
+
+    else { /* parent */
+        state->pid = pid;
+        /* Make sure to kill the child process if we abort */
+        talloc_set_destructor((TALLOC_CTX *)state, pc_init_destructor);
+
+        state->sige = tevent_add_signal(auth_ctx->be->ev, req,
+                                        SIGCHLD, SA_SIGINFO,
+                                        pc_init_sig_handler, req);
+        if (state->sige == NULL) {
+            DEBUG(1, ("tevent_add_signal failed.\n"));
+            talloc_zfree(req);
+            return NULL;
+        }
+
+        /* Save the init request to the child context.
+         * This is technically a layering violation,
+         * but it's the only sane way to be able to
+         * identify which client is which when it
+         * connects to the backend in
+         * client_registration()
+         */
+        child_ctx->init_req = req;
+
+        /* Wait six seconds for the child to connect
+         * This is because the connection handler will add
+         * its own five-second timeout, and we don't want to
+         * be faster here.
+         */
+        tv = tevent_timeval_current_ofs(6, 0);
+        state->timeout = tevent_add_timer(auth_ctx->be->ev, req,
+                                          tv, pc_init_timeout, req);
+
+        /* processing will continue once the connection is received
+         * in proxy_client_init()
+         */
+        return req;
+    }
+}
+
+static void pc_init_sig_handler(struct tevent_context *ev,
+                                struct tevent_signal *sige, int signum,
+                                int count, void *__siginfo, void *pvt)
+{
+    int ret;
+    int child_status;
+    struct tevent_req *req;
+    struct pc_init_ctx *init_ctx;
+
+    if (count <= 0) {
+        DEBUG(0, ("SIGCHLD handler called with invalid child count\n"));
+        return;
+    }
+
+    req = talloc_get_type(pvt, struct tevent_req);
+    init_ctx = tevent_req_data(req, struct pc_init_ctx);
+
+    DEBUG(7, ("Waiting for child [%d].\n", init_ctx->pid));
+
+    errno = 0;
+    ret = waitpid(init_ctx->pid, &child_status, WNOHANG);
+
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(1, ("waitpid failed [%d][%s].\n", ret, strerror(ret)));
+    } else if (ret == 0) {
+        DEBUG(1, ("waitpid did not find a child with changed status.\n"));
+    } else {
+        if (WIFEXITED(child_status)) {
+            DEBUG(4, ("child [%d] exited with status [%d].\n", ret,
+                      WEXITSTATUS(child_status)));
+            tevent_req_error(req, EIO);
+        } else if (WIFSIGNALED(child_status)) {
+            DEBUG(4, ("child [%d] was terminate by signal [%d].\n", ret,
+                      WTERMSIG(child_status)));
+            tevent_req_error(req, EIO);
+        } else {
+            if (WIFSTOPPED(child_status)) {
+                DEBUG(1, ("child [%d] was stopped by signal [%d].\n", ret,
+                          WSTOPSIG(child_status)));
+            }
+            if (WIFCONTINUED(child_status)) {
+                DEBUG(1, ("child [%d] was resumed by delivery of SIGCONT.\n",
+                          ret));
+            }
+            DEBUG(1, ("Child is still running, no new child is started.\n"));
+            return;
+        }
+    }
+}
+
+static void pc_init_timeout(struct tevent_context *ev,
+                            struct tevent_timer *te,
+                            struct timeval t, void *ptr)
+{
+    struct tevent_req *req;
+    struct pc_init_ctx *state;
+
+    DEBUG(2, ("Client timed out before Identification!\n"));
+
+    req = talloc_get_type(ptr, struct tevent_req);
+    state = tevent_req_data(req, struct pc_init_ctx);
+
+    tevent_req_error(req, ETIMEDOUT);
+}
+
+static errno_t proxy_child_init_recv(struct tevent_req *req,
+                                   pid_t *pid,
+                                   struct sbus_connection **conn)
+{
+    struct pc_init_ctx *state;
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    state = tevent_req_data(req, struct pc_init_ctx);
+
+    /* Unset the destructor since we initialized successfully.
+     * We don't want to kill the child now that it's properly
+     * set up.
+     */
+    talloc_set_destructor((TALLOC_CTX *)state, NULL);
+
+    *pid = state->pid;
+    *conn = state->conn;
+
+    return EOK;
+}
+
+struct proxy_child_sig_ctx {
+    struct proxy_auth_ctx *auth_ctx;
+    pid_t pid;
+};
+static void proxy_child_sig_handler(struct tevent_context *ev,
+                                    struct tevent_signal *sige, int signum,
+                                    int count, void *__siginfo, void *pvt);
+static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
+                                              struct proxy_auth_ctx *auth_ctx,
+                                              struct sbus_connection *conn,
+                                              struct pam_data *pd,
+                                              pid_t pid);
+static void proxy_pam_conv_done(struct tevent_req *subreq);
+static void proxy_child_init_done(struct tevent_req *subreq) {
+    int ret;
+    struct tevent_signal *sige;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct proxy_child_ctx *child_ctx =
+            tevent_req_data(req, struct proxy_child_ctx);
+    struct proxy_child_sig_ctx *sig_ctx;
+
+    ret = proxy_child_init_recv(subreq, &child_ctx->pid, &child_ctx->conn);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(6, ("Proxy child init failed [%d]\n", ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* An initialized child is available, awaiting the PAM command */
+    subreq = proxy_pam_conv_send(req, child_ctx->auth_ctx,
+                                 child_ctx->conn, child_ctx->pd,
+                                 child_ctx->pid);
+    if (!subreq) {
+        DEBUG(1,("Could not start PAM conversation\n"));
+        tevent_req_error(req, EIO);
+        return;
+    }
+    tevent_req_set_callback(subreq, proxy_pam_conv_done, req);
+
+    /* Add a signal handler for the child under the auth_ctx,
+     * that way if the child exits after completion of the
+     * request, it will still be handled.
+     */
+    sig_ctx = talloc_zero(child_ctx->auth_ctx, struct proxy_child_sig_ctx);
+    if(sig_ctx == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    sig_ctx->auth_ctx = child_ctx->auth_ctx;
+    sig_ctx->pid = child_ctx->pid;
+
+    sige = tevent_add_signal(child_ctx->auth_ctx->be->ev,
+                             child_ctx->auth_ctx,
+                             SIGCHLD, SA_SIGINFO,
+                             proxy_child_sig_handler,
+                             sig_ctx);
+    if (sige == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    /* Steal the signal context onto the signal event
+     * so that when the signal is freed, the context
+     * will go with it.
+     */
+    talloc_steal(sige, sig_ctx);
+}
+
+static void remove_sige(struct tevent_context *ev,
+                        struct tevent_immediate *imm,
+                        void *pvt);
+static void run_proxy_child_queue(struct tevent_context *ev,
+                                  struct tevent_immediate *imm,
+                                  void *pvt);
+static void proxy_child_sig_handler(struct tevent_context *ev,
+                                    struct tevent_signal *sige, int signum,
+                                    int count, void *__siginfo, void *pvt)
+{
+    int ret;
+    int child_status;
+    struct proxy_child_sig_ctx *sig_ctx;
+    struct tevent_immediate *imm;
+    struct tevent_immediate *imm2;
+
+    if (count <= 0) {
+        DEBUG(0, ("SIGCHLD handler called with invalid child count\n"));
+        return;
+    }
+
+    sig_ctx = talloc_get_type(pvt, struct proxy_child_sig_ctx);
+    DEBUG(7, ("Waiting for child [%d].\n", sig_ctx->pid));
+
+    errno = 0;
+    ret = waitpid(sig_ctx->pid, &child_status, WNOHANG);
+
+    if (ret == -1) {
+        ret = errno;
+        DEBUG(1, ("waitpid failed [%d][%s].\n", ret, strerror(ret)));
+    } else if (ret == 0) {
+        DEBUG(1, ("waitpid did not found a child with changed status.\n"));
+    } else {
+        if (WIFEXITED(child_status)) {
+            DEBUG(4, ("child [%d] exited with status [%d].\n", ret,
+                      WEXITSTATUS(child_status)));
+        } else if (WIFSIGNALED(child_status)) {
+            DEBUG(4, ("child [%d] was terminated by signal [%d].\n", ret,
+                      WTERMSIG(child_status)));
+        } else {
+            if (WIFSTOPPED(child_status)) {
+                DEBUG(1, ("child [%d] was stopped by signal [%d].\n", ret,
+                          WSTOPSIG(child_status)));
+            }
+            if (WIFCONTINUED(child_status)) {
+                DEBUG(1, ("child [%d] was resumed by delivery of SIGCONT.\n",
+                          ret));
+            }
+            DEBUG(1, ("Child is still running, no new child is started.\n"));
+            return;
+        }
+
+        imm = tevent_create_immediate(ev);
+        if (imm == NULL) {
+            DEBUG(1, ("tevent_create_immediate failed.\n"));
+            return;
+        }
+
+        tevent_schedule_immediate(imm, ev, run_proxy_child_queue,
+                                  sig_ctx->auth_ctx);
+
+        /* schedule another immediate timer to delete the sigchld handler */
+        imm2 = tevent_create_immediate(ev);
+        if (imm == NULL) {
+            DEBUG(1, ("tevent_create_immediate failed.\n"));
+            return;
+        }
+
+        tevent_schedule_immediate(imm2, ev, remove_sige, sige);
+    }
+
+    return;
+}
+
+static void remove_sige(struct tevent_context *ev,
+                        struct tevent_immediate *imm,
+                        void *pvt)
+{
+    talloc_free(pvt);
+}
+
+struct proxy_conv_ctx {
+    struct proxy_auth_ctx *auth_ctx;
+    struct sbus_connection *conn;
+    struct pam_data *pd;
+    pid_t pid;
+};
+static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr);
+static struct tevent_req *proxy_pam_conv_send(TALLOC_CTX *mem_ctx,
+                                              struct proxy_auth_ctx *auth_ctx,
+                                              struct sbus_connection *conn,
+                                              struct pam_data *pd,
+                                              pid_t pid)
+{
+    errno_t ret;
+    bool dp_ret;
+    DBusMessage *msg;
+    struct tevent_req *req;
+    struct proxy_conv_ctx *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct proxy_conv_ctx);
+    if (req == NULL) {
+        return NULL;
+    }
+
+    state->auth_ctx = auth_ctx;
+    state->conn = conn;
+    state->pd = pd;
+    state->pid = pid;
+
+    msg = dbus_message_new_method_call(NULL,
+                                       DP_PATH,
+                                       DP_INTERFACE,
+                                       DP_METHOD_PAMHANDLER);
+    if (msg == NULL) {
+        DEBUG(1, ("dbus_message_new_method_call failed.\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    DEBUG(4, ("Sending request with the following data:\n"));
+    DEBUG_PAM_DATA(4, pd);
+
+    dp_ret = dp_pack_pam_request(msg, pd);
+    if (!dp_ret) {
+        DEBUG(1, ("Failed to build message\n"));
+        dbus_message_unref(msg);
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    ret = sbus_conn_send(state->conn, msg, state->auth_ctx->timeout_ms,
+                         proxy_pam_conv_reply, req, NULL);
+    if (ret != EOK) {
+        dbus_message_unref(msg);
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    dbus_message_unref(msg);
+    return req;
+}
+
+static void proxy_pam_conv_reply(DBusPendingCall *pending, void *ptr)
+{
+    struct tevent_req *req;
+    struct proxy_conv_ctx *state;
+    DBusError dbus_error;
+    DBusMessage *reply;
+    int type;
+    int ret;
+
+    DEBUG(8, ("Handling pam conversation reply\n"));
+
+    req = talloc_get_type(ptr, struct tevent_req);
+    state = tevent_req_data(req, struct proxy_conv_ctx);
+
+    dbus_error_init(&dbus_error);
+
+    reply = dbus_pending_call_steal_reply(pending);
+    dbus_pending_call_unref(pending);
+    if (reply == NULL) {
+        DEBUG(0, ("Severe error. A reply callback was called but no reply was"
+                  "received and no timeout occurred\n"));
+        state->pd->pam_status = PAM_SYSTEM_ERR;
+        tevent_req_error(req, EIO);
+    }
+
+    type = dbus_message_get_type(reply);
+    switch (type) {
+        case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+            ret = dp_unpack_pam_response(reply, state->pd, &dbus_error);
+            if (!ret) {
+                DEBUG(0, ("Failed to parse reply.\n"));
+                state->pd->pam_status = PAM_SYSTEM_ERR;
+                dbus_message_unref(reply);
+                tevent_req_error(req, EIO);
+                return;
+            }
+            DEBUG(4, ("received: [%d][%s]\n",
+                      state->pd->pam_status,
+                      state->pd->domain));
+            break;
+        case DBUS_MESSAGE_TYPE_ERROR:
+            DEBUG(0, ("Reply error [%s].\n",
+                    dbus_message_get_error_name(reply)));
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+            break;
+        default:
+            DEBUG(0, ("Default... what now?.\n"));
+            state->pd->pam_status = PAM_SYSTEM_ERR;
+    }
+    dbus_message_unref(reply);
+
+    /* Kill the child */
+    kill(state->pid, SIGKILL);
+
+    /* Conversation is finished */
+    tevent_req_done(req);
+}
+
+static errno_t proxy_pam_conv_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
+
+static void proxy_pam_conv_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req;
+    int ret;
+
+    req = tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = proxy_pam_conv_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(6, ("Proxy PAM conversation failed [%d]\n", ret));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+static int proxy_child_recv(struct tevent_req *req,
+                          TALLOC_CTX *mem_ctx,
+                          struct pam_data **pd)
+{
+    struct proxy_child_ctx *ctx;
+
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    ctx = tevent_req_data(req, struct proxy_child_ctx);
+    *pd = talloc_steal(mem_ctx, ctx->pd);
+
+    return EOK;
+}
+
+static void proxy_child_done(struct tevent_req *req)
+{
+    struct proxy_client_ctx *client_ctx =
+            tevent_req_callback_data(req, struct proxy_client_ctx);
+    struct pam_data *pd;
+    char *password;
+    int ret;
+    struct tevent_immediate *imm;
+
+    ret = proxy_child_recv(req, client_ctx, &pd);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        /* Pam child failed */
+        client_ctx->auth_ctx->running--;
+        proxy_reply(client_ctx->be_req, DP_ERR_FATAL, ret,
+                    "PAM child failed");
+
+        /* Start the next auth in the queue, if any */
+        imm = tevent_create_immediate(client_ctx->be_req->be_ctx->ev);
+        if (imm == NULL) {
+            DEBUG(1, ("tevent_create_immediate failed.\n"));
+            return;
+        }
+
+        tevent_schedule_immediate(imm,
+                                  client_ctx->be_req->be_ctx->ev,
+                                  run_proxy_child_queue,
+                                  client_ctx->auth_ctx);
+        return;
+    }
+
+    /* Check if we need to save the cached credentials */
+    if ((pd->cmd == SSS_PAM_AUTHENTICATE || pd->cmd == SSS_PAM_CHAUTHTOK) &&
+            pd->pam_status == PAM_SUCCESS &&
+            client_ctx->be_req->be_ctx->domain->cache_credentials) {
+        password = talloc_strndup(client_ctx->be_req,
+                                  (char *) pd->authtok,
+                                  pd->authtok_size);
         if (!password) {
             /* password caching failures are not fatal errors */
-            return proxy_reply(req, DP_ERR_OK, EOK, NULL);
+            DEBUG(2, ("Failed to cache password\n"));
+            goto done;
         }
-        memcpy(password, auth_data->authtok, auth_data->authtok_size);
-        password[auth_data->authtok_size] = '\0';
         talloc_set_destructor((TALLOC_CTX *)password, password_destructor);
 
-        subreq = sysdb_cache_password_send(req, req->be_ctx->ev,
-                                           req->be_ctx->sysdb, NULL,
-                                           req->be_ctx->domain,
-                                           pd->user, password);
-        if (!subreq) {
+        DEBUG(6, ("Caching the password\n"));
+        req = sysdb_cache_password_send(client_ctx,
+                                        client_ctx->be_req->be_ctx->ev,
+                                        client_ctx->be_req->be_ctx->sysdb,
+                                        NULL,
+                                        client_ctx->be_req->be_ctx->domain,
+                                        pd->user, password);
+        if (!req) {
             /* password caching failures are not fatal errors */
-            return proxy_reply(req, DP_ERR_OK, EOK, NULL);
+            DEBUG(2, ("Failed to cache password\n"));
+            goto done;
         }
-        tevent_req_set_callback(subreq, proxy_pam_handler_cache_done, req);
+        tevent_req_set_callback(req, proxy_pam_handler_cache_done,
+                                client_ctx->be_req);
+        return;
     }
 
-    proxy_reply(req, DP_ERR_OK, EOK, NULL);
+done:
+    proxy_reply(client_ctx->be_req, DP_ERR_OK, EOK, NULL);
+}
+
+static void run_proxy_child_queue(struct tevent_context *ev,
+                                  struct tevent_immediate *imm,
+                                  void *pvt)
+{
+    struct proxy_auth_ctx *auth_ctx;
+    struct hash_iter_context_t *iter;
+    struct hash_entry_t *entry;
+    struct tevent_req *req;
+    struct tevent_req *subreq;
+    struct proxy_child_ctx *state;
+
+    auth_ctx = talloc_get_type(pvt, struct proxy_auth_ctx);
+
+    /* Launch next queued request */
+    iter = new_hash_iter_context(auth_ctx->request_table);
+    while ((entry = iter->next(iter)) != NULL) {
+        req = talloc_get_type(entry->value.ptr, struct tevent_req);
+        state = tevent_req_data(req, struct proxy_child_ctx);
+        if (!state->running) {
+            break;
+        }
+    }
+
+    if (!entry) {
+        /* Nothing pending on the queue */
+        return;
+    }
+
+    if (auth_ctx->running < auth_ctx->max_children) {
+        /* There's an available slot; start a child
+         * to handle the request
+         */
+        auth_ctx->running++;
+        subreq = proxy_child_init_send(auth_ctx, state, auth_ctx);
+        if (!subreq) {
+            DEBUG(1, ("Could not fork child process\n"));
+            auth_ctx->running--;
+            talloc_zfree(req);
+            return;
+        }
+        tevent_req_set_callback(subreq, proxy_child_init_done, req);
+
+        state->running = true;
+    }
 }
 
 static void proxy_pam_handler_cache_done(struct tevent_req *subreq)
 {
-    struct be_req *req = tevent_req_callback_data(subreq, struct be_req);
+    struct be_req *be_req = tevent_req_callback_data(subreq, struct be_req);
     int ret;
 
     /* password caching failures are not fatal errors */
     ret = sysdb_cache_password_recv(subreq);
     talloc_zfree(subreq);
 
-    /* so we just log it any return */
+    /* so we just log it and return */
     if (ret) {
         DEBUG(2, ("Failed to cache password (%d)[%s]!?\n",
                   ret, strerror(ret)));
     }
 
-    return proxy_reply(req, DP_ERR_OK, EOK, NULL);
+    proxy_reply(be_req, DP_ERR_OK, EOK, NULL);
+
+    return;
 }
 
 static void proxy_reply(struct be_req *req, int dp_err,
@@ -2480,17 +3123,203 @@ done:
     return ret;
 }
 
+struct proxy_client {
+    struct proxy_auth_ctx *proxy_auth_ctx;
+    struct sbus_connection *conn;
+    struct tevent_timer *timeout;
+    bool initialized;
+};
+
+static void init_timeout(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval t, void *ptr);
+static int proxy_client_init(struct sbus_connection *conn, void *data)
+{
+    struct proxy_auth_ctx *proxy_auth_ctx;
+    struct proxy_client *proxy_cli;
+    struct timeval tv;
+
+    proxy_auth_ctx = talloc_get_type(data, struct proxy_auth_ctx);
+
+    /* hang off this memory to the connection so that when the connection
+     * is freed we can potentially call a destructor */
+
+    proxy_cli = talloc_zero(conn, struct proxy_client);
+    if (!proxy_cli) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_zfree(conn);
+        return ENOMEM;
+    }
+    proxy_cli->proxy_auth_ctx = proxy_auth_ctx;
+    proxy_cli->conn = conn;
+    proxy_cli->initialized = false;
+
+    /* 5 seconds should be plenty */
+    tv = tevent_timeval_current_ofs(5, 0);
+
+    proxy_cli->timeout = tevent_add_timer(proxy_auth_ctx->be->ev, proxy_cli,
+                                          tv, init_timeout, proxy_cli);
+    if (!proxy_cli->timeout) {
+        DEBUG(0,("Out of memory?!\n"));
+        talloc_zfree(conn);
+        return ENOMEM;
+    }
+    DEBUG(4, ("Set-up proxy client ID timeout [%p]\n", proxy_cli->timeout));
+
+    /* Attach the client context to the connection context, so that it is
+     * always available when we need to manage the connection. */
+    sbus_conn_set_private_data(conn, proxy_cli);
+
+    return EOK;
+}
+
+static void init_timeout(struct tevent_context *ev,
+                         struct tevent_timer *te,
+                         struct timeval t, void *ptr)
+{
+    struct proxy_client *proxy_cli;
+
+    DEBUG(2, ("Client timed out before Identification [%p]!\n", te));
+
+    proxy_cli = talloc_get_type(ptr, struct proxy_client);
+
+    sbus_disconnect(proxy_cli->conn);
+    talloc_zfree(proxy_cli);
+
+    /* If we time out here, we will also time out to
+     * pc_init_timeout(), so we'll finish the request
+     * there.
+     */
+}
+
+static int client_registration(DBusMessage *message,
+                               struct sbus_connection *conn)
+{
+    dbus_uint16_t version = DATA_PROVIDER_VERSION;
+    struct proxy_client *proxy_cli;
+    DBusMessage *reply;
+    DBusError dbus_error;
+    dbus_uint16_t cli_ver;
+    uint32_t cli_id;
+    dbus_bool_t dbret;
+    void *data;
+    int hret;
+    hash_key_t key;
+    hash_value_t value;
+    struct tevent_req *req;
+    struct proxy_child_ctx *child_ctx;
+    struct pc_init_ctx *init_ctx;
+
+    data = sbus_conn_get_private_data(conn);
+    proxy_cli = talloc_get_type(data, struct proxy_client);
+    if (!proxy_cli) {
+        DEBUG(0, ("Connection holds no valid init data\n"));
+        return EINVAL;
+    }
+
+    /* First thing, cancel the timeout */
+    DEBUG(4, ("Cancel proxy client ID timeout [%p]\n", proxy_cli->timeout));
+    talloc_zfree(proxy_cli->timeout);
+
+    dbus_error_init(&dbus_error);
+
+    dbret = dbus_message_get_args(message, &dbus_error,
+                                  DBUS_TYPE_UINT16, &cli_ver,
+                                  DBUS_TYPE_UINT32, &cli_id,
+                                  DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(1, ("Failed to parse message, killing connection\n"));
+        if (dbus_error_is_set(&dbus_error)) dbus_error_free(&dbus_error);
+        sbus_disconnect(conn);
+        /* FIXME: should we just talloc_zfree(conn) ? */
+        return EIO;
+    }
+
+    DEBUG(4, ("Proxy client [%ld] connected\n", cli_id));
+
+    /* Check the hash table */
+    key.type = HASH_KEY_ULONG;
+    key.ul = cli_id;
+    if (!hash_has_key(proxy_cli->proxy_auth_ctx->request_table, &key)) {
+        DEBUG(1, ("Unknown child ID. Killing the connection\n"));
+        sbus_disconnect(proxy_cli->conn);
+        return EIO;
+    }
+
+    /* reply that all is ok */
+    reply = dbus_message_new_method_return(message);
+    if (!reply) {
+        DEBUG(0, ("Dbus Out of memory!\n"));
+        return ENOMEM;
+    }
+
+    dbret = dbus_message_append_args(reply,
+                                     DBUS_TYPE_UINT16, &version,
+                                     DBUS_TYPE_INVALID);
+    if (!dbret) {
+        DEBUG(0, ("Failed to build dbus reply\n"));
+        dbus_message_unref(reply);
+        sbus_disconnect(conn);
+        return EIO;
+    }
+
+    /* send reply back */
+    sbus_conn_send_reply(conn, reply);
+    dbus_message_unref(reply);
+
+    hret = hash_lookup(proxy_cli->proxy_auth_ctx->request_table, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(1, ("Hash error [%d][%s]\n", hret, hash_error_string(hret)));
+        sbus_disconnect(conn);
+    }
+
+    /* Signal that the child is up and ready to receive the request */
+    req = talloc_get_type(value.ptr, struct tevent_req);
+    child_ctx = tevent_req_data(req, struct proxy_child_ctx);
+
+    if (!child_ctx->running) {
+        /* This should hopefully be impossible, but protect
+         * against it anyway. If we're not marked running, then
+         * the init_req will be NULL below and things will
+         * break.
+         */
+        DEBUG(1, ("Client connection from a request "
+                  "that's not marked as running\n"));
+        return EIO;
+    }
+
+    init_ctx = tevent_req_data(child_ctx->init_req, struct pc_init_ctx);
+    init_ctx->conn = conn;
+    tevent_req_done(child_ctx->init_req);
+    child_ctx->init_req = NULL;
+
+    return EOK;
+}
+
 int sssm_proxy_auth_init(struct be_ctx *bectx,
                          struct bet_ops **ops, void **pvt_data)
 {
     struct proxy_auth_ctx *ctx;
     int ret;
+    int hret;
+    char *sbus_address;
+
+    /* If we're already set up, just return that */
+    if(bectx->bet_info[BET_AUTH].mod_name &&
+       strcmp("proxy", bectx->bet_info[BET_AUTH].mod_name) == 0) {
+        DEBUG(8, ("Re-using proxy_auth_ctx for this provider\n"));
+        *ops = bectx->bet_info[BET_AUTH].bet_ops;
+        *pvt_data = bectx->bet_info[BET_AUTH].pvt_bet_data;
+        return EOK;
+    }
 
     ctx = talloc(bectx, struct proxy_auth_ctx);
     if (!ctx) {
         return ENOMEM;
     }
     ctx->be = bectx;
+    ctx->timeout_ms = SSS_CLI_SOCKET_TIMEOUT/4;
+    ctx->next_id = 1;
 
     ret = confdb_get_string(bectx->cdb, ctx, bectx->conf_path,
                             CONFDB_PROXY_PAM_TARGET, NULL,
@@ -2499,6 +3328,33 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
     if (!ctx->pam_target) {
         DEBUG(1, ("Missing option proxy_pam_target.\n"));
         ret = EINVAL;
+        goto done;
+    }
+
+    sbus_address = talloc_asprintf(ctx, "unix:path=%s/%s_%s", PIPE_PATH,
+                                   PROXY_CHILD_PIPE, bectx->domain->name);
+    if (sbus_address == NULL) {
+        DEBUG(1, ("talloc_asprintf failed.\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sbus_new_server(ctx, bectx->ev, sbus_address, &proxy_interface,
+                          &ctx->sbus_srv, proxy_client_init, ctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not set up sbus server.\n"));
+        goto done;
+    }
+
+    /* Set up request hash table */
+    /* FIXME: get max_children from configuration file */
+    ctx->max_children = 10;
+
+    hret = hash_create(ctx->max_children * 2, &ctx->request_table,
+                       NULL, NULL);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(0, ("Could not initialize request table\n"));
+        ret = EIO;
         goto done;
     }
 

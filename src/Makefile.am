@@ -62,7 +62,8 @@ sssdlibexec_PROGRAMS = \
     krb5_child \
     ldap_child \
     $(sssd_pk) \
-    $(sssd_info)
+    $(sssd_info) \
+    proxy_child
 
 dist_sssdlibexec_SCRIPTS = \
     config/upgrade_config.py
@@ -356,6 +357,7 @@ dist_noinst_HEADERS = \
     providers/ipa/ipa_timerules.h \
     providers/ipa/ipa_auth.h \
     providers/ipa/ipa_dyndns.h \
+    providers/proxy/proxy.h \
     tools/tools_util.h \
     tools/sss_sync_ops.h \
     resolv/async_resolv.h \
@@ -753,7 +755,7 @@ libsss_ldap_la_LDFLAGS = \
     -module
 
 libsss_proxy_la_SOURCES = \
-    providers/proxy.c
+    providers/proxy/proxy.c
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
@@ -869,6 +871,16 @@ ldap_child_LDADD = \
     $(POPT_LIBS) \
     $(OPENLDAP_LIBS) \
     $(KRB5_LIBS)
+
+proxy_child_SOURCES = \
+    $(SSSD_UTIL_OBJ) \
+    providers/proxy/proxy_child.c
+proxy_child_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(POPT_CFLAGS)
+proxy_child_LDADD = \
+    $(PAM_LIBS) \
+    $(SSSD_LIBS)
 
 memberof_la_SOURCES = \
     ldb_modules/memberof.c
