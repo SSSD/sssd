@@ -481,7 +481,7 @@ static void be_pam_handler_callback(struct be_req *req,
 
     DEBUG(4, ("Backend returned: (%d, %d, %s) [%s]\n",
               dp_err_type, errnum, errstr?errstr:"<NULL>",
-              dp_err_to_string(req, dp_err_type, 0)));
+              dp_err_to_string(req, dp_err_type, errnum)));
 
     pd = talloc_get_type(req->req_data, struct pam_data);
 
