@@ -7,15 +7,15 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-05-18 12:18-0400\n"
-"PO-Revision-Date: 2010-05-08 22:42+0300\n"
+"PO-Revision-Date: 2010-05-23 11:49+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 1.0\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
-"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Lokalize 1.1\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -304,9 +304,8 @@ msgid "Follow LDAP referrals"
 msgstr "Переходити за посиланнями LDAP"
 
 #: config/SSSDConfig.py:128
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Розпізнавання Kerberos для з’єднання LDAP"
+msgstr "Строк дії TGT для з’єднання LDAP"
 
 #: config/SSSDConfig.py:131
 msgid "Length of time to wait for a search request"
@@ -386,7 +385,7 @@ msgstr "Правила оцінки завершення строку дії п�
 
 #: config/SSSDConfig.py:154
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "Фільтр LDAP для визначення прав доступу"
 
 #: config/SSSDConfig.py:157
 msgid "Comma separated list of allowed users"
