@@ -112,9 +112,30 @@ failed:
     return ENOMEM;
 }
 
+static const char *pamcmd2str(int cmd) {
+    switch (cmd) {
+    case SSS_PAM_AUTHENTICATE:
+        return "PAM_AUTHENTICATE";
+    case SSS_PAM_SETCRED:
+        return "PAM_SETCRED";
+    case SSS_PAM_ACCT_MGMT:
+        return "PAM_ACCT_MGMT";
+    case SSS_PAM_OPEN_SESSION:
+        return "PAM_OPEN_SESSION";
+    case SSS_PAM_CLOSE_SESSION:
+        return "PAM_CLOSE_SESSION";
+    case SSS_PAM_CHAUTHTOK:
+        return "PAM_CHAUTHTOK";
+    case SSS_PAM_CHAUTHTOK_PRELIM:
+        return "PAM_CHAUTHTOK_PRELIM";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 void pam_print_data(int l, struct pam_data *pd)
 {
-    DEBUG(l, ("command: %d\n", pd->cmd));
+    DEBUG(l, ("command: %s\n", pamcmd2str(pd->cmd)));
     DEBUG(l, ("domain: %s\n", pd->domain));
     DEBUG(l, ("user: %s\n", pd->user));
     DEBUG(l, ("service: %s\n", pd->service));
