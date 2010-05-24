@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: ru\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-18 12:18-0400\n"
+"POT-Creation-Date: 2010-05-24 14:51-0400\n"
 "PO-Revision-Date: 2010-04-07 21:39+0300\n"
 "Last-Translator: Dmitry Drozdov <dmi3652@gmail.com>\n"
 "Language-Team: Russian <fedora-trans-ru@redhat.com>\n"
@@ -408,23 +408,23 @@ msgstr "Имя используемой библиотеки NSS"
 msgid "PAM stack to use"
 msgstr "Используемый стек PAM"
 
-#: monitor/monitor.c:2189
+#: monitor/monitor.c:2089
 msgid "Become a daemon (default)"
 msgstr "Запускаться в качестве службы (по умолчанию)"
 
-#: monitor/monitor.c:2191
+#: monitor/monitor.c:2091
 msgid "Run interactive (not a daemon)"
 msgstr "Запускаться интерактивно (не службой)"
 
-#: monitor/monitor.c:2193
+#: monitor/monitor.c:2093
 msgid "Specify a non-default config file"
 msgstr "Указать файл конфигурации"
 
-#: monitor/monitor.c:2219
+#: monitor/monitor.c:2119
 msgid "sssd must be run as root\n"
 msgstr "sssd должен выполняться от имени root\n"
 
-#: monitor/monitor.c:2254
+#: monitor/monitor.c:2154
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
@@ -433,7 +433,7 @@ msgstr ""
 "конфликтовать с SSSD, поэтому рекомендуется не запускать nscd одновременно с "
 "SSSD\n"
 
-#: monitor/monitor.c:2264
+#: monitor/monitor.c:2164
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -442,7 +442,7 @@ msgstr ""
 "Не удалось прочитать файл конфигурации %s, убедитесь, что права доступа "
 "файла 0600 и владелец - root.root\n"
 
-#: monitor/monitor.c:2269
+#: monitor/monitor.c:2169
 msgid "Cannot load configuration database\n"
 msgstr ""
 
@@ -460,7 +460,7 @@ msgstr "Добавить отладочные отметки времени"
 msgid "An open file descriptor for the debug logs"
 msgstr "Открытый дескриптор файла для журналов отладки"
 
-#: providers/data_provider_be.c:1158
+#: providers/data_provider_be.c:1153
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен поставщика информации (обязательный)"
 

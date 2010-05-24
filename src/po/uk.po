@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-18 12:18-0400\n"
+"POT-Creation-Date: 2010-05-24 14:51-0400\n"
 "PO-Revision-Date: 2010-05-23 11:49+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
@@ -14,8 +14,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Lokalize 1.1\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -411,23 +411,23 @@ msgstr "Назва бібліотеки NSS, яку слід використо�
 msgid "PAM stack to use"
 msgstr "Стек PAM, який слід використовувати"
 
-#: monitor/monitor.c:2189
+#: monitor/monitor.c:2089
 msgid "Become a daemon (default)"
 msgstr "Запуститися фонову службу (типова поведінка)"
 
-#: monitor/monitor.c:2191
+#: monitor/monitor.c:2091
 msgid "Run interactive (not a daemon)"
 msgstr "Запустити у інтерактивному режимі (без фонової служби)"
 
-#: monitor/monitor.c:2193
+#: monitor/monitor.c:2093
 msgid "Specify a non-default config file"
 msgstr "Вказати нетиповий файл налаштувань"
 
-#: monitor/monitor.c:2219
+#: monitor/monitor.c:2119
 msgid "sssd must be run as root\n"
 msgstr "sssd слід запускати від імені користувача root\n"
 
-#: monitor/monitor.c:2254
+#: monitor/monitor.c:2154
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
@@ -435,7 +435,7 @@ msgstr ""
 "Було виявлено сокет nscd. Можливості з кешування nscd можуть конфліктувати з "
 "SSSD. Не рекомендуємо вам користуватися nscd паралельно з SSSD\n"
 
-#: monitor/monitor.c:2264
+#: monitor/monitor.c:2164
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -445,7 +445,7 @@ msgstr ""
 "встановлено для цього файла права доступу 0600 і чи є парою власник-група "
 "файла root.root\n"
 
-#: monitor/monitor.c:2269
+#: monitor/monitor.c:2169
 msgid "Cannot load configuration database\n"
 msgstr "Не вдалося завантажити базу даних налаштувань\n"
 
@@ -463,7 +463,7 @@ msgstr "Додавати діагностичні часові позначки"
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: providers/data_provider_be.c:1158
+#: providers/data_provider_be.c:1153
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 

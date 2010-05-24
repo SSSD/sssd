@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-18 12:18-0400\n"
+"POT-Creation-Date: 2010-05-24 14:51-0400\n"
 "PO-Revision-Date: 2010-03-15 11:40-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
@@ -414,23 +414,23 @@ msgstr "Nombre de la biblioteca NSS a usar"
 msgid "PAM stack to use"
 msgstr "Pila PAM a usar"
 
-#: monitor/monitor.c:2189
+#: monitor/monitor.c:2089
 msgid "Become a daemon (default)"
 msgstr "Convertirse en demonio (predeterminado)"
 
-#: monitor/monitor.c:2191
+#: monitor/monitor.c:2091
 msgid "Run interactive (not a daemon)"
 msgstr "Ejecutarse en forma interactiva (no un demonio)"
 
-#: monitor/monitor.c:2193
+#: monitor/monitor.c:2093
 msgid "Specify a non-default config file"
 msgstr "Indicar un archivo de configuración diferente al predeterminado"
 
-#: monitor/monitor.c:2219
+#: monitor/monitor.c:2119
 msgid "sssd must be run as root\n"
 msgstr "sssd debe ejecutarse como root\n"
 
-#: monitor/monitor.c:2254
+#: monitor/monitor.c:2154
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
@@ -439,7 +439,7 @@ msgstr ""
 "nscd pueden entrar en conflicto con SSSD, se recomienda no ejecutar nscd en "
 "forma paralalea con SSSD\n"
 
-#: monitor/monitor.c:2264
+#: monitor/monitor.c:2164
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
@@ -448,7 +448,7 @@ msgstr ""
 "No es posible leer el archivo de configuración %s, por favor verifique que "
 "los permisos sean 0600, y que su deueño sea root.root\n"
 
-#: monitor/monitor.c:2269
+#: monitor/monitor.c:2169
 msgid "Cannot load configuration database\n"
 msgstr ""
 
@@ -466,7 +466,7 @@ msgstr "Agregar marcas de tiempo de depuración"
 msgid "An open file descriptor for the debug logs"
 msgstr "Un arhivo abierto de descriptor para los registros de depuración"
 
-#: providers/data_provider_be.c:1158
+#: providers/data_provider_be.c:1153
 msgid "Domain of the information provider (mandatory)"
 msgstr "Dominio del proveedor de información (obligatorio)"
 
