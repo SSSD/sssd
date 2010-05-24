@@ -281,10 +281,12 @@ static struct tevent_req *proxy_child_send(TALLOC_CTX *mem_ctx,
 
         state->running = true;
     }
-
-    /* If there was no available slot, it will be queued
-     * until a slot is available
-     */
+    else {
+        /* If there was no available slot, it will be queued
+         * until a slot is available
+         */
+        DEBUG(8, ("All available child slots are full, queuing request\n"));
+    }
     return req;
 }
 
@@ -3313,7 +3315,7 @@ int sssm_proxy_auth_init(struct be_ctx *bectx,
         return EOK;
     }
 
-    ctx = talloc(bectx, struct proxy_auth_ctx);
+    ctx = talloc_zero(bectx, struct proxy_auth_ctx);
     if (!ctx) {
         return ENOMEM;
     }
