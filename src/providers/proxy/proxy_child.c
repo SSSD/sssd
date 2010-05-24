@@ -79,6 +79,11 @@ struct pc_ctx {
 struct authtok_conv {
     uint32_t authtok_size;
     uint8_t *authtok;
+
+    uint32_t newauthtok_size;
+    uint8_t *newauthtok;
+
+    bool sent_old;
 };
 
 static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
@@ -125,6 +130,63 @@ failed:
     return PAM_CONV_ERR;
 }
 
+static int proxy_chauthtok_conv(int num_msg, const struct pam_message **msgm,
+                                struct pam_response **response,
+                                void *appdata_ptr) {
+    int i;
+    struct pam_response *reply;
+    struct authtok_conv *auth_data;
+
+    auth_data = talloc_get_type(appdata_ptr, struct authtok_conv);
+
+    if (num_msg <= 0) return PAM_CONV_ERR;
+
+    reply = (struct pam_response *) calloc(num_msg,
+                                           sizeof(struct pam_response));
+    if (reply == NULL) return PAM_CONV_ERR;
+
+    for (i=0; i < num_msg; i++) {
+        switch( msgm[i]->msg_style ) {
+            case PAM_PROMPT_ECHO_OFF:
+                DEBUG(4, ("Conversation message: [%s]\n", msgm[i]->msg));
+
+                reply[i].resp_retcode = 0;
+                if (!auth_data->sent_old) {
+                    /* The first prompt will be asking for the old authtok */
+                    reply[i].resp = calloc(auth_data->authtok_size + 1,
+                                           sizeof(char));
+                    if (reply[i].resp == NULL) goto failed;
+                    memcpy(reply[i].resp, auth_data->authtok,
+                           auth_data->authtok_size);
+                    auth_data->sent_old = true;
+                }
+                else {
+                    /* Subsequent prompts are looking for the new authtok */
+                    reply[i].resp = calloc(auth_data->newauthtok_size + 1,
+                                           sizeof(char));
+                    if (reply[i].resp == NULL) goto failed;
+                    memcpy(reply[i].resp, auth_data->newauthtok,
+                           auth_data->newauthtok_size);
+                }
+
+                break;
+            default:
+                DEBUG(1, ("Conversation style %d not supported.\n",
+                           msgm[i]->msg_style));
+                goto failed;
+        }
+    }
+
+    *response = reply;
+    reply = NULL;
+
+    return PAM_SUCCESS;
+
+failed:
+    free(reply);
+    return PAM_CONV_ERR;
+}
+
 static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
 {
     int ret;
@@ -133,7 +195,12 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
     struct authtok_conv *auth_data;
     struct pam_conv conv;
 
-    conv.conv=proxy_internal_conv;
+    if (pd->cmd == SSS_PAM_CHAUTHTOK) {
+        conv.conv=proxy_chauthtok_conv;
+    }
+    else {
+        conv.conv=proxy_internal_conv;
+    }
     auth_data = talloc_zero(pd, struct authtok_conv);
     conv.appdata_ptr=auth_data;
 
@@ -175,14 +242,15 @@ static errno_t call_pam_stack(const char *pam_target, struct pam_data *pd)
                 pam_status=pam_close_session(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK:
+                auth_data->authtok_size = pd->authtok_size;
+                auth_data->authtok = pd->authtok;
                 if (pd->priv != 1) {
-                    auth_data->authtok_size = pd->authtok_size;
-                    auth_data->authtok = pd->authtok;
                     pam_status = pam_authenticate(pamh, 0);
+                    auth_data->sent_old = false;
                     if (pam_status != PAM_SUCCESS) break;
                 }
-                auth_data->authtok_size = pd->newauthtok_size;
-                auth_data->authtok = pd->newauthtok;
+                auth_data->newauthtok_size = pd->newauthtok_size;
+                auth_data->newauthtok = pd->newauthtok;
                 pam_status = pam_chauthtok(pamh, 0);
                 break;
             case SSS_PAM_CHAUTHTOK_PRELIM:
