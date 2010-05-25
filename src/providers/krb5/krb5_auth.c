@@ -45,6 +45,49 @@
 #define KRB5_CHILD SSSD_LIBEXEC_PATH"/krb5_child"
 #endif
 
+static errno_t safe_remove_old_ccache_file(const char *old_ccache_file,
+                                           const char *new_ccache_file)
+{
+    int ret;
+    size_t old_offset = 0;
+    size_t new_offset = 0;
+
+    if (new_ccache_file == NULL) {
+        DEBUG(1, ("Missing new ccache file, "
+                  "old ccache file is not deleted.\n"));
+        return EINVAL;
+    }
+
+    if (old_ccache_file != NULL) {
+        if (strncmp(old_ccache_file, "FILE:", 5) == 0) {
+            old_offset = 5;
+        }
+        if (strncmp(new_ccache_file, "FILE:", 5) == 0) {
+            new_offset = 5;
+        }
+        if (strcmp(old_ccache_file + old_offset,
+                   new_ccache_file + new_offset) == 0) {
+            DEBUG(7, ("New and old ccache file are the same, "
+                      "no one will be deleted.\n"));
+            return EOK;
+        }
+        if (old_ccache_file[old_offset] != '/') {
+            DEBUG(1, ("Ccache file name [%s] is not an absolute path.\n",
+                      old_ccache_file + old_offset));
+            return EINVAL;
+        }
+        ret = unlink(old_ccache_file + old_offset);
+        if (ret == -1 && errno != ENOENT) {
+            ret = errno;
+            DEBUG(1, ("unlink [%s] failed [%d][%s].\n", old_ccache_file, ret,
+                                                        strerror(ret)));
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 static errno_t check_if_ccache_file_is_used(uid_t uid, const char *ccname,
                                             bool *result)
 {
@@ -824,7 +867,19 @@ static void krb5_get_user_attr_done(struct tevent_req *subreq)
               ccache_file ? ccache_file : "not set",
               kr->active_ccache_present ? "" : "not",
               kr->valid_tgt_present ? "" : "not"));
-    kr->ccname = ccache_file;
+
+    if (ccache_file != NULL) {
+        kr->ccname = ccache_file;
+        kr->old_ccname = talloc_strdup(kr, ccache_file);
+        if (kr->old_ccname == NULL) {
+            DEBUG(1, ("talloc_strdup failed.\n"));
+            ret = ENOMEM;
+            goto failed;
+        }
+    } else {
+        kr->ccname = NULL;
+        kr->old_ccname = NULL;
+    }
 
     kr->srv = NULL;
     kr->kpasswd_srv = NULL;
@@ -913,44 +968,29 @@ static void krb5_find_ccache_step(struct tevent_req *req)
     struct krb5child_req *kr = state->kr;
     struct pam_data *pd = state->pd;
     char *msg;
-    size_t offset = 0;
     bool private_path = false;
     struct tevent_req *subreq = NULL;
+
+    if (!kr->is_offline) {
+        kr->is_offline = be_is_offline(state->be_ctx);
+    }
 
     /* The ccache file should be (re)created if one of the following conditions
      * is true:
      * - it doesn't exist (kr->ccname == NULL)
      * - the backend is online and the current ccache file is not used, i.e
      *   the related user is currently not logged in
-     *   (!be_is_offline(state->be_ctx) && !kr->active_ccache_present)
+     *   (!kr->is_offline && !kr->active_ccache_present)
      * - the backend is offline and the current cache file not used and
      *   it does not contain a valid tgt
-     *   (be_is_offline(state->be_ctx) &&
+     *   (kr->is_offline &&
      *    !kr->active_ccache_present && !kr->valid_tgt_present)
      */
     if (kr->ccname == NULL ||
-        (be_is_offline(state->be_ctx) && !kr->active_ccache_present &&
+        (kr->is_offline && !kr->active_ccache_present &&
             !kr->valid_tgt_present) ||
-        (!be_is_offline(state->be_ctx) && !kr->active_ccache_present)) {
+        (!kr->is_offline && !kr->active_ccache_present)) {
             DEBUG(9, ("Recreating  ccache file.\n"));
-            if (kr->ccname != NULL) {
-                if (strncmp(kr->ccname, "FILE:", 5) == 0) {
-                    offset = 5;
-                }
-                if (kr->ccname[offset] != '/') {
-                    DEBUG(1, ("Ccache file name [%s] is not an absolute path.\n",
-                              kr->ccname + offset));
-                    ret = EINVAL;
-                    goto done;
-                }
-                ret = unlink(kr->ccname + offset);
-                if (ret == -1 && errno != ENOENT) {
-                    ret = errno;
-                    DEBUG(1, ("unlink [%s] failed [%d][%s].\n", kr->ccname, ret,
-                                                                strerror(ret)));
-                    goto done;
-                }
-            }
             kr->ccname = expand_ccname_template(kr, kr,
                                           dp_opt_get_cstring(kr->krb5_ctx->opts,
                                                              KRB5_CCNAME_TMPL),
@@ -970,13 +1010,13 @@ static void krb5_find_ccache_step(struct tevent_req *req)
             }
     }
 
-    if (be_is_offline(state->be_ctx)) {
+    if (kr->is_offline) {
         DEBUG(9, ("Preparing for offline operation.\n"));
-        kr->is_offline = true;
 
         if (kr->valid_tgt_present || kr->active_ccache_present) {
             DEBUG(9, ("Valid TGT available or "
                       "ccache file is already in use.\n"));
+            kr->ccname = kr->old_ccname;
             msg = talloc_asprintf(pd, "%s=%s", CCACHE_ENV_NAME, kr->ccname);
             if (msg == NULL) {
                 DEBUG(1, ("talloc_asprintf failed.\n"));
@@ -1183,17 +1223,21 @@ static void krb5_child_done(struct tevent_req *subreq)
         fo_set_port_status(kr->srv, PORT_WORKING);
     }
 
-    /* The following cases are left now:
-     *  - offline (msg_status == PAM_AUTHINFO_UNAVAIL or
-     *             msg_status == PAM_AUTHTOK_LOCK_BUSY)
-     *  - successful authentication or password change
+    /* Now only a successful authentication or password change is left.
      *
-     *  For all these cases we expect that one of the messages for the
-     *  received buffer contains the name of the credential cache file. */
+     * We expect that one of the messages in the received buffer contains
+     * the name of the credential cache file. */
     if (kr->ccname == NULL) {
         DEBUG(1, ("Missing ccache name in child response.\n"));
         ret = EINVAL;
         goto done;
+    }
+
+    if (kr->old_ccname != NULL) {
+        ret = safe_remove_old_ccache_file(kr->old_ccname, kr->ccname);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to remove old ccache file [%s], please remove it manually.\n"));
+        }
     }
 
     struct sysdb_attrs *attrs;
