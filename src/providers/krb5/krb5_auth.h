@@ -50,6 +50,7 @@ struct krb5child_req {
     struct tevent_timer *timeout_handler;
 
     const char *ccname;
+    const char *old_ccname;
     const char *homedir;
     const char *upn;
     uid_t uid;
