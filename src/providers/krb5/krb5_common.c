@@ -31,8 +31,6 @@
 #include "providers/dp_backend.h"
 #include "providers/krb5/krb5_common.h"
 
-#define DUMMY_ADDRESS "255.255.255.255"
-
 struct dp_option default_krb5_opts[] = {
     { "krb5_kdcip", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
@@ -290,6 +288,7 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
     return;
 }
 
+
 int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *servers,
                       const char *realm, struct krb5_service **_service)
@@ -304,7 +303,6 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
     char *server_spec;
     char *endptr;
     struct servent *servent;
-    struct tevent_req *req;
 
     tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
@@ -427,14 +425,6 @@ int krb5_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         goto done;
     }
 
-    req = be_resolve_server_send(memctx, ctx->ev, ctx, service_name);
-    if (req == NULL) {
-        DEBUG(1, ("be_resolve_server_send failed.\n"));
-        ret = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(req, krb5_init_resolve_done, service);
-
     ret = EOK;
 
 done:
@@ -484,33 +474,4 @@ void krb5_finalize(struct tevent_context *ev,
     }
 
     sig_term(signum);
-}
-
-void krb5_init_resolve_done(struct tevent_req *req)
-{
-    struct krb5_service *krb5_service  = tevent_req_callback_data(req,
-                                                           struct krb5_service);
-    int ret;
-    struct fo_server *srv;
-    const char *service_name;
-
-    ret = be_resolve_server_recv(req, &srv);
-    talloc_zfree(req);
-    if (ret) {
-        DEBUG(1, ("be_resolve_server request failed [%d][%s]. "
-                  "Creating dummy info file.\n", ret, strerror(ret)));
-
-        service_name = krb5_service->name;
-        if (strcmp(service_name, "IPA") == 0) {
-            service_name = SSS_KRB5KDC_FO_SRV;
-        }
-        ret = write_krb5info_file(krb5_service->realm, DUMMY_ADDRESS,
-                                  service_name);
-        if (ret != EOK) {
-            DEBUG(2, ("write_krb5info_file failed, "
-                      "authentication might fail.\n"));
-        }
-    }
-
-    return;
 }
