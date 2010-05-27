@@ -1,15 +1,15 @@
 # Swedish messages for sssd server.
-# Copyright © 2009 Red Hat, Inc.
+# Copyright © 2009-2010 Red Hat, Inc.
 # This file is distributed under the same license as the sssd package.
-# Göran Uddeborg <goeran@uddeborg.se>, 2009.
+# Göran Uddeborg <goeran@uddeborg.se>, 2009-2010.
 #
-# $Revision: 1.4 $
+# $Revision: 1.6 $
 msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-05-24 14:51-0400\n"
-"PO-Revision-Date: 2009-12-30 17:58+0100\n"
+"PO-Revision-Date: 2010-05-26 21:55+0200\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "MIME-Version: 1.0\n"
@@ -95,13 +95,15 @@ msgstr ""
 
 #: config/SSSDConfig.py:64
 msgid "How many failed logins attempts are allowed when offline"
-msgstr ""
+msgstr "Hur många misslyckade inloggningsförsök som tillåts i frånkopplat läge"
 
 #: config/SSSDConfig.py:65
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
 msgstr ""
+"Hur länge (minuter) som inloggning nekas efter att "
+"frånkopplade_inloggningsförsök har nåtts"
 
 #: config/SSSDConfig.py:68
 msgid "Identity provider"
@@ -154,17 +156,15 @@ msgstr "Tidsgränslängd för postcache (sekunder)"
 #: config/SSSDConfig.py:82
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
-msgstr ""
+msgstr "Begränsa eller föredra en specifik adressfamilj vid DNS-uppslagningar"
 
 #: config/SSSDConfig.py:83
-#, fuzzy
 msgid "How long to keep cached entries after last successful login (days)"
-msgstr ""
-"Hur länge sparade inloggningar tillåts mellan online-inloggningar (dagar)"
+msgstr "Hur länge cachade poster skall behållas efter senaste lyckade inloggning (dagar)"
 
 #: config/SSSDConfig.py:84
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr ""
+msgstr "Hur länge man väntar på svar från DNS när servrar slås upp (sekunder)"
 
 #: config/SSSDConfig.py:87
 msgid "IPA domain"
@@ -180,11 +180,11 @@ msgstr "IPA-klienvärdnamn"
 
 #: config/SSSDConfig.py:90
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
-msgstr ""
+msgstr "Om klientens DNS-post i FreeIPA automatiskt skall uppdateras"
 
 #: config/SSSDConfig.py:91
 msgid "The interface whose IP should be used for dynamic DNS updates"
-msgstr ""
+msgstr "Gränssnittet var IP skall användas för dynamiska DNS-uppdateringar"
 
 #: config/SSSDConfig.py:94 config/SSSDConfig.py:123
 msgid "Kerberos server address"
@@ -216,7 +216,7 @@ msgstr "Aktivera validering av kreditiv"
 
 #: config/SSSDConfig.py:103
 msgid "Store password if offline for later online authentication"
-msgstr ""
+msgstr "Lagra lösenord när ej ansluten för ansluten autentisering senare"
 
 #: config/SSSDConfig.py:106
 msgid "The principal of the change password service"
@@ -224,7 +224,7 @@ msgstr "Huvudmannen för tjänsten att ändra lösenord"
 
 #: config/SSSDConfig.py:107
 msgid "Server where the change password service is running if not on the KDC"
-msgstr ""
+msgstr "Server där ändringstjänsten för lösenord kör om inte på KDC:n"
 
 #: config/SSSDConfig.py:110
 msgid "ldap_uri, The URI of the LDAP server"
@@ -259,13 +259,12 @@ msgid "Length of time to attempt synchronous LDAP operations"
 msgstr "Tidslängd att försök synkrona LDAP-operationer"
 
 #: config/SSSDConfig.py:118
-#, fuzzy
 msgid "File that contains CA certificates"
-msgstr "fil som innehåller CA-certifikat"
+msgstr "Fil som innehåller CA-certifikat"
 
 #: config/SSSDConfig.py:119
 msgid "Path to CA certificate directory"
-msgstr ""
+msgstr "Sökväg till katalogen med CA-certifikat"
 
 #: config/SSSDConfig.py:120
 msgid "Require TLS certificate verification"
@@ -289,12 +288,11 @@ msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
 
 #: config/SSSDConfig.py:127
 msgid "Follow LDAP referrals"
-msgstr ""
+msgstr "Följer LDAP-hänvisningar"
 
 #: config/SSSDConfig.py:128
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Avnänd Kerberosautenticering för LDAP-anslutning"
+msgstr "Livslängd på TGT för LDAP-anslutning"
 
 #: config/SSSDConfig.py:131
 msgid "Length of time to wait for a search request"
@@ -305,9 +303,8 @@ msgid "Length of time between enumeration updates"
 msgstr "Tidslängd mellan uppräkningsuppdateringar"
 
 #: config/SSSDConfig.py:133
-#, fuzzy
 msgid "Require TLS for ID lookups"
-msgstr "Kräv TLS för ID-uppslagningar, falsk"
+msgstr "Kräv TLS för ID-uppslagningar"
 
 #: config/SSSDConfig.py:134
 msgid "Base DN for user lookups"
@@ -375,15 +372,15 @@ msgstr "Policy för att utvärdera utgång av lösenord"
 
 #: config/SSSDConfig.py:154
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "LDAP-filter för att bestämma åtkomstprivilegier"
 
 #: config/SSSDConfig.py:157
 msgid "Comma separated list of allowed users"
-msgstr ""
+msgstr "Kommaseparerad lista över tillåtna användare"
 
 #: config/SSSDConfig.py:158
 msgid "Comma separated list of prohibited users"
-msgstr ""
+msgstr "Kommaseparerad lista över förbjudna användare"
 
 #: config/SSSDConfig.py:161
 msgid "Default shell, /bin/bash"
@@ -403,81 +400,78 @@ msgstr "PAM-stack att använda"
 
 #: monitor/monitor.c:2089
 msgid "Become a daemon (default)"
-msgstr ""
+msgstr "Bli en demon (standard)"
 
 #: monitor/monitor.c:2091
 msgid "Run interactive (not a daemon)"
-msgstr ""
+msgstr "Kör interaktivt (inte en demon)"
 
 #: monitor/monitor.c:2093
 msgid "Specify a non-default config file"
-msgstr ""
+msgstr "Ange en konfigurationsfil annan än standard"
 
 #: monitor/monitor.c:2119
-#, fuzzy
 msgid "sssd must be run as root\n"
-msgstr "%s måste köras som root\n"
+msgstr "sssd måste köras som root\n"
 
 #: monitor/monitor.c:2154
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
-msgstr ""
+msgstr "nscd-uttag upptäcktes.  Eftersom nscd:s cachningsegenskaper kan stå i konflikt med SSSD rekommenderas det att inte köra nscd parallellt med SSSD\n"
 
 #: monitor/monitor.c:2164
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
-msgstr ""
+msgstr "Det går inte att läsa konfigurationsfilen %s, kontrollera om rättigheterna är 0600 och filen ägs av root.root\n"
 
 #: monitor/monitor.c:2169
 msgid "Cannot load configuration database\n"
-msgstr ""
+msgstr "Det går inte att läsa in konfigurationsdatabasen\n"
 
 #: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:321
 #: util/util.h:61
 msgid "Debug level"
-msgstr ""
+msgstr "Felsökningsnivå"
 
 #: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:323
 #: util/util.h:65
 msgid "Add debug timestamps"
-msgstr ""
+msgstr "Lägg till felsökningstidstämplar"
 
 #: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:325
-#, fuzzy
 msgid "An open file descriptor for the debug logs"
-msgstr "Ange pratsamhet för felsökningsloggning"
+msgstr "Ett öppet filhandtag för felsökningsloggarna"
 
 #: providers/data_provider_be.c:1153
 msgid "Domain of the information provider (mandatory)"
-msgstr ""
+msgstr "Domän för informationsleverantören (obligatoriskt)"
 
 #: sss_client/common.c:727
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Priviligierat uttag (socket) har fel ägarskap eller rättigheter."
 
 #: sss_client/common.c:730
 msgid "Public socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Publikt uttag (socket) har fel ägarskap eller rättigheter."
 
 #: sss_client/common.c:733
-#, fuzzy
 msgid "Unexpected format of the server credential message."
-msgstr "Plats för användarens kreditiv-cache"
+msgstr "Oväntat format på serverns kreditivmeddelande."
 
 #: sss_client/common.c:736
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "SSSD körs inte av root."
 
 #: sss_client/common.c:741
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Ett fel uppstod, men ingen beskrivning kan hittas."
 
 #: sss_client/common.c:747
 msgid "Unexpected error while looking for an error description"
-msgstr ""
+msgstr "Oväntat fel vid sökning efter ett felmeddelande"
 
 #: sss_client/pam_sss.c:370
 msgid "Passwords do not match"
@@ -485,43 +479,41 @@ msgstr "Lösenorden stämmer inte överens"
 
 #: sss_client/pam_sss.c:554
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "Återställning av lösenord av root stöds inte."
 
 #: sss_client/pam_sss.c:595
 msgid "Authenticated with cached credentials"
-msgstr ""
+msgstr "Autentiserad med cachade kreditiv"
 
 #: sss_client/pam_sss.c:596
 msgid ", your cached password will expire at: "
-msgstr ""
+msgstr ", ditt cache-lösenord kommer gå ut: "
 
 #: sss_client/pam_sss.c:626
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
-msgstr ""
+msgstr "Ditt lösenord har gått ut.  Du har en frist på %d inloggningar kvar."
 
 #: sss_client/pam_sss.c:672
-#, fuzzy, c-format
+#, c-format
 msgid "Your password will expire in %d %s."
-msgstr "Lösenordet har gått ut."
+msgstr "Ditt lösenordet kommer gå ut om %d %s."
 
 #: sss_client/pam_sss.c:721
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr "Autentiseringstidsgräns"
+msgstr "Autentisering nekas till: "
 
 #: sss_client/pam_sss.c:748
 msgid "System is offline, password change not possible"
-msgstr ""
+msgstr "Systemet är frånkopplat, ändring av lösenord är inte möjligt"
 
 #: sss_client/pam_sss.c:778 sss_client/pam_sss.c:791
-#, fuzzy
 msgid "Password change failed. "
-msgstr "Leverantör av lösenordsändringar"
+msgstr "Lösenordsändringen misslyckades. "
 
 #: sss_client/pam_sss.c:781 sss_client/pam_sss.c:792
 msgid "Server message: "
-msgstr ""
+msgstr "Servermeddelande: "
 
 #: sss_client/pam_sss.c:1195
 msgid "New Password: "
@@ -536,19 +528,18 @@ msgid "Password: "
 msgstr "Lösenord: "
 
 #: sss_client/pam_sss.c:1310
-#, fuzzy
 msgid "Current Password: "
-msgstr "Nytt lösenord: "
+msgstr "Nuvarande lösenord: "
 
 #: sss_client/pam_sss.c:1456
 msgid "Password expired. Change your password now."
-msgstr ""
+msgstr "Lösenordet har gått ut.  Ändra ditt lösenord nu."
 
 #: tools/sss_useradd.c:115 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
 #: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:142
 #: tools/sss_usermod.c:47
 msgid "The debug level to run with"
-msgstr "Felsökningsnivå att köra med"
+msgstr "Felsökningsnivån att köra med"
 
 #: tools/sss_useradd.c:116 tools/sss_usermod.c:48
 msgid "The UID of the user"
@@ -588,7 +579,7 @@ msgstr "Ange en alternativ skelettkatalog"
 
 #: tools/sss_useradd.c:125 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
-msgstr ""
+msgstr "SELinux-användaren för användarens inloggning"
 
 #: tools/sss_useradd.c:139 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
 #: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:159
