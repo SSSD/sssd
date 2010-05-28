@@ -176,6 +176,8 @@ int sysdb_attrs_steal_string(struct sysdb_attrs *attrs,
                              const char *name, char *str);
 int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
                            const char **string);
+int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
+                                 TALLOC_CTX *mem_ctx, const char ***string);
 
 int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
                                  const char *newname);

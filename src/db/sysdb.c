@@ -140,6 +140,39 @@ int sysdb_attrs_get_string(struct sysdb_attrs *attrs, const char *name,
     return EOK;
 }
 
+int sysdb_attrs_get_string_array(struct sysdb_attrs *attrs, const char *name,
+                                 TALLOC_CTX *mem_ctx, const char ***string)
+{
+    struct ldb_message_element *el;
+    int ret;
+    unsigned int u;
+    const char **a;
+
+    ret = sysdb_attrs_get_el_int(attrs, name, false, &el);
+    if (ret) {
+        return ret;
+    }
+
+    a = talloc_array(mem_ctx, const char *, el->num_values + 1);
+    if (a == NULL) {
+        return ENOMEM;
+    }
+
+    memset(a, 0, sizeof(const char *) * (el->num_values + 1));
+
+    for(u = 0; u < el->num_values; u++) {
+        a[u] = talloc_strndup(a, (const char *)el->values[u].data,
+                              el->values[u].length);
+        if (a[u] == NULL) {
+            talloc_free(a);
+            return ENOMEM;
+        }
+    }
+
+    *string = a;
+    return EOK;
+}
+
 int sysdb_attrs_add_val(struct sysdb_attrs *attrs,
                         const char *name, const struct ldb_val *val)
 {
