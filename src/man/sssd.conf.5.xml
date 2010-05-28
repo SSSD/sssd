@@ -289,7 +289,7 @@
                     <term>entry_negative_timeout (integer)</term>
                     <listitem>
                         <para>
-                            Specifies for how long nss_sss should cache
+                            Specifies for how many seconds nss_sss should cache
                             negative cache hits (that is, queries for
                             invalid database entries, like nonexistent ones)
                             before asking the back end again.
