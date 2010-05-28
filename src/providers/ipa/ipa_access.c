@@ -1180,7 +1180,6 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
                                                struct hbac_get_host_info_state);
     int ret;
     int i;
-    int v;
     struct ldb_message_element *el;
     struct hbac_host_info **hhi;
     struct ldb_message **msgs;
@@ -1286,33 +1285,23 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
             goto fail;
         }
 
-        ret = sysdb_attrs_get_el(state->host_reply_list[i],
-                                 state->offline ? SYSDB_ORIG_MEMBEROF :
-                                                  IPA_MEMBEROF,
-                                 &el);
+        ret = sysdb_attrs_get_string_array(state->host_reply_list[i],
+                                          state->offline ? SYSDB_ORIG_MEMBEROF :
+                                                           IPA_MEMBEROF,
+                                          hhi, &(hhi[i]->memberof));
         if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
+            if (ret != ENOENT) {
+                DEBUG(1, ("sysdb_attrs_get_string_array failed.\n"));
+                goto fail;
+            }
 
-        hhi[i]->memberof = talloc_array(hhi, const char *, el->num_values + 1);
-        if (hhi[i]->memberof == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        memset(hhi[i]->memberof, 0,
-               sizeof(const char *) * (el->num_values + 1));
-
-        for(v = 0; v < el->num_values; v++) {
-            DEBUG(9, ("%s: [%.*s].\n", IPA_MEMBEROF, el->values[v].length,
-                                     (const char *)el->values[v].data));
-            hhi[i]->memberof[v] = talloc_strndup(hhi,
-                                               (const char *)el->values[v].data,
-                                               el->values[v].length);
-            if (hhi[i]->memberof[v] == NULL) {
+            hhi[i]->memberof = talloc_array(hhi, const char *, 1);
+            if (hhi[i]->memberof == NULL) {
+                DEBUG(1, ("talloc_array failed.\n"));
                 ret = ENOMEM;
                 goto fail;
             }
+            hhi[i]->memberof[0] = NULL;
         }
     }
 
