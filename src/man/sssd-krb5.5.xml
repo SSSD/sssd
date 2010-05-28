@@ -83,7 +83,8 @@
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
-                            The name of the Kerberos realm.
+                            The name of the Kerberos realm. This option is required
+                            and must be specified.
                         </para>
                     </listitem>
                 </varlistentry>
@@ -118,6 +119,9 @@
                             Please note that even if there are no more kpasswd
                             servers to try the back end is not switch to offline
                             if authentication against the KDC is still possible.
+                        </para>
+                        <para>
+                            Default: Use the KDC
                         </para>
                     </listitem>
                 </varlistentry>
