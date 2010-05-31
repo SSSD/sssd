@@ -62,8 +62,6 @@ struct hbac_ctx {
     char *ldap_basedn;
     struct sysdb_attrs **hbac_services_list;
     size_t hbac_services_count;
-    struct sysdb_attrs **hbac_servicegroups_list;
-    size_t hbac_servicegroups_count;
 };
 
 void ipa_access_handler(struct be_req *be_req);
