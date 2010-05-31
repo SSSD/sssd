@@ -1336,7 +1336,8 @@ static errno_t get_service_data(const char *cn, size_t count,
             return ENOENT;
         } else {
             for (j = 0; j < el->num_values; j++) {
-                if (strncmp(cn, (const char *) el->values[j].data,
+                if (strlen(cn) == el->values[j].length &&
+                    strncmp(cn, (const char *) el->values[j].data,
                             el->values[j].length) == 0) {
 
                     ret = sysdb_attrs_get_string(list[i], SYSDB_ORIG_DN, dn);
