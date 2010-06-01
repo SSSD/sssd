@@ -22,8 +22,13 @@
     <refsect2 id='domain_name'>
         <title>The domain name</title>
         <para>
-            The name of the SSSD domain is used as the domain part of the
-            service discovery DNS query.
+            Please refer to the <quote>dns_discovery_domain</quote>
+            parameter in the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            manual page for more defails.
         </para>
     </refsect2>
     <refsect2 id='reference'>

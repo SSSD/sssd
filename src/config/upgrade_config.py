@@ -59,6 +59,28 @@ class SSSDConfigFile(SSSDChangeConf):
             if item:
                 item['name'] = new_name
 
+    def _add_dns_domain_name(self, domain):
+        id_provider = self.findOpts(domain['value'], 'option', 'id_provider')[1]
+        dns_domain_name = { 'type' : 'option',
+                            'name' : 'dns_discovery_domain',
+                            'value' : domain['name'].lstrip('domain/') }
+        if id_provider['value'] == 'ldap':
+            server = self.findOpts(domain['value'], 'option', 'ldap_uri')[1]
+            if not server or "__srv__" in server['value']:
+                domain['value'].insert(0, dns_domain_name)
+                return
+        elif id_provider['value'] == 'ipa':
+            server = self.findOpts(domain['value'], 'option', 'ipa_server')[1]
+            if not server or "__srv__" in server['value']:
+                domain['value'].insert(0, dns_domain_name)
+                return
+
+        auth_provider = self.findOpts(domain['value'], 'option', 'auth_provider')[1]
+        if auth_provider and auth_provider['value'] == 'krb5':
+            server = self.findOpts(domain['value'], 'option', 'krb5_kdcip')[1]
+            if not server or "__srv__" in server['value']:
+                domain['value'].insert(0, dns_domain_name)
+
     def _do_v2_changes(self):
         # remove Data Provider
         srvlist = self.get_option_index('sssd', 'services')[1]
@@ -69,9 +91,11 @@ class SSSDConfigFile(SSSDChangeConf):
             srvlist['value'] = ", ".join([srv for srv in services])
         self.delete_option('section', 'dp')
 
-        # remove magic_private_groups from all domains
         for domain in [ s for s in self.sections() if s['name'].startswith("domain/") ]:
+            # remove magic_private_groups from all domains
             self.delete_option_subtree(domain['value'], 'option', 'magic_private_groups')
+            # check if we need to add dns_domain
+            self._add_dns_domain_name(domain)
 
     def _update_option(self, to_section_name, from_section_name, opts):
         to_section = [ s for s in self.sections() if s['name'].strip() == to_section_name ]

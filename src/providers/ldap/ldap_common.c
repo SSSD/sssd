@@ -638,7 +638,6 @@ int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
             ret = be_fo_add_srv_server(ctx, service_name,
                                        dns_service_name, FO_PROTO_TCP,
-                                       ctx->domain->name,
                                        srv_user_data);
             if (ret) {
                 DEBUG(0, ("Failed to add server\n"));

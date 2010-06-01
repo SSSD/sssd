@@ -682,6 +682,19 @@
                         </para>
                     </listitem>
                 </varlistentry>
+
+                <varlistentry>
+                    <term>dns_discovery_domain (string)</term>
+                    <listitem>
+                        <para>
+                            If service discovery is used in the back end, specifies
+                            the domain part of the service discovery DNS query.
+                        </para>
+                        <para>
+                            Default: Use the domain part of machine's hostname
+                        </para>
+                    </listitem>
+                </varlistentry>
             </variablelist>
         </para>
 

@@ -570,7 +570,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
 
         if (be_fo_is_srv_identifier(list[i])) {
             ret = be_fo_add_srv_server(ctx, "IPA", "ldap",
-                                       FO_PROTO_TCP, ctx->domain->name, NULL);
+                                       FO_PROTO_TCP, NULL);
             if (ret) {
                 DEBUG(0, ("Failed to add server\n"));
                 goto done;

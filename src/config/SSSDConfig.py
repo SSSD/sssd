@@ -82,6 +82,7 @@ option_strings = {
     'lookup_family_order' : _('Restrict or prefer a specific address family when performing DNS lookups'),
     'account_cache_expiration' : _('How long to keep cached entries after last successful login (days)'),
     'dns_resolver_timeout' : _('How long to wait for replies from DNS when resolving servers (seconds)'),
+    'dns_discovery_domain' : _('The domain part of service discovery DNS query'),
 
     # [provider/ipa]
     'ipa_domain' : _('IPA domain'),

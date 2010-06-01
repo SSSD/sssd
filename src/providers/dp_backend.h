@@ -167,7 +167,7 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
                                be_svc_callback_fn_t *fn, void *private_data);
 int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
                          const char *query_service, const char *proto,
-                         const char *domain, void *user_data);
+                         void *user_data);
 int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
                      const char *server, int port, void *user_data);
 
@@ -179,4 +179,5 @@ int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv);
 
 int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name);
+
 #endif /* __DP_BACKEND_H___ */
