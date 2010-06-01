@@ -3,13 +3,13 @@
 # This file is distributed under the same license as the sssd package.
 # Göran Uddeborg <goeran@uddeborg.se>, 2009-2010.
 #
-# $Revision: 1.6 $
+# $Revision: 1.8 $
 msgid ""
 msgstr ""
 "Project-Id-Version: sss_server\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-05-24 14:51-0400\n"
-"PO-Revision-Date: 2010-05-26 21:55+0200\n"
+"PO-Revision-Date: 2010-05-29 11:19+0200\n"
 "Last-Translator: Göran Uddeborg <goeran@uddeborg.se>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
 "MIME-Version: 1.0\n"
@@ -160,7 +160,9 @@ msgstr "Begränsa eller föredra en specifik adressfamilj vid DNS-uppslagningar"
 
 #: config/SSSDConfig.py:83
 msgid "How long to keep cached entries after last successful login (days)"
-msgstr "Hur länge cachade poster skall behållas efter senaste lyckade inloggning (dagar)"
+msgstr ""
+"Hur länge cachade poster skall behållas efter senaste lyckade inloggning "
+"(dagar)"
 
 #: config/SSSDConfig.py:84
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -418,14 +420,18 @@ msgstr "sssd måste köras som root\n"
 msgid ""
 "nscd socket was detected.  As nscd caching capabilities may conflict with "
 "SSSD, it is recommended to not run nscd in parallel with SSSD\n"
-msgstr "nscd-uttag upptäcktes.  Eftersom nscd:s cachningsegenskaper kan stå i konflikt med SSSD rekommenderas det att inte köra nscd parallellt med SSSD\n"
+msgstr ""
+"nscd-uttag upptäcktes.  Eftersom nscd:s cachningsegenskaper kan stå i "
+"konflikt med SSSD rekommenderas det att inte köra nscd parallellt med SSSD\n"
 
 #: monitor/monitor.c:2164
 #, c-format
 msgid ""
 "Cannot read config file %s, please check if permissions are 0600 and the "
 "file is owned by root.root\n"
-msgstr "Det går inte att läsa konfigurationsfilen %s, kontrollera om rättigheterna är 0600 och filen ägs av root.root\n"
+msgstr ""
+"Det går inte att läsa konfigurationsfilen %s, kontrollera om rättigheterna "
+"är 0600 och filen ägs av root.root\n"
 
 #: monitor/monitor.c:2169
 msgid "Cannot load configuration database\n"
@@ -594,9 +600,8 @@ msgstr "Ange en användare att lägga till\n"
 #: tools/sss_useradd.c:185 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
 #: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:208
 #: tools/sss_usermod.c:128
-#, fuzzy
 msgid "Error initializing the tools - no local domain\n"
-msgstr "Fel vid initiering av verktygen\n"
+msgstr "Fel vid initiering av verktygen — ingen lokal domän\n"
 
 #: tools/sss_useradd.c:187 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
 #: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:210
@@ -638,7 +643,7 @@ msgstr "Den valda UID:n är utanför det tillåtna intervallet\n"
 
 #: tools/sss_useradd.c:279 tools/sss_usermod.c:242
 msgid "Cannot set SELinux login context\n"
-msgstr ""
+msgstr "Kan inte sätta SELinux-inloggningskontext\n"
 
 #: tools/sss_useradd.c:296
 msgid "Cannot get info about the user\n"
@@ -767,65 +772,59 @@ msgid "Transaction error. Could not modify group.\n"
 msgstr "Transaktionsfel.  Det gick inte att ändra gruppen.\n"
 
 #: tools/sss_groupshow.c:954
-#, fuzzy, c-format
+#, c-format
 msgid "%s%sGroup: %s\n"
-msgstr "Grupper"
+msgstr "%s%sGrupp: %s\n"
 
 #: tools/sss_groupshow.c:955
 msgid "Magic Private "
-msgstr ""
+msgstr "Magiskt privat "
 
 #: tools/sss_groupshow.c:957
 #, c-format
 msgid "%sGID number: %d\n"
-msgstr ""
+msgstr "%sGID-nummer: %d\n"
 
 #: tools/sss_groupshow.c:959
 #, c-format
 msgid "%sMember users: "
-msgstr ""
+msgstr "%sMedlemsanvändare: "
 
 #: tools/sss_groupshow.c:966
 #, c-format
 msgid ""
 "\n"
 "%sIs a member of: "
-msgstr ""
+msgstr "\n%sÄr en medlem i: "
 
 #: tools/sss_groupshow.c:973
 #, c-format
 msgid ""
 "\n"
 "%sMember groups: "
-msgstr ""
+msgstr "\n%sMedlemsgrupper: "
 
 #: tools/sss_groupshow.c:1010
 msgid "Print indirect group members recursively"
-msgstr ""
+msgstr "Skriv ut indirekta gruppmedlemmar rekursivt"
 
 #: tools/sss_groupshow.c:1045
-#, fuzzy
 msgid "Specify group to show\n"
-msgstr "Ange en grupp att lägga till\n"
+msgstr "Ange en grupp att visa\n"
 
 #: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
-#, fuzzy
 msgid "Cannot initiate search\n"
-msgstr "Kan inte få information om användaren\n"
+msgstr "Det går inte att initiera sökningen\n"
 
 #: tools/sss_groupshow.c:1115
-#, fuzzy
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
-msgstr ""
-"Ingen sådan grupp i den lokala domänen.  Att ta bort grupper är endast "
-"tillåtet i den lokala domänen.\n"
+msgstr "Ingen sådan grupp i den lokala domänen.  Att skriva ut grupper är endast tillåtet i den lokala domänen.\n"
 
 #: tools/sss_groupshow.c:1120
-#, fuzzy
 msgid "Internal error. Could not print group.\n"
-msgstr "Internt fel.  Det gick inte att ta bort gruppen.\n"
+msgstr "Internt fel.  Det gick inte att skriva ut gruppen.\n"
 
 #: tools/sss_userdel.c:144
 msgid "Remove home directory and mail spool"
@@ -841,7 +840,7 @@ msgstr "Framtvinga borttagning av filer som inte ägs av användaren"
 
 #: tools/sss_userdel.c:150
 msgid "Kill users' processes before removing him"
-msgstr ""
+msgstr "Döda anvädares processer före de tas bort"
 
 #: tools/sss_userdel.c:197
 msgid "Specify user to delete\n"
@@ -854,25 +853,25 @@ msgstr "Användare %s är utanför det definierade ID-intervallet för domänen\
 
 #: tools/sss_userdel.c:285
 msgid "Cannot reset SELinux login context\n"
-msgstr ""
+msgstr "Kan inte återställa SELinux-inloggningskontext\n"
 
 #: tools/sss_userdel.c:297
 #, c-format
 msgid "WARNING: The user (uid %lu) was still logged in when deleted.\n"
-msgstr ""
+msgstr "VARNING: Användaren (uid %lu) var fortfarande inloggad när han togs bort.\n"
 
 #: tools/sss_userdel.c:302
 msgid "Cannot determine if the user was logged in on this platform"
-msgstr ""
+msgstr "Det går inte att avgöra om användaren var inloggad på denna plattform"
 
 #: tools/sss_userdel.c:307
 msgid "Error while checking if the user was logged in\n"
-msgstr ""
+msgstr "Fel vid kontroll om användaren var inloggad\n"
 
 #: tools/sss_userdel.c:314
 #, c-format
 msgid "The post-delete command failed: %s\n"
-msgstr ""
+msgstr "Kommandot efter borttagandet misslyckades: %s\n"
 
 #: tools/sss_userdel.c:326
 msgid "Not removing home dir - not owned by user\n"
@@ -951,7 +950,4 @@ msgstr "%s måste köras som root\n"
 
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
-msgstr ""
-
-#~ msgid "Length of time between attempts to reconnect while offline"
-#~ msgstr "Tidslängd mellan försök att återansluta under frånkoppling"
+msgstr "Skicka felutskrifter till filer istället för standard fel"
