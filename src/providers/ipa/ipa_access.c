@@ -90,6 +90,75 @@ static errno_t msgs2attrs_array(TALLOC_CTX *mem_ctx, size_t count,
     return EOK;
 }
 
+static errno_t replace_attribute_name(const char *old_name,
+                                      const char *new_name, const size_t count,
+                                      struct sysdb_attrs **list)
+{
+    int ret;
+    int i;
+
+    for (i = 0; i < count; i++) {
+        ret = sysdb_attrs_replace_name(list[i], old_name, new_name);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
+static errno_t hbac_sdap_data_recv(struct tevent_req *subreq,
+                                   TALLOC_CTX *mem_ctx, size_t *count,
+                                   struct sysdb_attrs ***attrs)
+{
+    int ret;
+
+    ret = sdap_get_generic_recv(subreq, mem_ctx, count, attrs);
+    if (ret != EOK) {
+        DEBUG(1, ("sdap_get_generic_recv failed.\n"));
+        return ret;
+    }
+
+    ret = replace_attribute_name(IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF,
+                                 *count, *attrs);
+    if (ret != EOK) {
+        DEBUG(1, ("replace_attribute_name failed.\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
+static errno_t hbac_sysdb_data_recv(TALLOC_CTX *mem_ctx,
+                                    struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    const char *filter,
+                                    const char *subtree_name,
+                                    const char **search_attrs,
+                                    size_t *count,
+                                    struct sysdb_attrs ***reply_attrs)
+{
+    int ret;
+    struct ldb_message **msgs;
+
+    ret = sysdb_search_custom(mem_ctx, sysdb, domain, filter, subtree_name,
+                              search_attrs, count, &msgs);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_search_custom failed.\n"));
+        return ret;
+    }
+
+    ret = msgs2attrs_array(mem_ctx, *count, msgs, reply_attrs);
+    talloc_zfree(msgs);
+    if (ret != EOK) {
+        DEBUG(1, ("msgs2attrs_array failed.\n"));
+        return ret;
+    }
+
+    return EOK;
+}
+
 static void ipa_access_reply(struct be_req *be_req, int pam_status)
 {
     struct pam_data *pd;
@@ -134,7 +203,6 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
     struct tevent_req *subreq = NULL;
     struct hbac_get_service_data_state *state;
     int ret;
-    struct ldb_message **msgs;
 
     req = tevent_req_create(memctx, &state, struct hbac_get_service_data_state);
     if (req == NULL) {
@@ -186,23 +254,17 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
     DEBUG(9, ("Services filter: [%s].\n", state->services_filter));
 
     if (offline) {
-        ret = sysdb_search_custom(state, state->sysdb,
-                                  state->sdap_ctx->be->domain,
-                                  state->services_filter, HBAC_SERVICES_SUBDIR,
-                                  state->services_attrs,
-                                  &state->services_reply_count, &msgs);
+        ret = hbac_sysdb_data_recv(state, state->sysdb,
+                                   state->sdap_ctx->be->domain,
+                                   state->services_filter, HBAC_SERVICES_SUBDIR,
+                                   state->services_attrs,
+                                   &state->services_reply_count,
+                                   &state->services_reply_list);
         if (ret) {
-            DEBUG(1, ("sysdb_search_custom failed.\n"));
+            DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
 
-        ret = msgs2attrs_array(state, state->services_reply_count, msgs,
-                               &state->services_reply_list);
-        talloc_zfree(msgs);
-        if (ret != EOK) {
-            DEBUG(1, ("msgs2attrs_array failed.\n"));
-            goto fail;
-        }
         tevent_req_done(req);
         tevent_req_post(req, ev);
         return req;
@@ -300,8 +362,8 @@ static void hbac_services_get_done(struct tevent_req *subreq)
     char *object_name;
 
 
-    ret = sdap_get_generic_recv(subreq, state, &state->services_reply_count,
-                                &state->services_reply_list);
+    ret = hbac_sdap_data_recv(subreq, state, &state->services_reply_count,
+                              &state->services_reply_list);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -353,13 +415,6 @@ static void hbac_services_get_done(struct tevent_req *subreq)
             goto fail;
         }
         DEBUG(9, ("Object name: [%s].\n", object_name));
-
-        ret = sysdb_attrs_replace_name(state->services_reply_list[i],
-                                       IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
-            goto fail;
-        }
 
         ret = sysdb_store_custom(state, state->sysdb,
                                  state->sdap_ctx->be->domain, object_name,
@@ -534,8 +589,7 @@ struct hbac_get_host_info_state {
 };
 
 static void hbac_get_host_info_connect_done(struct tevent_req *subreq);
-static void hbac_get_host_memberof(struct tevent_req *req,
-                                   struct ldb_message **msgs);
+static void hbac_get_host_memberof(struct tevent_req *req);
 static void hbac_get_host_memberof_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
@@ -618,18 +672,17 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->host_attrs[6] = NULL;
 
     if (offline) {
-        struct ldb_message **msgs;
-
-        ret = sysdb_search_custom(state, state->sysdb,
-                                  state->sdap_ctx->be->domain,
-                                  state->host_filter, HBAC_HOSTS_SUBDIR,
-                                  state->host_attrs,
-                                  &state->host_reply_count, &msgs);
+        ret = hbac_sysdb_data_recv(state, state->sysdb,
+                                   state->sdap_ctx->be->domain,
+                                   state->host_filter, HBAC_HOSTS_SUBDIR,
+                                   state->host_attrs,
+                                   &state->host_reply_count,
+                                   &state->host_reply_list);
         if (ret) {
-            DEBUG(1, ("sysdb_search_custom failed.\n"));
+            DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
-        hbac_get_host_memberof(req, msgs);
+        hbac_get_host_memberof(req);
         tevent_req_post(req, ev);
         return req;
     }
@@ -721,20 +774,18 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
                                                struct hbac_get_host_info_state);
     int ret;
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &state->host_reply_count,
-                                &state->host_reply_list);
+    ret = hbac_sdap_data_recv(subreq, state, &state->host_reply_count,
+                              &state->host_reply_list);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    hbac_get_host_memberof(req, NULL);
+    hbac_get_host_memberof(req);
 }
 
-static void hbac_get_host_memberof(struct tevent_req *req,
-                                   struct ldb_message **msgs)
+static void hbac_get_host_memberof(struct tevent_req *req)
 {
     struct hbac_get_host_info_state *state =
                     tevent_req_data(req, struct hbac_get_host_info_state);
@@ -749,16 +800,6 @@ static void hbac_get_host_memberof(struct tevent_req *req,
         DEBUG(1, ("No hosts not found in IPA server.\n"));
         ret = ENOENT;
         goto fail;
-    }
-
-    if (state->offline) {
-        ret = msgs2attrs_array(state, state->host_reply_count, msgs,
-                               &state->host_reply_list);
-        talloc_zfree(msgs);
-        if (ret != EOK) {
-            DEBUG(1, ("msgs2attrs_array failed.\n"));
-            goto fail;
-        }
     }
 
     hhi = talloc_array(state, struct hbac_host_info *, state->host_reply_count + 1);
@@ -887,14 +928,6 @@ static void hbac_get_host_memberof(struct tevent_req *req,
         }
         DEBUG(9, ("Fqdn [%s].\n", object_name));
 
-
-        ret = sysdb_attrs_replace_name(state->host_reply_list[i],
-                                       IPA_MEMBEROF, SYSDB_ORIG_MEMBEROF);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_replace_name failed.\n"));
-            goto fail;
-        }
-
         ret = sysdb_store_custom(state, state->sysdb,
                                  state->sdap_ctx->be->domain,
                                  object_name,
@@ -957,8 +990,7 @@ struct hbac_get_rules_state {
 };
 
 static void hbac_get_rules_connect_done(struct tevent_req *subreq);
-static void hbac_rule_get(struct tevent_req *req,
-                          struct ldb_message **msgs);
+static void hbac_rule_get(struct tevent_req *req);
 static void hbac_rule_get_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
@@ -1060,18 +1092,17 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
     DEBUG(9, ("HBAC rule filter: [%s].\n", state->hbac_filter));
 
     if (offline) {
-        struct ldb_message **msgs;
-
-        ret = sysdb_search_custom(state, state->sysdb,
-                                  state->sdap_ctx->be->domain,
-                                  state->hbac_filter, HBAC_RULES_SUBDIR,
-                                  state->hbac_attrs,
-                                  &state->hbac_reply_count, &msgs);
+        ret = hbac_sysdb_data_recv(state, state->sysdb,
+                                   state->sdap_ctx->be->domain,
+                                   state->hbac_filter, HBAC_RULES_SUBDIR,
+                                   state->hbac_attrs,
+                                   &state->hbac_reply_count,
+                                   &state->hbac_reply_list);
         if (ret) {
-            DEBUG(1, ("sysdb_search_custom failed.\n"));
+            DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
-        hbac_rule_get(req, msgs);
+        hbac_rule_get(req);
         tevent_req_post(req, ev);
         return req;
     }
@@ -1162,20 +1193,18 @@ static void hbac_rule_get_done(struct tevent_req *subreq)
                                                      struct hbac_get_rules_state);
     int ret;
 
-    ret = sdap_get_generic_recv(subreq, state,
-                                &state->hbac_reply_count,
-                                &state->hbac_reply_list);
+    ret = hbac_sdap_data_recv(subreq, state, &state->hbac_reply_count,
+                              &state->hbac_reply_list);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
 
-    hbac_rule_get(req, NULL);
+    hbac_rule_get(req);
 }
 
-static void hbac_rule_get(struct tevent_req *req,
-                          struct ldb_message **msgs)
+static void hbac_rule_get(struct tevent_req *req)
 {
     struct hbac_get_rules_state *state =
                         tevent_req_data(req, struct hbac_get_rules_state);
@@ -1185,16 +1214,6 @@ static void hbac_rule_get(struct tevent_req *req,
     struct ldb_message_element *el;
     struct ldb_dn *hbac_base_dn;
     char *object_name;
-
-    if (state->offline) {
-        ret = msgs2attrs_array(state, state->hbac_reply_count, msgs,
-                               &state->hbac_reply_list);
-        talloc_zfree(msgs);
-        if (ret != EOK) {
-            DEBUG(1, ("msgs2attrs_array failed.\n"));
-            goto fail;
-        }
-    }
 
     for (i = 0; i < state->hbac_reply_count; i++) {
         ret = sysdb_attrs_get_el(state->hbac_reply_list[i], SYSDB_ORIG_DN, &el);
