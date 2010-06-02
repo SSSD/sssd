@@ -1280,6 +1280,7 @@ again:
         break;
 
     default:
+        ret = EIO;
         DEBUG(2, ("proxy -> getpwent_r failed (%d)[%s]\n",
                   ret, strerror(ret)));
         break;
@@ -1434,6 +1435,7 @@ again:
         goto done;
 
     default:
+        ret = EIO;
         goto done;
     }
 
@@ -1741,6 +1743,7 @@ again:
         break;
 
     default:
+        ret = EIO;
         DEBUG(2, ("proxy -> getgrent_r failed (%d)[%s]\n",
                   ret, strerror(ret)));
         break;
@@ -1929,9 +1932,9 @@ again:
         break;
 
     default:
+        ret = EIO;
         DEBUG(2, ("proxy -> initgroups_dyn failed (%d)[%s]\n",
                   ret, strerror(ret)));
-        ret = EIO;
         break;
     }
 
