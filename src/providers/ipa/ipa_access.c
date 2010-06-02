@@ -164,6 +164,144 @@ static errno_t hbac_sysdb_data_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static errno_t set_local_and_remote_host_info(TALLOC_CTX *mem_ctx,
+                                              size_t host_count,
+                                              struct sysdb_attrs **host_list,
+                                              const char *local_hostname,
+                                              const char *remote_hostname,
+                                              struct hbac_host_info **local_hhi,
+                                              struct hbac_host_info **remote_hhi)
+
+{
+    size_t c;
+    int ret;
+    struct hbac_host_info *hhi;
+    struct ldb_message_element *el;
+    TALLOC_CTX *tmp_ctx;
+
+    if (local_hostname == NULL || *local_hostname == '\0') {
+        DEBUG(1, ("Missing local hostname.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (host_count == 0) {
+        DEBUG(1, ("No host data available.\n"));
+        ret = EINVAL;
+        goto done;
+    }
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (c = 0; c < host_count; c++) {
+        hhi = talloc_zero(tmp_ctx, struct hbac_host_info);
+        if (hhi == NULL) {
+            DEBUG(1, ("talloc_zero failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_el(host_list[c], SYSDB_ORIG_DN, &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            goto done;
+        }
+        if (el->num_values == 0) {
+            DEBUG(1, ("Missing OriginalDN.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        DEBUG(9, ("OriginalDN: [%.*s].\n", el->values[0].length,
+                                           (char *)el->values[0].data));
+        hhi->dn = talloc_strndup(hhi, (char *)el->values[0].data,
+                                 el->values[0].length);
+        if (hhi->dn == NULL) {
+            DEBUG(1, ("talloc_strndup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_el(host_list[c], IPA_HOST_SERVERHOSTNAME, &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            goto done;
+        }
+        if (el->num_values == 0) {
+            DEBUG(1, ("Missing ServerHostName.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        DEBUG(9, ("ServerHostName: [%.*s].\n", el->values[0].length,
+                                               (char *)el->values[0].data));
+        hhi->serverhostname = talloc_strndup(hhi, (char *)el->values[0].data,
+                                             el->values[0].length);
+        if (hhi->serverhostname == NULL) {
+            DEBUG(1, ("talloc_strndup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_el(host_list[c], IPA_HOST_FQDN, &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            goto done;
+        }
+        if (el->num_values == 0) {
+            DEBUG(1, ("Missing FQDN.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        DEBUG(9, ("FQDN: [%.*s].\n", el->values[0].length,
+                                     (char *)el->values[0].data));
+        hhi->fqdn = talloc_strndup(hhi, (char *)el->values[0].data,
+                                   el->values[0].length);
+        if (hhi->fqdn == NULL) {
+            DEBUG(1, ("talloc_strndup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_attrs_get_string_array(host_list[c], SYSDB_ORIG_MEMBEROF,
+                                           hhi, &hhi->memberof);
+        if (ret != EOK) {
+            if (ret != ENOENT) {
+                DEBUG(1, ("sysdb_attrs_get_string_array failed.\n"));
+                goto done;
+            }
+
+            hhi->memberof = talloc_array(hhi, const char *, 1);
+            if (hhi->memberof == NULL) {
+                DEBUG(1, ("talloc_array failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+            hhi->memberof[0] = NULL;
+        }
+
+        if (strcmp(hhi->fqdn, local_hostname) == 0 ||
+            strcmp(hhi->serverhostname, local_hostname) == 0) {
+            *local_hhi = talloc_steal(mem_ctx, hhi);
+        }
+
+        if (remote_hostname != NULL && *remote_hostname != '\0') {
+            if (strcmp(hhi->fqdn, remote_hostname) == 0 ||
+                strcmp(hhi->serverhostname, remote_hostname) == 0) {
+                *remote_hhi = talloc_steal(mem_ctx, hhi);
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
 {
     struct be_req *be_req = hbac_ctx->be_req;
@@ -607,7 +745,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         goto fail;
     }
 
-    state->host_attrs = talloc_array(state, const char *, 7);
+    state->host_attrs = talloc_array(state, const char *, 8);
     if (state->host_attrs == NULL) {
         DEBUG(1, ("Failed to allocate host attribute list.\n"));
         ret = ENOMEM;
@@ -619,7 +757,8 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->host_attrs[3] = "objectClass";
     state->host_attrs[4] = SYSDB_ORIG_DN;
     state->host_attrs[5] = SYSDB_ORIG_MEMBEROF;
-    state->host_attrs[6] = NULL;
+    state->host_attrs[6] = IPA_UNIQUE_ID;
+    state->host_attrs[7] = NULL;
 
     if (hbac_ctx_is_offline(state->hbac_ctx)) {
         ret = hbac_sysdb_data_recv(state, hbac_ctx_sysdb(state->hbac_ctx),
@@ -628,7 +767,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
                                    state->host_attrs,
                                    &state->host_reply_count,
                                    &state->host_reply_list);
-        if (ret) {
+        if (ret != EOK) {
             DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
@@ -687,15 +826,27 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
     hbac_get_host_memberof(req, false);
 }
 
-static bool hbac_is_known_host(struct hbac_host_info **hhi, const char *fqdn)
+static bool hbac_is_known_host(size_t host_reply_count,
+                               struct sysdb_attrs **host_reply_list,
+                               const char *fqdn)
 {
-    if (!hhi || !fqdn) {
+    int i;
+    const char *new_fqdn;
+    int ret;
+
+    if (!host_reply_list || !fqdn) {
         return false;
     }
 
-    int i;
-    for (i = 0; hhi[i] != NULL; i++) {
-        if(strcmp(hhi[i]->fqdn, fqdn) == 0) {
+    for (i = 0; i < host_reply_count; i++) {
+        ret = sysdb_attrs_get_string(host_reply_list[i], IPA_HOST_FQDN,
+                                     &new_fqdn);
+        if (ret != 0) {
+            DEBUG(1, ("missing FQDN in new HBAC host record\n"));
+            continue;
+        }
+
+        if(strcmp(new_fqdn, fqdn) == 0) {
             return true;
         }
     }
@@ -713,111 +864,12 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
     int ret;
     int i;
     struct ldb_message_element *el;
-    struct hbac_host_info **hhi;
     char *object_name;
     const char *fqdn_attrs[] = { IPA_HOST_FQDN, NULL };
     const char *fqdn;
 
     size_t cached_count;
     struct ldb_message **cached_entries = 0;
-
-    hhi = talloc_array(state, struct hbac_host_info *, state->host_reply_count + 1);
-    if (hhi == NULL) {
-        DEBUG(1, ("talloc_array failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-    memset(hhi, 0,
-           sizeof(struct hbac_host_info *) * (state->host_reply_count + 1));
-
-    if (state->host_reply_count == 0) {
-        DEBUG(1, ("No hosts not found in IPA server.\n"));
-    }
-
-    for (i = 0; i < state->host_reply_count; i++) {
-        hhi[i] = talloc_zero(hhi, struct hbac_host_info);
-        if (hhi[i] == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        ret = sysdb_attrs_get_el(state->host_reply_list[i], SYSDB_ORIG_DN, &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            goto fail;
-        }
-        DEBUG(9, ("OriginalDN: [%.*s].\n", el->values[0].length,
-                                           (char *)el->values[0].data));
-        hhi[i]->dn = talloc_strndup(hhi, (char *)el->values[0].data,
-                                   el->values[0].length);
-        if (hhi[i]->dn == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        ret = sysdb_attrs_get_el(state->host_reply_list[i],
-                                 IPA_HOST_SERVERHOSTNAME, &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            goto fail;
-        }
-        DEBUG(9, ("ServerHostName: [%.*s].\n", el->values[0].length,
-                                               (char *)el->values[0].data));
-        hhi[i]->serverhostname = talloc_strndup(hhi, (char *)el->values[0].data,
-                                               el->values[0].length);
-        if (hhi[i]->serverhostname == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        ret = sysdb_attrs_get_el(state->host_reply_list[i],
-                                 IPA_HOST_FQDN, &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            goto fail;
-        }
-        DEBUG(9, ("FQDN: [%.*s].\n", el->values[0].length,
-                                     (char *)el->values[0].data));
-        hhi[i]->fqdn = talloc_strndup(hhi, (char *)el->values[0].data,
-                                               el->values[0].length);
-        if (hhi[i]->fqdn == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        ret = sysdb_attrs_get_string_array(state->host_reply_list[i],
-                                          offline ? SYSDB_ORIG_MEMBEROF :
-                                                    IPA_MEMBEROF,
-                                          hhi, &(hhi[i]->memberof));
-        if (ret != EOK) {
-            if (ret != ENOENT) {
-                DEBUG(1, ("sysdb_attrs_get_string_array failed.\n"));
-                goto fail;
-            }
-
-            hhi[i]->memberof = talloc_array(hhi, const char *, 1);
-            if (hhi[i]->memberof == NULL) {
-                DEBUG(1, ("talloc_array failed.\n"));
-                ret = ENOMEM;
-                goto fail;
-            }
-            hhi[i]->memberof[0] = NULL;
-        }
-    }
-
-    state->hbac_host_info = hhi;
 
     if (offline) {
         tevent_req_done(req);
@@ -854,7 +906,8 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
         fqdn = ldb_msg_find_attr_as_string(cached_entries[i], IPA_HOST_FQDN, NULL);
         if (!fqdn) {
             DEBUG(1, ("missing FQDN in cached HBAC host record\n"));
-        } else if (hbac_is_known_host(hhi, fqdn)) {
+        } else if (hbac_is_known_host(state->host_reply_count,
+                                      state->host_reply_list, fqdn)) {
             continue;
         } else {
             DEBUG(9, ("deleting obsolete HBAC host record for %s\n", fqdn));
@@ -922,14 +975,21 @@ fail:
 }
 
 static int hbac_get_host_info_recv(struct tevent_req *req, TALLOC_CTX *memctx,
-                                   struct hbac_host_info ***hhi)
+                                   size_t *hbac_hosts_count,
+                                   struct sysdb_attrs ***hbac_hosts_list)
 {
+    size_t c;
     struct hbac_get_host_info_state *state = tevent_req_data(req,
                                                struct hbac_get_host_info_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *hhi = talloc_steal(memctx, state->hbac_host_info);
+    *hbac_hosts_count = state->host_reply_count;
+    *hbac_hosts_list = talloc_steal(memctx, state->host_reply_list);
+    for (c = 0; c < state->host_reply_count; c++) {
+        talloc_steal(memctx, state->host_reply_list[c]);
+    }
+
     return EOK;
 }
 
@@ -1910,10 +1970,9 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     int pam_status = PAM_SYSTEM_ERR;
     const char *ipa_hostname;
     struct hbac_host_info *local_hhi = NULL;
-    int i;
 
-    talloc_zfree(hbac_ctx->hbac_host_info);
-    ret = hbac_get_host_info_recv(req, hbac_ctx, &hbac_ctx->hbac_host_info);
+    ret = hbac_get_host_info_recv(req, hbac_ctx, &hbac_ctx->hbac_hosts_count,
+                                  &hbac_ctx->hbac_hosts_list);
     talloc_zfree(req);
 
     if (!hbac_check_step_result(hbac_ctx, ret)) {
@@ -1926,21 +1985,15 @@ static void hbac_get_host_info_done(struct tevent_req *req)
         goto fail;
     }
 
-    for (i = 0; hbac_ctx->hbac_host_info[i] != NULL; i++) {
-        if (strcmp(hbac_ctx->hbac_host_info[i]->fqdn, ipa_hostname) == 0 ||
-            strcmp(hbac_ctx->hbac_host_info[i]->serverhostname,
-                   ipa_hostname) == 0) {
-            local_hhi = hbac_ctx->hbac_host_info[i];
-        }
-        if (hbac_ctx->pd->rhost != NULL && *hbac_ctx->pd->rhost != '\0') {
-            if (strcmp(hbac_ctx->hbac_host_info[i]->fqdn,
-                       hbac_ctx->pd->rhost) == 0 ||
-                strcmp(hbac_ctx->hbac_host_info[i]->serverhostname,
-                       hbac_ctx->pd->rhost) == 0) {
-                hbac_ctx->remote_hhi = hbac_ctx->hbac_host_info[i];
-            }
-        }
-    }
+    ret = set_local_and_remote_host_info(hbac_ctx, hbac_ctx->hbac_hosts_count,
+                                         hbac_ctx->hbac_hosts_list, ipa_hostname,
+                                         hbac_ctx->pd->rhost, &local_hhi,
+                                         &hbac_ctx->remote_hhi);
+    if (ret != EOK) {
+        DEBUG(1, ("set_local_and_remote_host_info failed.\n"));
+        goto fail;
+     }
+
     if (local_hhi == NULL) {
         DEBUG(1, ("Missing host info for [%s].\n", ipa_hostname));
         pam_status = PAM_PERM_DENIED;
