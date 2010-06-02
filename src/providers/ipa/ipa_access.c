@@ -319,6 +319,127 @@ static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
     }
 }
 
+static errno_t hbac_save_list(struct sysdb_ctx *sysdb, bool delete_subdir,
+                              const char *subdir, struct sss_domain_info *domain,
+                              const char *naming_attribute, size_t count,
+                              struct sysdb_attrs **list)
+{
+    int ret;
+    size_t c;
+    struct ldb_dn *base_dn;
+    const char *object_name;
+    struct ldb_message_element *el;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed.\n"));
+        return ENOMEM;
+    }
+
+    if (delete_subdir) {
+        base_dn = sysdb_custom_subtree_dn(sysdb, tmp_ctx, domain->name, subdir);
+        if (base_dn == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_delete_recursive(tmp_ctx, sysdb, base_dn, true);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_delete_recursive failed.\n"));
+            goto done;
+        }
+    }
+
+    for (c = 0; c < count; c++) {
+        ret = sysdb_attrs_get_el(list[c], naming_attribute, &el);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
+            goto done;
+        }
+        if (el->num_values == 0) {
+            DEBUG(1, ("IPA_UNIQUE_ID not found.\n"));
+            ret = EINVAL;
+            goto done;
+        }
+        object_name = talloc_strndup(tmp_ctx, (const char *)el->values[0].data,
+                                     el->values[0].length);
+        if (object_name == NULL) {
+            DEBUG(1, ("talloc_strndup failed.\n"));
+            ret = ENOMEM;
+            goto done;
+        }
+        DEBUG(9, ("Object name: [%s].\n", object_name));
+
+        ret = sysdb_store_custom(tmp_ctx, sysdb, domain, object_name, subdir,
+                                 list[c]);
+        if (ret != EOK) {
+            DEBUG(1, ("sysdb_store_custom failed.\n"));
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static errno_t hbac_save_data_to_sysdb(struct hbac_ctx *hbac_ctx)
+{
+    int ret;
+    bool in_transaction = false;
+    struct sysdb_ctx *sysdb = hbac_ctx_sysdb(hbac_ctx);
+    struct sss_domain_info *domain = hbac_ctx_be(hbac_ctx)->domain;
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_transaction_start failed.\n"));
+        return ret;
+    }
+    in_transaction = true;
+
+    ret = hbac_save_list(sysdb, true, HBAC_SERVICES_SUBDIR, domain,
+                         IPA_UNIQUE_ID, hbac_ctx->hbac_services_count,
+                         hbac_ctx->hbac_services_list);
+    if (ret != EOK) {
+        DEBUG(1, ("hbac_save_list failed.\n"));
+        goto done;
+    }
+
+    ret = hbac_save_list(sysdb, true, HBAC_RULES_SUBDIR, domain,
+                         IPA_UNIQUE_ID, hbac_ctx->hbac_rule_count,
+                         hbac_ctx->hbac_rule_list);
+    if (ret != EOK) {
+        DEBUG(1, ("hbac_save_list failed.\n"));
+        goto done;
+    }
+
+    ret = hbac_save_list(sysdb, false, HBAC_HOSTS_SUBDIR, domain,
+                         IPA_HOST_FQDN, hbac_ctx->hbac_hosts_count,
+                         hbac_ctx->hbac_hosts_list);
+    if (ret != EOK) {
+        DEBUG(1, ("hbac_save_list failed.\n"));
+        goto done;
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_transaction_commit failed.\n"));
+        goto done;
+    }
+    in_transaction = false;
+
+    ret = EOK;
+
+done:
+    if (in_transaction) {
+        sysdb_transaction_cancel(sysdb);
+    }
+    return ret;
+}
+
 struct hbac_get_service_data_state {
     struct hbac_ctx *hbac_ctx;
     const char *basedn;
@@ -446,15 +567,7 @@ static void hbac_services_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct hbac_get_service_data_state *state = tevent_req_data(req,
                                             struct hbac_get_service_data_state);
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
     int ret;
-    bool in_transaction = false;
-    struct ldb_dn *base_dn;
-    int i;
-    struct ldb_message_element *el;
-    char *object_name;
-
 
     ret = hbac_sdap_data_recv(subreq, state, &state->services_reply_count,
                               &state->services_reply_list);
@@ -464,80 +577,7 @@ static void hbac_services_get_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->offline) {
-        tevent_req_done(req);
-        return;
-    }
-
-    sysdb = hbac_ctx_sysdb(state->hbac_ctx);
-    domain = hbac_ctx_be(state->hbac_ctx)->domain;
-
-    ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) {
-        DEBUG(1, ("sysdb_transaction_start failed.\n"));
-        tevent_req_error(req, ret);
-        return;
-    }
-    in_transaction = true;
-
-    base_dn = sysdb_custom_subtree_dn(sysdb, state,
-                                      domain->name,
-                                      HBAC_SERVICES_SUBDIR);
-    if (base_dn == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    ret = sysdb_delete_recursive(state, sysdb, base_dn, true);
-    if (ret) {
-        DEBUG(1, ("sysdb_delete_recursive failed.\n"));
-        goto fail;
-    }
-
-    for (i = 0; i < state->services_reply_count; i++) {
-        ret = sysdb_attrs_get_el(state->services_reply_list[i], IPA_UNIQUE_ID,
-                                 &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            goto fail;
-        }
-        object_name = talloc_strndup(state, (const char *)el->values[0].data,
-                                     el->values[0].length);
-        if (object_name == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        DEBUG(9, ("Object name: [%s].\n", object_name));
-
-        ret = sysdb_store_custom(state, sysdb,
-                                 domain, object_name,
-                                 HBAC_SERVICES_SUBDIR,
-                                 state->services_reply_list[i]);
-        if (ret) {
-            DEBUG(1, ("sysdb_store_custom failed.\n"));
-            goto fail;
-        }
-    }
-
-    ret = sysdb_transaction_commit(sysdb);
-    if (ret) {
-        DEBUG(1, ("sysdb_transaction_commit failed.\n"));
-        goto fail;
-    }
-    in_transaction = false;
-
     tevent_req_done(req);
-    return;
-
-fail:
-    if (in_transaction) {
-        sysdb_transaction_cancel(sysdb);
-    }
-    tevent_req_error(req, ret);
     return;
 }
 
@@ -863,8 +903,6 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
     bool in_transaction = false;
     int ret;
     int i;
-    struct ldb_message_element *el;
-    char *object_name;
     const char *fqdn_attrs[] = { IPA_HOST_FQDN, NULL };
     const char *fqdn;
 
@@ -922,38 +960,6 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
 
     talloc_zfree(cached_entries);
 
-    for (i = 0; i < state->host_reply_count; i++) {
-
-        ret = sysdb_attrs_get_el(state->host_reply_list[i],
-                                 IPA_HOST_FQDN, &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            goto fail;
-        }
-        object_name = talloc_strndup(state, (const char *)el->values[0].data,
-                                     el->values[0].length);
-        if (object_name == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        DEBUG(9, ("Fqdn [%s].\n", object_name));
-
-        ret = sysdb_store_custom(state, sysdb,
-                                 domain,
-                                 object_name,
-                                 HBAC_HOSTS_SUBDIR,
-                                 state->host_reply_list[i]);
-
-        if (ret) {
-            DEBUG(1, ("sysdb_store_custom failed.\n"));
-            goto fail;
-        }
-    }
-
     ret = sysdb_transaction_commit(sysdb);
     if (ret) {
         DEBUG(1, ("sysdb_transaction_commit failed.\n"));
@@ -1009,7 +1015,6 @@ struct hbac_get_rules_state {
     int current_item;
 };
 
-static void hbac_rule_get(struct tevent_req *req, bool offline);
 static void hbac_rule_get_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
@@ -1116,7 +1121,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
             DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
-        hbac_rule_get(req, true);
+        tevent_req_done(req);
         tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
         return req;
     }
@@ -1168,112 +1173,7 @@ static void hbac_rule_get_done(struct tevent_req *subreq)
         return;
     }
 
-    hbac_rule_get(req, false);
-}
-
-static void hbac_rule_get(struct tevent_req *req, bool offline)
-{
-    struct hbac_get_rules_state *state =
-                        tevent_req_data(req, struct hbac_get_rules_state);
-    bool in_transaction = false;
-    struct sysdb_ctx *sysdb;
-    struct sss_domain_info *domain;
-    int ret;
-    int i;
-    struct ldb_message_element *el;
-    struct ldb_dn *hbac_base_dn;
-    char *object_name;
-
-    for (i = 0; i < state->hbac_reply_count; i++) {
-        ret = sysdb_attrs_get_el(state->hbac_reply_list[i], SYSDB_ORIG_DN, &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            DEBUG(1, ("Missing original DN.\n"));
-            ret = EINVAL;
-            goto fail;
-        }
-        DEBUG(9, ("OriginalDN: [%s].\n", (const char *)el->values[0].data));
-    }
-
-    if (offline) {
-        tevent_req_done(req);
-        return;
-    }
-
-    sysdb = hbac_ctx_sysdb(state->hbac_ctx);
-    domain = hbac_ctx_be(state->hbac_ctx)->domain;
-
-    ret = sysdb_transaction_start(sysdb);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    in_transaction = true;
-
-    hbac_base_dn = sysdb_custom_subtree_dn(sysdb, state,
-                                           domain->name,
-                                           HBAC_RULES_SUBDIR);
-    if (hbac_base_dn == NULL) {
-        ret = ENOMEM;
-        goto fail;
-    }
-    ret = sysdb_delete_recursive(state, sysdb, hbac_base_dn, true);
-    if (ret) {
-        DEBUG(1, ("sysdb_delete_recursive_send failed.\n"));
-        goto fail;
-    }
-
-
-    for (i = 0; i < state->hbac_reply_count; i++) {
-
-        ret = sysdb_attrs_get_el(state->hbac_reply_list[i],
-                                 IPA_UNIQUE_ID, &el);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_attrs_get_el failed.\n"));
-            goto fail;
-        }
-        if (el->num_values == 0) {
-            ret = EINVAL;
-            goto fail;
-        }
-        object_name = talloc_strndup(state, (const char *)el->values[0].data,
-                                     el->values[0].length);
-        if (object_name == NULL) {
-            ret = ENOMEM;
-            goto fail;
-        }
-        DEBUG(9, ("IPAUniqueId: [%s].\n", object_name));
-
-        ret = sysdb_store_custom(state, sysdb,
-                                 domain,
-                                 object_name,
-                                 HBAC_RULES_SUBDIR,
-                                 state->hbac_reply_list[i]);
-
-        if (ret) {
-            DEBUG(1, ("sysdb_store_custom_send failed.\n"));
-            goto fail;
-        }
-    }
-
-    ret = sysdb_transaction_commit(sysdb);
-    if (ret) {
-        DEBUG(1, ("sysdb_transaction_commit failed.\n"));
-        goto fail;
-    }
-    in_transaction = false;
-
     tevent_req_done(req);
-    return;
-
-fail:
-    if (in_transaction) {
-        sysdb_transaction_cancel(sysdb);
-    }
-    tevent_req_error(req, ret);
     return;
 }
 
@@ -2068,6 +1968,15 @@ static void hbac_get_service_data_done(struct tevent_req *req)
     if (hbac_ctx->user_dn) {
         talloc_free(discard_const_p(TALLOC_CTX, hbac_ctx->user_dn));
         hbac_ctx->user_dn = 0;
+    }
+
+    if (!hbac_ctx_is_offline(hbac_ctx)) {
+        ret = hbac_save_data_to_sysdb(hbac_ctx);
+        if (ret != EOK) {
+            DEBUG(1, ("Failed to save data, "
+                      "offline authentication might not work.\n"));
+            /* This is not a fatal error. */
+        }
     }
 
     hbac_ctx->groups_count = 0;
