@@ -789,7 +789,7 @@ libsss_krb5_la_CFLAGS = \
     $(DHASH_CFLAGS)
 libsss_krb5_la_LIBADD = \
     $(DHASH_LIBS) \
-    $(KEYUITLS_LIB) \
+    $(KEYUTILS_LIB) \
     $(KRB5_LIBS)
 libsss_krb5_la_LDFLAGS = \
     -version-info 1:0:0 \
