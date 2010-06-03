@@ -595,11 +595,13 @@ static void group_show_trim_memberof_done(struct tevent_req *subreq)
                                        const char *, state->ndirect+2);
         if (!state->direct) {
             tevent_req_error(req, ENOMEM);
+            return;
         }
 
         state->direct[state->ndirect] = talloc_strdup(state->direct, name);
         if (!state->direct[state->ndirect]) {
             tevent_req_error(req, ENOMEM);
+            return;
         }
 
         state->direct[state->ndirect+1] = NULL;
