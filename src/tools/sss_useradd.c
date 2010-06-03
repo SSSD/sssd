@@ -149,6 +149,7 @@ int main(int argc, const char **argv)
             case 'G':
                 groups = poptGetOptArg(pc);
                 if (!groups) goto fini;
+                break;
 
             case 'm':
                 pc_create_home = DO_CREATE_HOME;
