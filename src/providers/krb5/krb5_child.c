@@ -1004,7 +1004,7 @@ int main(int argc, const char *argv[])
 
     DEBUG(7, ("krb5_child started.\n"));
 
-    pd = talloc(NULL, struct pam_data);
+    pd = talloc_zero(NULL, struct pam_data);
     if (pd == NULL) {
         DEBUG(1, ("malloc failed.\n"));
         _exit(-1);
