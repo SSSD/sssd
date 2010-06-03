@@ -603,8 +603,8 @@ static int copy_tree_ctx(struct copy_ctx *cctx,
                          uid_t uid,
                          gid_t gid)
 {
-    DIR *src_dir;
-    int ret;
+    DIR *src_dir = NULL;
+    int ret, err;
     struct dirent *result;
     struct dirent direntp;
     char *src_name, *dst_name;
@@ -651,12 +651,20 @@ static int copy_tree_ctx(struct copy_ctx *cctx,
     }
 
     ret = closedir(src_dir);
+    src_dir = NULL;
     if (ret != 0) {
         ret = errno;
         goto fail;
     }
 
+    ret = EOK;
 fail:
+    if (src_dir) {  /* clean up on abnormal exit but retain return code */
+        err = closedir(src_dir);
+        if (err) {
+            DEBUG(1, ("closedir failed, bad dirp?\n"));
+        }
+    }
     talloc_free(tmp_ctx);
     return ret;
 }
