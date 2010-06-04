@@ -26,6 +26,16 @@
 #include <ldap.h>
 #include "util/sss_ldap.h"
 
+#ifdef LDAP_OPT_DIAGNOSTIC_MESSAGE
+#define SDAP_DIAGNOSTIC_MESSAGE LDAP_OPT_DIAGNOSTIC_MESSAGE
+#else
+#ifdef LDAP_OPT_ERROR_STRING
+#define SDAP_DIAGNOSTIC_MESSAGE LDAP_OPT_ERROR_STRING
+#else
+#error No extended diagnostic message available
+#endif
+#endif
+
 struct sdap_msg {
     struct sdap_msg *next;
     LDAPMessage *msg;
