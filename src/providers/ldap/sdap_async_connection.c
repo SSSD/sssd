@@ -147,7 +147,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &msgid);
     if (lret != LDAP_SUCCESS) {
         optret = ldap_get_option(state->sh->ldap,
-                                 LDAP_OPT_DIAGNOSTIC_MESSAGE,
+                                 SDAP_DIAGNOSTIC_MESSAGE,
                                  (void*)&errmsg);
         if (optret == LDAP_SUCCESS) {
             DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
@@ -230,7 +230,7 @@ static void sdap_connect_done(struct sdap_op *op,
     if (ret != LDAP_SUCCESS) {
 
         optret = ldap_get_option(state->sh->ldap,
-                                 LDAP_OPT_DIAGNOSTIC_MESSAGE,
+                                 SDAP_DIAGNOSTIC_MESSAGE,
                                  (void*)&tlserr);
         if (optret == LDAP_SUCCESS) {
             DEBUG(3, ("ldap_install_tls failed: [%s] [%s]\n",
