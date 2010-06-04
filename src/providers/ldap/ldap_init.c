@@ -208,6 +208,7 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
 {
     int ret;
     struct sdap_access_ctx *access_ctx;
+    const char *filter;
 
     access_ctx = talloc_zero(bectx, struct sdap_access_ctx);
     if(access_ctx == NULL) {
@@ -221,9 +222,9 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
         goto done;
     }
 
-    access_ctx->filter = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
+    filter = dp_opt_get_cstring(access_ctx->id_ctx->opts->basic,
                                             SDAP_ACCESS_FILTER);
-    if (access_ctx->filter == NULL) {
+    if (filter == NULL) {
         /* It's okay if this is NULL. In that case we will simply act
          * like the 'deny' provider.
          */
@@ -232,8 +233,25 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                   "All domain users will be denied access.\n"));
     }
 
+    if (filter[0] == '(') {
+        /* This filter is wrapped in parentheses.
+         * Pass it as-is to the openldap libraries.
+         */
+        access_ctx->filter = filter;
+    }
+    else {
+        /* Add parentheses around the filter */
+        access_ctx->filter = talloc_asprintf(access_ctx, "(%s)", filter);
+        if (access_ctx->filter == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     *ops = &sdap_access_ops;
     *pvt_data = access_ctx;
+
+    ret = EOK;
 
 done:
     if (ret != EOK) {

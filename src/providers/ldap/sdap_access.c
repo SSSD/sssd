@@ -214,7 +214,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     /* Construct the filter */
     state->filter = talloc_asprintf(
         state,
-        "(&(%s=%s)(objectclass=%s)(%s))",
+        "(&(%s=%s)(objectclass=%s)%s)",
         state->sdap_ctx->opts->user_map[SDAP_AT_USER_NAME].name,
         state->username,
         state->sdap_ctx->opts->user_map[SDAP_OC_USER].name,
