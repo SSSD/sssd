@@ -190,7 +190,7 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
     /* keytab */
     if (keytab_name) {
         SAFEALIGN_SET_UINT32(&buf->data[rp], strlen(keytab_name), &rp);
-        safealign_memcpy(&buf->data[rp], keytab_name, strlen(realm_str), &rp);
+        safealign_memcpy(&buf->data[rp], keytab_name, strlen(keytab_name), &rp);
     } else {
         SAFEALIGN_SET_UINT32(&buf->data[rp], 0, &rp);
     }
