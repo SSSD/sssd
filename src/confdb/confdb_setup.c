@@ -203,6 +203,10 @@ static int confdb_create_ldif(TALLOC_CTX *mem_ctx,
 
             const char *value = get_const_string_config_value(attr, &ret);
             if (ret != EOK) goto error;
+            if (value && value[0] == '\0') {
+                DEBUG(1, ("Attribute '%s' has empty value, ignoring\n", attrs[j]));
+                continue;
+            }
 
             ldif_attr = talloc_asprintf(tmp_ctx,
                                         "%s: %s\n", attrs[j], value);
