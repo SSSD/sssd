@@ -24,6 +24,7 @@
 
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
+#include "providers/ldap/sdap_async_private.h"
 
 #include "util/sss_krb5.h"
 
@@ -358,10 +359,19 @@ bool sdap_connected(struct sdap_id_ctx *ctx)
 
 void sdap_mark_offline(struct sdap_id_ctx *ctx)
 {
+    int ret;
+
     if (ctx->gsh) {
         /* make sure we mark the connection as gone when we go offline so that
          * we do not try to reuse a bad connection by mistale later */
         ctx->gsh->connected = false;
+        ret = remove_ldap_connection_callbacks(ctx->gsh);
+        if (ret != EOK) {
+            DEBUG(1, ("Could not clear ldap connection callbacks\n"));
+            /* Not really anything we can do about this, so proceed
+             * and hope for the best.
+             */
+        }
     }
 
     be_mark_offline(ctx->be);

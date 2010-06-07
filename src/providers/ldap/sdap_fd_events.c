@@ -47,7 +47,23 @@ int get_fd_from_ldap(LDAP *ldap, int *fd)
     return EOK;
 }
 
+int remove_ldap_connection_callbacks(struct sdap_handle *sh)
+{
 #ifdef HAVE_LDAP_CONNCB
+    int ret;
+
+    ret = talloc_free(sh->sdap_fd_events->conncb);
+    if (ret != 0) {
+        return EIO;
+    }
+
+    sh->sdap_fd_events->conncb = NULL;
+#endif
+    return EOK;
+}
+
+#ifdef HAVE_LDAP_CONNCB
+
 static int remove_connection_callback(TALLOC_CTX *mem_ctx)
 {
     int lret;

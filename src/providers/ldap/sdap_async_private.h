@@ -33,6 +33,7 @@ void sdap_ldap_result(struct tevent_context *ev, struct tevent_fd *fde,
 
 int setup_ldap_connection_callbacks(struct sdap_handle *sh,
                                     struct tevent_context *ev);
+int remove_ldap_connection_callbacks(struct sdap_handle *sh);
 
 int get_fd_from_ldap(LDAP *ldap, int *fd);
 
