@@ -1122,8 +1122,11 @@ fo_get_server_port(struct fo_server *server)
 
 const char *fo_get_server_name(struct fo_server *server)
 {
-    if (!server->common && fo_is_srv_lookup(server)) {
-        return "SRV lookup meta-server";
+    if (!server->common) {
+        if (fo_is_srv_lookup(server)) {
+            return "SRV lookup meta-server";
+        }
+        return "unknown name";
     }
 
     return server->common->name;
