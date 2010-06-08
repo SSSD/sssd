@@ -1372,7 +1372,7 @@ static void process_config_file(struct tevent_context *ev,
         len = read(file_ctx->mt_ctx->inotify_fd, buf+total_len,
                    event_size-total_len);
         if (len == -1) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR || errno == EAGAIN) continue;
             DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
             goto done;
         }
@@ -1393,7 +1393,7 @@ static void process_config_file(struct tevent_context *ev,
         while (total_len < in_event->len) {
             len = read(file_ctx->mt_ctx->inotify_fd, &name, in_event->len);
             if (len == -1) {
-                if (errno == EINTR) continue;
+                if (errno == EINTR || errno == EAGAIN) continue;
                 DEBUG(0, ("Critical error reading inotify file descriptor.\n"));
                 goto done;
             }
