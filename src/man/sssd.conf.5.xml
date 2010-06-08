@@ -396,11 +396,19 @@
                     <term>min_id,max_id (integer)</term>
                     <listitem>
                         <para>
-                            UID limits for the domain. If a domain contains
-                            entry that is outside these limits, it is ignored
+                            UID and GID limits for the domain. If a domain
+                            contains an entry that is outside these limits, it
+                            is ignored.
                         </para>
                         <para>
-                            Default: 1000 for min_id, 0 (no limit) for max_id
+                            For users, this affects the primary GID limit. The
+                            user will not be returned to NSS if either the
+                            UID or the primary GID is outside the range. For
+                            non-primary group memberships, those that are in
+                            range will be reported as expected.
+                        </para>
+                        <para>
+                            Default: 1 for min_id, 0 (no limit) for max_id
                         </para>
                     </listitem>
                 </varlistentry>

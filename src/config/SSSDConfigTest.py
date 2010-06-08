@@ -595,7 +595,6 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         options = domain.list_mandatory_options()
         control_list = [
             'cache_credentials',
-            'min_id',
             'id_provider',
             'auth_provider']
 
@@ -989,9 +988,9 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
         domain = SSSDConfig.SSSDDomain('sssd', self.schema)
 
         # Positive test - Remove existing option
-        self.assertTrue('min_id' in domain.get_all_options().keys())
-        domain.remove_option('min_id')
-        self.assertFalse('min_id' in domain.get_all_options().keys())
+        self.assertTrue('cache_credentials' in domain.get_all_options().keys())
+        domain.remove_option('cache_credentials')
+        self.assertFalse('cache_credentials' in domain.get_all_options().keys())
 
         # Positive test - Remove unset but valid option
         self.assertFalse('max_id' in domain.get_all_options().keys())
