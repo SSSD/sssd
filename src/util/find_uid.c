@@ -100,10 +100,15 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         DEBUG(1, ("open failed [%d][%s].\n", errno, strerror(errno)));
         return errno;
     }
-    ret = read(fd, buf, BUFSIZE);
-    if (ret == -1) {
-        DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
-        return errno;
+
+    while ((ret = read(fd, buf, BUFSIZE)) != 0) {
+        if (ret == -1) {
+            if (errno == EINTR || errno == EAGAIN) {
+                continue;
+            }
+            DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
+            return errno;
+        }
     }
 
     ret = close(fd);

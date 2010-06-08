@@ -86,7 +86,7 @@ int backup_file(const char *src_file, int dbglvl)
     while (1) {
         num = read(src_fd, buf, BUFFER_SIZE);
         if (num < 0) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR || errno == EAGAIN) continue;
             ret = errno;
             DEBUG(dbglvl, ("Error (%d [%s]) reading from source %s\n",
                            ret, strerror(ret), src_file));
@@ -101,7 +101,7 @@ int backup_file(const char *src_file, int dbglvl)
             errno = 0;
             num = write(dst_fd, &buf[pos], count);
             if (num < 0) {
-                if (errno == EINTR) continue;
+                if (errno == EINTR || errno == EAGAIN) continue;
                 ret = errno;
                 DEBUG(dbglvl, ("Error (%d [%s]) writing to destination %s\n",
                                ret, strerror(ret), dst_file));

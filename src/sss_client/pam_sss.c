@@ -489,7 +489,7 @@ static errno_t display_pw_reset_message(pam_handle_t *pamh,
     while (total_len < stat_buf.st_size) {
         ret = read(fd, msg_buf + total_len, stat_buf.st_size - total_len);
         if (ret == -1) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR || errno == EAGAIN) continue;
             ret = errno;
             D(("read failed [%d][%s].", ret, strerror(ret)));
             goto done;

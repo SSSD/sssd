@@ -123,6 +123,7 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
             return NSS_STATUS_UNAVAIL;
         }
 
+        errno = 0;
         if (datasent < SSS_NSS_HEADER_SIZE) {
             res = write(sss_cli_sd,
                         (char *)header + datasent,
@@ -133,8 +134,15 @@ static enum nss_status sss_nss_send_req(enum sss_cli_command cmd,
                         (const char *)rd->data + rdsent,
                         rd->len - rdsent);
         }
+        error = errno;
 
         if ((res == -1) || (res == 0)) {
+            if ((error == EINTR) || error == EAGAIN) {
+                /* If the write was interrupted, go back through
+                 * the loop and try again
+                 */
+                continue;
+            }
 
             /* Write failed */
             sss_cli_close_socket();
@@ -217,6 +225,7 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
             return NSS_STATUS_UNAVAIL;
         }
 
+        errno = 0;
         if (datarecv < SSS_NSS_HEADER_SIZE) {
             res = read(sss_cli_sd,
                        (char *)header + datarecv,
@@ -227,8 +236,15 @@ static enum nss_status sss_nss_recv_rep(enum sss_cli_command cmd,
                        (char *)(*buf) + bufrecv,
                        header[0] - datarecv);
         }
+        error = errno;
 
         if ((res == -1) || (res == 0)) {
+            if ((error == EINTR) || error == EAGAIN) {
+                /* If the read was interrupted, go back through
+                 * the loop and try again
+                 */
+                continue;
+            }
 
             /* Read failed.  I think the only useful thing
              * we can do here is just return -1 and fail

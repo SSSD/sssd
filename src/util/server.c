@@ -104,6 +104,10 @@ int pidfile(const char *path, const char *name)
     char *file;
     int fd;
     int ret, err;
+    ssize_t len;
+    ssize_t size;
+    ssize_t written;
+    ssize_t pidlen = sizeof(pid_str - 1);
 
     file = talloc_asprintf(NULL, "%s/%s.pid", path, name);
     if (!file) {
@@ -114,9 +118,30 @@ int pidfile(const char *path, const char *name)
     err = errno;
     if (fd != -1) {
 
-        pid_str[sizeof(pid_str) -1] = '\0';
-        ret = read(fd, pid_str, sizeof(pid_str) -1);
-        if (ret > 0) {
+        pid_str[pidlen] = '\0';
+
+
+        while ((ret = read(fd, pid_str + len, pidlen - len)) != 0) {
+            if (ret == -1) {
+                if (errno == EINTR || errno == EAGAIN) {
+                    continue;
+                }
+                DEBUG(1, ("read failed [%d][%s].\n", errno, strerror(errno)));
+                break;
+            } else if (ret > 0) {
+                len += ret;
+                if (len > pidlen) {
+                    DEBUG(1, ("read too much, this should never happen.\n"));
+                    break;
+                }
+                continue;
+            } else {
+                DEBUG(1, ("unexpected return code of read [%d].\n", ret));
+                break;
+            }
+        }
+
+        if (ret == 0) {
             /* let's check the pid */
 
             pid = (pid_t)atoi(pid_str);
@@ -159,10 +184,25 @@ int pidfile(const char *path, const char *name)
 
     memset(pid_str, 0, sizeof(pid_str));
     snprintf(pid_str, sizeof(pid_str) -1, "%u\n", (unsigned int) getpid());
+    size = strlen(pid_str);
 
-    ret = write(fd, pid_str, strlen(pid_str));
-    err = errno;
-    if (ret != strlen(pid_str)) {
+    written = 0;
+    while (written < size) {
+        ret = write(fd, pid_str+written, size-written);
+        if (ret == -1) {
+            err = errno;
+            if (err == EINTR || err == EAGAIN) {
+                continue;
+            }
+            DEBUG(1, ("write failed [%d][%s]\n", err, strerror(err)));
+            break;
+        }
+        else {
+            written += ret;
+        }
+    }
+
+    if (written != size) {
         close(fd);
         return err;
     }
