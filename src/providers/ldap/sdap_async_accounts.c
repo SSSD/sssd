@@ -1181,6 +1181,7 @@ static struct tevent_req *sdap_initgr_nested_send(TALLOC_CTX *memctx,
         /* user with no groups ? */
         tevent_req_error(req, ENOENT);
         tevent_req_post(req, ev);
+        return req;
     }
     state->count = el->num_values;
 
