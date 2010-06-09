@@ -538,6 +538,10 @@ int directory_list(const char *path, bool recursive,
         error = path_concat(entry_path, sizeof(entry_path),
                             path, entry->d_name);
         if (error != SUCCESS) {
+            closedir(dir);
+            /* Don't bother checking the return here.
+             * The path_concat error is more important
+             */
             return error;
         }
 
@@ -551,6 +555,10 @@ int directory_list(const char *path, bool recursive,
                 error = directory_list(entry_path, recursive,
                                        callback, user_data);
                 if (error != SUCCESS) {
+                    closedir(dir);
+                    /* Don't bother checking the return here.
+                     * The directory_list error is more important
+                     */
                     return error;
                 }
             }
