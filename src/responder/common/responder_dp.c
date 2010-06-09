@@ -155,7 +155,7 @@ static void sss_dp_invoke_callback(struct tevent_context *ev,
         tv = tevent_timeval_current();
         tev = tevent_add_timer(sdp_req->ev, sdp_req, tv,
                                sss_dp_invoke_callback, sdp_req);
-        if (!te) {
+        if (!tev) {
             /* Out of memory or other serious error */
             goto done;
         }
