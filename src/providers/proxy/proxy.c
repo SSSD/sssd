@@ -467,13 +467,9 @@ static void pc_init_timeout(struct tevent_context *ev,
                             struct timeval t, void *ptr)
 {
     struct tevent_req *req;
-    struct pc_init_ctx *state;
 
     DEBUG(2, ("Client timed out before Identification!\n"));
-
     req = talloc_get_type(ptr, struct tevent_req);
-    state = tevent_req_data(req, struct pc_init_ctx);
-
     tevent_req_error(req, ETIMEDOUT);
 }
 
