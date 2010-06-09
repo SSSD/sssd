@@ -67,12 +67,11 @@ void debug_fn(const char *format, ...)
     va_start(ap, format);
 
     ret = vasprintf(&s, format, ap);
+    va_end(ap);
     if (ret < 0) {
         /* ENOMEM */
         return;
     }
-
-    va_end(ap);
 
     fprintf(stderr, DEBUG_KEY "%s", s);
     free(s);

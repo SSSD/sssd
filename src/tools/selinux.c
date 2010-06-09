@@ -116,11 +116,11 @@ static void sss_semanage_error_callback(void *varg,
 
     va_start(ap, fmt);
     ret = vasprintf(&message, fmt, ap);
+    va_end(ap);
     if (ret < 0) {
         /* ENOMEM */
         return;
     }
-    va_end(ap);
 
     if (level <= debug_level) {
         if (debug_timestamps) {
