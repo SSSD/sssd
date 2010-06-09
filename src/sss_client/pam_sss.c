@@ -212,6 +212,7 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
     pi->pamstack_oldauthtok = NULL;
 
     free(pi->domain_name);
+    pi->domain_name = NULL;
 }
 
 static int pack_message_v3(struct pam_items *pi, size_t *size,
