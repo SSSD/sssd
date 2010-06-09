@@ -710,6 +710,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                 DEBUG(4, ("Password reset by root is not supported.\n"));
                 state->pam_status = PAM_PERM_DENIED;
                 state->dp_err = DP_ERR_OK;
+                ret = EOK;
                 goto done;
             }
             break;
