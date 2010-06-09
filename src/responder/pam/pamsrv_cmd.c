@@ -848,6 +848,7 @@ done:
         switch (ret) {
         case ENOENT:
             pd->pam_status = PAM_USER_UNKNOWN;
+            break;
         default:
             pd->pam_status = PAM_SYSTEM_ERR;
         }
