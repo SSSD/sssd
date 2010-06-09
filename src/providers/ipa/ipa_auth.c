@@ -233,6 +233,7 @@ void ipa_auth(struct be_req *be_req)
 {
     struct tevent_req *req;
     struct ipa_auth_state *state;
+    struct pam_data *pd = talloc_get_type(be_req->req_data, struct pam_data);
 
     state = talloc_zero(be_req, struct ipa_auth_state);
     if (state == NULL) {
@@ -246,7 +247,7 @@ void ipa_auth(struct be_req *be_req)
     state->be_req = be_req;
     state->ev = be_req->be_ctx->ev;
 
-    state->pd = talloc_get_type(be_req->req_data, struct pam_data);
+    state->pd = pd;
 
     switch (state->pd->cmd) {
         case SSS_PAM_AUTHENTICATE:
@@ -276,8 +277,9 @@ void ipa_auth(struct be_req *be_req)
     return;
 
 fail:
-    state->pd->pam_status = PAM_SYSTEM_ERR;
-    ipa_auth_reply(be_req, DP_ERR_FATAL, state->pd->pam_status);
+    talloc_free(state);
+    pd->pam_status = PAM_SYSTEM_ERR;
+    ipa_auth_reply(be_req, DP_ERR_FATAL, pd->pam_status);
 }
 
 static void ipa_auth_handler_done(struct tevent_req *req)
