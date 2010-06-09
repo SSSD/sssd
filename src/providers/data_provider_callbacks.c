@@ -99,7 +99,7 @@ static void be_run_cb_step(struct tevent_context *ev, struct tevent_timer *te,
         tev = tevent_add_timer(cb_ctx->be->ev, cb_ctx, soon,
                                be_run_cb_step,
                                cb_ctx);
-        if (!te) {
+        if (!tev) {
             DEBUG(0, ("Out of memory. Could not invoke callbacks\n"));
             goto final;
         }
