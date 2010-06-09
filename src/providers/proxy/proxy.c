@@ -190,11 +190,17 @@ static int proxy_child_destructor(TALLOC_CTX *ctx)
     struct proxy_child_ctx *child_ctx =
             talloc_get_type(ctx, struct proxy_child_ctx);
     hash_key_t key;
+    int hret;
 
     DEBUG(8, ("Removing proxy child id [%d]\n", child_ctx->id));
     key.type = HASH_KEY_ULONG;
     key.ul = child_ctx->id;
-    hash_delete(child_ctx->auth_ctx->request_table, &key);
+    hret = hash_delete(child_ctx->auth_ctx->request_table, &key);
+    if (!(hret == HASH_SUCCESS ||
+          hret == HASH_ERROR_KEY_NOT_FOUND)) {
+        DEBUG(1, ("Hash error [%d][%s]\n", hret, hash_error_string(hret)));
+        /* Nothing we can do about this, so just continue */
+    }
     return 0;
 }
 
