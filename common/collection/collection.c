@@ -230,8 +230,12 @@ int col_allocate_item(struct collection_item **ci, const char *property,
         return ENOMEM;
     }
 
-    /* After we initialize "next" we can use delete_item() in case of error */
+    /* After we initialize members we can use delete_item() in case of error */
     item->next = NULL;
+    item->property = NULL;
+    item->data = NULL;
+    TRACE_INFO_NUMBER("About to set type to:", type);
+    item->type = type;
 
     /* Copy property */
     item->property = strdup(property);
@@ -246,7 +250,6 @@ int col_allocate_item(struct collection_item **ci, const char *property,
     TRACE_INFO_NUMBER("Item property length", item->property_len);
     TRACE_INFO_NUMBER("Item property strlen", strlen(item->property));
 
-
     /* Deal with data */
     item->data = malloc(length);
     if (item->data == NULL) {
@@ -254,11 +257,8 @@ int col_allocate_item(struct collection_item **ci, const char *property,
         col_delete_item(item);
         return ENOMEM;
     }
-    memcpy(item->data, item_data, length);
 
-    /* Deal with other properties of the item */
-    TRACE_INFO_NUMBER("About to set type to:", type);
-    item->type = type;
+    memcpy(item->data, item_data, length);
     item->length = length;
 
     /* Make sure that data is NULL terminated in case of string */
