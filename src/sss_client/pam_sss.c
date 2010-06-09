@@ -279,6 +279,7 @@ static int pack_message_v3(struct pam_items *pi, size_t *size,
 
     if (rp != len) {
         D(("error during packet creation."));
+        free(buf);
         return PAM_BUF_ERR;
     }
 
