@@ -51,6 +51,7 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
     struct tevent_timer *timeout;
     struct tevent_req *req;
     int delay;
+    errno_t ret;
 
     if (be_is_offline(ctx->be)) {
         DEBUG(4, ("Backend is marked offline, retry later!\n"));
@@ -67,7 +68,10 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
         /* schedule starting from now, not the last run */
         delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
         tv = tevent_timeval_current_ofs(delay, 0);
-        ldap_id_cleanup_set_timer(ctx, tv);
+        ret = ldap_id_cleanup_set_timer(ctx, tv);
+        if (ret != EOK) {
+            DEBUG(1, ("Error setting up cleanup timer\n"));
+        }
         return;
     }
     tevent_req_set_callback(req, ldap_id_cleanup_reschedule, ctx);
@@ -78,6 +82,24 @@ static void ldap_id_cleanup_timer(struct tevent_context *ev,
     tv = tevent_timeval_current_ofs(delay, 0);
     timeout = tevent_add_timer(ctx->be->ev, req, tv,
                                ldap_id_cleanup_timeout, req);
+    if (timeout == NULL) {
+        /* If we can't guarantee a timeout, we
+         * need to cancel the request, to avoid
+         * the possibility of starting another
+         * concurrently
+         */
+        talloc_zfree(req);
+
+        DEBUG(1, ("Failed to schedule cleanup, retrying later!\n"));
+        /* schedule starting from now, not the last run */
+        delay = dp_opt_get_int(ctx->opts->basic, SDAP_CACHE_PURGE_TIMEOUT);
+        tv = tevent_timeval_current_ofs(delay, 0);
+        ret = ldap_id_cleanup_set_timer(ctx, tv);
+        if (ret != EOK) {
+            DEBUG(1, ("Error setting up cleanup timer\n"));
+        }
+        return;
+    }
     return;
 }
 
