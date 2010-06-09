@@ -421,7 +421,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 {
     krb5_error_code kerr;
     krb5_error_code kt_err;
-    char *principal;
+    char *principal = NULL;
     krb5_keytab keytab;
     krb5_kt_cursor cursor;
     krb5_keytab_entry entry;
