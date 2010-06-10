@@ -235,6 +235,7 @@ enum nss_status _nss_sss_initgroups_dyn(const char *user, gid_t group,
         *start += 1;
     }
 
+    free(repbuf);
     return NSS_STATUS_SUCCESS;
 }
 
@@ -274,6 +275,7 @@ enum nss_status _nss_sss_getgrnam_r(const char *name, struct group *result,
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
+        free(repbuf);
         return NSS_STATUS_TRYAGAIN;
     }
 
@@ -325,6 +327,7 @@ enum nss_status _nss_sss_getgrgid_r(gid_t gid, struct group *result,
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
+        free(repbuf);
         return NSS_STATUS_TRYAGAIN;
     }
 

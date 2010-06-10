@@ -208,6 +208,7 @@ enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
+        free(repbuf);
         return NSS_STATUS_TRYAGAIN;
     }
 
@@ -259,6 +260,7 @@ enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
     /* only 1 result is accepted for this function */
     if (((uint32_t *)repbuf)[0] != 1) {
         *errnop = EBADMSG;
+        free(repbuf);
         return NSS_STATUS_TRYAGAIN;
     }
 
