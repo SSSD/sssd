@@ -720,6 +720,7 @@ static void group_show_recurse_next(struct tevent_req *subreq)
     struct group_show_recurse *recurse_state = tevent_req_data(req,
                                                       struct group_show_recurse);
     const char **group_members = NULL;
+    const char **gm = NULL;
     int nmembers = 0;
     struct ldb_message *msg = NULL;
     int ret;
@@ -758,8 +759,13 @@ static void group_show_recurse_next(struct tevent_req *subreq)
             tevent_req_error(req, ENOMEM);
             return;
         }
+
         /* to free group_members in the callback */
-        group_members = talloc_move(recurse_req, &group_members);
+        gm = talloc_move(recurse_req, &group_members);
+        if (gm == NULL) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
         tevent_req_set_callback(recurse_req, group_show_recurse_level_done, req);
         return;
     }
