@@ -52,19 +52,6 @@
             </varlistentry>
             <varlistentry>
                 <term>
-                    <option>-g</option>,<option>--gid</option>
-                    <replaceable>GID</replaceable>
-                </term>
-                <listitem>
-                    <para>
-                        Set the GID or group membership of the user to the value
-                        of <replaceable>GID</replaceable>. If not given, it is
-                        chosen automatically.
-                    </para>
-                </listitem>
-            </varlistentry>
-            <varlistentry>
-                <term>
                     <option>-c</option>,<option>--gecos</option>
                     <replaceable>COMMENT</replaceable>
                 </term>

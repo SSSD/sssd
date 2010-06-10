@@ -32,76 +32,9 @@
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
 
-static void get_gid_callback(void *ptr, int error, struct ldb_result *res)
-{
-    struct tools_ctx *tctx = talloc_get_type(ptr, struct tools_ctx);
-
-    if (error) {
-        tctx->error = error;
-        return;
-    }
-
-    switch (res->count) {
-    case 0:
-        tctx->error = ENOENT;
-        break;
-
-    case 1:
-        tctx->octx->gid = ldb_msg_find_attr_as_uint(res->msgs[0], SYSDB_GIDNUM, 0);
-        if (tctx->octx->gid == 0) {
-            tctx->error = ERANGE;
-        }
-        break;
-
-    default:
-        tctx->error = EFAULT;
-        break;
-    }
-}
-
-/* Returns a gid for a given groupname. If a numerical gid
- * is given, returns that as integer (rationale: shadow-utils)
- * On error, returns -EINVAL
- */
-static int get_gid(struct tools_ctx *tctx, const char *groupname)
-{
-    char *end_ptr;
-    int ret;
-
-    errno = 0;
-    tctx->octx->gid = strtoul(groupname, &end_ptr, 10);
-    if (groupname == '\0' || *end_ptr != '\0' ||
-        errno != 0 || tctx->octx->gid == 0) {
-        /* Does not look like a gid - find the group name */
-
-        ret = sysdb_getgrnam(tctx->octx, tctx->sysdb,
-                             tctx->octx->domain, groupname,
-                             get_gid_callback, tctx);
-        if (ret != EOK) {
-            DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
-            goto done;
-        }
-
-        tctx->error = EOK;
-        tctx->octx->gid = 0;
-        while ((tctx->error == EOK) && (tctx->octx->gid == 0)) {
-            tevent_loop_once(tctx->ev);
-        }
-
-        if (tctx->error) {
-            DEBUG(1, ("sysdb_getgrnam failed: %d\n", ret));
-            goto done;
-        }
-    }
-
-done:
-    return ret;
-}
-
 int main(int argc, const char **argv)
 {
     uid_t pc_uid = 0;
-    const char *pc_group = NULL;
     const char *pc_gecos = NULL;
     const char *pc_home = NULL;
     char *pc_shell = NULL;
@@ -114,7 +47,6 @@ int main(int argc, const char **argv)
         POPT_AUTOHELP
         { "debug", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN, &pc_debug, 0, _("The debug level to run with"), NULL },
         { "uid",   'u', POPT_ARG_INT, &pc_uid, 0, _("The UID of the user"), NULL },
-        { "gid",   'g', POPT_ARG_STRING, &pc_group, 0, _("The GID or group name of the user"), NULL },
         { "gecos", 'c', POPT_ARG_STRING, &pc_gecos, 0, _("The comment string"), NULL },
         { "home",  'h', POPT_ARG_STRING, &pc_home, 0, _("Home directory"), NULL },
         { "shell", 's', POPT_ARG_STRING, &pc_shell, 0, _("Login shell"), NULL },
@@ -225,16 +157,6 @@ int main(int argc, const char **argv)
         }
     }
 
-    /* Same as shadow-utils useradd, -g can specify gid or group name */
-    if (pc_group != NULL) {
-        ret = get_gid(tctx, pc_group);
-        if (ret != EOK) {
-            ERROR("Cannot get group information for the user\n");
-            ret = EXIT_FAILURE;
-            goto fini;
-        }
-    }
-
     tctx->octx->uid = pc_uid;
 
     /*
@@ -284,9 +206,9 @@ int main(int argc, const char **argv)
 
     /* Create user's home directory and/or mail spool */
     if (tctx->octx->create_homedir) {
-        /* We need to know the UID and GID of the user, if
+        /* We need to know the UID of the user, if
          * sysdb did assign it automatically, do a lookup */
-        if (tctx->octx->uid == 0 || tctx->octx->gid == 0) {
+        if (tctx->octx->uid == 0) {
             ret = sysdb_getpwnam_sync(tctx,
                                       tctx->ev,
                                       tctx->sysdb,
