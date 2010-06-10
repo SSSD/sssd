@@ -103,7 +103,6 @@ option_strings = {
     'krb5_store_password_if_offline' : _("Store password if offline for later online authentication"),
 
     # [provider/krb5/chpass]
-    'krb5_changepw_principal' : _('The principal of the change password service'),
     'krb5_kpasswd' : _('Server where the change password service is running if not on the KDC'),
 
     # [provider/ldap]

@@ -90,21 +90,6 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>krb5_changepw_principal (string)</term>
-                    <listitem>
-                        <para>
-                            The priciple of the change password service.
-                            If only the 'identifier/instance' part of the
-                            principal are given the realm part is added
-                            automatically.
-                        </para>
-                        <para>
-                            Default: kadmin/changepw
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>krb5_kpasswd (string)</term>
                     <listitem>
                         <para>
