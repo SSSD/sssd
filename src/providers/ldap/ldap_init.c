@@ -242,19 +242,20 @@ int sssm_ldap_access_init(struct be_ctx *bectx,
                   "but no ldap_access_filter configured. "
                   "All domain users will be denied access.\n"));
     }
-
-    if (filter[0] == '(') {
-        /* This filter is wrapped in parentheses.
-         * Pass it as-is to the openldap libraries.
-         */
-        access_ctx->filter = filter;
-    }
     else {
-        /* Add parentheses around the filter */
-        access_ctx->filter = talloc_asprintf(access_ctx, "(%s)", filter);
-        if (access_ctx->filter == NULL) {
-            ret = ENOMEM;
-            goto done;
+        if (filter[0] == '(') {
+            /* This filter is wrapped in parentheses.
+             * Pass it as-is to the openldap libraries.
+             */
+            access_ctx->filter = filter;
+        }
+        else {
+            /* Add parentheses around the filter */
+            access_ctx->filter = talloc_asprintf(access_ctx, "(%s)", filter);
+            if (access_ctx->filter == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
         }
     }
 
