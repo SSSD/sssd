@@ -162,6 +162,8 @@ static char **get_str_cfg_array(struct collection_item *item,
 
     if (error) *error = EOK;
     if (size) *size = count;
+    /* If count is 0 the copy needs to be freed */
+    if (count == 0) free(copy);
     TRACE_FLOW_STRING("get_str_cfg_array", "Exit");
     return array;
 }

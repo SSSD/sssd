@@ -1205,6 +1205,48 @@ int get_test(void)
 
     /***************************************/
 
+    COLOUT(printf("Get empty array item\n"));
+
+    item = NULL;
+    error = get_config_item("domains/EXAMPLE.COM",
+                            "empty_value",
+                            ini_config,
+                            &item);
+    if(error) {
+        printf("Expected success but got error! %d\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    /* Item should be found */
+    if (item == NULL) {
+        printf("Expected success but got NULL.\n");
+        free_ini_config(ini_config);
+        return -1;
+    }
+
+    COLOUT(col_debug_item(item));
+
+    error = 0;
+    size = 0; /* Here size is not optional!!! */
+    strarray = get_string_config_array(item, ",", &size, &error);
+    if(error) {
+        printf("Expect success got error %d.\n", error);
+        free_ini_config(ini_config);
+        return error;
+    }
+
+    if (size != 0) {
+        for (i=0; i<size; i++) printf("%s\n", *(strarray + i));
+        printf("Expected size=0, got size=%d\n", size);
+        free_string_config_array(strarray);
+        free_ini_config(ini_config);
+        return -1;
+    }
+
+
+    free_string_config_array(strarray);
+
     free_ini_config(ini_config);
     COLOUT(printf("Done with get test!\n"));
     return EOK;
