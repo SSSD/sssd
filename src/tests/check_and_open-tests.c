@@ -98,7 +98,7 @@ START_TEST(test_symlink)
                                                            ret);
 
     ret = symlink(filename, newpath);
-    fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(ret));
+    fail_unless(ret == 0, "symlink failed [%d][%s]", ret, strerror(errno));
 
     ret = check_file(newpath, uid, gid, mode, CHECK_REG, NULL);
     unlink(newpath);
