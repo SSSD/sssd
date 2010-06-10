@@ -197,7 +197,7 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
 {
     DIR *proc_dir = NULL;
     struct dirent *dirent;
-    int ret;
+    int ret, err;
     pid_t pid = -1;
     uid_t uid;
 
@@ -250,14 +250,14 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     }
     if (errno != 0 && dirent == NULL) {
         ret = errno;
-        DEBUG(1 ,("readdir failed.\n"));
+        DEBUG(1, ("readdir failed.\n"));
         goto done;
     }
 
     ret = closedir(proc_dir);
     proc_dir = NULL;
     if (ret == -1) {
-        DEBUG(1 ,("closedir failed, watch out.\n"));
+        DEBUG(1, ("closedir failed, watch out.\n"));
     }
 
     if (table != NULL) {
@@ -267,7 +267,12 @@ static errno_t get_active_uid_linux(hash_table_t *table, uid_t search_uid)
     }
 
 done:
-    if (proc_dir != NULL) closedir(proc_dir);
+    if (proc_dir != NULL) {
+        err = closedir(proc_dir);
+        if (err) {
+            DEBUG(1, ("closedir failed, bad dirp?\n"));
+        }
+    }
     return ret;
 }
 
