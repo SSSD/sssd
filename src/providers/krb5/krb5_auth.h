@@ -33,7 +33,6 @@
 #include "providers/krb5/krb5_common.h"
 
 #define CCACHE_ENV_NAME "KRB5CCNAME"
-#define SSSD_KRB5_CHANGEPW_PRINCIPLE "SSSD_KRB5_CHANGEPW_PRINCIPLE"
 
 #define ILLEGAL_PATH_PATTERN "//|/\\./|/\\.\\./"
 

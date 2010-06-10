@@ -36,7 +36,6 @@ struct dp_option default_krb5_opts[] = {
     { "krb5_realm", DP_OPT_STRING, NULL_STRING, NULL_STRING },
     { "krb5_ccachedir", DP_OPT_STRING, { "/tmp" }, NULL_STRING },
     { "krb5_ccname_template", DP_OPT_STRING, { "FILE:%d/krb5cc_%U_XXXXXX" }, NULL_STRING},
-    { "krb5_changepw_principal", DP_OPT_STRING, { "kadmin/changepw" }, NULL_STRING },
     { "krb5_auth_timeout", DP_OPT_NUMBER, { .number = 15 }, NULL_NUMBER },
     { "krb5_keytab", DP_OPT_STRING, { "/etc/krb5.keytab" }, NULL_STRING },
     { "krb5_validate", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
@@ -48,7 +47,6 @@ errno_t check_and_export_options(struct dp_option *opts,
                                  struct sss_domain_info *dom)
 {
     int ret;
-    char *value;
     const char *realm;
     const char *dummy;
 
@@ -88,31 +86,6 @@ errno_t check_and_export_options(struct dp_option *opts,
         DEBUG(1, ("Currently only file based credential caches are supported "
                   "and krb5ccname_template must start with '/' or 'FILE:'\n"));
         return EINVAL;
-    }
-
-    dummy = dp_opt_get_cstring(opts, KRB5_CHANGEPW_PRINC);
-    if (dummy == NULL) {
-        DEBUG(1, ("Missing change password principle.\n"));
-        return EINVAL;
-    }
-    if (strchr(dummy, '@') == NULL) {
-        value = talloc_asprintf(opts, "%s@%s", dummy, realm);
-        if (value == NULL) {
-            DEBUG(7, ("talloc_asprintf failed.\n"));
-            return ENOMEM;
-        }
-        ret = dp_opt_set_string(opts, KRB5_CHANGEPW_PRINC, value);
-        if (ret != EOK) {
-            DEBUG(1, ("dp_opt_set_string failed.\n"));
-            return ret;
-        }
-        dummy = value;
-    }
-
-    ret = setenv(SSSD_KRB5_CHANGEPW_PRINCIPLE, dummy, 1);
-    if (ret != EOK) {
-        DEBUG(2, ("setenv %s failed, password change might fail.\n",
-                  SSSD_KRB5_CHANGEPW_PRINCIPLE));
     }
 
     return EOK;

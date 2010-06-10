@@ -739,8 +739,7 @@ class SSSDConfigTestSSSDDomain(unittest.TestCase):
 
         #Test looking up all provider values
         options = domain.list_provider_options('krb5')
-        control_list.extend(['krb5_changepw_principal',
-                             'krb5_kpasswd'])
+        control_list.extend(['krb5_kpasswd'])
 
         self.assertTrue(type(options) == dict,
                         "Options should be a dictionary")

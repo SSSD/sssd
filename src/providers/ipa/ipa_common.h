@@ -40,7 +40,7 @@ struct ipa_service {
 /* the following define is used to keep track of the options in the krb5
  * module, so that if they change and ipa is not updated correspondingly
  * this will trigger a runtime abort error */
-#define IPA_KRB5_OPTS_TEST 10
+#define IPA_KRB5_OPTS_TEST 9
 
 enum ipa_basic_opt {
     IPA_DOMAIN = 0,
