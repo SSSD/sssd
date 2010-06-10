@@ -219,19 +219,24 @@ static int ini_to_collection(FILE *file,
             break;
 
         case RET_ERROR:
-            pe.line = line;
-            pe.error = ext_err;
-            error = col_add_binary_property(*error_list, NULL,
-                                            ERROR_TXT, &pe, sizeof(pe));
-            if (error) {
-                TRACE_ERROR_NUMBER("Failed to add error to collection", error);
-                col_destroy_collection(current_section);
-                if (created) {
-                    col_destroy_collection(*error_list);
-                    *error_list = NULL;
+            /* Try to add to the error list only if it is present */
+            if (error_list) {
+                pe.line = line;
+                pe.error = ext_err;
+                error = col_add_binary_property(*error_list, NULL,
+                                                ERROR_TXT, &pe, sizeof(pe));
+                if (error) {
+                    TRACE_ERROR_NUMBER("Failed to add error to collection",
+                                       error);
+                    col_destroy_collection(current_section);
+                    if (created) {
+                        col_destroy_collection(*error_list);
+                        *error_list = NULL;
+                    }
+                    return error;
                 }
-                return error;
             }
+
             /* Exit if there was an error parsing file */
             if (error_level != INI_STOP_ON_NONE) {
                 TRACE_ERROR_STRING("Invalid format of the file", "");
@@ -242,19 +247,24 @@ static int ini_to_collection(FILE *file,
 
         case RET_INVALID:
         default:
-            pe.line = line;
-            pe.error = ext_err;
-            error = col_add_binary_property(*error_list, NULL,
-                                            WARNING_TXT, &pe, sizeof(pe));
-            if (error) {
-                TRACE_ERROR_NUMBER("Failed to add warning to collection", error);
-                col_destroy_collection(current_section);
-                if (created) {
-                    col_destroy_collection(*error_list);
-                    *error_list = NULL;
+            /* Try to add to the error list only if it is present */
+            if (error_list) {
+                pe.line = line;
+                pe.error = ext_err;
+                error = col_add_binary_property(*error_list, NULL,
+                                                WARNING_TXT, &pe, sizeof(pe));
+                if (error) {
+                    TRACE_ERROR_NUMBER("Failed to add warning to collection",
+                                       error);
+                    col_destroy_collection(current_section);
+                    if (created) {
+                        col_destroy_collection(*error_list);
+                        *error_list = NULL;
+                    }
+                    return error;
                 }
-                return error;
             }
+
             /* Exit if we are told to exit on warnings */
             if (error_level == INI_STOP_ON_ANY) {
                 TRACE_ERROR_STRING("Invalid format of the file", "");
