@@ -75,23 +75,6 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         return EINVAL;
     }
 
-    ret = lstat(path, &stat_buf);
-    if (ret == -1) {
-        error = errno;
-        if (error == ENOENT) {
-            DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
-                      path));
-            return EOK;
-        }
-        DEBUG(1, ("lstat failed [%d][%s].\n", error, strerror(error)));
-        return error;
-    }
-
-    if (!S_ISREG(stat_buf.st_mode)) {
-        DEBUG(1, ("not a regular file\n"));
-        return EINVAL;
-    }
-
     fd = open(path, O_RDONLY);
     if (fd == -1) {
         error = errno;
@@ -102,6 +85,23 @@ static errno_t get_uid_from_pid(const pid_t pid, uid_t *uid)
         }
         DEBUG(1, ("open failed [%d][%s].\n", error, strerror(error)));
         return error;
+    }
+
+    ret = fstat(fd, &stat_buf);
+    if (ret == -1) {
+        error = errno;
+        if (error == ENOENT) {
+            DEBUG(7, ("Proc file [%s] is not available anymore, continuing.\n",
+                      path));
+            return EOK;
+        }
+        DEBUG(1, ("fstat failed [%d][%s].\n", error, strerror(error)));
+        return error;
+    }
+
+    if (!S_ISREG(stat_buf.st_mode)) {
+        DEBUG(1, ("not a regular file\n"));
+        return EINVAL;
     }
 
     while ((ret = read(fd, buf, BUFSIZE)) != 0) {
