@@ -467,7 +467,8 @@ static int set_unix_socket(struct resp_ctx *rctx)
 
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, rctx->sock_name, sizeof(addr.sun_path));
+        strncpy(addr.sun_path, rctx->sock_name, sizeof(addr.sun_path)-1);
+        addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
 
         /* make sure we have no old sockets around */
         unlink(rctx->sock_name);
@@ -504,7 +505,8 @@ static int set_unix_socket(struct resp_ctx *rctx)
 
         memset(&addr, 0, sizeof(addr));
         addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, rctx->priv_sock_name, sizeof(addr.sun_path));
+        strncpy(addr.sun_path, rctx->priv_sock_name, sizeof(addr.sun_path)-1);
+        addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
 
         unlink(rctx->priv_sock_name);
 
