@@ -136,6 +136,10 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krb5_creds my_creds;
     krb5_get_init_creds_opt options;
     krb5_error_code krberr;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+    char *principal;
+    bool found;
     int ret;
 
     krberr = krb5_init_context(&context);
@@ -200,8 +204,57 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         krberr = krb5_kt_default(context, &keytab);
     }
     if (krberr) {
-        DEBUG(2, ("Failed to read keytab file: %s\n",
+        DEBUG(0, ("Failed to read keytab file: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
+
+        ret = EFAULT;
+        goto done;
+    }
+
+    /* Verify the keytab */
+    krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
+    if (krberr) {
+        DEBUG(0, ("Cannot read keytab [%s].\n", keytab_name));
+
+        sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
+                             "Unable to create GSSAPI-encrypted LDAP connection.",
+                             keytab_name, krberr,
+                             sss_krb5_get_error_message(context, krberr));
+
+        ret = EFAULT;
+        goto done;
+    }
+
+    found = false;
+    while((ret = krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0){
+        krb5_unparse_name(context, entry.principal, &principal);
+        if (strcmp(full_princ, principal) == 0) {
+            found = true;
+        }
+        free(principal);
+        krb5_free_keytab_entry_contents(context, &entry);
+
+        if (found) {
+            break;
+        }
+    }
+    krberr = krb5_kt_end_seq_get(context, keytab, &cursor);
+    if (krberr) {
+        DEBUG(0, ("Could not close keytab.\n"));
+        sss_log(SSS_LOG_ERR, "Could not close keytab file [%s].",
+                             keytab_name);
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (!found) {
+        DEBUG(0, ("Principal [%s] not found in keytab [%s]\n",
+                  full_princ, keytab_name));
+        sss_log(SSS_LOG_ERR, "Error processing keytab file [%s]: "
+                             "Principal [%s] was not found. "
+                             "Unable to create GSSAPI-encrypted LDAP connection.",
+                             keytab_name, full_princ);
+
         ret = EFAULT;
         goto done;
     }
@@ -232,8 +285,11 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                         keytab, 0, NULL, &options);
 
     if (krberr) {
-        DEBUG(2, ("Failed to init credentials: %s\n",
+        DEBUG(0, ("Failed to init credentials: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
+        sss_log(SSS_LOG_ERR, "Failed to initialize credentials using keytab [%s]: %s. "
+                             "Unable to create GSSAPI-encrypted LDAP connection.",
+                             keytab_name, sss_krb5_get_error_message(context, krberr));
         ret = EFAULT;
         goto done;
     }
