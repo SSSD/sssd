@@ -92,7 +92,7 @@ errno_t check_and_export_options(struct dp_option *opts,
 
     dummy = dp_opt_get_cstring(opts, KRB5_CHANGEPW_PRINC);
     if (dummy == NULL) {
-        DEBUG(1, ("Missing change password principle.\n"));
+        DEBUG(1, ("Missing change password principal.\n"));
         return EINVAL;
     }
     if (strchr(dummy, '@') == NULL) {
@@ -109,10 +109,10 @@ errno_t check_and_export_options(struct dp_option *opts,
         dummy = value;
     }
 
-    ret = setenv(SSSD_KRB5_CHANGEPW_PRINCIPLE, dummy, 1);
+    ret = setenv(SSSD_KRB5_CHANGEPW_PRINCIPAL, dummy, 1);
     if (ret != EOK) {
         DEBUG(2, ("setenv %s failed, password change might fail.\n",
-                  SSSD_KRB5_CHANGEPW_PRINCIPLE));
+                  SSSD_KRB5_CHANGEPW_PRINCIPAL));
     }
 
     return EOK;
