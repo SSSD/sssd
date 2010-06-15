@@ -36,7 +36,7 @@
 #include "providers/krb5/krb5_auth.h"
 #include "providers/krb5/krb5_utils.h"
 
-#define SSSD_KRB5_CHANGEPW_PRINCIPLE "kadmin/changepw"
+#define SSSD_KRB5_CHANGEPW_PRINCIPAL "kadmin/changepw"
 
 struct krb5_child_ctx {
     /* opts taken from kinit */
@@ -583,7 +583,7 @@ static errno_t changepw_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
-    changepw_princ = talloc_asprintf(kr, "%s@%s", SSSD_KRB5_CHANGEPW_PRINCIPLE,
+    changepw_princ = talloc_asprintf(kr, "%s@%s", SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                                   kr->krb5_ctx->realm);
     if (changepw_princ == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));
@@ -723,7 +723,7 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
         goto sendresponse;
     }
 
-    changepw_princ = talloc_asprintf(kr, "%s@%s", SSSD_KRB5_CHANGEPW_PRINCIPLE,
+    changepw_princ = talloc_asprintf(kr, "%s@%s", SSSD_KRB5_CHANGEPW_PRINCIPAL,
                                                   kr->krb5_ctx->realm);
     if (changepw_princ == NULL) {
         DEBUG(1, ("talloc_asprintf failed.\n"));

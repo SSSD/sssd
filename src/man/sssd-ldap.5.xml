@@ -257,7 +257,7 @@
                     <listitem>
                         <para>
                             The LDAP attribute that contains the user's Kerberos
-                            User Principle Name (UPN).
+                            User Principal Name (UPN).
                         </para>
                         <para>
                             Default: krbPrincipalName

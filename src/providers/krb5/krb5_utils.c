@@ -90,7 +90,7 @@ char *expand_ccname_template(TALLOC_CTX *mem_ctx, struct krb5child_req *kr,
                 break;
             case 'p':
                 if (kr->upn == NULL) {
-                    DEBUG(1, ("Cannot expand user principle name template "
+                    DEBUG(1, ("Cannot expand user principal name template "
                               "because upn is empty.\n"));
                     return NULL;
                 }

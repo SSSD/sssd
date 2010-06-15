@@ -208,7 +208,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
         goto fail;
     }
     if (el->num_values == 0) {
-        DEBUG(7, ("User principle is not available for [%s].\n", name));
+        DEBUG(7, ("User principal is not available for [%s].\n", name));
     } else {
         upn = talloc_strdup(user_attrs, (const char*) el->values[0].data);
         if (!upn) {
@@ -218,7 +218,7 @@ static int sdap_save_user(TALLOC_CTX *memctx,
         if (dp_opt_get_bool(opts->basic, SDAP_FORCE_UPPER_CASE_REALM)) {
             make_realm_upper_case(upn);
         }
-        DEBUG(7, ("Adding user principle [%s] to attributes of [%s].\n",
+        DEBUG(7, ("Adding user principal [%s] to attributes of [%s].\n",
                   upn, name));
         ret = sysdb_attrs_add_string(user_attrs, SYSDB_UPN, upn);
         if (ret) {

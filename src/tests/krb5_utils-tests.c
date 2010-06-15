@@ -37,7 +37,7 @@
 
 #define USERNAME "testuser"
 #define UID "12345"
-#define PRINCIPLE_NAME "testuser@EXAMPLE.COM"
+#define PRINCIPAL_NAME "testuser@EXAMPLE.COM"
 #define REALM "REALM.ORG"
 #define HOME_DIRECTORY "/home/testuser"
 #define CCACHE_DIR "/var/tmp"
@@ -379,7 +379,7 @@ void setup_talloc_context(void)
 
     pd->user = discard_const(USERNAME);
     kr->uid = atoi(UID);
-    kr->upn = PRINCIPLE_NAME;
+    kr->upn = PRINCIPAL_NAME;
     pd->cli_pid = atoi(PID);
 
     krb5_ctx->opts = talloc_zero_array(tmp_ctx, struct dp_option, KRB5_OPTS);
@@ -457,8 +457,8 @@ END_TEST
 
 START_TEST(test_upn)
 {
-    do_test(BASE"_%p", CCACHE_DIR, BASE"_"PRINCIPLE_NAME, false);
-    do_test("%d/"FILENAME, BASE"_%p", BASE"_"PRINCIPLE_NAME"/"FILENAME, true);
+    do_test(BASE"_%p", CCACHE_DIR, BASE"_"PRINCIPAL_NAME, false);
+    do_test("%d/"FILENAME, BASE"_%p", BASE"_"PRINCIPAL_NAME"/"FILENAME, true);
 }
 END_TEST
 
