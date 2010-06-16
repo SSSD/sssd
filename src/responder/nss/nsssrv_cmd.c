@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include <time.h>
@@ -220,7 +221,7 @@ static int fill_pwent(struct sss_packet *packet,
         }
 
         if (filter_users) {
-            ncret = nss_ncache_check_user(nctx->ncache,
+            ncret = sss_ncache_check_user(nctx->ncache,
                                         nctx->neg_timeout,
                                         domain, name);
             if (ncret == EEXIST) {
@@ -528,7 +529,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
 
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+        ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                     dom->name, name);
 
         /* if neg cached, return we didn't find it */
@@ -570,7 +571,7 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for getpwnam call\n"));
 
             /* set negative cache only if not result of cache check */
-            ret = nss_ncache_set_user(nctx->ncache, false, dom->name, name);
+            ret = sss_ncache_set_user(nctx->ncache, false, dom->name, name);
             if (ret != EOK) {
                 return ret;
             }
@@ -791,7 +792,7 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for getpwuid call\n"));
 
             /* set negative cache only if not result of cache check */
-            ret = nss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+            ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
             if (ret != EOK) {
                 return ret;
             }
@@ -900,7 +901,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     }
     cmdctx->id = *((uint32_t *)body);
 
-    ret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
+    ret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
     if (ret == EEXIST) {
         DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
                   (unsigned long)cmdctx->id));
@@ -1360,7 +1361,7 @@ static int fill_grent(struct sss_packet *packet,
         }
 
         if (filter_groups) {
-            ret = nss_ncache_check_group(nctx->ncache,
+            ret = sss_ncache_check_group(nctx->ncache,
                                          nctx->neg_timeout, domain, name);
             if (ret == EEXIST) {
                 DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
@@ -1437,7 +1438,7 @@ static int fill_grent(struct sss_packet *packet,
                 name = (const char *)el->values[j].data;
 
                 if (nctx->filter_users_in_groups) {
-                    ret = nss_ncache_check_user(nctx->ncache,
+                    ret = sss_ncache_check_user(nctx->ncache,
                                                 nctx->neg_timeout,
                                                 domain, name);
                     if (ret == EEXIST) {
@@ -1602,7 +1603,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
 
         /* verify this group has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
+        ret = sss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
                                      dom->name, name);
 
         /* if neg cached, return we didn't find it */
@@ -1644,7 +1645,7 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for getgrnam call\n"));
 
             /* set negative cache only if not result of cache check */
-            ret = nss_ncache_set_group(nctx->ncache, false, dom->name, name);
+            ret = sss_ncache_set_group(nctx->ncache, false, dom->name, name);
             if (ret != EOK) {
                 return ret;
             }
@@ -1865,7 +1866,7 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for getgrgid call\n"));
 
             /* set negative cache only if not result of cache check */
-            ret = nss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+            ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
             if (ret != EOK) {
                 return ret;
             }
@@ -1974,7 +1975,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     }
     cmdctx->id = *((uint32_t *)body);
 
-    ret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
+    ret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout, cmdctx->id);
     if (ret == EEXIST) {
         DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
                   (unsigned long)cmdctx->id));
@@ -2451,7 +2452,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         /* verify this user has not yet been negatively cached,
         * or has been permanently filtered */
-        ret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+        ret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                     dom->name, name);
 
         /* if neg cached, return we didn't find it */
@@ -2488,7 +2489,7 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
             DEBUG(2, ("No results for initgroups call\n"));
 
             /* set negative cache only if not result of cache check */
-            ret = nss_ncache_set_user(nctx->ncache, false, dom->name, name);
+            ret = sss_ncache_set_user(nctx->ncache, false, dom->name, name);
             if (ret != EOK) {
                 return ret;
             }
