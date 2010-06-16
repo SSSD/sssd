@@ -1054,6 +1054,8 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'domain/IPA',
             'domain/LOCAL',
             'domain/LDAP',
+            'domain/INVALIDPROVIDER',
+            'domain/INVALIDOPTION',
             ]
 
         for section in control_list:
@@ -1192,6 +1194,11 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
         # Negative Test - No such service
         self.assertRaises(SSSDConfig.NoServiceError, sssdconfig.get_service, 'nosuchservice')
 
+        # Positive test - Service with invalid option loads
+        # but ignores the invalid option
+        service = sssdconfig.get_service('pam')
+        self.assertFalse(service.options.has_key('nosuchoption'))
+
     def testNewService(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
                                            srcdir + "/etc/sssd.api.d")
@@ -1276,7 +1283,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         control_list = [
             'PROXY',
-            'LDAP']
+            'LDAP',
+            'INVALIDPROVIDER',
+            'INVALIDOPTION',
+            ]
         inactive_domains = sssdconfig.list_inactive_domains()
 
         for domain in control_list:
@@ -1302,7 +1312,10 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'IPA',
             'LOCAL',
             'PROXY',
-            'LDAP']
+            'LDAP',
+            'INVALIDPROVIDER',
+            'INVALIDOPTION',
+            ]
         domains = sssdconfig.list_domains()
 
         for domain in control_list:
@@ -1336,6 +1349,18 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
 
         # Negative Test - No such domain
         self.assertRaises(SSSDConfig.NoDomainError, sssdconfig.get_domain, 'nosuchdomain')
+
+        # Positive Test - Domain with unknown provider
+        # Expected result: Domain is imported, but does not contain the
+        # unknown provider entry
+        domain = sssdconfig.get_domain('INVALIDPROVIDER')
+        self.assertFalse(domain.options.has_key('chpass_provider'))
+
+        # Positive Test - Domain with unknown option
+        # Expected result: Domain is imported, but does not contain the
+        # unknown option entry
+        domain = sssdconfig.get_domain('INVALIDOPTION')
+        self.assertFalse(domain.options.has_key('nosuchoption'))
 
     def testNewDomain(self):
         sssdconfig = SSSDConfig.SSSDConfig(srcdir + "/etc/sssd.api.conf",
