@@ -20,6 +20,7 @@
 */
 
 #include "util/util.h"
+#include "confdb/confdb.h"
 #include <fcntl.h>
 #include <time.h>
 #include "tdb.h"
@@ -318,4 +319,210 @@ int sss_ncache_reset_permament(struct sss_nc_ctx *ctx)
         return EIO;
 
     return EOK;
+}
+
+errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
+                               struct confdb_ctx *cdb,
+                               struct sss_names_ctx *names_ctx,
+                               struct sss_domain_info *domain_list)
+{
+    errno_t ret;
+    bool filter_set = false;
+    char **filter_list = NULL;
+    char *name = NULL;
+    struct sss_domain_info *dom = NULL;
+    char *domainname = NULL;
+    char *conf_path = NULL;
+    TALLOC_CTX *tmpctx = talloc_new(NULL);
+    int i;
+
+    /* Populate domain-specific negative cache entries */
+    for (dom = domain_list; dom; dom = dom->next) {
+        conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL,
+                                    dom->name);
+        if (!conf_path) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        talloc_zfree(filter_list);
+        ret = confdb_get_string_as_list(cdb, tmpctx, conf_path,
+                                        CONFDB_NSS_FILTER_USERS,
+                                        &filter_list);
+        if (ret == ENOENT) continue;
+        if (ret != EOK) goto done;
+        filter_set = true;
+
+        for (i = 0; (filter_list && filter_list[i]); i++) {
+            ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
+                                 &domainname, &name);
+            if (ret != EOK) {
+                DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
+                         filter_list[i], ret));
+                continue;
+            }
+
+            if (domainname && strcmp(domainname, dom->name)) {
+                DEBUG(1, ("Mismatch between domain name (%s) and name "
+                          "set in FQN  (%s), skipping user %s\n",
+                          dom->name, domainname, name));
+                continue;
+            }
+
+            ret = sss_ncache_set_user(ncache, true, dom->name, name);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to store permanent user filter for [%s]"
+                          " (%d [%s])\n", filter_list[i],
+                          ret, strerror(ret)));
+                continue;
+            }
+        }
+    }
+
+    ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_FILTER_USERS, &filter_list);
+    if (ret == ENOENT) {
+        if (!filter_set) {
+            filter_list = talloc_array(tmpctx, char *, 2);
+            if (!filter_list) {
+                ret = ENOMEM;
+                goto done;
+            }
+            filter_list[0] = talloc_strdup(tmpctx, "root");
+            if (!filter_list[0]) {
+                ret = ENOMEM;
+                goto done;
+            }
+            filter_list[1] = NULL;
+        }
+        ret = EOK;
+    }
+    else if (ret != EOK) goto done;
+
+    for (i = 0; (filter_list && filter_list[i]); i++) {
+        ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
+                             &domainname, &name);
+        if (ret != EOK) {
+            DEBUG(1, ("Invalid name in filterUsers list: [%s] (%d)\n",
+                     filter_list[i], ret));
+            continue;
+        }
+        if (domainname) {
+            ret = sss_ncache_set_user(ncache, true, domainname, name);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to store permanent user filter for [%s]"
+                          " (%d [%s])\n", filter_list[i],
+                          ret, strerror(ret)));
+                continue;
+            }
+        } else {
+            for (dom = domain_list; dom; dom = dom->next) {
+                ret = sss_ncache_set_user(ncache, true, dom->name, name);
+                if (ret != EOK) {
+                   DEBUG(1, ("Failed to store permanent user filter for"
+                             " [%s:%s] (%d [%s])\n",
+                             dom->name, filter_list[i],
+                             ret, strerror(ret)));
+                    continue;
+                }
+            }
+        }
+    }
+
+    filter_set = false;
+    for (dom = domain_list; dom; dom = dom->next) {
+        conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL, dom->name);
+        if (!conf_path) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        talloc_zfree(filter_list);
+        ret = confdb_get_string_as_list(cdb, tmpctx, conf_path,
+                                        CONFDB_NSS_FILTER_GROUPS, &filter_list);
+        if (ret == ENOENT) continue;
+        if (ret != EOK) goto done;
+        filter_set = true;
+
+        for (i = 0; (filter_list && filter_list[i]); i++) {
+            ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
+                                 &domainname, &name);
+            if (ret != EOK) {
+                DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
+                         filter_list[i], ret));
+                continue;
+            }
+
+            if (domainname && strcmp(domainname, dom->name)) {
+                DEBUG(1, ("Mismatch betwen domain name (%s) and name "
+                          "set in FQN  (%s), skipping group %s\n",
+                          dom->name, domainname, name));
+                continue;
+            }
+
+            ret = sss_ncache_set_group(ncache, true, dom->name, name);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to store permanent group filter for [%s]"
+                          " (%d [%s])\n", filter_list[i],
+                          ret, strerror(ret)));
+                continue;
+            }
+        }
+    }
+
+    ret = confdb_get_string_as_list(cdb, tmpctx, CONFDB_NSS_CONF_ENTRY,
+                                    CONFDB_NSS_FILTER_GROUPS, &filter_list);
+    if (ret == ENOENT) {
+        if (!filter_set) {
+            filter_list = talloc_array(tmpctx, char *, 2);
+            if (!filter_list) {
+                ret = ENOMEM;
+                goto done;
+            }
+            filter_list[0] = talloc_strdup(tmpctx, "root");
+            if (!filter_list[0]) {
+                ret = ENOMEM;
+                goto done;
+            }
+            filter_list[1] = NULL;
+        }
+        ret = EOK;
+    }
+    else if (ret != EOK) goto done;
+
+    for (i = 0; (filter_list && filter_list[i]); i++) {
+        ret = sss_parse_name(tmpctx, names_ctx, filter_list[i],
+                             &domainname, &name);
+        if (ret != EOK) {
+            DEBUG(1, ("Invalid name in filterGroups list: [%s] (%d)\n",
+                     filter_list[i], ret));
+            continue;
+        }
+        if (domainname) {
+            ret = sss_ncache_set_group(ncache, true, domainname, name);
+            if (ret != EOK) {
+                DEBUG(1, ("Failed to store permanent group filter for"
+                          " [%s] (%d [%s])\n", filter_list[i],
+                          ret, strerror(ret)));
+                continue;
+            }
+        } else {
+            for (dom = domain_list; dom; dom = dom->next) {
+                ret = sss_ncache_set_group(ncache, true, dom->name, name);
+                if (ret != EOK) {
+                   DEBUG(1, ("Failed to store permanent group filter for"
+                             " [%s:%s] (%d [%s])\n",
+                             dom->name, filter_list[i],
+                             ret, strerror(ret)));
+                    continue;
+                }
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmpctx);
+    return ret;
 }
