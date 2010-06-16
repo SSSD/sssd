@@ -27,7 +27,6 @@ class SSSDConfigTestValid(unittest.TestCase):
         self.assertTrue('sssd' in services)
         self.assertTrue('nss' in services)
         self.assertTrue('pam' in services)
-        self.assertTrue('dp' in services)
 
         #Verify service attributes
         sssd_service = sssdconfig.get_service('sssd')
@@ -1049,7 +1048,6 @@ class SSSDConfigTestSSSDConfig(unittest.TestCase):
             'sssd',
             'nss',
             'pam',
-            'dp',
             'domain/PROXY',
             'domain/IPA',
             'domain/LOCAL',
