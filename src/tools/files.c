@@ -110,7 +110,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     struct dirent direntp;
     struct stat statres;
     DIR *rootdir = NULL;
-    int ret;
+    int ret, err;
 
     rootdir = opendir(root);
     if (rootdir == NULL) {
@@ -174,6 +174,7 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
     }
 
     ret = closedir(rootdir);
+    rootdir = NULL;
     if (ret != 0) {
         ret = errno;
         goto fail;
@@ -185,7 +186,15 @@ static int remove_tree_with_ctx(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+    ret = EOK;
+
 fail:
+    if (rootdir) {  /* clean up on abnormal exit but retain return code */
+        err = closedir(rootdir);
+        if (err) {
+            DEBUG(1, ("closedir failed, bad dirp?\n"));
+        }
+    }
     return ret;
 }
 
