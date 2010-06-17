@@ -33,6 +33,8 @@ typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
 
 struct pam_ctx {
     struct resp_ctx *rctx;
+    struct sss_nc_ctx *ncache;
+    int neg_timeout;
 };
 
 struct pam_auth_req {
