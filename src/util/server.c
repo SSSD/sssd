@@ -120,7 +120,7 @@ int pidfile(const char *path, const char *name)
 
         pid_str[pidlen] = '\0';
 
-
+        len = 0;
         while ((ret = read(fd, pid_str + len, pidlen - len)) != 0) {
             if (ret == -1) {
                 if (errno == EINTR || errno == EAGAIN) {
