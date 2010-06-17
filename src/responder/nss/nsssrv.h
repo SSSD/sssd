@@ -32,7 +32,6 @@
 #include "sbus/sssd_dbus.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
-#include "responder/nss/nsssrv_nc.h"
 
 #define NSS_SBUS_SERVICE_VERSION 0x0001
 #define NSS_SBUS_SERVICE_NAME "nss"
@@ -45,7 +44,7 @@ struct nss_ctx {
     struct resp_ctx *rctx;
 
     int neg_timeout;
-    struct nss_nc_ctx *ncache;
+    struct sss_nc_ctx *ncache;
 
     int cache_refresh_percent;
 

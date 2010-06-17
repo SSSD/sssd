@@ -33,7 +33,7 @@
 #include "popt.h"
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
-#include "responder/nss/nsssrv_nc.h"
+#include "responder/common/negcache.h"
 #include "db/sysdb.h"
 #include "confdb/confdb.h"
 #include "dbus/dbus.h"
@@ -135,7 +135,7 @@ static int nss_get_config(struct nss_ctx *nctx,
                 continue;
             }
 
-            ret = nss_ncache_set_user(nctx->ncache, true, dom->name, name);
+            ret = sss_ncache_set_user(nctx->ncache, true, dom->name, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
@@ -174,7 +174,7 @@ static int nss_get_config(struct nss_ctx *nctx,
             continue;
         }
         if (domain) {
-            ret = nss_ncache_set_user(nctx->ncache, true, domain, name);
+            ret = sss_ncache_set_user(nctx->ncache, true, domain, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent user filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
@@ -183,7 +183,7 @@ static int nss_get_config(struct nss_ctx *nctx,
             }
         } else {
             for (dom = rctx->domains; dom; dom = dom->next) {
-                ret = nss_ncache_set_user(nctx->ncache, true, dom->name, name);
+                ret = sss_ncache_set_user(nctx->ncache, true, dom->name, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent user filter for"
                              " [%s:%s] (%d [%s])\n",
@@ -226,7 +226,7 @@ static int nss_get_config(struct nss_ctx *nctx,
                 continue;
             }
 
-            ret = nss_ncache_set_group(nctx->ncache, true, dom->name, name);
+            ret = sss_ncache_set_group(nctx->ncache, true, dom->name, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent group filter for [%s]"
                           " (%d [%s])\n", filter_list[i],
@@ -265,7 +265,7 @@ static int nss_get_config(struct nss_ctx *nctx,
             continue;
         }
         if (domain) {
-            ret = nss_ncache_set_group(nctx->ncache, true, domain, name);
+            ret = sss_ncache_set_group(nctx->ncache, true, domain, name);
             if (ret != EOK) {
                 DEBUG(1, ("Failed to store permanent group filter for"
                           " [%s] (%d [%s])\n", filter_list[i],
@@ -274,7 +274,7 @@ static int nss_get_config(struct nss_ctx *nctx,
             }
         } else {
             for (dom = rctx->domains; dom; dom = dom->next) {
-                ret = nss_ncache_set_group(nctx->ncache, true, dom->name, name);
+                ret = sss_ncache_set_group(nctx->ncache, true, dom->name, name);
                 if (ret != EOK) {
                    DEBUG(1, ("Failed to store permanent group filter for"
                              " [%s:%s] (%d [%s])\n",
@@ -351,7 +351,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    ret = nss_ncache_init(nctx, &nctx->ncache);
+    ret = sss_ncache_init(nctx, &nctx->ncache);
     if (ret != EOK) {
         DEBUG(0, ("fatal error initializing negative cache\n"));
         return ret;

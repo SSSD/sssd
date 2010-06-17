@@ -21,6 +21,7 @@
 
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include <time.h>
@@ -164,7 +165,7 @@ static int fill_pwent(struct sss_packet *packet,
         }
 
         if (filter_users) {
-            ncret = nss_ncache_check_user(nctx->ncache,
+            ncret = sss_ncache_check_user(nctx->ncache,
                                         nctx->neg_timeout,
                                         domain, name);
             if (ncret == EEXIST) {
@@ -448,7 +449,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
                 if (dom->fqnames) continue;
 
-                ncret = nss_ncache_check_user(nctx->ncache,
+                ncret = sss_ncache_check_user(nctx->ncache,
                                               nctx->neg_timeout,
                                               dom->name, cmdctx->name);
                 if (ncret == ENOENT) break;
@@ -500,7 +501,7 @@ static void nss_cmd_getpwnam_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_user(nctx->ncache, false,
+            ret = sss_ncache_set_user(nctx->ncache, false,
                                       dctx->domain->name, cmdctx->name);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
@@ -662,7 +663,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+        ncret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                       dctx->domain->name, cmdctx->name);
         if (ncret == EEXIST) {
             neghit = true;
@@ -676,7 +677,7 @@ static int nss_cmd_getpwnam(struct cli_ctx *cctx)
 
             /* verify this user has not yet been negatively cached,
             * or has been permanently filtered */
-            ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+            ncret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                           dom->name, cmdctx->name);
             if (ncret == ENOENT) break;
 
@@ -795,7 +796,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
             ret = EOK;
 
             dom = dctx->domain->next;
-            ncret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
+            ncret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
                                              cmdctx->id);
             if (ncret == EEXIST) {
                 DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
@@ -839,7 +840,7 @@ static void nss_cmd_getpwuid_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
+            ret = sss_ncache_set_uid(nctx->ncache, false, cmdctx->id);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
@@ -982,7 +983,7 @@ static int nss_cmd_getpwuid(struct cli_ctx *cctx)
     for (dom = cctx->rctx->domains; dom; dom = dom->next) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ncret = nss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
+        ncret = sss_ncache_check_uid(nctx->ncache, nctx->neg_timeout,
                                      cmdctx->id);
         if (ncret == EEXIST) {
             DEBUG(3, ("Uid [%lu] does not exist! (negative cache)\n",
@@ -1542,7 +1543,7 @@ static int fill_grent(struct sss_packet *packet,
         }
 
         if (filter_groups) {
-            ret = nss_ncache_check_group(nctx->ncache,
+            ret = sss_ncache_check_group(nctx->ncache,
                                          nctx->neg_timeout, domain, name);
             if (ret == EEXIST) {
                 DEBUG(4, ("Group [%s@%s] filtered out! (negative cache)\n",
@@ -1619,7 +1620,7 @@ static int fill_grent(struct sss_packet *packet,
                 name = (const char *)el->values[j].data;
 
                 if (nctx->filter_users_in_groups) {
-                    ret = nss_ncache_check_user(nctx->ncache,
+                    ret = sss_ncache_check_user(nctx->ncache,
                                                 nctx->neg_timeout,
                                                 domain, name);
                     if (ret == EEXIST) {
@@ -1764,7 +1765,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
                 if (dom->fqnames) continue;
 
-                ncret = nss_ncache_check_group(nctx->ncache,
+                ncret = sss_ncache_check_group(nctx->ncache,
                                                nctx->neg_timeout,
                                                dom->name, cmdctx->name);
                 if (ncret == ENOENT) break;
@@ -1817,7 +1818,7 @@ static void nss_cmd_getgrnam_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_group(nctx->ncache, false,
+            ret = sss_ncache_set_group(nctx->ncache, false,
                                        dctx->domain->name, cmdctx->name);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
@@ -1972,7 +1973,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ncret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
+        ncret = sss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
                                        dctx->domain->name, cmdctx->name);
         if (ncret == EEXIST) {
             neghit = true;
@@ -1986,7 +1987,7 @@ static int nss_cmd_getgrnam(struct cli_ctx *cctx)
 
             /* verify this user has not yet been negatively cached,
              * or has been permanently filtered */
-            ncret = nss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
+            ncret = sss_ncache_check_group(nctx->ncache, nctx->neg_timeout,
                                            dom->name, cmdctx->name);
             if (ncret == ENOENT) break;
 
@@ -2106,7 +2107,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
             dom = dctx->domain->next;
 
-            ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
+            ncret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
                                          cmdctx->id);
             if (ncret == EEXIST) {
                 DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
@@ -2150,7 +2151,7 @@ static void nss_cmd_getgrgid_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
+            ret = sss_ncache_set_gid(nctx->ncache, false, cmdctx->id);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
             }
@@ -2285,7 +2286,7 @@ static int nss_cmd_getgrgid(struct cli_ctx *cctx)
     for (dom = cctx->rctx->domains; dom; dom = dom->next) {
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ncret = nss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
+        ncret = sss_ncache_check_gid(nctx->ncache, nctx->neg_timeout,
                                      cmdctx->id);
         if (ncret == EEXIST) {
             DEBUG(3, ("Gid [%lu] does not exist! (negative cache)\n",
@@ -2846,7 +2847,7 @@ static void nss_cmd_getinitgr_callback(void *ptr, int status,
 
                 if (dom->fqnames) continue;
 
-                ncret = nss_ncache_check_user(nctx->ncache,
+                ncret = sss_ncache_check_user(nctx->ncache,
                                               nctx->neg_timeout,
                                               dom->name, cmdctx->name);
                 if (ncret == ENOENT) break;
@@ -2898,7 +2899,7 @@ static void nss_cmd_getinitgr_callback(void *ptr, int status,
 
         /* set negative cache only if not result of cache check */
         if (!neghit) {
-            ret = nss_ncache_set_user(nctx->ncache, false,
+            ret = sss_ncache_set_user(nctx->ncache, false,
                                       dctx->domain->name, cmdctx->name);
             if (ret != EOK) {
                 NSS_CMD_FATAL_ERROR(cctx);
@@ -3048,7 +3049,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 
         /* verify this user has not yet been negatively cached,
          * or has been permanently filtered */
-        ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+        ncret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                     domname, cmdctx->name);
         if (ncret == EEXIST) {
             neghit = true;
@@ -3062,7 +3063,7 @@ static int nss_cmd_initgroups(struct cli_ctx *cctx)
 
             /* verify this user has not yet been negatively cached,
             * or has been permanently filtered */
-            ncret = nss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
+            ncret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
                                           dom->name, cmdctx->name);
             if (ncret == ENOENT) break;
 

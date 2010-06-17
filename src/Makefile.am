@@ -245,6 +245,7 @@ SSSD_UTIL_OBJ = \
     $(SSSD_DEBUG_OBJ)
 
 SSSD_RESPONDER_OBJ = \
+    responder/common/negcache.c \
     responder/common/responder_cmd.c \
     responder/common/responder_common.c \
     responder/common/responder_dp.c \
@@ -329,7 +330,7 @@ dist_noinst_HEADERS = \
     responder/common/responder_packet.h \
     responder/pam/pamsrv.h \
     responder/nss/nsssrv.h \
-    responder/nss/nsssrv_nc.h \
+    responder/common/negcache.h \
     sbus/sbus_client.h \
     sbus/sssd_dbus.h \
     sbus/sssd_dbus_private.h \
@@ -380,7 +381,6 @@ sssd_LDADD = \
 sssd_nss_SOURCES = \
     responder/nss/nsssrv.c \
     responder/nss/nsssrv_cmd.c \
-    responder/nss/nsssrv_nc.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \
@@ -395,6 +395,7 @@ sssd_pam_SOURCES = \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_pam_LDADD = \
+    $(TDB_LIBS) \
     $(SSSD_LIBS)
 
 sssd_be_SOURCES = \

@@ -30,7 +30,7 @@
 #define NC_UID_PREFIX NC_ENTRY_PREFIX"UID"
 #define NC_GID_PREFIX NC_ENTRY_PREFIX"GID"
 
-struct nss_nc_ctx {
+struct sss_nc_ctx {
     struct tdb_context *tdb;
 };
 
@@ -44,11 +44,11 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
     return EOK;
 }
 
-int nss_ncache_init(TALLOC_CTX *memctx, struct nss_nc_ctx **_ctx)
+int sss_ncache_init(TALLOC_CTX *memctx, struct sss_nc_ctx **_ctx)
 {
-    struct nss_nc_ctx *ctx;
+    struct sss_nc_ctx *ctx;
 
-    ctx = talloc_zero(memctx, struct nss_nc_ctx);
+    ctx = talloc_zero(memctx, struct sss_nc_ctx);
     if (!ctx) return ENOMEM;
 
     errno = 0;
@@ -60,7 +60,7 @@ int nss_ncache_init(TALLOC_CTX *memctx, struct nss_nc_ctx **_ctx)
     return EOK;
 };
 
-static int nss_ncache_check_str(struct nss_nc_ctx *ctx, char *str, int ttl)
+static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str, int ttl)
 {
     TDB_DATA key;
     TDB_DATA data;
@@ -117,7 +117,7 @@ done:
     return ret;
 }
 
-static int nss_ncache_set_str(struct nss_nc_ctx *ctx,
+static int sss_ncache_set_str(struct sss_nc_ctx *ctx,
                               char *str, bool permanent)
 {
     TDB_DATA key;
@@ -151,7 +151,7 @@ done:
     return ret;
 }
 
-int nss_ncache_check_user(struct nss_nc_ctx *ctx, int ttl,
+int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
                           const char *domain, const char *name)
 {
     char *str;
@@ -162,13 +162,13 @@ int nss_ncache_check_user(struct nss_nc_ctx *ctx, int ttl,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str, ttl);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_check_group(struct nss_nc_ctx *ctx, int ttl,
+int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
                            const char *domain, const char *name)
 {
     char *str;
@@ -179,13 +179,13 @@ int nss_ncache_check_group(struct nss_nc_ctx *ctx, int ttl,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str, ttl);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_check_uid(struct nss_nc_ctx *ctx, int ttl, uid_t uid)
+int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
 {
     char *str;
     int ret;
@@ -193,13 +193,13 @@ int nss_ncache_check_uid(struct nss_nc_ctx *ctx, int ttl, uid_t uid)
     str = talloc_asprintf(ctx, "%s/%u", NC_UID_PREFIX, uid);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str, ttl);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_check_gid(struct nss_nc_ctx *ctx, int ttl, gid_t gid)
+int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid)
 {
     char *str;
     int ret;
@@ -207,13 +207,13 @@ int nss_ncache_check_gid(struct nss_nc_ctx *ctx, int ttl, gid_t gid)
     str = talloc_asprintf(ctx, "%s/%u", NC_GID_PREFIX, gid);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_check_str(ctx, str, ttl);
+    ret = sss_ncache_check_str(ctx, str, ttl);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_user(struct nss_nc_ctx *ctx, bool permanent,
+int sss_ncache_set_user(struct sss_nc_ctx *ctx, bool permanent,
                         const char *domain, const char *name)
 {
     char *str;
@@ -224,13 +224,13 @@ int nss_ncache_set_user(struct nss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_USER_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str, permanent);
+    ret = sss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_group(struct nss_nc_ctx *ctx, bool permanent,
+int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,
                         const char *domain, const char *name)
 {
     char *str;
@@ -241,13 +241,13 @@ int nss_ncache_set_group(struct nss_nc_ctx *ctx, bool permanent,
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str, permanent);
+    ret = sss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_uid(struct nss_nc_ctx *ctx, bool permanent, uid_t uid)
+int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid)
 {
     char *str;
     int ret;
@@ -255,13 +255,13 @@ int nss_ncache_set_uid(struct nss_nc_ctx *ctx, bool permanent, uid_t uid)
     str = talloc_asprintf(ctx, "%s/%u", NC_UID_PREFIX, uid);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str, permanent);
+    ret = sss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
 }
 
-int nss_ncache_set_gid(struct nss_nc_ctx *ctx, bool permanent, gid_t gid)
+int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid)
 {
     char *str;
     int ret;
@@ -269,7 +269,7 @@ int nss_ncache_set_gid(struct nss_nc_ctx *ctx, bool permanent, gid_t gid)
     str = talloc_asprintf(ctx, "%s/%u", NC_GID_PREFIX, gid);
     if (!str) return ENOMEM;
 
-    ret = nss_ncache_set_str(ctx, str, permanent);
+    ret = sss_ncache_set_str(ctx, str, permanent);
 
     talloc_free(str);
     return ret;
@@ -309,7 +309,7 @@ done:
     return 0;
 }
 
-int nss_ncache_reset_permament(struct nss_nc_ctx *ctx)
+int sss_ncache_reset_permament(struct sss_nc_ctx *ctx)
 {
     int ret;
 
