@@ -26,6 +26,7 @@
 #include "confdb/confdb.h"
 #include "responder/common/responder_packet.h"
 #include "responder/common/responder.h"
+#include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
 #include "db/sysdb.h"
@@ -732,6 +733,9 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
     size_t blen;
     int timeout;
     int ret;
+    errno_t ncret;
+    struct pam_ctx *pctx =
+            talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
     uint32_t terminator = SSS_END_OF_PAM_REQUEST;
     preq = talloc_zero(cctx, struct pam_auth_req);
     if (!preq) {
@@ -792,13 +796,19 @@ static int pam_forwarder(struct cli_ctx *cctx, int pam_cmd)
         for (dom = preq->cctx->rctx->domains; dom; dom = dom->next) {
             if (dom->fqnames) continue;
 
-/* FIXME: need to support negative cache */
-#if HAVE_NEG_CACHE
-            ncret = sss_ncache_check_user(nctx->ncache, nctx->neg_timeout,
-                                          dom->name, cmdctx->name);
-            if (ncret == ENOENT) break;
-#endif
-            break;
+            ncret = sss_ncache_check_user(pctx->ncache, pctx->neg_timeout,
+                                          dom->name, pd->user);
+            if (ncret == ENOENT) {
+                /* User not found in the negative cache
+                 * Proceed with PAM actions
+                 */
+                break;
+            }
+
+            /* Try the next domain */
+            DEBUG(4, ("User [%s@%s] filtered out (negative cache). "
+                      "Trying next domain.\n",
+                      pd->user, dom->name));
         }
         if (!dom) {
             ret = ENOENT;

@@ -42,6 +42,7 @@
 #include "monitor/monitor_interfaces.h"
 #include "sbus/sbus_client.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/common/negcache.h"
 
 #define SSS_PAM_SBUS_SERVICE_VERSION 0x0001
 #define SSS_PAM_SBUS_SERVICE_NAME "pam"
@@ -136,7 +137,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                            "PAM", &pam_dp_interface,
                            &pctx->rctx);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     pctx->rctx->pvt_ctx = pctx;
@@ -150,7 +151,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                          CONFDB_SERVICE_RECON_RETRIES, 3, &max_retries);
     if (ret != EOK) {
         DEBUG(0, ("Failed to set up automatic reconnection\n"));
-        return ret;
+        goto done;
     }
 
     for (iter = pctx->rctx->be_conns; iter; iter = iter->next) {
@@ -158,7 +159,31 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                             pam_dp_reconnect_init, iter);
     }
 
-    return EOK;
+    /* Set up the negative cache */
+    ret = confdb_get_int(cdb, pctx, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_TIMEOUT, 15,
+                         &pctx->neg_timeout);
+    if (ret != EOK) goto done;
+
+    ret = sss_ncache_init(pctx, &pctx->ncache);
+    if (ret != EOK) {
+        DEBUG(0, ("fatal error initializing negative cache\n"));
+        goto done;
+    }
+
+    ret = sss_ncache_prepopulate(pctx->ncache, cdb, pctx->rctx->names,
+                                 pctx->rctx->domains);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(pctx);
+    }
+    return ret;
 }
 
 int main(int argc, const char *argv[])
