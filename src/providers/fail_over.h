@@ -100,6 +100,11 @@ int fo_get_service(struct fo_ctx *ctx,
                    struct fo_service **_service);
 
 /*
+ * Get number of servers registered for the 'service'.
+ */
+int fo_get_server_count(struct fo_service *service);
+
+/*
  * Adds a server 'name' to the 'service'. Port 'port' will be used for
  * connection. If 'name' is NULL, no server resolution will be done.
  */

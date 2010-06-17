@@ -277,6 +277,27 @@ int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
     return EOK;
 }
 
+int be_fo_get_server_count(struct be_ctx *ctx, const char *service_name)
+{
+    struct be_svc_data *svc_data;
+
+    if (!ctx->be_fo) {
+        return 0;
+    }
+
+    DLIST_FOR_EACH(svc_data, ctx->be_fo->svcs) {
+        if (strcmp(svc_data->name, service_name) == 0) {
+            break;
+        }
+    }
+
+    if (!svc_data) {
+        return 0;
+    }
+
+    return fo_get_server_count(svc_data->fo_service);
+}
+
 int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
                      const char *server, int port, void *user_data)
 {

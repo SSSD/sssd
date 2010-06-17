@@ -165,6 +165,7 @@ int be_fo_add_service(struct be_ctx *ctx, const char *service_name);
 int be_fo_service_add_callback(TALLOC_CTX *memctx,
                                struct be_ctx *ctx, const char *service_name,
                                be_svc_callback_fn_t *fn, void *private_data);
+int be_fo_get_server_count(struct be_ctx *ctx, const char *service_name);
 int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
                          const char *query_service, const char *proto,
                          void *user_data);

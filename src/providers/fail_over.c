@@ -585,6 +585,19 @@ create_fo_server(struct fo_service *service, const char *name,
 }
 
 int
+fo_get_server_count(struct fo_service *service)
+{
+    struct fo_server *server;
+    int count = 0;
+
+    DLIST_FOR_EACH(server, service->server_list) {
+        count++;
+    }
+
+    return count;
+}
+
+int
 fo_add_server(struct fo_service *service, const char *name, int port,
               void *user_data)
 {
