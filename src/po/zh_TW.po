@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sss_daemon 1.1.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-05-24 14:51-0400\n"
+"POT-Creation-Date: 2010-06-18 14:09-0400\n"
 "PO-Revision-Date: 2010-03-22 22:00+0800\n"
 "Last-Translator: Cheng-Chia Tseng <pswo10680@gmail.com>\n"
 "Language-Team: Fedora-trans-zh_tw <trans-zh_tw@lists.fedoraproject.org>\n"
@@ -194,11 +194,11 @@ msgstr ""
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
 
-#: config/SSSDConfig.py:94 config/SSSDConfig.py:123
+#: config/SSSDConfig.py:94 config/SSSDConfig.py:122
 msgid "Kerberos server address"
 msgstr "Kerberos 伺服器位址"
 
-#: config/SSSDConfig.py:95 config/SSSDConfig.py:124
+#: config/SSSDConfig.py:95 config/SSSDConfig.py:123
 msgid "Kerberos realm"
 msgstr ""
 
@@ -227,193 +227,189 @@ msgid "Store password if offline for later online authentication"
 msgstr ""
 
 #: config/SSSDConfig.py:106
-msgid "The principal of the change password service"
-msgstr "變更密碼的服務其原則"
-
-#: config/SSSDConfig.py:107
 msgid "Server where the change password service is running if not on the KDC"
 msgstr ""
 
-#: config/SSSDConfig.py:110
+#: config/SSSDConfig.py:109
 msgid "ldap_uri, The URI of the LDAP server"
 msgstr ""
 
-#: config/SSSDConfig.py:111
+#: config/SSSDConfig.py:110
 msgid "The default base DN"
 msgstr ""
 
-#: config/SSSDConfig.py:112
+#: config/SSSDConfig.py:111
 msgid "The Schema Type in use on the LDAP server, rfc2307"
 msgstr ""
 
-#: config/SSSDConfig.py:113
+#: config/SSSDConfig.py:112
 msgid "The default bind DN"
 msgstr ""
 
-#: config/SSSDConfig.py:114
+#: config/SSSDConfig.py:113
 msgid "The type of the authentication token of the default bind DN"
 msgstr ""
 
-#: config/SSSDConfig.py:115
+#: config/SSSDConfig.py:114
 msgid "The authentication token of the default bind DN"
 msgstr ""
 
-#: config/SSSDConfig.py:116
+#: config/SSSDConfig.py:115
 msgid "Length of time to attempt connection"
 msgstr ""
 
-#: config/SSSDConfig.py:117
+#: config/SSSDConfig.py:116
 msgid "Length of time to attempt synchronous LDAP operations"
 msgstr ""
 
-#: config/SSSDConfig.py:118
+#: config/SSSDConfig.py:117
 #, fuzzy
 msgid "File that contains CA certificates"
 msgstr "含有 CA 憑證的檔案"
 
-#: config/SSSDConfig.py:119
+#: config/SSSDConfig.py:118
 msgid "Path to CA certificate directory"
 msgstr ""
 
-#: config/SSSDConfig.py:120
+#: config/SSSDConfig.py:119
 msgid "Require TLS certificate verification"
 msgstr "需要 TLS 憑證驗證"
 
-#: config/SSSDConfig.py:121
+#: config/SSSDConfig.py:120
 msgid "Specify the sasl mechanism to use"
 msgstr "指定要使用的 sasl 機制"
 
-#: config/SSSDConfig.py:122
+#: config/SSSDConfig.py:121
 msgid "Specify the sasl authorization id to use"
 msgstr "指定要使用的 sasl 認證 id"
 
-#: config/SSSDConfig.py:125
+#: config/SSSDConfig.py:124
 msgid "Kerberos service keytab"
 msgstr ""
 
-#: config/SSSDConfig.py:126
+#: config/SSSDConfig.py:125
 msgid "Use Kerberos auth for LDAP connection"
 msgstr ""
 
-#: config/SSSDConfig.py:127
+#: config/SSSDConfig.py:126
 msgid "Follow LDAP referrals"
 msgstr ""
 
-#: config/SSSDConfig.py:128
+#: config/SSSDConfig.py:127
 msgid "Lifetime of TGT for LDAP connection"
 msgstr ""
 
-#: config/SSSDConfig.py:131
+#: config/SSSDConfig.py:130
 msgid "Length of time to wait for a search request"
 msgstr "搜尋請求的等候時間長度"
 
-#: config/SSSDConfig.py:132
+#: config/SSSDConfig.py:131
 #, fuzzy
 msgid "Length of time between enumeration updates"
 msgstr "在列舉更新之間的長度"
 
-#: config/SSSDConfig.py:133
+#: config/SSSDConfig.py:132
 msgid "Require TLS for ID lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:134
+#: config/SSSDConfig.py:133
 msgid "Base DN for user lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:135
+#: config/SSSDConfig.py:134
 msgid "Scope of user lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:136
+#: config/SSSDConfig.py:135
 msgid "Filter for user lookups"
 msgstr ""
 
-#: config/SSSDConfig.py:137
+#: config/SSSDConfig.py:136
 msgid "Objectclass for users"
 msgstr ""
 
-#: config/SSSDConfig.py:138
+#: config/SSSDConfig.py:137
 msgid "Username attribute"
 msgstr ""
 
-#: config/SSSDConfig.py:139
+#: config/SSSDConfig.py:138
 #, fuzzy
 msgid "UID attribute"
 msgstr "UID 屬性"
 
-#: config/SSSDConfig.py:140
+#: config/SSSDConfig.py:139
 #, fuzzy
 msgid "Primary GID attribute"
 msgstr "主要 GID 屬性"
 
-#: config/SSSDConfig.py:141
+#: config/SSSDConfig.py:140
 #, fuzzy
 msgid "GECOS attribute"
 msgstr "GEOS 屬性"
 
-#: config/SSSDConfig.py:142
+#: config/SSSDConfig.py:141
 #, fuzzy
 msgid "Home directory attribute"
 msgstr "家目錄屬性"
 
-#: config/SSSDConfig.py:143
+#: config/SSSDConfig.py:142
 #, fuzzy
 msgid "Shell attribute"
 msgstr "Shell 屬性"
 
-#: config/SSSDConfig.py:144
+#: config/SSSDConfig.py:143
 #, fuzzy
 msgid "UUID attribute"
 msgstr "UUID 屬性"
 
-#: config/SSSDConfig.py:145
+#: config/SSSDConfig.py:144
 #, fuzzy
 msgid "User principal attribute (for Kerberos)"
 msgstr "使用者原則屬性（供 Kerberos 使用）"
 
-#: config/SSSDConfig.py:146
+#: config/SSSDConfig.py:145
 msgid "Full Name"
 msgstr "全名"
 
-#: config/SSSDConfig.py:147
+#: config/SSSDConfig.py:146
 msgid "memberOf attribute"
 msgstr ""
 
-#: config/SSSDConfig.py:148
+#: config/SSSDConfig.py:147
 #, fuzzy
 msgid "Modification time attribute"
 msgstr "修改時間屬性"
 
-#: config/SSSDConfig.py:151
+#: config/SSSDConfig.py:150
 msgid "Policy to evaluate the password expiration"
 msgstr "評估密碼過期時效的策略"
 
-#: config/SSSDConfig.py:154
+#: config/SSSDConfig.py:153
 msgid "LDAP filter to determine access privileges"
 msgstr ""
 
-#: config/SSSDConfig.py:157
+#: config/SSSDConfig.py:156
 msgid "Comma separated list of allowed users"
 msgstr "許可的使用者清單，請使用半形逗號作為分隔"
 
-#: config/SSSDConfig.py:158
+#: config/SSSDConfig.py:157
 msgid "Comma separated list of prohibited users"
 msgstr "被禁止的使用者清單，請使用半形逗號作為分隔"
 
-#: config/SSSDConfig.py:161
+#: config/SSSDConfig.py:160
 msgid "Default shell, /bin/bash"
 msgstr "預設 shell，/bin/bash"
 
-#: config/SSSDConfig.py:162
+#: config/SSSDConfig.py:161
 #, fuzzy
 msgid "Base for home directories"
 msgstr "家目錄的基礎"
 
-#: config/SSSDConfig.py:165
+#: config/SSSDConfig.py:164
 msgid "The name of the NSS library to use"
 msgstr "要使用的 NSS 函式庫名稱"
 
-#: config/SSSDConfig.py:168
+#: config/SSSDConfig.py:167
 msgid "PAM stack to use"
 msgstr "要使用的 PAM 堆疊"
 
@@ -471,226 +467,218 @@ msgstr "供除錯日誌使用的開啟檔案描述符"
 msgid "Domain of the information provider (mandatory)"
 msgstr "資訊提供者的網域（委任）"
 
-#: sss_client/common.c:727
+#: sss_client/common.c:743
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: sss_client/common.c:730
+#: sss_client/common.c:746
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: sss_client/common.c:733
+#: sss_client/common.c:749
 #, fuzzy
 msgid "Unexpected format of the server credential message."
 msgstr "使用者憑證快取的位置"
 
-#: sss_client/common.c:736
+#: sss_client/common.c:752
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: sss_client/common.c:741
+#: sss_client/common.c:757
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: sss_client/common.c:747
+#: sss_client/common.c:763
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
-#: sss_client/pam_sss.c:370
+#: sss_client/pam_sss.c:372
 msgid "Passwords do not match"
 msgstr "密碼不相符"
 
-#: sss_client/pam_sss.c:554
+#: sss_client/pam_sss.c:556
 msgid "Password reset by root is not supported."
 msgstr ""
 
-#: sss_client/pam_sss.c:595
+#: sss_client/pam_sss.c:597
 msgid "Authenticated with cached credentials"
 msgstr ""
 
-#: sss_client/pam_sss.c:596
+#: sss_client/pam_sss.c:598
 msgid ", your cached password will expire at: "
 msgstr "，您快取的密碼將在此刻過期："
 
-#: sss_client/pam_sss.c:626
+#: sss_client/pam_sss.c:628
 #, c-format
 msgid "Your password has expired. You have %d grace login(s) remaining."
 msgstr ""
 
-#: sss_client/pam_sss.c:672
+#: sss_client/pam_sss.c:674
 #, fuzzy, c-format
 msgid "Your password will expire in %d %s."
 msgstr "，您快取的密碼將在此刻過期："
 
-#: sss_client/pam_sss.c:721
+#: sss_client/pam_sss.c:723
 #, fuzzy
 msgid "Authentication is denied until: "
 msgstr "離線認證，認證被定義到："
 
-#: sss_client/pam_sss.c:748
+#: sss_client/pam_sss.c:750
 msgid "System is offline, password change not possible"
 msgstr "系統已離線，不可能作密碼變更"
 
-#: sss_client/pam_sss.c:778 sss_client/pam_sss.c:791
+#: sss_client/pam_sss.c:780 sss_client/pam_sss.c:793
 msgid "Password change failed. "
 msgstr "密碼變更失敗。"
 
-#: sss_client/pam_sss.c:781 sss_client/pam_sss.c:792
+#: sss_client/pam_sss.c:783 sss_client/pam_sss.c:794
 msgid "Server message: "
 msgstr "伺服器訊息："
 
-#: sss_client/pam_sss.c:1195
+#: sss_client/pam_sss.c:1197
 msgid "New Password: "
 msgstr "新密碼："
 
-#: sss_client/pam_sss.c:1196
+#: sss_client/pam_sss.c:1198
 msgid "Reenter new Password: "
 msgstr "再次輸入新密碼："
 
-#: sss_client/pam_sss.c:1278
+#: sss_client/pam_sss.c:1280
 msgid "Password: "
 msgstr "密碼："
 
-#: sss_client/pam_sss.c:1310
+#: sss_client/pam_sss.c:1312
 msgid "Current Password: "
 msgstr "目前的密碼："
 
-#: sss_client/pam_sss.c:1456
+#: sss_client/pam_sss.c:1458
 msgid "Password expired. Change your password now."
 msgstr "密碼已過期。請立刻變更您的密碼。"
 
-#: tools/sss_useradd.c:115 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
-#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1008 tools/sss_userdel.c:142
+#: tools/sss_useradd.c:48 tools/sss_groupadd.c:41 tools/sss_groupdel.c:43
+#: tools/sss_groupmod.c:42 tools/sss_groupshow.c:1016 tools/sss_userdel.c:142
 #: tools/sss_usermod.c:47
 #, fuzzy
 msgid "The debug level to run with"
 msgstr "要依那種除錯層級執行"
 
-#: tools/sss_useradd.c:116 tools/sss_usermod.c:48
+#: tools/sss_useradd.c:49 tools/sss_usermod.c:48
 msgid "The UID of the user"
 msgstr "使用者的 UID"
 
-#: tools/sss_useradd.c:117
-msgid "The GID or group name of the user"
-msgstr "使用者的 GID 或群組名稱"
-
-#: tools/sss_useradd.c:118 tools/sss_usermod.c:50
+#: tools/sss_useradd.c:50 tools/sss_usermod.c:50
 msgid "The comment string"
 msgstr "註解字串"
 
-#: tools/sss_useradd.c:119 tools/sss_usermod.c:51
+#: tools/sss_useradd.c:51 tools/sss_usermod.c:51
 msgid "Home directory"
 msgstr "家目錄"
 
-#: tools/sss_useradd.c:120 tools/sss_usermod.c:52
+#: tools/sss_useradd.c:52 tools/sss_usermod.c:52
 msgid "Login shell"
 msgstr "登入用 shell"
 
-#: tools/sss_useradd.c:121
+#: tools/sss_useradd.c:53
 msgid "Groups"
 msgstr "群組"
 
-#: tools/sss_useradd.c:122
+#: tools/sss_useradd.c:54
 msgid "Create user's directory if it does not exist"
 msgstr "如果使用者的目錄不存在便將它建立"
 
-#: tools/sss_useradd.c:123
+#: tools/sss_useradd.c:55
 msgid "Never create user's directory, overrides config"
 msgstr "永遠不建立使用者的目錄，凌駕配置"
 
-#: tools/sss_useradd.c:124
+#: tools/sss_useradd.c:56
 msgid "Specify an alternative skeleton directory"
 msgstr "指定替代的骨幹目錄"
 
-#: tools/sss_useradd.c:125 tools/sss_usermod.c:57
+#: tools/sss_useradd.c:57 tools/sss_usermod.c:57
 msgid "The SELinux user for user's login"
 msgstr ""
 
-#: tools/sss_useradd.c:139 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
-#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1019 tools/sss_userdel.c:159
+#: tools/sss_useradd.c:71 tools/sss_groupadd.c:56 tools/sss_groupdel.c:52
+#: tools/sss_groupmod.c:63 tools/sss_groupshow.c:1027 tools/sss_userdel.c:159
 #: tools/sss_usermod.c:72
 msgid "Error setting the locale\n"
 msgstr "設定區域設置時發生錯誤\n"
 
-#: tools/sss_useradd.c:174
+#: tools/sss_useradd.c:107
 msgid "Specify user to add\n"
 msgstr "指定要加入的使用者\n"
 
-#: tools/sss_useradd.c:185 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
-#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1056 tools/sss_userdel.c:208
+#: tools/sss_useradd.c:118 tools/sss_groupadd.c:86 tools/sss_groupdel.c:81
+#: tools/sss_groupmod.c:111 tools/sss_groupshow.c:1064 tools/sss_userdel.c:208
 #: tools/sss_usermod.c:128
 msgid "Error initializing the tools - no local domain\n"
 msgstr "初始化工具時發生錯誤 - 沒有本機網域\n"
 
-#: tools/sss_useradd.c:187 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
-#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1058 tools/sss_userdel.c:210
+#: tools/sss_useradd.c:120 tools/sss_groupadd.c:88 tools/sss_groupdel.c:83
+#: tools/sss_groupmod.c:113 tools/sss_groupshow.c:1066 tools/sss_userdel.c:210
 #: tools/sss_usermod.c:130
 msgid "Error initializing the tools\n"
 msgstr "初始化工具時發生錯誤\n"
 
-#: tools/sss_useradd.c:196 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
-#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1067 tools/sss_userdel.c:219
+#: tools/sss_useradd.c:129 tools/sss_groupadd.c:97 tools/sss_groupdel.c:92
+#: tools/sss_groupmod.c:121 tools/sss_groupshow.c:1075 tools/sss_userdel.c:219
 #: tools/sss_usermod.c:139
 msgid "Invalid domain specified in FQDN\n"
 msgstr "在 FQDN 內指定了無效的網域\n"
 
-#: tools/sss_useradd.c:205 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
+#: tools/sss_useradd.c:138 tools/sss_groupmod.c:143 tools/sss_groupmod.c:170
 #: tools/sss_usermod.c:164 tools/sss_usermod.c:191
 msgid "Internal error while parsing parameters\n"
 msgstr "當解析參數時發生內部錯誤\n"
 
-#: tools/sss_useradd.c:213 tools/sss_usermod.c:172 tools/sss_usermod.c:199
+#: tools/sss_useradd.c:146 tools/sss_usermod.c:172 tools/sss_usermod.c:199
 msgid "Groups must be in the same domain as user\n"
 msgstr "群組必須位於與使用者相同的網域內\n"
 
-#: tools/sss_useradd.c:221
+#: tools/sss_useradd.c:154
 #, c-format
 msgid "Cannot find group %s in local domain\n"
 msgstr "在本機網域內找不到 %s 群組\n"
 
-#: tools/sss_useradd.c:231
-msgid "Cannot get group information for the user\n"
-msgstr "無法為這位使用者設定群組資訊\n"
-
-#: tools/sss_useradd.c:246 tools/sss_userdel.c:229
+#: tools/sss_useradd.c:169 tools/sss_userdel.c:229
 msgid "Cannot set default values\n"
 msgstr "無法設定預設值\n"
 
-#: tools/sss_useradd.c:253 tools/sss_usermod.c:155
+#: tools/sss_useradd.c:176 tools/sss_usermod.c:155
 msgid "The selected UID is outside the allowed range\n"
 msgstr "所選的 UID 位於許可的範圍外\n"
 
-#: tools/sss_useradd.c:279 tools/sss_usermod.c:242
+#: tools/sss_useradd.c:202 tools/sss_usermod.c:242
 msgid "Cannot set SELinux login context\n"
 msgstr ""
 
-#: tools/sss_useradd.c:296
+#: tools/sss_useradd.c:219
 msgid "Cannot get info about the user\n"
 msgstr "無法取得關於這位使用者的資訊\n"
 
-#: tools/sss_useradd.c:310
+#: tools/sss_useradd.c:233
 msgid "User's home directory already exists, not copying data from skeldir\n"
 msgstr "使用者的家目錄已經存在，不會從骨幹目錄複製資料\n"
 
-#: tools/sss_useradd.c:313
+#: tools/sss_useradd.c:236
 #, c-format
 msgid "Cannot create user's home directory: %s\n"
 msgstr "無法建立使用者的家目錄：%s\n"
 
-#: tools/sss_useradd.c:324
+#: tools/sss_useradd.c:247
 #, c-format
 msgid "Cannot create user's mail spool: %s\n"
 msgstr "無法建立使用者的郵件 spool：%s\n"
 
-#: tools/sss_useradd.c:336
+#: tools/sss_useradd.c:259
 msgid "Could not allocate ID for the user - domain full?\n"
 msgstr "無法為使用者分配 ID - 網域已滿？\n"
 
-#: tools/sss_useradd.c:340
+#: tools/sss_useradd.c:263
 msgid "A user or group with the same name or ID already exists\n"
 msgstr "已經存在相同名稱的使用者或群組\n"
 
-#: tools/sss_useradd.c:346
+#: tools/sss_useradd.c:269
 msgid "Transaction error. Could not add user.\n"
 msgstr "處理事項發生錯誤。無法加入使用者。\n"
 
@@ -782,26 +770,26 @@ msgstr "無法修改群組 - 請檢查群組名稱是否正確\n"
 msgid "Transaction error. Could not modify group.\n"
 msgstr "處理事項發生錯誤。無法修改群組。\n"
 
-#: tools/sss_groupshow.c:954
+#: tools/sss_groupshow.c:962
 #, c-format
 msgid "%s%sGroup: %s\n"
 msgstr "%s%s群組：%s\n"
 
-#: tools/sss_groupshow.c:955
+#: tools/sss_groupshow.c:963
 msgid "Magic Private "
 msgstr "魔法隱私"
 
-#: tools/sss_groupshow.c:957
+#: tools/sss_groupshow.c:965
 #, c-format
 msgid "%sGID number: %d\n"
 msgstr "%sGID 編號：%d\n"
 
-#: tools/sss_groupshow.c:959
+#: tools/sss_groupshow.c:967
 #, fuzzy, c-format
 msgid "%sMember users: "
 msgstr "%s成員使用者："
 
-#: tools/sss_groupshow.c:966
+#: tools/sss_groupshow.c:974
 #, fuzzy, c-format
 msgid ""
 "\n"
@@ -810,7 +798,7 @@ msgstr ""
 "\n"
 "%s是該群組的成員："
 
-#: tools/sss_groupshow.c:973
+#: tools/sss_groupshow.c:981
 #, fuzzy, c-format
 msgid ""
 "\n"
@@ -819,25 +807,25 @@ msgstr ""
 "\n"
 "%s成員群組： "
 
-#: tools/sss_groupshow.c:1010
+#: tools/sss_groupshow.c:1018
 msgid "Print indirect group members recursively"
 msgstr "遞迴地列出間接的群組成員"
 
-#: tools/sss_groupshow.c:1045
+#: tools/sss_groupshow.c:1053
 msgid "Specify group to show\n"
 msgstr "指定要顯示的群組\n"
 
-#: tools/sss_groupshow.c:1081 tools/sss_groupshow.c:1099
+#: tools/sss_groupshow.c:1089 tools/sss_groupshow.c:1107
 msgid "Cannot initiate search\n"
 msgstr "無法開始搜尋\n"
 
-#: tools/sss_groupshow.c:1115
+#: tools/sss_groupshow.c:1123
 msgid ""
 "No such group in local domain. Printing groups only allowed in local "
 "domain.\n"
 msgstr "本機網域內沒有這樣的群組。只許可在本機網域內列出群組。\n"
 
-#: tools/sss_groupshow.c:1120
+#: tools/sss_groupshow.c:1128
 msgid "Internal error. Could not print group.\n"
 msgstr "內部錯誤。無法列出群組。\n"
 
@@ -964,6 +952,15 @@ msgstr "%s 必須以 root 身分執行\n"
 #: util/util.h:63
 msgid "Send the debug output to files instead of stderr"
 msgstr "傳送除錯輸出到檔案而不是標準輸出"
+
+#~ msgid "The principal of the change password service"
+#~ msgstr "變更密碼的服務其原則"
+
+#~ msgid "The GID or group name of the user"
+#~ msgstr "使用者的 GID 或群組名稱"
+
+#~ msgid "Cannot get group information for the user\n"
+#~ msgstr "無法為這位使用者設定群組資訊\n"
 
 #~ msgid "Offline authentication"
 #~ msgstr "離線認證"
