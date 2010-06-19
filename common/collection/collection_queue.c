@@ -108,7 +108,7 @@ int col_enqueue_binary_property(struct collection_item *queue,
 /* Put an int property into a queue. */
 int col_enqueue_int_property(struct collection_item *queue,
                              const char *property,
-                             int number)
+                             int32_t number)
 {
     int error = EOK;
 
@@ -135,7 +135,7 @@ int col_enqueue_int_property(struct collection_item *queue,
 /* Put an unsigned int property into a queue. */
 int col_enqueue_unsigned_property(struct collection_item *queue,
                                   const char *property,
-                                  unsigned int number)
+                                  uint32_t number)
 {
     int error = EOK;
 
@@ -163,7 +163,7 @@ int col_enqueue_unsigned_property(struct collection_item *queue,
 /* Put a long property. */
 int col_enqueue_long_property(struct collection_item *queue,
                               const char *property,
-                              long number)
+                              int64_t number)
 {
     int error = EOK;
 
@@ -190,7 +190,7 @@ int col_enqueue_long_property(struct collection_item *queue,
 /* Put an unsigned long property. */
 int col_enqueue_ulong_property(struct collection_item *queue,
                                const char *property,
-                               unsigned long number)
+                               uint64_t number)
 {
     int error = EOK;
 

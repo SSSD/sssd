@@ -144,7 +144,7 @@ int col_enqueue_binary_property(struct collection_item *queue,
  */
 int col_enqueue_int_property(struct collection_item *queue,
                              const char *property,
-                             int number);
+                             int32_t number);
 /**
  * @brief Add unsigned value to the queue.
  *
@@ -167,7 +167,7 @@ int col_enqueue_int_property(struct collection_item *queue,
  */
 int col_enqueue_unsigned_property(struct collection_item *queue,
                                   const char *property,
-                                  unsigned int number);
+                                  uint32_t number);
 /**
  * @brief Add long integer value to the queue.
  *
@@ -190,7 +190,7 @@ int col_enqueue_unsigned_property(struct collection_item *queue,
  */
 int col_enqueue_long_property(struct collection_item *queue,
                               const char *property,
-                              long number);
+                              int64_t number);
 /**
  * @brief Add unsigned long value to the queue.
  *
@@ -213,7 +213,7 @@ int col_enqueue_long_property(struct collection_item *queue,
  */
 int col_enqueue_ulong_property(struct collection_item *queue,
                                const char *property,
-                               unsigned long number);
+                               uint64_t number);
 /**
  * @brief Add floating point value to the queue.
  *

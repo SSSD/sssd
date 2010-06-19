@@ -1,5 +1,5 @@
 AC_INIT([collection],
-        [0.4.0],
+        [0.5.0],
         [sssd-devel@lists.fedorahosted.org])
 AC_CONFIG_SRCDIR([collection.c])
 AC_CONFIG_AUX_DIR([build])

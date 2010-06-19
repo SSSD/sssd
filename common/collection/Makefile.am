@@ -41,7 +41,7 @@ libcollection_la_SOURCES = \
     collection_priv.h \
     ../trace/trace.h
 libcollection_la_LDFLAGS = \
-    -version-info 1:0:0
+    -version-info 2:0:0
 
 # Build unit test
 check_PROGRAMS = collection_ut collection_stack_ut collection_queue_ut
