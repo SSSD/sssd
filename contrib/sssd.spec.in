@@ -15,7 +15,7 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 %define dhash_version 0.4.0
 %define path_utils_version 0.2.0
-%define collection_version 0.4.0
+%define collection_version 0.5.0
 %define ini_config_version 0.6.0
 %define refarray_version 0.1.0
 
@@ -367,8 +367,8 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc common/collection/COPYING
 %doc common/collection/COPYING.LESSER
-%{_libdir}/libcollection.so.1
-%{_libdir}/libcollection.so.1.0.0
+%{_libdir}/libcollection.so.2
+%{_libdir}/libcollection.so.2.0.0
 
 %files -n libcollection-devel
 %defattr(-,root,root,-)
@@ -453,4 +453,3 @@ fi
 %changelog
 * Mon Mar 15 2010 Stephen Gallagher <sgallagh@redhat.com> - @PACKAGE_VERSION@-0@PRERELEASE_VERSION@
 - Automated build of the SSSD
-

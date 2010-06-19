@@ -106,7 +106,7 @@ int col_push_binary_property(struct collection_item *stack,
 /* Push an int property to stack. */
 int col_push_int_property(struct collection_item *stack,
                           const char *property,
-                          int number)
+                          int32_t number)
 {
     int error = EOK;
 
@@ -133,7 +133,7 @@ int col_push_int_property(struct collection_item *stack,
 /* Push an unsigned int property to stack. */
 int col_push_unsigned_property(struct collection_item *stack,
                                const char *property,
-                               unsigned int number)
+                               uint32_t number)
 {
     int error = EOK;
 
@@ -161,7 +161,7 @@ int col_push_unsigned_property(struct collection_item *stack,
 /* Push a long property. */
 int col_push_long_property(struct collection_item *stack,
                            const char *property,
-                           long number)
+                           int64_t number)
 {
     int error = EOK;
 
@@ -188,7 +188,7 @@ int col_push_long_property(struct collection_item *stack,
 /* Push an unsigned long property. */
 int col_push_ulong_property(struct collection_item *stack,
                             const char *property,
-                            unsigned long number)
+                            uint64_t number)
 {
     int error = EOK;
 

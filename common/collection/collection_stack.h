@@ -145,7 +145,7 @@ int col_push_binary_property(struct collection_item *stack,
  */
 int col_push_int_property(struct collection_item *stack,
                           const char *property,
-                          int number);
+                          int32_t number);
 /**
  * @brief Push unsigned value to the stack.
  *
@@ -168,7 +168,7 @@ int col_push_int_property(struct collection_item *stack,
  */
 int col_push_unsigned_property(struct collection_item *stack,
                                const char *property,
-                               unsigned int number);
+                               uint32_t number);
 /**
  * @brief Push long integer value to the stack.
  *
@@ -191,7 +191,7 @@ int col_push_unsigned_property(struct collection_item *stack,
  */
 int col_push_long_property(struct collection_item *stack,
                            const char *property,
-                           long number);
+                           int64_t number);
 /**
  * @brief Push unsigned long value to the stack.
  *
@@ -214,7 +214,7 @@ int col_push_long_property(struct collection_item *stack,
  */
 int col_push_ulong_property(struct collection_item *stack,
                             const char *property,
-                            unsigned long number);
+                            uint64_t number);
 /**
  * @brief Push floating point value to the stack.
  *
