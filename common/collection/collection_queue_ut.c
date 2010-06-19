@@ -137,12 +137,14 @@ int empty_test(void)
             col_destroy_collection(queue);
             return error;
         }
+
+        col_delete_item(item);
+
         COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
     }
 
-    COLOUT(printf("Add elemebts again.\n"));
-    if((error = col_create_queue(&queue)) ||
-       (error = col_enqueue_str_property(queue, "item1","value 1" ,0)) ||
+    COLOUT(printf("Add elements again.\n"));
+    if((error = col_enqueue_str_property(queue, "item1","value 1" ,0)) ||
        (error = col_enqueue_int_property(queue, "item2", -1)) ||
        (error = col_enqueue_unsigned_property(queue, "item3", 1))) {
         printf("Failed to enqueue property. Error %d\n", error);
@@ -169,10 +171,14 @@ int empty_test(void)
             col_destroy_collection(queue);
             return error;
         }
+
+        col_delete_item(item);
+
         COLOUT(col_debug_collection(queue,COL_TRAVERSE_DEFAULT));
     }
 
     col_destroy_collection(queue);
+
     TRACE_FLOW_NUMBER("empty_test. Returning", error);
 
     COLOUT(printf("\n\nEND OF QUEUE TEST!!!.\n\n\n"));
