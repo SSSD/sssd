@@ -13,11 +13,11 @@ URL: http://fedorahosted.org/sssd/
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
-%define dhash_version 0.4.0
-%define path_utils_version 0.2.0
-%define collection_version 0.5.0
-%define ini_config_version 0.6.0
-%define refarray_version 0.1.0
+%global dhash_version 0.4.0
+%global path_utils_version 0.2.0
+%global collection_version 0.5.0
+%global ini_config_version 0.6.0
+%global refarray_version 0.1.0
 
 ### Patches ###
 
@@ -35,11 +35,11 @@ Requires(post): python
 Requires(preun):  initscripts chkconfig
 Requires(postun): /sbin/service
 
-%define servicename sssd
-%define sssdstatedir %{_localstatedir}/lib/sss
-%define dbpath %{sssdstatedir}/db
-%define pipepath %{sssdstatedir}/pipes
-%define pubconfpath %{sssdstatedir}/pubconf
+%global servicename sssd
+%global sssdstatedir %{_localstatedir}/lib/sss
+%global dbpath %{sssdstatedir}/db
+%global pipepath %{sssdstatedir}/pipes
+%global pubconfpath %{sssdstatedir}/pubconf
 
 ### Build Dependencies ###
 

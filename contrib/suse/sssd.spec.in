@@ -12,7 +12,7 @@ URL: http://fedorahosted.org/sssd/
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
-%define dhash_version 0.4.0
+%global dhash_version 0.4.0
 
 ### Patches ###
 
@@ -27,11 +27,11 @@ Requires(post): python
 Requires(preun):  aaa_base procps filesystem
 Requires(postun): /sbin/service
 
-%define servicename sssd
-%define sssdstatedir %{_localstatedir}/lib/sss
-%define dbpath %{sssdstatedir}/db
-%define pipepath %{sssdstatedir}/pipes
-%define pubconfpath %{sssdstatedir}/pubconf
+%global servicename sssd
+%global sssdstatedir %{_localstatedir}/lib/sss
+%global dbpath %{sssdstatedir}/db
+%global pipepath %{sssdstatedir}/pipes
+%global pubconfpath %{sssdstatedir}/pubconf
 
 ### Build Dependencies ###
 
