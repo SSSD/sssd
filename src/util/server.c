@@ -262,6 +262,9 @@ static void setup_signals(void)
 	/* We are no longer interested in USR1 */
 	BlockSignals(true, SIGUSR1);
 
+	/* We are no longer interested in SIGINT except for monitor */
+	BlockSignals(true, SIGINT);
+
 #if defined(SIGUSR2)
 	/* We are no longer interested in USR2 */
 	BlockSignals(true, SIGUSR2);

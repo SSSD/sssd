@@ -1779,6 +1779,7 @@ int monitor_process_init(struct mt_ctx *ctx,
     }
 
     /* Set up an event handler for a SIGINT */
+    BlockSignals(false, SIGINT);
     tes = tevent_add_signal(ctx->ev, ctx, SIGINT, 0,
                             monitor_quit, ctx);
     if (tes == NULL) {
