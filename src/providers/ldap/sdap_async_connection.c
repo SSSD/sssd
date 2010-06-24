@@ -1052,8 +1052,20 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
             return;
         }
 
-        tevent_req_error(req, ret);
-        return;
+        else if (ret == ENOENT) {
+            /* RootDSE was not available on
+             * the server.
+             * Continue, and just assume that the
+             * features requested by the config
+             * work properly.
+             */
+            state->use_rootdse = false;
+        }
+
+        else {
+            tevent_req_error(req, ret);
+            return;
+        }
     }
 
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
