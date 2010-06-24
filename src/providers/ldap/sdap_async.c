@@ -689,7 +689,9 @@ static void sdap_get_rootdse_done(struct tevent_req *subreq)
     }
 
     if (num_results == 0 || !results) {
-        DEBUG(2, ("No RootDSE for server ?!\n"));
+        DEBUG(2, ("RootDSE could not be retrieved. "
+                  "Please check that anonymous access to RootDSE is allowed\n"
+              ));
         tevent_req_error(req, ENOENT);
         return;
     }
