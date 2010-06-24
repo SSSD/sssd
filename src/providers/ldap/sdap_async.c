@@ -637,6 +637,17 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct sdap_get_rootdse_state *state;
+    const char *attrs[] = {
+	    "*",
+	    "altServer",
+	    "namingContexts",
+	    "supportedControl",
+	    "supportedExtension",
+	    "supportedFeatures",
+	    "supportedLDAPVersion",
+	    "supportedSASLMechanisms",
+	    NULL
+    };
 
     DEBUG(9, ("Getting rootdse\n"));
 
@@ -650,7 +661,7 @@ struct tevent_req *sdap_get_rootdse_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_send(state, ev, opts, sh,
                                    "", LDAP_SCOPE_BASE,
-                                   "(objectclass=*)", NULL, NULL, 0);
+                                   "(objectclass=*)", attrs, NULL, 0);
     if (!subreq) {
         talloc_zfree(req);
         return NULL;
