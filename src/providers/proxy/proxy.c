@@ -60,7 +60,7 @@ struct proxy_nss_ops {
                                       int *errnop);
 };
 
-struct proxy_ctx {
+struct proxy_id_ctx {
     struct be_ctx *be;
     int entry_cache_timeout;
     struct proxy_nss_ops ops;
@@ -942,7 +942,7 @@ static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
                        struct sss_domain_info *domain, const char *name);
 
 static int get_pw_name(TALLOC_CTX *mem_ctx,
-                       struct proxy_ctx *ctx,
+                       struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
                        struct sss_domain_info *dom,
                        const char *name)
@@ -1058,7 +1058,7 @@ static int delete_user(TALLOC_CTX *mem_ctx, struct sysdb_ctx *sysdb,
 /* =Getpwuid-wrapper======================================================*/
 
 static int get_pw_uid(TALLOC_CTX *mem_ctx,
-                      struct proxy_ctx *ctx,
+                      struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom,
                       uid_t uid)
@@ -1165,7 +1165,7 @@ done:
 /* =Getpwent-wrapper======================================================*/
 
 static int enum_users(TALLOC_CTX *mem_ctx,
-                      struct proxy_ctx *ctx,
+                      struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom)
 {
@@ -1318,7 +1318,7 @@ done:
     } while(0)
 
 static int get_gr_name(TALLOC_CTX *mem_ctx,
-                       struct proxy_ctx *ctx,
+                       struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
                        struct sss_domain_info *dom,
                        const char *name)
@@ -1471,7 +1471,7 @@ done:
 /* =Getgrgid-wrapper======================================================*/
 
 static int get_gr_gid(TALLOC_CTX *mem_ctx,
-                      struct proxy_ctx *ctx,
+                      struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom,
                       gid_t gid)
@@ -1615,7 +1615,7 @@ done:
 /* =Getgrent-wrapper======================================================*/
 
 static int enum_groups(TALLOC_CTX *mem_ctx,
-                       struct proxy_ctx *ctx,
+                       struct proxy_id_ctx *ctx,
                        struct sysdb_ctx *sysdb,
                        struct sss_domain_info *dom)
 {
@@ -1764,13 +1764,13 @@ done:
 /* =Initgroups-wrapper====================================================*/
 
 static int get_initgr_groups_process(TALLOC_CTX *memctx,
-                                     struct proxy_ctx *ctx,
+                                     struct proxy_id_ctx *ctx,
                                      struct sysdb_ctx *sysdb,
                                      struct sss_domain_info *dom,
                                      struct passwd *pwd);
 
 static int get_initgr(TALLOC_CTX *mem_ctx,
-                      struct proxy_ctx *ctx,
+                      struct proxy_id_ctx *ctx,
                       struct sysdb_ctx *sysdb,
                       struct sss_domain_info *dom,
                       const char *name)
@@ -1875,7 +1875,7 @@ done:
 }
 
 static int get_initgr_groups_process(TALLOC_CTX *memctx,
-                                     struct proxy_ctx *ctx,
+                                     struct proxy_id_ctx *ctx,
                                      struct sysdb_ctx *sysdb,
                                      struct sss_domain_info *dom,
                                      struct passwd *pwd)
@@ -1948,7 +1948,7 @@ again:
 static void proxy_get_account_info(struct be_req *breq)
 {
     struct be_acct_req *ar;
-    struct proxy_ctx *ctx;
+    struct proxy_id_ctx *ctx;
     struct tevent_context *ev;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
@@ -1957,7 +1957,8 @@ static void proxy_get_account_info(struct be_req *breq)
     int ret;
 
     ar = talloc_get_type(breq->req_data, struct be_acct_req);
-    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data, struct proxy_ctx);
+    ctx = talloc_get_type(breq->be_ctx->bet_info[BET_ID].pvt_bet_data,
+                          struct proxy_id_ctx);
     ev = breq->be_ctx->ev;
     sysdb = breq->be_ctx->sysdb;
     domain = breq->be_ctx->domain;
@@ -2114,13 +2115,13 @@ static void *proxy_dlsym(void *handle, const char *functemp, char *libname)
 int sssm_proxy_id_init(struct be_ctx *bectx,
                        struct bet_ops **ops, void **pvt_data)
 {
-    struct proxy_ctx *ctx;
+    struct proxy_id_ctx *ctx;
     char *libname;
     char *libpath;
     void *handle;
     int ret;
 
-    ctx = talloc_zero(bectx, struct proxy_ctx);
+    ctx = talloc_zero(bectx, struct proxy_id_ctx);
     if (!ctx) {
         return ENOMEM;
     }
