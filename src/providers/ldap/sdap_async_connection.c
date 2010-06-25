@@ -571,7 +571,7 @@ static int sdap_sasl_interact(LDAP *ld, unsigned flags,
 
         switch (in->id) {
         case SASL_CB_GETREALM:
-        case SASL_CB_AUTHNAME:
+        case SASL_CB_USER:
         case SASL_CB_PASS:
             if (in->defresult) {
                 in->result = in->defresult;
@@ -580,7 +580,7 @@ static int sdap_sasl_interact(LDAP *ld, unsigned flags,
             }
             in->len = strlen(in->result);
             break;
-        case SASL_CB_USER:
+        case SASL_CB_AUTHNAME:
             if (state->sasl_user) {
                 in->result = state->sasl_user;
             } else if (in->defresult) {
