@@ -25,6 +25,111 @@
 #ifndef __PROXY_H__
 #define __PROXY_H__
 
+#include <nss.h>
+#include <errno.h>
+#include <pwd.h>
+#include <grp.h>
+#include <dlfcn.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <security/pam_appl.h>
+#include <security/pam_modules.h>
+
+#include "util/util.h"
+#include "providers/dp_backend.h"
+#include "db/sysdb.h"
+#include "proxy.h"
+#include <dhash.h>
+
+struct proxy_nss_ops {
+    enum nss_status (*getpwnam_r)(const char *name, struct passwd *result,
+                                  char *buffer, size_t buflen, int *errnop);
+    enum nss_status (*getpwuid_r)(uid_t uid, struct passwd *result,
+                                  char *buffer, size_t buflen, int *errnop);
+    enum nss_status (*setpwent)(void);
+    enum nss_status (*getpwent_r)(struct passwd *result,
+                                  char *buffer, size_t buflen, int *errnop);
+    enum nss_status (*endpwent)(void);
+
+    enum nss_status (*getgrnam_r)(const char *name, struct group *result,
+                                  char *buffer, size_t buflen, int *errnop);
+    enum nss_status (*getgrgid_r)(gid_t gid, struct group *result,
+                                  char *buffer, size_t buflen, int *errnop);
+    enum nss_status (*setgrent)(void);
+    enum nss_status (*getgrent_r)(struct group *result,
+                                  char *buffer, size_t buflen, int *errnop);
+    enum nss_status (*endgrent)(void);
+    enum nss_status (*initgroups_dyn)(const char *user, gid_t group,
+                                      long int *start, long int *size,
+                                      gid_t **groups, long int limit,
+                                      int *errnop);
+};
+
+struct authtok_conv {
+    uint32_t authtok_size;
+    uint8_t *authtok;
+
+    uint32_t newauthtok_size;
+    uint8_t *newauthtok;
+
+    bool sent_old;
+};
+
+struct proxy_id_ctx {
+    struct be_ctx *be;
+    int entry_cache_timeout;
+    struct proxy_nss_ops ops;
+};
+
+struct proxy_auth_ctx {
+    struct be_ctx *be;
+    char *pam_target;
+
+    uint32_t max_children;
+    uint32_t running;
+    uint32_t next_id;
+    hash_table_t *request_table;
+    struct sbus_connection *sbus_srv;
+    int timeout_ms;
+};
+
+struct proxy_child_ctx {
+    struct proxy_auth_ctx *auth_ctx;
+    struct be_req *be_req;
+    struct pam_data *pd;
+
+    uint32_t id;
+    pid_t pid;
+    bool running;
+
+    struct sbus_connection *conn;
+    struct tevent_timer *timer;
+
+    struct tevent_req *init_req;
+};
+
+struct pc_init_ctx {
+    char *command;
+    pid_t pid;
+    struct tevent_timer *timeout;
+    struct tevent_signal *sige;
+    struct proxy_child_ctx *child_ctx;
+    struct sbus_connection *conn;
+};
+
 #define PROXY_CHILD_PIPE "private/proxy_child"
+#define DEFAULT_BUFSIZE 4096
+#define MAX_BUF_SIZE 1024*1024 /* max 1MiB */
+
+/* From proxy_common.c */
+void proxy_reply(struct be_req *req, int dp_err,
+                 int error, const char *errstr);
+
+/* From proxy_id.c */
+void proxy_get_account_info(struct be_req *breq);
+
+/* From proxy_auth.c */
+void proxy_pam_handler(struct be_req *req);
 
 #endif /* __PROXY_H__ */

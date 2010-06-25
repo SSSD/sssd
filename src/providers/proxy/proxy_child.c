@@ -74,16 +74,6 @@ struct pc_ctx {
     uint32_t id;
 };
 
-struct authtok_conv {
-    uint32_t authtok_size;
-    uint8_t *authtok;
-
-    uint32_t newauthtok_size;
-    uint8_t *newauthtok;
-
-    bool sent_old;
-};
-
 static int proxy_internal_conv(int num_msg, const struct pam_message **msgm,
                             struct pam_response **response,
                             void *appdata_ptr) {

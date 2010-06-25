@@ -756,7 +756,10 @@ libsss_ldap_la_LDFLAGS = \
     -module
 
 libsss_proxy_la_SOURCES = \
-    providers/proxy/proxy.c
+    providers/proxy/proxy_common.c \
+    providers/proxy/proxy_init.c \
+    providers/proxy/proxy_id.c \
+    providers/proxy/proxy_auth.c
 libsss_proxy_la_CFLAGS = \
     $(AM_CFLAGS)
 libsss_proxy_la_LIBADD = \
