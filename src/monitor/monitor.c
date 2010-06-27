@@ -119,6 +119,7 @@ struct mt_ctx {
     int service_id_timeout;
     bool check_children;
     bool services_started;
+    struct netlink_ctx *nlctx;
 };
 
 static int start_service(struct mt_svc *mt_svc);
@@ -126,6 +127,7 @@ static int start_service(struct mt_svc *mt_svc);
 static int monitor_service_init(struct sbus_connection *conn, void *data);
 
 static int service_send_ping(struct mt_svc *svc);
+static int service_signal_reset_offline(struct mt_svc *svc);
 static void ping_check(DBusPendingCall *pending, void *data);
 
 static int service_check_alive(struct mt_svc *svc);
@@ -144,6 +146,23 @@ static int add_new_provider(struct mt_ctx *ctx, const char *name);
 static int mark_service_as_started(struct mt_svc *svc);
 
 static int monitor_cleanup(void);
+
+static void network_status_change_cb(enum network_change state,
+                                     void *cb_data)
+{
+    struct mt_svc *iter;
+    struct mt_ctx *ctx = (struct mt_ctx *) cb_data;
+
+    if (state != NL_ROUTE_UP) return;
+
+    DEBUG(9, ("A new route has appeared, signaling providers to reset offline status\n"));
+    for (iter = ctx->svc_list; iter; iter = iter->next) {
+        /* Don't signal services, only providers */
+        if (iter->provider) {
+            service_signal_reset_offline(iter);
+        }
+    }
+}
 
 /* dbus_get_monitor_version
  * Return the monitor version over D-BUS */
@@ -732,6 +751,10 @@ static int service_signal_dns_reload(struct mt_svc *svc)
 static int service_signal_offline(struct mt_svc *svc)
 {
     return service_signal(svc, MON_CLI_METHOD_OFFLINE);
+}
+static int service_signal_reset_offline(struct mt_svc *svc)
+{
+    return service_signal(svc, MON_CLI_METHOD_RESET_OFFLINE);
 }
 static int service_signal_rotate(struct mt_svc *svc)
 {
@@ -1749,6 +1772,13 @@ int monitor_process_init(struct mt_ctx *ctx,
      * SSSD processes */
     ret = monitor_dbus_init(ctx);
     if (ret != EOK) {
+        return ret;
+    }
+
+    ret = setup_netlink(ctx, ctx->ev, network_status_change_cb,
+                        ctx, &ctx->nlctx);
+    if (ret != EOK) {
+        DEBUG(2, ("Cannot set up listening for network notifications\n"));
         return ret;
     }
 

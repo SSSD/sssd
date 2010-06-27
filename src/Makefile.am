@@ -202,6 +202,7 @@ AM_CPPFLAGS = -Wall \
     $(COLLECTION_CFLAGS) \
     $(INI_CFG_CFLAGS) \
     $(DHASH_CFLAGS) \
+    $(LIBNL_CFLAGS) \
     -DLIBDIR=\"$(libdir)\" \
     -DVARDIR=\"$(localstatedir)\" \
     -DSHLIBEXT=\"$(SHLIBEXT)\" \
@@ -374,10 +375,12 @@ dist_noinst_HEADERS = \
 ####################
 sssd_SOURCES = \
     monitor/monitor.c \
+    monitor/monitor_netlink.c \
     confdb/confdb_setup.c \
     $(SSSD_UTIL_OBJ)
 sssd_LDADD = \
-    $(SSSD_LIBS)
+    $(SSSD_LIBS) \
+    $(LIBNL_LIBS)
 
 sssd_nss_SOURCES = \
     responder/nss/nsssrv.c \

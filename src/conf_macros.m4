@@ -233,3 +233,19 @@ AC_DEFUN([WITH_SEMANAGE],
     fi
     AM_CONDITIONAL([BUILD_SEMANAGE], [test x"$with_semanage" = xyes])
   ])
+
+AC_DEFUN([WITH_LIBNL],
+  [ AC_ARG_WITH([libnl],
+                [AC_HELP_STRING([--with-libnl],
+                                [Whether to build with libnetlink support [yes]]
+                               )
+                ],
+                [],
+                with_libnl=yes
+               )
+    if test x"$with_libnl" = xyes; then
+        HAVE_LIBNL=1
+        AC_SUBST(HAVE_LIBNL)
+        AC_DEFINE_UNQUOTED(HAVE_LIBNL, 1, [Build with libnetlink support])
+    fi
+  ])

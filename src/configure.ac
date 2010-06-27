@@ -72,6 +72,7 @@ WITH_PYTHON_BINDINGS
 WITH_SELINUX
 WITH_NSCD
 WITH_SEMANAGE
+WITH_LIBNL
 
 m4_include([external/platform.m4])
 m4_include([external/pkg.m4])
@@ -96,6 +97,7 @@ m4_include([external/crypto.m4])
 m4_include([external/nscd.m4])
 m4_include([external/nsupdate.m4])
 m4_include([external/libkeyutils.m4])
+m4_include([external/libnl.m4])
 m4_include([util/signal.m4])
 
 PKG_CHECK_MODULES([DBUS],[dbus-1])
@@ -134,6 +136,10 @@ fi
 
 if test x$HAVE_SEMANAGE != x -a x$HAVE_SELINUX != x; then
     AM_CHECK_SEMANAGE
+fi
+
+if test x$HAVE_LIBNL != x; then
+    AM_CHECK_LIBNL
 fi
 
 AC_CHECK_HEADERS([sys/inotify.h])

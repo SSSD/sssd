@@ -30,6 +30,8 @@
 #define NSCD_SOCKET_PATH "/var/run/nscd/socket"
 #endif
 
+struct config_file_ctx;
+
 typedef int (*monitor_reconf_fn) (struct config_file_ctx *file_ctx,
                                   const char *filename);
 
@@ -37,5 +39,19 @@ struct mt_ctx;
 
 int monitor_process_init(struct mt_ctx *ctx,
                          const char *config_file);
+
+/* from monitor_netlink.c */
+struct netlink_ctx;
+
+enum network_change {
+    NL_ROUTE_UP,
+    NL_ROUTE_DOWN
+};
+
+typedef void (*network_change_cb)(enum network_change, void *);
+
+int setup_netlink(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+                  network_change_cb change_cb, void *cb_data,
+                  struct netlink_ctx **_nlctx);
 
 #endif /* _MONITOR_H */

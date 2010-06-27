@@ -77,6 +77,7 @@ BuildRequires: libselinux-devel
 BuildRequires: libsemanage-devel
 BuildRequires: bind-utils
 BuildRequires: keyutils-libs-devel
+BuildRequires: libnl-devel
 
 %description
 Provides a set of daemons to manage access to remote directories and
