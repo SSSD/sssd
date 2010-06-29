@@ -105,13 +105,6 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         goto done;
     }
 
-    ret = be_add_offline_cb(ctx, bectx, sdap_gsh_disconnect_callback, ctx,
-                            NULL);
-    if (ret != EOK) {
-        DEBUG(1, ("be_add_offline_cb failed.\n"));
-        goto done;
-    }
-
     ret = sdap_id_conn_cache_create(ctx, ctx->be,
                                     ctx->opts, ctx->service,
                                     &ctx->conn_cache);

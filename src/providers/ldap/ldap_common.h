@@ -42,12 +42,6 @@ struct sdap_id_ctx {
     struct fo_service *fo_service;
     struct sdap_service *service;
 
-    /* what rootDSE returns */
-    struct sysdb_attrs *rootDSE;
-
-    /* global sdap handler */
-    struct sdap_handle *gsh;
-
     /* LDAP connection cache */
     struct sdap_id_conn_cache *conn_cache;
 
@@ -98,9 +92,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
 int ldap_id_enumerate_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 int ldap_id_cleanup_set_timer(struct sdap_id_ctx *ctx, struct timeval tv);
 
-bool sdap_connected(struct sdap_id_ctx *ctx);
 void sdap_mark_offline(struct sdap_id_ctx *ctx);
-bool sdap_check_gssapi_reconnect(struct sdap_id_ctx *ctx);
 
 struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,
@@ -121,5 +113,4 @@ int groups_get_recv(struct tevent_req *req, int *dp_error_out);
 /* setup child logging */
 int setup_child(struct sdap_id_ctx *ctx);
 
-void sdap_gsh_disconnect_callback(void *pvt);
 #endif /* _LDAP_COMMON_H_ */

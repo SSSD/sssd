@@ -110,7 +110,7 @@ static void sdap_handle_release(struct sdap_handle *sh)
     /* make sure nobody tries to reuse this connection from now on */
     sh->connected = false;
 
-    talloc_zfree(sh->sdap_fd_events);
+    remove_ldap_connection_callbacks(sh);
 
     while (sh->ops) {
         op = sh->ops;
