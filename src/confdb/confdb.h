@@ -60,6 +60,7 @@
 #define CONFDB_MONITOR_ACTIVE_DOMAINS "domains"
 #define CONFDB_MONITOR_NAME_REGEX   "re_expression"
 #define CONFDB_MONITOR_FULL_NAME_FORMAT "full_name_format"
+#define CONFDB_MONITOR_TRY_INOTIFY "try_inotify"
 
 /* NSS */
 #define CONFDB_NSS_CONF_ENTRY "config/nss"

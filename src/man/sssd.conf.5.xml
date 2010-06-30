@@ -157,6 +157,34 @@
                             </para>
                         </listitem>
                     </varlistentry>
+                    <varlistentry>
+                        <term>try_inotify (boolean)</term>
+                        <listitem>
+                            <para>
+                                SSSD monitors the state of resolv.conf to
+                                identify when it needs to update its internal
+                                DNS resolver. By default, we will attempt to
+                                use inotify for this, and will fall back to
+                                polling resolv.conf every five seconds if
+                                inotify cannot be used.
+                            </para>
+                            <para>
+                                There are some limited situations where it is
+                                preferred that we should skip even trying to
+                                use inotify. In these rare cases, this option
+                                should be set to 'false'
+                            </para>
+                            <para>
+                                Default: true on platforms where inotify is
+                                supported. False on other platforms.
+                            </para>
+                            <para>
+                                Note: this option will have no effect on
+                                platforms where inotify is unavailable. On
+                                these platforms, polling will always be used.
+                            </para>
+                        </listitem>
+                    </varlistentry>
                 </variablelist>
             </para>
         </refsect2>

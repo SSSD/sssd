@@ -1632,6 +1632,7 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
                                monitor_reconf_fn fn)
 {
     int ret, err;
+    bool use_inotify;
     struct timeval tv;
     struct stat file_stat;
     struct config_file_callback *cb = NULL;
@@ -1650,8 +1651,24 @@ static int monitor_config_file(TALLOC_CTX *mem_ctx,
         ctx->file_ctx->parent_ctx = mem_ctx;
         ctx->file_ctx->mt_ctx = ctx;
     }
-    ret = try_inotify(ctx->file_ctx, file, fn);
+
+    ret = confdb_get_bool(ctx->cdb, ctx,
+                          CONFDB_MONITOR_CONF_ENTRY,
+                          CONFDB_MONITOR_TRY_INOTIFY,
+                          true, &use_inotify);
     if (ret != EOK) {
+        talloc_free(ctx->file_ctx);
+        return ret;
+    }
+
+    if (use_inotify) {
+        ret = try_inotify(ctx->file_ctx, file, fn);
+        if (ret != EOK) {
+            use_inotify = false;
+        }
+    }
+
+    if (!use_inotify) {
         /* Could not monitor file with inotify, fall back to polling */
         cb = talloc_zero(ctx->file_ctx, struct config_file_callback);
         if (!cb) {
