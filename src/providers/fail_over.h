@@ -155,6 +155,12 @@ void fo_set_server_status(struct fo_server *server,
 void fo_set_port_status(struct fo_server *server,
                         enum port_status status);
 
+/*
+ * Instruct fail-over to try next server on the next connect attempt.
+ * Should be used after connection to service was unexpectedly dropped
+ * but there is no authoritative information on whether active server is down.
+ */
+void fo_try_next_server(struct fo_service *service);
 
 void *fo_get_server_user_data(struct fo_server *server);
 

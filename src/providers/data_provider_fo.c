@@ -155,20 +155,40 @@ static int be_svc_data_destroy(void *memptr)
     return 0;
 }
 
+/*
+ * Find registered be_svc_data by service name.
+ */
+static struct be_svc_data *be_fo_find_svc_data(struct be_ctx *ctx,
+                                               const char *service_name)
+{
+    struct be_svc_data *svc;
+
+    if (!ctx || !ctx->be_fo) {
+        return 0;
+    }
+
+    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
+        if (strcmp(svc->name, service_name) == 0) {
+            return svc;
+        }
+    }
+
+    return 0;
+}
+
 int be_fo_add_service(struct be_ctx *ctx, const char *service_name)
 {
     struct fo_service *service;
     struct be_svc_data *svc;
     int ret;
 
-    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
-        if (strcmp(svc->name, service_name) == 0) {
-            DEBUG(6, ("Failover service already initialized!\n"));
-            /* we already have a service up and configured,
-             * can happen when using both id and auth provider
-             */
-            return EOK;
-        }
+    svc = be_fo_find_svc_data(ctx, service_name);
+    if (svc) {
+        DEBUG(6, ("Failover service already initialized!\n"));
+        /* we already have a service up and configured,
+         * can happen when using both id and auth provider
+         */
+        return EOK;
     }
 
     /* if not in the be service list, try to create new one */
@@ -217,11 +237,7 @@ int be_fo_service_add_callback(TALLOC_CTX *memctx,
     struct be_svc_callback *callback;
     struct be_svc_data *svc;
 
-    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
-        if (strcmp(svc->name, service_name) == 0) {
-            break;
-        }
-    }
+    svc = be_fo_find_svc_data(ctx, service_name);
     if (NULL == svc) {
         return ENOENT;
     }
@@ -249,11 +265,7 @@ int be_fo_add_srv_server(struct be_ctx *ctx, const char *service_name,
     char *domain;
     int ret;
 
-    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
-        if (strcmp(svc->name, service_name) == 0) {
-            break;
-        }
-    }
+    svc = be_fo_find_svc_data(ctx, service_name);
     if (NULL == svc) {
         return ENOENT;
     }
@@ -281,16 +293,7 @@ int be_fo_get_server_count(struct be_ctx *ctx, const char *service_name)
 {
     struct be_svc_data *svc_data;
 
-    if (!ctx->be_fo) {
-        return 0;
-    }
-
-    DLIST_FOR_EACH(svc_data, ctx->be_fo->svcs) {
-        if (strcmp(svc_data->name, service_name) == 0) {
-            break;
-        }
-    }
-
+    svc_data = be_fo_find_svc_data(ctx, service_name);
     if (!svc_data) {
         return 0;
     }
@@ -304,11 +307,7 @@ int be_fo_add_server(struct be_ctx *ctx, const char *service_name,
     struct be_svc_data *svc;
     int ret;
 
-    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
-        if (strcmp(svc->name, service_name) == 0) {
-            break;
-        }
-    }
+    svc = be_fo_find_svc_data(ctx, service_name);
     if (NULL == svc) {
         return ENOENT;
     }
@@ -349,19 +348,14 @@ struct tevent_req *be_resolve_server_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
 
-    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
-        if (strcmp(svc->name, service_name) == 0) {
-            state->svc = svc;
-            break;
-        }
-    }
-
+    svc = be_fo_find_svc_data(ctx, service_name);
     if (NULL == svc) {
         tevent_req_error(req, EINVAL);
         tevent_req_post(req, ev);
         return req;
     }
 
+    state->svc = svc;
     state->attempts = 0;
 
     subreq = fo_resolve_service_send(state, ev,
@@ -474,16 +468,22 @@ int be_resolve_server_recv(struct tevent_req *req, struct fo_server **srv)
     return EOK;
 }
 
+void be_fo_try_next_server(struct be_ctx *ctx, const char *service_name)
+{
+    struct be_svc_data *svc;
+
+    svc = be_fo_find_svc_data(ctx, service_name);
+    if (svc) {
+        fo_try_next_server(svc->fo_service);
+    }
+}
+
 int be_fo_run_callbacks_at_next_request(struct be_ctx *ctx,
                                         const char *service_name)
 {
     struct be_svc_data *svc;
 
-    DLIST_FOR_EACH(svc, ctx->be_fo->svcs) {
-        if (strcmp(svc->name, service_name) == 0) {
-            break;
-        }
-    }
+    svc = be_fo_find_svc_data(ctx, service_name);
     if (NULL == svc) {
         return ENOENT;
     }

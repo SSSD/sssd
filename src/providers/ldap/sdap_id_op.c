@@ -703,6 +703,9 @@ int sdap_id_op_done(struct sdap_id_op *op, int retval, int *dp_err_out)
             && op->conn_data == op->conn_cache->cached_connection) {
         /* do not reuse failed connection */
         op->conn_cache->cached_connection = NULL;
+
+        DEBUG(5, ("communication error on cached connection, moving to next server\n"));
+        be_fo_try_next_server(op->conn_cache->be, op->conn_cache->service->name);
     }
 
     int dp_err;

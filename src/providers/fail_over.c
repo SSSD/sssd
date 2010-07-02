@@ -1275,6 +1275,27 @@ fo_set_port_status(struct fo_server *server, enum port_status status)
     }
 }
 
+void fo_try_next_server(struct fo_service *service)
+{
+    struct fo_server *server;
+
+    if (!service) {
+        DEBUG(1, ("Bug: No service supplied\n"));
+        return;
+    }
+
+    server = service->active_server;
+    if (!server) {
+        return;
+    }
+
+    service->active_server = 0;
+
+    if (server->port_status == PORT_WORKING) {
+        server->port_status = PORT_NEUTRAL;
+    }
+}
+
 void *
 fo_get_server_user_data(struct fo_server *server)
 {
