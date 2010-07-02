@@ -138,6 +138,7 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
     /* if we do not use start_tls the connection is not really connected yet
      * just fake an async procedure and leave connection to the bind call */
     if (!use_start_tls) {
+        tevent_req_done(req);
         tevent_req_post(req, ev);
         return req;
     }
@@ -257,16 +258,8 @@ int sdap_connect_recv(struct tevent_req *req,
 {
     struct sdap_connect_state *state = tevent_req_data(req,
                                                   struct sdap_connect_state);
-    enum tevent_req_state tstate;
-    uint64_t err = EIO;
 
-    if (tevent_req_is_error(req, &tstate, &err)) {
-        /* if tstate shows in progress, it is because
-         * we did not ask to perform tls, just pretend all is fine */
-        if (tstate != TEVENT_REQ_IN_PROGRESS) {
-            return err;
-        }
-    }
+    TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *sh = talloc_steal(memctx, state->sh);
     if (!*sh) {
@@ -919,6 +912,9 @@ static int sdap_cli_resolve_next(struct tevent_req *req)
                                              struct sdap_cli_connect_state);
     struct tevent_req *subreq;
 
+    /* Before stepping to next server  destroy any connection from previous attempt */
+    talloc_zfree(state->sh);
+
     /* NOTE: this call may cause service->uri to be refreshed
      * with a new valid server. Do not use service->uri before */
     subreq = be_resolve_server_send(state, state->ev,
@@ -968,6 +964,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
     const char *sasl_mech;
     int ret;
 
+    talloc_zfree(state->sh);
     ret = sdap_connect_recv(subreq, state, &state->sh);
     talloc_zfree(subreq);
     if (ret) {
