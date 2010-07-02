@@ -90,6 +90,7 @@ struct sdap_access_req_ctx {
     struct tevent_context *ev;
     struct sdap_access_ctx *access_ctx;
     struct sdap_id_ctx *sdap_ctx;
+    struct sdap_id_op *sdap_op;
     struct sysdb_handle *handle;
     struct be_ctx *be_ctx;
     const char **attrs;
@@ -98,6 +99,8 @@ struct sdap_access_req_ctx {
     char *basedn;
 };
 
+static int sdap_access_decide_offline(struct tevent_req *req);
+static int sdap_access_retry(struct tevent_req *req);
 static void sdap_access_connect_done(struct tevent_req *subreq);
 static void sdap_access_get_access_done(struct tevent_req *req);
 static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
@@ -109,7 +112,6 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     errno_t ret;
     struct sdap_access_req_ctx *state;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct ldb_result *res;
     const char *basedn;
 
@@ -180,17 +182,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     /* Ok, we have one result, check if we are online or offline */
     if (be_is_offline(state->be_ctx)) {
         /* Ok, we're offline. Return from the cache */
-        if (state->cached_access) {
-            DEBUG(6, ("Access granted by cached credentials\n"));
-            ret = EOK;
-            state->pam_status = PAM_SUCCESS;
-            goto finished;
-        }
-
-        /* Access denied */
-        DEBUG(6, ("Access denied by cached credentials\n"));
-        ret = EOK;
-        state->pam_status = PAM_PERM_DENIED;
+        ret = sdap_access_decide_offline(req);
         goto finished;
     }
 
@@ -226,36 +218,16 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
 
     DEBUG(6, ("Checking filter against LDAP\n"));
 
-    /* Check whether we have an active LDAP connection */
-    if (state->sdap_ctx->gsh == NULL || ! state->sdap_ctx->gsh->connected) {
-        subreq = sdap_cli_connect_send(state, state->ev,
-                                       state->sdap_ctx->opts,
-                                       state->sdap_ctx->be,
-                                       state->sdap_ctx->service,
-                                       NULL);
-        if (!subreq) {
-            DEBUG(1, ("sdap_cli_connect_send failed.\n"));
-            goto failed;
-        }
-
-        tevent_req_set_callback(subreq, sdap_access_connect_done, req);
-        return req;
-    }
-
-    /* Make the LDAP request */
-    subreq = sdap_get_generic_send(state,
-                                   state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
-                                   state->basedn, LDAP_SCOPE_BASE,
-                                   state->filter, NULL,
-                                   NULL, 0);
-    if (subreq == NULL) {
-        DEBUG(1, ("Could not start LDAP communication\n"));
+    state->sdap_op = sdap_id_op_create(state, state->sdap_ctx->conn_cache);
+    if (!state->sdap_op) {
+        DEBUG(2, ("sdap_id_op_create failed\n"));
         goto failed;
     }
 
-    tevent_req_set_callback(subreq, sdap_access_get_access_done, req);
+    ret = sdap_access_retry(req);
+    if (ret != EOK) {
+        goto failed;
+    }
 
     return req;
 
@@ -269,33 +241,61 @@ finished:
     return req;
 }
 
+static int sdap_access_decide_offline(struct tevent_req *req)
+{
+    struct sdap_access_req_ctx *state =
+            tevent_req_data(req, struct sdap_access_req_ctx);
+
+    if (state->cached_access) {
+        DEBUG(6, ("Access granted by cached credentials\n"));
+        state->pam_status = PAM_SUCCESS;
+    } else {
+        DEBUG(6, ("Access denied by cached credentials\n"));
+        state->pam_status = PAM_PERM_DENIED;
+    }
+
+    return EOK;
+}
+
+static int sdap_access_retry(struct tevent_req *req)
+{
+    struct sdap_access_req_ctx *state =
+            tevent_req_data(req, struct sdap_access_req_ctx);
+    struct tevent_req *subreq;
+    int ret;
+
+    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+    if (!subreq) {
+        DEBUG(2, ("sdap_id_op_connect_send failed: %d (%s)\n", ret, strerror(ret)));
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, sdap_access_connect_done, req);
+    return EOK;
+}
+
 static void sdap_access_connect_done(struct tevent_req *subreq)
 {
-    errno_t ret;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_access_req_ctx *state =
             tevent_req_data(req, struct sdap_access_req_ctx);
+    int ret, dp_error;
 
-    ret = sdap_cli_connect_recv(subreq, state->sdap_ctx,
-                                &state->sdap_ctx->gsh, NULL);
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
+
     if (ret != EOK) {
-        /* Could not connect to LDAP. Mark as offline and return
-         * from cache.
-         */
-        be_mark_offline(state->be_ctx);
-        if (state->cached_access) {
-            DEBUG(6, ("Access granted by cached credentials\n"));
-            state->pam_status = PAM_SUCCESS;
-            tevent_req_done(req);
-            return;
+        if (dp_error == DP_ERR_OFFLINE) {
+            ret = sdap_access_decide_offline(req);
+            if (ret == EOK) {
+                tevent_req_done(req);
+                return;
+            }
         }
 
-        /* Access denied */
-        DEBUG(6, ("Access denied by cached credentials\n"));
-        state->pam_status = PAM_PERM_DENIED;
-        tevent_req_done(req);
+        tevent_req_error(req, ret);
+        return;
     }
 
     /* Connection to LDAP succeeded
@@ -304,7 +304,7 @@ static void sdap_access_connect_done(struct tevent_req *subreq)
     subreq = sdap_get_generic_send(state,
                                    state->ev,
                                    state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
+                                   sdap_id_op_handle(state->sdap_op),
                                    state->basedn,
                                    LDAP_SCOPE_BASE,
                                    state->filter, NULL,
@@ -321,7 +321,7 @@ static void sdap_access_connect_done(struct tevent_req *subreq)
 
 static void sdap_access_get_access_done(struct tevent_req *subreq)
 {
-    errno_t ret;
+    int ret, dp_error;
     size_t num_results;
     bool found = false;
     struct sysdb_attrs *attrs;
@@ -333,10 +333,24 @@ static void sdap_access_get_access_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state,
                                 &num_results, &results);
     talloc_zfree(subreq);
+
+    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
     if (ret != EOK) {
-        DEBUG(1, ("sdap_get_generic_send() returned error [%d][%s]",
-                  ret, strerror(ret)));
-        state->pam_status = PAM_SYSTEM_ERR;
+        if (dp_error == DP_ERR_OK) {
+            /* retry */
+            ret = sdap_access_retry(req);
+            if (ret == EOK) {
+                return;
+            }
+            state->pam_status = PAM_SYSTEM_ERR;
+        } else if (dp_error == DP_ERR_OFFLINE) {
+            ret = sdap_access_decide_offline(req);
+        } else {
+            DEBUG(1, ("sdap_get_generic_send() returned error [%d][%s]\n",
+                      ret, strerror(ret)));
+            state->pam_status = PAM_SYSTEM_ERR;
+        }
+
         goto done;
     }
 
