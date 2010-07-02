@@ -153,11 +153,14 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
             DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
                       ldap_err2string(lret),
                       errmsg));
+            sss_log(SSS_LOG_ERR, "Could not start TLS. %s", errmsg);
             ldap_memfree(errmsg);
         }
         else {
             DEBUG(3, ("ldap_start_tls failed: [%s]\n",
                       ldap_err2string(lret)));
+            sss_log(SSS_LOG_ERR, "Could not start TLS. "
+                                 "Check for certificate issues.");
         }
         goto fail;
     }
@@ -236,11 +239,14 @@ static void sdap_connect_done(struct sdap_op *op,
             DEBUG(3, ("ldap_install_tls failed: [%s] [%s]\n",
                       ldap_err2string(ret),
                       tlserr));
+            sss_log(SSS_LOG_ERR, "Could not start TLS encryption. %s", tlserr);
             ldap_memfree(tlserr);
         }
         else {
             DEBUG(3, ("ldap_install_tls failed: [%s]\n",
                       ldap_err2string(ret)));
+            sss_log(SSS_LOG_ERR, "Could not start TLS encryption. "
+                                 "Check for certificate issues.");
         }
 
         state->result = ret;
