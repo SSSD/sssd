@@ -80,6 +80,8 @@ struct ldap_cb_data {
 struct sdap_handle {
     LDAP *ldap;
     bool connected;
+    /* Authentication ticket expiration time (if any) */
+    time_t expire_time;
 
     struct sdap_fd_events *sdap_fd_events;
 

@@ -626,6 +626,7 @@ static int sasl_bind_recv(struct tevent_req *req, int *ldaperr)
 
 struct sdap_kinit_state {
     int result;
+    time_t expire_time;
 };
 
 static void sdap_kinit_done(struct tevent_req *subreq);
@@ -686,8 +687,9 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     int ret;
     int result;
     char *ccname = NULL;
+    time_t expire_time;
 
-    ret = sdap_get_tgt_recv(subreq, state, &result, &ccname);
+    ret = sdap_get_tgt_recv(subreq, state, &result, &ccname, &expire_time);
     talloc_zfree(subreq);
     if (ret != EOK) {
         state->result = SDAP_AUTH_FAILED;
@@ -704,6 +706,7 @@ static void sdap_kinit_done(struct tevent_req *subreq)
             tevent_req_error(req, EFAULT);
         }
 
+        state->expire_time = expire_time;
         state->result = SDAP_AUTH_SUCCESS;
         tevent_req_done(req);
         return;
@@ -714,7 +717,9 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     tevent_req_error(req, EIO);
 }
 
-int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result)
+int sdap_kinit_recv(struct tevent_req *req,
+                    enum sdap_result *result,
+                    time_t *expire_time)
 {
     struct sdap_kinit_state *state = tevent_req_data(req,
                                                      struct sdap_kinit_state);
@@ -729,6 +734,7 @@ int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result)
     }
 
     *result = state->result;
+    *expire_time = state->expire_time;
     return EOK;
 }
 
@@ -1121,9 +1127,10 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     enum sdap_result result;
+    time_t expire_time;
     int ret;
 
-    ret = sdap_kinit_recv(subreq, &result);
+    ret = sdap_kinit_recv(subreq, &result, &expire_time);
     talloc_zfree(subreq);
     if (ret) {
         if (ret == ETIMEDOUT) { /* child timed out, retry another server */
@@ -1142,6 +1149,7 @@ static void sdap_cli_kinit_done(struct tevent_req *subreq)
         tevent_req_error(req, EACCES);
         return;
     }
+    state->sh->expire_time = expire_time;
 
     sdap_cli_auth_step(req);
 }

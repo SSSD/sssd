@@ -30,6 +30,7 @@
 
 #include "util/util.h"
 #include "providers/ldap/ldap_common.h"
+#include "providers/ldap/sdap_async_private.h"
 #include "providers/child_common.h"
 
 #ifndef SSSD_LIBEXEC_PATH
@@ -204,12 +205,14 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 
 static int parse_child_response(TALLOC_CTX *mem_ctx,
                                 uint8_t *buf, ssize_t size,
-                                int  *result, char **ccache)
+                                int  *result, char **ccache,
+                                time_t *expire_time_out)
 {
     size_t p = 0;
     uint32_t len;
     uint32_t res;
     char *ccn;
+    time_t expire_time;
 
     /* operation result code */
     SAFEALIGN_COPY_UINT32_CHECK(&res, buf + p, size, &p);
@@ -224,11 +227,18 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
         DEBUG(1, ("talloc_size failed.\n"));
         return ENOMEM;
     }
-    memcpy(ccn, buf+p, sizeof(char) * (len + 1));
+    safealign_memcpy(ccn, buf+p, sizeof(char) * len, &p);
     ccn[len] = '\0';
+
+    if (p + sizeof(time_t) > size) {
+        talloc_free(ccn);
+        return EINVAL;
+    }
+    safealign_memcpy(&expire_time, buf+p, sizeof(time_t), &p);
 
     *result = res;
     *ccache = ccn;
+    *expire_time_out = expire_time;
     return EOK;
 }
 
@@ -363,25 +373,28 @@ static void sdap_get_tgt_done(struct tevent_req *subreq)
 int sdap_get_tgt_recv(struct tevent_req *req,
                            TALLOC_CTX *mem_ctx,
                            int  *result,
-                           char **ccname)
+                           char **ccname,
+                           time_t *expire_time_out)
 {
     struct sdap_get_tgt_state *state = tevent_req_data(req,
                                              struct sdap_get_tgt_state);
     char *ccn;
+    time_t expire_time;
     int  res;
     int ret;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    ret = parse_child_response(mem_ctx, state->buf, state->len, &res, &ccn);
+    ret = parse_child_response(mem_ctx, state->buf, state->len, &res, &ccn, &expire_time);
     if (ret != EOK) {
         DEBUG(1, ("Cannot parse child response: [%d][%s]\n", ret, strerror(ret)));
         return ret;
     }
 
-    DEBUG(6, ("Child responded: %d [%s]\n", res, ccn));
+    DEBUG(6, ("Child responded: %d [%s], expired on [%ld]\n", res, ccn, (long)expire_time));
     *result = res;
     *ccname = ccn;
+    *expire_time_out = expire_time;
     return EOK;
 }
 

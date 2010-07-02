@@ -67,7 +67,9 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    const char *principal,
                                    const char *realm,
                                    int lifetime);
-int sdap_kinit_recv(struct tevent_req *req, enum sdap_result *result);
+int sdap_kinit_recv(struct tevent_req *req,
+                    enum sdap_result *result,
+                    time_t *expire_time);
 
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
                                   struct tevent_context *ev,

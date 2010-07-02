@@ -65,6 +65,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
 int sdap_get_tgt_recv(struct tevent_req *req,
                       TALLOC_CTX *mem_ctx,
                       int  *result,
-                      char **ccname);
+                      char **ccname,
+                      time_t *expire_time);
 
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */
