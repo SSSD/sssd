@@ -764,7 +764,9 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req = NULL;
     struct sdap_get_generic_state *state = NULL;
+    char *errmsg;
     int lret;
+    int optret;
     int ret;
     int msgid;
 
@@ -805,7 +807,21 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
         DEBUG(3, ("ldap_search_ext failed: %s\n", ldap_err2string(lret)));
         if (lret == LDAP_SERVER_DOWN) {
             ret = ETIMEDOUT;
-        } else {
+            optret = ldap_get_option(state->sh->ldap,
+                                     SDAP_DIAGNOSTIC_MESSAGE,
+                                     (void*)&errmsg);
+            if (optret == LDAP_SUCCESS) {
+                DEBUG(3, ("Connection error: %s\n", errmsg));
+                sss_log(SSS_LOG_ERR, "LDAP connection error: %s", errmsg);
+                ldap_memfree(errmsg);
+            }
+            else {
+                sss_log(SSS_LOG_ERR, "LDAP connection error, %s",
+                                     ldap_err2string(lret));
+            }
+        }
+
+        else {
             ret = EIO;
         }
         goto fail;
