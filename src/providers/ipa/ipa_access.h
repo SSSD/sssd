@@ -47,6 +47,7 @@ struct ipa_access_ctx {
 
 struct hbac_ctx {
     struct sdap_id_ctx *sdap_ctx;
+    struct sdap_id_op *sdap_op;
     struct dp_option *ipa_options;
     struct time_rules_ctx *tr_ctx;
     struct be_req *be_req;
@@ -58,11 +59,50 @@ struct hbac_ctx {
     const char *user_dn;
     size_t groups_count;
     const char **groups;
-    bool offline;
     char *ldap_basedn;
     struct sysdb_attrs **hbac_services_list;
     size_t hbac_services_count;
 };
+
+/* Get BE context associated with HBAC context */
+static inline struct be_ctx *hbac_ctx_be(struct hbac_ctx *hbac_ctx)
+{
+    struct be_req *req = hbac_ctx != NULL ? hbac_ctx->be_req : NULL;
+    return req != NULL ? req->be_ctx : NULL;
+}
+
+/* Get sysdb associated with HBAC context */
+static inline struct sysdb_ctx *hbac_ctx_sysdb(struct hbac_ctx *hbac_ctx)
+{
+    struct be_ctx *be_ctx = hbac_ctx_be(hbac_ctx);
+    return be_ctx != NULL ? be_ctx->sysdb : NULL;
+}
+
+/* Get tevent context associated with HBAC context */
+static inline struct tevent_context *hbac_ctx_ev(struct hbac_ctx *hbac_ctx)
+{
+    struct be_ctx *be_ctx = hbac_ctx_be(hbac_ctx);
+    return be_ctx != NULL ? be_ctx->ev : NULL;
+}
+
+/* Get sdap_id_ctx associated with HBAC context */
+static inline struct sdap_id_ctx *hbac_ctx_sdap_id_ctx(struct hbac_ctx *hbac_ctx)
+{
+    return hbac_ctx != NULL ? hbac_ctx->sdap_ctx : NULL;
+}
+
+/* Get struct sdap_id_op associated with HBAC context */
+static inline struct sdap_id_op *hbac_ctx_sdap_id_op(struct hbac_ctx *hbac_ctx)
+{
+    return hbac_ctx != NULL ? hbac_ctx->sdap_op : NULL;
+}
+
+/* Check whether the current HBAC request is processed in off-line mode */
+static inline bool hbac_ctx_is_offline(struct hbac_ctx *ctx)
+{
+    return ctx == NULL || ctx->sdap_op == NULL;
+}
+
 
 void ipa_access_handler(struct be_req *be_req);
 

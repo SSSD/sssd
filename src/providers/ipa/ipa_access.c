@@ -159,11 +159,15 @@ static errno_t hbac_sysdb_data_recv(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
-static void ipa_access_reply(struct be_req *be_req, int pam_status)
+static void ipa_access_reply(struct hbac_ctx *hbac_ctx, int pam_status)
 {
+    struct be_req *be_req = hbac_ctx->be_req;
     struct pam_data *pd;
     pd = talloc_get_type(be_req->req_data, struct pam_data);
     pd->pam_status = pam_status;
+
+    /* destroy HBAC context now to release all used resources and LDAP connection */
+    talloc_zfree(hbac_ctx);
 
     if (pam_status == PAM_SUCCESS || pam_status == PAM_PERM_DENIED) {
         be_req->fn(be_req, DP_ERR_OK, pam_status, NULL);
@@ -173,10 +177,7 @@ static void ipa_access_reply(struct be_req *be_req, int pam_status)
 }
 
 struct hbac_get_service_data_state {
-    struct tevent_context *ev;
-    struct sdap_id_ctx *sdap_ctx;
-    struct sysdb_ctx *sysdb;
-    struct sysdb_handle *handle;
+    struct hbac_ctx *hbac_ctx;
     const char *basedn;
     bool offline;
 
@@ -189,19 +190,16 @@ struct hbac_get_service_data_state {
     size_t current_item;
 };
 
-static void hbac_get_services_connect_done(struct tevent_req *subreq);
 static void hbac_services_get_done(struct tevent_req *subreq);
 
 struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
-                                              struct tevent_context *ev,
-                                               bool offline,
-                                               struct sdap_id_ctx *sdap_ctx,
-                                               struct sysdb_ctx *sysdb,
-                                               const char *basedn)
+                                              struct hbac_ctx *hbac_ctx,
+                                              const char *basedn)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct hbac_get_service_data_state *state;
+    struct sdap_handle *sdap_handle;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct hbac_get_service_data_state);
@@ -210,11 +208,7 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->ev = ev;
-    state->offline = offline;
-    state->sdap_ctx = sdap_ctx;
-    state->sysdb = sysdb;
-    state->handle = NULL;
+    state->hbac_ctx = hbac_ctx;
     state->basedn = basedn;
 
     state->services_reply_list = NULL;
@@ -253,9 +247,10 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
 
     DEBUG(9, ("Services filter: [%s].\n", state->services_filter));
 
-    if (offline) {
-        ret = hbac_sysdb_data_recv(state, state->sysdb,
-                                   state->sdap_ctx->be->domain,
+    if (hbac_ctx_is_offline(state->hbac_ctx)) {
+        ret = hbac_sysdb_data_recv(state,
+                                   hbac_ctx_sysdb(state->hbac_ctx),
+                                   hbac_ctx_be(state->hbac_ctx)->domain,
                                    state->services_filter, HBAC_SERVICES_SUBDIR,
                                    state->services_attrs,
                                    &state->services_reply_count,
@@ -266,27 +261,20 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
         }
 
         tevent_req_done(req);
-        tevent_req_post(req, ev);
+        tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
         return req;
     }
 
-    if (sdap_ctx->gsh == NULL || ! sdap_ctx->gsh->connected) {
-        subreq = sdap_cli_connect_send(state, ev, sdap_ctx->opts,
-                                       sdap_ctx->be, sdap_ctx->service, NULL);
-        if (!subreq) {
-            DEBUG(1, ("sdap_cli_connect_send failed.\n"));
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        tevent_req_set_callback(subreq, hbac_get_services_connect_done, req);
-
-        return req;
+    sdap_handle = sdap_id_op_handle(hbac_ctx_sdap_id_op(state->hbac_ctx));
+    if (sdap_handle == NULL) {
+        DEBUG(1, ("Bug: sdap_id_op is disconnected.\n"));
+        ret = EIO;
+        goto fail;
     }
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
+    subreq = sdap_get_generic_send(state,
+                                   hbac_ctx_ev(state->hbac_ctx),
+                                   hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
+                                   sdap_handle,
                                    state->services_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->services_filter,
@@ -305,47 +293,8 @@ struct tevent_req *hbac_get_service_data_send(TALLOC_CTX *memctx,
 
 fail:
     tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
+    tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
     return req;
-}
-
-static void hbac_get_services_connect_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct hbac_get_service_data_state *state = tevent_req_data(req,
-                                            struct hbac_get_service_data_state);
-    int ret;
-
-    ret = sdap_cli_connect_recv(subreq, state->sdap_ctx, &state->sdap_ctx->gsh,
-                                NULL);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
-                                   state->services_search_base,
-                                   LDAP_SCOPE_SUB,
-                                   state->services_filter,
-                                   state->services_attrs,
-                                   NULL, 0);
-
-    if (subreq == NULL) {
-        DEBUG(1, ("sdap_get_generic_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    tevent_req_set_callback(subreq, hbac_services_get_done, req);
-    return;
-
-fail:
-    tevent_req_error(req, ret);
-    return;
 }
 
 static void hbac_services_get_done(struct tevent_req *subreq)
@@ -354,6 +303,8 @@ static void hbac_services_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct hbac_get_service_data_state *state = tevent_req_data(req,
                                             struct hbac_get_service_data_state);
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     int ret;
     bool in_transaction = false;
     struct ldb_dn *base_dn;
@@ -375,7 +326,10 @@ static void hbac_services_get_done(struct tevent_req *subreq)
         return;
     }
 
-    ret = sysdb_transaction_start(state->sysdb);
+    sysdb = hbac_ctx_sysdb(state->hbac_ctx);
+    domain = hbac_ctx_be(state->hbac_ctx)->domain;
+
+    ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         DEBUG(1, ("sysdb_transaction_start failed.\n"));
         tevent_req_error(req, ret);
@@ -383,15 +337,15 @@ static void hbac_services_get_done(struct tevent_req *subreq)
     }
     in_transaction = true;
 
-    base_dn = sysdb_custom_subtree_dn(state->sysdb, state,
-                                      state->sdap_ctx->be->domain->name,
+    base_dn = sysdb_custom_subtree_dn(sysdb, state,
+                                      domain->name,
                                       HBAC_SERVICES_SUBDIR);
     if (base_dn == NULL) {
         ret = ENOMEM;
         goto fail;
     }
 
-    ret = sysdb_delete_recursive(state, state->sysdb, base_dn, true);
+    ret = sysdb_delete_recursive(state, sysdb, base_dn, true);
     if (ret) {
         DEBUG(1, ("sysdb_delete_recursive failed.\n"));
         goto fail;
@@ -416,8 +370,8 @@ static void hbac_services_get_done(struct tevent_req *subreq)
         }
         DEBUG(9, ("Object name: [%s].\n", object_name));
 
-        ret = sysdb_store_custom(state, state->sysdb,
-                                 state->sdap_ctx->be->domain, object_name,
+        ret = sysdb_store_custom(state, sysdb,
+                                 domain, object_name,
                                  HBAC_SERVICES_SUBDIR,
                                  state->services_reply_list[i]);
         if (ret) {
@@ -426,7 +380,7 @@ static void hbac_services_get_done(struct tevent_req *subreq)
         }
     }
 
-    ret = sysdb_transaction_commit(state->sysdb);
+    ret = sysdb_transaction_commit(sysdb);
     if (ret) {
         DEBUG(1, ("sysdb_transaction_commit failed.\n"));
         goto fail;
@@ -438,7 +392,7 @@ static void hbac_services_get_done(struct tevent_req *subreq)
 
 fail:
     if (in_transaction) {
-        sysdb_transaction_cancel(state->sysdb);
+        sysdb_transaction_cancel(sysdb);
     }
     tevent_req_error(req, ret);
     return;
@@ -573,10 +527,7 @@ fail:
 
 
 struct hbac_get_host_info_state {
-    struct tevent_context *ev;
-    struct sdap_id_ctx *sdap_ctx;
-    struct sysdb_ctx *sysdb;
-    bool offline;
+    struct hbac_ctx *hbac_ctx;
 
     char *host_filter;
     char *host_search_base;
@@ -588,21 +539,18 @@ struct hbac_get_host_info_state {
     struct hbac_host_info **hbac_host_info;
 };
 
-static void hbac_get_host_info_connect_done(struct tevent_req *subreq);
-static void hbac_get_host_memberof(struct tevent_req *req);
+static void hbac_get_host_memberof(struct tevent_req *req, bool offline);
 static void hbac_get_host_memberof_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
-                                                  struct tevent_context *ev,
-                                                  bool offline,
-                                                  struct sdap_id_ctx *sdap_ctx,
-                                                  struct sysdb_ctx *sysdb,
+                                                  struct hbac_ctx *hbac_ctx,
                                                   const char *basedn,
                                                   const char **hostnames)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct hbac_get_host_info_state *state;
+    struct sdap_handle *sdap_handle;
     int ret;
     int i;
 
@@ -617,10 +565,7 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->ev = ev;
-    state->sdap_ctx = sdap_ctx;
-    state->sysdb = sysdb;
-    state->offline = offline;
+    state->hbac_ctx = hbac_ctx;
 
     state->host_reply_list = NULL;
     state->host_reply_count = 0;
@@ -671,9 +616,9 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
     state->host_attrs[5] = SYSDB_ORIG_MEMBEROF;
     state->host_attrs[6] = NULL;
 
-    if (offline) {
-        ret = hbac_sysdb_data_recv(state, state->sysdb,
-                                   state->sdap_ctx->be->domain,
+    if (hbac_ctx_is_offline(state->hbac_ctx)) {
+        ret = hbac_sysdb_data_recv(state, hbac_ctx_sysdb(state->hbac_ctx),
+                                   hbac_ctx_be(state->hbac_ctx)->domain,
                                    state->host_filter, HBAC_HOSTS_SUBDIR,
                                    state->host_attrs,
                                    &state->host_reply_count,
@@ -682,28 +627,20 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
             DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
-        hbac_get_host_memberof(req);
-        tevent_req_post(req, ev);
+        hbac_get_host_memberof(req, true);
+        tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
         return req;
     }
 
-    if (sdap_ctx->gsh == NULL || ! sdap_ctx->gsh->connected) {
-        subreq = sdap_cli_connect_send(state, ev, sdap_ctx->opts,
-                                       sdap_ctx->be, sdap_ctx->service, NULL);
-        if (!subreq) {
-            DEBUG(1, ("sdap_cli_connect_send failed.\n"));
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        tevent_req_set_callback(subreq, hbac_get_host_info_connect_done, req);
-
-        return req;
+    sdap_handle = sdap_id_op_handle(hbac_ctx_sdap_id_op(state->hbac_ctx));
+    if (sdap_handle == NULL) {
+        DEBUG(1, ("Bug: sdap_id_op is disconnected.\n"));
+        ret = EIO;
+        goto fail;
     }
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
+    subreq = sdap_get_generic_send(state, hbac_ctx_ev(state->hbac_ctx),
+                                   hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
+                                   sdap_handle,
                                    state->host_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->host_filter,
@@ -722,48 +659,8 @@ static struct tevent_req *hbac_get_host_info_send(TALLOC_CTX *memctx,
 
 fail:
     tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
+    tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
     return req;
-}
-
-static void hbac_get_host_info_connect_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct hbac_get_host_info_state *state = tevent_req_data(req,
-                                               struct hbac_get_host_info_state);
-    int ret;
-
-    ret = sdap_cli_connect_recv(subreq, state->sdap_ctx, &state->sdap_ctx->gsh,
-                                NULL);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
-                                   state->host_search_base,
-                                   LDAP_SCOPE_SUB,
-                                   state->host_filter,
-                                   state->host_attrs,
-                                   NULL, 0);
-
-    if (subreq == NULL) {
-        DEBUG(1, ("sdap_get_generic_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    tevent_req_set_callback(subreq, hbac_get_host_memberof_done, req);
-
-    return;
-
-fail:
-    tevent_req_error(req, ret);
-    return;
 }
 
 static void hbac_get_host_memberof_done(struct tevent_req *subreq)
@@ -782,13 +679,14 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
         return;
     }
 
-    hbac_get_host_memberof(req);
+    hbac_get_host_memberof(req, false);
 }
 
-static void hbac_get_host_memberof(struct tevent_req *req)
+static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
 {
     struct hbac_get_host_info_state *state =
                     tevent_req_data(req, struct hbac_get_host_info_state);
+    struct sysdb_ctx *sysdb;
     bool in_transaction = false;
     int ret;
     int i;
@@ -875,8 +773,8 @@ static void hbac_get_host_memberof(struct tevent_req *req)
         }
 
         ret = sysdb_attrs_get_string_array(state->host_reply_list[i],
-                                          state->offline ? SYSDB_ORIG_MEMBEROF :
-                                                           IPA_MEMBEROF,
+                                          offline ? SYSDB_ORIG_MEMBEROF :
+                                                    IPA_MEMBEROF,
                                           hhi, &(hhi[i]->memberof));
         if (ret != EOK) {
             if (ret != ENOENT) {
@@ -896,12 +794,14 @@ static void hbac_get_host_memberof(struct tevent_req *req)
 
     state->hbac_host_info = hhi;
 
-    if (state->offline) {
+    if (offline) {
         tevent_req_done(req);
         return;
     }
 
-    ret = sysdb_transaction_start(state->sysdb);
+    sysdb = hbac_ctx_sysdb(state->hbac_ctx);
+
+    ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -928,8 +828,8 @@ static void hbac_get_host_memberof(struct tevent_req *req)
         }
         DEBUG(9, ("Fqdn [%s].\n", object_name));
 
-        ret = sysdb_store_custom(state, state->sysdb,
-                                 state->sdap_ctx->be->domain,
+        ret = sysdb_store_custom(state, sysdb,
+                                 hbac_ctx_be(state->hbac_ctx)->domain,
                                  object_name,
                                  HBAC_HOSTS_SUBDIR,
                                  state->host_reply_list[i]);
@@ -940,7 +840,7 @@ static void hbac_get_host_memberof(struct tevent_req *req)
         }
     }
 
-    ret = sysdb_transaction_commit(state->sysdb);
+    ret = sysdb_transaction_commit(sysdb);
     if (ret) {
         DEBUG(1, ("sysdb_transaction_commit failed.\n"));
         goto fail;
@@ -952,7 +852,7 @@ static void hbac_get_host_memberof(struct tevent_req *req)
 
 fail:
     if (in_transaction) {
-        sysdb_transaction_cancel(state->sysdb);
+        sysdb_transaction_cancel(sysdb);
     }
     tevent_req_error(req, ret);
     return;
@@ -972,10 +872,7 @@ static int hbac_get_host_info_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 
 
 struct hbac_get_rules_state {
-    struct tevent_context *ev;
-    struct sdap_id_ctx *sdap_ctx;
-    struct sysdb_ctx *sysdb;
-    bool offline;
+    struct hbac_ctx *hbac_ctx;
 
     const char *host_dn;
     const char **memberof;
@@ -989,22 +886,19 @@ struct hbac_get_rules_state {
     int current_item;
 };
 
-static void hbac_get_rules_connect_done(struct tevent_req *subreq);
-static void hbac_rule_get(struct tevent_req *req);
+static void hbac_rule_get(struct tevent_req *req, bool offline);
 static void hbac_rule_get_done(struct tevent_req *subreq);
 
 static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
-                                             struct tevent_context *ev,
-                                             bool offline,
-                                             struct sdap_id_ctx *sdap_ctx,
-                                             struct sysdb_ctx *sysdb,
-                                             const char *basedn,
-                                             const char *host_dn,
-                                             const char **memberof)
+                                              struct hbac_ctx *hbac_ctx,
+                                              const char *basedn,
+                                              const char *host_dn,
+                                              const char **memberof)
 {
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct hbac_get_rules_state *state;
+    struct sdap_handle *sdap_handle;
     int ret;
     int i;
 
@@ -1019,10 +913,7 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    state->ev = ev;
-    state->offline = offline;
-    state->sdap_ctx = sdap_ctx;
-    state->sysdb = sysdb;
+    state->hbac_ctx = hbac_ctx;
     state->host_dn = host_dn;
     state->memberof = memberof;
 
@@ -1091,9 +982,9 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
 
     DEBUG(9, ("HBAC rule filter: [%s].\n", state->hbac_filter));
 
-    if (offline) {
-        ret = hbac_sysdb_data_recv(state, state->sysdb,
-                                   state->sdap_ctx->be->domain,
+    if (hbac_ctx_is_offline(state->hbac_ctx)) {
+        ret = hbac_sysdb_data_recv(state, hbac_ctx_sysdb(state->hbac_ctx),
+                                   hbac_ctx_be(state->hbac_ctx)->domain,
                                    state->hbac_filter, HBAC_RULES_SUBDIR,
                                    state->hbac_attrs,
                                    &state->hbac_reply_count,
@@ -1102,28 +993,20 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
             DEBUG(1, ("hbac_sysdb_data_recv failed.\n"));
             goto fail;
         }
-        hbac_rule_get(req);
-        tevent_req_post(req, ev);
+        hbac_rule_get(req, true);
+        tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
         return req;
     }
 
-    if (sdap_ctx->gsh == NULL || ! sdap_ctx->gsh->connected) {
-        subreq = sdap_cli_connect_send(state, ev, sdap_ctx->opts,
-                                       sdap_ctx->be, sdap_ctx->service, NULL);
-        if (!subreq) {
-            DEBUG(1, ("sdap_cli_connect_send failed.\n"));
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        tevent_req_set_callback(subreq, hbac_get_rules_connect_done, req);
-
-        return req;
+    sdap_handle = sdap_id_op_handle(hbac_ctx_sdap_id_op(state->hbac_ctx));
+    if (sdap_handle == NULL) {
+        DEBUG(1, ("Bug: sdap_id_op is disconnected.\n"));
+        ret = EIO;
+        goto fail;
     }
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
+    subreq = sdap_get_generic_send(state, hbac_ctx_ev(state->hbac_ctx),
+                                   hbac_ctx_sdap_id_ctx(state->hbac_ctx)->opts,
+                                   sdap_handle,
                                    state->hbac_search_base,
                                    LDAP_SCOPE_SUB,
                                    state->hbac_filter,
@@ -1142,47 +1025,8 @@ static struct tevent_req *hbac_get_rules_send(TALLOC_CTX *memctx,
 
 fail:
     tevent_req_error(req, ret);
-    tevent_req_post(req, ev);
+    tevent_req_post(req, hbac_ctx_ev(state->hbac_ctx));
     return req;
-}
-
-static void hbac_get_rules_connect_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-    struct hbac_get_rules_state *state = tevent_req_data(req,
-                                                     struct hbac_get_rules_state);
-    int ret;
-
-    ret = sdap_cli_connect_recv(subreq, state->sdap_ctx, &state->sdap_ctx->gsh,
-                                NULL);
-    talloc_zfree(subreq);
-    if (ret) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    subreq = sdap_get_generic_send(state, state->ev,
-                                   state->sdap_ctx->opts,
-                                   state->sdap_ctx->gsh,
-                                   state->hbac_search_base,
-                                   LDAP_SCOPE_SUB,
-                                   state->hbac_filter,
-                                   state->hbac_attrs,
-                                   NULL, 0);
-
-    if (subreq == NULL) {
-        DEBUG(1, ("sdap_get_generic_send failed.\n"));
-        ret = ENOMEM;
-        goto fail;
-    }
-
-    tevent_req_set_callback(subreq, hbac_rule_get_done, req);
-    return;
-
-fail:
-    tevent_req_error(req, ret);
-    return;
 }
 
 static void hbac_rule_get_done(struct tevent_req *subreq)
@@ -1201,14 +1045,16 @@ static void hbac_rule_get_done(struct tevent_req *subreq)
         return;
     }
 
-    hbac_rule_get(req);
+    hbac_rule_get(req, false);
 }
 
-static void hbac_rule_get(struct tevent_req *req)
+static void hbac_rule_get(struct tevent_req *req, bool offline)
 {
     struct hbac_get_rules_state *state =
                         tevent_req_data(req, struct hbac_get_rules_state);
     bool in_transaction = false;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     int ret;
     int i;
     struct ldb_message_element *el;
@@ -1229,26 +1075,29 @@ static void hbac_rule_get(struct tevent_req *req)
         DEBUG(9, ("OriginalDN: [%s].\n", (const char *)el->values[0].data));
     }
 
-    if (state->hbac_reply_count == 0 || state->offline) {
+    if (state->hbac_reply_count == 0 || offline) {
         tevent_req_done(req);
         return;
     }
 
-    ret = sysdb_transaction_start(state->sysdb);
+    sysdb = hbac_ctx_sysdb(state->hbac_ctx);
+    domain = hbac_ctx_be(state->hbac_ctx)->domain;
+
+    ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
     in_transaction = true;
 
-    hbac_base_dn = sysdb_custom_subtree_dn(state->sysdb, state,
-                                           state->sdap_ctx->be->domain->name,
+    hbac_base_dn = sysdb_custom_subtree_dn(sysdb, state,
+                                           domain->name,
                                            HBAC_RULES_SUBDIR);
     if (hbac_base_dn == NULL) {
         ret = ENOMEM;
         goto fail;
     }
-    ret = sysdb_delete_recursive(state, state->sysdb, hbac_base_dn, true);
+    ret = sysdb_delete_recursive(state, sysdb, hbac_base_dn, true);
     if (ret) {
         DEBUG(1, ("sysdb_delete_recursive_send failed.\n"));
         goto fail;
@@ -1275,8 +1124,8 @@ static void hbac_rule_get(struct tevent_req *req)
         }
         DEBUG(9, ("IPAUniqueId: [%s].\n", object_name));
 
-        ret = sysdb_store_custom(state, state->sysdb,
-                                 state->sdap_ctx->be->domain,
+        ret = sysdb_store_custom(state, sysdb,
+                                 domain,
                                  object_name,
                                  HBAC_RULES_SUBDIR,
                                  state->hbac_reply_list[i]);
@@ -1287,7 +1136,7 @@ static void hbac_rule_get(struct tevent_req *req)
         }
     }
 
-    ret = sysdb_transaction_commit(state->sysdb);
+    ret = sysdb_transaction_commit(sysdb);
     if (ret) {
         DEBUG(1, ("sysdb_transaction_commit failed.\n"));
         goto fail;
@@ -1299,7 +1148,7 @@ static void hbac_rule_get(struct tevent_req *req)
 
 fail:
     if (in_transaction) {
-        sysdb_transaction_cancel(state->sysdb);
+        sysdb_transaction_cancel(sysdb);
     }
     tevent_req_error(req, ret);
     return;
@@ -1311,15 +1160,13 @@ static int hbac_get_rules_recv(struct tevent_req *req, TALLOC_CTX *memctx,
 {
     struct hbac_get_rules_state *state = tevent_req_data(req,
                                                      struct hbac_get_rules_state);
-    int i;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     *hbac_rule_count = state->hbac_reply_count;
     *hbac_rule_list = talloc_steal(memctx, state->hbac_reply_list);
-    for (i = 0; i < state->hbac_reply_count; i++) {
-        talloc_steal(memctx, state->hbac_reply_list[i]);
-    }
+    /* we do not need to steal each hbac_reply_list[i]
+     * as it belongs to hbac_reply_list memory block */
     return EOK;
 }
 
@@ -1817,18 +1664,22 @@ static int evaluate_ipa_hbac_rules(struct hbac_ctx *hbac_ctx,
     return EOK;
 }
 
+static int hbac_retry(struct hbac_ctx *hbac_ctx);
+static void hbac_connect_done(struct tevent_req *subreq);
+static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret);
+
+static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx);
 static void hbac_get_host_info_done(struct tevent_req *req);
 static void hbac_get_rules_done(struct tevent_req *req);
 static void hbac_get_service_data_done(struct tevent_req *req);
 
 void ipa_access_handler(struct be_req *be_req)
 {
-    struct tevent_req *req;
     struct pam_data *pd;
     struct hbac_ctx *hbac_ctx;
     int pam_status = PAM_SYSTEM_ERR;
     struct ipa_access_ctx *ipa_access_ctx;
-    const char *hostlist[3];
+    bool offline;
     int ret;
 
     pd = talloc_get_type(be_req->req_data, struct pam_data);
@@ -1853,59 +1704,157 @@ void ipa_access_handler(struct be_req *be_req)
         DEBUG(1, ("domain_to_basedn failed.\n"));
         goto fail;
     }
-    hbac_ctx->offline = be_is_offline(be_req->be_ctx);
 
-    DEBUG(9, ("Connection status is [%s].\n", hbac_ctx->offline ? "offline" :
-                                                                  "online"));
+    offline = be_is_offline(be_req->be_ctx);
+    DEBUG(9, ("Connection status is [%s].\n", offline ? "offline" : "online"));
 
+    if (!offline) {
+        hbac_ctx->sdap_op = sdap_id_op_create(hbac_ctx,
+                                    hbac_ctx_sdap_id_ctx(hbac_ctx)->conn_cache);
+        if (!hbac_ctx->sdap_op) {
+            DEBUG(1, ("sdap_id_op_create failed.\n"));
+            goto fail;
+        }
+    }
+
+    ret = hbac_retry(hbac_ctx);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    return;
+
+fail:
+    ipa_access_reply(hbac_ctx, pam_status);
+}
+
+static int hbac_retry(struct hbac_ctx *hbac_ctx)
+{
+    struct tevent_req *subreq;
+    int ret;
+
+    if (hbac_ctx_is_offline(hbac_ctx)) {
+        return hbac_get_host_info_step(hbac_ctx);
+    }
+
+    subreq = sdap_id_op_connect_send(hbac_ctx_sdap_id_op(hbac_ctx), hbac_ctx, &ret);
+    if (!subreq) {
+        DEBUG(1, ("sdap_id_op_connect_send failed: %d(%s).\n", ret, strerror(ret)));
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, hbac_connect_done, hbac_ctx);
+    return EOK;
+}
+
+static void hbac_connect_done(struct tevent_req *subreq)
+{
+    struct hbac_ctx *hbac_ctx = tevent_req_callback_data(subreq, struct hbac_ctx);
+    int ret, dp_error;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (dp_error == DP_ERR_OFFLINE) {
+        /* switching to offline mode */
+        talloc_zfree(hbac_ctx->sdap_op);
+    } else if (ret != EOK) {
+        goto fail;
+    }
+
+    ret = hbac_get_host_info_step(hbac_ctx);
+    if (ret != EOK) {
+        goto fail;
+    }
+
+    return;
+
+fail:
+    ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+}
+
+/* Check the step result code and continue, retry, get offline result or abort accordingly */
+static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret)
+{
+    int dp_error;
+
+    if (ret == EOK) {
+        return true;
+    }
+
+    if (hbac_ctx_is_offline(hbac_ctx)) {
+        /* already offline => the error is fatal */
+        ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+        return false;
+    }
+
+    ret = sdap_id_op_done(hbac_ctx_sdap_id_op(hbac_ctx), ret, &dp_error);
+    if (dp_error == DP_ERR_OFFLINE) {
+        /* switching to offline mode */
+        talloc_zfree(hbac_ctx->sdap_op);
+        dp_error = DP_ERR_OK;
+    }
+
+    if (dp_error == DP_ERR_OK) {
+        /* retry */
+        ret = hbac_retry(hbac_ctx);
+        if (ret == EOK) {
+            return false;
+        }
+
+        dp_error = DP_ERR_FATAL;
+    }
+
+    ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
+    return false;
+}
+
+static int hbac_get_host_info_step(struct hbac_ctx *hbac_ctx)
+{
+    struct pam_data *pd = hbac_ctx->pd;
+    const char *hostlist[3];
+    struct tevent_req *subreq;
 
     hostlist[0] = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
     if (hostlist[0] == NULL) {
         DEBUG(1, ("ipa_hostname not available.\n"));
-        goto fail;
+        return EINVAL;
     }
     if (pd->rhost != NULL && *pd->rhost != '\0') {
         hostlist[1] = pd->rhost;
+        hostlist[2] = NULL;
     } else {
         hostlist[1] = NULL;
-        pd->rhost = dp_opt_get_string(hbac_ctx->ipa_options, IPA_HOSTNAME);
-        if (pd->rhost == NULL) {
-            DEBUG(1, ("ipa_hostname not available.\n"));
-            goto fail;
-        }
+        pd->rhost = discard_const_p(char, hostlist[0]);
     }
-    hostlist[2] = NULL;
 
-    req = hbac_get_host_info_send(hbac_ctx, be_req->be_ctx->ev,
-                                  hbac_ctx->offline, hbac_ctx->sdap_ctx,
-                                  be_req->be_ctx->sysdb, hbac_ctx->ldap_basedn,
-                                  hostlist);
-    if (req == NULL) {
+    subreq = hbac_get_host_info_send(hbac_ctx, hbac_ctx,
+                                     hbac_ctx->ldap_basedn,
+                                     hostlist);
+    if (!subreq) {
         DEBUG(1, ("hbac_get_host_info_send failed.\n"));
-        goto fail;
+        return ENOMEM;
     }
 
-    tevent_req_set_callback(req, hbac_get_host_info_done, hbac_ctx);
-    return;
-
-fail:
-    ipa_access_reply(be_req, pam_status);
+    tevent_req_set_callback(subreq, hbac_get_host_info_done, hbac_ctx);
+    return EOK;
 }
 
 static void hbac_get_host_info_done(struct tevent_req *req)
 {
     struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
-    struct be_req *be_req = hbac_ctx->be_req;
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
     const char *ipa_hostname;
     struct hbac_host_info *local_hhi = NULL;
     int i;
 
+    talloc_zfree(hbac_ctx->hbac_host_info);
     ret = hbac_get_host_info_recv(req, hbac_ctx, &hbac_ctx->hbac_host_info);
     talloc_zfree(req);
-    if (ret != EOK) {
-        goto fail;
+
+    if (!hbac_check_step_result(hbac_ctx, ret)) {
+        return;
     }
 
     ipa_hostname = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
@@ -1935,8 +1884,7 @@ static void hbac_get_host_info_done(struct tevent_req *req)
         ret = EINVAL;
         goto fail;
     }
-    req = hbac_get_rules_send(hbac_ctx, be_req->be_ctx->ev, hbac_ctx->offline,
-                              hbac_ctx->sdap_ctx, be_req->be_ctx->sysdb,
+    req = hbac_get_rules_send(hbac_ctx, hbac_ctx,
                               hbac_ctx->ldap_basedn, local_hhi->dn,
                               local_hhi->memberof);
     if (req == NULL) {
@@ -1948,26 +1896,27 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     return;
 
 fail:
-    ipa_access_reply(be_req, pam_status);
+    ipa_access_reply(hbac_ctx, pam_status);
 }
 
 static void hbac_get_rules_done(struct tevent_req *req)
 {
     struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
-    struct be_req *be_req = hbac_ctx->be_req;
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
+
+    hbac_ctx->hbac_rule_count = 0;
+    talloc_zfree(hbac_ctx->hbac_rule_list);
 
     ret = hbac_get_rules_recv(req, hbac_ctx, &hbac_ctx->hbac_rule_count,
                               &hbac_ctx->hbac_rule_list);
     talloc_zfree(req);
-    if (ret != EOK) {
-        goto failed;
+
+    if (!hbac_check_step_result(hbac_ctx, ret)) {
+        return;
     }
 
-    req = hbac_get_service_data_send(hbac_ctx, be_req->be_ctx->ev,
-                                     hbac_ctx->offline, hbac_ctx->sdap_ctx,
-                                     be_req->be_ctx->sysdb,
+    req = hbac_get_service_data_send(hbac_ctx, hbac_ctx,
                                      hbac_ctx->ldap_basedn);
     if (req == NULL) {
         DEBUG(1, ("hbac_get_service_data_send failed.\n"));
@@ -1978,27 +1927,38 @@ static void hbac_get_rules_done(struct tevent_req *req)
     return;
 
 failed:
-    ipa_access_reply(be_req, pam_status);
+    ipa_access_reply(hbac_ctx, pam_status);
 }
 
 static void hbac_get_service_data_done(struct tevent_req *req)
 {
     struct hbac_ctx *hbac_ctx = tevent_req_callback_data(req, struct hbac_ctx);
     struct pam_data *pd = hbac_ctx->pd;
-    struct be_req *be_req = hbac_ctx->be_req;
     int ret;
     int pam_status = PAM_SYSTEM_ERR;
     bool access_allowed = false;
+
+    hbac_ctx->hbac_services_count = 0;
+    talloc_zfree(hbac_ctx->hbac_services_list);
 
     ret = hbac_get_service_data_recv(req, hbac_ctx,
                                      &hbac_ctx->hbac_services_count,
                                      &hbac_ctx->hbac_services_list);
     talloc_zfree(req);
-    if (ret != EOK) {
-        goto failed;
+
+    if (!hbac_check_step_result(hbac_ctx, ret)) {
+        return;
     }
 
-    ret = hbac_get_user_info(hbac_ctx, be_req->be_ctx,
+    if (hbac_ctx->user_dn) {
+        talloc_free(discard_const_p(TALLOC_CTX, hbac_ctx->user_dn));
+        hbac_ctx->user_dn = 0;
+    }
+
+    hbac_ctx->groups_count = 0;
+    talloc_zfree(hbac_ctx->groups);
+
+    ret = hbac_get_user_info(hbac_ctx, hbac_ctx_be(hbac_ctx),
                              pd->user, &hbac_ctx->user_dn,
                              &hbac_ctx->groups_count, &hbac_ctx->groups);
     if (ret != EOK) {
@@ -2020,5 +1980,5 @@ static void hbac_get_service_data_done(struct tevent_req *req)
     }
 
 failed:
-    ipa_access_reply(be_req, pam_status);
+    ipa_access_reply(hbac_ctx, pam_status);
 }
