@@ -263,6 +263,7 @@ int users_get_recv(struct tevent_req *req, int *dp_error_out)
 struct groups_get_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *ctx;
+    struct sdap_id_op *op;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
@@ -271,8 +272,11 @@ struct groups_get_state {
 
     char *filter;
     const char **attrs;
+
+    int dp_error;
 };
 
+static int groups_get_retry(struct tevent_req *req);
 static void groups_get_connect_done(struct tevent_req *subreq);
 static void groups_get_done(struct tevent_req *subreq);
 
@@ -283,7 +287,7 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    int filter_type,
                                    int attrs_type)
 {
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct groups_get_state *state;
     const char *attr_name;
     int ret;
@@ -293,6 +297,15 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
+    state->dp_error = DP_ERR_FATAL;
+
+    state->op = sdap_id_op_create(state, state->ctx->conn_cache);
+    if (!state->op) {
+        DEBUG(2, ("sdap_id_op_create failed\n"));
+        ret = ENOMEM;
+        goto fail;
+    }
+
     state->sysdb = ctx->be->sysdb;
     state->domain = state->ctx->be->domain;
     state->name = name;
@@ -324,32 +337,10 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                SDAP_OPTS_GROUP, &state->attrs);
     if (ret != EOK) goto fail;
 
-    if (!sdap_connected(ctx)) {
-
-        /* FIXME: add option to decide if tls should be used
-         * or SASL/GSSAPI, etc ... */
-        subreq = sdap_cli_connect_send(state, ev, ctx->opts,
-                                       ctx->be, ctx->service,
-                                       &ctx->rootDSE);
-        if (!subreq) {
-            ret = ENOMEM;
-            goto fail;
-        }
-
-        tevent_req_set_callback(subreq, groups_get_connect_done, req);
-
-        return req;
-    }
-
-    subreq = sdap_get_groups_send(state, state->ev,
-                                  state->domain, state->sysdb,
-                                  state->ctx->opts, state->ctx->gsh,
-                                  state->attrs, state->filter);
-    if (!subreq) {
-        ret = ENOMEM;
+    ret = groups_get_retry(req);
+    if (ret != EOK) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, groups_get_done, req);
 
     return req;
 
@@ -359,28 +350,43 @@ fail:
     return req;
 }
 
+static int groups_get_retry(struct tevent_req *req)
+{
+    struct groups_get_state *state = tevent_req_data(req,
+                                                    struct groups_get_state);
+    struct tevent_req *subreq;
+    int ret = EOK;
+
+    subreq = sdap_id_op_connect_send(state->op, state, &ret);
+    if (!subreq) {
+        return ret;
+    }
+
+    tevent_req_set_callback(subreq, groups_get_connect_done, req);
+    return EOK;
+}
+
 static void groups_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
+    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_cli_connect_recv(subreq, state->ctx,
-                                &state->ctx->gsh, &state->ctx->rootDSE);
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
     talloc_zfree(subreq);
-    if (ret) {
-        if (ret == ENOTSUP) {
-            DEBUG(0, ("Authentication mechanism not Supported by server"));
-        }
+
+    if (ret != EOK) {
+        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
 
     subreq = sdap_get_groups_send(state, state->ev,
                                   state->domain, state->sysdb,
-                                  state->ctx->opts, state->ctx->gsh,
+                                  state->ctx->opts, sdap_id_op_handle(state->op),
                                   state->attrs, state->filter);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
@@ -397,11 +403,26 @@ static void groups_get_done(struct tevent_req *subreq)
                                                      struct groups_get_state);
     char *endptr;
     gid_t gid;
+    int dp_error = DP_ERR_FATAL;
     int ret;
 
     ret = sdap_get_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
+    ret = sdap_id_op_done(state->op, ret, &dp_error);
+
+    if (dp_error == DP_ERR_OK && ret != EOK) {
+        /* retry */
+        ret = groups_get_retry(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+
+        return;
+    }
+
     if (ret && ret != ENOENT) {
+        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -445,11 +466,19 @@ static void groups_get_done(struct tevent_req *subreq)
         }
     }
 
+    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
-int groups_get_recv(struct tevent_req *req)
+int groups_get_recv(struct tevent_req *req, int *dp_error_out)
 {
+    struct groups_get_state *state = tevent_req_data(req,
+                                                     struct groups_get_state);
+
+    if (dp_error_out) {
+        *dp_error_out = state->dp_error;
+    }
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -785,12 +814,12 @@ static void sdap_account_info_users_done(struct tevent_req *req)
 static void sdap_account_info_groups_done(struct tevent_req *req)
 {
     struct be_req *breq = tevent_req_callback_data(req, struct be_req);
-    int ret;
+    int ret, dp_error;
 
-    ret = groups_get_recv(req);
+    ret = groups_get_recv(req, &dp_error);
     talloc_zfree(req);
 
-    sdap_account_info_common_done(ret, breq, "Group lookup failed");
+    sdap_account_info_complete(breq, dp_error, ret, "Group lookup failed");
 }
 
 static void sdap_account_info_initgr_done(struct tevent_req *req)
