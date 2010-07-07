@@ -108,7 +108,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   const char *name,
                                   int filter_type,
                                   int attrs_type);
-int users_get_recv(struct tevent_req *req);
+int users_get_recv(struct tevent_req *req, int *dp_error_out);
 
 struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
