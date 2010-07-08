@@ -212,6 +212,18 @@ int open_debug_file_ex(const char *filename, FILE **filep);
 int open_debug_file(void);
 int rotate_debug_files(void);
 
+/* From sss_log.c */
+#define SSS_LOG_EMERG   0   /* system is unusable */
+#define SSS_LOG_ALERT   1   /* action must be taken immediately */
+#define SSS_LOG_CRIT    2   /* critical conditions */
+#define SSS_LOG_ERR     3   /* error conditions */
+#define SSS_LOG_WARNING 4   /* warning conditions */
+#define SSS_LOG_NOTICE  5   /* normal but significant condition */
+#define SSS_LOG_INFO    6   /* informational */
+#define SSS_LOG_DEBUG   7   /* debug-level messages */
+
+void sss_log(int priority, const char *format, ...);
+
 /* from server.c */
 struct main_context {
     struct tevent_context *event_ctx;
