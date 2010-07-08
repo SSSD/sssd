@@ -218,7 +218,8 @@ AM_CPPFLAGS = -Wall \
 EXTRA_DIST = build/config.rpath
 
 SSSD_DEBUG_OBJ = \
-    util/debug.c
+    util/debug.c \
+    util/sss_log.c
 
 SSSD_UTIL_OBJ = \
     confdb/confdb.c \
