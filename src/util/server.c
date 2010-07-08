@@ -228,7 +228,8 @@ void sig_term(int sig)
 		kill(-getpgrp(), SIGTERM);
 	}
 #endif
-	exit(0);
+    sss_log(SSS_LOG_INFO, "Shutting down");
+    exit(0);
 }
 
 #ifndef HAVE_PRCTL
@@ -459,6 +460,8 @@ int server_setup(const char *name, int flags,
             return ret;
         }
     }
+
+    sss_log(SSS_LOG_INFO, "Starting up");
 
     DEBUG(3, ("CONFDB: %s\n", conf_db));
 
