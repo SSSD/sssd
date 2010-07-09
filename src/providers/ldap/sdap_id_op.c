@@ -627,6 +627,10 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
     if (ret == EOK && conn_data->sh->connected && !be_is_offline(conn_cache->be)) {
         DEBUG(9, ("caching successful connection after %d notifies\n", notify_count));
         conn_cache->cached_connection = conn_data;
+
+        /* Run any post-connection routines */
+        be_run_online_cb(conn_cache->be);
+
     } else {
         if (conn_cache->cached_connection == conn_data) {
             conn_cache->cached_connection = NULL;

@@ -51,6 +51,7 @@ struct ipa_ipaddress {
 
 struct ipa_dyndns_ctx {
     struct ipa_options *ipa_ctx;
+    struct sdap_id_op* sdap_op;
     char *hostname;
     struct ipa_ipaddress *addresses;
     int child_status;
@@ -72,6 +73,10 @@ void ipa_dyndns_update(void *pvt)
     tevent_req_set_callback(req, ipa_dyndns_update_done, req);
 }
 
+static void ipa_dyndns_sdap_connect_done(struct tevent_req *subreq);
+static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
+                                     struct sdap_handle *sh);
+static int ipa_dyndns_gss_tsig_update_step(struct tevent_req *req);
 
 static struct tevent_req *
 ipa_dyndns_gss_tsig_update_send(struct ipa_dyndns_ctx *ctx);
@@ -82,12 +87,8 @@ static struct tevent_req *
 ipa_dyndns_update_send(struct ipa_options *ctx)
 {
     int ret;
-    int fd;
     char *iface;
-    char *ipa_hostname;
     struct ipa_dyndns_ctx *state;
-    struct sockaddr sa;
-    socklen_t sa_len = sizeof(sa);
     struct ifaddrs *ifaces;
     struct ifaddrs *ifa;
     struct ipa_ipaddress *address;
@@ -140,41 +141,130 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         }
 
         freeifaddrs(ifaces);
-    }
 
-    else {
-        /* Get the file descriptor for the primary LDAP connection */
-        ret = get_fd_from_ldap(ctx->id_ctx->gsh->ldap, &fd);
+        ret = ipa_dyndns_gss_tsig_update_step(req);
         if (ret != EOK) {
             goto failed;
         }
-
-        ret = getsockname(fd, &sa, &sa_len);
-        if (ret == -1) {
-            DEBUG(0,("Failed to get socket name\n"));
-            goto failed;
-        }
-
-        switch(sa.sa_family) {
-        case AF_INET:
-        case AF_INET6:
-            address = talloc(state, struct ipa_ipaddress);
-            if (!address) {
-                goto failed;
-            }
-            address->addr = talloc_memdup(address, &sa,
-                                          sizeof(struct sockaddr));
-            if(address->addr == NULL) {
-                goto failed;
-            }
-            DLIST_ADD(state->addresses, address);
-            break;
-        default:
-            DEBUG(1, ("Connection to LDAP is neither IPv4 nor IPv6\n"));
-            ret = EIO;
-            goto failed;
-        }
     }
+
+    else {
+        /* Detect DYNDNS interface from LDAP connection */
+        state->sdap_op = sdap_id_op_create(state, state->ipa_ctx->id_ctx->conn_cache);
+        if (!state->sdap_op) {
+            DEBUG(1, ("sdap_id_op_create failed\n"));
+            ret = ENOMEM;
+            goto failed;
+        }
+
+        subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
+        if (!subreq) {
+            DEBUG(1, ("sdap_id_op_connect_send failed: [%d](%s)\n",
+                ret, strerror(ret)));
+
+            goto failed;
+        }
+
+        tevent_req_set_callback(subreq, ipa_dyndns_sdap_connect_done, req);
+    }
+
+    return req;
+
+failed:
+    talloc_free(req);
+    return NULL;
+}
+
+static void ipa_dyndns_sdap_connect_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_dyndns_ctx *state = tevent_req_data(req, struct ipa_dyndns_ctx);
+    int ret, dp_error;
+
+    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    talloc_zfree(subreq);
+
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            DEBUG(9,("No LDAP server is available, dynamic DNS update is skipped in OFFLINE mode.\n"));
+        } else {
+            DEBUG(9,("Failed to connect to LDAP server: [%d](%s)\n",
+                ret, strerror(ret)));
+        }
+
+        goto failed;
+    }
+
+    ret = ipa_dyndns_add_ldap_iface(state, sdap_id_op_handle(state->sdap_op));
+    talloc_zfree(state->sdap_op);
+    if (ret != EOK) {
+        goto failed;
+    }
+
+    ret = ipa_dyndns_gss_tsig_update_step(req);
+    if (ret != EOK) {
+        goto failed;
+    }
+
+    return;
+
+failed:
+    tevent_req_error(req, ret);
+}
+
+static int ipa_dyndns_add_ldap_iface(struct ipa_dyndns_ctx *state,
+                                     struct sdap_handle *sh)
+{
+    int ret;
+    int fd;
+    struct ipa_ipaddress *address;
+    struct sockaddr sa;
+    socklen_t sa_len = sizeof(sa);
+
+    if (!sh) {
+        return EINVAL;
+    }
+
+    /* Get the file descriptor for the primary LDAP connection */
+    ret = get_fd_from_ldap(sh->ldap, &fd);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = getsockname(fd, &sa, &sa_len);
+    if (ret == -1) {
+        DEBUG(0,("Failed to get socket name\n"));
+        return errno;
+    }
+
+    switch(sa.sa_family) {
+    case AF_INET:
+    case AF_INET6:
+        address = talloc(state, struct ipa_ipaddress);
+        if (!address) {
+            return ENOMEM;
+        }
+        address->addr = talloc_memdup(address, &sa,
+                                      sizeof(struct sockaddr));
+        if(address->addr == NULL) {
+            talloc_zfree(address);
+            return ENOMEM;
+        }
+        DLIST_ADD(state->addresses, address);
+        break;
+    default:
+        DEBUG(1, ("Connection to LDAP is neither IPv4 nor IPv6\n"));
+        return EIO;
+    }
+
+    return EOK;
+}
+
+static int ipa_dyndns_gss_tsig_update_step(struct tevent_req *req)
+{
+    struct ipa_dyndns_ctx *state = tevent_req_data(req, struct ipa_dyndns_ctx);
+    char *ipa_hostname;
+    struct tevent_req *subreq;
 
     /* Get the IPA hostname */
     ipa_hostname = dp_opt_get_string(state->ipa_ctx->basic,
@@ -183,14 +273,12 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
         /* This should never happen, but we'll protect
          * against it anyway.
          */
-        talloc_free(req);
-        return NULL;
+        return EINVAL;
     }
 
     state->hostname = talloc_strdup(state, ipa_hostname);
     if(state->hostname == NULL) {
-        talloc_free(req);
-        return NULL;
+        return ENOMEM;
     }
 
     /* In the future, it might be best to check that an update
@@ -200,16 +288,12 @@ ipa_dyndns_update_send(struct ipa_options *ctx)
      */
     subreq = ipa_dyndns_gss_tsig_update_send(state);
     if(subreq == NULL) {
-        tevent_req_error(req, EIO);
+        return ENOMEM;
     }
     tevent_req_set_callback(subreq,
                             ipa_dyndns_gss_tsig_update_done,
                             req);
-    return req;
-
-failed:
-    talloc_free(req);
-    return NULL;
+    return EOK;
 }
 
 struct ipa_nsupdate_ctx {

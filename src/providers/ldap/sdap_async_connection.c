@@ -1184,8 +1184,6 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct sdap_cli_connect_state *state = tevent_req_data(req,
-                                             struct sdap_cli_connect_state);
     enum sdap_result result;
     int ret;
 
@@ -1199,11 +1197,6 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
         tevent_req_error(req, EACCES);
         return;
     }
-
-    /* Reconnection succeeded
-     * Run any post-connection routines
-     */
-    be_run_online_cb(state->be);
 
     tevent_req_done(req);
 }
