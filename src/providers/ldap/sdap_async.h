@@ -115,6 +115,11 @@ int sdap_cli_connect_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,
                           struct sdap_handle **gsh,
                           struct sysdb_attrs **rootdse);
+int sdap_cli_connect_recv_ext(struct tevent_req *req,
+                          TALLOC_CTX *memctx,
+                          bool *can_retry,
+                          struct sdap_handle **gsh,
+                          struct sysdb_attrs **rootdse);
 
 struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,

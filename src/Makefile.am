@@ -353,6 +353,7 @@ dist_noinst_HEADERS = \
     providers/ldap/sdap_access.h \
     providers/ldap/sdap_async.h \
     providers/ldap/sdap_async_private.h \
+    providers/ldap/sdap_id_op.h \
     providers/ipa/ipa_common.h \
     providers/ipa/ipa_access.h \
     providers/ipa/ipa_timerules.h \
@@ -740,6 +741,7 @@ libsss_ldap_la_SOURCES = \
     providers/ldap/sdap_async_connection.c \
     providers/ldap/sdap_child_helpers.c \
     providers/ldap/sdap_fd_events.c \
+    providers/ldap/sdap_id_op.c \
     providers/ldap/sdap.c \
     util/user_info_msg.c \
     util/sss_ldap.c \
@@ -818,6 +820,7 @@ libsss_ipa_la_SOURCES = \
     providers/ldap/sdap_async_connection.c \
     providers/ldap/sdap_child_helpers.c \
     providers/ldap/sdap_fd_events.c \
+    providers/ldap/sdap_id_op.c \
     providers/ldap/sdap.c \
     util/user_info_msg.c \
     util/sss_ldap.c \

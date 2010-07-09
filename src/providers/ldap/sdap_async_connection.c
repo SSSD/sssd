@@ -1213,15 +1213,31 @@ int sdap_cli_connect_recv(struct tevent_req *req,
                           struct sdap_handle **gsh,
                           struct sysdb_attrs **rootdse)
 {
+    return sdap_cli_connect_recv_ext(req, memctx, NULL, gsh, rootdse);
+}
+
+int sdap_cli_connect_recv_ext(struct tevent_req *req,
+                              TALLOC_CTX *memctx,
+                              bool *can_retry,
+                              struct sdap_handle **gsh,
+                              struct sysdb_attrs **rootdse)
+{
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
     enum tevent_req_state tstate;
     uint64_t err;
 
+    if (can_retry) {
+        *can_retry = true;
+    }
     if (tevent_req_is_error(req, &tstate, &err)) {
         /* mark the server as bad if connection failed */
         if (state->srv) {
             fo_set_port_status(state->srv, PORT_NOT_WORKING);
+        } else {
+            if (can_retry) {
+                *can_retry = false;
+            }
         }
 
         if (tstate == TEVENT_REQ_USER_ERROR) {

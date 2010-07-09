@@ -24,6 +24,7 @@
 
 #include "providers/dp_backend.h"
 #include "providers/ldap/sdap.h"
+#include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"
 
 #define PWD_POL_OPT_NONE "none"
@@ -46,6 +47,9 @@ struct sdap_id_ctx {
 
     /* global sdap handler */
     struct sdap_handle *gsh;
+
+    /* LDAP connection cache */
+    struct sdap_id_conn_cache *conn_cache;
 
     /* enumeration loop timer */
     struct timeval last_enum;

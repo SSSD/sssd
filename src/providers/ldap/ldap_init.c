@@ -112,6 +112,13 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         goto done;
     }
 
+    ret = sdap_id_conn_cache_create(ctx, ctx->be,
+                                    ctx->opts, ctx->service,
+                                    &ctx->conn_cache);
+    if (ret != EOK) {
+        goto done;
+    }
+
     ret = sdap_id_setup_tasks(ctx);
     if (ret != EOK) {
         goto done;
