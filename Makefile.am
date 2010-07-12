@@ -331,6 +331,7 @@ dist_noinst_HEADERS = \
     src/providers/krb5/krb5_common.h \
     src/providers/krb5/krb5_utils.h \
     src/providers/ldap/ldap_common.h \
+    src/providers/ldap/ldap_req_wrap.h \
     src/providers/ldap/sdap.h \
     src/providers/ldap/sdap_access.h \
     src/providers/ldap/sdap_async.h \
@@ -731,6 +732,7 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_init.c \
     src/providers/ldap/ldap_common.c \
+    src/providers/ldap/ldap_req_wrap.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_accounts.c \
     src/providers/ldap/sdap_async_connection.c \
@@ -811,6 +813,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ldap/ldap_id_cleanup.c \
     src/providers/ldap/ldap_auth.c \
     src/providers/ldap/ldap_common.c \
+    src/providers/ldap/ldap_req_wrap.c \
     src/providers/ldap/sdap_async.c \
     src/providers/ldap/sdap_async_accounts.c \
     src/providers/ldap/sdap_async_connection.c \

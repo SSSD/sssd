@@ -30,6 +30,14 @@ struct sdap_handle *sdap_handle_create(TALLOC_CTX *memctx);
 
 void sdap_ldap_result(struct tevent_context *ev, struct tevent_fd *fde,
                       uint16_t flags, void *pvt);
+void set_fd_retry_cb(struct sdap_handle *sh,
+                     fd_wakeup_callback_t *cb, void *cb_data);
+void sdap_async_ldap_result(struct tevent_context *ev,
+                            struct tevent_fd *fde,
+                            uint16_t flags, void *pvt);
+void sdap_add_timeout_watcher(struct ldap_cb_data *cb_data,
+                              struct fd_event_item *fd_event_item);
+
 
 int setup_ldap_connection_callbacks(struct sdap_handle *sh,
                                     struct tevent_context *ev);

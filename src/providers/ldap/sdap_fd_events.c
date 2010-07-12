@@ -61,6 +61,15 @@ int remove_ldap_connection_callbacks(struct sdap_handle *sh)
 }
 
 #ifdef HAVE_LDAP_CONNCB
+void set_fd_retry_cb(struct sdap_handle *sh,
+                     fd_wakeup_callback_t *fd_cb, void *fd_cb_data)
+{
+    struct ldap_cb_data *cb_data;
+
+    cb_data = talloc_get_type(sh->sdap_fd_events->conncb->lc_arg, struct ldap_cb_data);
+    cb_data->wakeup_cb = fd_cb;
+    cb_data->wakeup_cb_data = fd_cb_data;
+}
 
 static int remove_connection_callback(TALLOC_CTX *mem_ctx)
 {
@@ -79,6 +88,24 @@ static int remove_connection_callback(TALLOC_CTX *mem_ctx)
     return EOK;
 }
 
+static int request_spy_destructor(struct request_spy *spy)
+{
+    if (spy->ptr) {
+        spy->ptr->spy = NULL;
+        talloc_free(spy->ptr);
+    }
+    return 0;
+}
+
+static int fd_event_item_destructor(struct fd_event_item *fd_event_item)
+{
+    if (fd_event_item->spy) {
+        fd_event_item->spy->ptr = NULL;
+    }
+    DLIST_REMOVE(fd_event_item->cb_data->fd_list, fd_event_item);
+    return 0;
+}
+
 static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
                                           LDAPURLDesc *srv,
                                           struct sockaddr *addr,
@@ -87,6 +114,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
     int ret;
     ber_socket_t ber_fd;
     struct fd_event_item *fd_event_item;
+    struct request_spy *spy;
     struct ldap_cb_data *cb_data = talloc_get_type(ctx->lc_arg,
                                                    struct ldap_cb_data);
 
@@ -101,7 +129,7 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
         DEBUG(1, ("ber_sockbuf_ctrl failed.\n"));
         return EINVAL;
     }
-    DEBUG(9, ("New LDAP connection to [%s] with fd [%d].\n",
+    DEBUG(5, ("New LDAP connection to [%s] with fd [%d].\n",
               ldap_url_desc2str(srv), ber_fd));
 
     fd_event_item = talloc_zero(cb_data, struct fd_event_item);
@@ -111,16 +139,40 @@ static int sdap_ldap_connect_callback_add(LDAP *ld, Sockbuf *sb,
     }
 
     fd_event_item->fde = tevent_add_fd(cb_data->ev, fd_event_item, ber_fd,
+#ifdef LDAP_OPT_CONNECT_ASYNC
+                                       TEVENT_FD_READ | TEVENT_FD_WRITE,
+                                       sdap_async_ldap_result, cb_data
+#else
                                        TEVENT_FD_READ, sdap_ldap_result,
-                                       cb_data->sh);
+                                       cb_data->sh
+#endif
+                                       );
+
     if (fd_event_item->fde == NULL) {
         DEBUG(1, ("tevent_add_fd failed.\n"));
         talloc_free(fd_event_item);
         return ENOMEM;
     }
     fd_event_item->fd = ber_fd;
+    fd_event_item->cb_data = cb_data;
+
+    fd_event_item->fd_wakeup_cb = cb_data->wakeup_cb;
+    fd_event_item->fd_wakeup_cb_data = cb_data->wakeup_cb_data;
+    if (fd_event_item->fd_wakeup_cb) {
+        /* Allocate the spy on the tevent request. */
+        spy = talloc(fd_event_item->fd_wakeup_cb_data, struct request_spy);
+        if (spy == NULL) {
+            talloc_free(fd_event_item);
+            return ENOMEM;
+        }
+        spy->ptr = fd_event_item;
+        fd_event_item->spy = spy;
+        talloc_set_destructor(spy, request_spy_destructor);
+    }
 
     DLIST_ADD(cb_data->fd_list, fd_event_item);
+    talloc_set_destructor(fd_event_item, fd_event_item_destructor);
+    sdap_add_timeout_watcher(cb_data, fd_event_item);
 
     return LDAP_SUCCESS;
 }
@@ -161,7 +213,15 @@ static void sdap_ldap_connect_callback_del(LDAP *ld, Sockbuf *sb,
     return;
 }
 
-#else
+#else /* !HAVE_LDAP_CONNCB */
+
+void set_fd_retry_cb(struct sdap_handle *sh,
+                     fd_wakeup_callback_t *fd_cb, void *fd_cb_data)
+{
+    (void)sh;
+    (void)fd_cb;
+    (void)fd_cb_data;
+}
 
 static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
                                        struct tevent_context *ev)
@@ -199,7 +259,7 @@ static int sdap_install_ldap_callbacks(struct sdap_handle *sh,
     return EOK;
 }
 
-#endif
+#endif /* HAVE_LDAP_CONNCB */
 
 
 errno_t setup_ldap_connection_callbacks(struct sdap_handle *sh,
@@ -245,6 +305,15 @@ errno_t setup_ldap_connection_callbacks(struct sdap_handle *sh,
         goto fail;
     }
 
+#ifdef LDAP_OPT_CONNECT_ASYNC
+    ret = ldap_set_option(sh->ldap, LDAP_OPT_CONNECT_ASYNC, LDAP_OPT_ON);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(1, ("Failed to set connection as asynchronous\n"));
+        ret = EFAULT;
+        goto fail;
+    }
+#endif
+
     talloc_set_destructor((TALLOC_CTX *) sh->sdap_fd_events->conncb,
                           remove_connection_callback);
 
@@ -253,10 +322,10 @@ errno_t setup_ldap_connection_callbacks(struct sdap_handle *sh,
 fail:
     talloc_zfree(sh->sdap_fd_events);
     return ret;
-#else
+#else /* !HAVE_LDAP_CONNCB */
     DEBUG(9, ("LDAP connection callbacks are not supported.\n"));
     return EOK;
-#endif
+#endif /* HAVE_LDAP_CONNCB */
 }
 
 errno_t sdap_set_connected(struct sdap_handle *sh, struct tevent_context *ev)
