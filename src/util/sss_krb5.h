@@ -24,6 +24,7 @@
 #include "config.h"
 
 #include <stdbool.h>
+#include <talloc.h>
 
 #ifdef HAVE_KRB5_KRB5_H
 #include <krb5/krb5.h>
@@ -47,4 +48,12 @@ void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name)
 
 krb5_error_code check_for_valid_tgt(const char *ccname, const char *realm,
                                     const char *client_princ_str, bool *result);
+
+int sss_krb5_verify_keytab(const char *principal,
+                           const char *realm_str,
+                           const char *keytab_name);
+
+int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
+                              krb5_context context, krb5_keytab keytab);
+
 #endif /* __SSS_KRB5_H__ */

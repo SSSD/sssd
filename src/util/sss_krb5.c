@@ -26,7 +26,160 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 
+int sss_krb5_verify_keytab(const char *principal,
+                           const char *realm_str,
+                           const char *keytab_name)
+{
+    krb5_context context = NULL;
+    krb5_keytab keytab = NULL;
+    krb5_error_code krberr;
+    int ret;
+    char *full_princ = NULL;
+    char *realm_name = NULL;
+    char *default_realm = NULL;
+    TALLOC_CTX *tmp_ctx;
 
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    krberr = krb5_init_context(&context);
+    if (krberr) {
+        DEBUG(2, ("Failed to init kerberos context\n"));
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (keytab_name) {
+        krberr = krb5_kt_resolve(context, keytab_name, &keytab);
+    } else {
+        krberr = krb5_kt_default(context, &keytab);
+    }
+
+    if (krberr) {
+        DEBUG(0, ("Failed to read keytab file: %s\n",
+                  sss_krb5_get_error_message(context, krberr)));
+        ret = EFAULT;
+        goto done;
+    }
+
+    if (!realm_str) {
+        krberr = krb5_get_default_realm(context, &default_realm);
+        if (krberr) {
+            DEBUG(2, ("Failed to get default realm name: %s\n",
+                      sss_krb5_get_error_message(context, krberr)));
+            ret = EFAULT;
+            goto done;
+        }
+
+        realm_name = talloc_strdup(tmp_ctx, default_realm);
+        krb5_free_default_realm(context, default_realm);
+        if (!realm_name) {
+            ret = ENOMEM;
+            goto done;
+        }
+    } else {
+        realm_name = talloc_strdup(tmp_ctx, realm_str);
+        if (!realm_name) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (principal) {
+        if (!strchr(principal, '@')) {
+            full_princ = talloc_asprintf(tmp_ctx, "%s@%s",
+                                         principal, realm_name);
+        } else {
+            full_princ = talloc_strdup(tmp_ctx, principal);
+        }
+    } else {
+        char hostname[512];
+
+        ret = gethostname(hostname, 511);
+        if (ret == -1) {
+            ret = errno;
+            goto done;
+        }
+        hostname[511] = '\0';
+
+        full_princ = talloc_asprintf(tmp_ctx, "host/%s@%s",
+                                     hostname, realm_name);
+    }
+    if (!full_princ) {
+        ret = ENOMEM;
+        goto done;
+    }
+    DEBUG(4, ("Principal name is: [%s]\n", full_princ));
+
+    ret = sss_krb5_verify_keytab_ex(full_princ, keytab_name, context, keytab);
+    if (ret) goto done;
+
+    ret = EOK;
+done:
+    if (keytab) krb5_kt_close(context, keytab);
+    if (context) krb5_free_context(context);
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
+                              krb5_context context, krb5_keytab keytab)
+{
+    bool found;
+    char *kt_principal;
+    krb5_error_code krberr;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+
+    krberr = krb5_kt_start_seq_get(context, keytab, &cursor);
+    if (krberr) {
+        DEBUG(0, ("Cannot read keytab [%s].\n", keytab_name));
+
+        sss_log(SSS_LOG_ERR, "Error reading keytab file [%s]: [%d][%s]. "
+                             "Unable to create GSSAPI-encrypted LDAP connection.",
+                             keytab_name, krberr,
+                             sss_krb5_get_error_message(context, krberr));
+
+        return EIO;
+    }
+
+    found = false;
+    while((krb5_kt_next_entry(context, keytab, &entry, &cursor)) == 0){
+        krb5_unparse_name(context, entry.principal, &kt_principal);
+        if (strcmp(principal, kt_principal) == 0) {
+            found = true;
+        }
+        free(kt_principal);
+        krb5_free_keytab_entry_contents(context, &entry);
+
+        if (found) {
+            break;
+        }
+    }
+
+    krberr = krb5_kt_end_seq_get(context, keytab, &cursor);
+    if (krberr) {
+        DEBUG(0, ("Could not close keytab.\n"));
+        sss_log(SSS_LOG_ERR, "Could not close keytab file [%s].",
+                             keytab_name);
+        return EIO;
+    }
+
+    if (!found) {
+        DEBUG(0, ("Principal [%s] not found in keytab [%s]\n",
+                  principal, keytab_name ? keytab_name : "default"));
+        sss_log(SSS_LOG_ERR, "Error processing keytab file [%s]: "
+                             "Principal [%s] was not found. "
+                             "Unable to create GSSAPI-encrypted LDAP connection.",
+                             keytab_name, principal);
+
+        return EFAULT;
+    }
+
+    return EOK;
+}
 
 const char *KRB5_CALLCONV sss_krb5_get_error_message(krb5_context ctx,
                                                krb5_error_code ec)

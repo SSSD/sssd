@@ -29,6 +29,7 @@
 #include <fcntl.h>
 
 #include "util/util.h"
+#include "util/sss_krb5.h"
 #include "providers/ldap/ldap_common.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/child_common.h"
@@ -453,6 +454,21 @@ int setup_child(struct sdap_id_ctx *ctx)
                              SDAP_SASL_MECH);
     if (!mech) {
         return EOK;
+    }
+
+    if (mech && (strcasecmp(mech, "GSSAPI") == 0)) {
+        ret = sss_krb5_verify_keytab(dp_opt_get_string(ctx->opts->basic,
+                                                       SDAP_SASL_AUTHID),
+                                     dp_opt_get_string(ctx->opts->basic,
+                                                       SDAP_KRB5_REALM),
+                                     dp_opt_get_string(ctx->opts->basic,
+                                                       SDAP_KRB5_KEYTAB));
+
+        if (ret != EOK) {
+            DEBUG(0, ("Could not verify keytab\n"))
+            return ret;
+        }
+
     }
 
     if (debug_to_file != 0 && ldap_child_debug_fd == -1) {
