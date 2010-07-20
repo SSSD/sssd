@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sss_daemon 0.4.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-07-09 13:48-0400\n"
-"PO-Revision-Date: 2010-07-15 13:44-0300\n"
+"PO-Revision-Date: 2010-07-20 09:18-0300\n"
 "Last-Translator: Héctor Daniel Cabrera <logan@fedoraproject.org>\n"
 "Language-Team: Fedora Spanish <trans-es@lists.fedoraproject.org>\n"
 "MIME-Version: 1.0\n"
@@ -162,11 +162,11 @@ msgstr "Por cuánto tiempo permitir ingresos cacheados luego del último (días)
 
 #: config/SSSDConfig.py:84
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr "Cantidad de tiempo (en segundos) a esperar respuestas desde DNS al resolver servidores"
+msgstr "Cantidad de tiempo (en segundos) a esperar respuestas desde DNS cuando se estén resolviendo servidores"
 
 #: config/SSSDConfig.py:85
 msgid "The domain part of service discovery DNS query"
-msgstr "En una consulta de descubrimiento de servicios DNS, la parte correspondiente al dominio del servicio "
+msgstr "La sección del dominio de la consulta para descubrir servicios DNS"
 
 #: config/SSSDConfig.py:88
 msgid "IPA domain"
@@ -182,11 +182,11 @@ msgstr "Nombre de equipo del cliente IPA"
 
 #: config/SSSDConfig.py:91
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
-msgstr "Si actualizar automáticamente o no en FreeIPA, la entrada DNS del cliente"
+msgstr "Si actualizar o no en forma automática la entrada DNS del cliente en FreeIPA"
 
 #: config/SSSDConfig.py:92
 msgid "The interface whose IP should be used for dynamic DNS updates"
-msgstr "La interfaz cuya IP debería ser utilizada para actualizaciones DNS dinámicas"
+msgstr "La interfaz cuya IP debería ser utilizada para actualizaciones DNS automáticas"
 
 #: config/SSSDConfig.py:95
 #: config/SSSDConfig.py:124
@@ -220,7 +220,7 @@ msgstr "Habilitar la validación de credenciales"
 
 #: config/SSSDConfig.py:104
 msgid "Store password if offline for later online authentication"
-msgstr "Si está desconectado, almacena la contraseña para realizar, más tarde, una autenticación en línea"
+msgstr "Si se encuentra desconectado, almacena contraseñas para más tarde realizar una autenticación en línea"
 
 #: config/SSSDConfig.py:107
 msgid "Server where the change password service is running if not on the KDC"
@@ -454,15 +454,15 @@ msgstr "Dominio del proveedor de información (obligatorio)"
 
 #: sss_client/common.c:743
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr "El zócalo privilegiado posee permisos o pertenencias equivocados."
+msgstr "El zócalo privilegiado posee permisos o pertenencia equivocados."
 
 #: sss_client/common.c:746
 msgid "Public socket has wrong ownership or permissions."
-msgstr "El zócalo público posee permisos o pertenencias equivocados."
+msgstr "El zócalo público posee permisos o pertenencia equivocados."
 
 #: sss_client/common.c:749
 msgid "Unexpected format of the server credential message."
-msgstr "Formato no esperado del mensaje de credenciales del servidor."
+msgstr "Formato no esperado del mensaje de la credencial del servidor."
 
 #: sss_client/common.c:752
 msgid "SSSD is not run by root."
@@ -474,7 +474,7 @@ msgstr "Ha ocurrido un error, pero no se ha podido encontrar una descripción."
 
 #: sss_client/common.c:763
 msgid "Unexpected error while looking for an error description"
-msgstr "Error inesperado al buscar una descripción del error"
+msgstr "Ha ocurrido un error no esperado mientras se buscaba la descripción del error"
 
 #: sss_client/pam_sss.c:372
 msgid "Passwords do not match"
@@ -482,11 +482,11 @@ msgstr "Las contraseñas no coinciden"
 
 #: sss_client/pam_sss.c:556
 msgid "Password reset by root is not supported."
-msgstr "No existe soporte para el reseteado de la contraseña por el usuario root. "
+msgstr "No existe soporte para reseteado de la contraseña por el usuario root."
 
 #: sss_client/pam_sss.c:597
 msgid "Authenticated with cached credentials"
-msgstr "Autenticado con credenciales cacheadas"
+msgstr "Autenticado mediante credenciales cacheada"
 
 #: sss_client/pam_sss.c:598
 msgid ", your cached password will expire at: "
@@ -504,7 +504,7 @@ msgstr "Su contraseña expirará en %d %s."
 
 #: sss_client/pam_sss.c:723
 msgid "Authentication is denied until: "
-msgstr "La autenticación ha sido negada hasta:"
+msgstr "La autenticación ha sido denegada hasta:"
 
 #: sss_client/pam_sss.c:750
 msgid "System is offline, password change not possible"
