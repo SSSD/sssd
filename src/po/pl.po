@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2010-07-09 13:48-0400\n"
-"PO-Revision-Date: 2010-04-12 21:15+0200\n"
+"PO-Revision-Date: 2010-07-15 16:47+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
 "Language: pl\n"
@@ -168,10 +168,12 @@ msgstr ""
 #: config/SSSDConfig.py:84
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr ""
+"Jak długo czekać na odpowiedzi od serwera DNS podczas rozwiązywania serwerów "
+"(sekundy)"
 
 #: config/SSSDConfig.py:85
 msgid "The domain part of service discovery DNS query"
-msgstr ""
+msgstr "Część domeny zapytania DNS wykrywania usługi"
 
 #: config/SSSDConfig.py:88
 msgid "IPA domain"
@@ -188,10 +190,13 @@ msgstr "Nazwa komputera klienta IPA"
 #: config/SSSDConfig.py:91
 msgid "Whether to automatically update the client's DNS entry in FreeIPA"
 msgstr ""
+"Czy automatycznie aktualizować wpis DNS klienta w oprogramowaniu FreeIPA"
 
 #: config/SSSDConfig.py:92
 msgid "The interface whose IP should be used for dynamic DNS updates"
 msgstr ""
+"Interfejs, którego adres IP powinien być używany do dynamicznych "
+"aktualizacji DNS"
 
 #: config/SSSDConfig.py:95 config/SSSDConfig.py:124
 msgid "Kerberos server address"
@@ -225,6 +230,8 @@ msgstr "Włącza sprawdzanie danych uwierzytelniających"
 #: config/SSSDConfig.py:104
 msgid "Store password if offline for later online authentication"
 msgstr ""
+"Przechowuje hasło, jeśli w trybie offline do późniejszego uwierzytelnienia w "
+"trybie online"
 
 #: config/SSSDConfig.py:107
 msgid "Server where the change password service is running if not on the KDC"
@@ -301,9 +308,8 @@ msgid "Follow LDAP referrals"
 msgstr "Podąża za odsyłaniami LDAP"
 
 #: config/SSSDConfig.py:129
-#, fuzzy
 msgid "Lifetime of TGT for LDAP connection"
-msgstr "Używa uwierzytelniania Kerberos dla połączenia LDAP"
+msgstr "Czas trwania TGT dla połączenia LDAP"
 
 #: config/SSSDConfig.py:132
 msgid "Length of time to wait for a search request"
@@ -383,7 +389,7 @@ msgstr "Polityka do oszacowania wygaszenia hasła"
 
 #: config/SSSDConfig.py:155
 msgid "LDAP filter to determine access privileges"
-msgstr ""
+msgstr "Filtr LDAP do określenia uprawnień dostępu"
 
 #: config/SSSDConfig.py:158
 msgid "Comma separated list of allowed users"
@@ -466,28 +472,27 @@ msgstr "Domena dostawcy informacji (wymagane)"
 
 #: sss_client/common.c:743
 msgid "Privileged socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Uprawnione gniazdo posiada błędnego właściciela lub uprawnienia."
 
 #: sss_client/common.c:746
 msgid "Public socket has wrong ownership or permissions."
-msgstr ""
+msgstr "Publiczne gniazdo posiada błędnego właściciela lub uprawnienia"
 
 #: sss_client/common.c:749
-#, fuzzy
 msgid "Unexpected format of the server credential message."
-msgstr "Położenie pamięci podręcznej danych uwierzytelniających użytkownika"
+msgstr "Nieoczekiwany format komunikatu uwierzytelniającego serwera."
 
 #: sss_client/common.c:752
 msgid "SSSD is not run by root."
-msgstr ""
+msgstr "SSSD nie zostało uruchomione w trybie roota."
 
 #: sss_client/common.c:757
 msgid "An error occurred, but no description can be found."
-msgstr ""
+msgstr "Wystąpił błąd, ale nie odnaleziono jego opisu."
 
 #: sss_client/common.c:763
 msgid "Unexpected error while looking for an error description"
-msgstr ""
+msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 
 #: sss_client/pam_sss.c:372
 msgid "Passwords do not match"
@@ -495,11 +500,11 @@ msgstr "Hasła nie zgadzają się"
 
 #: sss_client/pam_sss.c:556
 msgid "Password reset by root is not supported."
-msgstr ""
+msgstr "Przywrócenie hasła przez użytkownika root nie jest obsługiwane."
 
 #: sss_client/pam_sss.c:597
 msgid "Authenticated with cached credentials"
-msgstr ""
+msgstr "Uwierzytelniono za pomocą danych z pamięci podręcznej"
 
 #: sss_client/pam_sss.c:598
 msgid ", your cached password will expire at: "
@@ -516,10 +521,8 @@ msgid "Your password will expire in %d %s."
 msgstr "Hasło wygaśnie za %d %s."
 
 #: sss_client/pam_sss.c:723
-#, fuzzy
 msgid "Authentication is denied until: "
-msgstr ""
-"Uwierzytelnianie w trybie offline, uwierzytelnianie jest zabronione do: "
+msgstr "Uwierzytelnianie jest zabronione do: "
 
 #: sss_client/pam_sss.c:750
 msgid "System is offline, password change not possible"
@@ -966,15 +969,3 @@ msgstr "%s musi zostać uruchomione jako root\n"
 msgid "Send the debug output to files instead of stderr"
 msgstr ""
 "Wysyła wyjście debugowania do plików, zamiast do standardowego wyjścia błędów"
-
-#~ msgid "The principal of the change password service"
-#~ msgstr "Główna usługa zmiany hasła"
-
-#~ msgid "Offline authentication"
-#~ msgstr "Uwierzytelnienie w trybie offline"
-
-#~ msgid "The GID or group name of the user"
-#~ msgstr "GID nazwy grupy użytkownika"
-
-#~ msgid "Cannot get group information for the user\n"
-#~ msgstr "Nie można uzyskać informacji o grupie dla użytkownika\n"
