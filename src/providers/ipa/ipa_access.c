@@ -145,6 +145,11 @@ static errno_t hbac_sysdb_data_recv(TALLOC_CTX *mem_ctx,
     ret = sysdb_search_custom(mem_ctx, sysdb, domain, filter, subtree_name,
                               search_attrs, count, &msgs);
     if (ret != EOK) {
+        if (ret == ENOENT) {
+            *count = 0;
+            *reply_attrs = NULL;
+            return EOK;
+        }
         DEBUG(1, ("sysdb_search_custom failed.\n"));
         return ret;
     }
