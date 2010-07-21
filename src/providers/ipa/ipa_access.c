@@ -326,7 +326,7 @@ static void hbac_services_get_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->services_reply_count == 0 || state->offline) {
+    if (state->offline) {
         tevent_req_done(req);
         return;
     }
@@ -687,23 +687,39 @@ static void hbac_get_host_memberof_done(struct tevent_req *subreq)
     hbac_get_host_memberof(req, false);
 }
 
+static bool hbac_is_known_host(struct hbac_host_info **hhi, const char *fqdn)
+{
+    if (!hhi || !fqdn) {
+        return false;
+    }
+
+    int i;
+    for (i = 0; hhi[i] != NULL; i++) {
+        if(strcmp(hhi[i]->fqdn, fqdn) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
 {
     struct hbac_get_host_info_state *state =
                     tevent_req_data(req, struct hbac_get_host_info_state);
     struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
     bool in_transaction = false;
     int ret;
     int i;
     struct ldb_message_element *el;
     struct hbac_host_info **hhi;
     char *object_name;
+    const char *fqdn_attrs[] = { IPA_HOST_FQDN, NULL };
+    const char *fqdn;
 
-    if (state->host_reply_count == 0) {
-        DEBUG(1, ("No hosts not found in IPA server.\n"));
-        ret = ENOENT;
-        goto fail;
-    }
+    size_t cached_count;
+    struct ldb_message **cached_entries = 0;
 
     hhi = talloc_array(state, struct hbac_host_info *, state->host_reply_count + 1);
     if (hhi == NULL) {
@@ -713,6 +729,10 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
     }
     memset(hhi, 0,
            sizeof(struct hbac_host_info *) * (state->host_reply_count + 1));
+
+    if (state->host_reply_count == 0) {
+        DEBUG(1, ("No hosts not found in IPA server.\n"));
+    }
 
     for (i = 0; i < state->host_reply_count; i++) {
         hhi[i] = talloc_zero(hhi, struct hbac_host_info);
@@ -805,6 +825,7 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
     }
 
     sysdb = hbac_ctx_sysdb(state->hbac_ctx);
+    domain = hbac_ctx_be(state->hbac_ctx)->domain;
 
     ret = sysdb_transaction_start(sysdb);
     if (ret != EOK) {
@@ -812,6 +833,41 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
         return;
     }
     in_transaction = true;
+
+    ret = sysdb_search_custom(state, sysdb, domain,
+                              state->host_filter, HBAC_HOSTS_SUBDIR,
+                              fqdn_attrs,
+                              &cached_count,
+                              &cached_entries);
+
+    if (ret == ENOENT) {
+        cached_count = 0;
+        ret = EOK;
+    }
+
+    if (ret) {
+        DEBUG(1, ("sysdb_search_custom failed: [%d](%s)\n", ret, strerror(ret)));
+        goto fail;
+    }
+
+    for (i = 0; i < cached_count; i++) {
+        fqdn = ldb_msg_find_attr_as_string(cached_entries[i], IPA_HOST_FQDN, NULL);
+        if (!fqdn) {
+            DEBUG(1, ("missing FQDN in cached HBAC host record\n"));
+        } else if (hbac_is_known_host(hhi, fqdn)) {
+            continue;
+        } else {
+            DEBUG(9, ("deleting obsolete HBAC host record for %s\n", fqdn));
+        }
+
+        ret = sysdb_delete_entry(sysdb, cached_entries[i]->dn, true);
+        if (ret) {
+            DEBUG(1, ("sysdb_delete_entry failed: [%d](%s)\n", ret, strerror(ret)));
+            goto fail;
+        }
+    }
+
+    talloc_zfree(cached_entries);
 
     for (i = 0; i < state->host_reply_count; i++) {
 
@@ -834,7 +890,7 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
         DEBUG(9, ("Fqdn [%s].\n", object_name));
 
         ret = sysdb_store_custom(state, sysdb,
-                                 hbac_ctx_be(state->hbac_ctx)->domain,
+                                 domain,
                                  object_name,
                                  HBAC_HOSTS_SUBDIR,
                                  state->host_reply_list[i]);
@@ -856,6 +912,8 @@ static void hbac_get_host_memberof(struct tevent_req *req, bool offline)
     return;
 
 fail:
+    talloc_zfree(cached_entries);
+
     if (in_transaction) {
         sysdb_transaction_cancel(sysdb);
     }
@@ -1080,7 +1138,7 @@ static void hbac_rule_get(struct tevent_req *req, bool offline)
         DEBUG(9, ("OriginalDN: [%s].\n", (const char *)el->values[0].data));
     }
 
-    if (state->hbac_reply_count == 0 || offline) {
+    if (offline) {
         tevent_req_done(req);
         return;
     }
@@ -1886,7 +1944,8 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     }
     if (local_hhi == NULL) {
         DEBUG(1, ("Missing host info for [%s].\n", ipa_hostname));
-        ret = EINVAL;
+        ret = EOK;
+        pam_status = PAM_PERM_DENIED;
         goto fail;
     }
     req = hbac_get_rules_send(hbac_ctx, hbac_ctx,
