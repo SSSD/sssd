@@ -133,6 +133,7 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     char *ccname;
     char *realm_name = NULL;
     char *full_princ = NULL;
+    char *default_realm = NULL;
     krb5_context context = NULL;
     krb5_keytab keytab = NULL;
     krb5_ccache ccache = NULL;
@@ -155,13 +156,21 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     }
 
     if (!realm_str) {
-        krberr = krb5_get_default_realm(context, &realm_name);
+        krberr = krb5_get_default_realm(context, &default_realm);
         if (krberr) {
             DEBUG(2, ("Failed to get default realm name: %s\n",
                       sss_krb5_get_error_message(context, krberr)));
             ret = EFAULT;
             goto done;
         }
+
+        realm_name = talloc_strdup(memctx, default_realm);
+        krb5_free_default_realm(context, default_realm);
+        if (!realm_name) {
+            ret = ENOMEM;
+            goto done;
+        }
+
     } else {
         realm_name = talloc_strdup(memctx, realm_str);
         if (!realm_name) {
