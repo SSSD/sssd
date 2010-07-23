@@ -3124,6 +3124,35 @@ START_TEST (test_sysdb_memberof_check_memberuid_loop_without_group_5)
 }
 END_TEST
 
+START_TEST (test_sysdb_attrs_to_list)
+{
+    struct sysdb_attrs *attrs_list[3];
+    char **list;
+    errno_t ret;
+
+    TALLOC_CTX *test_ctx = talloc_new(NULL);
+
+    attrs_list[0] = sysdb_new_attrs(test_ctx);
+    sysdb_attrs_add_string(attrs_list[0], "test_attr", "attr1");
+    attrs_list[1] = sysdb_new_attrs(test_ctx);
+    sysdb_attrs_add_string(attrs_list[1], "test_attr", "attr2");
+    attrs_list[2] = sysdb_new_attrs(test_ctx);
+    sysdb_attrs_add_string(attrs_list[2], "nottest_attr", "attr3");
+
+    ret = sysdb_attrs_to_list(test_ctx, attrs_list, 3,
+                              "test_attr", &list);
+    fail_unless(ret == EOK, "sysdb_attrs_to_list failed with code %d", ret);
+
+    fail_unless(strcmp(list[0],"attr1") == 0, "Expected [attr1], got [%s]",
+                                              list[0]);
+    fail_unless(strcmp(list[1],"attr2") == 0, "Expected [attr2], got [%s]",
+                                              list[1]);
+    fail_unless(list[2] == NULL, "List should be NULL-terminated");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -3232,6 +3261,8 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_delete_recursive);
 
     tcase_add_test(tc_sysdb, test_sysdb_attrs_replace_name);
+
+    tcase_add_test(tc_sysdb, test_sysdb_attrs_to_list);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);

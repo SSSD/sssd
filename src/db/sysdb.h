@@ -652,4 +652,10 @@ struct tevent_req *sysdb_delete_group_send(TALLOC_CTX *mem_ctx,
                                            const char *name, gid_t gid);
 int sysdb_delete_group_recv(struct tevent_req *req);
 
+errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
+                            struct sysdb_attrs **attrs,
+                            int attr_count,
+                            const char *attr_name,
+                            char ***_list);
+
 #endif /* __SYS_DB_H__ */
