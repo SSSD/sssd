@@ -1617,3 +1617,78 @@ int sysdb_attrs_replace_name(struct sysdb_attrs *attrs, const char *oldname,
 
     return EOK;
 }
+
+/* Search for all incidences of attr_name in a list of
+ * sysdb_attrs and add their value to a list
+ *
+ * TODO: Currently only works for single-valued
+ * attributes. Multi-valued attributes will return
+ * only the first entry
+ */
+errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
+                            struct sysdb_attrs **attrs,
+                            int attr_count,
+                            const char *attr_name,
+                            char ***_list)
+{
+    int attr_idx;
+    int i;
+    char **list;
+    char **tmp_list;
+    int list_idx;
+
+    *_list = NULL;
+
+    /* Assume that every attrs entry contains the attr_name
+     * This may waste a little memory if some entries don't
+     * have the attribute, but it will save us the trouble
+     * of continuously resizing the array.
+     */
+    list = talloc_array(memctx, char *, attr_count+1);
+    if (!list) {
+        return ENOMEM;
+    }
+
+    list_idx = 0;
+    /* Loop through all entries in attrs */
+    for (attr_idx = 0; attr_idx < attr_count; attr_idx++) {
+        /* Examine each attribute within the entry */
+        for (i = 0; i < attrs[attr_idx]->num; i++) {
+            if (strcasecmp(attrs[attr_idx]->a->name, attr_name) == 0) {
+                /* Attribute name matches the requested name
+                 * Copy it to the output list
+                 */
+                list[list_idx] = talloc_strdup(
+                        list,
+                        (const char *)attrs[attr_idx]->a->values[0].data);
+                if (!list[list_idx]) {
+                    talloc_free(list);
+                    return ENOMEM;
+                }
+                list_idx++;
+
+                /* We only support single-valued attributes
+                 * Break here and go on to the next entry
+                 */
+                break;
+            }
+        }
+    }
+
+    list[list_idx] = NULL;
+
+    /* if list_idx < attr_count, do a realloc to
+     * reclaim unused memory
+     */
+    if (list_idx < attr_count) {
+        tmp_list = talloc_realloc(memctx, list, char *, list_idx+1);
+        if (!tmp_list) {
+            talloc_zfree(list);
+            return ENOMEM;
+        }
+        list = tmp_list;
+    }
+
+    *_list = list;
+    return EOK;
+}

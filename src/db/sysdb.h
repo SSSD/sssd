@@ -546,4 +546,10 @@ int sysdb_delete_group(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *name, gid_t gid);
 
+errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
+                            struct sysdb_attrs **attrs,
+                            int attr_count,
+                            const char *attr_name,
+                            char ***_list);
+
 #endif /* __SYS_DB_H__ */
