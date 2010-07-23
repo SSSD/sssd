@@ -607,12 +607,11 @@ static enum sss_status sss_cli_check_socket(int *errnop, const char *socket_name
             *errnop = EBADF;
             break;
         }
-        if (*errnop) {
-            sss_cli_close_socket();
-            return SSS_STATUS_UNAVAIL;
+        if (*errnop == 0) {
+            return SSS_STATUS_SUCCESS;
         }
 
-        return SSS_STATUS_SUCCESS;
+        sss_cli_close_socket();
     }
 
     mysd = sss_nss_open_socket(errnop, socket_name);
