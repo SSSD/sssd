@@ -331,4 +331,17 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, char ***_list, int *size);
 
 char **parse_args(const char *str);
+
+/* Take two string lists (terminated on a NULL char*)
+ * and return up to three arrays of strings based on
+ * shared ownership.
+ *
+ * Pass NULL to any return type you don't care about
+ */
+errno_t diff_string_lists(TALLOC_CTX *memctx,
+                          char **string1,
+                          char **string2,
+                          char ***string1_only,
+                          char ***string2_only,
+                          char ***both_strings);
 #endif /* __SSSD_UTIL_H__ */
