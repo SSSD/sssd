@@ -52,6 +52,28 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
     return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_GROUP, name, domain);
 }
 
+errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
+                            const char *_dn, char **_name)
+{
+    struct ldb_dn *dn;
+    *_name = NULL;
+
+    dn = ldb_dn_new_fmt(memctx, ctx->ldb, "%s", _dn);
+    if (dn == NULL) {
+        return ENOMEM;
+    }
+
+    *_name = talloc_strdup(memctx, ldb_dn_get_rdn_name(dn));
+    if (!_name) {
+        talloc_zfree(dn);
+        return ENOMEM;
+    }
+
+    talloc_zfree(dn);
+
+    return EOK;
+}
+
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain)
 {
