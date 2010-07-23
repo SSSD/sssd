@@ -108,12 +108,12 @@ if ! $PKG_CONFIG --atleast-version 1.0.0 dbus-1; then
 fi
 
 if test x$has_dbus != xno; then
-    SAFE_LDFLAGS="$LDFLAGS"
-    LDFLAGS="$DBUS_LIBS"
+    SAFE_LIBS="$LIBS"
+    LIBS="$DBUS_LIBS"
     AC_CHECK_FUNC([dbus_watch_get_unix_fd],
                   AC_DEFINE([HAVE_DBUS_WATCH_GET_UNIX_FD], [1],
                             [Define if dbus_watch_get_unix_fd exists]))
-    LDFLAGS="$SAFE_LDFLAGS"
+    LIBS="$SAFE_LIBS"
 fi
 
 if test x$HAVE_MANPAGES != x; then

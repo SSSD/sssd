@@ -756,6 +756,7 @@ libsss_ldap_la_CFLAGS = \
     $(KRB5_CFLAGS)
 libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
+    $(DHASH_LIBS) \
     $(KRB5_LIBS)
 libsss_ldap_la_LDFLAGS = \
     -version-info 1:0:0 \
