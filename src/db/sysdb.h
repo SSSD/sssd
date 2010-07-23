@@ -199,6 +199,8 @@ struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
                              const char *domain, const char *name);
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain, const char *name);
+errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
+                            const char *dn_str, char **name);
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
                                const char *domain);
 struct ldb_dn *sysdb_custom_dn(struct sysdb_ctx *ctx, void *memctx,
