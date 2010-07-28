@@ -537,6 +537,16 @@ struct tevent_req *sysdb_remove_group_member_send(TALLOC_CTX *mem_ctx,
                                                   const char *member);
 int sysdb_remove_group_member_recv(struct tevent_req *req);
 
+
+struct tevent_req * sysdb_update_members_send(TALLOC_CTX *mem_ctx,
+                                              struct tevent_context *ev,
+                                              struct sysdb_handle *handle,
+                                              struct sss_domain_info *domain,
+                                              char *user,
+                                              char **add_groups,
+                                              char **del_groups);
+errno_t sysdb_update_members_recv(struct tevent_req *req);
+
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
  * If you are not in a transaction pass NULL in handle and provide sysdb,

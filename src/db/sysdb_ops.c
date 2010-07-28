@@ -5065,3 +5065,194 @@ int sysdb_cache_auth_recv(struct tevent_req *req, time_t *expire_date,
 
     return (state->authentication_successful ? EOK : EINVAL);
 }
+
+struct sysdb_update_members_ctx {
+    char *user;
+    struct sss_domain_info *domain;
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+
+    char **add_groups;
+    int add_group_iter;
+
+    char **del_groups;
+    int del_group_iter;
+};
+
+static char **empty_string_list(TALLOC_CTX *mem_ctx)
+{
+    char **empty;
+    empty = talloc_array(mem_ctx, char *, 1);
+    if (!empty) {
+        return NULL;
+    }
+
+    empty[0] = NULL;
+
+    return empty;
+}
+
+static errno_t
+sysdb_update_members_step(struct tevent_req *req);
+
+struct tevent_req *sysdb_update_members_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             char *user,
+                                             char **add_groups,
+                                             char **del_groups)
+{
+    errno_t ret;
+    struct tevent_req *req;
+    struct sysdb_update_members_ctx *state;
+
+    req = tevent_req_create(mem_ctx, &state, struct sysdb_update_members_ctx);
+    if (!req) {
+        return NULL;
+    }
+
+    state->user = talloc_strdup(state, user);
+    if (!state->user) {
+        goto error;
+    }
+
+    state->domain = domain;
+    state->ev = ev;
+    state->handle = handle;
+
+    if (add_groups) {
+        state->add_groups = dup_string_list(state, (const char**)add_groups);
+    }
+    else {
+        state->add_groups = empty_string_list(state);
+    }
+    if (!state->add_groups) {
+        goto error;
+    }
+    state->add_group_iter = 0;
+
+    if (del_groups) {
+        state->del_groups = dup_string_list(state, (const char **)del_groups);
+    }
+    else {
+        state->del_groups = empty_string_list(state);
+    }
+    if (!state->del_groups) {
+        goto error;
+    }
+    state->del_group_iter = 0;
+
+    ret = sysdb_update_members_step(req);
+    if (ret != EOK) {
+        /* Nothing to do. Finish up */
+        tevent_req_error(req, ret);
+        tevent_req_post(req, state->ev);
+    }
+
+    return req;
+
+error:
+    talloc_free(req);
+    return NULL;
+}
+
+static void
+sysdb_update_members_add_done(struct tevent_req *subreq);
+static void
+sysdb_update_members_del_done(struct tevent_req *subreq);
+
+static errno_t
+sysdb_update_members_step(struct tevent_req *req)
+{
+    struct tevent_req *subreq;
+    struct sysdb_update_members_ctx *state;
+
+    state = tevent_req_data(req, struct sysdb_update_members_ctx);
+
+    if (state->add_groups[state->add_group_iter]) {
+        subreq = sysdb_add_group_member_send(
+                state, state->ev, state->handle,
+                state->domain,
+                state->add_groups[state->add_group_iter],
+                state->user);
+        if (!subreq) {
+            return EIO;
+        }
+
+        tevent_req_set_callback(subreq, sysdb_update_members_add_done, req);
+        return EOK;
+    }
+
+    if (state->del_groups[state->del_group_iter]) {
+        subreq = sysdb_remove_group_member_send(
+                state, state->ev,
+                state->handle, state->domain,
+                state->del_groups[state->del_group_iter],
+                state->user);
+        if (!subreq) {
+            return EIO;
+        }
+
+        tevent_req_set_callback(subreq, sysdb_update_members_del_done, req);
+        return EOK;
+    }
+
+    /* No more members to handle */
+    tevent_req_done(req);
+    return EOK;
+}
+
+static void
+sysdb_update_members_add_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sysdb_update_members_ctx *state =
+            tevent_req_data(req, struct sysdb_update_members_ctx);
+
+    ret = sysdb_add_group_member_recv(subreq);
+    talloc_zfree(subreq);
+    if(ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->add_group_iter++;
+    ret = sysdb_update_members_step(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+}
+
+static void
+sysdb_update_members_del_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sysdb_update_members_ctx *state =
+            tevent_req_data(req, struct sysdb_update_members_ctx);
+
+    ret = sysdb_remove_group_member_recv(subreq);
+    talloc_zfree(subreq);
+    if(ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->del_group_iter++;
+    ret = sysdb_update_members_step(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+}
+
+errno_t
+sysdb_update_members_recv(struct tevent_req *req)
+{
+    return sysdb_op_default_recv(req);
+}

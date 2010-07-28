@@ -3153,6 +3153,171 @@ START_TEST (test_sysdb_attrs_to_list)
 }
 END_TEST
 
+static void test_sysdb_update_members_add(struct tevent_req *req);
+START_TEST (test_sysdb_update_members)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+
+    /* Start the transaction */
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_sysdb_update_members_add, data);
+
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not test sysdb_update_members");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+static void test_sysdb_update_members_add_del(struct tevent_req *req);
+static void test_sysdb_update_members_add(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    char **add_groups;
+    char *user;
+    errno_t ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(0, ("Could not start transaction\n"));
+        test_return(data, ret);
+        return;
+    }
+
+    /* Add a user to two groups */
+    data->username = talloc_strdup(data, "testuser27000");
+    user = talloc_strdup(data, data->username);
+    add_groups = talloc_array(data, char *, 3);
+    add_groups[0] = talloc_strdup(data, "testgroup28001");
+    add_groups[1] = talloc_strdup(data, "testgroup28002");
+    add_groups[2] = NULL;
+
+    req = sysdb_update_members_send(data, data->ev, data->handle,
+                                    data->ctx->domain, user,
+                                    add_groups, NULL);
+    talloc_free(add_groups);
+    talloc_free(user);
+    if (!req) {
+        DEBUG(0, ("Could not add groups\n"));
+        test_return(data, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(req, test_sysdb_update_members_add_del, data);
+}
+
+static void test_sysdb_update_members_del(struct tevent_req *req);
+static void test_sysdb_update_members_add_del(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    errno_t ret;
+    char **add_groups = NULL;
+    char **del_groups = NULL;
+    char *user;
+
+    ret = sysdb_update_members_recv(req);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(0, ("Group addition failed [%d](%s)\n", ret, strerror(ret)));
+        test_return(data, ret);
+        return;
+    }
+
+    /* Remove a user from one group and add to another */
+    user = talloc_strdup(data, data->username);
+    del_groups = talloc_array(data, char *, 2);
+    del_groups[0] = talloc_strdup(del_groups, "testgroup28001");
+    del_groups[1] = NULL;
+    add_groups = talloc_array(data, char *, 2);
+    add_groups[0] = talloc_strdup(add_groups, "testgroup28003");
+    add_groups[1] = NULL;
+
+    req = sysdb_update_members_send(data, data->ev, data->handle,
+                                    data->ctx->domain, user,
+                                    add_groups, del_groups);
+    talloc_free(add_groups);
+    talloc_free(del_groups);
+    talloc_free(user);
+    if (!req) {
+        DEBUG(0, ("Could not add/del groups\n"));
+        test_return(data, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(req, test_sysdb_update_members_del, data);
+}
+
+static void test_sysdb_update_members_done(struct tevent_req *req);
+static void test_sysdb_update_members_del(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    errno_t ret;
+    char **del_groups = NULL;
+    char *user;
+
+    ret = sysdb_update_members_recv(req);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(0, ("Group replace failed [%d](%s)\n", ret, strerror(ret)));
+        test_return(data, EIO);
+        return;
+    }
+
+    /* Remove a user from one group and add to another */
+    user = talloc_strdup(data, data->username);
+    del_groups = talloc_array(data, char *, 3);
+    del_groups[0] = talloc_strdup(del_groups, "testgroup28002");
+    del_groups[1] = talloc_strdup(del_groups, "testgroup28003");
+    del_groups[2] = NULL;
+
+    req = sysdb_update_members_send(data, data->ev, data->handle,
+                                    data->ctx->domain, user,
+                                    NULL, del_groups);
+    talloc_free(del_groups);
+    talloc_free(user);
+    if (!req) {
+        DEBUG(0, ("Could not del groups\n"));
+        test_return(data, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(req, test_sysdb_update_members_done, data);
+}
+
+static void test_sysdb_update_members_done(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    errno_t ret;
+
+    ret = sysdb_update_members_recv(req);
+    talloc_zfree(req);
+    if (ret != EOK) {
+        DEBUG(0, ("Group delete failed [%d](%s)\n", ret, strerror(ret)));
+    }
+    test_return(data, ret);
+}
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -3176,6 +3341,9 @@ Suite *create_sysdb_suite(void)
 
     /* test the change */
     tcase_add_loop_test(tc_sysdb, test_sysdb_get_user_attr, 27000, 27010);
+
+    /* Add and remove users in a group with sysdb_update_members */
+    tcase_add_test(tc_sysdb, test_sysdb_update_members);
 
     /* Remove the other half by gid */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 28000, 28010);
