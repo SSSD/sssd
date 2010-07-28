@@ -237,7 +237,38 @@ fail:
     return NULL;
 }
 
+char **dup_string_list(TALLOC_CTX *memctx, const char **str_list)
+{
+    int i = 0;
+    int j = 0;
+    char **dup_list;
 
+    if (!str_list) {
+        return NULL;
+    }
+
+    /* Find the size of the list */
+    while (str_list[i]) i++;
+
+    dup_list = talloc_array(memctx, char *, i+1);
+    if (!dup_list) {
+        return NULL;
+    }
+
+    /* Copy the elements */
+    for (j = 0; j < i; j++) {
+        dup_list[j] = talloc_strdup(dup_list, str_list[j]);
+        if (!dup_list[j]) {
+            talloc_free(dup_list);
+            return NULL;
+        }
+    }
+
+    /* NULL-terminate the list */
+    dup_list[i] = NULL;
+
+    return dup_list;
+}
 
 /* Take two string lists (terminated on a NULL char*)
  * and return up to three arrays of strings based on

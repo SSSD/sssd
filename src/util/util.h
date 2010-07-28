@@ -332,6 +332,12 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 
 char **parse_args(const char *str);
 
+
+/* Copy a NULL-terminated string list
+ * Returns NULL on out of memory error or invalid input
+ */
+char **dup_string_list(TALLOC_CTX *memctx, const char **str_list);
+
 /* Take two string lists (terminated on a NULL char*)
  * and return up to three arrays of strings based on
  * shared ownership.
