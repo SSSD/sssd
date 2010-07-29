@@ -117,11 +117,12 @@ noinst_LTLIBRARIES = \
     libsss_crypt.la
 
 if HAVE_NSS
-    SSS_CRYPT_SOURCES = src/util/nss_sha512crypt.c
+    SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_sha512crypt.c \
+                        src/util/crypto/nss/nss_util.c
     SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
     SSS_CRYPT_LIBS = $(NSS_LIBS)
 else
-    SSS_CRYPT_SOURCES = src/util/crypto_sha512crypt.c
+    SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_sha512crypt.c
     SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
     SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 endif
@@ -296,7 +297,7 @@ endif
 
 dist_noinst_HEADERS = \
     src/monitor/monitor.h \
-    src/util/sha512crypt.h \
+    src/util/crypto/sss_crypto.h \
     src/util/dlinklist.h \
     src/util/util.h \
     src/util/strtonum.h \
@@ -349,6 +350,10 @@ dist_noinst_HEADERS = \
     src/resolv/ares/ares_parse_txt_reply.h \
     src/resolv/ares/ares_data.h \
     src/tests/common.h
+
+if HAVE_NSS
+    dist_noinst_HEADERS += src/util/crypto/nss/nss_util.h
+endif
 
 
 ####################

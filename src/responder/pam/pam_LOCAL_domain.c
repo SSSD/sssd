@@ -24,7 +24,7 @@
 
 #include "util/util.h"
 #include "db/sysdb.h"
-#include "util/sha512crypt.h"
+#include "util/crypto/sss_crypto.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
 

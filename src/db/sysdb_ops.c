@@ -21,7 +21,7 @@
 
 #include "util/util.h"
 #include "db/sysdb_private.h"
-#include "util/sha512crypt.h"
+#include "util/crypto/sss_crypto.h"
 #include <time.h>
 
 static int add_string(struct ldb_message *msg, int flags,
