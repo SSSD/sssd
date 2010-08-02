@@ -1024,6 +1024,7 @@ struct sdap_initgr_rfc2307_state {
     struct sdap_options *opts;
     struct sss_domain_info *dom;
     struct sdap_handle *sh;
+    char *name;
 
     struct sdap_op *op;
 };
@@ -1036,12 +1037,12 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
                                             struct sss_domain_info *dom,
                                             struct sdap_handle *sh,
                                             const char *base_dn,
-                                            const char *name,
-                                            const char **grp_attrs)
+                                            const char *name)
 {
     struct tevent_req *req, *subreq;
     struct sdap_initgr_rfc2307_state *state;
     const char *filter;
+    const char *attrs[2];
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307_state);
     if (!req) return NULL;
@@ -1052,6 +1053,18 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     state->dom = dom;
     state->sh = sh;
     state->op = NULL;
+    state->name = talloc_strdup(state, name);
+    if (!state->name) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    attrs[0] = talloc_strdup(state, opts->group_map[SDAP_AT_GROUP_NAME].name);
+    if (!attrs[0]) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    attrs[1] = NULL;
 
     filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
@@ -1063,7 +1076,7 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
 
     subreq = sdap_get_generic_send(state, state->ev, state->opts,
                                    state->sh, base_dn, LDAP_SCOPE_SUBTREE,
-                                   filter, grp_attrs,
+                                   filter, attrs,
                                    state->opts->group_map, SDAP_OPTS_GROUP);
     if (!subreq) {
         talloc_zfree(req);
@@ -1078,14 +1091,22 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_initgr_rfc2307_state *state;
-    struct sysdb_attrs **groups;
+    struct sysdb_attrs **ldap_groups;
+    char **ldap_grouplist = NULL;
+    char **sysdb_grouplist = NULL;
+    char **add_groups;
+    char **del_groups;
+    struct ldb_message *msg;
+    struct ldb_message_element *groups;
     size_t count;
+    const char *attrs[2];
     int ret;
+    int i;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_initgr_rfc2307_state);
 
-    ret = sdap_get_generic_recv(subreq, state, &count, &groups);
+    ret = sdap_get_generic_recv(subreq, state, &count, &ldap_groups);
     talloc_zfree(subreq);
     if (ret) {
         tevent_req_error(req, ret);
@@ -1093,14 +1114,71 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     }
 
     if (count == 0) {
-        tevent_req_done(req);
+        /* No groups for this user in LDAP.
+         * We need to ensure that there are no groups
+         * in the sysdb either.
+         */
+        ldap_grouplist = NULL;
+    } else {
+        ret = sysdb_attrs_to_list(state, ldap_groups, count,
+                                  state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                  &ldap_grouplist);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
+    }
+
+    /* Search for all groups for which this user is a member */
+    attrs[0] = SYSDB_MEMBEROF;
+    attrs[1] = NULL;
+    ret = sysdb_search_user_by_name(state, state->sysdb, state->dom,
+                                    state->name, attrs, &msg);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
         return;
     }
 
-    ret = sdap_save_groups(state, state->sysdb,
-                           state->dom, state->opts,
-                           groups, count, NULL);
-    if (ret) {
+    groups = ldb_msg_find_element(msg, SYSDB_MEMBEROF);
+    if (!groups || groups->num_values == 0) {
+        /* No groups for this user in sysdb currently */
+        sysdb_grouplist = NULL;
+    } else {
+        sysdb_grouplist = talloc_array(state, char *, groups->num_values+1);
+        if (!sysdb_grouplist) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        /* Get a list of the groups by groupname only */
+        for (i=0; i < groups->num_values; i++) {
+            ret = sysdb_group_dn_name(state->sysdb,
+                                      sysdb_grouplist,
+                                      (const char *)groups->values[i].data,
+                                      &sysdb_grouplist[i]);
+            if (ret != EOK) {
+                tevent_req_error(req, ENOMEM);
+                return;
+            }
+        }
+        sysdb_grouplist[groups->num_values] = NULL;
+    }
+
+    /* Find the differences between the sysdb and LDAP lists
+     * Groups in LDAP only must be added to the sysdb;
+     * groups in the sysdb only must be removed.
+     */
+    ret = diff_string_lists(state, ldap_grouplist, sysdb_grouplist,
+                            &add_groups, &del_groups, NULL);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_update_members(state->sysdb, state->dom, state->name,
+                               (const char **)add_groups,
+                               (const char **)del_groups);
+    if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1437,7 +1515,7 @@ static void sdap_get_initgr_user(struct tevent_req *subreq)
                                     state->sysdb, state->dom, state->sh,
                                     dp_opt_get_string(state->opts->basic,
                                                   SDAP_GROUP_SEARCH_BASE),
-                                    state->name, state->grp_attrs);
+                                    state->name);
         if (!subreq) {
             tevent_req_error(req, ENOMEM);
             return;
