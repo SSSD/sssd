@@ -81,6 +81,7 @@ if HAVE_CHECK
         auth-tests \
         ipa_ldap_opt-tests \
         simple_access-tests \
+        crypto-tests \
         util-tests
 endif
 
@@ -118,11 +119,13 @@ noinst_LTLIBRARIES = \
 
 if HAVE_NSS
     SSS_CRYPT_SOURCES = src/util/crypto/nss/nss_sha512crypt.c \
+                        src/util/crypto/nss/nss_obfuscate.c \
                         src/util/crypto/nss/nss_util.c
     SSS_CRYPT_CFLAGS = $(NSS_CFLAGS)
     SSS_CRYPT_LIBS = $(NSS_LIBS)
 else
-    SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_sha512crypt.c
+    SSS_CRYPT_SOURCES = src/util/crypto/libcrypto/crypto_sha512crypt.c \
+                        src/util/crypto/libcrypto/crypto_obfuscate.c
     SSS_CRYPT_CFLAGS = $(CRYPTO_CFLAGS)
     SSS_CRYPT_LIBS = $(CRYPTO_LIBS)
 endif
@@ -674,6 +677,20 @@ util_tests_CFLAGS = \
     $(AM_CFLAGS) \
     $(CHECK_CFLAGS)
 util_tests_LDADD = \
+    $(SSSD_LIBS) \
+    $(CHECK_LIBS) \
+    libsss_test_common.la
+
+crypto_tests_SOURCES = \
+    $(SSSD_DEBUG_OBJ) \
+    $(SSS_CRYPT_SOURCES) \
+    src/tests/crypto-tests.c
+crypto_tests_CFLAGS = \
+    $(SSS_CRYPT_CFLAGS) \
+    $(AM_CFLAGS) \
+    $(CHECK_CFLAGS)
+crypto_tests_LDADD = \
+    $(SSS_CRYPT_LIBS) \
     $(SSSD_LIBS) \
     $(CHECK_LIBS) \
     libsss_test_common.la
