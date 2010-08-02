@@ -193,6 +193,12 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
 #define SAFEALIGN_SET_INT32(dest, value, pctr) \
     SAFEALIGN_SET_VALUE(dest, value, int32_t, pctr)
 
+#define SAFEALIGN_COPY_UINT16(dest, src, pctr) \
+    safealign_memcpy(dest, src, sizeof(uint16_t), pctr)
+
+#define SAFEALIGN_SET_UINT16(dest, value, pctr) \
+    SAFEALIGN_SET_VALUE(dest, value, uint16_t, pctr)
+
 #define SAFEALIGN_COPY_UINT32_CHECK(dest, src, len, pctr) do { \
     if ((*(pctr) + sizeof(uint32_t)) > (len)) return EINVAL; \
     safealign_memcpy(dest, src, sizeof(uint32_t), pctr); \
@@ -201,6 +207,11 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
 #define SAFEALIGN_COPY_INT32_CHECK(dest, src, len, pctr) do { \
     if ((*(pctr) + sizeof(int32_t)) > (len)) return EINVAL; \
     safealign_memcpy(dest, src, sizeof(int32_t), pctr); \
+} while(0)
+
+#define SAFEALIGN_COPY_UINT16_CHECK(dest, src, len, pctr) do { \
+    if ((*(pctr) + sizeof(uint16_t)) > (len)) return EINVAL; \
+    safealign_memcpy(dest, src, sizeof(uint16_t), pctr); \
 } while(0)
 
 #include "util/dlinklist.h"
@@ -331,7 +342,6 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
                        const char sep, bool trim, char ***_list, int *size);
 
 char **parse_args(const char *str);
-
 
 /* Copy a NULL-terminated string list
  * Returns NULL on out of memory error or invalid input
