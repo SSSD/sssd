@@ -5,10 +5,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: pl\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-06-18 14:09-0400\n"
+"POT-Creation-Date: 2010-08-02 13:47-0400\n"
 "PO-Revision-Date: 2010-05-18 23:10+0200\n"
 "Last-Translator: Piotr Drąg <piotrdrag@gmail.com>\n"
 "Language-Team: Polish <trans-pl@lists.fedoraproject.org>\n"
+"Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -442,17 +443,17 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr "Nie można wczytać bazy danych konfiguracji\n"
 
-#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:321
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:377
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Poziom debugowania"
 
-#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:323
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:379
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Dodaje czasy debugowania"
 
-#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:325
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:381
 msgid "An open file descriptor for the debug logs"
 msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 
@@ -460,27 +461,27 @@ msgstr "Otwiera deskryptor pliku dla dzienników debugowania"
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domena dostawcy informacji (wymagane)"
 
-#: sss_client/common.c:743
+#: sss_client/common.c:742
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "Uprawnione gniazdo posiada błędnego właściciela lub uprawnienia."
 
-#: sss_client/common.c:746
+#: sss_client/common.c:745
 msgid "Public socket has wrong ownership or permissions."
 msgstr "Publiczne gniazdo posiada błędnego właściciela lub uprawnienia."
 
-#: sss_client/common.c:749
+#: sss_client/common.c:748
 msgid "Unexpected format of the server credential message."
 msgstr "Nieoczekiwany format komunikatu uwierzytelniającego serwera."
 
-#: sss_client/common.c:752
+#: sss_client/common.c:751
 msgid "SSSD is not run by root."
 msgstr "SSSD nie zostało uruchomione jako root."
 
-#: sss_client/common.c:757
+#: sss_client/common.c:756
 msgid "An error occurred, but no description can be found."
 msgstr "Wystąpił błąd, ale nie można odnaleźć opisu."
 
-#: sss_client/common.c:763
+#: sss_client/common.c:762
 msgid "Unexpected error while looking for an error description"
 msgstr "Nieoczekiwany błąd podczas wyszukiwania opisu błędu"
 

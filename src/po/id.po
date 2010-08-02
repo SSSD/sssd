@@ -6,14 +6,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-06-18 14:09-0400\n"
+"POT-Creation-Date: 2010-08-02 13:47-0400\n"
 "PO-Revision-Date: 2010-03-09 10:34+0700\n"
 "Last-Translator: Teguh DC <dheche@songolimo.net>\n"
 "Language-Team: Fedora Indonesia <trans-id@lists.fedoraproject.org>\n"
+"Language: id\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: id\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Virtaal 0.5.1\n"
 
@@ -429,17 +429,17 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:321
+#: providers/krb5/krb5_child.c:983 providers/ldap/ldap_child.c:377
 #: util/util.h:61
 msgid "Debug level"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:323
+#: providers/krb5/krb5_child.c:985 providers/ldap/ldap_child.c:379
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr ""
 
-#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:325
+#: providers/krb5/krb5_child.c:987 providers/ldap/ldap_child.c:381
 #, fuzzy
 msgid "An open file descriptor for the debug logs"
 msgstr "Mengatur verbosity dari pencatatan debug"
@@ -448,27 +448,27 @@ msgstr "Mengatur verbosity dari pencatatan debug"
 msgid "Domain of the information provider (mandatory)"
 msgstr ""
 
-#: sss_client/common.c:743
+#: sss_client/common.c:742
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: sss_client/common.c:746
+#: sss_client/common.c:745
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: sss_client/common.c:749
+#: sss_client/common.c:748
 msgid "Unexpected format of the server credential message."
 msgstr ""
 
-#: sss_client/common.c:752
+#: sss_client/common.c:751
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: sss_client/common.c:757
+#: sss_client/common.c:756
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: sss_client/common.c:763
+#: sss_client/common.c:762
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 
