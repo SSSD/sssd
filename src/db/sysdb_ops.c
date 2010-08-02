@@ -2199,3 +2199,59 @@ done:
     }
     return ret;
 }
+
+errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
+                             const char *user,
+                             const char **add_groups,
+                             const char **del_groups)
+{
+    errno_t ret;
+    int i;
+
+    TALLOC_CTX *tmp_ctx = talloc_new(NULL);
+    if(!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to start update transaction\n"));
+        goto done;
+    }
+
+    if (add_groups) {
+        /* Add the user to all add_groups */
+        for (i = 0; add_groups[i]; i++) {
+            ret = sysdb_add_group_member(tmp_ctx, sysdb, domain,
+                                         add_groups[i], user);
+            if (ret != EOK) {
+                DEBUG(1, ("Could not add user [%s] to group [%s]. "
+                          "Skipping.\n"));
+                /* Continue on, we should try to finish the rest */
+            }
+        }
+    }
+
+    if (del_groups) {
+        /* Remove the user from all del_groups */
+        for (i = 0; del_groups[i]; i++) {
+            ret = sysdb_remove_group_member(tmp_ctx, sysdb, domain,
+                                            del_groups[i], user);
+            if (ret != EOK) {
+                DEBUG(1, ("Could not remove user [%s] from group [%s]. "
+                          "Skipping\n"));
+                /* Continue on, we should try to finish the rest */
+            }
+        }
+    }
+
+    ret = sysdb_transaction_commit(sysdb);
+
+done:
+    if (ret != EOK) {
+        sysdb_transaction_cancel(sysdb);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}

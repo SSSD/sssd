@@ -2105,6 +2105,59 @@ START_TEST (test_sysdb_attrs_to_list)
 }
 END_TEST
 
+START_TEST (test_sysdb_update_members)
+{
+    struct sysdb_test_ctx *test_ctx;
+    char **add_groups;
+    char **del_groups;
+    const char *user = "testuser27000";
+    errno_t ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    fail_unless(ret == EOK, "Could not set up the test");
+
+    /* Add a user to two groups */
+    add_groups = talloc_array(test_ctx, char *, 3);
+    add_groups[0] = talloc_strdup(add_groups, "testgroup28001");
+    add_groups[1] = talloc_strdup(add_groups, "testgroup28002");
+    add_groups[2] = NULL;
+
+    ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain, user,
+                               (const char **)add_groups, NULL);
+    fail_unless(ret == EOK, "Could not add groups");
+    talloc_zfree(add_groups);
+
+    /* Remove a user from one group and add to another */
+    del_groups = talloc_array(test_ctx, char *, 2);
+    del_groups[0] = talloc_strdup(del_groups, "testgroup28001");
+    del_groups[1] = NULL;
+    add_groups = talloc_array(test_ctx, char *, 2);
+    add_groups[0] = talloc_strdup(add_groups, "testgroup28003");
+    add_groups[1] = NULL;
+
+    ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain, user,
+                               (const char **)add_groups,
+                               (const char **)del_groups);
+    fail_unless(ret == EOK, "Group replace failed");
+    talloc_zfree(add_groups);
+    talloc_zfree(del_groups);
+
+    /* Remove a user from two groups */
+    del_groups = talloc_array(test_ctx, char *, 3);
+    del_groups[0] = talloc_strdup(del_groups, "testgroup28002");
+    del_groups[1] = talloc_strdup(del_groups, "testgroup28003");
+    del_groups[2] = NULL;
+
+    ret = sysdb_update_members(test_ctx->sysdb, test_ctx->domain,
+                               user, NULL,
+                               (const char **)del_groups);
+    fail_unless(ret == EOK, "Could not remove groups");
+
+    talloc_zfree(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2128,6 +2181,9 @@ Suite *create_sysdb_suite(void)
 
     /* test the change */
     tcase_add_loop_test(tc_sysdb, test_sysdb_get_user_attr, 27000, 27010);
+
+    /* Add and remove users in a group with sysdb_update_members */
+    tcase_add_test(tc_sysdb, test_sysdb_update_members);
 
     /* Remove the other half by gid */
     tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 28000, 28010);

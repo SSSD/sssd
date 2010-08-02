@@ -453,6 +453,11 @@ int sysdb_remove_group_member(TALLOC_CTX *mem_ctx,
                               struct sss_domain_info *domain,
                               const char *group,
                               const char *user);
+errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
+                             struct sss_domain_info *domain,
+                             const char *user,
+                             const char **add_groups,
+                             const char **del_groups);
 
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
