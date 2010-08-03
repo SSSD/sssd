@@ -528,7 +528,8 @@ static int be_pam_handler(DBusMessage *message, struct sbus_connection *conn)
     be_req = talloc_zero(becli, struct be_req);
     if (!be_req) {
         DEBUG(7, ("talloc_zero failed.\n"));
-        goto done;
+        dbus_message_unref(reply);
+        return ENOMEM;
     }
 
     be_req->becli = becli;
