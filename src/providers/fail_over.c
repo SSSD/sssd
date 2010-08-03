@@ -989,7 +989,7 @@ resolve_srv_send(TALLOC_CTX *mem_ctx, struct tevent_context *ev,
     default:
         DEBUG(1, ("Unexpected status %d for a SRV server\n", status));
         ret = EIO;
-        break;
+        goto done;
     }
 
     ret = EOK;
