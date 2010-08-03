@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd.master.sss_daemon\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-07-09 13:48-0400\n"
+"POT-Creation-Date: 2010-08-03 18:24-0400\n"
 "PO-Revision-Date: 2010-02-23 13:59+0100\n"
 "Last-Translator: Rui Gouveia <rui.gouveia@gmail.com>\n"
 "Language-Team: fedora-trans-pt@redhat.com\n"
@@ -452,46 +452,46 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr "Não é possível carregar a configuração da base de dados\n"
 
-#: providers/krb5/krb5_child.c:993 providers/ldap/ldap_child.c:341
+#: providers/krb5/krb5_child.c:993 providers/ldap/ldap_child.c:361
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Nível de depuração"
 
-#: providers/krb5/krb5_child.c:995 providers/ldap/ldap_child.c:343
+#: providers/krb5/krb5_child.c:995 providers/ldap/ldap_child.c:363
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Adicionar tempos na depuração"
 
-#: providers/krb5/krb5_child.c:997 providers/ldap/ldap_child.c:345
+#: providers/krb5/krb5_child.c:997 providers/ldap/ldap_child.c:365
 msgid "An open file descriptor for the debug logs"
 msgstr "Um descritor de ficheiro aberto para os registos de depuração"
 
-#: providers/data_provider_be.c:1164
+#: providers/data_provider_be.c:1165
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domínio do fornecedor de informação (obrigatório)"
 
-#: sss_client/common.c:743
+#: sss_client/common.c:742
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr ""
 
-#: sss_client/common.c:746
+#: sss_client/common.c:745
 msgid "Public socket has wrong ownership or permissions."
 msgstr ""
 
-#: sss_client/common.c:749
+#: sss_client/common.c:748
 #, fuzzy
 msgid "Unexpected format of the server credential message."
 msgstr "Localização da cache de credenciais dos utilizadores"
 
-#: sss_client/common.c:752
+#: sss_client/common.c:751
 msgid "SSSD is not run by root."
 msgstr ""
 
-#: sss_client/common.c:757
+#: sss_client/common.c:756
 msgid "An error occurred, but no description can be found."
 msgstr ""
 
-#: sss_client/common.c:763
+#: sss_client/common.c:762
 msgid "Unexpected error while looking for an error description"
 msgstr ""
 

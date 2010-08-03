@@ -6,17 +6,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2010-07-09 13:48-0400\n"
+"POT-Creation-Date: 2010-08-03 18:24-0400\n"
 "PO-Revision-Date: 2010-07-18 10:13+0300\n"
 "Last-Translator: Yuri Chornoivan <yurchor@ukr.net>\n"
 "Language-Team: Ukrainian <translation@linux.org.ua>\n"
+"Language: uk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: uk\n"
 "X-Generator: Lokalize 1.1\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: config/SSSDConfig.py:39
 msgid "Set the verbosity of the debug logging"
@@ -456,45 +456,45 @@ msgstr ""
 msgid "Cannot load configuration database\n"
 msgstr "Не вдалося завантажити базу даних налаштувань\n"
 
-#: providers/krb5/krb5_child.c:993 providers/ldap/ldap_child.c:341
+#: providers/krb5/krb5_child.c:993 providers/ldap/ldap_child.c:361
 #: util/util.h:61
 msgid "Debug level"
 msgstr "Рівень зневаджування"
 
-#: providers/krb5/krb5_child.c:995 providers/ldap/ldap_child.c:343
+#: providers/krb5/krb5_child.c:995 providers/ldap/ldap_child.c:363
 #: util/util.h:65
 msgid "Add debug timestamps"
 msgstr "Додавати діагностичні часові позначки"
 
-#: providers/krb5/krb5_child.c:997 providers/ldap/ldap_child.c:345
+#: providers/krb5/krb5_child.c:997 providers/ldap/ldap_child.c:365
 msgid "An open file descriptor for the debug logs"
 msgstr "Дескриптор відкритого файла для запису журналів діагностики"
 
-#: providers/data_provider_be.c:1164
+#: providers/data_provider_be.c:1165
 msgid "Domain of the information provider (mandatory)"
 msgstr "Домен надання відомостей (обов’язковий)"
 
-#: sss_client/common.c:743
+#: sss_client/common.c:742
 msgid "Privileged socket has wrong ownership or permissions."
 msgstr "У привілейованого сокета помилковий власник або права доступу."
 
-#: sss_client/common.c:746
+#: sss_client/common.c:745
 msgid "Public socket has wrong ownership or permissions."
 msgstr "У відкритого сокета помилковий власник або права доступу."
 
-#: sss_client/common.c:749
+#: sss_client/common.c:748
 msgid "Unexpected format of the server credential message."
 msgstr "Некоректний формат повідомлення щодо реєстраційних даних сервера."
 
-#: sss_client/common.c:752
+#: sss_client/common.c:751
 msgid "SSSD is not run by root."
 msgstr "SSSD запущено не від імені користувача root."
 
-#: sss_client/common.c:757
+#: sss_client/common.c:756
 msgid "An error occurred, but no description can be found."
 msgstr "Сталася помилка, але не вдалося знайти її опису."
 
-#: sss_client/common.c:763
+#: sss_client/common.c:762
 msgid "Unexpected error while looking for an error description"
 msgstr "Неочікувана помилка під час пошуку опису помилки"
 
