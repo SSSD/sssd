@@ -64,7 +64,7 @@ errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
     }
 
     *_name = talloc_strdup(memctx, ldb_dn_get_rdn_name(dn));
-    if (!_name) {
+    if (!*_name) {
         talloc_zfree(dn);
         return ENOMEM;
     }
