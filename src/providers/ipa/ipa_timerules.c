@@ -1122,7 +1122,7 @@ int check_time_rule(TALLOC_CTX *mem_ctx,
     ret = EOK;
 done:
     talloc_free(ctx);
-    return EOK;
+    return ret;
 }
 
 /*
