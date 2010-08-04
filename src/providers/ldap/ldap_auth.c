@@ -865,6 +865,7 @@ static void sdap_auth4chpass_done(struct tevent_req *req)
         DEBUG(9, ("Initial authentication for change password operation "
                   "successful.\n"));
         state->pd->pam_status = PAM_SUCCESS;
+        dp_err = DP_ERR_OK;
         goto done;
     }
 
