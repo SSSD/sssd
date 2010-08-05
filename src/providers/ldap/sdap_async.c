@@ -576,22 +576,28 @@ static void sdap_exop_modify_passwd_done(struct sdap_op *op,
         }
     }
 
-    if (state->result != LDAP_SUCCESS) {
-        state->user_error_message = talloc_strdup(state, errmsg);
-        if (state->user_error_message == NULL) {
-            DEBUG(1, ("talloc_strdup failed.\n"));
-        }
-    }
-
     DEBUG(3, ("ldap_extended_operation result: %s(%d), %s\n",
               ldap_err2string(state->result), state->result, errmsg));
 
-    ret = LDAP_SUCCESS;
+    if (state->result != LDAP_SUCCESS) {
+        if (errmsg) {
+            state->user_error_message = talloc_strdup(state, errmsg);
+            if (state->user_error_message == NULL) {
+                DEBUG(1, ("talloc_strdup failed.\n"));
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+        ret = EIO;
+        goto done;
+    }
+
+    ret = EOK;
 done:
     ldap_controls_free(response_controls);
     ldap_memfree(errmsg);
 
-    if (ret == LDAP_SUCCESS) {
+    if (ret == EOK) {
         tevent_req_done(req);
     } else {
         tevent_req_error(req, ret);
