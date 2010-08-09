@@ -793,6 +793,24 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>krb5_kdcip (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the list of IP addresses or hostnames
+                            of the Kerberos servers to which SSSD should
+                            connect in the order of preference. For more
+                            information on failover and server redundancy,
+                            see the <quote>FAILOVER</quote> section. An optional
+                            port number (preceded by a colon) may be appended to
+                            the addresses or hostnames.
+                            If empty, service discovery is enabled -
+                            for more information, refer to the
+                            <quote>SERVICE DISCOVERY</quote> section.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>krb5_realm (string)</term>
                     <listitem>
                         <para>
