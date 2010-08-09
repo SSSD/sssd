@@ -26,6 +26,7 @@
 #include "providers/ldap/sdap.h"
 #include "providers/ldap/sdap_id_op.h"
 #include "providers/fail_over.h"
+#include "providers/krb5/krb5_common.h"
 
 #define PWD_POL_OPT_NONE "none"
 #define PWD_POL_OPT_SHADOW "shadow"
@@ -44,6 +45,8 @@ struct sdap_id_ctx {
 
     /* what rootDSE returns */
     struct sysdb_attrs *rootDSE;
+    /* If using GSSAPI */
+    struct krb5_service *krb5_service;
 
     /* LDAP connection cache */
     struct sdap_id_conn_cache *conn_cache;
@@ -85,6 +88,23 @@ void sdap_handler_done(struct be_req *req, int dp_err,
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                       const char *service_name, const char *dns_service_name,
                       const char *urls, struct sdap_service **_service);
+
+int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
+                     struct dp_option *opts,
+                     struct be_ctx *bectx,
+                     struct sdap_service *sdap_service,
+                     struct krb5_service **krb5_service);
+
+errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
+                                      struct be_ctx *be_ctx,
+                                      const char *realm,
+                                      const char *service_name);
+
+errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     const char *realm);
+
+void sdap_remove_kdcinfo_files_callback(void *pvt);
 
 /* options parser */
 int ldap_get_options(TALLOC_CTX *memctx,

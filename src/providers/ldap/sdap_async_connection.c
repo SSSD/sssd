@@ -627,15 +627,30 @@ static int sasl_bind_recv(struct tevent_req *req, int *ldaperr)
 /* ==Perform-Kinit-given-keytab-and-principal============================= */
 
 struct sdap_kinit_state {
+    const char *keytab;
+    const char *principal;
+    const char *realm;
+    int    timeout;
+    int    lifetime;
+
+    const char *krb_service_name;
+    struct tevent_context *ev;
+    struct be_ctx *be;
+
+    struct fo_server *kdc_srv;
     int result;
     time_t expire_time;
 };
 
 static void sdap_kinit_done(struct tevent_req *subreq);
+static struct tevent_req *sdap_kinit_next_kdc(struct tevent_req *req);
+static void sdap_kinit_kdc_resolved(struct tevent_req *subreq);
 
 struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
+                                   struct be_ctx *be,
                                    struct sdap_handle *sh,
+                                   const char *krb_service_name,
                                    int    timeout,
                                    const char *keytab,
                                    const char *principal,
@@ -659,24 +674,81 @@ struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
     if (!req) return NULL;
 
     state->result = SDAP_AUTH_FAILED;
+    state->keytab = keytab;
+    state->principal = principal;
+    state->realm = realm;
+    state->ev = ev;
+    state->be = be;
+    state->timeout = timeout;
+    state->lifetime = lifetime;
+    state->krb_service_name = krb_service_name;
 
     if (keytab) {
         ret = setenv("KRB5_KTNAME", keytab, 1);
         if (ret == -1) {
             DEBUG(2, ("Failed to set KRB5_KTNAME to %s\n", keytab));
+            talloc_free(req);
             return NULL;
         }
     }
 
-    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, lifetime,
-                               timeout);
+    subreq = sdap_kinit_next_kdc(req);
     if (!subreq) {
-        talloc_zfree(req);
+        talloc_free(req);
         return NULL;
     }
-    tevent_req_set_callback(subreq, sdap_kinit_done, req);
 
     return req;
+}
+
+static struct tevent_req *sdap_kinit_next_kdc(struct tevent_req *req)
+{
+    struct tevent_req *next_req;
+    struct sdap_kinit_state *state = tevent_req_data(req,
+                                                    struct sdap_kinit_state);
+
+    DEBUG(7, ("Resolving next KDC for service %s\n", state->krb_service_name));
+
+    next_req = be_resolve_server_send(state, state->ev,
+                                      state->be,
+                                      state->krb_service_name);
+    if (next_req == NULL) {
+        DEBUG(1, ("be_resolve_server_send failed.\n"));
+        return NULL;
+    }
+    tevent_req_set_callback(next_req, sdap_kinit_kdc_resolved, req);
+
+    return next_req;
+}
+
+static void sdap_kinit_kdc_resolved(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_kinit_state *state = tevent_req_data(req,
+                                                     struct sdap_kinit_state);
+    struct tevent_req *tgtreq;
+    int ret;
+
+    ret = be_resolve_server_recv(subreq, &state->kdc_srv);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        /* all servers have been tried and none
+         * was found good, go offline */
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    DEBUG(7, ("KDC resolved, attempting to get TGT...\n"));
+
+    tgtreq = sdap_get_tgt_send(state, state->ev, state->realm,
+                               state->principal, state->keytab,
+                               state->lifetime, state->timeout);
+    if (!tgtreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(tgtreq, sdap_kinit_done, req);
 }
 
 static void sdap_kinit_done(struct tevent_req *subreq)
@@ -691,6 +763,7 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     char *ccname = NULL;
     time_t expire_time;
     krb5_error_code kerr;
+    struct tevent_req *nextreq;
 
     ret = sdap_get_tgt_recv(subreq, state, &result,
                             &kerr, &ccname, &expire_time);
@@ -714,6 +787,15 @@ static void sdap_kinit_done(struct tevent_req *subreq)
         state->result = SDAP_AUTH_SUCCESS;
         tevent_req_done(req);
         return;
+    } else {
+        if (kerr == KRB5_KDC_UNREACH) {
+            nextreq = sdap_kinit_next_kdc(req);
+            if (!nextreq) {
+                tevent_req_error(req, ENOMEM);
+            }
+            return;
+        }
+
     }
 
     DEBUG(4, ("Could not get TGT: %d [%s]\n", result, strerror(result)));
@@ -1152,7 +1234,9 @@ static void sdap_cli_kinit_step(struct tevent_req *req)
     struct tevent_req *subreq;
 
     subreq = sdap_kinit_send(state, state->ev,
+                             state->be,
                              state->sh,
+                             state->service->kinit_service_name,
                         dp_opt_get_int(state->opts->basic,
                                                    SDAP_OPT_TIMEOUT),
                         dp_opt_get_string(state->opts->basic,

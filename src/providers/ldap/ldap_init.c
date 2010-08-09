@@ -98,6 +98,17 @@ int sssm_ldap_id_init(struct be_ctx *bectx,
         goto done;
     }
 
+    if (dp_opt_get_bool(ctx->opts->basic, SDAP_KRB5_KINIT)) {
+        ret = sdap_gssapi_init(ctx, ctx->opts->basic,
+                               ctx->be, ctx->service,
+                               &ctx->krb5_service);
+        if (ret !=  EOK) {
+            DEBUG(1, ("sdap_gssapi_init failed [%d][%s].\n",
+                       ret, strerror(ret)));
+            goto done;
+        }
+    }
+
     ret = setup_tls_config(ctx->opts->basic);
     if (ret != EOK) {
         DEBUG(1, ("setup_tls_config failed [%d][%s].\n",

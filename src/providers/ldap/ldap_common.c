@@ -25,6 +25,7 @@
 #include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
 #include "providers/ldap/sdap_async_private.h"
+#include "providers/krb5/krb5_common.h"
 
 #include "util/sss_krb5.h"
 
@@ -418,6 +419,176 @@ static void sdap_uri_callback(void *private_data, struct fo_server *server)
     /* free old one and replace with new one */
     talloc_zfree(service->uri);
     service->uri = new_uri;
+}
+
+static void sdap_finalize(struct tevent_context *ev,
+                          struct tevent_signal *se,
+                          int signum,
+                          int count,
+                          void *siginfo,
+                          void *private_data)
+{
+    char *realm = (char *) private_data;
+    int ret;
+
+    ret = remove_krb5_info_files(se, realm);
+    if (ret != EOK) {
+        DEBUG(1, ("remove_krb5_info_files failed.\n"));
+    }
+
+    sig_term(signum);
+}
+
+errno_t sdap_install_sigterm_handler(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
+                                     const char *realm)
+{
+    char *sig_realm;
+    struct tevent_signal *sige;
+
+    BlockSignals(false, SIGTERM);
+
+    sig_realm = talloc_strdup(mem_ctx, realm);
+    if (sig_realm == NULL) {
+        DEBUG(1, ("talloc_strdup failed!\n"));
+        return ENOMEM;
+    }
+
+    sige = tevent_add_signal(ev, mem_ctx, SIGTERM, SA_SIGINFO, sdap_finalize,
+                             sig_realm);
+    if (sige == NULL) {
+        DEBUG(1, ("tevent_add_signal failed.\n"));
+        talloc_free(sig_realm);
+        return ENOMEM;
+    }
+    talloc_steal(sige, sig_realm);
+
+    return EOK;
+}
+
+void sdap_remove_kdcinfo_files_callback(void *pvt)
+{
+    int ret;
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct remove_info_files_ctx *ctx = talloc_get_type(pvt,
+                                                  struct remove_info_files_ctx);
+
+    ret = be_fo_run_callbacks_at_next_request(ctx->be_ctx,
+                                              ctx->kdc_service_name);
+    if (ret != EOK) {
+        DEBUG(1, ("be_fo_run_callbacks_at_next_request failed, "
+                  "krb5 info files will not be removed, because "
+                  "it is unclear if they will be recreated properly.\n"));
+        return;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        DEBUG(1, ("talloc_new failed, cannot remove krb5 info files.\n"));
+        return;
+    }
+
+    ret = remove_krb5_info_files(tmp_ctx, ctx->realm);
+    if (ret != EOK) {
+        DEBUG(1, ("remove_krb5_info_files failed.\n"));
+    }
+
+    talloc_zfree(tmp_ctx);
+}
+
+
+errno_t sdap_install_offline_callback(TALLOC_CTX *mem_ctx,
+                                      struct be_ctx *be_ctx,
+                                      const char *realm,
+                                      const char *service_name)
+{
+    int ret;
+    struct remove_info_files_ctx *ctx;
+
+    ctx = talloc_zero(mem_ctx, struct remove_info_files_ctx);
+    if (ctx == NULL) {
+        DEBUG(1, ("talloc_zfree failed.\n"));
+        return ENOMEM;
+    }
+
+    ctx->be_ctx = be_ctx;
+    ctx->realm = talloc_strdup(ctx, realm);
+    ctx->kdc_service_name = talloc_strdup(ctx, service_name);
+    if (ctx->realm == NULL || ctx->kdc_service_name == NULL) {
+        DEBUG(1, ("talloc_strdup failed!\n"));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_add_offline_cb(ctx, be_ctx,
+                            sdap_remove_kdcinfo_files_callback,
+                            ctx, NULL);
+    if (ret != EOK) {
+        DEBUG(1, ("be_add_offline_cb failed.\n"));
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    if (ret != EOK) {
+        talloc_zfree(ctx);
+    }
+    return ret;
+}
+
+int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
+                     struct dp_option *opts,
+                     struct be_ctx *bectx,
+                     struct sdap_service *sdap_service,
+                     struct krb5_service **krb5_service)
+{
+    int ret;
+    const char *krb5_servers;
+    const char *krb5_realm;
+    struct krb5_service *service = NULL;
+
+    krb5_servers = dp_opt_get_string(opts, SDAP_KRB5_KDCIP);
+    if (krb5_servers == NULL) {
+        DEBUG(1, ("Missing krb5_kdcip option, using service discovery!\n"));
+    }
+
+    krb5_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
+    if (krb5_realm == NULL) {
+        DEBUG(0, ("Missing krb5_realm option, will use libkrb default\n"));
+    }
+
+    ret = krb5_service_init(mem_ctx, bectx, SSS_KRB5KDC_FO_SRV, krb5_servers,
+                            krb5_realm, &service);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to init KRB5 failover service!\n"));
+        goto done;
+    }
+
+    ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to install sigterm handler\n"));
+        goto done;
+    }
+
+    ret = sdap_install_offline_callback(mem_ctx, bectx,
+                                        krb5_realm, SSS_KRB5KDC_FO_SRV);
+    if (ret != EOK) {
+        DEBUG(0, ("Failed to install sigterm handler\n"));
+        goto done;
+    }
+
+    sdap_service->kinit_service_name = talloc_strdup(sdap_service,
+                                                     service->name);
+    if (sdap_service->kinit_service_name == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+    *krb5_service = service;
+done:
+    if (ret != EOK) talloc_free(service);
+    return ret;
 }
 
 int sdap_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,

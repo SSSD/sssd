@@ -542,6 +542,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
         ret = ENOMEM;
         goto done;
     }
+    service->sdap->kinit_service_name = service->krb5_service->name;
 
     realm = talloc_strdup(service, domain);
     if (!realm) {

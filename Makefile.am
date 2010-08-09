@@ -769,6 +769,7 @@ libsss_ldap_la_SOURCES = \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_id_op.c \
     src/providers/ldap/sdap.c \
+    src/providers/krb5/krb5_common.c \
     src/util/user_info_msg.c \
     src/util/sss_ldap.c \
     src/util/sss_krb5.c

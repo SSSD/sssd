@@ -426,7 +426,7 @@ done:
 }
 
 
-static errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm)
+errno_t remove_krb5_info_files(TALLOC_CTX *mem_ctx, const char *realm)
 {
     int ret;
     errno_t err;

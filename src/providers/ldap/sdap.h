@@ -106,6 +106,7 @@ struct sdap_handle {
 struct sdap_service {
     char *name;
     char *uri;
+    char *kinit_service_name;
 };
 
 struct sdap_ppolicy_data {
