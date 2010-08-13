@@ -1,4 +1,4 @@
-SUBDIRS = common src
+SUBDIRS = src
 
 DISTCHECK_CONFIGURE_FLAGS = --with-ldb-lib-dir="$$dc_install_base"/lib/ldb
 
