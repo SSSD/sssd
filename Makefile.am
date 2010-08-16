@@ -89,8 +89,14 @@ check_PROGRAMS = \
     stress-tests \
     $(non_interactive_check_based_tests)
 
+PYTHON_TESTS =
+
+if BUILD_PYTHON_BINDINGS
+PYTHON_TESTS += $(srcdir)/src/config/SSSDConfigTest.py
+endif
+
 TESTS = \
-    $(srcdir)/src/config/SSSDConfigTest.py \
+    $(PYTHON_TESTS) \
     $(non_interactive_check_based_tests)
 
 sssdlib_LTLIBRARIES = \
@@ -1003,15 +1009,20 @@ docs:
 	@echo "Doxygen not installed, cannot generate documentation"
 	@exit 1
 endif
+
 all-local:
+if BUILD_PYTHON_BINDINGS
 	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config
+endif
 
 install-exec-hook: installsssddirs
+if BUILD_PYTHON_BINDINGS
 	if [ "$(DESTDIR)" = "" ]; then \
 		cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --record=$(abs_builddir)/src/config/.files; \
 	else \
 		cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON_PREFIX) --root=$(DESTDIR) --record=$(abs_builddir)/src/config/.files; \
 	fi
+endif
 	mkdir -p doc $(DESTDIR)/$(docdir); cp -a doc $(DESTDIR)/$(docdir)/
 
 install-data-hook:
@@ -1027,7 +1038,9 @@ uninstall-hook:
 	rm -Rf $(DESTDIR)/$(docdir)/doc
 
 clean-local:
+if BUILD_PYTHON_BINDINGS
 	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
+endif
 	rm -Rf doc
 
 CLEANFILES = *.X */*.X */*/*.X
