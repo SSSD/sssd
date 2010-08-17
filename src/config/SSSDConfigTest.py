@@ -1614,7 +1614,7 @@ if __name__ == "__main__":
     import sys
     srcdir = os.getenv('srcdir')
     if srcdir:
-        srcdir = srcdir + "/config"
+        srcdir = srcdir + "/src/config"
     else:
         srcdir = "."
 
