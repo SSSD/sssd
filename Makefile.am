@@ -21,7 +21,6 @@ endif
 sssdconfdir = $(sysconfdir)/sssd
 sssdapiplugindir = $(sssdconfdir)/sssd.api.d
 dbusintrospectdir = $(datarootdir)/sssd/introspect
-dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 localedir = @localedir@
 nsslibdir = @nsslibdir@
 pamlibdir = @pammoddir@
@@ -997,7 +996,6 @@ installsssddirs::
     $(DESTDIR)$(mandir) \
     $(DESTDIR)$(pluginpath) \
     $(DESTDIR)$(libdir)/ldb \
-    $(DESTDIR)$(dbuspolicydir) \
     $(DESTDIR)$(infpintrospectdir) \
     $(DESTDIR)$(dbusintrospectdir) \
     $(DESTDIR)$(pipepath)/private \
