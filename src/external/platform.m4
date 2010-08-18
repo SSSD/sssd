@@ -1,11 +1,12 @@
 AC_ARG_WITH([os],
-            [AC_HELP_STRING([--with-os=OS_TYPE], [Type of your operation system (fedora|redhat|suse)])]
+            [AC_HELP_STRING([--with-os=OS_TYPE], [Type of your operation system (fedora|redhat|suse|gentoo)])]
            )
 osname=""
 if test x"$with_os" != x ; then
     if test x"$with_os" = xfedora || \
        test x"$with_os" = xredhat || \
        test x"$with_os" = xsuse || \
+       test x"$with_os" = xgentoo || \
        test x"$with_os" = xdebian ; then
         osname=$with_os
     else
@@ -22,6 +23,8 @@ if test x"$osname" = x ; then
         osname="suse"
     elif test -f /etc/debian_version ; then
         osname="debian"
+    elif test -f /etc/gentoo-release ; then
+        osname="gentoo"
     fi
 
     AC_MSG_NOTICE([Detected operating system type: $osname])
@@ -31,6 +34,7 @@ AM_CONDITIONAL([HAVE_FEDORA], [test x"$osname" = xfedora])
 AM_CONDITIONAL([HAVE_REDHAT], [test x"$osname" = xredhat])
 AM_CONDITIONAL([HAVE_SUSE], [test x"$osname" = xsuse])
 AM_CONDITIONAL([HAVE_DEBIAN], [test x"$osname" = xdebian])
+AM_CONDITIONAL([HAVE_GENTOO], [test x"$osname" = xgentoo])
 
 AC_CHECK_MEMBERS([struct ucred.pid, struct ucred.uid, struct ucred.gid], , ,
                  [[#define _GNU_SOURCE

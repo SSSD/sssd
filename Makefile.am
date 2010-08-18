@@ -968,8 +968,13 @@ if HAVE_SUSE
     dist_init_SCRIPTS += \
         src/sysv/SUSE/sssd
 else
+if HAVE_GENTOO
+    dist_init_SCRIPTS += \
+        src/sysv/gentoo/sssd
+else
     dist_init_SCRIPTS += \
         src/sysv/sssd
+endif
 endif
 
 
