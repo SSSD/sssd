@@ -24,7 +24,7 @@ dbusintrospectdir = $(datarootdir)/sssd/introspect
 dbuspolicydir = $(sysconfdir)/dbus-1/system.d
 localedir = @localedir@
 nsslibdir = @nsslibdir@
-pamlibdir = $(nsslibdir)/security
+pamlibdir = @pammoddir@
 
 dbpath = @dbpath@
 pluginpath = @pluginpath@

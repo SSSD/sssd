@@ -62,6 +62,13 @@ AC_ARG_ENABLE([nsslibdir], [AS_HELP_STRING([--enable-nsslibdir],
               [nsslibdir=$libdir])
 AC_SUBST(nsslibdir)
 
+#Set the PAM module install path
+AC_ARG_ENABLE([pammoddir], [AS_HELP_STRING([--enable-pammoddir],
+                                        [Where to install pam modules ($libdir/security)])],
+              [pammoddir=$enableval],
+              [pammoddir=$libdir/security])
+AC_SUBST(pammoddir)
+
 m4_include(src/conf_macros.m4)
 WITH_DB_PATH
 WITH_PLUGIN_PATH
