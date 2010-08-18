@@ -69,6 +69,9 @@ AC_ARG_ENABLE([pammoddir], [AS_HELP_STRING([--enable-pammoddir],
               [pammoddir=$libdir/security])
 AC_SUBST(pammoddir)
 
+#Include here cause WITH_INIT_DIR requires $osname set in platform.m4
+m4_include([src/external/platform.m4])
+
 m4_include(src/conf_macros.m4)
 WITH_DB_PATH
 WITH_PLUGIN_PATH
@@ -87,7 +90,6 @@ WITH_NSCD
 WITH_SEMANAGE
 WITH_LIBNL
 
-m4_include([src/external/platform.m4])
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
 m4_include([src/external/libtalloc.m4])
