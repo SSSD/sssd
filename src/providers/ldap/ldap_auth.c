@@ -511,6 +511,13 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     req = tevent_req_create(memctx, &state, struct auth_state);
     if (!req) return NULL;
 
+    /* Treat a zero-length password as a failure */
+    if (password.length == 0) {
+        state->result = SDAP_AUTH_FAILED;
+        tevent_req_done(req);
+        return tevent_req_post(req, ev);
+    }
+
     state->ev = ev;
     state->ctx = ctx;
     state->username = username;
