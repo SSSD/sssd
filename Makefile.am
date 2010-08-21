@@ -252,6 +252,8 @@ SSSD_LIBS = \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
     $(SSS_CRYPT_LIBS) \
+    $(OPENLDAP_LIBS) \
+    $(TDB_LIBS) \
     libsss_crypt.la
 
 PYTHON_BINDINGS_LIBS = \
@@ -262,6 +264,8 @@ PYTHON_BINDINGS_LIBS = \
     $(DBUS_LIBS) \
     $(PCRE_LIBS) \
     $(SSS_CRYPT_LIBS) \
+    $(OPENLDAP_LIBS) \
+    $(TDB_LIBS) \
     libsss_crypt.la
 
 TOOLS_LIBS = \
@@ -274,6 +278,8 @@ TOOLS_LIBS = \
     $(INI_CONFIG_LIBS) \
     $(COLLECTION_LIBS) \
     $(DHASH_LIBS) \
+	$(OPENLDAP_LIBS) \
+	$(TDB_LIBS) \
     libsss_crypt.la
 
 if BUILD_SELINUX
