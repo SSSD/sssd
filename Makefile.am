@@ -724,8 +724,8 @@ pam_test_client_LDFLAGS = -lpam -lpam_misc
 nsslib_LTLIBRARIES = libnss_sss.la
 libnss_sss_la_SOURCES = \
     src/sss_client/common.c \
-    src/sss_client/passwd.c \
-    src/sss_client/group.c \
+    src/sss_client/nss_passwd.c \
+    src/sss_client/nss_group.c \
     src/sss_client/sss_cli.h
 libnss_sss_la_LDFLAGS = \
     -module \

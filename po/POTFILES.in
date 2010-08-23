@@ -6,10 +6,10 @@ src/providers/krb5/krb5_child.c
 src/providers/ldap/ldap_child.c
 src/providers/data_provider_be.c
 src/sss_client/common.c
-src/sss_client/group.c
+src/sss_client/nss_group.c
+src/sss_client/nss_passwd.c
 src/sss_client/pam_sss.c
 src/sss_client/pam_test_client.c
-src/sss_client/passwd.c
 src/tools/sss_useradd.c
 src/tools/sss_groupadd.c
 src/tools/sss_groupdel.c
