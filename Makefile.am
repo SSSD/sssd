@@ -726,7 +726,9 @@ libnss_sss_la_SOURCES = \
     src/sss_client/common.c \
     src/sss_client/nss_passwd.c \
     src/sss_client/nss_group.c \
-    src/sss_client/sss_cli.h
+    src/sss_client/nss_netgroup.c \
+    src/sss_client/sss_cli.h \
+    src/sss_client/nss_compat.h
 libnss_sss_la_LDFLAGS = \
     -module \
     -version-info 2:0:0 \

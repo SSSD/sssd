@@ -93,14 +93,14 @@ enum sss_cli_command {
     SSS_NSS_SETHOSTENT     = 0x0054,
     SSS_NSS_GETHOSTENT     = 0x0055,
     SSS_NSS_ENDHOSTENT     = 0x0056,
-
+#endif
 /* netgroup */
 
     SSS_NSS_SETNETGRENT    = 0x0061,
     SSS_NSS_GETNETGRENT    = 0x0062,
     SSS_NSS_ENDNETGRENT    = 0x0063,
     /* SSS_NSS_INNETGR     = 0x0064, */
-
+#if 0
 /* networks */
 
     SSS_NSS_GETNETBYNAME   = 0x0071,

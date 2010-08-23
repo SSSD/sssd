@@ -34,9 +34,9 @@ EXPORTED {
 		#_nss_sss_gethostent_r;
 		#_nss_sss_endhostent;
 
-		#_nss_sss_setnetgrent;
-		#_nss_sss_getnetgrent_r;
-		#_nss_sss_endnetgrent;
+		_nss_sss_setnetgrent;
+		_nss_sss_getnetgrent_r;
+		_nss_sss_endnetgrent;
 
 		#_nss_sss_getnetbyname_r;
 		#_nss_sss_getnetbyaddr_r;
