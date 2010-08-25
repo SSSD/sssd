@@ -470,3 +470,8 @@ safealign_memcpy(void *dest, const void *src, size_t n, size_t *counter)
  */
 #endif
 
+/* Return strlen(str) or maxlen, whichever is shorter
+ * Returns EINVAL if str is NULL, EFBIG if str is longer than maxlen
+ * _len will return the result
+ */
+errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len);

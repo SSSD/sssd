@@ -761,3 +761,32 @@ const char *ssscli_err2string(int err)
 
     return _("Unexpected error while looking for an error description");
 }
+
+/* Return strlen(str) or maxlen, whichever is shorter
+ * Returns EINVAL if str is NULL, EFBIG if str is longer than maxlen
+ * _len will return the result
+ *
+ * This function is useful for preventing buffer overflow attacks.
+ */
+errno_t sss_strnlen(const char *str, size_t maxlen, size_t *len)
+{
+    if (!str) {
+        return EINVAL;
+    }
+
+#if defined __USE_GNU
+    *len = strnlen(str, maxlen);
+#else
+    *len = 0;
+    while (*len < maxlen) {
+        if (str[*len] == '\0') break;
+        len++;
+    }
+#endif
+
+    if (*len == maxlen && str[*len] != '\0') {
+        return EFBIG;
+    }
+
+    return 0;
+}
