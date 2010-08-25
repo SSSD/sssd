@@ -87,17 +87,17 @@
                             attribute names retrieved from the servers may vary.
                             The way that some attributes are handled may also differ.
 
-                            Two schema types are currently supported:
+                            Three schema types are currently supported:
                             rfc2307
                             rfc2307bis
+                            IPA
 
-                            The main difference between these two schema types is
+                            The main difference between these schema types is
                             how group memberships are recorded in the server.
                             With rfc2307, group members are listed by name in the
                             <emphasis>memberUid</emphasis> attribute.
-                            With rfc2307bis, group members are listed by DN and
-                            stored in the <emphasis>member</emphasis> attribute.
-
+                            With rfc2307bis and IPA, group members are listed by DN
+                            and stored in the <emphasis>member</emphasis> attribute.
                         </para>
                         <para>
                             Default: rfc2307
@@ -253,6 +253,160 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_user_modify_timestamp (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains timestamp of the
+                            last modification of the parent object.
+                        </para>
+                        <para>
+                            Default: modifyTimestamp
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_shadow_last_change (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=shadow, this parameter
+                            contains the name of an LDAP attribute corresponding
+                            to its
+                            <citerefentry>
+                                <refentrytitle>shadow</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> counterpart (date of the last
+                            password change).
+                        </para>
+                        <para>
+                            Default: shadowLastChange
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_shadow_min (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=shadow, this parameter
+                            contains the name of an LDAP attribute corresponding
+                            to its
+                            <citerefentry>
+                                <refentrytitle>shadow</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> counterpart (minimum password age).
+                        </para>
+                        <para>
+                            Default: shadowMin
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_shadow_max (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=shadow, this parameter
+                            contains the name of an LDAP attribute corresponding
+                            to its
+                            <citerefentry>
+                                <refentrytitle>shadow</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> counterpart (maximum password age).
+                        </para>
+                        <para>
+                            Default: shadowMax
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_shadow_warning (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=shadow, this parameter
+                            contains the name of an LDAP attribute corresponding
+                            to its
+                            <citerefentry>
+                                <refentrytitle>shadow</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> counterpart (password warning
+                            period).
+                        </para>
+                        <para>
+                            Default: shadowWarning
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_shadow_inactive (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=shadow, this parameter
+                            contains the name of an LDAP attribute corresponding
+                            to its
+                            <citerefentry>
+                                <refentrytitle>shadow</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> counterpart (password inactivity
+                            period).
+                        </para>
+                        <para>
+                            Default: shadowInactive
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_shadow_expire (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=shadow, this parameter
+                            contains the name of an LDAP attribute corresponding
+                            to its
+                            <citerefentry>
+                                <refentrytitle>shadow</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> counterpart (account expiration date).
+                        </para>
+                        <para>
+                            Default: shadowExpire
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_krb_last_pwd_change (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=mit_kerberos, this
+                            parameter contains the name of an LDAP attribute
+                            storing the date and time of last password change
+                            in kerberos.
+                        </para>
+                        <para>
+                            Default: krbLastPwdChange
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_user_krb_password_expiration (string)</term>
+                    <listitem>
+                        <para>
+                            When using ldap_pwd_policy=mit_kerberos, this
+                            parameter contains the name of an LDAP attribute
+                            storing the date and time when current password
+                            expires.
+                        </para>
+                        <para>
+                            Default: krbPasswordExpiration
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_user_principal (string)</term>
                     <listitem>
                         <para>
@@ -277,6 +431,20 @@
                         </para>
                         <para>
                             Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_enumeration_refresh_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains how many seconds
+                            SSSD has to wait before refreshing its cache of
+                            enumerated records.
+                        </para>
+                        <para>
+                            Default: 300
                         </para>
                     </listitem>
                 </varlistentry>
@@ -386,6 +554,38 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_group_modify_timestamp (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains timestamp of the
+                            last modification of the parent object.
+                        </para>
+                        <para>
+                            Default: modifyTimestamp
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_search_timeout (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the timeout (in seconds) that ldap searches
+                            are allowed to run before they are cancelled and
+                            cached results are returned (and offline mode is
+                            entered)
+
+                            Note: this option is subject to change in future versions
+                            of the SSSD. It will likely be replaced at some point by
+                            a series of timeouts for specific lookup types.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_network_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -406,7 +606,7 @@
                             returns in case of no activity.
                         </para>
                         <para>
-                            Default: 5
+                            Default: 6
                         </para>
                     </listitem>
                 </varlistentry>
@@ -421,7 +621,7 @@
                             when communicating with the KDC in case of SASL bind.
                         </para>
                         <para>
-                            Default: 5
+                            Default: 6
                         </para>
                     </listitem>
                 </varlistentry>
