@@ -132,7 +132,7 @@ int dp_copy_options(TALLOC_CTX *memctx,
                     struct dp_option **_opts)
 {
     struct dp_option *opts;
-    int i, ret;
+    int i, ret = EOK;
 
     opts = talloc_zero_array(memctx, struct dp_option, num_opts);
     if (!opts) return ENOMEM;
