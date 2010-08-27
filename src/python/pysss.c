@@ -28,6 +28,7 @@
 #include "db/sysdb.h"
 #include "tools/tools_util.h"
 #include "tools/sss_sync_ops.h"
+#include "util/crypto/sss_crypto.h"
 
 /*
  * function taken from samba sources tree as of Aug 20 2009,
@@ -54,8 +55,10 @@ static char **PyList_AsStringList(TALLOC_CTX *mem_ctx, PyObject *list,
     return ret;
 }
 
+/* ======================= sysdb python wrappers ==========================*/
+
 /*
- * The sss.local object
+ * The sss.password object
  */
 typedef struct {
     PyObject_HEAD
@@ -820,7 +823,7 @@ static PyMethodDef sss_local_methods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-static PyMemberDef sss_members[] = {
+static PyMemberDef sss_local_members[] = {
     { discard_const_p(char, "lock"), T_INT,
       offsetof(PySssLocalObject, lock), RO, NULL},
     { discard_const_p(char, "unlock"), T_INT,
@@ -838,10 +841,180 @@ static PyTypeObject pysss_local_type = {
     .tp_new = PySssLocalObject_new,
     .tp_dealloc = (destructor) PySssLocalObject_dealloc,
     .tp_methods = sss_local_methods,
-    .tp_members = sss_members,
+    .tp_members = sss_local_members,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc   = "SSS DB manipulation",
 };
+
+/* ==================== obfuscation python wrappers ========================*/
+
+/*
+ * The sss.local object
+ */
+typedef struct {
+    PyObject_HEAD
+
+    int aes_256;
+} PySssPasswordObject;
+
+PyDoc_STRVAR(py_sss_encrypt__doc__,
+"Obfuscate a password\n\n"
+":param password: The password to obfuscate\n\n"
+":param method: The obfuscation method\n\n");
+
+static PyObject *py_sss_encrypt(PySssPasswordObject *self,
+                                PyObject *args,
+                                PyObject *kwds)
+{
+    char *password = NULL;
+    int plen; /* may contain NULL bytes */
+    char *obfpwd = NULL;
+    TALLOC_CTX *tctx = NULL;
+    int ret;
+    int mode;
+    PyObject *retval = NULL;
+
+    /* parse arguments */
+    if (!PyArg_ParseTuple(args, discard_const_p(char, "s#i"),
+                          &password, &plen, &mode)) {
+        return NULL;
+    }
+
+    tctx = talloc_new(NULL);
+    if (!tctx) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    ret = sss_password_encrypt(tctx, password, plen+1,
+                               mode, &obfpwd);
+    if (ret != EOK) {
+        PyErr_SetSssError(ret);
+        goto fail;
+    }
+
+    retval = Py_BuildValue("s", obfpwd);
+    if (retval == NULL) {
+        goto fail;
+    }
+
+fail:
+    talloc_zfree(tctx);
+    return retval;
+}
+
+#if 0
+PyDoc_STRVAR(py_sss_decrypt__doc__,
+"Deobfuscate a password\n\n"
+":param obfpwd: The password to convert back to clear text\n\n");
+
+static PyObject *py_sss_decrypt(PySssPasswordObject *self,
+                                PyObject *args,
+                                PyObject *kwds)
+{
+    char *password = NULL;
+    char *obfpwd = NULL;
+    TALLOC_CTX *tctx = NULL;
+    int ret;
+    PyObject *retval = NULL;
+
+    /* parse arguments */
+    if (!PyArg_ParseTuple(args, discard_const_p(char, "s"),
+                          &obfpwd)) {
+        return NULL;
+    }
+
+    tctx = talloc_new(NULL);
+    if (!tctx) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    ret = sss_password_decrypt(tctx, obfpwd, &password);
+    if (ret != EOK) {
+        PyErr_SetSssError(ret);
+        goto fail;
+    }
+
+    retval = Py_BuildValue("s", password);
+    if (retval == NULL) {
+        goto fail;
+    }
+
+fail:
+    talloc_zfree(tctx);
+    return retval;
+}
+#endif
+
+/*
+ * The sss.password destructor
+ */
+static void PySssPasswordObject_dealloc(PySssPasswordObject *self)
+{
+    self->ob_type->tp_free((PyObject*) self);
+}
+
+/*
+ * The sss.password constructor
+ */
+static PyObject *PySssPasswordObject_new(PyTypeObject *type,
+                                         PyObject *args,
+                                         PyObject *kwds)
+{
+    PySssPasswordObject *self;
+
+    self = (PySssPasswordObject *) type->tp_alloc(type, 0);
+    if (self == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    self->aes_256 = AES_256;
+
+    return (PyObject *) self;
+}
+
+/*
+ * sss.password object methods
+ */
+static PyMethodDef sss_password_methods[] = {
+    { "encrypt", (PyCFunction) py_sss_encrypt,
+      METH_VARARGS | METH_STATIC, py_sss_encrypt__doc__
+    },
+#if 0
+    { "decrypt", (PyCFunction) py_sss_decrypt,
+      METH_VARARGS | METH_STATIC, py_sss_decrypt__doc__
+    },
+#endif
+    {NULL, NULL, 0, NULL}        /* Sentinel */
+};
+
+/*
+ * sss.password object members
+ */
+static PyMemberDef sss_password_members[] = {
+    { discard_const_p(char, "AES_256"), T_INT,
+      offsetof(PySssPasswordObject, aes_256), RO, NULL},
+    {NULL, 0, 0, 0, NULL} /* Sentinel */
+};
+
+/*
+ * sss.password object properties
+ */
+static PyTypeObject pysss_password_type = {
+    PyObject_HEAD_INIT(NULL)
+    .tp_name = "sss.password",
+    .tp_basicsize = sizeof(PySssPasswordObject),
+    .tp_new = PySssPasswordObject_new,
+    .tp_dealloc = (destructor) PySssPasswordObject_dealloc,
+    .tp_methods = sss_password_methods,
+    .tp_members = sss_password_members,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    .tp_doc   = "SSS password obfuscation",
+};
+
+/* ==================== the sss module initialization =======================*/
 
 /*
  * Module methods
@@ -860,6 +1033,8 @@ initpysss(void)
 
     if (PyType_Ready(&pysss_local_type) < 0)
         return;
+    if (PyType_Ready(&pysss_password_type) < 0)
+        return;
 
     m = Py_InitModule(discard_const_p(char, "pysss"), module_methods);
     if (m == NULL)
@@ -867,5 +1042,7 @@ initpysss(void)
 
     Py_INCREF(&pysss_local_type);
     PyModule_AddObject(m, discard_const_p(char, "local"), (PyObject *)&pysss_local_type);
+    Py_INCREF(&pysss_password_type);
+    PyModule_AddObject(m, discard_const_p(char, "password"), (PyObject *)&pysss_password_type);
 }
 
