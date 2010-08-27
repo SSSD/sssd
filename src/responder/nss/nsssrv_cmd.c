@@ -35,18 +35,20 @@ struct nss_cmd_ctx {
     bool check_next;
     bool enum_cached;
 
+    int saved_dom_idx;
+    int saved_cur;
 };
 
 struct dom_ctx {
     struct sss_domain_info *domain;
     struct ldb_result *res;
-    int cur;
 };
 
 struct getent_ctx {
     struct dom_ctx *doms;
     int num;
-    int cur;
+    bool ready;
+    struct setent_req_list *reqs;
 };
 
 struct nss_dom_ctx {
@@ -171,6 +173,63 @@ static int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
 
     return EOK;
 }
+
+/***************************
+ *  Enumeration procedures *
+ ***************************/
+
+struct setent_req_list {
+    struct setent_req_list *prev;
+    struct setent_req_list *next;
+    struct getent_ctx *getent_ctx;
+
+    struct tevent_req *req;
+};
+
+static int
+setent_remove_ref(TALLOC_CTX *ctx);
+static errno_t
+setent_add_ref(TALLOC_CTX *memctx,
+               struct getent_ctx *getent_ctx,
+               struct tevent_req *req)
+{
+    struct setent_req_list *entry =
+            talloc_zero(memctx, struct setent_req_list);
+    if (!entry) {
+        return ENOMEM;
+    }
+
+    entry->req = req;
+    entry->getent_ctx = getent_ctx;
+    DLIST_ADD_END(getent_ctx->reqs, entry, struct setent_req_list *);
+
+    talloc_set_destructor((TALLOC_CTX *)entry, setent_remove_ref);
+    return EOK;
+}
+
+static int
+setent_remove_ref(TALLOC_CTX *ctx)
+{
+    struct setent_req_list *entry =
+            talloc_get_type(ctx, struct setent_req_list);
+    DLIST_REMOVE(entry->getent_ctx->reqs, entry);
+    return 0;
+}
+
+struct setent_ctx {
+    struct cli_ctx *client;
+    struct nss_ctx *nctx;
+    struct nss_dom_ctx *dctx;
+    struct getent_ctx *getent_ctx;
+};
+
+struct setent_step_ctx {
+    struct nss_ctx *nctx;
+    struct nss_dom_ctx *dctx;
+    struct getent_ctx *getent_ctx;
+    struct resp_ctx *rctx;
+    bool enum_cached;
+};
 
 /****************************************************************************
  * PASSWD db related functions
@@ -944,31 +1003,175 @@ done:
  *   the last returned user.
  */
 static int nss_cmd_getpwent_immediate(struct nss_cmd_ctx *cmdctx);
-
-static void nss_cmd_getpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                         const char *err_msg, void *ptr);
-
-static int nss_cmd_getpwent_search(struct nss_dom_ctx *dctx)
+struct tevent_req * nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
+                                          struct cli_ctx *client);
+static void nss_cmd_setpwent_done(struct tevent_req *req);
+static int nss_cmd_setpwent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct sss_domain_info *dom = dctx->domain;
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct tevent_req *req;
+    errno_t ret = EOK;
+
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
+
+    req = nss_cmd_setpwent_send(cmdctx, cctx);
+    if (!req) {
+        DEBUG(0, ("Fatal error calling nss_cmd_setpwent_send\n"));
+        ret = EIO;
+        goto done;
+    }
+    tevent_req_set_callback(req, nss_cmd_setpwent_done, cmdctx);
+
+done:
+    return nss_cmd_done(cmdctx, ret);
+}
+
+static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx);
+struct tevent_req *nss_cmd_setpwent_send(TALLOC_CTX *mem_ctx,
+                                         struct cli_ctx *client)
+{
+    errno_t ret;
+    struct nss_ctx *nctx;
+    struct tevent_req *req;
+    struct setent_ctx *state;
+    struct sss_domain_info *dom;
+    struct setent_step_ctx *step_ctx;
+    bool enum_cached = false;
+    time_t now = time(NULL);
+
+    DEBUG(4, ("Received setpwent request\n"));
+    nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+
+    /* Reset the read pointers */
+    client->pwent_dom_idx = 0;
+    client->pwent_cur = 0;
+
+    req = tevent_req_create(mem_ctx, &state, struct setent_ctx);
+    if (!req) {
+        DEBUG(0, ("Could not create tevent request for setpwent\n"));
+        return NULL;
+    }
+
+    state->nctx = nctx;
+    state->client = client;
+
+    /* do not query backends if we have a recent enumeration */
+    if (nctx->enum_cache_timeout) {
+        if (nctx->last_user_enum + nctx->enum_cache_timeout > now) {
+            enum_cached = true;
+        }
+    }
+
+    state->dctx = talloc_zero(state, struct nss_dom_ctx);
+    if (!state->dctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* check if enumeration is enabled in any domain */
+    for (dom = client->rctx->domains; dom; dom = dom->next) {
+        if (dom->enumerate != 0) break;
+    }
+    state->dctx->domain = dom;
+
+    if (state->dctx->domain == NULL) {
+        DEBUG(2, ("Enumeration disabled on all domains!\n"));
+        ret = ENOENT;
+        goto error;
+    }
+
+    state->dctx->check_provider =
+            NEED_CHECK_PROVIDER(state->dctx->domain->provider);
+
+    /* Is the result context already available */
+    if (state->nctx->pctx) {
+        if (state->nctx->pctx->ready) {
+            /* All of the necessary data is in place
+             * We can return now, getpwent requests will work at this point
+             */
+            tevent_req_done(req);
+            tevent_req_post(req, state->nctx->rctx->ev);
+        }
+        else {
+            /* Object is still being constructed
+             * Register for notification when it's
+             * ready.
+             */
+            ret = setent_add_ref(state->client, state->nctx->pctx, req);
+            if (ret != EOK) {
+                talloc_free(req);
+                return NULL;
+            }
+        }
+        return req;
+    }
+
+    /* Create a new result context
+     * We are creating it on the nss_ctx so that it doesn't
+     * go away if the original request does. We will delete
+     * it when the refcount goes to zero;
+     */
+    state->nctx->pctx = talloc_zero(nctx, struct getent_ctx);
+    if (!state->nctx->pctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+    state->getent_ctx = nctx->pctx;
+
+    /* Add a callback reference for ourselves */
+    setent_add_ref(state->client, state->nctx->pctx, req);
+
+    /* ok, start the searches */
+    step_ctx = talloc_zero(state->getent_ctx, struct setent_step_ctx);
+    if (!step_ctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Steal the dom_ctx onto the step_ctx so it doesn't go out of scope if
+     * this request is canceled while other requests are in-progress.
+     */
+    step_ctx->dctx = talloc_steal(step_ctx, state->dctx);
+    step_ctx->nctx = state->nctx;
+    step_ctx->getent_ctx = state->getent_ctx;
+    step_ctx->rctx = client->rctx;
+    step_ctx->enum_cached = enum_cached;
+
+    ret = nss_cmd_setpwent_step(step_ctx);
+    if (ret != EOK) goto error;
+
+    return req;
+
+ error:
+     tevent_req_error(req, ret);
+     tevent_req_post(req, client->rctx->ev);
+     return req;
+}
+
+static void nss_cmd_setpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                         const char *err_msg, void *ptr);
+static void setpwent_result_timeout(struct tevent_context *ev,
+                                    struct tevent_timer *te,
+                                    struct timeval current_time,
+                                    void *pvt);
+static errno_t nss_cmd_setpwent_step(struct setent_step_ctx *step_ctx)
+{
+    errno_t ret;
+    struct sss_domain_info *dom = step_ctx->dctx->domain;
+    struct resp_ctx *rctx = step_ctx->rctx;
+    struct nss_dom_ctx *dctx = step_ctx->dctx;
+    struct getent_ctx *pctx = step_ctx->getent_ctx;
+    struct nss_ctx *nctx = step_ctx->nctx;
     struct sysdb_ctx *sysdb;
     struct ldb_result *res;
-    struct getent_ctx *pctx;
-    struct nss_ctx *nctx;
+    struct setent_req_list *req;
+    struct timeval tv;
+    struct tevent_timer *te;
     int timeout;
-    int ret;
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-    pctx = nctx->pctx;
-    if (pctx == NULL) {
-        pctx = talloc_zero(nctx, struct getent_ctx);
-        if (!pctx) {
-            return ENOMEM;
-        }
-        nctx->pctx = pctx;
-    }
 
     while (dom) {
         while (dom && dom->enumerate == 0) {
@@ -980,7 +1183,7 @@ static int nss_cmd_getpwent_search(struct nss_dom_ctx *dctx)
         if (dom != dctx->domain) {
             /* make sure we reset the check_provider flag when we check
              * a new domain */
-            if (cmdctx->enum_cached) {
+            if (step_ctx->enum_cached) {
                 dctx->check_provider = false;
             } else {
                 dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
@@ -990,9 +1193,9 @@ static int nss_cmd_getpwent_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(4, ("Requesting info for domain [%s]\n", dom->name));
+        DEBUG(6, ("Requesting info for domain [%s]\n", dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
+        ret = sysdb_get_ctx_from_list(rctx->db_list, dom, &sysdb);
         if (ret != EOK) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
@@ -1001,10 +1204,12 @@ static int nss_cmd_getpwent_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
+            /* Only do this once per provider */
             dctx->check_provider = false;
             timeout = SSS_CLI_SOCKET_TIMEOUT;
-            ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                       nss_cmd_getpwent_dp_callback, dctx,
+
+            ret = sss_dp_send_acct_req(rctx, step_ctx,
+                                       nss_cmd_setpwent_dp_callback, step_ctx,
                                        timeout, dom->name, true,
                                        SSS_DP_USER, NULL, 0);
             if (ret == EOK) {
@@ -1030,7 +1235,7 @@ static int nss_cmd_getpwent_search(struct nss_dom_ctx *dctx)
             continue;
         }
 
-        pctx->doms = talloc_realloc(pctx, pctx->doms,
+        nctx->pctx->doms = talloc_realloc(pctx, pctx->doms,
                                     struct dom_ctx, pctx->num +1);
         if (!pctx->doms) {
             talloc_free(pctx);
@@ -1038,41 +1243,65 @@ static int nss_cmd_getpwent_search(struct nss_dom_ctx *dctx)
             return ENOMEM;
         }
 
-        pctx->doms[pctx->num].domain = dctx->domain;
-        pctx->doms[pctx->num].res = talloc_steal(pctx->doms, res);
-        pctx->doms[pctx->num].cur = 0;
+        nctx->pctx->doms[pctx->num].domain = dctx->domain;
+        nctx->pctx->doms[pctx->num].res = talloc_steal(pctx->doms, res);
 
-        pctx->num++;
+        nctx->pctx->num++;
 
         /* do not reply until all domain searches are done */
         dom = dom->next;
     }
 
-    /* set cache mark */
-    nctx->last_user_enum = time(NULL);
+    /* We've finished all our lookups
+     * The result object is now safe to read.
+     */
+    nctx->pctx->ready = true;
 
-    if (cmdctx->immediate) {
-        /* this was a getpwent call w/o setpwent,
-         * return immediately one result */
-        return nss_cmd_getpwent_immediate(cmdctx);
+    /* Set up a lifetime timer for this result object
+     * We don't want this result object to outlive the
+     * enum cache refresh timeout
+     */
+    tv = tevent_timeval_current_ofs(nctx->enum_cache_timeout, 0);
+    te = tevent_add_timer(rctx->ev, nctx->pctx, tv,
+                          setpwent_result_timeout, nctx);
+    if (!te) {
+        DEBUG(0, ("Could not set up life timer for setpwent result object. "
+                  "Entries may become stale.\n"));
     }
 
-    /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret == EOK) {
-        sss_cmd_done(cctx, cmdctx);
+    /* Notify the waiting clients */
+    while (nctx->pctx->reqs) {
+        tevent_req_done(nctx->pctx->reqs->req);
+        /* Freeing each entry in the list removes it from the dlist */
+        req = nctx->pctx->reqs;
+        nctx->pctx->reqs = nctx->pctx->reqs->next;
+        talloc_free(req);
     }
-    return ret;
+    return EOK;
 }
 
-static void nss_cmd_getpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
+static void setpwent_result_timeout(struct tevent_context *ev,
+                                    struct tevent_timer *te,
+                                    struct timeval current_time,
+                                    void *pvt)
+{
+    struct nss_ctx *nctx = talloc_get_type(pvt, struct nss_ctx);
+
+    DEBUG(1, ("setpwent result object has expired. Cleaning up.\n"));
+
+    /* Free the passwd enumeration context.
+     * If additional getpwent requests come in, they will invoke
+     * an implicit setpwent and refresh the result object.
+     */
+    talloc_zfree(nctx->pctx);
+}
+
+static void nss_cmd_setpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
                                          const char *err_msg, void *ptr)
 {
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct setent_step_ctx *step_ctx =
+            talloc_get_type(ptr, struct setent_step_ctx);
+    struct getent_ctx *pctx = step_ctx->nctx->pctx;
     int ret;
 
     if (err_maj) {
@@ -1082,128 +1311,86 @@ static void nss_cmd_getpwent_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = nss_cmd_getpwent_search(dctx);
-
+    ret = nss_cmd_setpwent_step(step_ctx);
     if (ret) {
-        NSS_CMD_FATAL_ERROR(cctx);
+        /* Notify any waiting processes of failure */
+        while(step_ctx->nctx->pctx->reqs) {
+            tevent_req_error(pctx->reqs->req, ret);
+            /* Freeing each entry in the list removes it from the dlist */
+            talloc_free(pctx->reqs);
+        }
     }
 }
 
-static int nss_cmd_setpwent_ext(struct cli_ctx *cctx, bool immediate)
+static errno_t nss_cmd_setpwent_recv(struct tevent_req *req)
 {
-    struct sss_domain_info *dom;
-    struct nss_cmd_ctx *cmdctx;
-    struct nss_dom_ctx *dctx;
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+static void nss_cmd_setpwent_done(struct tevent_req *req)
+{
+    errno_t ret;
+    struct nss_cmd_ctx *cmdctx =
+            tevent_req_callback_data(req, struct nss_cmd_ctx);
+
+    ret = nss_cmd_setpwent_recv(req);
+    talloc_zfree(req);
+    if (ret == EOK || ret == ENOENT) {
+        /* Either we succeeded or no domains were eligible */
+        ret = sss_packet_new(cmdctx->cctx->creq, 0,
+                             sss_packet_get_cmd(cmdctx->cctx->creq->in),
+                             &cmdctx->cctx->creq->out);
+        if (ret == EOK) {
+            sss_cmd_done(cmdctx->cctx, cmdctx);
+            return;
+        }
+    }
+
+    /* Something bad happened */
+    nss_cmd_done(cmdctx, ret);
+}
+
+static void nss_cmd_implicit_setpwent_done(struct tevent_req *req);
+static int nss_cmd_getpwent(struct cli_ctx *cctx)
+{
     struct nss_ctx *nctx;
-    time_t now = time(NULL);
-    int ret;
+    struct nss_cmd_ctx *cmdctx;
+    struct tevent_req *req;
 
-    DEBUG(4, ("Requesting info for all users\n"));
+    DEBUG(4, ("Requesting info for all accounts\n"));
 
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-    talloc_free(nctx->pctx);
-    nctx->pctx = NULL;
-
-    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    cmdctx = talloc(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
         return ENOMEM;
     }
     cmdctx->cctx = cctx;
-    cmdctx->immediate = immediate;
 
-    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
-    if (!dctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-    dctx->cmdctx = cmdctx;
-
-    /* do not query backends if we have a recent enumeration */
-    if (nctx->enum_cache_timeout) {
-        if (nctx->last_user_enum + nctx->enum_cache_timeout > now) {
-            cmdctx->enum_cached = true;
-        }
-    }
-
-    /* check if enumeration is enabled in any domain */
-    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-        if (dom->enumerate != 0) break;
-    }
-    dctx->domain = dom;
-
-    if (dctx->domain == NULL) {
-        DEBUG(2, ("Enumeration disabled on all domains!\n"));
-        if (cmdctx->immediate) {
-            ret = ENOENT;
-        } else {
-            ret = sss_packet_new(cctx->creq, 0,
-                                 sss_packet_get_cmd(cctx->creq->in),
-                                 &cctx->creq->out);
-            if (ret == EOK) {
-                sss_cmd_done(cctx, cmdctx);
-            }
-        }
-        goto done;
-    }
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    /* ok, start the searches */
-    ret = nss_cmd_getpwent_search(dctx);
-done:
-    return nss_cmd_done(cmdctx, ret);
-}
-
-static int nss_cmd_setpwent(struct cli_ctx *cctx)
-{
-    return nss_cmd_setpwent_ext(cctx, false);
-}
-
-
-static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
-{
-    struct nss_ctx *nctx;
-    struct getent_ctx *pctx;
-    struct ldb_message **msgs = NULL;
-    struct dom_ctx *pdom = NULL;
-    int n = 0;
-    int ret = ENOENT;
+    /* Save the current index and cursor locations
+     * If we end up calling setpwent implicitly, because the response object
+     * expired and has to be recreated, we want to resume from the same
+     * location.
+     */
+    cmdctx->saved_dom_idx = cctx->pwent_dom_idx;
+    cmdctx->saved_cur = cctx->pwent_cur;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-    if (!nctx->pctx) goto none;
-
-    pctx = nctx->pctx;
-
-    while (ret == ENOENT) {
-        if (pctx->cur >= pctx->num) break;
-
-        pdom = &pctx->doms[pctx->cur];
-
-        n = pdom->res->count - pdom->cur;
-        if (n == 0 && (pctx->cur+1 < pctx->num)) {
-            pctx->cur++;
-            pdom = &pctx->doms[pctx->cur];
-            n = pdom->res->count - pdom->cur;
+    if(!nctx->pctx || !nctx->pctx->ready) {
+        /* Make sure we invoke setpwent if it hasn't been run or is still
+         * processing from another client
+         */
+        req = nss_cmd_setpwent_send(cctx, cctx);
+        if (!req) {
+            return EIO;
         }
-
-        if (!n) break;
-
-        if (n > num) n = num;
-
-        msgs = &(pdom->res->msgs[pdom->cur]);
-
-        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, &n);
-
-        pdom->cur += n;
+        tevent_req_set_callback(req, nss_cmd_implicit_setpwent_done, cmdctx);
+        return EOK;
     }
 
-none:
-    if (ret == ENOENT) {
-        ret = fill_empty(cctx->creq->out);
-    }
-    return ret;
+    return nss_cmd_getpwent_immediate(cmdctx);
 }
 
+static int nss_cmd_retpwent(struct cli_ctx *cctx, int num);
 static int nss_cmd_getpwent_immediate(struct nss_cmd_ctx *cmdctx)
 {
     struct cli_ctx *cctx = cmdctx->cctx;
@@ -1235,27 +1422,79 @@ static int nss_cmd_getpwent_immediate(struct nss_cmd_ctx *cmdctx)
     return EOK;
 }
 
-static int nss_cmd_getpwent(struct cli_ctx *cctx)
+static int nss_cmd_retpwent(struct cli_ctx *cctx, int num)
 {
     struct nss_ctx *nctx;
-    struct nss_cmd_ctx *cmdctx;
-
-    DEBUG(4, ("Requesting info for all accounts\n"));
+    struct getent_ctx *pctx;
+    struct ldb_message **msgs = NULL;
+    struct dom_ctx *pdom = NULL;
+    int n = 0;
+    int ret = ENOENT;
 
     nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    if (!nctx->pctx) goto none;
 
-    /* see if we need to trigger an implicit setpwent() */
-    if (nctx->pctx == NULL) {
-        return nss_cmd_setpwent_ext(cctx, true);
+    pctx = nctx->pctx;
+
+    while (ret == ENOENT) {
+        if (cctx->pwent_dom_idx >= pctx->num) break;
+
+        pdom = &pctx->doms[cctx->pwent_dom_idx];
+
+        n = pdom->res->count - cctx->pwent_cur;
+        if (n <= 0 && (cctx->pwent_dom_idx+1 < pctx->num)) {
+            cctx->pwent_dom_idx++;
+            pdom = &pctx->doms[cctx->pwent_dom_idx];
+            n = pdom->res->count - cctx->pwent_cur;
+        }
+
+        if (!n) break;
+
+        if (n > num) n = num;
+
+        msgs = &(pdom->res->msgs[cctx->pwent_cur]);
+
+        ret = fill_pwent(cctx->creq->out, pdom->domain, nctx, true, msgs, &n);
+
+        cctx->pwent_cur += n;
     }
 
-    cmdctx = talloc(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
+none:
+    if (ret == ENOENT) {
+        ret = fill_empty(cctx->creq->out);
     }
-    cmdctx->cctx = cctx;
+    return ret;
+}
 
-    return nss_cmd_getpwent_immediate(cmdctx);
+static void nss_cmd_implicit_setpwent_done(struct tevent_req *req)
+{
+    errno_t ret;
+    struct nss_cmd_ctx *cmdctx =
+            tevent_req_callback_data(req, struct nss_cmd_ctx);
+
+    ret = nss_cmd_setpwent_recv(req);
+    talloc_zfree(req);
+
+    /* ENOENT is acceptable, as it just means that there were no entries
+     * to be returned. This will be handled gracefully in nss_cmd_retpwent
+     * later.
+     */
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(0, ("Implicit setpwent failed with unexpected error [%d][%s]\n",
+                  ret, strerror(ret)));
+        NSS_CMD_FATAL_ERROR(cmdctx);
+    }
+
+    /* Restore the saved index and cursor locations */
+    cmdctx->cctx->pwent_dom_idx = cmdctx->saved_dom_idx;
+    cmdctx->cctx->pwent_cur = cmdctx->saved_cur;
+
+    ret = nss_cmd_getpwent_immediate(cmdctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Immediate retrieval failed with unexpected error "
+                  "[%d][%s]\n", ret, strerror(ret)));
+        NSS_CMD_FATAL_ERROR(cmdctx);
+    }
 }
 
 static int nss_cmd_endpwent(struct cli_ctx *cctx)
@@ -1277,9 +1516,9 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
     }
     if (nctx->pctx == NULL) goto done;
 
-    /* free results and reset */
-    talloc_free(nctx->pctx);
-    nctx->pctx = NULL;
+    /* Reset the indices so that subsequent requests start at zero */
+    cctx->pwent_dom_idx = 0;
+    cctx->pwent_cur = 0;
 
 done:
     sss_cmd_done(cctx, NULL);
@@ -2014,32 +2253,175 @@ done:
  *   even if the data is still being fetched
  * - make getgrent() wait on the mutex
  */
-static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx);
-
-static void nss_cmd_getgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
-                                         const char *err_msg, void *ptr);
-
-static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
+struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
+                                         struct cli_ctx *client);
+static void nss_cmd_setgrent_done(struct tevent_req *req);
+static int nss_cmd_setgrent(struct cli_ctx *cctx)
 {
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct sss_domain_info *dom = dctx->domain;
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct nss_cmd_ctx *cmdctx;
+    struct tevent_req *req;
+    errno_t ret = EOK;
+
+    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
+    if (!cmdctx) {
+        return ENOMEM;
+    }
+    cmdctx->cctx = cctx;
+
+    req = nss_cmd_setgrent_send(cmdctx, cctx);
+    if (!req) {
+        DEBUG(0, ("Fatal error calling nss_cmd_setgrent_send\n"));
+        ret = EIO;
+        goto done;
+    }
+    tevent_req_set_callback(req, nss_cmd_setgrent_done, cmdctx);
+
+done:
+    return nss_cmd_done(cmdctx, ret);
+}
+
+static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx);
+struct tevent_req *nss_cmd_setgrent_send(TALLOC_CTX *mem_ctx,
+                                         struct cli_ctx *client)
+{
+    errno_t ret;
+    struct nss_ctx *nctx;
+    struct tevent_req *req;
+    struct setent_ctx *state;
+    struct sss_domain_info *dom;
+    struct setent_step_ctx *step_ctx;
+    bool enum_cached = false;
+    time_t now = time(NULL);
+
+    DEBUG(4, ("Received setgrent request\n"));
+    nctx = talloc_get_type(client->rctx->pvt_ctx, struct nss_ctx);
+
+    /* Reset the read pointers */
+    client->grent_dom_idx = 0;
+    client->grent_cur = 0;
+
+    req = tevent_req_create(mem_ctx, &state, struct setent_ctx);
+    if (!req) {
+        DEBUG(0, ("Could not create tevent request for setgrent\n"));
+        return NULL;
+    }
+
+    state->nctx = nctx;
+    state->client = client;
+
+    /* do not query backends if we have a recent enumeration */
+    if (nctx->enum_cache_timeout) {
+        if (nctx->last_user_enum + nctx->enum_cache_timeout > now) {
+            enum_cached = true;
+        }
+    }
+
+    state->dctx = talloc_zero(state, struct nss_dom_ctx);
+    if (!state->dctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* check if enumeration is enabled in any domain */
+    for (dom = client->rctx->domains; dom; dom = dom->next) {
+        if (dom->enumerate != 0) break;
+    }
+    state->dctx->domain = dom;
+
+    if (state->dctx->domain == NULL) {
+        DEBUG(2, ("Enumeration disabled on all domains!\n"));
+        ret = ENOENT;
+        goto error;
+    }
+
+    state->dctx->check_provider =
+            NEED_CHECK_PROVIDER(state->dctx->domain->provider);
+
+    /* Is the result context already available */
+    if (state->nctx->gctx) {
+        if (state->nctx->gctx->ready) {
+            /* All of the necessary data is in place
+             * We can return now, getgrent requests will work at this point
+             */
+            tevent_req_done(req);
+            tevent_req_post(req, state->nctx->rctx->ev);
+        }
+        else {
+            /* Object is still being constructed
+             * Register for notification when it's
+             * ready.
+             */
+            ret = setent_add_ref(state->client, state->nctx->gctx, req);
+            if (ret != EOK) {
+                talloc_free(req);
+                return NULL;
+            }
+        }
+        return req;
+    }
+
+    /* Create a new result context
+     * We are creating it on the nss_ctx so that it doesn't
+     * go away if the original request does. We will delete
+     * it when the refcount goes to zero;
+     */
+    state->nctx->gctx = talloc_zero(nctx, struct getent_ctx);
+    if (!state->nctx->gctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+    state->getent_ctx = nctx->gctx;
+
+    /* Add a callback reference for ourselves */
+    setent_add_ref(state->client, state->nctx->gctx, req);
+
+    /* ok, start the searches */
+    step_ctx = talloc_zero(state->getent_ctx, struct setent_step_ctx);
+    if (!step_ctx) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Steal the dom_ctx onto the step_ctx so it doesn't go out of scope if
+     * this request is canceled while other requests are in-progress.
+     */
+    step_ctx->dctx = talloc_steal(step_ctx, state->dctx);
+    step_ctx->nctx = state->nctx;
+    step_ctx->getent_ctx = state->getent_ctx;
+    step_ctx->rctx = client->rctx;
+    step_ctx->enum_cached = enum_cached;
+
+    ret = nss_cmd_setgrent_step(step_ctx);
+    if (ret != EOK) goto error;
+
+    return req;
+
+ error:
+     tevent_req_error(req, ret);
+     tevent_req_post(req, client->rctx->ev);
+     return req;
+}
+
+static void nss_cmd_setgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
+                                         const char *err_msg, void *ptr);
+static void setgrent_result_timeout(struct tevent_context *ev,
+                                    struct tevent_timer *te,
+                                    struct timeval current_time,
+                                    void *pvt);
+static errno_t nss_cmd_setgrent_step(struct setent_step_ctx *step_ctx)
+{
+    errno_t ret;
+    struct sss_domain_info *dom = step_ctx->dctx->domain;
+    struct resp_ctx *rctx = step_ctx->rctx;
+    struct nss_dom_ctx *dctx = step_ctx->dctx;
+    struct getent_ctx *gctx = step_ctx->getent_ctx;
+    struct nss_ctx *nctx = step_ctx->nctx;
     struct sysdb_ctx *sysdb;
     struct ldb_result *res;
-    struct getent_ctx *gctx;
-    struct nss_ctx *nctx;
+    struct setent_req_list *req;
+    struct timeval tv;
+    struct tevent_timer *te;
     int timeout;
-    int ret;
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-    gctx = nctx->gctx;
-    if (gctx == NULL) {
-        gctx = talloc_zero(nctx, struct getent_ctx);
-        if (!gctx) {
-            return ENOMEM;
-        }
-        nctx->gctx = gctx;
-    }
 
     while (dom) {
         while (dom && dom->enumerate == 0) {
@@ -2051,7 +2433,7 @@ static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
         if (dom != dctx->domain) {
             /* make sure we reset the check_provider flag when we check
              * a new domain */
-            if (cmdctx->enum_cached) {
+            if (step_ctx->enum_cached) {
                 dctx->check_provider = false;
             } else {
                 dctx->check_provider = NEED_CHECK_PROVIDER(dom->provider);
@@ -2061,9 +2443,9 @@ static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
         /* make sure to update the dctx if we changed domain */
         dctx->domain = dom;
 
-        DEBUG(4, ("Requesting info for domain [%s]\n", dom->name));
+        DEBUG(6, ("Requesting info for domain [%s]\n", dom->name));
 
-        ret = sysdb_get_ctx_from_list(cctx->rctx->db_list, dom, &sysdb);
+        ret = sysdb_get_ctx_from_list(rctx->db_list, dom, &sysdb);
         if (ret != EOK) {
             DEBUG(0, ("Fatal: Sysdb CTX not found for this domain!\n"));
             return EIO;
@@ -2072,10 +2454,12 @@ static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
         /* if this is a caching provider (or if we haven't checked the cache
          * yet) then verify that the cache is uptodate */
         if (dctx->check_provider) {
+            /* Only do this once per provider */
             dctx->check_provider = false;
             timeout = SSS_CLI_SOCKET_TIMEOUT;
-            ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                       nss_cmd_getgrent_dp_callback, dctx,
+
+            ret = sss_dp_send_acct_req(rctx, step_ctx,
+                                       nss_cmd_setgrent_dp_callback, step_ctx,
                                        timeout, dom->name, true,
                                        SSS_DP_GROUP, NULL, 0);
             if (ret == EOK) {
@@ -2101,8 +2485,7 @@ static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
             continue;
         }
 
-
-        gctx->doms = talloc_realloc(gctx, gctx->doms,
+        nctx->gctx->doms = talloc_realloc(gctx, gctx->doms,
                                     struct dom_ctx, gctx->num +1);
         if (!gctx->doms) {
             talloc_free(gctx);
@@ -2110,41 +2493,65 @@ static int nss_cmd_getgrent_search(struct nss_dom_ctx *dctx)
             return ENOMEM;
         }
 
-        gctx->doms[gctx->num].domain = dctx->domain;
-        gctx->doms[gctx->num].res = talloc_steal(gctx->doms, res);
-        gctx->doms[gctx->num].cur = 0;
+        nctx->gctx->doms[gctx->num].domain = dctx->domain;
+        nctx->gctx->doms[gctx->num].res = talloc_steal(gctx->doms, res);
 
-        gctx->num++;
+        nctx->gctx->num++;
 
         /* do not reply until all domain searches are done */
         dom = dom->next;
     }
 
-    /* set cache mark */
-    nctx->last_group_enum = time(NULL);
+    /* We've finished all our lookups
+     * The result object is now safe to read.
+     */
+    nctx->gctx->ready = true;
 
-    if (cmdctx->immediate) {
-        /* this was a getgrent call w/o setgrent,
-         * return immediately one result */
-        return nss_cmd_getgrent_immediate(cmdctx);
+    /* Set up a lifetime timer for this result object
+     * We don't want this result object to outlive the
+     * enum cache refresh timeout
+     */
+    tv = tevent_timeval_current_ofs(nctx->enum_cache_timeout, 0);
+    te = tevent_add_timer(rctx->ev, nctx->gctx, tv,
+                          setgrent_result_timeout, nctx);
+    if (!te) {
+        DEBUG(0, ("Could not set up life timer for setgrent result object. "
+                  "Entries may become stale.\n"));
     }
 
-    /* create response packet */
-    ret = sss_packet_new(cctx->creq, 0,
-                         sss_packet_get_cmd(cctx->creq->in),
-                         &cctx->creq->out);
-    if (ret == EOK) {
-        sss_cmd_done(cctx, cmdctx);
+    /* Notify the waiting clients */
+    while (nctx->gctx->reqs) {
+        tevent_req_done(nctx->gctx->reqs->req);
+        /* Freeing each entry in the list removes it from the dlist */
+        req = nctx->gctx->reqs;
+        nctx->gctx->reqs = nctx->gctx->reqs->next;
+        talloc_free(req);
     }
-    return ret;
+    return EOK;
 }
 
-static void nss_cmd_getgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
+static void setgrent_result_timeout(struct tevent_context *ev,
+                                    struct tevent_timer *te,
+                                    struct timeval current_time,
+                                    void *pvt)
+{
+    struct nss_ctx *nctx = talloc_get_type(pvt, struct nss_ctx);
+
+    DEBUG(1, ("setgrent result object has expired. Cleaning up.\n"));
+
+    /* Free the group enumeration context.
+     * If additional getgrent requests come in, they will invoke
+     * an implicit setgrent and refresh the result object.
+     */
+    talloc_zfree(nctx->gctx);
+}
+
+static void nss_cmd_setgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
                                          const char *err_msg, void *ptr)
 {
-    struct nss_dom_ctx *dctx = talloc_get_type(ptr, struct nss_dom_ctx);
-    struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
-    struct cli_ctx *cctx = cmdctx->cctx;
+    struct setent_step_ctx *step_ctx =
+            talloc_get_type(ptr, struct setent_step_ctx);
+    struct getent_ctx *gctx = step_ctx->nctx->gctx;
     int ret;
 
     if (err_maj) {
@@ -2154,81 +2561,44 @@ static void nss_cmd_getgrent_dp_callback(uint16_t err_maj, uint32_t err_min,
                   (unsigned int)err_maj, (unsigned int)err_min, err_msg));
     }
 
-    ret = nss_cmd_getgrent_search(dctx);
-
+    ret = nss_cmd_setgrent_step(step_ctx);
     if (ret) {
-        NSS_CMD_FATAL_ERROR(cctx);
+        /* Notify any waiting processes of failure */
+        while(step_ctx->nctx->gctx->reqs) {
+            tevent_req_error(gctx->reqs->req, ret);
+            /* Freeing each entry in the list removes it from the dlist */
+            talloc_free(gctx->reqs);
+        }
     }
 }
 
-static int nss_cmd_setgrent_ext(struct cli_ctx *cctx, bool immediate)
+static errno_t nss_cmd_setgrent_recv(struct tevent_req *req)
 {
-    struct sss_domain_info *dom;
-    struct nss_cmd_ctx *cmdctx;
-    struct nss_dom_ctx *dctx;
-    struct nss_ctx *nctx;
-    time_t now = time(NULL);
-    int ret;
-
-    DEBUG(4, ("Requesting info for all groups\n"));
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-    talloc_free(nctx->gctx);
-    nctx->gctx = NULL;
-
-    cmdctx = talloc_zero(cctx, struct nss_cmd_ctx);
-    if (!cmdctx) {
-        return ENOMEM;
-    }
-    cmdctx->cctx = cctx;
-    cmdctx->immediate = immediate;
-
-    dctx = talloc_zero(cmdctx, struct nss_dom_ctx);
-    if (!dctx) {
-        ret = ENOMEM;
-        goto done;
-    }
-    dctx->cmdctx = cmdctx;
-
-    /* do not query backends if we have a recent enumeration */
-    if (nctx->enum_cache_timeout) {
-        if (nctx->last_group_enum + nctx->enum_cache_timeout > now) {
-            cmdctx->enum_cached = true;
-        }
-    }
-
-    /* check if enumeration is enabled in any domain */
-    for (dom = cctx->rctx->domains; dom; dom = dom->next) {
-        if (dom->enumerate != 0) break;
-    }
-    dctx->domain = dom;
-
-    if (dctx->domain == NULL) {
-        DEBUG(2, ("Enumeration disabled on all domains!\n"));
-        if (cmdctx->immediate) {
-            ret = ENOENT;
-        } else {
-            ret = sss_packet_new(cctx->creq, 0,
-                                 sss_packet_get_cmd(cctx->creq->in),
-                                 &cctx->creq->out);
-            if (ret == EOK) {
-                sss_cmd_done(cctx, cmdctx);
-            }
-        }
-        goto done;
-    }
-
-    dctx->check_provider = NEED_CHECK_PROVIDER(dctx->domain->provider);
-
-    /* ok, start the searches */
-    ret = nss_cmd_getgrent_search(dctx);
-done:
-    return nss_cmd_done(cmdctx, ret);
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
 }
 
-static int nss_cmd_setgrent(struct cli_ctx *cctx)
+static void nss_cmd_setgrent_done(struct tevent_req *req)
 {
-    return nss_cmd_setgrent_ext(cctx, false);
+    errno_t ret;
+    struct nss_cmd_ctx *cmdctx =
+            tevent_req_callback_data(req, struct nss_cmd_ctx);
+
+    ret = nss_cmd_setgrent_recv(req);
+    talloc_zfree(req);
+    if (ret == EOK || ret == ENOENT) {
+        /* Either we succeeded or no domains were eligible */
+        ret = sss_packet_new(cmdctx->cctx->creq, 0,
+                             sss_packet_get_cmd(cmdctx->cctx->creq->in),
+                             &cmdctx->cctx->creq->out);
+        if (ret == EOK) {
+            sss_cmd_done(cmdctx->cctx, cmdctx);
+            return;
+        }
+    }
+
+    /* Something bad happened */
+    nss_cmd_done(cmdctx, ret);
 }
 
 static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
@@ -2246,28 +2616,28 @@ static int nss_cmd_retgrent(struct cli_ctx *cctx, int num)
     gctx = nctx->gctx;
 
     while (ret == ENOENT) {
-        if (gctx->cur >= gctx->num) break;
+        if (cctx->grent_dom_idx >= gctx->num) break;
 
-        gdom = &gctx->doms[gctx->cur];
+        gdom = &gctx->doms[cctx->grent_dom_idx];
 
-        n = gdom->res->count - gdom->cur;
-        if (n == 0 && (gctx->cur+1 < gctx->num)) {
-            gctx->cur++;
-            gdom = &gctx->doms[gctx->cur];
-            n = gdom->res->count - gdom->cur;
+        n = gdom->res->count - cctx->grent_cur;
+        if (n <= 0 && (cctx->grent_cur+1 < gctx->num)) {
+            cctx->grent_dom_idx++;
+            gdom = &gctx->doms[cctx->grent_dom_idx];
+            n = gdom->res->count - cctx->grent_cur;
         }
 
         if (!n) break;
 
         if (n > num) n = num;
 
-        msgs = &(gdom->res->msgs[gdom->cur]);
+        msgs = &(gdom->res->msgs[cctx->grent_cur]);
 
         ret = fill_grent(cctx->creq->out,
                          gdom->domain,
                          nctx, true, msgs, &n);
 
-        gdom->cur += n;
+        cctx->grent_cur += n;
     }
 
 none:
@@ -2308,19 +2678,14 @@ static int nss_cmd_getgrent_immediate(struct nss_cmd_ctx *cmdctx)
     return EOK;
 }
 
+static void nss_cmd_implicit_setgrent_done(struct tevent_req *req);
 static int nss_cmd_getgrent(struct cli_ctx *cctx)
 {
     struct nss_ctx *nctx;
     struct nss_cmd_ctx *cmdctx;
+    struct tevent_req *req;
 
     DEBUG(4, ("Requesting info for all groups\n"));
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
-
-    /* see if we need to trigger an implicit setpwent() */
-    if (nctx->gctx == NULL) {
-        return nss_cmd_setgrent_ext(cctx, true);
-    }
 
     cmdctx = talloc(cctx, struct nss_cmd_ctx);
     if (!cmdctx) {
@@ -2328,7 +2693,60 @@ static int nss_cmd_getgrent(struct cli_ctx *cctx)
     }
     cmdctx->cctx = cctx;
 
+    /* Save the current index and cursor locations
+     * If we end up calling setgrent implicitly, because the response object
+     * expired and has to be recreated, we want to resume from the same
+     * location.
+     */
+    cmdctx->saved_dom_idx = cctx->grent_dom_idx;
+    cmdctx->saved_cur = cctx->grent_cur;
+
+    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
+    if(!nctx->gctx || !nctx->gctx->ready) {
+        /* Make sure we invoke setgrent if it hasn't been run or is still
+         * processing from another client
+         */
+        req = nss_cmd_setgrent_send(cctx, cctx);
+        if (!req) {
+            return EIO;
+        }
+        tevent_req_set_callback(req, nss_cmd_implicit_setgrent_done, cmdctx);
+        return EOK;
+    }
+
     return nss_cmd_getgrent_immediate(cmdctx);
+}
+
+static errno_t nss_cmd_setgrent_recv(struct tevent_req *req);
+static void nss_cmd_implicit_setgrent_done(struct tevent_req *req)
+{
+    errno_t ret;
+    struct nss_cmd_ctx *cmdctx =
+            tevent_req_callback_data(req, struct nss_cmd_ctx);
+
+    ret = nss_cmd_setgrent_recv(req);
+    talloc_zfree(req);
+
+    /* ENOENT is acceptable, as it just means that there were no entries
+     * to be returned. This will be handled gracefully in nss_cmd_retpwent
+     * later.
+     */
+    if (ret != EOK && ret != ENOENT) {
+        DEBUG(0, ("Implicit setgrent failed with unexpected error [%d][%s]\n",
+                  ret, strerror(ret)));
+        NSS_CMD_FATAL_ERROR(cmdctx);
+    }
+
+    /* Restore the saved index and cursor locations */
+    cmdctx->cctx->grent_dom_idx = cmdctx->saved_dom_idx;
+    cmdctx->cctx->grent_cur = cmdctx->saved_cur;
+
+    ret = nss_cmd_getgrent_immediate(cmdctx);
+    if (ret != EOK) {
+        DEBUG(0, ("Immediate retrieval failed with unexpected error "
+                  "[%d][%s]\n", ret, strerror(ret)));
+        NSS_CMD_FATAL_ERROR(cmdctx);
+    }
 }
 
 static int nss_cmd_endgrent(struct cli_ctx *cctx)
@@ -2350,9 +2768,9 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
     }
     if (nctx->gctx == NULL) goto done;
 
-    /* free results and reset */
-    talloc_free(nctx->gctx);
-    nctx->gctx = NULL;
+    /* Reset the indices so that subsequent requests start at zero */
+    cctx->grent_dom_idx = 0;
+    cctx->grent_cur = 0;
 
 done:
     sss_cmd_done(cctx, NULL);
@@ -2674,4 +3092,3 @@ int nss_cmd_execute(struct cli_ctx *cctx)
 
     return EINVAL;
 }
-

@@ -92,6 +92,11 @@ struct resp_ctx {
     void *pvt_ctx;
 };
 
+/* Needed for the NSS responder */
+struct getent_ref_tracker {
+    void *pvt;
+};
+
 struct cli_ctx {
     struct tevent_context *ev;
     struct resp_ctx *rctx;
@@ -104,6 +109,12 @@ struct cli_ctx {
     int32_t client_euid;
     int32_t client_egid;
     int32_t client_pid;
+
+    int pwent_dom_idx;
+    int pwent_cur;
+
+    int grent_dom_idx;
+    int grent_cur;
 };
 
 struct sss_cmd_table {
