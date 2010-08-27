@@ -272,6 +272,7 @@ PYTHON_BINDINGS_LIBS = \
     $(LDB_LIBS) \
     $(DBUS_LIBS) \
     $(PCRE_LIBS) \
+    $(DHASH_LIBS) \
     $(SSS_CRYPT_LIBS) \
     $(OPENLDAP_LIBS) \
     $(TDB_LIBS) \
@@ -292,9 +293,11 @@ TOOLS_LIBS = \
     libsss_crypt.la
 
 if BUILD_SELINUX
+    PYTHON_BINDINGS_LIBS += $(SELINUX_LIBS)
     TOOLS_LIBS += $(SELINUX_LIBS)
 endif
 if BUILD_SEMANAGE
+    PYTHON_BINDINGS_LIBS += $(SEMANAGE_LIBS)
     TOOLS_LIBS += $(SEMANAGE_LIBS)
 endif
 
