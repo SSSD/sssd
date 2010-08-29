@@ -120,7 +120,16 @@
                     <listitem>
                         <para>
                             The type of the authentication token of the
-                            default bind DN. The only currently supported value is "password".
+                            default bind DN.
+                        </para>
+                        <para>
+                            The two mechanisms currently supported are:
+                        </para>
+                        <para>
+                            password
+                        </para>
+                        <para>
+                            obfuscated_password
                         </para>
                     </listitem>
                 </varlistentry>

@@ -782,7 +782,8 @@ libsss_ldap_la_CFLAGS = \
 libsss_ldap_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
-    $(KRB5_LIBS)
+    $(KRB5_LIBS) \
+    libsss_crypt.la
 libsss_ldap_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module
@@ -871,7 +872,8 @@ libsss_ipa_la_LIBADD = \
     $(OPENLDAP_LIBS) \
     $(DHASH_LIBS) \
     $(KEYUTILS_LIBS) \
-    $(KRB5_LIBS)
+    $(KRB5_LIBS) \
+    libsss_crypt.la
 libsss_ipa_la_LDFLAGS = \
     -version-info 1:0:0 \
     -module

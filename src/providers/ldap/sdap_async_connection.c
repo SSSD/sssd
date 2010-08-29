@@ -25,6 +25,7 @@
 #include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async_private.h"
 #include "providers/ldap/ldap_req_wrap.h"
+#include "util/crypto/sss_crypto.h"
 
 #define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
 
@@ -786,6 +787,10 @@ struct sdap_auth_state {
 };
 
 static void sdap_auth_done(struct tevent_req *subreq);
+static int sdap_auth_get_authtok(TALLOC_CTX *memctx,
+                                 const char *authtok_type,
+                                 struct dp_opt_blob authtok,
+                                 struct berval *pw);
 
 /* TODO: handle sasl_cred */
 struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
@@ -799,18 +804,25 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct sdap_auth_state *state;
-
-    if (authtok_type != NULL && strcasecmp(authtok_type,"password") != 0) {
-        DEBUG(1,("Authentication token type [%s] is not supported"));
-        return NULL;
-    }
+    int ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_auth_state);
     if (!req) return NULL;
 
     state->user_dn = user_dn;
-    state->pw.bv_val = (char *)authtok.data;
-    state->pw.bv_len = authtok.length;
+
+    ret = sdap_auth_get_authtok(state, authtok_type, authtok, &state->pw);
+    if (ret != EOK) {
+        if (ret == ENOSYS) {
+            DEBUG(1, ("Getting authtok is not supported with the "
+                      "crypto library compiled with, authentication "
+                      "might fail!\n"));
+        } else {
+            DEBUG(1, ("Cannot parse authtok.\n"));
+            tevent_req_error(req, ret);
+            return tevent_req_post(req, ev);
+        }
+    }
 
     if (sasl_mech) {
         state->is_sasl = true;
@@ -830,6 +842,39 @@ struct tevent_req *sdap_auth_send(TALLOC_CTX *memctx,
 
     tevent_req_set_callback(subreq, sdap_auth_done, req);
     return req;
+}
+
+static int sdap_auth_get_authtok(TALLOC_CTX *mem_ctx,
+                                 const char *authtok_type,
+                                 struct dp_opt_blob authtok,
+                                 struct berval *pw)
+{
+    char *cleartext;
+    int ret;
+
+    if (!authtok_type) return EOK;
+    if (!pw) return EINVAL;
+
+    if (strcasecmp(authtok_type,"password") == 0) {
+        pw->bv_len = authtok.length;
+        pw->bv_val = (char *) authtok.data;
+    } else if (strcasecmp(authtok_type,"obfuscated_password") == 0) {
+        ret = sss_password_decrypt(mem_ctx, (char *) authtok.data, &cleartext);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot convert the obfuscated "
+                      "password back to cleartext\n"));
+            return ret;
+        }
+
+        pw->bv_len = strlen(cleartext);
+        pw->bv_val = (char *) cleartext;
+    } else {
+        DEBUG(1, ("Authentication token type [%s] is not supported\n",
+                  authtok_type));
+        return EINVAL;
+    }
+
+    return EOK;
 }
 
 static void sdap_auth_done(struct tevent_req *subreq)
