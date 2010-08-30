@@ -677,6 +677,7 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
 
     attrs = talloc_array(state, const char *, 6);
     if (attrs == NULL) {
+        ret = ENOMEM;
         goto done;
     }
 
