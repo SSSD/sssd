@@ -169,6 +169,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_sbindir}/sss_groupdel
 %{_sbindir}/sss_groupmod
 %{_sbindir}/sss_groupshow
+%{_sbindir}/sss_obfuscate
 %{_libexecdir}/%{servicename}/
 %{_libdir}/%{name}/
 %{_libdir}/ldb/memberof.so

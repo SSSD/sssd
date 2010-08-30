@@ -406,6 +406,14 @@ sssd_be_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/providers/sssd_be.exports \
     -export-dynamic
 
+if BUILD_PYTHON_BINDINGS
+sss_obfuscate_pythondir = $(sbindir)
+sss_obfuscate_python_PYTHON = \
+	src/tools/sss_obfuscate
+endif
+
+
+
 dist_noinst_DATA += \
     src/examples/sssd.conf \
     src/examples/sssdproxytest \
@@ -964,7 +972,7 @@ dist_man_MANS = \
     src/man/sssd.8 src/man/sssd.conf.5 src/man/sssd-ldap.5 \
     src/man/sssd-krb5.5 src/man/sssd-ipa.5 src/man/sssd-simple.5 \
     src/man/sssd_krb5_locator_plugin.8 src/man/sss_groupshow.8 \
-    src/man/pam_sss.8
+    src/man/pam_sss.8 src/man/sss_obfuscate.8
 
 SUFFIXES = .1.xml .1 .3.xml .3 .5.xml .5 .8.xml .8
 .1.xml.1:
