@@ -52,6 +52,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     pwd = talloc_zero(tmpctx, struct passwd);
     if (!pwd) {
         ret = ENOMEM;
+        status = NSS_STATUS_TRYAGAIN;
         goto done;
     }
 
@@ -59,6 +60,7 @@ static int get_pw_name(TALLOC_CTX *mem_ctx,
     buffer = talloc_size(tmpctx, buflen);
     if (!buffer) {
         ret = ENOMEM;
+        status = NSS_STATUS_TRYAGAIN;
         goto done;
     }
 
