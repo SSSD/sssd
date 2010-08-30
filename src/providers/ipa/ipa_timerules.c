@@ -660,6 +660,7 @@ static int parse_absolute(struct absolute_range *absr,
     if (difftime(absr->time_to, absr->time_from) < 0) {
         DEBUG(1, ("Not a valid interval\n"));
         ret = EINVAL;
+        goto done;
     }
 
     ret = EOK;
