@@ -613,7 +613,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 {
     struct ldb_message_element *el;
     struct sysdb_attrs *group_attrs;
-    const char *name;
+    const char *name = NULL;
     long int l;
     gid_t gid;
     int ret;
