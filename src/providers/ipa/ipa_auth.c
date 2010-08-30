@@ -188,7 +188,7 @@ static void get_password_migration_flag_done(struct tevent_req *subreq)
     }
 
     ret = sysdb_attrs_get_string(reply[0], IPA_CONFIG_MIRATION_ENABLED, &value);
-    if (strcasecmp(value, "true") == 0) {
+    if (ret == EOK && strcasecmp(value, "true") == 0) {
         state->password_migration = true;
     }
 

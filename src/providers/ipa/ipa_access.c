@@ -1852,20 +1852,20 @@ static bool hbac_check_step_result(struct hbac_ctx *hbac_ctx, int ret)
     }
 
     ret = sdap_id_op_done(hbac_ctx_sdap_id_op(hbac_ctx), ret, &dp_error);
-    if (dp_error == DP_ERR_OFFLINE) {
-        /* switching to offline mode */
-        talloc_zfree(hbac_ctx->sdap_op);
-        dp_error = DP_ERR_OK;
-    }
-
-    if (dp_error == DP_ERR_OK) {
-        /* retry */
-        ret = hbac_retry(hbac_ctx);
-        if (ret == EOK) {
-            return false;
+    if (ret != EOK) {
+        if (dp_error == DP_ERR_OFFLINE) {
+            /* switching to offline mode */
+            talloc_zfree(hbac_ctx->sdap_op);
+            dp_error = DP_ERR_OK;
         }
 
-        dp_error = DP_ERR_FATAL;
+        if (dp_error == DP_ERR_OK) {
+            /* retry */
+            ret = hbac_retry(hbac_ctx);
+            if (ret == EOK) {
+                return false;
+            }
+        }
     }
 
     ipa_access_reply(hbac_ctx, PAM_SYSTEM_ERR);
@@ -1923,7 +1923,6 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     ipa_hostname = dp_opt_get_cstring(hbac_ctx->ipa_options, IPA_HOSTNAME);
     if (ipa_hostname == NULL) {
         DEBUG(1, ("Missing ipa_hostname, this should never happen.\n"));
-        ret = EINVAL;
         goto fail;
     }
 
@@ -1944,7 +1943,6 @@ static void hbac_get_host_info_done(struct tevent_req *req)
     }
     if (local_hhi == NULL) {
         DEBUG(1, ("Missing host info for [%s].\n", ipa_hostname));
-        ret = EOK;
         pam_status = PAM_PERM_DENIED;
         goto fail;
     }
