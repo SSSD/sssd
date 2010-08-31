@@ -176,16 +176,12 @@ int main(int argc, const char **argv)
     debug_level = pc_debug;
 
     if (ret != -1) {
-        usage(pc, poptStrerror(ret));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
     pc_username = poptGetArg(pc);
     if (pc_username == NULL) {
-        usage(pc, _("Specify user to delete\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, _("Specify user to delete\n"), ret, fini);
     }
 
     CHECK_ROOT(ret, debug_prg_name);

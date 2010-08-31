@@ -139,6 +139,11 @@ int parse_group_name_domain(struct tools_ctx *tctx,
 
     for (i = 0; groups[i]; ++i) {
         ret = sss_parse_name(tctx, tctx->snctx, groups[i], &domain, &name);
+        if (ret != EOK) {
+            DEBUG(1, ("Invalid name in group list, skipping: [%s] (%d)\n",
+                       groups[i], ret));
+            continue;
+        }
 
         /* If FQDN is specified, it must be within the same domain as user */
         if (domain) {

@@ -82,14 +82,16 @@ int main(int argc, const char **argv)
             case 'a':
                 addgroups = poptGetOptArg(pc);
                 if (addgroups == NULL) {
-                    ret = -1;
+                    BAD_POPT_PARAMS(pc, _("Specify group to add to\n"),
+                                    ret, fini);
                 }
                 break;
 
             case 'r':
                 rmgroups = poptGetOptArg(pc);
                 if (rmgroups == NULL) {
-                    ret = -1;
+                    BAD_POPT_PARAMS(pc, _("Specify group to remove from\n"),
+                                    ret, fini);
                 }
                 break;
 
@@ -104,9 +106,7 @@ int main(int argc, const char **argv)
     }
 
     if (ret != -1) {
-        usage(pc, poptStrerror(ret));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
     debug_level = pc_debug;
@@ -114,9 +114,7 @@ int main(int argc, const char **argv)
     /* username is an argument without --option */
     pc_username = poptGetArg(pc);
     if (pc_username == NULL) {
-        usage(pc, _("Specify user to modify\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, _("Specify user to modify\n"), ret, fini);
     }
 
     CHECK_ROOT(ret, debug_prg_name);

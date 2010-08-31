@@ -62,9 +62,7 @@ int main(int argc, const char **argv)
     pc = poptGetContext(NULL, argc, argv, long_options, 0);
     poptSetOtherOptionHelp(pc, "GROUPNAME");
     if ((ret = poptGetNextOpt(pc)) < -1) {
-        usage(pc, poptStrerror(ret));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
     debug_level = pc_debug;
@@ -72,9 +70,7 @@ int main(int argc, const char **argv)
     /* groupname is an argument, not option */
     pc_groupname = poptGetArg(pc);
     if (pc_groupname == NULL) {
-        usage(pc, _("Specify group to add\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, _("Specify group to add\n"), ret, fini);
     }
 
     CHECK_ROOT(ret, debug_prg_name);

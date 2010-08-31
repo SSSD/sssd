@@ -73,31 +73,29 @@ int main(int argc, const char **argv)
             case 'a':
                 addgroups = poptGetOptArg(pc);
                 if (addgroups == NULL) {
-                    ret = -1;
+                    BAD_POPT_PARAMS(pc, _("Specify group to add to\n"),
+                                    ret, fini);
                 }
                 break;
 
             case 'r':
                 rmgroups = poptGetOptArg(pc);
                 if (rmgroups == NULL) {
-                    ret = -1;
+                    BAD_POPT_PARAMS(pc, _("Specify group to remove from\n"),
+                                    ret, fini);
                 }
                 break;
         }
     }
 
     if (ret != -1) {
-        usage(pc, poptStrerror(ret));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, poptStrerror(ret), ret, fini);
     }
 
     /* groupname is an argument without --option */
     pc_groupname = poptGetArg(pc);
     if (pc_groupname == NULL) {
-        usage(pc, _("Specify group to modify\n"));
-        ret = EXIT_FAILURE;
-        goto fini;
+        BAD_POPT_PARAMS(pc, _("Specify group to modify\n"), ret, fini);
     }
 
     debug_level = pc_debug;

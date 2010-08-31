@@ -27,6 +27,12 @@
 
 #include "util/util.h"
 
+#define BAD_POPT_PARAMS(pc, msg, val, label) do { \
+        usage(pc, msg);                           \
+        val = EXIT_FAILURE;                       \
+        goto label;                               \
+} while(0)
+
 #define CHECK_ROOT(val, prg_name) do { \
     val = getuid(); \
     if (val != 0) { \
