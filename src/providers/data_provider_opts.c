@@ -42,7 +42,6 @@ int dp_get_options(TALLOC_CTX *memctx,
         opts[i].opt_name = def_opts[i].opt_name;
         opts[i].type = def_opts[i].type;
         opts[i].def_val = def_opts[i].def_val;
-        ret = EOK;
 
         switch (def_opts[i].type) {
         case DP_OPT_STRING:

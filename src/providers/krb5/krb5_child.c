@@ -270,7 +270,6 @@ static krb5_error_code create_ccache_file(struct krb5_req *kr, krb5_creds *creds
 done:
     if (fd != -1) {
         close(fd);
-        fd = -1;
     }
     if (kerr != 0 && tmp_cc != NULL) {
         krb5_cc_destroy(kr->ctx, tmp_cc);

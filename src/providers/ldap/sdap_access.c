@@ -99,7 +99,7 @@ struct sdap_access_req_ctx {
     char *basedn;
 };
 
-static int sdap_access_decide_offline(struct tevent_req *req);
+static void sdap_access_decide_offline(struct tevent_req *req);
 static int sdap_access_retry(struct tevent_req *req);
 static void sdap_access_connect_done(struct tevent_req *subreq);
 static void sdap_access_get_access_done(struct tevent_req *req);
@@ -182,7 +182,7 @@ static struct tevent_req *sdap_access_send(TALLOC_CTX *mem_ctx,
     /* Ok, we have one result, check if we are online or offline */
     if (be_is_offline(state->be_ctx)) {
         /* Ok, we're offline. Return from the cache */
-        ret = sdap_access_decide_offline(req);
+        sdap_access_decide_offline(req);
         goto finished;
     }
 
@@ -241,7 +241,7 @@ finished:
     return req;
 }
 
-static int sdap_access_decide_offline(struct tevent_req *req)
+static void sdap_access_decide_offline(struct tevent_req *req)
 {
     struct sdap_access_req_ctx *state =
             tevent_req_data(req, struct sdap_access_req_ctx);
@@ -253,8 +253,6 @@ static int sdap_access_decide_offline(struct tevent_req *req)
         DEBUG(6, ("Access denied by cached credentials\n"));
         state->pam_status = PAM_PERM_DENIED;
     }
-
-    return EOK;
 }
 
 static int sdap_access_retry(struct tevent_req *req)
@@ -287,11 +285,9 @@ static void sdap_access_connect_done(struct tevent_req *subreq)
 
     if (ret != EOK) {
         if (dp_error == DP_ERR_OFFLINE) {
-            ret = sdap_access_decide_offline(req);
-            if (ret == EOK) {
-                tevent_req_done(req);
-                return;
-            }
+            sdap_access_decide_offline(req);
+            tevent_req_done(req);
+            return;
         }
 
         tevent_req_error(req, ret);
@@ -344,7 +340,7 @@ static void sdap_access_get_access_done(struct tevent_req *subreq)
             }
             state->pam_status = PAM_SYSTEM_ERR;
         } else if (dp_error == DP_ERR_OFFLINE) {
-            ret = sdap_access_decide_offline(req);
+            sdap_access_decide_offline(req);
         } else {
             DEBUG(1, ("sdap_get_generic_send() returned error [%d][%s]\n",
                       ret, strerror(ret)));

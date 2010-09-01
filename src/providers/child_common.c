@@ -493,14 +493,14 @@ void child_cleanup(int readfd, int writefd)
         ret = close(readfd);
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+            DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
         }
     }
     if (writefd != -1) {
         ret = close(writefd);
         if (ret != EOK) {
             ret = errno;
-            DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+            DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
         }
     }
 }

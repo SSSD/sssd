@@ -521,7 +521,6 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req, *subreq;
     struct enum_groups_state *state;
-    const char *attr_name;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct enum_groups_state);
@@ -530,8 +529,6 @@ static struct tevent_req *enum_groups_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ctx = ctx;
     state->op = op;
-
-    attr_name = ctx->opts->group_map[SDAP_AT_GROUP_NAME].name;
 
     if (ctx->max_group_timestamp && !purge) {
 
