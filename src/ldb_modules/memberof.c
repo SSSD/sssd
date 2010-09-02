@@ -1712,14 +1712,12 @@ static int mbof_del_execute_cont(struct mbof_del_operation *delop)
     struct mbof_del_operation *parent;
     struct mbof_del_ctx *del_ctx;
     struct mbof_ctx *ctx;
-    struct ldb_context *ldb;
     struct mbof_dn_array *new_list;
     int i;
 
     del_ctx = delop->del_ctx;
     parent = delop->parent;
     ctx = del_ctx->ctx;
-    ldb = ldb_module_get_ctx(ctx->module);
 
     anc_ctx = talloc_zero(delop, struct mbof_del_ancestors_ctx);
     if (!anc_ctx) {
@@ -2194,11 +2192,9 @@ static int mbof_del_get_next(struct mbof_del_operation *delop,
 {
     struct mbof_del_operation *top, *cop;
     struct mbof_del_ctx *del_ctx;
-    struct mbof_ctx *ctx;
     struct mbof_dn *save, *tmp;
 
     del_ctx = delop->del_ctx;
-    ctx = del_ctx->ctx;
 
     /* first of all, save the current delop in the history */
     save = talloc_zero(del_ctx, struct mbof_dn);
@@ -2796,12 +2792,10 @@ static int mbof_mod_delete(struct mbof_mod_ctx *mod_ctx,
 {
     struct mbof_del_operation *first;
     struct mbof_del_ctx *del_ctx;
-    struct ldb_context *ldb;
     struct mbof_ctx *ctx;
     int i, ret;
 
     ctx = mod_ctx->ctx;
-    ldb = ldb_module_get_ctx(ctx->module);
 
     del_ctx = talloc_zero(mod_ctx, struct mbof_del_ctx);
     if (!del_ctx) {
@@ -3603,7 +3597,10 @@ static int memberof_init(struct ldb_module *module)
     /* set syntaxes for member and memberof so that comparisons in filters and
      * such are done right */
     ret = ldb_schema_attribute_add(ldb, DB_MEMBER, 0, LDB_SYNTAX_DN);
+    if (ret != 0) return LDB_ERR_OPERATIONS_ERROR;
+
     ret = ldb_schema_attribute_add(ldb, DB_MEMBEROF, 0, LDB_SYNTAX_DN);
+    if (ret != 0) return LDB_ERR_OPERATIONS_ERROR;
 
     return ldb_next_init(module);
 }
