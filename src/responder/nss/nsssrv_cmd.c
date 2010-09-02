@@ -1272,6 +1272,9 @@ static int nss_cmd_endpwent(struct cli_ctx *cctx)
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
 
+    if (ret != EOK) {
+        return ret;
+    }
     if (nctx->pctx == NULL) goto done;
 
     /* free results and reset */
@@ -2342,6 +2345,9 @@ static int nss_cmd_endgrent(struct cli_ctx *cctx)
                          sss_packet_get_cmd(cctx->creq->in),
                          &cctx->creq->out);
 
+    if (ret != EOK) {
+        return ret;
+    }
     if (nctx->gctx == NULL) goto done;
 
     /* free results and reset */
@@ -2395,11 +2401,7 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
 {
     struct nss_cmd_ctx *cmdctx = dctx->cmdctx;
     struct cli_ctx *cctx = cmdctx->cctx;
-    struct nss_ctx *nctx;
     int ret;
-    int i;
-
-    nctx = talloc_get_type(cctx->rctx->pvt_ctx, struct nss_ctx);
 
     ret = sss_packet_new(cctx->creq, 0,
                          sss_packet_get_cmd(cctx->creq->in),
@@ -2407,7 +2409,7 @@ static int nss_cmd_initgr_send_reply(struct nss_dom_ctx *dctx)
     if (ret != EOK) {
         return EFAULT;
     }
-    i = dctx->res->count;
+
     ret = fill_initgr(cctx->creq->out, dctx->res);
     if (ret) {
         return ret;

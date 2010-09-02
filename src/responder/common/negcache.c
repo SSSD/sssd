@@ -395,7 +395,6 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
             filter_list[1] = NULL;
         }
-        ret = EOK;
     }
     else if (ret != EOK) goto done;
 
@@ -486,7 +485,6 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
             }
             filter_list[1] = NULL;
         }
-        ret = EOK;
     }
     else if (ret != EOK) goto done;
 
