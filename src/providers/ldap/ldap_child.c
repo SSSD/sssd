@@ -122,13 +122,13 @@ static int pack_buffer(struct response *r, int result, const char *msg, time_t e
     return EOK;
 }
 
-static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
-                                  const char *realm_str,
-                                  const char *princ_str,
-                                  const char *keytab_name,
-                                  const krb5_deltat lifetime,
-                                  const char **ccname_out,
-                                  time_t *expire_time_out)
+static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
+                                               const char *realm_str,
+                                               const char *princ_str,
+                                               const char *keytab_name,
+                                               const krb5_deltat lifetime,
+                                               const char **ccname_out,
+                                               time_t *expire_time_out)
 {
     char *ccname;
     char *realm_name = NULL;
@@ -148,7 +148,7 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     krberr = krb5_init_context(&context);
     if (krberr) {
         DEBUG(2, ("Failed to init kerberos context\n"));
-        return EFAULT;
+        return krberr;
     }
 
     if (!realm_str) {
@@ -156,21 +156,20 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         if (krberr) {
             DEBUG(2, ("Failed to get default realm name: %s\n",
                       sss_krb5_get_error_message(context, krberr)));
-            ret = EFAULT;
             goto done;
         }
 
         realm_name = talloc_strdup(memctx, default_realm);
         krb5_free_default_realm(context, default_realm);
         if (!realm_name) {
-            ret = ENOMEM;
+            krberr = KRB5KRB_ERR_GENERIC;
             goto done;
         }
 
     } else {
         realm_name = talloc_strdup(memctx, realm_str);
         if (!realm_name) {
-            ret = ENOMEM;
+            krberr = KRB5KRB_ERR_GENERIC;
             goto done;
         }
     }
@@ -187,7 +186,7 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
         ret = gethostname(hostname, 511);
         if (ret == -1) {
-            ret = errno;
+            krberr = KRB5KRB_ERR_GENERIC;
             goto done;
         }
         hostname[511] = '\0';
@@ -196,7 +195,7 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
                                      hostname, realm_name);
     }
     if (!full_princ) {
-        ret = ENOMEM;
+        krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
     DEBUG(4, ("Principal name is: [%s]\n", full_princ));
@@ -205,7 +204,6 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     if (krberr) {
         DEBUG(2, ("Unable to build principal: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
         goto done;
     }
 
@@ -217,8 +215,6 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     if (krberr) {
         DEBUG(0, ("Failed to read keytab file: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
-
-        ret = EFAULT;
         goto done;
     }
 
@@ -226,12 +222,13 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     ret = sss_krb5_verify_keytab_ex(full_princ, keytab_name, context, keytab);
     if (ret) {
         DEBUG(2, ("Unable to verify principal is present in the keytab\n"));
+        krberr = KRB5_KT_IOERR;
         goto done;
     }
 
     ccname = talloc_asprintf(memctx, "FILE:%s/ccache_%s", DB_PATH, realm_name);
     if (!ccname) {
-        ret = ENOMEM;
+        krberr = KRB5KRB_ERR_GENERIC;
         goto done;
     }
 
@@ -239,7 +236,6 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     if (krberr) {
         DEBUG(2, ("Failed to set cache name: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
         goto done;
     }
 
@@ -260,7 +256,6 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         sss_log(SSS_LOG_ERR, "Failed to initialize credentials using keytab [%s]: %s. "
                              "Unable to create GSSAPI-encrypted LDAP connection.",
                              keytab_name, sss_krb5_get_error_message(context, krberr));
-        ret = EFAULT;
         goto done;
     }
 
@@ -268,7 +263,6 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     if (krberr) {
         DEBUG(2, ("Failed to init ccache: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
         goto done;
     }
 
@@ -276,7 +270,6 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
     if (krberr) {
         DEBUG(2, ("Failed to store creds: %s\n",
                   sss_krb5_get_error_message(context, krberr)));
-        ret = EFAULT;
         goto done;
     }
 
@@ -291,14 +284,14 @@ static int ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
         }
     }
 
-    ret = EOK;
+    krberr = 0;
     *ccname_out = ccname;
     *expire_time_out = my_creds.times.endtime - kdc_time_offset;
 
 done:
     if (keytab) krb5_kt_close(context, keytab);
     if (context) krb5_free_context(context);
-    return ret;
+    return krberr;
 }
 
 static int prepare_response(TALLOC_CTX *mem_ctx,
