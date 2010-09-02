@@ -133,7 +133,6 @@ static int confdb_create_ldif(TALLOC_CTX *mem_ctx,
     int ret, i, j;
     char *ldif;
     char *tmp_ldif;
-    char *writer;
     char **sections;
     int section_count;
     char *dn;
@@ -159,7 +158,6 @@ static int confdb_create_ldif(TALLOC_CTX *mem_ctx,
     }
 
     memcpy(ldif, CONFDB_INTERNAL_LDIF, ldif_len);
-    writer = ldif+ldif_len;
 
     /* Read in the collection and convert it to an LDIF */
     /* Get the list of sections */
@@ -273,7 +271,7 @@ error:
 
 int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 {
-    int ret, i;
+    int ret;
     int fd = -1;
     struct collection_item *sssd_config = NULL;
     struct collection_item *error_list = NULL;
@@ -397,7 +395,6 @@ int confdb_init_db(const char *config_file, struct confdb_ctx *cdb)
 
     DEBUG(7, ("LDIF file to import: \n%s", config_ldif));
 
-    i=0;
     while ((ldif = ldb_ldif_read_string(cdb->ldb, (const char **)&config_ldif))) {
         ret = ldb_add(cdb->ldb, ldif->msg);
         if (ret != LDB_SUCCESS) {

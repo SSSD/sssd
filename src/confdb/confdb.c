@@ -862,7 +862,6 @@ int confdb_get_domains(struct confdb_ctx *cdb,
         if (ret) {
             DEBUG(0, ("Error (%d [%s]) retrieving domain [%s], skipping!\n",
                       ret, strerror(ret), domlist[i]));
-            ret = EOK;
             continue;
         }
 

@@ -96,8 +96,8 @@ int backup_file(const char *src_file, int dbglvl)
 
         count = num;
 
+        pos = 0;
         while (count > 0) {
-            pos = 0;
             errno = 0;
             num = write(dst_fd, &buf[pos], count);
             if (num < 0) {

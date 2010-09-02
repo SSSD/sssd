@@ -981,6 +981,9 @@ static int add_new_service(struct mt_ctx *ctx, const char *name)
     struct mt_svc *svc;
 
     ret = get_service_config(ctx, name, &svc);
+    if (ret != EOK) {
+        return ret;
+    }
 
     ret = start_service(svc);
     if (ret != EOK) {
