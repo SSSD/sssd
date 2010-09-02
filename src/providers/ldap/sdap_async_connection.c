@@ -690,8 +690,10 @@ static void sdap_kinit_done(struct tevent_req *subreq)
     int result;
     char *ccname = NULL;
     time_t expire_time;
+    krb5_error_code kerr;
 
-    ret = sdap_get_tgt_recv(subreq, state, &result, &ccname, &expire_time);
+    ret = sdap_get_tgt_recv(subreq, state, &result,
+                            &kerr, &ccname, &expire_time);
     talloc_zfree(subreq);
     if (ret != EOK) {
         state->result = SDAP_AUTH_FAILED;

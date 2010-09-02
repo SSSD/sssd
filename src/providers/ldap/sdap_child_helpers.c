@@ -206,17 +206,21 @@ static errno_t create_tgt_req_send_buffer(TALLOC_CTX *mem_ctx,
 
 static int parse_child_response(TALLOC_CTX *mem_ctx,
                                 uint8_t *buf, ssize_t size,
-                                int  *result, char **ccache,
-                                time_t *expire_time_out)
+                                int  *result, krb5_error_code *kerr,
+                                char **ccache, time_t *expire_time_out)
 {
     size_t p = 0;
     uint32_t len;
     uint32_t res;
     char *ccn;
     time_t expire_time;
+    krb5_error_code krberr;
 
     /* operation result code */
     SAFEALIGN_COPY_UINT32_CHECK(&res, buf + p, size, &p);
+
+    /* krb5 error code */
+    safealign_memcpy(&krberr, buf+p, sizeof(krberr), &p);
 
     /* ccache name size */
     SAFEALIGN_COPY_UINT32_CHECK(&len, buf + p, size, &p);
@@ -240,6 +244,7 @@ static int parse_child_response(TALLOC_CTX *mem_ctx,
     *result = res;
     *ccache = ccn;
     *expire_time_out = expire_time;
+    *kerr = krberr;
     return EOK;
 }
 
@@ -372,10 +377,11 @@ static void sdap_get_tgt_done(struct tevent_req *subreq)
 }
 
 int sdap_get_tgt_recv(struct tevent_req *req,
-                           TALLOC_CTX *mem_ctx,
-                           int  *result,
-                           char **ccname,
-                           time_t *expire_time_out)
+                      TALLOC_CTX *mem_ctx,
+                      int  *result,
+                      krb5_error_code *kerr,
+                      char **ccname,
+                      time_t *expire_time_out)
 {
     struct sdap_get_tgt_state *state = tevent_req_data(req,
                                              struct sdap_get_tgt_state);
@@ -383,10 +389,12 @@ int sdap_get_tgt_recv(struct tevent_req *req,
     time_t expire_time;
     int  res;
     int ret;
+    krb5_error_code krberr;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    ret = parse_child_response(mem_ctx, state->buf, state->len, &res, &ccn, &expire_time);
+    ret = parse_child_response(mem_ctx, state->buf, state->len,
+                               &res, &krberr, &ccn, &expire_time);
     if (ret != EOK) {
         DEBUG(1, ("Cannot parse child response: [%d][%s]\n", ret, strerror(ret)));
         return ret;
@@ -394,6 +402,7 @@ int sdap_get_tgt_recv(struct tevent_req *req,
 
     DEBUG(6, ("Child responded: %d [%s], expired on [%ld]\n", res, ccn, (long)expire_time));
     *result = res;
+    *kerr = krberr;
     *ccname = ccn;
     *expire_time_out = expire_time;
     return EOK;

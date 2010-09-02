@@ -23,6 +23,7 @@
 #define _SDAP_ASYNC_PRIVATE_H_
 
 #include "config.h"
+#include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async.h"
 
 void make_realm_upper_case(const char *upn);
@@ -65,7 +66,8 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
 int sdap_get_tgt_recv(struct tevent_req *req,
                       TALLOC_CTX *mem_ctx,
                       int  *result,
+                      krb5_error_code *kerr,
                       char **ccname,
-                      time_t *expire_time);
+                      time_t *expire_time_out);
 
 #endif /* _SDAP_ASYNC_PRIVATE_H_ */

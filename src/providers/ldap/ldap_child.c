@@ -94,13 +94,15 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
     return EOK;
 }
 
-static int pack_buffer(struct response *r, int result, const char *msg, time_t expire_time)
+static int pack_buffer(struct response *r, int result, krb5_error_code krberr,
+                       const char *msg, time_t expire_time)
 {
     int len;
     size_t p = 0;
 
     len = strlen(msg);
-    r->size = 2 * sizeof(uint32_t) + len + sizeof(time_t);
+    r->size = 2 * sizeof(uint32_t) + sizeof(krb5_error_code) +
+              len + sizeof(time_t);
 
     r->buf = talloc_array(r, uint8_t, r->size);
     if(!r->buf) {
@@ -109,6 +111,9 @@ static int pack_buffer(struct response *r, int result, const char *msg, time_t e
 
     /* result */
     SAFEALIGN_SET_UINT32(&r->buf[p], result, &p);
+
+    /* krb5 error code */
+    safealign_memcpy(&r->buf[p], &krberr, sizeof(krberr), &p);
 
     /* message size */
     SAFEALIGN_SET_UINT32(&r->buf[p], len, &p);
@@ -311,7 +316,7 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
     r->size = 0;
 
     if (kerr == 0) {
-        ret = pack_buffer(r, EOK, ccname, expire_time);
+        ret = pack_buffer(r, EOK, kerr, ccname, expire_time);
     } else {
         krb5_msg = sss_krb5_get_error_message(krb5_error_ctx, kerr);
         if (krb5_msg == NULL) {
@@ -319,7 +324,7 @@ static int prepare_response(TALLOC_CTX *mem_ctx,
             return ENOMEM;
         }
 
-        ret = pack_buffer(r, EFAULT, krb5_msg, 0);
+        ret = pack_buffer(r, EFAULT, kerr, krb5_msg, 0);
         sss_krb5_free_error_message(krb5_error_ctx, krb5_msg);
     }
 
