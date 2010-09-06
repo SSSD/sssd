@@ -1175,7 +1175,7 @@ resolve_get_domain_send(TALLOC_CTX *mem_ctx,
     state->hostname[HOST_NAME_MAX-1] = '\0';
     DEBUG(7, ("Host name is: %s\n", state->hostname));
 
-    subreq = resolv_gethostbyname_send(mem_ctx, ev, resolv,
+    subreq = resolv_gethostbyname_send(state, ev, resolv,
                                        state->hostname,
                                        foctx->opts->family_order);
     if (!subreq) {
