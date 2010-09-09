@@ -325,37 +325,83 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
 }
 
 
-bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
-                                         const char *sasl_mech)
+bool sdap_check_sup_list(struct sup_list *l, const char *val)
 {
-    struct ldb_message_element *el = NULL;
-    struct ldb_val *val;
     int i;
 
-    if (!sasl_mech) return false;
-
-    for (i = 0; i < rootdse->num; i++) {
-        if (strcasecmp(rootdse->a[i].name, "supportedSASLMechanisms")) {
-            continue;
-        }
-        el = &rootdse->a[i];
-        break;
-    }
-
-    if (!el) {
-        /* no supported SASL Mechanism at all ? */
+    if (!val) {
         return false;
     }
 
-    for (i = 0; i < el->num_values; i++) {
-        val = &el->values[i];
-        if (strncasecmp(sasl_mech, (const char *)val->data, val->length)) {
+    for (i = 0; i < l->num_vals; i++) {
+        if (strcasecmp(val, (char *)l->vals[i])) {
             continue;
         }
         return true;
     }
 
     return false;
+}
+
+static int sdap_init_sup_list(TALLOC_CTX *memctx,
+                              struct sup_list *list,
+                              int num, struct ldb_val *vals)
+{
+    int i;
+
+    list->vals = talloc_array(memctx, char *, num);
+    if (!list->vals) {
+        return ENOMEM;
+    }
+
+    for (i = 0; i < num; i++) {
+        list->vals[i] = talloc_strndup(list->vals,
+                                       (char *)vals[i].data, vals[i].length);
+        if (!list->vals[i]) {
+            return ENOMEM;
+        }
+    }
+
+    list->num_vals = num;
+
+    return EOK;
+}
+
+int sdap_set_rootdse_supported_lists(struct sysdb_attrs *rootdse,
+                                     struct sdap_handle *sh)
+{
+    struct ldb_message_element *el = NULL;
+    int ret;
+    int i;
+
+    for (i = 0; i < rootdse->num; i++) {
+        el = &rootdse->a[i];
+        if (strcasecmp(el->name, "supportedControl") == 0) {
+
+            ret = sdap_init_sup_list(sh, &sh->supported_controls,
+                                     el->num_values, el->values);
+            if (ret) {
+                return ret;
+            }
+        } else if (strcasecmp(el->name, "supportedExtension") == 0) {
+
+            ret = sdap_init_sup_list(sh, &sh->supported_extensions,
+                                     el->num_values, el->values);
+            if (ret) {
+                return ret;
+            }
+        } else if (strcasecmp(el->name, "supportedSASLMechanisms") == 0) {
+
+            ret = sdap_init_sup_list(sh, &sh->supported_saslmechs,
+                                     el->num_values, el->values);
+            if (ret) {
+                return ret;
+            }
+        }
+    }
+
+    return EOK;
+
 }
 
 int build_attrs_from_map(TALLOC_CTX *memctx,

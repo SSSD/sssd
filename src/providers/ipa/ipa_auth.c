@@ -92,7 +92,7 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
 
     subreq = sdap_cli_connect_send(state, ev, sdap_auth_ctx->opts,
                                    sdap_auth_ctx->be, sdap_auth_ctx->service,
-                                   NULL);
+                                   true);
     if (subreq == NULL) {
         DEBUG(1, ("sdap_cli_connect_send failed.\n"));
         goto fail;
@@ -118,7 +118,7 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     char *search_base;
     const char **attrs;
 
-    ret = sdap_cli_connect_recv(subreq, state, &state->sh, NULL);
+    ret = sdap_cli_connect_recv(subreq, state, &state->sh);
     talloc_zfree(subreq);
     if (ret) {
         DEBUG(1, ("sdap_auth request failed.\n"));

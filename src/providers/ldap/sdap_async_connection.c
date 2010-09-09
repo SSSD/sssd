@@ -939,7 +939,6 @@ struct sdap_cli_connect_state {
     struct be_ctx *be;
 
     bool use_rootdse;
-    struct sysdb_attrs *rootdse;
 
     struct sdap_handle *sh;
 
@@ -961,7 +960,7 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
                                          struct sdap_options *opts,
                                          struct be_ctx *be,
                                          struct sdap_service *service,
-                                         struct sysdb_attrs **rootdse)
+                                         bool skip_rootdse)
 {
     struct sdap_cli_connect_state *state;
     struct tevent_req *req;
@@ -976,14 +975,7 @@ struct tevent_req *sdap_cli_connect_send(TALLOC_CTX *memctx,
     state->be = be;
     state->srv = NULL;
     state->be = be;
-
-    if (rootdse) {
-        state->use_rootdse = true;
-        state->rootdse = *rootdse;
-    } else {
-        state->use_rootdse = false;
-        state->rootdse = NULL;
-    }
+    state->use_rootdse = !skip_rootdse;
 
     ret = sdap_cli_resolve_next(req);
     if (ret) {
@@ -1068,7 +1060,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->use_rootdse && !state->rootdse) {
+    if (state->use_rootdse) {
         /* fetch the rootDSE this time */
         sdap_cli_rootdse_step(req);
         return;
@@ -1078,8 +1070,7 @@ static void sdap_cli_connect_done(struct tevent_req *subreq)
 
     if (sasl_mech && state->use_rootdse) {
         /* check if server claims to support GSSAPI */
-        if (!sdap_rootdse_sasl_mech_is_supported(state->rootdse,
-                                                 sasl_mech)) {
+        if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
             return;
         }
@@ -1127,10 +1118,11 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
+    struct sysdb_attrs *rootdse;
     const char *sasl_mech;
     int ret;
 
-    ret = sdap_get_rootdse_recv(subreq, state, &state->rootdse);
+    ret = sdap_get_rootdse_recv(subreq, state, &rootdse);
     talloc_zfree(subreq);
     if (ret) {
         if (ret == ETIMEDOUT) { /* retry another server */
@@ -1158,12 +1150,18 @@ static void sdap_cli_rootdse_done(struct tevent_req *subreq)
         }
     }
 
+    /* save rootdse data about supported features */
+    ret = sdap_set_rootdse_supported_lists(rootdse, state->sh);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
     sasl_mech = dp_opt_get_string(state->opts->basic, SDAP_SASL_MECH);
 
     if (sasl_mech && state->use_rootdse) {
         /* check if server claims to support GSSAPI */
-        if (!sdap_rootdse_sasl_mech_is_supported(state->rootdse,
-                                                 sasl_mech)) {
+        if (!sdap_is_sasl_mech_supported(state->sh, sasl_mech)) {
             tevent_req_error(req, ENOTSUP);
             return;
         }
@@ -1287,17 +1285,15 @@ static void sdap_cli_auth_done(struct tevent_req *subreq)
 
 int sdap_cli_connect_recv(struct tevent_req *req,
                           TALLOC_CTX *memctx,
-                          struct sdap_handle **gsh,
-                          struct sysdb_attrs **rootdse)
+                          struct sdap_handle **gsh)
 {
-    return sdap_cli_connect_recv_ext(req, memctx, NULL, gsh, rootdse);
+    return sdap_cli_connect_recv_ext(req, memctx, NULL, gsh);
 }
 
 int sdap_cli_connect_recv_ext(struct tevent_req *req,
                               TALLOC_CTX *memctx,
                               bool *can_retry,
-                              struct sdap_handle **gsh,
-                              struct sysdb_attrs **rootdse)
+                              struct sdap_handle **gsh)
 {
     struct sdap_cli_connect_state *state = tevent_req_data(req,
                                              struct sdap_cli_connect_state);
@@ -1335,19 +1331,6 @@ int sdap_cli_connect_recv_ext(struct tevent_req *req,
         }
     } else {
         talloc_zfree(state->sh);
-    }
-
-    if (rootdse) {
-        if (state->use_rootdse) {
-            *rootdse = talloc_steal(memctx, state->rootdse);
-            if (!*rootdse) {
-                return ENOMEM;
-            }
-        } else {
-            *rootdse = NULL;
-        }
-    } else {
-        talloc_zfree(rootdse);
     }
 
     return EOK;

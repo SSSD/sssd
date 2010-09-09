@@ -460,7 +460,7 @@ static int sdap_id_op_connect_step(struct tevent_req *req)
     conn_data->conn_cache = conn_cache;
     subreq = sdap_cli_connect_send(conn_data, conn_cache->be->ev,
                                    conn_cache->opts, conn_cache->be,
-                                   conn_cache->service, &conn_data->rootDSE);
+                                   conn_cache->service, false);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -497,7 +497,7 @@ static void sdap_id_op_connect_done(struct tevent_req *subreq)
     int ret;
 
     ret = sdap_cli_connect_recv_ext(subreq, conn_data, &can_retry,
-                                    &conn_data->sh, &conn_data->rootDSE);
+                                    &conn_data->sh);
     conn_data->connect_req = NULL;
     talloc_zfree(subreq);
 

@@ -93,6 +93,11 @@ struct ldap_cb_data {
     void *wakeup_cb_data;
 };
 
+struct sup_list {
+    int num_vals;
+    char **vals;
+};
+
 struct sdap_handle {
     LDAP *ldap;
     bool connected;
@@ -100,6 +105,10 @@ struct sdap_handle {
     time_t expire_time;
 
     struct sdap_fd_events *sdap_fd_events;
+
+    struct sup_list supported_saslmechs;
+    struct sup_list supported_controls;
+    struct sup_list supported_extensions;
 
     struct sdap_op *ops;
 
@@ -288,8 +297,18 @@ int sdap_get_msg_dn(TALLOC_CTX *memctx, struct sdap_handle *sh,
 
 errno_t setup_tls_config(struct dp_option *basic_opts);
 
-bool sdap_rootdse_sasl_mech_is_supported(struct sysdb_attrs *rootdse,
-                                         const char *sasl_mech);
+int sdap_set_rootdse_supported_lists(struct sysdb_attrs *rootdse,
+                                     struct sdap_handle *sh);
+bool sdap_check_sup_list(struct sup_list *l, const char *val);
+
+#define sdap_is_sasl_mech_supported(sh, sasl_mech) \
+    sdap_check_sup_list(&((sh)->supported_saslmechs), sasl_mech)
+
+#define sdap_is_control_supported(sh, ctrl_oid) \
+    sdap_check_sup_list(&((sh)->supported_controls), ctrl_oid)
+
+#define sdap_is_extension_supported(sh, ext_oid) \
+    sdap_check_sup_list(&((sh)->supported_extensions), ext_oid)
 
 int build_attrs_from_map(TALLOC_CTX *memctx,
                          struct sdap_attr_map *map,
