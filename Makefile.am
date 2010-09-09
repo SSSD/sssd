@@ -1083,6 +1083,7 @@ if BUILD_PYTHON_BINDINGS
 	cd $(srcdir)/src/config; $(PYTHON) setup.py build --build-base $(abs_builddir)/src/config clean --all
 endif
 	rm -Rf doc
+	rm -f $(dist_man_MANS)
 
 CLEANFILES = *.X */*.X */*/*.X
 
