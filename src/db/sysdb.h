@@ -43,6 +43,7 @@
 #define SYSDB_GROUP_CLASS "group"
 
 #define SYSDB_NAME "name"
+#define SYSDB_OBJECTCLASS "objectClass"
 
 #define SYSDB_NEXTID "nextID"
 #define SYSDB_UIDNUM "uidNumber"
@@ -112,7 +113,7 @@
 #define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
                             SYSDB_CACHE_EXPIRE, \
                             SYSDB_INITGR_EXPIRE, \
-                            "objectClass"
+                            SYSDB_OBJECTCLASS
 
 #define SYSDB_PW_ATTRS {SYSDB_NAME, SYSDB_UIDNUM, \
                         SYSDB_GIDNUM, SYSDB_GECOS, \

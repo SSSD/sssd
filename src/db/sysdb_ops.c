@@ -655,7 +655,7 @@ int sysdb_add_basic_user(TALLOC_CTX *mem_ctx,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, "objectClass", SYSDB_USER_CLASS);
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
     if (ret) goto done;
 
     ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
@@ -866,7 +866,7 @@ int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,
         ERROR_OUT(ret, ENOMEM, done);
     }
 
-    ret = add_string(msg, LDB_FLAG_MOD_ADD, "objectClass", SYSDB_GROUP_CLASS);
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS, SYSDB_GROUP_CLASS);
     if (ret) goto done;
 
     ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
