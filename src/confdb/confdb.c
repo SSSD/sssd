@@ -640,6 +640,20 @@ static errno_t get_entry_as_bool(struct ldb_message *msg,
     return EOK;
 }
 
+
+/* The default UID/GID for domains is 1. This wouldn't work well with
+ * the local provider */
+static uint32_t confdb_get_min_id(struct sss_domain_info *domain)
+{
+    uint32_t defval = SSSD_MIN_ID;
+
+    if (domain && strcasecmp(domain->provider, "local") == 0) {
+        defval = SSSD_LOCAL_MINID;
+    }
+
+    return defval;
+}
+
 static int confdb_get_domain_internal(struct confdb_ctx *cdb,
                                       TALLOC_CTX *mem_ctx,
                                       const char *name,
@@ -784,7 +798,8 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
     }
 
     ret = get_entry_as_uint32(res->msgs[0], &domain->id_min,
-                              CONFDB_DOMAIN_MINID, SSSD_MIN_ID);
+                              CONFDB_DOMAIN_MINID,
+                              confdb_get_min_id(domain));
     if (ret != EOK) {
         DEBUG(0, ("Invalid value for minId\n"));
         ret = EINVAL;

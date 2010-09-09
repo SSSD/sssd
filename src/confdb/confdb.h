@@ -40,6 +40,7 @@
 #define CONFDB_FILE "config.ldb"
 #define CONFDB_DEFAULT_CONFIG_FILE SSSD_CONF_DIR"/sssd.conf"
 #define SSSD_MIN_ID 1
+#define SSSD_LOCAL_MINID 1000
 
 
 /* Configuration options */
