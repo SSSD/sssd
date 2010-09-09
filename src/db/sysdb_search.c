@@ -23,6 +23,7 @@
 #include "db/sysdb_private.h"
 #include "confdb/confdb.h"
 #include <time.h>
+#include <ctype.h>
 
 /* users */
 
@@ -499,6 +500,341 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
 
     *_res = talloc_steal(mem_ctx, res);
 
+done:
+    talloc_zfree(tmpctx);
+    return ret;
+}
+
+/* This function splits a three-tuple into three strings
+ * It assumes that any whitespace between the parentheses
+ * and commas are intentional and does not attempt to
+ * strip them out. Leading and trailing whitespace is
+ * ignored.
+ *
+ * This behavior is compatible with nss_ldap's
+ * implementation.
+ */
+static errno_t sysdb_netgr_split_triple(TALLOC_CTX *mem_ctx,
+                                        const char *triple,
+                                        char **hostname,
+                                        char **username,
+                                        char **domainname)
+{
+    errno_t ret;
+    TALLOC_CTX *tmp_ctx;
+    const char *p = triple;
+    const char *p_host;
+    const char *p_user;
+    const char *p_domain;
+    size_t len;
+
+    char *host = NULL;
+    char *user = NULL;
+    char *domain = NULL;
+
+    /* Pre-set the values to NULL here so if they are not
+     * copied, we don't return garbage below.
+     */
+    *hostname = NULL;
+    *username = NULL;
+    *domainname = NULL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    /* Remove any leading whitespace */
+    while (*p && isspace(*p)) p++;
+
+    if (*p != '(') {
+        /* Triple must start and end with parentheses */
+        ret = EINVAL;
+        goto done;
+    }
+    p++;
+    p_host = p;
+
+    /* Find the first comma */
+    while (*p && *p != ',') p++;
+
+    if (!*p) {
+        /* No comma was found: parse error */
+        ret = EINVAL;
+        goto done;
+    }
+
+    len = p - p_host;
+
+    if (len > 0) {
+        /* Copy the host string */
+        host = talloc_strndup(tmp_ctx, p_host, len);
+        if (!host) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    p++;
+    p_user = p;
+
+    /* Find the second comma */
+    while (*p && *p != ',') p++;
+
+    if (!*p) {
+        /* No comma was found: parse error */
+        ret = EINVAL;
+        goto done;
+    }
+
+    len = p - p_user;
+
+    if (len > 0) {
+        /* Copy the user string */
+        user = talloc_strndup(tmp_ctx, p_user, len);
+        if (!user) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    p++;
+    p_domain = p;
+
+    /* Find the closing parenthesis */
+    while (*p && *p != ')') p++;
+    if (*p != ')') {
+        /* No trailing parenthesis: parse error */
+        ret = EINVAL;
+        goto done;
+    }
+
+    len = p - p_domain;
+
+    if (len > 0) {
+        /* Copy the domain string */
+        domain = talloc_strndup(tmp_ctx, p_domain, len);
+        if (!domain) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    p++;
+
+    /* skip trailing whitespace */
+    while (*p && isspace(*p)) p++;
+
+    if (*p) {
+        /* Extra data after the closing parenthesis
+         * is a parse error
+         */
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Return any non-NULL values */
+    if (host) {
+        *hostname = talloc_steal(mem_ctx, host);
+    }
+
+    if (user) {
+        *username = talloc_steal(mem_ctx, user);
+    }
+
+    if (domain) {
+        *domainname = talloc_steal(mem_ctx, domain);
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_netgr_to_triples(TALLOC_CTX *mem_ctx,
+                               struct ldb_result *res,
+                               struct sysdb_netgroup_ctx ***triples)
+{
+    errno_t ret;
+    size_t size = 0;
+    char *triple_str;
+    TALLOC_CTX *tmp_ctx;
+    struct sysdb_netgroup_ctx **tmp_triples = NULL;
+    struct ldb_message_element *el;
+    int i, j;
+
+    if(!res || res->count == 0) {
+        return ENOENT;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    for (i=0; i < res->count; i++) {
+        el = ldb_msg_find_element(res->msgs[i], SYSDB_NETGROUP_TRIPLE);
+        if (!el) {
+            /* No triples in this netgroup. It might be a nesting
+             * container only.
+             * Skip it and continue on.
+             */
+            continue;
+        }
+
+        /* Enlarge the array by the value count
+         * Always keep one extra entry for the NULL terminator
+         */
+        tmp_triples = talloc_realloc(tmp_ctx, tmp_triples,
+                                     struct sysdb_netgroup_ctx *,
+                                     size+el->num_values+1);
+        if (!tmp_triples) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* Copy in all of the triples */
+        for(j = 0; j < el->num_values; j++) {
+            triple_str = talloc_strndup(tmp_ctx,
+                                       (const char *)el->values[j].data,
+                                       el->values[j].length);
+            if (!triple_str) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            tmp_triples[size] = talloc_zero(tmp_triples,
+                                            struct sysdb_netgroup_ctx);
+            if (!tmp_triples[size]) {
+                ret = ENOMEM;
+                goto done;
+            }
+
+            ret = sysdb_netgr_split_triple(tmp_triples[size],
+                                           triple_str,
+                                           &tmp_triples[size]->hostname,
+                                           &tmp_triples[size]->username,
+                                           &tmp_triples[size]->domainname);
+            if (ret != EOK) {
+                goto done;
+            }
+
+            size++;
+        }
+    }
+
+    if (!tmp_triples) {
+        /* No entries were found
+         * Create a dummy reply
+         */
+        tmp_triples = talloc_array(tmp_ctx, struct sysdb_netgroup_ctx *, 1);
+        if (!tmp_triples) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    /* Add NULL terminator */
+    tmp_triples[size] = NULL;
+
+    *triples = talloc_steal(mem_ctx, tmp_triples);
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *ctx,
+                       struct sss_domain_info *domain,
+                       const char *netgroup,
+                       struct ldb_result **res)
+{
+    TALLOC_CTX *tmp_ctx;
+    static const char *attrs[] = SYSDB_NETGR_ATTRS;
+    struct ldb_dn *base_dn;
+    struct ldb_result *result;
+    char *netgroup_dn;
+    int lret;
+    errno_t ret;
+
+    if (!domain) {
+        return EINVAL;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmp_ctx, ctx->ldb,
+                             SYSDB_TMPL_NETGROUP_BASE,
+                             domain->name);
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    netgroup_dn = talloc_asprintf(tmp_ctx, SYSDB_TMPL_NETGROUP,
+                                  netgroup, domain->name);
+    if (!netgroup_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_search(ctx->ldb, tmp_ctx, &result, base_dn,
+                     LDB_SCOPE_SUBTREE, attrs,
+                     SYSDB_NETGR_TRIPLES_FILTER,
+                     netgroup, netgroup_dn);
+    ret = sysdb_error_to_errno(lret);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    *res = talloc_steal(mem_ctx, result);
+    ret = EOK;
+
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
+
+int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
+                            struct sysdb_ctx *ctx,
+                            struct sss_domain_info *domain,
+                            const char *netgrname,
+                            const char **attributes,
+                            struct ldb_result **res)
+{
+    TALLOC_CTX *tmpctx;
+    struct ldb_dn *base_dn;
+    struct ldb_result *result;
+    int ret;
+
+    if (!domain) {
+        return EINVAL;
+    }
+
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    base_dn = ldb_dn_new_fmt(tmpctx, ctx->ldb,
+                             SYSDB_TMPL_NETGROUP_BASE, domain->name);
+    if (!base_dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = ldb_search(ctx->ldb, tmpctx, &result, base_dn,
+                     LDB_SCOPE_SUBTREE, attributes,
+                     SYSDB_NETGR_FILTER, netgrname);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        goto done;
+    }
+
+    *res = talloc_steal(mem_ctx, result);
 done:
     talloc_zfree(tmpctx);
     return ret;

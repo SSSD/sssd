@@ -377,6 +377,49 @@ done:
 }
 
 
+/* =Search-Group-by-Name============================================ */
+
+int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *name,
+                                  const char **attrs,
+                                  struct ldb_message **msg)
+{
+    TALLOC_CTX *tmpctx;
+    static const char *def_attrs[] = { SYSDB_NAME, NULL };
+    struct ldb_message **msgs = NULL;
+    struct ldb_dn *basedn;
+    size_t msgs_count = 0;
+    int ret;
+
+    tmpctx = talloc_new(mem_ctx);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    basedn = sysdb_netgroup_dn(ctx, tmpctx, domain->name, name);
+    if (!basedn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_search_entry(tmpctx, ctx, basedn, LDB_SCOPE_BASE, NULL,
+                             attrs?attrs:def_attrs, &msgs_count, &msgs);
+    if (ret) {
+        goto done;
+    }
+
+    *msg = talloc_steal(mem_ctx, msgs[0]);
+
+done:
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_zfree(tmpctx);
+    return ret;
+}
+
 /* =Replace-Attributes-On-Entry=========================================== */
 
 int sysdb_set_entry_attr(TALLOC_CTX *mem_ctx,
@@ -463,6 +506,35 @@ int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
     return sysdb_set_entry_attr(mem_ctx, ctx, dn, attrs, mod_op);
 }
 
+/* =Replace-Attributes-On-Netgroup=========================================== */
+
+int sysdb_set_netgroup_attr(struct sysdb_ctx *ctx,
+                            struct sss_domain_info *domain,
+                            const char *name,
+                            struct sysdb_attrs *attrs,
+                            int mod_op)
+{
+    errno_t ret;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    dn = sysdb_netgroup_dn(ctx, tmp_ctx, domain->name, name);
+    if (!dn) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sysdb_set_entry_attr(tmp_ctx, ctx, dn, attrs, mod_op);
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
 
 /* =Get-New-ID============================================================ */
 
@@ -860,7 +932,7 @@ int sysdb_add_basic_group(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    /* user dn */
+    /* group dn */
     msg->dn = sysdb_group_dn(ctx, msg, domain->name, name);
     if (!msg->dn) {
         ERROR_OUT(ret, ENOMEM, done);
@@ -1049,6 +1121,118 @@ fail:
     return ret;
 }
 
+/* =Add-Basic-Netgroup-NO-CHECKS============================================= */
+
+int sysdb_add_basic_netgroup(struct sysdb_ctx *ctx,
+                             struct sss_domain_info *domain,
+                             const char *name, const char *description)
+{
+    struct ldb_message *msg;
+    int ret;
+
+    msg = ldb_msg_new(NULL);
+    if (!msg) {
+        return ENOMEM;
+    }
+
+    /* netgroup dn */
+    msg->dn = sysdb_netgroup_dn(ctx, msg, domain->name, name);
+    if (!msg->dn) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD,
+                     SYSDB_OBJECTCLASS, SYSDB_NETGROUP_CLASS);
+    if (ret) goto done;
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
+    if (ret) goto done;
+
+    if (description && *description) {
+        ret = add_string(msg, LDB_FLAG_MOD_ADD,
+                         SYSDB_DESCRIPTION, description);
+        if (ret) goto done;
+    }
+
+    /* creation time */
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
+                    (unsigned long) time(NULL));
+    if (ret) goto done;
+
+    ret = ldb_add(ctx->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
+
+done:
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_zfree(msg);
+    return ret;
+}
+
+
+/* =Add-Netgroup-Function==================================================== */
+
+int sysdb_add_netgroup(struct sysdb_ctx *ctx,
+                       struct sss_domain_info *domain,
+                       const char *name,
+                       const char *description,
+                       struct sysdb_attrs *attrs,
+                       int cache_timeout)
+{
+    TALLOC_CTX *tmp_ctx;
+    time_t now;
+    int ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = ldb_transaction_start(ctx->ldb);
+    if (ret) {
+        ret = sysdb_error_to_errno(ret);
+        talloc_free(tmp_ctx);
+        return ret;
+    }
+
+    /* try to add the netgroup */
+    ret = sysdb_add_basic_netgroup(ctx, domain, name, description);
+    if (ret) goto done;
+
+    if (!attrs) {
+        attrs = sysdb_new_attrs(tmp_ctx);
+        if (!attrs) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    now = time(NULL);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) goto done;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 ((cache_timeout) ?
+                                  (now + cache_timeout) : 0));
+    if (ret) goto done;
+
+    ret = sysdb_set_netgroup_attr(ctx, domain, name, attrs, SYSDB_MOD_REP);
+
+done:
+    if (ret == EOK) {
+        ret = ldb_transaction_commit(ctx->ldb);
+        ret = sysdb_error_to_errno(ret);
+    }
+
+    if (ret != EOK) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        ldb_transaction_cancel(ctx->ldb);
+    }
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
 
 /* =Store-Users-(Native/Legacy)-(replaces-existing-data)================== */
 
@@ -1917,6 +2101,44 @@ fail:
     return ret;
 }
 
+/* =Delete-Netgroup-by-Name============================================== */
+
+int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
+                          const char *name)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    int ret;
+
+    if (!name) return EINVAL;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_search_netgroup_by_name(tmp_ctx, sysdb,
+                                        domain, name, NULL, &msg);
+    if (ret != EOK) {
+        DEBUG(6, ("sysdb_search_netgroup_by_name failed: %d (%s)\n",
+                   ret, strerror(ret)));
+        goto done;
+    }
+
+    ret = sysdb_delete_entry(sysdb, msg->dn, false);
+    if (ret != EOK) {
+        goto done;
+    }
+
+done:
+    if (ret != EOK) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
 /* ========= Authentication against cached password ============ */
 
 
@@ -2253,5 +2475,134 @@ done:
         sysdb_transaction_cancel(sysdb);
     }
     talloc_free(tmp_ctx);
+    return ret;
+}
+
+errno_t sysdb_add_netgroup_tuple(struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 const char *netgroup,
+                                 const char *hostname,
+                                 const char *username,
+                                 const char *domainname)
+{
+    return sysdb_mod_netgroup_tuple(sysdb, domain, netgroup, hostname,
+                                    username, domainname, SYSDB_MOD_ADD);
+}
+
+errno_t sysdb_remove_netgroup_tuple(struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    const char *netgroup,
+                                    const char *hostname,
+                                    const char *username,
+                                    const char *domainname)
+{
+    return sysdb_mod_netgroup_tuple(sysdb, domain, netgroup, hostname,
+                                    username, domainname, SYSDB_MOD_DEL);
+}
+
+errno_t sysdb_mod_netgroup_tuple(struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 const char *netgroup,
+                                 const char *hostname,
+                                 const char *username,
+                                 const char *domainname,
+                                 int mod_op)
+{
+    errno_t ret;
+    int lret;
+    struct ldb_message *msg;
+    char *triple;
+
+    msg = ldb_msg_new(NULL);
+    if (!msg) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, domain->name, netgroup);
+    if (!msg->dn) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    triple = talloc_asprintf(msg, "(%s,%s,%s)",
+                             hostname, username, domainname);
+    if (!triple) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    ret = add_string(msg, mod_op, SYSDB_NETGROUP_TRIPLE, triple);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    lret = ldb_modify(sysdb->ldb, msg);
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    if (ret) {
+        DEBUG(3, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_free(msg);
+    return ret;
+}
+
+errno_t sysdb_add_netgroup_member(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *netgroup,
+                                  const char *member_netgroup)
+{
+    return sysdb_mod_netgroup_member(sysdb, domain, netgroup,
+                                     member_netgroup, SYSDB_MOD_ADD);
+}
+
+errno_t sysdb_remove_netgroup_member(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *netgroup,
+                                  const char *member_netgroup)
+{
+    return sysdb_mod_netgroup_member(sysdb, domain, netgroup,
+                                     member_netgroup, SYSDB_MOD_DEL);
+}
+
+errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *netgroup,
+                                  const char *member_netgroup,
+                                  int mod_op)
+{
+    errno_t ret;
+    int lret;
+    struct ldb_message *msg;
+    char *member;
+
+    msg = ldb_msg_new(NULL);
+    if (!msg) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    msg->dn = sysdb_netgroup_dn(sysdb, msg, domain->name, netgroup);
+    if (!msg->dn) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    member = talloc_asprintf(msg, SYSDB_TMPL_NETGROUP,
+                             member_netgroup, domain->name);
+    if (!member) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = add_string(msg, mod_op, SYSDB_MEMBER, member);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    lret = ldb_modify(sysdb->ldb, msg);
+    ret = sysdb_error_to_errno(lret);
+
+done:
+    if (ret) {
+        DEBUG(3, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_free(msg);
     return ret;
 }

@@ -35,12 +35,15 @@
 #define SYSDB_USERS_CONTAINER "cn=users"
 #define SYSDB_GROUPS_CONTAINER "cn=groups"
 #define SYSDB_CUSTOM_CONTAINER "cn=custom"
+#define SYSDB_NETGROUP_CONTAINER "cn=Netgroups"
 #define SYSDB_TMPL_USER_BASE SYSDB_USERS_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_GROUP_BASE SYSDB_GROUPS_CONTAINER",cn=%s,"SYSDB_BASE
 #define SYSDB_TMPL_CUSTOM_BASE SYSDB_CUSTOM_CONTAINER",cn=%s,"SYSDB_BASE
+#define SYSDB_TMPL_NETGROUP_BASE SYSDB_NETGROUP_CONTAINER",cn=%s,"SYSDB_BASE
 
 #define SYSDB_USER_CLASS "user"
 #define SYSDB_GROUP_CLASS "group"
+#define SYSDB_NETGROUP_CLASS "netgroup"
 
 #define SYSDB_NAME "name"
 #define SYSDB_OBJECTCLASS "objectClass"
@@ -75,6 +78,9 @@
 #define SYSDB_CACHE_EXPIRE "dataExpireTimestamp"
 #define SYSDB_INITGR_EXPIRE "initgrExpireTimestamp"
 
+#define SYSDB_NETGROUP_TRIPLE "netgroupTriple"
+#define SYSDB_DESCRIPTION   "description"
+
 #define SYSDB_CACHEDPWD "cachedPassword"
 
 #define SYSDB_UUID "uniqueID"
@@ -92,6 +98,7 @@
 
 #define SYSDB_UC "objectclass="SYSDB_USER_CLASS
 #define SYSDB_GC "objectclass="SYSDB_GROUP_CLASS
+#define SYSDB_NC "objectclass="SYSDB_NETGROUP_CLASS
 #define SYSDB_MPGC "|("SYSDB_UC")("SYSDB_GC")"
 
 #define SYSDB_PWNAM_FILTER "(&("SYSDB_UC")("SYSDB_NAME"=%s))"
@@ -109,6 +116,9 @@
 #define SYSDB_INITGR_FILTER "(&("SYSDB_GC")("SYSDB_GIDNUM"=*))"
 
 #define SYSDB_GETCACHED_FILTER "(&"SYSDB_UC")("SYSDB_LAST_LOGIN">=%lu))"
+
+#define SYSDB_NETGR_FILTER "(&("SYSDB_NC")("SYSDB_NAME"=%s))"
+#define SYSDB_NETGR_TRIPLES_FILTER "(|("SYSDB_NAME"=%s)("SYSDB_MEMBEROF"=%s))"
 
 #define SYSDB_DEFAULT_ATTRS SYSDB_LAST_UPDATE, \
                             SYSDB_CACHE_EXPIRE, \
@@ -131,6 +141,10 @@
                            SYSDB_DEFAULT_ATTRS, \
                            NULL}
 
+#define SYSDB_NETGR_ATTRS {SYSDB_NAME, SYSDB_NETGROUP_TRIPLE, \
+                           SYSDB_DEFAULT_ATTRS, \
+                           NULL}
+
 #define SYSDB_INITGR_ATTR SYSDB_MEMBEROF
 #define SYSDB_INITGR_ATTRS {SYSDB_GIDNUM, \
                             SYSDB_DEFAULT_ATTRS, \
@@ -138,6 +152,7 @@
 
 #define SYSDB_TMPL_USER SYSDB_NAME"=%s,"SYSDB_TMPL_USER_BASE
 #define SYSDB_TMPL_GROUP SYSDB_NAME"=%s,"SYSDB_TMPL_GROUP_BASE
+#define SYSDB_TMPL_NETGROUP SYSDB_NAME"=%s,"SYSDB_TMPL_NETGROUP_BASE
 #define SYSDB_TMPL_CUSTOM_SUBTREE "cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 #define SYSDB_TMPL_CUSTOM SYSDB_NAME"=%s,cn=%s,"SYSDB_TMPL_CUSTOM_BASE
 
@@ -200,6 +215,8 @@ struct ldb_dn *sysdb_user_dn(struct sysdb_ctx *ctx, void *memctx,
                              const char *domain, const char *name);
 struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain, const char *name);
+struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *ctx, void *memctx,
+                                 const char *domain, const char *name);
 errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
                             const char *dn_str, char **name);
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,
@@ -282,6 +299,17 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct sss_domain_info *domain,
                     struct ldb_result **res);
 
+struct sysdb_netgroup_ctx {
+    char *hostname;
+    char *username;
+    char *domainname;
+};
+errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
+                       struct sysdb_ctx *ctx,
+                       struct sss_domain_info *domain,
+                       const char *netgroup,
+                       struct ldb_result **res);
+
 int sysdb_initgroups(TALLOC_CTX *mem_ctx,
                      struct sysdb_ctx *ctx,
                      struct sss_domain_info *domain,
@@ -295,6 +323,12 @@ int sysdb_get_user_attr(TALLOC_CTX *mem_ctx,
                         const char **attributes,
                         struct ldb_result **res);
 
+int sysdb_get_netgroup_attr(TALLOC_CTX *mem_ctx,
+                            struct sysdb_ctx *ctx,
+                            struct sss_domain_info *domain,
+                            const char *netgrname,
+                            const char **attributes,
+                            struct ldb_result **res);
 
 /* functions that modify the databse
  * they have to be called within a transaction
@@ -336,7 +370,7 @@ int sysdb_search_user_by_uid(TALLOC_CTX *mem_ctx,
                              const char **attrs,
                              struct ldb_message **msg);
 
-/* Search Group (gy gid or name) */
+/* Search Group (by gid or name) */
 int sysdb_search_group_by_name(TALLOC_CTX *mem_ctx,
                                struct sysdb_ctx *ctx,
                                struct sss_domain_info *domain,
@@ -350,6 +384,14 @@ int sysdb_search_group_by_gid(TALLOC_CTX *mem_ctx,
                               gid_t gid,
                               const char **attrs,
                               struct ldb_message **msg);
+
+/* Search Netgroup (by name) */
+int sysdb_search_netgroup_by_name(TALLOC_CTX *mem_ctx,
+                                  struct sysdb_ctx *ctx,
+                                  struct sss_domain_info *domain,
+                                  const char *name,
+                                  const char **attrs,
+                                  struct ldb_message **msg);
 
 /* Replace entry attrs */
 int sysdb_set_entry_attr(TALLOC_CTX *mem_ctx,
@@ -373,6 +415,13 @@ int sysdb_set_group_attr(TALLOC_CTX *mem_ctx,
                          const char *name,
                          struct sysdb_attrs *attrs,
                          int mod_op);
+
+/* Replace netgroup attrs */
+int sysdb_set_netgroup_attr(struct sysdb_ctx *ctx,
+                            struct sss_domain_info *domain,
+                            const char *name,
+                            struct sysdb_attrs *attrs,
+                            int mod_op);
 
 /* Allocate a new id */
 int sysdb_get_new_id(TALLOC_CTX *mem_ctx,
@@ -415,6 +464,18 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
                     const char *name, gid_t gid,
                     struct sysdb_attrs *attrs,
                     int cache_timeout);
+
+/* Add netgroup (only basic attrs and w/o checks) */
+int sysdb_add_basic_netgroup(struct sysdb_ctx *ctx,
+                             struct sss_domain_info *domain,
+                             const char *name, const char *description);
+
+int sysdb_add_netgroup(struct sysdb_ctx *ctx,
+                       struct sss_domain_info *domain,
+                       const char *name,
+                       const char *description,
+                       struct sysdb_attrs *attrs,
+                       int cache_timeout);
 
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
 int sysdb_mod_group_member(TALLOC_CTX *mem_ctx,
@@ -459,6 +520,44 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                              const char *user,
                              const char **add_groups,
                              const char **del_groups);
+
+errno_t sysdb_add_netgroup_tuple(struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 const char *netgroup,
+                                 const char *hostname,
+                                 const char *username,
+                                 const char *domainname);
+
+errno_t sysdb_remove_netgroup_tuple(struct sysdb_ctx *sysdb,
+                                    struct sss_domain_info *domain,
+                                    const char *netgroup,
+                                    const char *hostname,
+                                    const char *username,
+                                    const char *domainname);
+
+errno_t sysdb_mod_netgroup_tuple(struct sysdb_ctx *sysdb,
+                                 struct sss_domain_info *domain,
+                                 const char *netgroup,
+                                 const char *hostname,
+                                 const char *username,
+                                 const char *domainname,
+                                 int mod_op);
+
+errno_t sysdb_add_netgroup_member(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *netgroup,
+                                  const char *member_netgroup);
+
+errno_t sysdb_remove_netgroup_member(struct sysdb_ctx *sysdb,
+                                     struct sss_domain_info *domain,
+                                     const char *netgroup,
+                                     const char *member_netgroup);
+
+errno_t sysdb_mod_netgroup_member(struct sysdb_ctx *sysdb,
+                                  struct sss_domain_info *domain,
+                                  const char *netgroup,
+                                  const char *member_netgroup,
+                                  int mod_op);
 
 /* Password caching function.
  * If you are in a transaction ignore sysdb and pass in the handle.
@@ -554,10 +653,18 @@ int sysdb_delete_group(TALLOC_CTX *mem_ctx,
                        struct sss_domain_info *domain,
                        const char *name, gid_t gid);
 
+int sysdb_delete_netgroup(struct sysdb_ctx *sysdb,
+                          struct sss_domain_info *domain,
+                          const char *name);
+
 errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
                             struct sysdb_attrs **attrs,
                             int attr_count,
                             const char *attr_name,
                             char ***_list);
+
+errno_t sysdb_netgr_to_triples(TALLOC_CTX *mem_ctx,
+                               struct ldb_result *res,
+                               struct sysdb_netgroup_ctx ***triples);
 
 #endif /* __SYS_DB_H__ */
