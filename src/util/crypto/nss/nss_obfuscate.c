@@ -272,7 +272,7 @@ int sss_password_encrypt(TALLOC_CTX *mem_ctx, const char *password, int plen,
     }
 
     ret = nss_encrypt_decrypt_init(tmp_ctx, mech_props, true,
-                                   keybuf, ivbuf, &cctx);
+                                   ivbuf, keybuf, &cctx);
     if (ret) {
         goto done;
     }
