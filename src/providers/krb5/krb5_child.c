@@ -104,6 +104,43 @@ static const char *__krb5_error_msg;
     sss_krb5_free_error_message(krb5_error_ctx, __krb5_error_msg); \
 } while(0);
 
+static void sss_krb5_expire_callback_func(krb5_context context, void *data,
+                                          krb5_timestamp password_expiration,
+                                          krb5_timestamp account_expiration,
+                                          krb5_boolean is_last_req)
+{
+    int ret;
+    uint32_t *blob;
+    long exp_time;
+    struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
+
+    if (password_expiration == 0) {
+        return;
+    }
+
+    exp_time = password_expiration - time(NULL);
+    if (exp_time < 0 || exp_time > UINT32_MAX) {
+        DEBUG(1, ("Time to expire out of range.\n"));
+        return;
+    }
+
+    blob = talloc_array(kr->pd, uint32_t, 2);
+    if (blob == NULL) {
+        DEBUG(1, ("talloc_size failed.\n"));
+        return;
+    }
+
+    blob[0] = SSS_PAM_USER_INFO_EXPIRE_WARN;
+    blob[1] = (uint32_t) exp_time;
+
+    ret = pam_add_response(kr->pd, SSS_PAM_USER_INFO, 2 * sizeof(uint32_t),
+                           (uint8_t *) blob);
+    if (ret != EOK) {
+        DEBUG(1, ("pam_add_response failed.\n"));
+    }
+
+    return;
+}
 
 static krb5_error_code sss_krb5_prompter(krb5_context context, void *data,
                                          const char *name, const char *banner,
@@ -516,6 +553,13 @@ static krb5_error_code get_and_save_tgt(struct krb5_req *kr,
     krb5_error_code kerr = 0;
     int ret;
 
+    kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx, kr->options,
+                                                  sss_krb5_expire_callback_func,
+                                                  kr);
+    if (kerr != 0) {
+        KRB5_DEBUG(1, kerr);
+        DEBUG(1, ("Failed to set expire callback, continue without.\n"));
+    }
     kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                         password, sss_krb5_prompter, kr, 0,
                                         NULL, kr->options);
@@ -737,6 +781,13 @@ static errno_t tgt_req_child(int fd, struct krb5_req *kr)
        not. In general the password can still be used to get a changepw ticket.
        So we validate the password by trying to get a changepw ticket. */
     if (kerr == KRB5KDC_ERR_KEY_EXP) {
+        kerr = sss_krb5_get_init_creds_opt_set_expire_callback(kr->ctx,
+                                                               kr->options,
+                                                               NULL, NULL);
+        if (kerr != 0) {
+            KRB5_DEBUG(1, kerr);
+            DEBUG(1, ("Failed to unset expire callback, continue ...\n"));
+        }
         kerr = krb5_get_init_creds_password(kr->ctx, kr->creds, kr->princ,
                                             pass_str, sss_krb5_prompter, kr, 0,
                                             changepw_princ,

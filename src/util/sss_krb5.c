@@ -2,7 +2,7 @@
     Authors:
         Sumit Bose <sbose@redhat.com>
 
-    Copyright (C) 2009 Red Hat
+    Copyright (C) 2009-2010 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -347,3 +347,16 @@ done:
     return krberr;
 }
 
+krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
+                                                   krb5_context context,
+                                                   krb5_get_init_creds_opt *opt,
+                                                   krb5_expire_callback_func cb,
+                                                   void *data)
+{
+#ifdef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
+    return krb5_get_init_creds_opt_set_expire_callback(context, opt, cb, data);
+#else
+    DEBUG(5, ("krb5_get_init_creds_opt_set_expire_callback not available.\n"));
+    return 0;
+#endif
+}

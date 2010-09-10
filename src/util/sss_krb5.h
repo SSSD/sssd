@@ -2,7 +2,7 @@
     Authors:
         Sumit Bose <sbose@redhat.com>
 
-    Copyright (C) 2009 Red Hat
+    Copyright (C) 2009-2010 Red Hat
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -56,4 +56,15 @@ int sss_krb5_verify_keytab(const char *principal,
 int sss_krb5_verify_keytab_ex(const char *principal, const char *keytab_name,
                               krb5_context context, krb5_keytab keytab);
 
+#ifndef HAVE_KRB5_GET_INIT_CREDS_OPT_SET_EXPIRE_CALLBACK
+typedef void krb5_expire_callback_func(krb5_context context, void *data,
+                                             krb5_timestamp password_expiration,
+                                             krb5_timestamp account_expiration,
+                                             krb5_boolean is_last_req);
+#endif
+krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
+                                                   krb5_context context,
+                                                   krb5_get_init_creds_opt *opt,
+                                                   krb5_expire_callback_func cb,
+                                                   void *data);
 #endif /* __SSS_KRB5_H__ */
