@@ -2316,12 +2316,15 @@ int main(int argc, const char *argv[]) {
     int ret;
     poptContext pc;
     int failure_count;
+    int no_cleanup = 0;
     Suite *sysdb_suite;
     SRunner *sr;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
         SSSD_MAIN_OPTS
+        {"no-cleanup", 'n', POPT_ARG_NONE, &no_cleanup, 0,
+         _("Do not delete the test database after a test run"), NULL },
         { NULL }
     };
 
@@ -2352,7 +2355,7 @@ int main(int argc, const char *argv[]) {
     srunner_run_all(sr, CK_ENV);
     failure_count = srunner_ntests_failed(sr);
     srunner_free(sr);
-    if (failure_count == 0) {
+    if (failure_count == 0 && !no_cleanup) {
         ret = unlink(TESTS_PATH"/"TEST_CONF_FILE);
         if (ret != EOK) {
             fprintf(stderr, "Could not delete the test config ldb file (%d) (%s)\n",
