@@ -165,6 +165,7 @@ struct test_data {
 
     const char *username;
     const char *groupname;
+    const char *netgrname;
     uid_t uid;
     gid_t gid;
     const char *shell;
@@ -422,6 +423,62 @@ static int test_memberof_store_group(struct test_data *data)
     ret = sysdb_store_group(data, data->ctx->sysdb,
                             data->ctx->domain, data->groupname,
                             data->gid, attrs, -1);
+    return ret;
+}
+
+static int test_add_basic_netgroup(struct test_data *data)
+{
+    const char *description;
+    int ret;
+
+    description = talloc_asprintf(data, "Test Netgroup %d", data->uid);
+
+    ret = sysdb_add_basic_netgroup(data->ctx->sysdb, data->ctx->domain,
+                                   data->netgrname, description);
+    return ret;
+}
+
+static int test_remove_netgroup_entry(struct test_data *data)
+{
+    struct ldb_dn *netgroup_dn;
+    int ret;
+
+    netgroup_dn = sysdb_netgroup_dn(data->ctx->sysdb, data, "LOCAL", data->netgrname);
+    if (!netgroup_dn) return ENOMEM;
+
+    ret = sysdb_delete_entry(data->ctx->sysdb, netgroup_dn, true);
+    return ret;
+}
+
+static int test_remove_netgroup_by_name(struct test_data *data)
+{
+    int ret;
+
+    ret = sysdb_delete_netgroup(data->ctx->sysdb, data->ctx->domain,
+                                data->netgrname);
+    return ret;
+}
+
+static int test_set_netgroup_attr(struct test_data *data)
+{
+    int ret;
+    const char *description;
+    struct sysdb_attrs *attrs = NULL;
+
+    description = talloc_asprintf(data, "Sysdb Netgroup %d", data->uid);
+
+    attrs = sysdb_new_attrs(data);
+    if (!attrs) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_DESCRIPTION, description);
+    if (ret) {
+        return ret;
+    }
+
+    ret = sysdb_set_netgroup_attr(data->ctx->sysdb, data->ctx->domain,
+                                  data->netgrname, attrs, SYSDB_MOD_REP);
     return ret;
 }
 
@@ -2158,6 +2215,7 @@ START_TEST (test_sysdb_update_members)
 }
 END_TEST
 
+
 START_TEST (test_sysdb_group_dn_name)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -2189,6 +2247,432 @@ START_TEST (test_sysdb_group_dn_name)
     talloc_free(test_ctx);
 }
 END_TEST
+
+START_TEST (test_sysdb_add_basic_netgroup)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i;         /* This is kinda abuse of uid, though */
+    data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
+
+    ret = test_add_basic_netgroup(data);
+
+    fail_if(ret != EOK, "Could not add netgroup %s", data->netgrname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_search_netgroup_by_name)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    const char *netgrname;
+    struct ldb_message *msg;
+    struct ldb_dn *netgroup_dn;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
+
+    ret = sysdb_search_netgroup_by_name(test_ctx, test_ctx->sysdb,
+                                        test_ctx->domain, netgrname,
+                                        NULL, &msg);
+    fail_if(ret != EOK, "Could not find netgroup with name %s", netgrname);
+
+    netgroup_dn = sysdb_netgroup_dn(test_ctx->sysdb, test_ctx,
+                                    test_ctx->domain->name, netgrname);
+    fail_if(netgroup_dn == NULL);
+    fail_if(ldb_dn_compare(msg->dn, netgroup_dn) != 0, "Found wrong netgroup!\n");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_remove_netgroup_entry)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
+
+    ret = test_remove_netgroup_entry(data);
+
+    fail_if(ret != EOK, "Could not remove netgroup %s", data->netgrname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_remove_netgroup_by_name)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
+
+    ret = test_remove_netgroup_by_name(data);
+
+    fail_if(ret != EOK, "Could not remove netgroup with name %s", data->netgrname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_set_netgroup_attr)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i;         /* This is kinda abuse of uid, though */
+    data->netgrname = talloc_asprintf(data, "testnetgr%d", _i);
+
+    ret = test_set_netgroup_attr(data);
+
+    fail_if(ret != EOK, "Could not set netgroup attribute %s", data->netgrname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_get_netgroup_attr)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    const char *description;
+    const char *netgrname;
+    struct ldb_result *res;
+    const char *attrs[] = { SYSDB_DESCRIPTION, NULL };
+    const char *attrval;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    description = talloc_asprintf(test_ctx, "Sysdb Netgroup %d", _i);
+    netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
+
+    ret = sysdb_get_netgroup_attr(test_ctx, test_ctx->sysdb,
+                                  test_ctx->domain, netgrname,
+                                  attrs, &res);
+
+    fail_if(ret != EOK, "Could not get netgroup attributes");
+    fail_if(res->count != 1,
+            "Invalid number of entries, expected 1, got %d", res->count);
+
+    attrval = ldb_msg_find_attr_as_string(res->msgs[0], SYSDB_DESCRIPTION, 0);
+    fail_if(strcmp(attrval, description),
+            "Got bad attribute value for netgroup %s", netgrname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_add_netgroup_tuple)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *netgrname;
+    const char *hostname;
+    const char *username;
+    const char *domainname;
+    struct ldb_result *res;
+    struct sysdb_netgroup_ctx **triples;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
+    fail_if(netgrname == NULL, "Out of memory");
+
+    hostname = talloc_asprintf(test_ctx, "hostname%d", _i);
+    fail_if(hostname == NULL, "Out of memory");
+
+    username = talloc_asprintf(test_ctx, "username%d", _i);
+    fail_if(username == NULL, "Out of memory");
+
+    domainname = talloc_asprintf(test_ctx, "domainname%d", _i);
+    fail_if(domainname == NULL, "Out of memory");
+
+    ret = sysdb_add_netgroup_tuple(test_ctx->sysdb, test_ctx->domain,
+                                   netgrname, hostname,
+                                   username, domainname);
+    fail_unless(ret == EOK, "Failed to add netgr tuple");
+
+    ret = sysdb_getnetgr(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, netgrname,
+                         &res);
+    fail_unless(ret == EOK, "Failed to retrieve netgr information");
+
+    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
+    fail_unless(ret == EOK, "Failed to convert triples");
+
+    fail_unless(triples && triples[0] && !triples[1],
+                "Got more than one triple back");
+
+    fail_unless(strcmp(triples[0]->hostname, hostname) == 0,
+                "Got [%s], expected [%s] for hostname",
+                triples[0]->hostname, hostname);
+
+    fail_unless(strcmp(triples[0]->username, username) == 0,
+                "Got [%s], expected [%s] for username",
+                triples[0]->username, username);
+
+    fail_unless(strcmp(triples[0]->domainname, domainname) == 0,
+                "Got [%s], expected [%s] for domainname",
+                triples[0]->domainname, domainname);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_remove_netgroup_tuple)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *netgrname;
+    const char *hostname;
+    const char *username;
+    const char *domainname;
+    struct ldb_result *res;
+    struct sysdb_netgroup_ctx **triples;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
+    fail_if(netgrname == NULL, "Out of memory");
+
+    hostname = talloc_asprintf(test_ctx, "hostname%d", _i);
+    fail_if(hostname == NULL, "Out of memory");
+
+    username = talloc_asprintf(test_ctx, "username%d", _i);
+    fail_if(username == NULL, "Out of memory");
+
+    domainname = talloc_asprintf(test_ctx, "domainname%d", _i);
+    fail_if(domainname == NULL, "Out of memory");
+
+    ret = sysdb_remove_netgroup_tuple(test_ctx->sysdb, test_ctx->domain,
+                                       netgrname, hostname,
+                                       username, domainname);
+    fail_unless(ret == EOK, "Failed to remove netgr tuple");
+
+    ret = sysdb_getnetgr(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, netgrname,
+                         &res);
+    fail_unless(ret == EOK, "Failed to retrieve netgr information");
+
+    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
+    fail_unless(ret == EOK, "Failed to convert triples");
+
+    fail_unless(triples && !triples[0],"Found triples unexpectedly");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_add_netgroup_member)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *netgrname;
+    const char *membername;
+    struct ldb_result *res;
+    struct sysdb_netgroup_ctx **triples;
+
+    char *hostname1;
+    char *username1;
+    char *domainname1;
+
+    char *hostname2;
+    char *username2;
+    char *domainname2;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
+    fail_if(netgrname == NULL, "Out of memory");
+
+    membername = talloc_asprintf(test_ctx, "testnetgr%d", _i+1);
+    fail_if(membername == NULL, "Out of memory");
+
+    hostname1 = talloc_asprintf(test_ctx, "hostname%d", _i);
+    hostname2 = talloc_asprintf(test_ctx, "hostname%d", _i+1);
+
+    username1 = talloc_asprintf(test_ctx, "username%d", _i);
+    username2 = talloc_asprintf(test_ctx, "username%d", _i+1);
+
+    domainname1 = talloc_asprintf(test_ctx, "domainname%d", _i);
+    domainname2 = talloc_asprintf(test_ctx, "domainname%d", _i+1);
+
+    ret = sysdb_add_netgroup_member(test_ctx->sysdb, test_ctx->domain,
+                                   netgrname, membername);
+    fail_unless(ret == EOK, "Failed to add netgr member");
+
+    ret = sysdb_getnetgr(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, netgrname,
+                         &res);
+    fail_unless(ret == EOK, "Failed to retrieve netgr information");
+
+    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
+    fail_unless(ret == EOK, "Failed to convert triples");
+
+    fail_if(!triples, "Received a NULL triple");
+    fail_if(!triples[0], "Did not get any responses");
+    fail_unless(triples[0] && triples[1] && !triples[2],
+            "Did not get exactly two responses");
+
+    fail_unless(strcmp(triples[0]->hostname, hostname1) == 0,
+                "Got [%s], expected [%s] for hostname",
+                triples[0]->hostname, hostname1);
+
+    fail_unless(strcmp(triples[0]->username, username1) == 0,
+                "Got [%s], expected [%s] for username",
+                triples[0]->username, username1);
+
+    fail_unless(strcmp(triples[0]->domainname, domainname1) == 0,
+                "Got [%s], expected [%s] for domainname",
+                triples[0]->domainname, domainname1);
+
+    fail_unless(strcmp(triples[1]->hostname, hostname2) == 0,
+                "Got [%s], expected [%s] for hostname",
+                triples[0]->hostname, hostname2);
+
+    fail_unless(strcmp(triples[1]->username, username2) == 0,
+                "Got [%s], expected [%s] for username",
+                triples[0]->username, username2);
+
+    fail_unless(strcmp(triples[1]->domainname, domainname2) == 0,
+                "Got [%s], expected [%s] for domainname",
+                triples[0]->domainname, domainname2);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_sysdb_remove_netgroup_member)
+{
+    errno_t ret;
+    struct sysdb_test_ctx *test_ctx;
+    const char *netgrname;
+    const char *membername;
+    struct ldb_result *res;
+    struct sysdb_netgroup_ctx **triples;
+
+    char *hostname;
+    char *username;
+    char *domainname;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    netgrname = talloc_asprintf(test_ctx, "testnetgr%d", _i);
+    fail_if(netgrname == NULL, "Out of memory");
+
+    membername = talloc_asprintf(test_ctx, "testnetgr%d", _i+1);
+    fail_if(membername == NULL, "Out of memory");
+
+    hostname = talloc_asprintf(test_ctx, "hostname%d", _i);
+    username = talloc_asprintf(test_ctx, "username%d", _i);
+    domainname = talloc_asprintf(test_ctx, "domainname%d", _i);
+
+    ret = sysdb_remove_netgroup_member(test_ctx->sysdb, test_ctx->domain,
+                                        netgrname, membername);
+    fail_unless(ret == EOK, "Failed to add netgr member");
+
+    ret = sysdb_getnetgr(test_ctx, test_ctx->sysdb,
+                         test_ctx->domain, netgrname,
+                         &res);
+    fail_unless(ret == EOK, "Failed to retrieve netgr information");
+
+    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
+    fail_unless(ret == EOK, "Failed to convert triples");
+
+    fail_if(!triples, "Received a NULL triple");
+    fail_if(!triples[0], "Did not get any responses");
+    fail_unless(triples[0] && !triples[1],
+                "Did not get exactly one response");
+
+    fail_unless(strcmp(triples[0]->hostname, hostname) == 0,
+                "Got [%s], expected [%s] for hostname",
+                triples[0]->hostname, hostname);
+
+    fail_unless(strcmp(triples[0]->username, username) == 0,
+                "Got [%s], expected [%s] for username",
+                triples[0]->username, username);
+
+    fail_unless(strcmp(triples[0]->domainname, domainname) == 0,
+                "Got [%s], expected [%s] for domainname",
+                triples[0]->domainname, domainname);
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 
 Suite *create_sysdb_suite(void)
 {
@@ -2306,6 +2790,38 @@ Suite *create_sysdb_suite(void)
     tcase_add_test(tc_sysdb, test_sysdb_attrs_replace_name);
 
     tcase_add_test(tc_sysdb, test_sysdb_attrs_to_list);
+
+/* ===== NETGROUP TESTS ===== */
+
+    /* Create a new netgroup */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_basic_netgroup, 27000, 27010);
+
+    /* Verify the netgroups were added */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_search_netgroup_by_name, 27000, 27010);
+
+    /* Test setting attributes */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_set_netgroup_attr, 27000, 27010);
+
+    /* Verify they have been changed */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_get_netgroup_attr, 27000, 27010);
+
+    /* Add some tuples */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_netgroup_tuple, 27000, 27010);
+
+    /* Add a nested netgroup */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_netgroup_member, 27000, 27009);
+
+    /* Remove the nested netgroup */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_member, 27000, 27009);
+
+    /* Remove the tuples */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_tuple, 27000, 27010);
+
+    /* Remove half of them by name */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_by_name, 27000, 27005);
+
+    /* Remove the other half by DN */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_netgroup_entry, 27005, 27010);
 
 /* Add all test cases to the test suite */
     suite_add_tcase(s, tc_sysdb);
