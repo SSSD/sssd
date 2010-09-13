@@ -32,6 +32,8 @@ int sss_ncache_check_user(struct sss_nc_ctx *ctx, int ttl,
                           const char *domain, const char *name);
 int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
                           const char *domain, const char *name);
+int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
+                           const char *domain, const char *name);
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid);
 int sss_ncache_check_gid(struct sss_nc_ctx *ctx, int ttl, gid_t gid);
 
@@ -43,6 +45,8 @@ int sss_ncache_set_user(struct sss_nc_ctx *ctx, bool permanent,
                         const char *domain, const char *name);
 int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,
                         const char *domain, const char *name);
+int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
+                         const char *domain, const char *name);
 int sss_ncache_set_uid(struct sss_nc_ctx *ctx, bool permanent, uid_t uid);
 int sss_ncache_set_gid(struct sss_nc_ctx *ctx, bool permanent, gid_t gid);
 

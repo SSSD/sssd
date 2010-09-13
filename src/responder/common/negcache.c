@@ -28,6 +28,7 @@
 #define NC_ENTRY_PREFIX "NCE/"
 #define NC_USER_PREFIX NC_ENTRY_PREFIX"USER"
 #define NC_GROUP_PREFIX NC_ENTRY_PREFIX"GROUP"
+#define NC_NETGROUP_PREFIX NC_ENTRY_PREFIX"NETGR"
 #define NC_UID_PREFIX NC_ENTRY_PREFIX"UID"
 #define NC_GID_PREFIX NC_ENTRY_PREFIX"GID"
 
@@ -186,6 +187,23 @@ int sss_ncache_check_group(struct sss_nc_ctx *ctx, int ttl,
     return ret;
 }
 
+int sss_ncache_check_netgr(struct sss_nc_ctx *ctx, int ttl,
+                           const char *domain, const char *name)
+{
+    char *str;
+    int ret;
+
+    if (!name || !*name) return EINVAL;
+
+    str = talloc_asprintf(ctx, "%s/%s/%s", NC_NETGROUP_PREFIX, domain, name);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_check_str(ctx, str, ttl);
+
+    talloc_free(str);
+    return ret;
+}
+
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, int ttl, uid_t uid)
 {
     char *str;
@@ -240,6 +258,23 @@ int sss_ncache_set_group(struct sss_nc_ctx *ctx, bool permanent,
     if (!name || !*name) return EINVAL;
 
     str = talloc_asprintf(ctx, "%s/%s/%s", NC_GROUP_PREFIX, domain, name);
+    if (!str) return ENOMEM;
+
+    ret = sss_ncache_set_str(ctx, str, permanent);
+
+    talloc_free(str);
+    return ret;
+}
+
+int sss_ncache_set_netgr(struct sss_nc_ctx *ctx, bool permanent,
+                         const char *domain, const char *name)
+{
+    char *str;
+    int ret;
+
+    if (!name || !*name) return EINVAL;
+
+    str = talloc_asprintf(ctx, "%s/%s/%s", NC_NETGROUP_PREFIX, domain, name);
     if (!str) return ENOMEM;
 
     ret = sss_ncache_set_str(ctx, str, permanent);
