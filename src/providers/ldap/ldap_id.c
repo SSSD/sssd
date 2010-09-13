@@ -619,6 +619,7 @@ static void groups_by_user_done(struct tevent_req *subreq)
         return;
     }
 
+    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
