@@ -1508,7 +1508,8 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
     struct tevent_req *req, *subreq;
     struct sdap_initgr_rfc2307_state *state;
     const char *filter;
-    const char *attrs[2];
+    const char **attrs;
+    errno_t ret;
 
     req = tevent_req_create(memctx, &state, struct sdap_initgr_rfc2307_state);
     if (!req) return NULL;
@@ -1525,12 +1526,12 @@ struct tevent_req *sdap_initgr_rfc2307_send(TALLOC_CTX *memctx,
         return NULL;
     }
 
-    attrs[0] = talloc_strdup(state, opts->group_map[SDAP_AT_GROUP_NAME].name);
-    if (!attrs[0]) {
-        talloc_zfree(req);
+    ret = build_attrs_from_map(state, opts->group_map,
+                               SDAP_OPTS_GROUP, &attrs);
+    if (ret != EOK) {
+        talloc_free(req);
         return NULL;
     }
-    attrs[1] = NULL;
 
     filter = talloc_asprintf(state, "(&(%s=%s)(objectclass=%s))",
                              opts->group_map[SDAP_AT_GROUP_MEMBER].name,
