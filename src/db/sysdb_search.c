@@ -383,10 +383,20 @@ int sysdb_initgroups(TALLOC_CTX *mem_ctx,
 
     ret = sysdb_getpwnam(tmpctx, ctx, domain, name, &res);
     if (ret != EOK) {
+        DEBUG(1, ("sysdb_getpwnam failed: [%d][%s]\n",
+                  ret, strerror(ret)));
         goto done;
     }
-    if (res->count != 1) {
+
+    if (res->count == 0) {
+        /* User is not cached yet */
+        *_res = talloc_steal(mem_ctx, res);
+        ret = EOK;
+        goto done;
+
+    } else if (res->count != 1) {
         ret = EIO;
+        DEBUG(1, ("sysdb_getpwnam returned count: [%d]\n", res->count));
         goto done;
     }
 

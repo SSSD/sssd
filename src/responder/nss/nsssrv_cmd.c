@@ -2895,7 +2895,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
 
         ret = sysdb_initgroups(cmdctx, sysdb, dom, name, &dctx->res);
         if (ret != EOK) {
-            DEBUG(1, ("Failed to make request to our cache!\n"));
+            DEBUG(1, ("Failed to make request to our cache! [%d][%s]\n",
+                      ret, strerror(ret)));
             return EIO;
         }
 
