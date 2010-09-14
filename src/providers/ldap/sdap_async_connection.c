@@ -24,7 +24,6 @@
 #include "util/util.h"
 #include "util/sss_krb5.h"
 #include "providers/ldap/sdap_async_private.h"
-#include "providers/ldap/ldap_req_wrap.h"
 #include "util/crypto/sss_crypto.h"
 
 #define LDAP_X_SSSD_PASSWORD_EXPIRED 0x555D
@@ -42,7 +41,9 @@ struct sdap_connect_state {
     int result;
 };
 
-static void sdap_connect_tls_done(struct tevent_req *subreq);
+static void sdap_connect_done(struct sdap_op *op,
+                              struct sdap_msg *reply,
+                              int error, void *pvt);
 
 struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      struct tevent_context *ev,
@@ -51,12 +52,14 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
                                      bool use_start_tls)
 {
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct sdap_connect_state *state;
     struct timeval tv;
     int ver;
     int lret;
+    int optret;
     int ret = EOK;
+    int msgid;
+    char *errmsg = NULL;
     bool ldap_referrals;
 
     req = tevent_req_create(memctx, &state, struct sdap_connect_state);
@@ -143,12 +146,37 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     DEBUG(4, ("Executing START TLS\n"));
 
-    subreq = ldap_start_tls_send(state, ev, state->sh, NULL, NULL);
-    if (!subreq) {
-        ret = ENOMEM;
+    lret = ldap_start_tls(state->sh->ldap, NULL, NULL, &msgid);
+    if (lret != LDAP_SUCCESS) {
+        optret = ldap_get_option(state->sh->ldap,
+                                 SDAP_DIAGNOSTIC_MESSAGE,
+                                 (void*)&errmsg);
+        if (optret == LDAP_SUCCESS) {
+            DEBUG(3, ("ldap_start_tls failed: [%s] [%s]\n",
+                      ldap_err2string(lret),
+                      errmsg));
+            sss_log(SSS_LOG_ERR, "Could not start TLS. %s", errmsg);
+            ldap_memfree(errmsg);
+        }
+        else {
+            DEBUG(3, ("ldap_start_tls failed: [%s]\n",
+                      ldap_err2string(lret)));
+            sss_log(SSS_LOG_ERR, "Could not start TLS. "
+                                 "Check for certificate issues.");
+        }
         goto fail;
     }
-    tevent_req_set_callback(subreq, sdap_connect_tls_done, req);
+
+    ret = sdap_set_connected(state->sh, state->ev);
+    if (ret) goto fail;
+
+    /* FIXME: get timeouts from configuration, for now 5 secs. */
+    ret = sdap_op_add(state, ev, state->sh, msgid,
+                      sdap_connect_done, req, 5, &state->op);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        goto fail;
+    }
 
     return req;
 
@@ -164,41 +192,6 @@ fail:
     }
     tevent_req_post(req, ev);
     return req;
-}
-
-static void sdap_connect_done(struct sdap_op *op,
-                              struct sdap_msg *reply,
-                              int error, void *pvt);
-
-static void sdap_connect_tls_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req;
-    struct sdap_connect_state *state;
-    int ret;
-    int msgid;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_connect_state);
-
-    ret = ldap_start_tls_recv(subreq, NULL, &msgid);
-    talloc_zfree(subreq);
-    if (ret != EOK) goto fail;
-
-    ret = sdap_set_connected(state->sh, state->ev);
-    if (ret != EOK) goto fail;
-
-    /* FIXME: get timeouts from configuration, for now 5 secs. */
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      sdap_connect_done, req, 5, &state->op);
-    if (ret != EOK) {
-        DEBUG(1, ("Failed to set up operation!\n"));
-        goto fail;
-    }
-
-    return;
-
-fail:
-    tevent_req_error(req, ret);
 }
 
 static void sdap_connect_done(struct sdap_op *op,
@@ -297,7 +290,9 @@ struct simple_bind_state {
     int result;
 };
 
-static void simple_bind_step(struct tevent_req *subreq);
+static void simple_bind_done(struct sdap_op *op,
+                             struct sdap_msg *reply,
+                             int error, void *pvt);
 
 static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
                                            struct tevent_context *ev,
@@ -308,8 +303,9 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
     struct tevent_req *req;
     struct simple_bind_state *state;
     int ret = EOK;
+    int msgid;
+    int ldap_err;
     LDAPControl *request_controls[2];
-    struct tevent_req *subreq;
 
     req = tevent_req_create(memctx, &state, struct simple_bind_state);
     if (!req) return NULL;
@@ -335,12 +331,36 @@ static struct tevent_req *simple_bind_send(TALLOC_CTX *memctx,
 
     DEBUG(4, ("Executing simple bind as: %s\n", state->user_dn));
 
-    subreq = ldap_sasl_bind_send(state, ev, sh, user_dn, LDAP_SASL_SIMPLE, pw,
-                                 request_controls, NULL);
+    ret = ldap_sasl_bind(state->sh->ldap, state->user_dn, LDAP_SASL_SIMPLE,
+                         state->pw, request_controls, NULL, &msgid);
     ldap_control_free(request_controls[0]);
+    if (ret == -1 || msgid == -1) {
+        ret = ldap_get_option(state->sh->ldap,
+                              LDAP_OPT_RESULT_CODE, &ldap_err);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(1, ("ldap_bind failed (couldn't get ldap error)\n"));
+            ret = LDAP_LOCAL_ERROR;
+        } else {
+            DEBUG(1, ("ldap_bind failed (%d)[%s]\n",
+                      ldap_err, ldap_err2string(ldap_err)));
+            ret = ldap_err;
+        }
+        goto fail;
+    }
+    DEBUG(8, ("ldap simple bind sent, msgid = %d\n", msgid));
 
-    if (!subreq) goto fail;
-    tevent_req_set_callback(subreq, simple_bind_step, req);
+    if (!sh->connected) {
+        ret = sdap_set_connected(sh, ev);
+        if (ret) goto fail;
+    }
+
+    /* FIXME: get timeouts from configuration, for now 5 secs. */
+    ret = sdap_op_add(state, ev, sh, msgid,
+                      simple_bind_done, req, 5, &state->op);
+    if (ret) {
+        DEBUG(1, ("Failed to set up operation!\n"));
+        goto fail;
+    }
 
     return req;
 
@@ -352,52 +372,6 @@ fail:
     }
     tevent_req_post(req, ev);
     return req;
-}
-
-static void simple_bind_done(struct sdap_op *op,
-                             struct sdap_msg *reply,
-                             int error, void *pvt);
-
-static void simple_bind_step(struct tevent_req *subreq)
-{
-    struct tevent_req *req;
-    struct simple_bind_state *state;
-    int ret;
-    int msgid;
-    int ldap_ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct simple_bind_state);
-
-    ret = ldap_sasl_bind_recv(subreq, &ldap_ret, &msgid);
-    talloc_zfree(subreq);
-    if (ret == ENOMEM) {
-        DEBUG(1, ("out of memory\n"));
-    } else if (ret == EIO) {
-        DEBUG(1, ("ldap_bind failed (%d)[%s]\n", ldap_ret,
-                  ldap_err2string(ldap_ret)));
-        ret = (ldap_ret == LDAP_SERVER_DOWN) ? ETIMEDOUT : EIO;
-        goto fail;
-    }
-
-    if (!state->sh->connected) {
-        ret = sdap_set_connected(state->sh, state->ev);
-        if (ret) goto fail;
-    }
-
-    /* FIXME: get timeouts from configuration, for now 5 secs. */
-    ret = sdap_op_add(state, state->ev, state->sh, msgid,
-                      simple_bind_done, req, 5, &state->op);
-    if (ret) {
-        DEBUG(1, ("Failed to set up operation!\n"));
-        ret = EIO;
-        goto fail;
-    }
-
-    tevent_req_done(req);
-
-fail:
-    tevent_req_error(req, ret);
 }
 
 static void simple_bind_done(struct sdap_op *op,
@@ -528,7 +502,6 @@ struct sasl_bind_state {
 
 static int sdap_sasl_interact(LDAP *ld, unsigned flags,
                               void *defaults, void *interact);
-static void sasl_bind_interactive_done(struct tevent_req *subreq);
 
 static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
                                          struct tevent_context *ev,
@@ -538,8 +511,8 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
                                          struct berval *sasl_cred)
 {
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct sasl_bind_state *state;
+    int ret = EOK;
 
     req = tevent_req_create(memctx, &state, struct sasl_bind_state);
     if (!req) return NULL;
@@ -553,45 +526,36 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     DEBUG(4, ("Executing sasl bind mech: %s, user: %s\n",
               sasl_mech, sasl_user));
 
-    subreq = ldap_sasl_interactive_bind_send(state, ev, sh, NULL, sasl_mech,
-                                             NULL, NULL, LDAP_SASL_QUIET,
-                                             (*sdap_sasl_interact), state);
-    if (!subreq) {
-        tevent_req_error(req, ENOMEM);
-        tevent_req_post(req, ev);
-        return req;
-    }
-    tevent_req_set_callback(subreq, sasl_bind_interactive_done, req);
+    /* FIXME: Warning, this is a sync call!
+     * No async variant exist in openldap libraries yet */
 
+    ret = ldap_sasl_interactive_bind_s(state->sh->ldap, NULL,
+                                       sasl_mech, NULL, NULL,
+                                       LDAP_SASL_QUIET,
+                                       (*sdap_sasl_interact), state);
+    state->result = ret;
+    if (ret != LDAP_SUCCESS) {
+        DEBUG(1, ("ldap_sasl_bind failed (%d)[%s]\n",
+                  ret, ldap_err2string(ret)));
+        goto fail;
+    }
+
+    if (!sh->connected) {
+        ret = sdap_set_connected(sh, ev);
+        if (ret) goto fail;
+    }
+
+    tevent_req_post(req, ev);
     return req;
-}
 
-static void sasl_bind_interactive_done(struct tevent_req *subreq)
-{
-    struct tevent_req *req;
-    struct sasl_bind_state *state;
-    int ret;
-
-    req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sasl_bind_state);
-
-    ret = ldap_sasl_interactive_bind_recv(subreq);
-    talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+fail:
+    if (ret == LDAP_SERVER_DOWN) {
+        tevent_req_error(req, ETIMEDOUT);
+    } else {
+        tevent_req_error(req, EIO);
     }
-
-    if (!state->sh->connected) {
-        ret = sdap_set_connected(state->sh, state->ev);
-        if (ret != EOK) {
-            tevent_req_error(req, EIO);
-            return;
-        }
-    }
-
-    tevent_req_done(req);
+    tevent_req_post(req, ev);
+    return req;
 }
 
 static int sdap_sasl_interact(LDAP *ld, unsigned flags,

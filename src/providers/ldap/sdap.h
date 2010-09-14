@@ -45,7 +45,6 @@ struct sdap_op;
 
 typedef void (sdap_op_callback_t)(struct sdap_op *op,
                                   struct sdap_msg *, int, void *);
-typedef int (fd_wakeup_callback_t)(void *);
 
 struct sdap_handle;
 
@@ -64,33 +63,18 @@ struct sdap_op {
     struct sdap_msg *last;
 };
 
-struct ldap_cb_data;
-
-struct request_spy {
-    struct fd_event_item *ptr;
-};
-
 struct fd_event_item {
     struct fd_event_item *prev;
     struct fd_event_item *next;
 
     int fd;
     struct tevent_fd *fde;
-
-    struct ldap_cb_data *cb_data;
-    fd_wakeup_callback_t *fd_wakeup_cb;
-    void *fd_wakeup_cb_data;
-    struct request_spy *spy;
-    struct tevent_timer *timeout_watcher;
 };
 
 struct ldap_cb_data {
     struct sdap_handle *sh;
     struct tevent_context *ev;
     struct fd_event_item *fd_list;
-
-    fd_wakeup_callback_t *wakeup_cb;
-    void *wakeup_cb_data;
 };
 
 struct sup_list {
