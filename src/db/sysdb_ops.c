@@ -2227,7 +2227,7 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                                          add_groups[i], user);
             if (ret != EOK) {
                 DEBUG(1, ("Could not add user [%s] to group [%s]. "
-                          "Skipping.\n"));
+                          "Skipping.\n", user, add_groups[i]));
                 /* Continue on, we should try to finish the rest */
             }
         }
@@ -2240,7 +2240,7 @@ errno_t sysdb_update_members(struct sysdb_ctx *sysdb,
                                             del_groups[i], user);
             if (ret != EOK) {
                 DEBUG(1, ("Could not remove user [%s] from group [%s]. "
-                          "Skipping\n"));
+                          "Skipping\n", user, del_groups[i]));
                 /* Continue on, we should try to finish the rest */
             }
         }
