@@ -1122,7 +1122,7 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
         ldap_grouplist = NULL;
     } else {
         ret = sysdb_attrs_to_list(state, ldap_groups, count,
-                                  state->opts->group_map[SDAP_AT_GROUP_NAME].name,
+                                  SYSDB_NAME,
                                   &ldap_grouplist);
         if (ret != EOK) {
             tevent_req_error(req, ret);
