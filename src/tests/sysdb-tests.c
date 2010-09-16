@@ -2158,6 +2158,38 @@ START_TEST (test_sysdb_update_members)
 }
 END_TEST
 
+START_TEST (test_sysdb_group_dn_name)
+{
+    struct sysdb_test_ctx *test_ctx;
+    int ret;
+    struct ldb_dn *group_dn;
+    const char *groupname;
+    char *parsed;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    groupname = talloc_asprintf(test_ctx, "testgroup%d", _i);
+    group_dn = sysdb_group_dn(test_ctx->sysdb, test_ctx, "LOCAL", groupname);
+    if (!group_dn || !groupname) {
+        fail("Out of memory");
+        return;
+    }
+
+    ret = sysdb_group_dn_name(test_ctx->sysdb, test_ctx,
+                              ldb_dn_get_linearized(group_dn), &parsed);
+    fail_if(ret != EOK, "Cannot get the group name from DN");
+
+    fail_if(strcmp(groupname, parsed) != 0,
+            "Names don't match (got %s)", parsed);
+    talloc_free(test_ctx);
+}
+END_TEST
+
 Suite *create_sysdb_suite(void)
 {
     Suite *s = suite_create("sysdb");
@@ -2175,6 +2207,9 @@ Suite *create_sysdb_suite(void)
 
     /* Verify the groups were added */
     tcase_add_loop_test(tc_sysdb, test_sysdb_getgrnam, 28000, 28010);
+
+    /* sysdb_group_dn_name returns the name of the group in question */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_group_dn_name, 28000, 28010);
 
     /* sysdb_store_user allows setting attributes for existing users */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_user_existing, 27000, 27010);
