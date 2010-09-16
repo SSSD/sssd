@@ -177,6 +177,7 @@ enum sdap_basic_opt {
     SDAP_KRB5_TICKET_LIFETIME,
     SDAP_ACCESS_FILTER,
     SDAP_NETGROUP_SEARCH_BASE,
+    SDAP_NESTING_LEVEL,
 
     SDAP_OPTS_BASIC /* opts counter */
 };

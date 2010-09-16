@@ -578,6 +578,22 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_group_nesting_level (integer)</term>
+                    <listitem>
+                        <para>
+                            If ldap_schema is set to a schema format that
+                            supports nested groups (e.g. RFC2307bis), then
+                            this option controls how many levels of nesting
+                            SSSD will follow. This option has no effect on the
+                            RFC2307 schema.
+                        </para>
+                        <para>
+                            Default: 2
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_netgroup_search_base (string)</term>
                     <listitem>
                         <para>
