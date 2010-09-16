@@ -162,6 +162,7 @@ enum sdap_basic_opt {
     SDAP_DNS_SERVICE_NAME,
     SDAP_ACCESS_FILTER,
     SDAP_KRB5_TICKET_LIFETIME,
+    SDAP_NESTING_LEVEL,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
