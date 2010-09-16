@@ -1686,13 +1686,13 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
     for (attr_idx = 0; attr_idx < attr_count; attr_idx++) {
         /* Examine each attribute within the entry */
         for (i = 0; i < attrs[attr_idx]->num; i++) {
-            if (strcasecmp(attrs[attr_idx]->a->name, attr_name) == 0) {
+            if (strcasecmp(attrs[attr_idx]->a[i].name, attr_name) == 0) {
                 /* Attribute name matches the requested name
                  * Copy it to the output list
                  */
                 list[list_idx] = talloc_strdup(
                         list,
-                        (const char *)attrs[attr_idx]->a->values[0].data);
+                        (const char *)attrs[attr_idx]->a[i].values[0].data);
                 if (!list[list_idx]) {
                     talloc_free(list);
                     return ENOMEM;
