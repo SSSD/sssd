@@ -100,6 +100,7 @@ service.
     --with-pubconf-path=%{pubconfpath} \
     --with-init-dir=%{_initrddir} \
     --enable-nsslibdir=/%{_lib} \
+    --enable-pammoddir=/%{_lib}/security \
     --disable-static \
     --disable-rpath
 
@@ -143,12 +144,8 @@ rm -f \
     $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
     $RPM_BUILD_ROOT/%{python_sitearch}/pysss.la
 
-if test -e $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
-then
-    # Apppend this file to the sss_daemon.lang
-    # Older versions of rpmbuild can only handle one -f option
-    echo %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so >> sssd.lang
-fi
+# Older versions of rpmbuild can only handle one -f option
+# So we need to append to the sssd.lang file
 for file in `ls $RPM_BUILD_ROOT/%{python_sitelib}/*.egg-info 2> /dev/null`
 do
     echo %{python_sitelib}/`basename $file` >> sssd.lang
@@ -199,17 +196,18 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man8/sss_useradd.8*
 %{_mandir}/man8/sss_userdel.8*
 %{_mandir}/man8/sss_usermod.8*
-%{_mandir}/man8/sssd_krb5_locator_plugin.8*
+%{_mandir}/man8/sss_obfuscate.8*
 %{python_sitearch}/pysss.so
 %{python_sitelib}/*.py*
-
 
 %files client
 %defattr(-,root,root,-)
 %doc src/sss_client/COPYING src/sss_client/COPYING.LESSER
 /%{_lib}/libnss_sss.so.2
 /%{_lib}/security/pam_sss.so
+%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %{_mandir}/man8/pam_sss.8*
+%{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
 %post
 /sbin/ldconfig
