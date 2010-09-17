@@ -105,7 +105,7 @@ int main(int argc, const char *argv[])
     int opt;
     poptContext pc;
     int number_failed;
-    int debug;
+    int debug = 0;
 
     struct poptOption long_options[] = {
         POPT_AUTOHELP
