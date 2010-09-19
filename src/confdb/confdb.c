@@ -835,6 +835,13 @@ static int confdb_get_domain_internal(struct confdb_ctx *cdb,
         goto done;
     }
 
+    ret = get_entry_as_uint32(res->msgs[0], &domain->entry_cache_timeout,
+                              CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT, 5400);
+    if (ret != EOK) {
+        DEBUG(0, ("Invalid value for [%s]\n", CONFDB_DOMAIN_ENTRY_CACHE_TIMEOUT));
+        goto done;
+    }
+
     *_domain = domain;
     ret = EOK;
 

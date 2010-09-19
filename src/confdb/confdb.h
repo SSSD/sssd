@@ -140,6 +140,8 @@ struct sss_domain_info {
     bool cache_credentials;
     bool legacy_passwords;
 
+    uint32_t entry_cache_timeout;
+
     struct sss_domain_info *next;
 };
 
