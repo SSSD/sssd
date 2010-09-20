@@ -1392,6 +1392,119 @@ int sdap_get_groups_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* ==Save-fake-group-list=====================================*/
+static errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
+                                          struct sss_domain_info *dom,
+                                          char **groupnames,
+                                          struct sysdb_attrs **ldap_groups,
+                                          int ldap_groups_count)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *msg;
+    int i, mi, ai;
+    const char *name;
+    char **missing;
+    gid_t gid;
+    int ret;
+    bool in_transaction = false;
+
+    /* There are no groups in LDAP but we should add user to groups ?? */
+    if (ldap_groups_count == 0) return EOK;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) return ENOMEM;
+
+    missing = talloc_array(tmp_ctx, char *, ldap_groups_count+1);
+    if (!missing) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    mi = 0;
+
+    ret = sysdb_transaction_start(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot start sysdb transaction [%d]: %s\n",
+                   ret, strerror(ret)));
+        goto fail;
+    }
+    in_transaction = true;
+
+    for (i=0; groupnames[i]; i++) {
+        ret = sysdb_search_group_by_name(tmp_ctx, sysdb, dom,
+                                         groupnames[i], NULL, &msg);
+        if (ret == EOK) {
+            continue;
+        } else if (ret == ENOENT) {
+            DEBUG(7, ("Group #%d [%s] is not cached, need to add a fake entry\n",
+                       i, groupnames[i]));
+            missing[mi] = groupnames[i];
+            mi++;
+            continue;
+        } else if (ret != ENOENT) {
+            DEBUG(1, ("search for group failed [%d]: %s\n",
+                      ret, strerror(ret)));
+            goto fail;
+        }
+    }
+    missing[mi] = NULL;
+
+    /* All groups are cached, nothing to do */
+    if (mi == 0) {
+        talloc_zfree(tmp_ctx);
+        goto done;
+    }
+
+    for (i=0; missing[i]; i++) {
+        /* The group is not in sysdb, need to add a fake entry */
+        for (ai=0; ai < ldap_groups_count; ai++) {
+            ret = sysdb_attrs_get_string(ldap_groups[ai],
+                                         SYSDB_NAME,
+                                         &name);
+            if (ret) {
+                DEBUG(1, ("The group has no name attribute\n"));
+                goto fail;
+            }
+
+            if (strcmp(name, missing[i]) == 0) {
+                ret = sysdb_attrs_get_ulong(ldap_groups[ai],
+                                            SYSDB_GIDNUM,
+                                            (unsigned long *) &gid);
+                if (ret) {
+                    DEBUG(1, ("The GID attribute is missing or malformed\n"));
+                    goto fail;
+                }
+
+
+                DEBUG(8, ("Adding fake group %s to sysdb\n", name));
+                ret = sysdb_add_incomplete_group(sysdb, dom, name, gid);
+                if (ret != EOK) {
+                    goto fail;
+                }
+                break;
+            }
+        }
+
+        if (ai == ldap_groups_count) {
+            DEBUG(2, ("Group %s not present in LDAP\n", missing[i]));
+            ret = EINVAL;
+            goto fail;
+        }
+    }
+
+done:
+    ret = sysdb_transaction_commit(sysdb);
+    if (ret != EOK) {
+        DEBUG(1, ("sysdb_transaction_commit failed.\n"));
+        goto fail;
+    }
+    in_transaction = false;
+    ret = EOK;
+fail:
+    if (in_transaction) {
+        sysdb_transaction_cancel(sysdb);
+    }
+    return ret;
+}
 
 /* ==Initgr-call-(groups-a-user-is-member-of)-RFC2307-Classic/BIS========= */
 
@@ -1551,6 +1664,18 @@ static void sdap_initgr_rfc2307_process(struct tevent_req *subreq)
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
+    }
+
+    /* Add fake entries for any groups the user should be added as
+     * member of but that are not cached in sysdb
+     */
+    if (add_groups && add_groups[0]) {
+        ret = sdap_add_incomplete_groups(state->sysdb, state->dom,
+                                         add_groups, ldap_groups, count);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+            return;
+        }
     }
 
     ret = sysdb_update_members(state->sysdb, state->dom, state->name,
