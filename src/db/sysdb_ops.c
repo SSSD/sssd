@@ -2448,6 +2448,181 @@ int sysdb_add_group_recv(struct tevent_req *req)
 }
 
 
+/* =Add-A-Incomplete-Group====================================================== */
+
+struct sysdb_add_incomplete_group_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sss_domain_info *domain;
+
+    const char *name;
+    gid_t gid;
+};
+
+static void sysdb_add_incomplete_group_user_check(struct tevent_req *subreq);
+static void sysdb_add_incomplete_group_basic_done(struct tevent_req *subreq);
+static void sysdb_add_incomplete_group_set_attrs_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_add_incomplete_group_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *name, gid_t gid)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_add_incomplete_group_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sysdb_add_incomplete_group_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->name = name;
+    state->gid = gid;
+
+    if (handle->ctx->mpg) {
+        /* In MPG domains you can't have groups with the same name as users,
+         * search if a user with the same name exists.
+         * Don't worry about groups, if we try to add a group with the same
+         * name the operation will fail */
+
+        subreq = sysdb_search_user_by_name_send(state, ev, NULL, handle,
+                                                domain, name, NULL);
+        if (!subreq) {
+            ERROR_OUT(ret, ENOMEM, fail);
+        }
+        tevent_req_set_callback(subreq, sysdb_add_incomplete_group_user_check, req);
+        return req;
+    }
+
+    /* try to add the group */
+    subreq = sysdb_add_basic_group_send(state, ev, handle,
+                                        domain, name, gid);
+    if (!subreq) {
+        ERROR_OUT(ret, ENOMEM, fail);
+    }
+    tevent_req_set_callback(subreq, sysdb_add_incomplete_group_basic_done, req);
+    return req;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sysdb_add_incomplete_group_user_check(struct tevent_req *subreq)
+{
+
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_add_incomplete_group_state *state = tevent_req_data(req,
+                                           struct sysdb_add_incomplete_group_state);
+    struct ldb_message *msg;
+    int ret;
+
+    /* We can succeed only if we get an ENOENT error, which means no users
+     * with the same name exist.
+     * If any other error is returned fail as well. */
+    ret = sysdb_search_user_recv(subreq, state, &msg);
+    talloc_zfree(subreq);
+    if (ret != ENOENT) {
+        if (ret == EOK) ret = EEXIST;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* try to add the group */
+    subreq = sysdb_add_basic_group_send(state, state->ev,
+                                        state->handle, state->domain,
+                                        state->name, state->gid);
+    if (!subreq) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_add_incomplete_group_basic_done, req);
+}
+
+static void sysdb_add_incomplete_group_basic_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_add_incomplete_group_state *state = tevent_req_data(req,
+                                           struct sysdb_add_incomplete_group_state);
+    int ret;
+    struct sysdb_attrs *attrs;
+    time_t now;
+
+    ret = sysdb_add_basic_group_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    attrs = sysdb_new_attrs(state);
+    if (!attrs) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    now = time(NULL);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 now-1);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    subreq = sysdb_set_group_attr_send(state, state->ev,
+                                       state->handle, state->domain,
+                                       state->name, attrs,
+                                       SYSDB_MOD_REP);
+    if (!subreq) {
+        DEBUG(6, ("Error: Out of memory\n"));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sysdb_add_incomplete_group_set_attrs_done, req);
+}
+
+static void sysdb_add_incomplete_group_set_attrs_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    int ret;
+
+    ret = sysdb_set_group_attr_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_add_incomplete_group_recv(struct tevent_req *req)
+{
+    return sysdb_op_default_recv(req);
+}
+
 /* =Add-Or-Remove-Group-Memeber=========================================== */
 
 /* mod_op must be either SYSDB_MOD_ADD or SYSDB_MOD_DEL */

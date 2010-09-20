@@ -483,6 +483,14 @@ struct tevent_req *sysdb_add_group_send(TALLOC_CTX *mem_ctx,
                                         int cache_timeout);
 int sysdb_add_group_recv(struct tevent_req *req);
 
+/* Add a incomplete, expired group */
+struct tevent_req *sysdb_add_incomplete_group_send(TALLOC_CTX *mem_ctx,
+                                             struct tevent_context *ev,
+                                             struct sysdb_handle *handle,
+                                             struct sss_domain_info *domain,
+                                             const char *name, gid_t gid);
+int sysdb_add_incomplete_group_recv(struct tevent_req *req);
+
 /* mod_op must be either LDB_FLAG_MOD_ADD or LDB_FLAG_MOD_DELETE */
 struct tevent_req *sysdb_mod_group_member_send(TALLOC_CTX *mem_ctx,
                                                struct tevent_context *ev,

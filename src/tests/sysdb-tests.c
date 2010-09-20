@@ -511,6 +511,39 @@ static void test_store_group_done(struct tevent_req *subreq)
     return test_return(data, ret);
 }
 
+static void test_add_incomplete_group_done(struct tevent_req *subreq);
+
+static void test_add_incomplete_group(struct tevent_req *req)
+{
+    struct test_data *data = tevent_req_callback_data(req, struct test_data);
+    struct tevent_req *subreq;
+    int ret;
+
+    ret = sysdb_transaction_recv(req, data, &data->handle);
+    if (ret != EOK) {
+        return test_return(data, ret);
+    }
+
+    subreq = sysdb_add_incomplete_group_send(data, data->ev, data->handle,
+                                       data->ctx->domain, data->groupname,
+                                       data->gid);
+    if (!subreq) {
+        test_return(data, ret);
+    }
+    tevent_req_set_callback(subreq, test_add_incomplete_group_done, data);
+}
+
+static void test_add_incomplete_group_done(struct tevent_req *subreq)
+{
+    struct test_data *data = tevent_req_callback_data(subreq, struct test_data);
+    int ret;
+
+    ret = sysdb_add_group_recv(subreq);
+    talloc_zfree(subreq);
+
+    return test_return(data, ret);
+}
+
 static void test_remove_group_done(struct tevent_req *subreq);
 
 static void test_remove_group(struct tevent_req *req)
@@ -1175,6 +1208,41 @@ START_TEST (test_sysdb_store_group)
     }
 
     fail_if(ret != EOK, "Could not store POSIX group #%d", _i);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_add_incomplete_group)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    struct tevent_req *req;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
+
+    req = sysdb_transaction_send(data, data->ev, test_ctx->sysdb);
+    if (!req) {
+        ret = ENOMEM;
+    }
+
+    if (ret == EOK) {
+        tevent_req_set_callback(req, test_add_incomplete_group, data);
+        ret = test_loop(data);
+    }
+
+    fail_if(ret != EOK, "Could not store incomplete group #%d", _i);
     talloc_free(test_ctx);
 }
 END_TEST
@@ -3371,6 +3439,10 @@ Suite *create_sysdb_suite(void)
 
     /* Create a new group */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_group, 28010, 28020);
+
+    /* Create and remove a incomplete group */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_incomplete_group, 28020, 28030);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group, 28020, 28030);
 
     /* Verify the groups were added */
 
