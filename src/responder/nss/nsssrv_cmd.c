@@ -416,7 +416,8 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
                            int req_type,
                            const char *opt_name,
                            uint32_t opt_id,
-                           sss_dp_callback_t callback)
+                           sss_dp_callback_t callback,
+                           void *pvt)
 {
     errno_t ret;
     int timeout;
@@ -525,7 +526,7 @@ static errno_t check_cache(struct nss_dom_ctx *dctx,
         }
 
         ret = sss_dp_send_acct_req(cctx->rctx, cmdctx,
-                                   callback, dctx, timeout,
+                                   callback, pvt, timeout,
                                    dctx->domain->name,
                                    true, req_type,
                                    opt_name, opt_id);
@@ -643,7 +644,8 @@ static int nss_cmd_getpwnam_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_USER, name, 0,
-                              nss_cmd_getpwnam_dp_callback);
+                              nss_cmd_getpwnam_dp_callback,
+                              dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -864,7 +866,8 @@ static int nss_cmd_getpwuid_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_USER, NULL, cmdctx->id,
-                              nss_cmd_getpwuid_dp_callback);
+                              nss_cmd_getpwuid_dp_callback,
+                              dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -1900,7 +1903,8 @@ static int nss_cmd_getgrnam_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_GROUP, name, 0,
-                              nss_cmd_getgrnam_dp_callback);
+                              nss_cmd_getgrnam_dp_callback,
+                              dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -2121,7 +2125,8 @@ static int nss_cmd_getgrgid_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_GROUP, NULL, cmdctx->id,
-                              nss_cmd_getgrgid_dp_callback);
+                              nss_cmd_getgrgid_dp_callback,
+                              dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
@@ -2923,7 +2928,8 @@ static int nss_cmd_initgroups_search(struct nss_dom_ctx *dctx)
         if (dctx->check_provider) {
             ret = check_cache(dctx, nctx, dctx->res,
                               SSS_DP_INITGROUPS, name, 0,
-                              nss_cmd_initgroups_dp_callback);
+                              nss_cmd_initgroups_dp_callback,
+                              dctx);
             if (ret != EOK) {
                 /* Anything but EOK means we should reenter the mainloop
                  * because we may be refreshing the cache
