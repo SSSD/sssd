@@ -317,6 +317,8 @@ dist_noinst_HEADERS = \
     src/responder/common/responder_packet.h \
     src/responder/pam/pamsrv.h \
     src/responder/nss/nsssrv.h \
+    src/responder/nss/nsssrv_private.h \
+    src/responder/nss/nsssrv_netgroup.h \
     src/responder/common/negcache.h \
     src/sbus/sbus_client.h \
     src/sbus/sssd_dbus.h \
@@ -375,6 +377,7 @@ sssd_LDADD = \
 sssd_nss_SOURCES = \
     src/responder/nss/nsssrv.c \
     src/responder/nss/nsssrv_cmd.c \
+    src/responder/nss/nsssrv_netgroup.c \
     $(SSSD_UTIL_OBJ) \
     $(SSSD_RESPONDER_OBJ)
 sssd_nss_LDADD = \

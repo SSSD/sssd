@@ -115,6 +115,9 @@ struct cli_ctx {
 
     int grent_dom_idx;
     int grent_cur;
+
+    char *netgr_name;
+    int netgrent_cur;
 };
 
 struct sss_cmd_table {
@@ -153,6 +156,7 @@ struct cli_protocol_version *register_cli_protocol_version(void);
 #define SSS_DP_USER 1
 #define SSS_DP_GROUP 2
 #define SSS_DP_INITGROUPS 3
+#define SSS_DP_NETGR 4
 
 typedef void (*sss_dp_callback_t)(uint16_t err_maj, uint32_t err_min,
                                   const char *err_msg, void *ptr);

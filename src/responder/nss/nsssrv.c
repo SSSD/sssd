@@ -162,6 +162,7 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     struct be_conn *iter;
     struct nss_ctx *nctx;
     int ret, max_retries;
+    int hret;
 
     nctx = talloc_zero(mem_ctx, struct nss_ctx);
     if (!nctx) {
@@ -210,6 +211,13 @@ int nss_process_init(TALLOC_CTX *mem_ctx,
     for (iter = nctx->rctx->be_conns; iter; iter = iter->next) {
         sbus_reconnect_init(iter->conn, max_retries,
                             nss_dp_reconnect_init, iter);
+    }
+
+    /* Create the lookup table for netgroup results */
+    hret = hash_create(10, &nctx->netgroups, NULL, NULL);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(0,("Unable to initialize netgroup hash table\n"));
+        return EIO;
     }
 
     DEBUG(1, ("NSS Initialization complete\n"));

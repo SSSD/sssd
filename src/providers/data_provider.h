@@ -145,6 +145,7 @@
 #define BE_REQ_USER 0x0001
 #define BE_REQ_GROUP 0x0002
 #define BE_REQ_INITGROUPS 0x0003
+#define BE_REQ_NETGROUP 0x0004
 #define BE_REQ_FAST 0x1000
 
 /* AUTH related common data and functions */

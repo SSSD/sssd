@@ -275,6 +275,9 @@ int sss_dp_send_acct_req(struct resp_ctx *rctx, TALLOC_CTX *callback_memctx,
     case SSS_DP_INITGROUPS:
         be_type = BE_REQ_INITGROUPS;
         break;
+    case SSS_DP_NETGR:
+        be_type = BE_REQ_NETGROUP;
+        break;
     default:
         return EINVAL;
     }

@@ -22,6 +22,7 @@
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
 #include "responder/nss/nsssrv_private.h"
+#include "responder/nss/nsssrv_netgroup.h"
 #include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
@@ -363,8 +364,11 @@ errno_t check_cache(struct nss_dom_ctx *dctx,
     struct cli_ctx *cctx = cmdctx->cctx;
     bool off_band_update = false;
 
-    /* when searching for a user, more than one reply is a db error */
-    if ((req_type == SSS_DP_USER) && (res->count > 1)) {
+    /* when searching for a user or netgroup, more than one reply is a
+     * db error
+     */
+    if ((req_type == SSS_DP_USER || req_type == SSS_DP_NETGR) &&
+            (res->count > 1)) {
         DEBUG(1, ("getpwXXX call returned more than one result!"
                   " DB Corrupted?\n"));
         ret = nss_cmd_send_error(cmdctx, ENOENT);
@@ -3011,6 +3015,9 @@ static struct sss_cmd_table nss_cmds[] = {
     {SSS_NSS_GETGRENT, nss_cmd_getgrent},
     {SSS_NSS_ENDGRENT, nss_cmd_endgrent},
     {SSS_NSS_INITGR, nss_cmd_initgroups},
+    {SSS_NSS_SETNETGRENT, nss_cmd_setnetgrent},
+    {SSS_NSS_GETNETGRENT, nss_cmd_getnetgrent},
+    {SSS_NSS_ENDNETGRENT, nss_cmd_endnetgrent},
     {SSS_CLI_NULL, NULL}
 };
 
