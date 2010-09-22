@@ -21,45 +21,11 @@
 
 #include "util/util.h"
 #include "responder/nss/nsssrv.h"
+#include "responder/nss/nsssrv_private.h"
 #include "responder/common/negcache.h"
 #include "confdb/confdb.h"
 #include "db/sysdb.h"
 #include <time.h>
-
-struct nss_cmd_ctx {
-    struct cli_ctx *cctx;
-    char *name;
-    uint32_t id;
-
-    bool immediate;
-    bool check_next;
-    bool enum_cached;
-
-    int saved_dom_idx;
-    int saved_cur;
-};
-
-struct dom_ctx {
-    struct sss_domain_info *domain;
-    struct ldb_result *res;
-};
-
-struct getent_ctx {
-    struct dom_ctx *doms;
-    int num;
-    bool ready;
-    struct setent_req_list *reqs;
-};
-
-struct nss_dom_ctx {
-    struct nss_cmd_ctx *cmdctx;
-    struct sss_domain_info *domain;
-
-    bool check_provider;
-
-    /* cache results */
-    struct ldb_result *res;
-};
 
 static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
 {
@@ -78,20 +44,8 @@ static int nss_cmd_send_error(struct nss_cmd_ctx *cmdctx, int err)
     return EOK;
 }
 
-#define NSS_CMD_FATAL_ERROR(cctx) do { \
-    DEBUG(1,("Fatal error, killing connection!\n")); \
-    talloc_free(cctx); \
-    return; \
-} while(0)
-
-#define NSS_CMD_FATAL_ERROR_CODE(cctx, ret) do { \
-    DEBUG(1,("Fatal error, killing connection!\n")); \
-    talloc_free(cctx); \
-    return ret; \
-} while(0)
-
-static struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
-                                           const char *domain)
+struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
+                                    const char *domain)
 {
     struct sss_domain_info *dom;
 
@@ -103,7 +57,7 @@ static struct sss_domain_info *nss_get_dom(struct sss_domain_info *doms,
     return dom;
 }
 
-static int fill_empty(struct sss_packet *packet)
+int fill_empty(struct sss_packet *packet)
 {
     uint8_t *body;
     size_t blen;
@@ -140,7 +94,7 @@ static int nss_cmd_send_empty(struct nss_cmd_ctx *cmdctx)
     return EOK;
 }
 
-static int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
+int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
 {
     switch (ret) {
     case EOK:
@@ -178,20 +132,9 @@ static int nss_cmd_done(struct nss_cmd_ctx *cmdctx, int ret)
  *  Enumeration procedures *
  ***************************/
 
-struct setent_req_list {
-    struct setent_req_list *prev;
-    struct setent_req_list *next;
-    struct getent_ctx *getent_ctx;
-
-    struct tevent_req *req;
-};
-
-static int
-setent_remove_ref(TALLOC_CTX *ctx);
-static errno_t
-setent_add_ref(TALLOC_CTX *memctx,
-               struct getent_ctx *getent_ctx,
-               struct tevent_req *req)
+errno_t setent_add_ref(TALLOC_CTX *memctx,
+                       struct getent_ctx *getent_ctx,
+                       struct tevent_req *req)
 {
     struct setent_req_list *entry =
             talloc_zero(memctx, struct setent_req_list);
@@ -207,8 +150,7 @@ setent_add_ref(TALLOC_CTX *memctx,
     return EOK;
 }
 
-static int
-setent_remove_ref(TALLOC_CTX *ctx)
+int setent_remove_ref(TALLOC_CTX *ctx)
 {
     struct setent_req_list *entry =
             talloc_get_type(ctx, struct setent_req_list);
@@ -221,14 +163,6 @@ struct setent_ctx {
     struct nss_ctx *nctx;
     struct nss_dom_ctx *dctx;
     struct getent_ctx *getent_ctx;
-};
-
-struct setent_step_ctx {
-    struct nss_ctx *nctx;
-    struct nss_dom_ctx *dctx;
-    struct getent_ctx *getent_ctx;
-    struct resp_ctx *rctx;
-    bool enum_cached;
 };
 
 /****************************************************************************
@@ -410,14 +344,14 @@ static int nss_cmd_getpw_send_reply(struct nss_dom_ctx *dctx, bool filter)
 
 /* FIXME: do not check res->count, but get in a msgs and check in parent */
 /* FIXME: do not sss_cmd_done, but return error and let parent do it */
-static errno_t check_cache(struct nss_dom_ctx *dctx,
-                           struct nss_ctx *nctx,
-                           struct ldb_result *res,
-                           int req_type,
-                           const char *opt_name,
-                           uint32_t opt_id,
-                           sss_dp_callback_t callback,
-                           void *pvt)
+errno_t check_cache(struct nss_dom_ctx *dctx,
+                    struct nss_ctx *nctx,
+                    struct ldb_result *res,
+                    int req_type,
+                    const char *opt_name,
+                    uint32_t opt_id,
+                    sss_dp_callback_t callback,
+                    void *pvt)
 {
     errno_t ret;
     int timeout;
