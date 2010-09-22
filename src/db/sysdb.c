@@ -56,6 +56,7 @@ errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
                             const char *_dn, char **_name)
 {
     struct ldb_dn *dn;
+    const struct ldb_val *val;
     *_name = NULL;
 
     dn = ldb_dn_new_fmt(memctx, ctx->ldb, "%s", _dn);
@@ -63,7 +64,14 @@ errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
         return ENOMEM;
     }
 
-    *_name = talloc_strdup(memctx, ldb_dn_get_rdn_name(dn));
+    val = ldb_dn_get_rdn_val(dn);
+    if (val == NULL) {
+        talloc_zfree(dn);
+        return EINVAL;
+    }
+
+    *_name = talloc_strndup(memctx, (char *) val->data, val->length);
+
     if (!*_name) {
         talloc_zfree(dn);
         return ENOMEM;
