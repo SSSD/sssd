@@ -57,15 +57,22 @@ static void setup_files_test(void)
 static void teardown_files_test(void)
 {
     char *cmd = NULL;
+    int ret;
 
     /* OK this is crude but since the functions to remove tree are under test.. */
     if (dir_path && test_ctx) {
         cmd = talloc_asprintf(test_ctx, "/bin/rm -rf %s\n", dir_path);
-        system(cmd);
+        ret = system(cmd);
+        if (ret == -1) {
+            DEBUG(1, ("Removing [%s] failed.\n", dir_path));
+        }
     }
     if (dst_path && test_ctx) {
         cmd = talloc_asprintf(test_ctx, "/bin/rm -rf %s\n", dst_path);
-        system(cmd);
+        ret = system(cmd);
+        if (ret == -1) {
+            DEBUG(1, ("Removing [%s] failed.\n", dst_path));
+        }
     }
 
     /* clean up */
@@ -99,7 +106,7 @@ START_TEST(test_remove_tree)
     char origpath[PATH_MAX+1];
 
     errno = 0;
-    getcwd(origpath, PATH_MAX);
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
     fail_unless(errno == 0, "Cannot getcwd\n");
 
     DEBUG(5, ("About to delete %s\n", dir_path));
@@ -150,7 +157,7 @@ START_TEST(test_simple_copy)
     int fd = -1;
 
     errno = 0;
-    getcwd(origpath, PATH_MAX);
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
     fail_unless(errno == 0, "Cannot getcwd\n");
 
     /* create a file */
@@ -199,7 +206,7 @@ START_TEST(test_copy_symlink)
     struct stat statbuf;
 
     errno = 0;
-    getcwd(origpath, PATH_MAX);
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
     fail_unless(errno == 0, "Cannot getcwd\n");
 
     /* create a subdir */
@@ -241,7 +248,7 @@ START_TEST(test_copy_node)
     struct stat statbuf;
 
     errno = 0;
-    getcwd(origpath, PATH_MAX);
+    fail_unless(getcwd(origpath, PATH_MAX) == origpath, "Cannot getcwd\n");
     fail_unless(errno == 0, "Cannot getcwd\n");
 
     /* create a node */
