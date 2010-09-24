@@ -161,7 +161,7 @@ static void do_failed_login_test(uint32_t failed_login_attempts,
                                  int expected_counter,
                                  time_t expected_delay)
 {
-    struct sysdb_test_ctx *test_ctx;
+    struct sysdb_test_ctx *test_ctx = NULL;
     int ret;
     const char *val[2];
     val[1] = NULL;

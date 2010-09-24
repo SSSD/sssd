@@ -452,7 +452,7 @@ static errno_t sdap_access_recv(struct tevent_req *req, int *pam_status)
 static void sdap_access_done(struct tevent_req *req)
 {
     errno_t ret;
-    int pam_status;
+    int pam_status = PAM_SYSTEM_ERR;
     struct be_req *breq =
             tevent_req_callback_data(req, struct be_req);
 

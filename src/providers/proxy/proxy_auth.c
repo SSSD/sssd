@@ -711,7 +711,7 @@ static void proxy_child_done(struct tevent_req *req)
 {
     struct proxy_client_ctx *client_ctx =
             tevent_req_callback_data(req, struct proxy_client_ctx);
-    struct pam_data *pd;
+    struct pam_data *pd = NULL;
     char *password;
     int ret;
     struct tevent_immediate *imm;

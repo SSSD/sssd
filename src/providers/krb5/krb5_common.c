@@ -172,8 +172,8 @@ errno_t write_krb5info_file(const char *realm, const char *server,
 
     fd = mkstemp(tmp_name);
     if (fd == -1) {
-        DEBUG(1, ("mkstemp failed [%d][%s].\n", errno, strerror(errno)));
         ret = errno;
+        DEBUG(1, ("mkstemp failed [%d][%s].\n", ret, strerror(ret)));
         goto done;
     }
 
@@ -184,7 +184,8 @@ errno_t write_krb5info_file(const char *realm, const char *server,
             if (errno == EINTR || errno == EAGAIN) {
                 continue;
             }
-            DEBUG(1, ("write failed [%d][%s].\n", errno, strerror(errno)));
+            ret = errno;
+            DEBUG(1, ("write failed [%d][%s].\n", ret, strerror(ret)));
             goto done;
         }
         else {
@@ -195,24 +196,28 @@ errno_t write_krb5info_file(const char *realm, const char *server,
     if (written != server_len) {
         DEBUG(1, ("Write error, wrote [%d] bytes, expected [%d]\n",
                    written, server_len));
+        ret = EIO;
         goto done;
     }
 
     ret = fchmod(fd, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
     if (ret == -1) {
-        DEBUG(1, ("fchmod failed [%d][%s].\n", errno, strerror(errno)));
+        ret = errno;
+        DEBUG(1, ("fchmod failed [%d][%s].\n", ret, strerror(ret)));
         goto done;
     }
 
     ret = close(fd);
     if (ret == -1) {
-        DEBUG(1, ("close failed [%d][%s].\n", errno, strerror(errno)));
+        ret = errno;
+        DEBUG(1, ("close failed [%d][%s].\n", ret, strerror(ret)));
         goto done;
     }
 
     ret = rename(tmp_name, krb5info_name);
     if (ret == -1) {
-        DEBUG(1, ("rename failed [%d][%s].\n", errno, strerror(errno)));
+        ret = errno;
+        DEBUG(1, ("rename failed [%d][%s].\n", ret, strerror(ret)));
         goto done;
     }
 
@@ -249,7 +254,8 @@ static void krb5_resolve_callback(void *private_data, struct fo_server *server)
 
     if (inet_ntop(srvaddr->h_addrtype, srvaddr->h_addr_list[0],
                   address, 128) == NULL) {
-        DEBUG(1, ("inet_ntop failed [%d][%s].\n", errno, strerror(errno)));
+        ret = errno;
+        DEBUG(1, ("inet_ntop failed [%d][%s].\n", ret, strerror(ret)));
         return;
     }
 
