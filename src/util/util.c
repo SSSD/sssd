@@ -462,3 +462,56 @@ done:
     talloc_free(tmp_ctx);
     return ret;
 }
+
+static void *hash_talloc(const size_t size, void *pvt)
+{
+    return talloc_size(pvt, size);
+}
+
+static void hash_talloc_free(void *ptr, void *pvt)
+{
+    talloc_free(ptr);
+}
+
+errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
+                        unsigned long count,
+                        hash_table_t **tbl)
+{
+    errno_t ret;
+    hash_table_t *table;
+    int hret;
+
+    TALLOC_CTX *internal_ctx;
+    internal_ctx = talloc_new(NULL);
+    if (!internal_ctx) {
+        return ENOMEM;
+    }
+
+    hret = hash_create_ex(count, &table, 0, 0, 0, 0,
+                          hash_talloc, hash_talloc_free,
+                          internal_ctx, NULL, NULL);
+    switch (hret) {
+    case HASH_SUCCESS:
+        /* Steal the table pointer onto the mem_ctx,
+         * then make the internal_ctx a child of
+         * table.
+         *
+         * This way, we can clean up the values when
+         * we talloc_free() the table
+         */
+        *tbl = talloc_steal(mem_ctx, table);
+        talloc_steal(table, internal_ctx);
+        return EOK;
+
+    case HASH_ERROR_NO_MEMORY:
+        ret = ENOMEM;
+    default:
+        ret = EIO;
+    }
+
+    DEBUG(0, ("Could not create hash table: [%d][%s]\n",
+              hret, hash_error_string(hret)));
+
+    talloc_free(internal_ctx);
+    return ret;
+}

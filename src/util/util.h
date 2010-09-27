@@ -40,6 +40,7 @@
 #include <talloc.h>
 #include <tevent.h>
 #include <ldb.h>
+#include <dhash.h>
 
 #ifndef HAVE_ERRNO_T
 #define HAVE_ERRNO_T
@@ -332,6 +333,9 @@ int split_on_separator(TALLOC_CTX *mem_ctx, const char *str,
 
 char **parse_args(const char *str);
 
+errno_t sss_hash_create(TALLOC_CTX *mem_ctx,
+                        unsigned long count,
+                        hash_table_t **tbl);
 
 /* Copy a NULL-terminated string list
  * Returns NULL on out of memory error or invalid input

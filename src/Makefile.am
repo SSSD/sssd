@@ -125,7 +125,8 @@ endif
 libsss_crypt_la_SOURCES = \
     $(SSS_CRYPT_SOURCES)
 libsss_crypt_la_CPPFLAGS = \
-    $(SSS_CRYPT_CFLAGS)
+    $(SSS_CRYPT_CFLAGS) \
+    $(DHASH_CFLAGS)
 libsss_crypt_la_LIBADD = \
     $(SSS_CRYPT_LIBS)
 
