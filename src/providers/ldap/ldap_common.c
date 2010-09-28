@@ -69,7 +69,8 @@ struct dp_option default_basic_opts[] = {
     { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_dns_service_name", DP_OPT_STRING, { SSS_LDAP_SRV_NAME }, NULL_STRING },
     { "ldap_krb5_ticket_lifetime", DP_OPT_NUMBER, { .number = (24 * 60 * 60) }, NULL_NUMBER },
-    { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_netgroup_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING },
 };
 
 struct sdap_attr_map generic_attr_map[] = {
@@ -161,6 +162,16 @@ struct sdap_attr_map rfc2307bis_group_map[] = {
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
+struct sdap_attr_map netgroup_map[] = {
+    { "ldap_netgroup_object_class", "nisNetgroup", SYSDB_NETGROUP_CLASS, NULL },
+    { "ldap_netgroup_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_netgroup_member", "memberNisNetgroup", SYSDB_ORIG_NETGROUP_MEMBER, NULL },
+    { "ldap_netgroup_triple", "nisNetgroupTriple", SYSDB_NETGROUP_TRIPLE, NULL },
+    /* FIXME: this is 389ds specific */
+    { "ldap_netgroup_uuid", "nsUniqueId", SYSDB_UUID, NULL },
+    { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+};
+
 int ldap_get_options(TALLOC_CTX *memctx,
                      struct confdb_ctx *cdb,
                      const char *conf_path,
@@ -169,6 +180,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
     struct sdap_attr_map *default_attr_map;
     struct sdap_attr_map *default_user_map;
     struct sdap_attr_map *default_group_map;
+    struct sdap_attr_map *default_netgroup_map;
     struct sdap_options *opts;
     char *schema;
     const char *pwd_policy;
@@ -187,7 +199,7 @@ int ldap_get_options(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* set user/group search bases if they are not */
+    /* set user/group/netgroup search bases if they are not */
     if (NULL == dp_opt_get_string(opts->basic, SDAP_USER_SEARCH_BASE)) {
         ret = dp_opt_set_string(opts->basic, SDAP_USER_SEARCH_BASE,
                                 dp_opt_get_string(opts->basic,
@@ -210,6 +222,18 @@ int ldap_get_options(TALLOC_CTX *memctx,
         DEBUG(6, ("Option %s set to %s\n",
                   opts->basic[SDAP_GROUP_SEARCH_BASE].opt_name,
                   dp_opt_get_string(opts->basic, SDAP_GROUP_SEARCH_BASE)));
+    }
+
+    if (NULL == dp_opt_get_string(opts->basic, SDAP_NETGROUP_SEARCH_BASE)) {
+        ret = dp_opt_set_string(opts->basic, SDAP_NETGROUP_SEARCH_BASE,
+                                dp_opt_get_string(opts->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  opts->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(opts->basic, SDAP_NETGROUP_SEARCH_BASE)));
     }
 
     pwd_policy = dp_opt_get_string(opts->basic, SDAP_PWD_POLICY);
@@ -287,24 +311,28 @@ int ldap_get_options(TALLOC_CTX *memctx,
         default_attr_map = generic_attr_map;
         default_user_map = rfc2307_user_map;
         default_group_map = rfc2307_group_map;
+        default_netgroup_map = netgroup_map;
     } else
     if (strcasecmp(schema, "rfc2307bis") == 0) {
         opts->schema_type = SDAP_SCHEMA_RFC2307BIS;
         default_attr_map = generic_attr_map;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
+        default_netgroup_map = netgroup_map;
     } else
     if (strcasecmp(schema, "IPA") == 0) {
         opts->schema_type = SDAP_SCHEMA_IPA_V1;
         default_attr_map = gen_ipa_attr_map;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
+        default_netgroup_map = netgroup_map;
     } else
     if (strcasecmp(schema, "AD") == 0) {
         opts->schema_type = SDAP_SCHEMA_AD;
         default_attr_map = gen_ad_attr_map;
         default_user_map = rfc2307bis_user_map;
         default_group_map = rfc2307bis_group_map;
+        default_netgroup_map = netgroup_map;
     } else {
         DEBUG(0, ("Unrecognized schema type: %s\n", schema));
         ret = EINVAL;
@@ -331,6 +359,14 @@ int ldap_get_options(TALLOC_CTX *memctx,
                        default_group_map,
                        SDAP_OPTS_GROUP,
                        &opts->group_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(opts, cdb, conf_path,
+                       default_netgroup_map,
+                       SDAP_OPTS_NETGROUP,
+                       &opts->netgroup_map);
     if (ret != EOK) {
         goto done;
     }

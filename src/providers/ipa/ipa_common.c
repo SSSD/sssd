@@ -73,7 +73,8 @@ struct dp_option ipa_def_ldap_opts[] = {
     { "account_cache_expiration", DP_OPT_NUMBER, { .number = 0 }, NULL_NUMBER },
     { "ldap_dns_service_name", DP_OPT_STRING, { SSS_LDAP_SRV_NAME }, NULL_STRING },
     { "ldap_krb5_ticket_lifetime", DP_OPT_NUMBER, { .number = (24 * 60 * 60) }, NULL_NUMBER },
-    { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING }
+    { "ldap_access_filter", DP_OPT_STRING, NULL_STRING, NULL_STRING },
+    { "ldap_netgroup_search_base", DP_OPT_STRING, NULL_STRING, NULL_STRING }
 };
 
 struct sdap_attr_map ipa_attr_map[] = {
@@ -115,6 +116,15 @@ struct sdap_attr_map ipa_group_map[] = {
     { "ldap_group_member", "member", SYSDB_MEMBER, NULL },
     { "ldap_group_uuid", "nsUniqueId", SYSDB_UUID, NULL },
     { "ldap_group_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
+};
+
+struct sdap_attr_map ipa_netgroup_map[] = {
+    { "ldap_netgroup_object_class", "nisNetgroup", SYSDB_NETGROUP_CLASS, NULL },
+    { "ldap_netgroup_name", "cn", SYSDB_NAME, NULL },
+    { "ldap_netgroup_member", "memberNisNetgroup", SYSDB_ORIG_NETGROUP_MEMBER, NULL },
+    { "ldap_netgroup_triple", "nisNetgroupTriple", SYSDB_NETGROUP_TRIPLE, NULL },
+    { "ldap_netgroup_uuid", "nsUniqueId", SYSDB_UUID, NULL },
+    { "ldap_netgroup_modify_timestamp", "modifyTimestamp", SYSDB_ORIG_MODSTAMP, NULL }
 };
 
 struct dp_option ipa_def_krb5_opts[] = {
@@ -334,6 +344,20 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                                     SDAP_GROUP_SEARCH_BASE)));
     }
 
+    if (NULL == dp_opt_get_string(ipa_opts->id->basic,
+                                  SDAP_NETGROUP_SEARCH_BASE)) {
+        ret = dp_opt_set_string(ipa_opts->id->basic, SDAP_NETGROUP_SEARCH_BASE,
+                                dp_opt_get_string(ipa_opts->id->basic,
+                                                  SDAP_SEARCH_BASE));
+        if (ret != EOK) {
+            goto done;
+        }
+        DEBUG(6, ("Option %s set to %s\n",
+                  ipa_opts->id->basic[SDAP_NETGROUP_SEARCH_BASE].opt_name,
+                  dp_opt_get_string(ipa_opts->id->basic,
+                                    SDAP_NETGROUP_SEARCH_BASE)));
+    }
+
     ret = sdap_get_map(ipa_opts->id, cdb, conf_path,
                        ipa_attr_map,
                        SDAP_AT_GENERAL,
@@ -356,6 +380,15 @@ int ipa_get_id_options(struct ipa_options *ipa_opts,
                        ipa_group_map,
                        SDAP_OPTS_GROUP,
                        &ipa_opts->id->group_map);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sdap_get_map(ipa_opts->id,
+                       cdb, conf_path,
+                       ipa_netgroup_map,
+                       SDAP_OPTS_NETGROUP,
+                       &ipa_opts->id->netgroup_map);
     if (ret != EOK) {
         goto done;
     }

@@ -578,6 +578,97 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_netgroup_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            An optional base DN to restrict netgroup searches
+                            to a specific subtree.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_netgroup_object_class (string)</term>
+                    <listitem>
+                        <para>
+                            The object class of a netgroup entry in LDAP.
+                        </para>
+                        <para>
+                            Default: nisNetgroup
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_netgroup_name (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that corresponds to
+                            the netgroup name.
+                        </para>
+                        <para>
+                            Default: cn
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_netgroup_member (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the names of
+                            the netgroup's members.
+                        </para>
+                        <para>
+                            Default: memberNisNetgroup
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_netgroup_triple (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the (host, user,
+                            domain) netgroup triples.
+                        </para>
+                        <para>
+                            Default: nisNetgroupTriple
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_netgroup_uuid (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains the UUID/GUID of
+                            an LDAP netgroup object.
+                        </para>
+                        <para>
+                            Default: nsUniqueId
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_netgroup_modify_timestamp (string)</term>
+                    <listitem>
+                        <para>
+                            The LDAP attribute that contains timestamp of the
+                            last modification of the parent object.
+                        </para>
+                        <para>
+                            Default: modifyTimestamp
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_search_timeout (integer)</term>
                     <listitem>
                         <para>

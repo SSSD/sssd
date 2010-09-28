@@ -176,6 +176,7 @@ enum sdap_basic_opt {
     SDAP_DNS_SERVICE_NAME,
     SDAP_KRB5_TICKET_LIFETIME,
     SDAP_ACCESS_FILTER,
+    SDAP_NETGROUP_SEARCH_BASE,
 
     SDAP_OPTS_BASIC /* opts counter */
 };
@@ -233,6 +234,17 @@ enum sdap_group_attrs {
     SDAP_OPTS_GROUP /* attrs counter */
 };
 
+enum sdap_netgroup_attrs {
+    SDAP_OC_NETGROUP = 0,
+    SDAP_AT_NETGROUP_NAME,
+    SDAP_AT_NETGROUP_MEMBER,
+    SDAP_AT_NETGROUP_TRIPLE,
+    SDAP_AT_NETGROUP_UUID,
+    SDAP_AT_NETGROUP_MODSTAMP,
+
+    SDAP_OPTS_NETGROUP /* attrs counter */
+};
+
 struct sdap_attr_map {
     const char *opt_name;
     const char *def_name;
@@ -245,6 +257,7 @@ struct sdap_options {
     struct sdap_attr_map *gen_map;
     struct sdap_attr_map *user_map;
     struct sdap_attr_map *group_map;
+    struct sdap_attr_map *netgroup_map;
 
     /* supported schema types */
     enum schema_type {

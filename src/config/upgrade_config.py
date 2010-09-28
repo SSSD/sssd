@@ -193,6 +193,13 @@ class SSSDConfigFile(SSSDChangeConf):
                     'ldap_stale_time' : 'stale_time',
                     'ldap_opt_timeout' : 'opt_timeout',
                     'ldap_tls_reqcert' : 'tls_reqcert',
+                    'ldap_netgroup_search_base' : 'netgroupSearchBase',
+                    'ldap_netgroup_object_class' : 'netgroupObjectClass',
+                    'ldap_netgroup_name' : 'netgroupName',
+                    'ldap_netgroup_member' : 'netgroupMember',
+                    'ldap_netgroup_triple' : 'netgroupTriple',
+                    'ldap_netgroup_uuid' : 'netgroupUUID',
+                    'ldap_netgroup_modify_timestamp' : 'netgroupModifyTimestamp',
                    }
         krb5_kw = { 'krb5_kdcip' : 'krb5KDCIP',
                     'krb5_realm'  : 'krb5REALM',
