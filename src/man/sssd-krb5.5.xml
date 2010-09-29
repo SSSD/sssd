@@ -33,14 +33,15 @@
             </citerefentry> manual page
         </para>
         <para>
-            The Kerberos 5 authentication backend does not contain an identity
-            provider and must be paired with one in order to function properly (for
-            example, id_provider = ldap). Some information required by the Kerberos
-            5 authentication backend must be provided by the identity provider, such
-            as the user's Kerberos Principal Name (UPN). The configuration of the
-            identity provider should have an entry to specify the UPN. Please refer
-            to the man page for the applicable identity provider for details on how
-            to configure this.
+            The Kerberos 5 authentication backend contains auth and chpass
+            providers. It must be paired with identity provider in
+            order to function properly (for example, id_provider = ldap). Some
+            information required by the Kerberos 5 authentication backend must
+            be provided by the identity provider, such as the user's Kerberos
+            Principal Name (UPN). The configuration of the identity provider
+            should have an entry to specify the UPN. Please refer to the man
+            page for the applicable identity provider for details on how to
+            configure this.
         </para>
         <para>
             In the case where the UPN is not available in the identity backend

@@ -50,6 +50,10 @@
                 <manvolnum>5</manvolnum>
             </citerefentry> authentication provider.
             However, it is neither necessary nor recommended to set these options.
+            IPA provider can also be used as an access and chpass provider. As an
+            access provider it uses HBAC (host-based access control) rules. Please
+            refer to freeipa.org for more information about HBAC. No configuration
+            of access provider is required on the client side.
         </para>
     </refsect1>
 

@@ -639,6 +639,14 @@
                             Supported change password providers are:
                         </para>
                         <para>
+                            <quote>ipa</quote> to change a password stored
+                            in an IPA server.  See
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information on configuring IPA.
+                        </para>
+                        <para>
                             <quote>ldap</quote> to change a password stored
                             in a LDAP server.  See
                             <citerefentry>

@@ -35,11 +35,13 @@
             You can configure SSSD to use more than one LDAP domain.
         </para>
         <para>
-            If you want to authenticate against an LDAP server then TLS/SSL is
-            required. <command>sssd</command> <emphasis>does not</emphasis>
-            support authentication over an unencrypted channel. If the LDAP
-            server is used only as an identify provider, an encrypted channel
-            is not needed.
+            LDAP back end supports id, auth, access and chpass providers. If you want
+            to authenticate against an LDAP server either TLS/SSL, LDAPS, or
+            LDAP+GSSAPI is required. <command>sssd</command> <emphasis>does
+            not</emphasis> support authentication over an unencrypted channel.
+            If the LDAP server is used only as an identity provider, an encrypted
+            channel is not needed. Please refer to <quote>ldap_access_filter</quote>
+            config option for more information about using LDAP as an access provider.
         </para>
     </refsect1>
 
