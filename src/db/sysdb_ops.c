@@ -916,6 +916,67 @@ done:
     return ret;
 }
 
+int sysdb_add_fake_user(struct sysdb_ctx *ctx,
+                        struct sss_domain_info *domain,
+                        const char *name)
+{
+    TALLOC_CTX *tmpctx;
+    struct ldb_message *msg;
+    time_t now;
+    int ret;
+
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    msg = ldb_msg_new(tmpctx);
+    if (!msg) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    /* user dn */
+    msg->dn = sysdb_user_dn(ctx, msg, domain->name, name);
+    if (!msg->dn) {
+        ERROR_OUT(ret, ENOMEM, done);
+    }
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_OBJECTCLASS, SYSDB_USER_CLASS);
+    if (ret) goto done;
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, name);
+    if (ret) goto done;
+
+    now = time(NULL);
+
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
+                    (unsigned long) now);
+    if (ret) goto done;
+
+    /* set last login so that the fake entry does not get cleaned up
+     * immediately */
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_LAST_LOGIN,
+                    (unsigned long) now);
+    if (ret) return ret;
+
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_LAST_UPDATE,
+                    (unsigned long) now);
+    if (ret) goto done;
+
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CACHE_EXPIRE,
+                    (unsigned long) now-1);
+    if (ret) goto done;
+
+    ret = ldb_add(ctx->ldb, msg);
+    ret = sysdb_error_to_errno(ret);
+
+done:
+    if (ret != EOK) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_zfree(tmpctx);
+    return ret;
+}
 
 /* =Add-Basic-Group-NO-CHECKS============================================= */
 

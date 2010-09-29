@@ -306,7 +306,8 @@ static int cleanup_users(TALLOC_CTX *memctx, struct sdap_id_ctx *ctx)
             ret = cleanup_users_logged_in(uid_table, msgs[i]);
             if (ret == EOK) {
                 /* If the user is logged in, proceed to the next one */
-                DEBUG(5, ("User %s is still logged in, keeping data\n", name));
+                DEBUG(5, ("User %s is still logged in or a dummy entry, "
+                          "keeping data\n", name));
                 continue;
             } else if (ret != ENOENT) {
                 goto done;
@@ -337,9 +338,9 @@ static int cleanup_users_logged_in(hash_table_t *table,
     uid = ldb_msg_find_attr_as_uint64(msg,
                                       SYSDB_UIDNUM, 0);
     if (!uid) {
-        DEBUG(2, ("Entry %s has no UID Attribute ?!?\n",
+        DEBUG(2, ("Entry %s has no UID Attribute, fake user perhaps?\n",
                   ldb_dn_get_linearized(msg->dn)));
-        return EFAULT;
+        return ENOENT;
     }
 
     key.type = HASH_KEY_ULONG;
