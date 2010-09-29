@@ -479,6 +479,11 @@ int sysdb_add_group(TALLOC_CTX *mem_ctx,
                     struct sysdb_attrs *attrs,
                     int cache_timeout);
 
+int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
+                               struct sss_domain_info *domain,
+                               const char *name,
+                               gid_t gid);
+
 /* Add netgroup (only basic attrs and w/o checks) */
 int sysdb_add_basic_netgroup(struct sysdb_ctx *ctx,
                              struct sss_domain_info *domain,

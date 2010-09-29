@@ -1538,7 +1538,7 @@ static int fill_grent(struct sss_packet *packet,
         name = ldb_msg_find_attr_as_string(msg, SYSDB_NAME, NULL);
         gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
         if (!name || !gid) {
-            DEBUG(1, ("Incomplete group object for %s[%llu]! Skipping\n",
+            DEBUG(2, ("Incomplete group object for %s[%llu]! Skipping\n",
                       name?name:"<NULL>", (unsigned long long int)gid));
             continue;
         }

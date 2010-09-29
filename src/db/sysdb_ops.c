@@ -1075,6 +1075,50 @@ done:
     return ret;
 }
 
+int sysdb_add_incomplete_group(struct sysdb_ctx *ctx,
+                               struct sss_domain_info *domain,
+                               const char *name,
+                               gid_t gid)
+{
+    TALLOC_CTX *tmpctx;
+    time_t now;
+    int ret;
+    struct sysdb_attrs *attrs;
+
+    tmpctx = talloc_new(NULL);
+    if (!tmpctx) {
+        return ENOMEM;
+    }
+
+    /* try to add the group */
+    ret = sysdb_add_basic_group(tmpctx, ctx, domain, name, gid);
+    if (ret) goto done;
+
+    attrs = sysdb_new_attrs(tmpctx);
+    if (!attrs) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    now = time(NULL);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_LAST_UPDATE, now);
+    if (ret) goto done;
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_CACHE_EXPIRE,
+                                 now-1);
+    if (ret) goto done;
+
+    ret = sysdb_set_group_attr(tmpctx, ctx,
+                               domain, name, attrs, SYSDB_MOD_REP);
+
+done:
+    if (ret != EOK) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    }
+    talloc_zfree(tmpctx);
+    return ret;
+}
 
 /* =Add-Or-Remove-Group-Memeber=========================================== */
 

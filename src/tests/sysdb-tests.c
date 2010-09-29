@@ -263,6 +263,15 @@ static int test_add_group(struct test_data *data)
     return ret;
 }
 
+static int test_add_incomplete_group(struct test_data *data)
+{
+    int ret;
+
+    ret = sysdb_add_incomplete_group(data->ctx->sysdb, data->ctx->domain,
+                                     data->groupname, data->gid);
+    return ret;
+}
+
 static int test_store_group(struct test_data *data)
 {
     int ret;
@@ -713,6 +722,33 @@ START_TEST (test_sysdb_add_group)
     ret = test_add_group(data);
 
     fail_if(ret != EOK, "Could not add group %s", data->groupname);
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST (test_sysdb_add_incomplete_group)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct test_data *data;
+    int ret;
+
+    /* Setup */
+    ret = setup_sysdb_tests(&test_ctx);
+    if (ret != EOK) {
+        fail("Could not set up the test");
+        return;
+    }
+
+    data = talloc_zero(test_ctx, struct test_data);
+    data->ctx = test_ctx;
+    data->ev = test_ctx->ev;
+    data->uid = _i;
+    data->gid = _i;
+    data->groupname = talloc_asprintf(data, "testgroup%d", _i);
+
+    ret = test_add_incomplete_group(data);
+
+    fail_if(ret != EOK, "Could not add incomplete group %s", data->groupname);
     talloc_free(test_ctx);
 }
 END_TEST
@@ -2775,6 +2811,10 @@ Suite *create_sysdb_suite(void)
 
     /* test the ignore_not_found parameter for groups */
     tcase_add_test(tc_sysdb, test_sysdb_remove_nonexistent_group);
+
+    /* Create incomplete groups - remove will fail if the LDB objects don't exist */
+    tcase_add_loop_test(tc_sysdb, test_sysdb_add_incomplete_group, 28000, 28010);
+    tcase_add_loop_test(tc_sysdb, test_sysdb_remove_local_group_by_gid, 28000, 28010);
 
     /* test custom operations */
     tcase_add_loop_test(tc_sysdb, test_sysdb_store_custom, 29010, 29020);
