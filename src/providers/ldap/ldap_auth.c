@@ -567,7 +567,8 @@ static void auth_resolve_done(struct tevent_req *subreq)
     if (ret) {
         /* all servers have been tried and none
          * was found good, go offline */
-        tevent_req_error(req, EIO);
+        state->result = SDAP_UNAVAIL;
+        tevent_req_done(req);
         return;
     }
 
