@@ -410,6 +410,11 @@ enum user_info_type {
  * @}
  */ /* end of group sss_pam_cli */
 
+enum sss_netgr_rep_type {
+    SSS_NETGR_REP_TRIPLE = 1,
+    SSS_NETGR_REP_GROUP
+};
+
 enum sss_cli_error_codes {
     ESSS_SSS_CLI_ERROR_START = 0x1000,
     ESSS_BAD_PRIV_SOCKET,

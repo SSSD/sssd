@@ -797,12 +797,15 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
             domainlen += strlen(triples[client->netgrent_cur]->domainname);
         }
 
-        len = hostlen + userlen + domainlen;
+        len = 1 + hostlen + userlen + domainlen;
         ret = sss_packet_grow(packet, len);
         if (ret != EOK) {
             return ret;
         }
         sss_packet_get_body(packet, &body, &blen);
+
+        body[rp] = SSS_NETGR_REP_TRIPLE;
+        rp++;
 
         if (hostlen == 1) {
             body[rp] = '\0';

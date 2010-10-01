@@ -45,11 +45,14 @@ static struct sss_nss_getnetgrent_data {
 /*
  * Replies:
  *
- * 0-3: 32bit unsigned number of results
+ * 0-3: 32bit unsigned number of results N
  * 4-7: 32bit unsigned (reserved/padding)
  *  For each result:
- *  8-X: sequence of \0 terminated strings representing tuple
- *       (host, user, domain)
+ *  8-11: 32bit unsigned type of result
+ *  12-X: \0 terminated string representing a tuple
+ *        (host, user, domain)
+ *        or a netgroup, depending on the type indicator
+ *  ... repeated N times
  */
 #define NETGR_METADATA_COUNT 2 * sizeof(uint32_t)
 struct sss_nss_netgr_rep {
@@ -77,82 +80,115 @@ static int sss_nss_getnetgr_readrep(struct sss_nss_netgr_rep *pr,
     char *sbuf;
     size_t i, slen;
     ssize_t dlen;
+    uint32_t type;
 
-    if (*len < 3) {
+    if (*len < 6) {
         /* Not enough space for data, bad packet */
         return EBADMSG;
     }
 
-    sbuf = (char *)&buf[0];
-    slen = *len;
+    sbuf = (char *)(buf + sizeof(uint32_t));
+    slen = *len - sizeof(uint32_t);
     dlen = pr->buflen;
 
-    /* Host value */
     i = 0;
-    pr->result->val.triple.host = &(pr->buffer[i]);
-    while (slen > i && dlen > 0) {
-        pr->buffer[i] = sbuf[i];
-        if (pr->buffer[i] == '\0') break;
-        i++;
-        dlen--;
-    }
-    if (slen <= i) { /* premature end of buf */
-        return EBADMSG;
-    }
-    if (dlen <= 0) { /* not enough memory */
-        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-    }
-    i++;
-    dlen--;
 
-    /* libc expects NULL instead of empty string */
-    if (strlen(pr->result->val.triple.host) == 0) {
-        pr->result->val.triple.host = NULL;
+    SAFEALIGN_COPY_UINT32(&type, buf, NULL);
+    switch (type) {
+        case SSS_NETGR_REP_TRIPLE:
+            pr->result->type = triple_val;
+
+            /* Host value */
+            pr->result->val.triple.host = &(pr->buffer[i]);
+            while (slen > i && dlen > 0) {
+                pr->buffer[i] = sbuf[i];
+                if (pr->buffer[i] == '\0') break;
+                i++;
+                dlen--;
+            }
+            if (slen <= i) { /* premature end of buf */
+                return EBADMSG;
+            }
+            if (dlen <= 0) { /* not enough memory */
+                return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+            }
+            i++;
+            dlen--;
+
+            /* libc expects NULL instead of empty string */
+            if (strlen(pr->result->val.triple.host) == 0) {
+                pr->result->val.triple.host = NULL;
+            }
+
+            /* User value */
+            pr->result->val.triple.user = &(pr->buffer[i]);
+            while (slen > i && dlen > 0) {
+                pr->buffer[i] = sbuf[i];
+                if (pr->buffer[i] == '\0') break;
+                i++;
+                dlen--;
+            }
+            if (slen <= i) { /* premature end of buf */
+                return EBADMSG;
+            }
+            if (dlen <= 0) { /* not enough memory */
+                return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+            }
+            i++;
+            dlen--;
+
+            /* libc expects NULL instead of empty string */
+            if (strlen(pr->result->val.triple.user) == 0) {
+                pr->result->val.triple.user = NULL;
+            }
+
+            /* Domain value */
+            pr->result->val.triple.domain = &(pr->buffer[i]);
+            while (slen > i && dlen > 0) {
+                pr->buffer[i] = sbuf[i];
+                if (pr->buffer[i] == '\0') break;
+                i++;
+                dlen--;
+            }
+            if (slen <= i) { /* premature end of buf */
+                return EBADMSG;
+            }
+            if (dlen <= 0) { /* not enough memory */
+                return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+            }
+            i++;
+            dlen--;
+
+            /* libc expects NULL instead of empty string */
+            if (strlen(pr->result->val.triple.domain) == 0) {
+                pr->result->val.triple.domain = NULL;
+            }
+
+            break;
+        case SSS_NETGR_REP_GROUP:
+            pr->result->type = group_val;
+
+            pr->result->val.group = &(pr->buffer[i]);
+            while (slen > i && dlen > 0) {
+                pr->buffer[i] = sbuf[i];
+                if (pr->buffer[i] == '\0') break;
+                i++;
+                dlen--;
+            }
+            if (slen <= i) { /* premature end of buf */
+                return EBADMSG;
+            }
+            if (dlen <= 0) { /* not enough memory */
+                return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
+            }
+            i++;
+            dlen--;
+
+            break;
+        default:
+            return EBADMSG;
     }
 
-    /* User value */
-    pr->result->val.triple.user = &(pr->buffer[i]);
-    while (slen > i && dlen > 0) {
-        pr->buffer[i] = sbuf[i];
-        if (pr->buffer[i] == '\0') break;
-        i++;
-        dlen--;
-    }
-    if (slen <= i) { /* premature end of buf */
-        return EBADMSG;
-    }
-    if (dlen <= 0) { /* not enough memory */
-        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-    }
-    i++;
-    dlen--;
-
-    /* libc expects NULL instead of empty string */
-    if (strlen(pr->result->val.triple.user) == 0) {
-        pr->result->val.triple.user = NULL;
-    }
-
-    /* Domain value */
-    pr->result->val.triple.domain = &(pr->buffer[i]);
-    while (slen > i && dlen > 0) {
-        pr->buffer[i] = sbuf[i];
-        if (pr->buffer[i] == '\0') break;
-        i++;
-        dlen--;
-    }
-    if (slen <= i) { /* premature end of buf */
-        return EBADMSG;
-    }
-    if (dlen <= 0) { /* not enough memory */
-        return ERANGE; /* not ENOMEM, ERANGE is what glibc looks for */
-    }
-    i++;
-    dlen--;
-
-    /* libc expects NULL instead of empty string */
-    if (strlen(pr->result->val.triple.domain) == 0) {
-        pr->result->val.triple.domain = NULL;
-    }
 
     *len = slen -i;
 
