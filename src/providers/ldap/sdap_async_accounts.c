@@ -931,6 +931,7 @@ struct sdap_process_group_state {
     struct sysdb_attrs **new_members;
     struct ldb_message_element* sysdb_dns;
     char **queued_members;
+    int queue_len;
     const char **attrs;
     const char *filter;
     size_t member_idx;
@@ -941,6 +942,12 @@ struct sdap_process_group_state {
 
 #define GROUPMEMBER_REQ_PARALLEL 50
 static void sdap_process_group_members(struct tevent_req *subreq);
+
+static int sdap_process_group_members_2307bis(struct tevent_req *req,
+                                   struct sdap_process_group_state *state,
+                                   struct ldb_message_element *memberel);
+static int sdap_process_group_members_2307(struct sdap_process_group_state *state,
+                                   struct ldb_message_element *memberel);
 
 struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
                                            struct tevent_context *ev,
@@ -955,9 +962,7 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
     struct tevent_req *req = NULL;
     const char **attrs;
     char* filter;
-    int queue_len;
     int ret;
-    int i;
 
     req = tevent_req_create(memctx, &grp_state,
                             struct sdap_process_group_state);
@@ -987,6 +992,7 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
     grp_state->member_idx = 0;
     grp_state->queue_idx = 0;
     grp_state->queued_members = NULL;
+    grp_state->queue_len = 0;
     grp_state->filter = filter;
     grp_state->attrs = attrs;
 
@@ -1016,112 +1022,303 @@ struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
         return NULL;
     }
     grp_state->sysdb_dns->num_values = 0;
-    queue_len = 0;
 
-    /*
-     * For each member check if it is already present in sysdb,
-     * if it isn't read it from LDAP
-     */
-    for (i = 0; i < el->num_values; i++) {
-        char *sysdb_dn;
-        DEBUG(7, ("checking member: %s\n", (const char*)el->values[i].data));
-        ret = sdap_find_entry_by_origDN(grp_state->sysdb_dns->values, sysdb,
-                                        dom, (const char *)el->values[i].data,
-                                        &sysdb_dn);
-        if (ret == ENOENT) {
-            if (opts->schema_type != SDAP_SCHEMA_RFC2307BIS) {
-                continue;
-            }
+    switch (opts->schema_type) {
+        case SDAP_SCHEMA_RFC2307:
+            ret = sdap_process_group_members_2307(grp_state, el);
+            break;
 
-            DEBUG(7, ("member #%d (%s): not found in sysdb, searching LDAP\n",
-                    i, (char *)el->values[i].data));
+        case SDAP_SCHEMA_IPA_V1:
+        case SDAP_SCHEMA_AD:
+        case SDAP_SCHEMA_RFC2307BIS:
+            ret = sdap_process_group_members_2307bis(req, grp_state, el);
+            break;
 
-            /*
-             * Issue at most GROUPMEMBER_REQ_PARALLEL LDAP searches at once.
-             * The rest is sent while the results are being processed.
-             * We limit the number as of request here, as the Server might
-             * enforce limits on the number of pending operations per
-             * connection.
-             */
-            if (grp_state->check_count > GROUPMEMBER_REQ_PARALLEL) {
-                DEBUG(7, (" queueing search for: %s\n",
-                         (char*)el->values[i].data));
-                if (!grp_state->queued_members) {
-                    DEBUG(7,("Allocating queue for %d members\n",
-                            el->num_values - grp_state->check_count));
-                    grp_state->queued_members = talloc_array(grp_state, char *,
-                            el->num_values - grp_state->check_count + 1);
-                    if (!grp_state->queued_members) {
-                        ret = ENOMEM;
-                        goto done;
-                    }
-                }
-                grp_state->queued_members[queue_len] = (char*)el->values[i].data;
-                queue_len++;
-            } else {
-                struct tevent_req *subreq =
-                            sdap_get_generic_send(grp_state,
-                                                  ev, opts, sh,
-                                                  (char *)el->values[i].data,
-                                                  LDAP_SCOPE_BASE,
-                                                  filter, attrs,
-                                                  opts->user_map,
-                                                  SDAP_OPTS_USER);
-                if (!subreq) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-                tevent_req_set_callback(subreq, sdap_process_group_members, req);
-            }
-            grp_state->check_count++;
-        } else {
+        default:
+            DEBUG(1, ("Unknown schema type %d\n", opts->schema_type));
+            ret = EINVAL;
+            break;
+    }
+
+done:
+    /* We managed to process all the entries */
+    /* EBUSY means we need to wait for entries in LDAP */
+    if (ret == EOK) {
+        DEBUG(7, ("All group members processed\n"));
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+    }
+
+    if (ret != EOK && ret != EBUSY) {
+        tevent_req_error(req, ret);
+        tevent_req_post(req, ev);
+    }
+    return req;
+}
+
+static int
+sdap_process_missing_member_2307bis(struct tevent_req *req,
+                                    char *user_dn,
+                                    int num_users);
+
+static int
+sdap_process_group_members_2307bis(struct tevent_req *req,
+                                   struct sdap_process_group_state *state,
+                                   struct ldb_message_element *memberel)
+{
+    char *member_dn;
+    char *strdn;
+    int ret;
+    int i;
+
+    for (i=0; i < memberel->num_values; i++) {
+        member_dn = (char *)memberel->values[i].data;
+
+        ret = sdap_find_entry_by_origDN(state->sysdb_dns->values,
+                                        state->sysdb,
+                                        state->dom,
+                                        member_dn,
+                                        &strdn);
+        if (ret == EOK) {
             /*
              * User already cached in sysdb. Remember the sysdb DN for later
              * use by sdap_save_groups()
              */
-            DEBUG(7, ("sysdbdn: %s\n", sysdb_dn));
-            grp_state->sysdb_dns->values[grp_state->sysdb_dns->num_values].data =
-                    (uint8_t*)sysdb_dn;
-            grp_state->sysdb_dns->values[grp_state->sysdb_dns->num_values].length =
-                    strlen(sysdb_dn);
-            grp_state->sysdb_dns->num_values++;
+            DEBUG(7, ("sysdbdn: %s\n", strdn));
+            state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+                (uint8_t*) strdn;
+            state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+                strlen(strdn);
+            state->sysdb_dns->num_values++;
+        } else if (ret == ENOENT) {
+            /* The user is not in sysdb, need to add it */
+            DEBUG(7, ("Searching LDAP for missing user entry\n"));
+            ret = sdap_process_missing_member_2307bis(req,
+                                                      member_dn,
+                                                      memberel->num_values);
+            if (ret != EOK) {
+                DEBUG(1, ("Error processing missing member #%d (%s):\n",
+                          i, member_dn));
+                return ret;
+            }
+        } else {
+            DEBUG(1, ("Error checking cache for member #%d (%s):\n",
+                       i, (char *)memberel->values[i].data));
+            return ret;
         }
     }
-    if (queue_len > 0) {
-        grp_state->queued_members[queue_len] = NULL;
+
+    if (state->queue_len > 0) {
+        state->queued_members[state->queue_len]=NULL;
     }
 
-    if (grp_state->check_count == 0) {
+    if (state->check_count == 0) {
         /*
          * All group members are already cached in sysdb, we are done
          * with this group. To avoid redundant sysdb lookups, populate the
          * "member" attribute of the group entry with the sysdb DNs of
          * the members.
          */
-        el->values = talloc_steal(grp_state->group, grp_state->sysdb_dns->values);
-        el->num_values = grp_state->sysdb_dns->num_values;
         ret = EOK;
-        goto done;
+        memberel->values = talloc_steal(state->group, state->sysdb_dns->values);
+        memberel->num_values = state->sysdb_dns->num_values;
     } else {
-        grp_state->count = grp_state->check_count;
-        grp_state->new_members = talloc_zero_array(grp_state,
-                                                   struct sysdb_attrs *,
-                                                   grp_state->count + 1);
-        if (!grp_state->new_members) {
-            ret = ENOMEM;
+        state->count = state->check_count;
+        state->new_members = talloc_zero_array(state,
+                struct sysdb_attrs *,
+                state->count + 1);
+        if (!state->new_members) {
+            return ENOMEM;
+        }
+        ret = EBUSY;
+    }
+
+    return ret;
+}
+
+static int
+sdap_process_missing_member_2307(struct sdap_process_group_state *state,
+                                 char *username, bool *in_transaction);
+
+static int
+sdap_process_group_members_2307(struct sdap_process_group_state *state,
+                                struct ldb_message_element *memberel)
+{
+    struct ldb_message *msg;
+    bool in_transaction;
+    char *member_name;
+    char *strdn;
+    int ret;
+    int i;
+
+    for (i=0; i < memberel->num_values; i++) {
+        member_name = (char *)memberel->values[i].data;
+        ret = sysdb_search_user_by_name(state, state->sysdb,
+                                        state->dom, member_name,
+                                        NULL, &msg);
+        if (ret == EOK) {
+            strdn = sysdb_user_strdn(state->sysdb_dns->values,
+                                     state->dom->name,
+                                     member_name);
+            if (!strdn) {
+                ret = ENOMEM;
+                goto done;
+            }
+            /*
+            * User already cached in sysdb. Remember the sysdb DN for later
+            * use by sdap_save_groups()
+            */
+            DEBUG(7,("Member already cached in sysdb: %s\n", strdn));
+            state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+                    (uint8_t *) strdn;
+            state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+                    strlen(strdn);
+            state->sysdb_dns->num_values++;
+        } else if (ret == ENOENT) {
+            /* The user is not in sysdb, need to add it */
+            DEBUG(7, ("member #%d (%s): not found in sysdb\n",
+                       i, member_name));
+
+            ret = sdap_process_missing_member_2307(state, member_name,
+                                                   &in_transaction);
+            if (ret != EOK) {
+                DEBUG(1, ("Error processing missing member #%d (%s):\n",
+                          i, member_name));
+                goto done;
+            }
+        } else {
+            DEBUG(1, ("Error checking cache for member #%d (%s):\n",
+                       i, (char *) memberel->values[i].data));
             goto done;
         }
     }
-    return req;
 
-done:
-    if (ret) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
+    /* sdap_process_missing_member_2307 starts transaction */
+    if (in_transaction) {
+        ret = sysdb_transaction_commit(state->sysdb);
+        if (ret) {
+            DEBUG(2, ("Cannot commit sysdb transaction\n"));
+            goto done;
+        }
     }
-    tevent_req_post(req,ev);
-    return req;
+
+    ret = EOK;
+    memberel->values = talloc_steal(state->group, state->sysdb_dns->values);
+    memberel->num_values = state->sysdb_dns->num_values;
+done:
+    return ret;
+}
+
+
+static int
+sdap_process_missing_member_2307bis(struct tevent_req *req,
+                                    char *user_dn,
+                                    int num_users)
+{
+    struct sdap_process_group_state *grp_state =
+        tevent_req_data(req, struct sdap_process_group_state);
+    struct tevent_req *subreq;
+
+    /*
+     * Issue at most GROUPMEMBER_REQ_PARALLEL LDAP searches at once.
+     * The rest is sent while the results are being processed.
+     * We limit the number as of request here, as the Server might
+     * enforce limits on the number of pending operations per
+     * connection.
+     */
+    if (grp_state->check_count > GROUPMEMBER_REQ_PARALLEL) {
+        DEBUG(7, (" queueing search for: %s\n", user_dn));
+        if (!grp_state->queued_members) {
+            DEBUG(7, ("Allocating queue for %d members\n",
+                      num_users - grp_state->check_count));
+
+            grp_state->queued_members = talloc_array(grp_state, char *,
+                    num_users - grp_state->check_count + 1);
+            if (!grp_state->queued_members) {
+                return ENOMEM;
+            }
+        }
+        grp_state->queued_members[grp_state->queue_len] = user_dn;
+        grp_state->queue_len++;
+    } else {
+        subreq = sdap_get_generic_send(grp_state,
+                                       grp_state->ev,
+                                       grp_state->opts,
+                                       grp_state->sh,
+                                       user_dn,
+                                       LDAP_SCOPE_BASE,
+                                       grp_state->filter,
+                                       grp_state->attrs,
+                                       grp_state->opts->user_map,
+                                       SDAP_OPTS_USER);
+        if (!subreq) {
+            return ENOMEM;
+        }
+        tevent_req_set_callback(subreq, sdap_process_group_members, req);
+    }
+
+    grp_state->check_count++;
+    return EOK;
+}
+
+static int
+sdap_process_missing_member_2307(struct sdap_process_group_state *state,
+                                 char *username, bool *in_transaction)
+{
+    int ret;
+    struct ldb_dn *dn;
+    char* dn_string;
+
+    DEBUG(7, ("Adding a dummy entry\n"));
+
+    if (!in_transaction) return EINVAL;
+
+    if (!*in_transaction) {
+        ret = sysdb_transaction_start(state->sysdb);
+        if (ret != EOK) {
+            DEBUG(1, ("Cannot start sysdb transaction: [%d]: %s\n",
+                       ret, strerror(ret)));
+            return ret;
+        }
+        *in_transaction = true;
+    }
+
+    ret = sysdb_add_fake_user(state->sysdb, state->dom, username);
+    if (ret != EOK) {
+        DEBUG(1, ("Cannot store fake user entry: [%d]: %s\n",
+                  ret, strerror(ret)));
+        goto fail;
+    }
+
+    /*
+     * Convert the just received DN into the corresponding sysdb DN
+     * for saving into member attribute of the group
+     */
+    dn = sysdb_user_dn(state->sysdb, state, state->dom->name,
+                       (char*) username);
+    if (!dn) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    dn_string = ldb_dn_alloc_linearized(state->sysdb_dns->values, dn);
+    if (!dn_string) {
+        ret = ENOMEM;
+        goto fail;
+    }
+
+    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+            (uint8_t *) dn_string;
+    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+            strlen(dn_string);
+    state->sysdb_dns->num_values++;
+
+    return EOK;
+fail:
+    if (*in_transaction) {
+        sysdb_transaction_cancel(state->sysdb);
+    }
+    return ret;
 }
 
 static void sdap_process_group_members(struct tevent_req *subreq)
