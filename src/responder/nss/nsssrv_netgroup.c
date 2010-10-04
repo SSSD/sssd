@@ -296,6 +296,7 @@ static struct tevent_req *setnetgrent_send(TALLOC_CTX *mem_ctx,
             /* An unexpected error occurred */
             goto error;
         }
+        tevent_req_done(req);
         tevent_req_post(req, cmdctx->cctx->ev);
         /* Will return control below */
     } else {
