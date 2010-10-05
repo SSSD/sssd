@@ -159,7 +159,7 @@ static int fill_pwent(struct sss_packet *packet,
         gid = ldb_msg_find_attr_as_uint64(msg, SYSDB_GIDNUM, 0);
 
         if (!name || !uid || !gid) {
-            DEBUG(1, ("Incomplete user object for %s[%llu]! Skipping\n",
+            DEBUG(1, ("Incomplete or fake user object for %s[%llu]! Skipping\n",
                       name?name:"<NULL>", (unsigned long long int)uid));
             continue;
         }

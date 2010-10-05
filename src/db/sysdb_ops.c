@@ -2061,6 +2061,191 @@ int sysdb_add_user_recv(struct tevent_req *req)
     return sysdb_op_default_recv(req);
 }
 
+/* =Add-A-Fake-User====================================================== */
+
+struct sysdb_add_fake_user_state {
+    struct tevent_context *ev;
+    struct sysdb_handle *handle;
+    struct sss_domain_info *domain;
+
+    const char *name;
+};
+
+static void sysdb_add_fake_user_group_check(struct tevent_req *subreq);
+static int sysdb_add_fake_user_op(struct tevent_req *req);
+static void sysdb_add_fake_user_op_done(struct tevent_req *subreq);
+
+struct tevent_req *sysdb_add_fake_user_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sysdb_handle *handle,
+                                            struct sss_domain_info *domain,
+                                            const char *name)
+{
+    struct tevent_req *req, *subreq;
+    struct sysdb_add_fake_user_state *state;
+    int ret;
+
+    req = tevent_req_create(mem_ctx, &state,
+                            struct sysdb_add_fake_user_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->handle = handle;
+    state->domain = domain;
+    state->name = name;
+
+    if (handle->ctx->mpg) {
+        /* In MPG domains you can't have groups with the same name as users,
+         * search if a user with the same name exists.
+         * Don't worry about users, if we try to add a user with the same
+         * name the operation will fail */
+        subreq = sysdb_search_group_by_name_send(state, ev, NULL, handle,
+                                                 domain, name, NULL);
+        if (!subreq) {
+            ERROR_OUT(ret, ENOMEM, fail);
+        }
+        tevent_req_set_callback(subreq, sysdb_add_fake_user_group_check, req);
+        return req;
+    }
+
+    /* try to add the user */
+    ret = sysdb_add_fake_user_op(req);
+    if (ret != EOK) goto fail;
+
+    return req;
+
+fail:
+    DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sysdb_add_fake_user_group_check(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sysdb_add_fake_user_state *state = tevent_req_data(req,
+                                           struct sysdb_add_fake_user_state);
+    struct ldb_message *msg;
+    int ret;
+
+    /* We can succeed only if we get an ENOENT error, which means no users
+     * with the same name exist.
+     * If any other error is returned fail as well. */
+    ret = sysdb_search_user_recv(subreq, state, &msg);
+    talloc_zfree(subreq);
+    if (ret != ENOENT) {
+        if (ret == EOK) ret = EEXIST;
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* try to add the user */
+    ret = sysdb_add_fake_user_op(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+}
+
+static int sysdb_add_fake_user_op(struct tevent_req *req)
+{
+    struct sysdb_add_fake_user_state *state = tevent_req_data(req,
+                                           struct sysdb_add_fake_user_state);
+    struct ldb_message *msg;
+    struct tevent_req *subreq;
+    struct ldb_request *ldbreq;
+    int ret;
+    time_t now;
+
+    msg = ldb_msg_new(state);
+    if (!msg) {
+        return ENOMEM;
+    }
+
+    /* user dn */
+    msg->dn = sysdb_user_dn(state->handle->ctx, msg,
+                            state->domain->name, state->name);
+    if (!msg->dn) {
+        return ENOMEM;
+    }
+
+    now = time(NULL);
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, "objectClass", SYSDB_USER_CLASS);
+    if (ret) return ret;
+
+    ret = add_string(msg, LDB_FLAG_MOD_ADD, SYSDB_NAME, state->name);
+    if (ret) return ret;
+
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CREATE_TIME,
+                    (unsigned long) now);
+    if (ret) return ret;
+
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_LAST_UPDATE,
+                    (unsigned long) now);
+    if (ret) return ret;
+
+    /* set last login so that the fake entry does not get cleaned up
+     * immediately */
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_LAST_LOGIN,
+                    (unsigned long) now);
+    if (ret) return ret;
+
+    ret = add_ulong(msg, LDB_FLAG_MOD_ADD, SYSDB_CACHE_EXPIRE,
+                    (unsigned long) now-1);
+    if (ret) return ret;
+
+    ret = ldb_build_add_req(&ldbreq, state->handle->ctx->ldb, state, msg,
+                            NULL, NULL, NULL, NULL);
+    if (ret != LDB_SUCCESS) {
+        DEBUG(1, ("Failed to build modify request: %s(%d)[%s]\n",
+                  ldb_strerror(ret), ret, ldb_errstring(state->handle->ctx->ldb)));
+        return sysdb_error_to_errno(ret);
+    }
+
+    subreq = sldb_request_send(state, state->ev,
+                               state->handle->ctx->ldb, ldbreq);
+    if (!subreq) {
+        return ENOMEM;
+    }
+    tevent_req_set_callback(subreq, sysdb_add_fake_user_op_done, req);
+
+    return EOK;
+}
+
+static void sysdb_add_fake_user_op_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                  struct tevent_req);
+    struct sysdb_add_fake_user_state *state = tevent_req_data(req,
+                                            struct sysdb_add_fake_user_state);
+    struct ldb_reply *ldbreply;
+    int ret;
+
+    ret = sldb_request_recv(subreq, state, &ldbreply);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(6, ("Error: %d (%s)\n", ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (ldbreply->type != LDB_REPLY_DONE) {
+        DEBUG(6, ("Error: %d (%s)\n", EIO, strerror(EIO)));
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    tevent_req_done(req);
+}
+
+int sysdb_add_fake_user_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
 
 /* =Add-Basic-Group-NO-CHECKS============================================= */
 

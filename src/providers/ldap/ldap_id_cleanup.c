@@ -413,7 +413,8 @@ static void cleanup_users_delete(struct tevent_req *req)
         ret = cleanup_users_logged_in(state->uid_table, state->msgs[state->cur]);
         if (ret == EOK) {
             /* If the user is logged in, proceed to the next one */
-            DEBUG(5, ("User %s is still logged in, keeping his data\n", name));
+            DEBUG(5, ("User %s is still logged in or a dummy entry, "
+                      "keeping his data\n", name));
             cleanup_users_next(req);
             return;
         } else if (ret != ENOENT) {
@@ -446,9 +447,9 @@ static int cleanup_users_logged_in(hash_table_t *table,
     uid = ldb_msg_find_attr_as_uint64(msg,
                                       SYSDB_UIDNUM, 0);
     if (!uid) {
-        DEBUG(2, ("Entry %s has no UID Attribute ?!?\n",
+        DEBUG(2, ("Entry %s has no UID Attribute, fake user perhaps?\n",
                   ldb_dn_get_linearized(msg->dn)));
-        return EFAULT;
+        return ENOENT;
     }
 
     key.type = HASH_KEY_ULONG;

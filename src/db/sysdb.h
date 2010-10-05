@@ -451,6 +451,14 @@ struct tevent_req *sysdb_add_basic_user_send(TALLOC_CTX *mem_ctx,
                                              const char *shell);
 int sysdb_add_basic_user_recv(struct tevent_req *req);
 
+/* Add fake (expired) user */
+struct tevent_req *sysdb_add_fake_user_send(TALLOC_CTX *mem_ctx,
+                                            struct tevent_context *ev,
+                                            struct sysdb_handle *handle,
+                                            struct sss_domain_info *domain,
+                                            const char *name);
+int sysdb_add_fake_user_recv(struct tevent_req *req);
+
 /* Add user (all checks) */
 struct tevent_req *sysdb_add_user_send(TALLOC_CTX *mem_ctx,
                                        struct tevent_context *ev,
