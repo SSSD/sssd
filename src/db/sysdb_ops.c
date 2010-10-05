@@ -1198,7 +1198,7 @@ int sysdb_add_netgroup(struct sysdb_ctx *ctx,
 
     /* try to add the netgroup */
     ret = sysdb_add_basic_netgroup(ctx, domain, name, description);
-    if (ret) goto done;
+    if (ret && ret != EEXIST) goto done;
 
     if (!attrs) {
         attrs = sysdb_new_attrs(tmp_ctx);
