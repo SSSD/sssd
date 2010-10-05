@@ -217,6 +217,8 @@ struct ldb_dn *sysdb_group_dn(struct sysdb_ctx *ctx, void *memctx,
                               const char *domain, const char *name);
 struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *ctx, void *memctx,
                                  const char *domain, const char *name);
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *ctx, void *memctx,
+                                      const char *domain);
 errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
                             const char *dn_str, char **name);
 struct ldb_dn *sysdb_domain_dn(struct sysdb_ctx *ctx, void *memctx,

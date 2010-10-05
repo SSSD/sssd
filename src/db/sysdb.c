@@ -58,6 +58,12 @@ struct ldb_dn *sysdb_netgroup_dn(struct sysdb_ctx *ctx, void *memctx,
     return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP, name, domain);
 }
 
+struct ldb_dn *sysdb_netgroup_base_dn(struct sysdb_ctx *ctx, void *memctx,
+                                 const char *domain)
+{
+    return ldb_dn_new_fmt(memctx, ctx->ldb, SYSDB_TMPL_NETGROUP_BASE, domain);
+}
+
 errno_t sysdb_group_dn_name(struct sysdb_ctx *ctx, void *memctx,
                             const char *_dn, char **_name)
 {
