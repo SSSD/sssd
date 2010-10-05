@@ -823,7 +823,8 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
                                                struct sdap_options *opts,
                                                struct sss_domain_info *dom,
                                                struct sysdb_attrs *attrs,
-                                               bool store_members)
+                                               bool store_members,
+                                               bool populate_members)
 {
     struct tevent_req *req, *subreq;
     struct sdap_save_group_state *state;
@@ -921,7 +922,23 @@ static struct tevent_req *sdap_save_group_send(TALLOC_CTX *memctx,
         }
     }
 
-    if (store_members) {
+    if (populate_members) {
+        struct ldb_message_element *el1;
+        ret = sysdb_attrs_get_el(attrs,
+                                 opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                                 &el1);
+        if (ret != EOK) {
+            goto fail;
+        }
+
+        ret = sysdb_attrs_get_el(group_attrs, SYSDB_MEMBER, &el);
+        if (ret != EOK) {
+            goto fail;
+        }
+
+        el->values = el1->values;
+        el->num_values = el1->num_values;
+    } else if (store_members) {
         ret = sysdb_attrs_get_el(attrs,
                         opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name, &el);
         if (ret != EOK) {
@@ -1129,6 +1146,7 @@ struct sdap_save_groups_state {
     int count;
     int cur;
     bool twopass;
+    bool populate_members;
 
     struct sysdb_handle *handle;
 
@@ -1146,6 +1164,7 @@ struct tevent_req *sdap_save_groups_send(TALLOC_CTX *memctx,
                                          struct sysdb_ctx *sysdb,
                                          struct sdap_options *opts,
                                          struct sysdb_attrs **groups,
+                                         bool populate_members,
                                          int num_groups)
 {
     struct tevent_req *req, *subreq;
@@ -1163,6 +1182,7 @@ struct tevent_req *sdap_save_groups_send(TALLOC_CTX *memctx,
     state->cur = 0;
     state->handle = NULL;
     state->higher_timestamp = NULL;
+    state->populate_members = populate_members;
 
     switch (opts->schema_type) {
     case SDAP_SCHEMA_RFC2307:
@@ -1222,7 +1242,7 @@ static void sdap_save_groups_save(struct tevent_req *req)
     subreq = sdap_save_group_send(state, state->ev, state->handle,
                                   state->opts, state->dom,
                                   state->groups[state->cur],
-                                  (!state->twopass));
+                                  (!state->twopass), state->populate_members);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1269,7 +1289,7 @@ static void sdap_save_groups_loop(struct tevent_req *subreq)
 
         sdap_save_groups_save(req);
 
-    } else if (state->twopass) {
+    } else if (state->twopass && !state->populate_members) {
 
         state->cur = 0;
         sdap_save_groups_mem_save(req);
@@ -1497,7 +1517,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     subreq = sdap_save_groups_send(state, state->ev, state->dom,
                                    state->sysdb, state->opts,
-                                   state->groups, state->count);
+                                   state->groups, false, state->count);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -1601,7 +1621,7 @@ static void sdap_nested_users_done(struct tevent_req *subreq)
 
     subreq = sdap_save_groups_send(state, state->ev, state->dom,
                                    state->sysdb, state->opts,
-                                   groups, count);
+                                   groups, false, count);
     if (!subreq) {
         tevent_req_error(req, EIO);
         return;
@@ -2363,7 +2383,7 @@ static void sdap_initgr_nested_store(struct tevent_req *req)
 
     subreq = sdap_save_groups_send(state, state->ev, state->dom,
                                    state->sysdb, state->opts,
-                                   state->groups, state->groups_cur);
+                                   state->groups, false, state->groups_cur);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
         return;
