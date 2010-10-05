@@ -401,9 +401,9 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
              return ret;
          }
 
-         /* Convert the result to a list of triples */
-         ret = sysdb_netgr_to_triples(netgr, step_ctx->dctx->res,
-                                      &netgr->triples);
+         /* Convert the result to a list of entries */
+         ret = sysdb_netgr_to_entries(netgr, step_ctx->dctx->res,
+                                      &netgr->entries);
          if (ret == ENOENT) {
              /* This netgroup was not found in this domain */
              if (!step_ctx->dctx->check_provider) {
@@ -417,7 +417,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
          }
 
          if (ret != EOK) {
-             DEBUG(1, ("Failed to convert results into triples\n"));
+             DEBUG(1, ("Failed to convert results into entries\n"));
              return EIO;
          }
 
@@ -465,7 +465,7 @@ static errno_t lookup_netgr_step(struct setent_step_ctx *step_ctx)
     DEBUG(2, ("No matching domain found for [%s], fail!\n",
               step_ctx->name));
     netgr->ready = true;
-    netgr->triples = NULL;
+    netgr->entries = NULL;
     return ENOENT;
 }
 
@@ -714,7 +714,7 @@ static void setnetgrent_implicit_done(struct tevent_req *req)
 }
 
 static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
-                                   struct sysdb_netgroup_ctx **triples,
+                                   struct sysdb_netgroup_ctx **entries,
                                    int num);
 static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
                                            struct getent_ctx *netgr)
@@ -740,9 +740,9 @@ static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
         return ret;
     }
 
-    if (!netgr->triples || netgr->triples[0] == NULL) {
+    if (!netgr->entries || netgr->entries[0] == NULL) {
         /* No entries */
-        DEBUG(5, ("No triples found\n"));
+        DEBUG(5, ("No entries found\n"));
         ret = fill_empty(client->creq->out);
         if (ret != EOK) {
             return nss_cmd_done(cmdctx, ret);
@@ -750,7 +750,7 @@ static errno_t nss_cmd_getnetgrent_process(struct nss_cmd_ctx *cmdctx,
         goto done;
     }
 
-    ret = nss_cmd_retnetgrent(client, netgr->triples, num);
+    ret = nss_cmd_retnetgrent(client, netgr->entries, num);
 
 done:
     sss_packet_set_error(client->creq->out, ret);
@@ -760,13 +760,14 @@ done:
 }
 
 static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
-                                   struct sysdb_netgroup_ctx **triples,
+                                   struct sysdb_netgroup_ctx **entries,
                                    int count)
 {
     size_t len;
     size_t hostlen = 0;
     size_t userlen = 0;
     size_t domainlen = 0;
+    size_t grouplen = 0;
     uint8_t *body;
     size_t blen, rp;
     errno_t ret;
@@ -780,59 +781,88 @@ static errno_t nss_cmd_retnetgrent(struct cli_ctx *client,
 
     start = client->netgrent_cur;
     num = 0;
-    while (triples[client->netgrent_cur] &&
-            (client->netgrent_cur - start) < count) {
-        hostlen = 1;
-        if (triples[client->netgrent_cur]->hostname) {
-            hostlen += strlen(triples[client->netgrent_cur]->hostname);
-        }
+    while (entries[client->netgrent_cur] &&
+           (client->netgrent_cur - start) < count) {
+        if (entries[client->netgrent_cur]->type == SYSDB_NETGROUP_TRIPLE_VAL) {
+            hostlen = 1;
+            if (entries[client->netgrent_cur]->value.triple.hostname) {
+                hostlen += strlen(entries[client->netgrent_cur]->value.triple.hostname);
+            }
 
-        userlen = 1;
-        if (triples[client->netgrent_cur]->username) {
-            userlen += strlen(triples[client->netgrent_cur]->username);
-        }
+            userlen = 1;
+            if (entries[client->netgrent_cur]->value.triple.username) {
+                userlen += strlen(entries[client->netgrent_cur]->value.triple.username);
+            }
 
-        domainlen = 1;
-        if (triples[client->netgrent_cur]->domainname) {
-            domainlen += strlen(triples[client->netgrent_cur]->domainname);
-        }
+            domainlen = 1;
+            if (entries[client->netgrent_cur]->value.triple.domainname) {
+                domainlen += strlen(entries[client->netgrent_cur]->value.triple.domainname);
+            }
 
-        len = 1 + hostlen + userlen + domainlen;
-        ret = sss_packet_grow(packet, len);
-        if (ret != EOK) {
-            return ret;
-        }
-        sss_packet_get_body(packet, &body, &blen);
+            len = sizeof(uint32_t) + hostlen + userlen + domainlen;
+            ret = sss_packet_grow(packet, len);
+            if (ret != EOK) {
+                return ret;
+            }
+            sss_packet_get_body(packet, &body, &blen);
 
-        body[rp] = SSS_NETGR_REP_TRIPLE;
-        rp++;
+            SAFEALIGN_SET_UINT32(&body[rp], SSS_NETGR_REP_TRIPLE, &rp);
 
-        if (hostlen == 1) {
-            body[rp] = '\0';
-        } else {
+            if (hostlen == 1) {
+                body[rp] = '\0';
+            } else {
+                memcpy(&body[rp],
+                       entries[client->netgrent_cur]->value.triple.hostname,
+                       hostlen);
+            }
+            rp += hostlen;
+
+            if (userlen == 1) {
+                body[rp] = '\0';
+            } else {
+                memcpy(&body[rp],
+                       entries[client->netgrent_cur]->value.triple.username,
+                       userlen);
+            }
+            rp += userlen;
+
+            if (domainlen == 1) {
+                body[rp] = '\0';
+            } else {
+                memcpy(&body[rp],
+                       entries[client->netgrent_cur]->value.triple.domainname,
+                       domainlen);
+            }
+            rp += domainlen;
+        } else if (entries[client->netgrent_cur]->type == SYSDB_NETGROUP_GROUP_VAL) {
+            if (entries[client->netgrent_cur]->value.groupname == NULL ||
+                entries[client->netgrent_cur]->value.groupname[0] == '\0') {
+                DEBUG(1, ("Empty netgroup member. Please check your cache.\n"));
+                continue;
+            }
+
+            grouplen = 1 + strlen(entries[client->netgrent_cur]->value.groupname);
+
+            len = sizeof(uint32_t) + grouplen;
+
+            ret = sss_packet_grow(packet, len);
+            if (ret != EOK) {
+                return ret;
+            }
+
+            sss_packet_get_body(packet, &body, &blen);
+
+            SAFEALIGN_SET_UINT32(&body[rp], SSS_NETGR_REP_GROUP, &rp);
+
             memcpy(&body[rp],
-                   triples[client->netgrent_cur]->hostname,
-                   hostlen);
-        }
-        rp += hostlen;
-
-        if (userlen == 1) {
-            body[rp] = '\0';
+                   entries[client->netgrent_cur]->value.groupname,
+                   grouplen);
+            rp += grouplen;
         } else {
-            memcpy(&body[rp],
-                   triples[client->netgrent_cur]->username,
-                   userlen);
+            DEBUG(1, ("Unexpected value type for netgroup entry. "
+                      "Please check your cache.\n"));
+            continue;
         }
-        rp += userlen;
-
-        if (domainlen == 1) {
-            body[rp] = '\0';
-        } else {
-            memcpy(&body[rp],
-                   triples[client->netgrent_cur]->domainname,
-                   domainlen);
-        }
-        rp += domainlen;
 
         num++;
         client->netgrent_cur++;

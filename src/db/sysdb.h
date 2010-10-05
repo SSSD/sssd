@@ -302,10 +302,17 @@ int sysdb_enumgrent(TALLOC_CTX *mem_ctx,
                     struct ldb_result **res);
 
 struct sysdb_netgroup_ctx {
-    char *hostname;
-    char *username;
-    char *domainname;
+    enum {SYSDB_NETGROUP_TRIPLE_VAL, SYSDB_NETGROUP_GROUP_VAL} type;
+    union {
+        struct {
+            char *hostname;
+            char *username;
+            char *domainname;
+        } triple;
+        char *groupname;
+    } value;
 };
+
 errno_t sysdb_getnetgr(TALLOC_CTX *mem_ctx,
                        struct sysdb_ctx *ctx,
                        struct sss_domain_info *domain,
@@ -665,8 +672,8 @@ errno_t sysdb_attrs_to_list(TALLOC_CTX *memctx,
                             const char *attr_name,
                             char ***_list);
 
-errno_t sysdb_netgr_to_triples(TALLOC_CTX *mem_ctx,
+errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
                                struct ldb_result *res,
-                               struct sysdb_netgroup_ctx ***triples);
+                               struct sysdb_netgroup_ctx ***entries);
 
 #endif /* __SYS_DB_H__ */

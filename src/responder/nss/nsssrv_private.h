@@ -61,7 +61,7 @@ struct getent_ctx {
 
     /* Netgroup-specific */
     hash_table_t *lookup_table;
-    struct sysdb_netgroup_ctx **triples;
+    struct sysdb_netgroup_ctx **entries;
     char *name;
     char *domain;
 };

@@ -650,15 +650,16 @@ done:
     return ret;
 }
 
-errno_t sysdb_netgr_to_triples(TALLOC_CTX *mem_ctx,
+errno_t sysdb_netgr_to_entries(TALLOC_CTX *mem_ctx,
                                struct ldb_result *res,
-                               struct sysdb_netgroup_ctx ***triples)
+                               struct sysdb_netgroup_ctx ***entries)
 {
     errno_t ret;
     size_t size = 0;
+    size_t c = 0;
     char *triple_str;
     TALLOC_CTX *tmp_ctx;
-    struct sysdb_netgroup_ctx **tmp_triples = NULL;
+    struct sysdb_netgroup_ctx **tmp_entry = NULL;
     struct ldb_message_element *el;
     int i, j;
 
@@ -673,69 +674,84 @@ errno_t sysdb_netgr_to_triples(TALLOC_CTX *mem_ctx,
 
     for (i=0; i < res->count; i++) {
         el = ldb_msg_find_element(res->msgs[i], SYSDB_NETGROUP_TRIPLE);
-        if (!el) {
-            /* No triples in this netgroup. It might be a nesting
-             * container only.
-             * Skip it and continue on.
-             */
-            continue;
+        if (el != NULL) {
+            size += el->num_values;
         }
-
-        /* Enlarge the array by the value count
-         * Always keep one extra entry for the NULL terminator
-         */
-        tmp_triples = talloc_realloc(tmp_ctx, tmp_triples,
-                                     struct sysdb_netgroup_ctx *,
-                                     size+el->num_values+1);
-        if (!tmp_triples) {
-            ret = ENOMEM;
-            goto done;
-        }
-
-        /* Copy in all of the triples */
-        for(j = 0; j < el->num_values; j++) {
-            triple_str = talloc_strndup(tmp_ctx,
-                                       (const char *)el->values[j].data,
-                                       el->values[j].length);
-            if (!triple_str) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            tmp_triples[size] = talloc_zero(tmp_triples,
-                                            struct sysdb_netgroup_ctx);
-            if (!tmp_triples[size]) {
-                ret = ENOMEM;
-                goto done;
-            }
-
-            ret = sysdb_netgr_split_triple(tmp_triples[size],
-                                           triple_str,
-                                           &tmp_triples[size]->hostname,
-                                           &tmp_triples[size]->username,
-                                           &tmp_triples[size]->domainname);
-            if (ret != EOK) {
-                goto done;
-            }
-
-            size++;
+        el = ldb_msg_find_element(res->msgs[i], SYSDB_NETGROUP_MEMBER);
+        if (el != NULL) {
+            size += el->num_values;
         }
     }
 
-    if (!tmp_triples) {
-        /* No entries were found
-         * Create a dummy reply
-         */
-        tmp_triples = talloc_array(tmp_ctx, struct sysdb_netgroup_ctx *, 1);
-        if (!tmp_triples) {
-            ret = ENOMEM;
-            goto done;
+    tmp_entry = talloc_array(tmp_ctx, struct sysdb_netgroup_ctx *, size + 1);
+    if (tmp_entry == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (size != 0) {
+        for (i=0; i < res->count; i++) {
+            el = ldb_msg_find_element(res->msgs[i], SYSDB_NETGROUP_TRIPLE);
+            if (el != NULL) {
+                /* Copy in all of the entries */
+                for(j = 0; j < el->num_values; j++) {
+                    triple_str = talloc_strndup(tmp_ctx,
+                                                (const char *)el->values[j].data,
+                                                el->values[j].length);
+                    if (!triple_str) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+
+                    tmp_entry[c] = talloc_zero(tmp_entry,
+                                                  struct sysdb_netgroup_ctx);
+                    if (!tmp_entry[c]) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+
+                    tmp_entry[c]->type = SYSDB_NETGROUP_TRIPLE_VAL;
+                    ret = sysdb_netgr_split_triple(tmp_entry[c],
+                                        triple_str,
+                                        &tmp_entry[c]->value.triple.hostname,
+                                        &tmp_entry[c]->value.triple.username,
+                                        &tmp_entry[c]->value.triple.domainname);
+                    if (ret != EOK) {
+                        goto done;
+                    }
+
+                    c++;
+                }
+            }
+            el = ldb_msg_find_element(res->msgs[i], SYSDB_NETGROUP_MEMBER);
+            if (el != NULL) {
+                for(j = 0; j < el->num_values; j++) {
+                    tmp_entry[c] = talloc_zero(tmp_entry,
+                                                  struct sysdb_netgroup_ctx);
+                    if (!tmp_entry[c]) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+
+                    tmp_entry[c]->type = SYSDB_NETGROUP_GROUP_VAL;
+                    tmp_entry[c]->value.groupname = talloc_strndup(tmp_entry[c],
+                                               (const char *)el->values[j].data,
+                                               el->values[j].length);
+                    if (tmp_entry[c]->value.groupname == NULL) {
+                        ret = ENOMEM;
+                        goto done;
+                    }
+
+                    c++;
+                }
+            }
         }
     }
+
     /* Add NULL terminator */
-    tmp_triples[size] = NULL;
+    tmp_entry[c] = NULL;
 
-    *triples = talloc_steal(mem_ctx, tmp_triples);
+    *entries = talloc_steal(mem_ctx, tmp_entry);
     ret = EOK;
 
 done:

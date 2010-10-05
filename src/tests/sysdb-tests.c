@@ -2424,7 +2424,7 @@ START_TEST(test_sysdb_add_netgroup_tuple)
     const char *username;
     const char *domainname;
     struct ldb_result *res;
-    struct sysdb_netgroup_ctx **triples;
+    struct sysdb_netgroup_ctx **entries;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2455,23 +2455,23 @@ START_TEST(test_sysdb_add_netgroup_tuple)
                          &res);
     fail_unless(ret == EOK, "Failed to retrieve netgr information");
 
-    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
-    fail_unless(ret == EOK, "Failed to convert triples");
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries);
+    fail_unless(ret == EOK, "Failed to convert entries");
 
-    fail_unless(triples && triples[0] && !triples[1],
+    fail_unless(entries && entries[0] && !entries[1],
                 "Got more than one triple back");
 
-    fail_unless(strcmp(triples[0]->hostname, hostname) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.hostname, hostname) == 0,
                 "Got [%s], expected [%s] for hostname",
-                triples[0]->hostname, hostname);
+                entries[0]->value.triple.hostname, hostname);
 
-    fail_unless(strcmp(triples[0]->username, username) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.username, username) == 0,
                 "Got [%s], expected [%s] for username",
-                triples[0]->username, username);
+                entries[0]->value.triple.username, username);
 
-    fail_unless(strcmp(triples[0]->domainname, domainname) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.domainname, domainname) == 0,
                 "Got [%s], expected [%s] for domainname",
-                triples[0]->domainname, domainname);
+                entries[0]->value.triple.domainname, domainname);
 
     talloc_free(test_ctx);
 }
@@ -2486,7 +2486,7 @@ START_TEST(test_sysdb_remove_netgroup_tuple)
     const char *username;
     const char *domainname;
     struct ldb_result *res;
-    struct sysdb_netgroup_ctx **triples;
+    struct sysdb_netgroup_ctx **entries;
 
     /* Setup */
     ret = setup_sysdb_tests(&test_ctx);
@@ -2517,10 +2517,10 @@ START_TEST(test_sysdb_remove_netgroup_tuple)
                          &res);
     fail_unless(ret == EOK, "Failed to retrieve netgr information");
 
-    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
-    fail_unless(ret == EOK, "Failed to convert triples");
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries);
+    fail_unless(ret == EOK, "Failed to convert entries");
 
-    fail_unless(triples && !triples[0],"Found triples unexpectedly");
+    fail_unless(entries && !entries[0],"Found entries unexpectedly");
 
     talloc_free(test_ctx);
 }
@@ -2533,7 +2533,7 @@ START_TEST(test_sysdb_add_netgroup_member)
     const char *netgrname;
     const char *membername;
     struct ldb_result *res;
-    struct sysdb_netgroup_ctx **triples;
+    struct sysdb_netgroup_ctx **entries;
 
     char *hostname1;
     char *username1;
@@ -2574,37 +2574,37 @@ START_TEST(test_sysdb_add_netgroup_member)
                          &res);
     fail_unless(ret == EOK, "Failed to retrieve netgr information");
 
-    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
-    fail_unless(ret == EOK, "Failed to convert triples");
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries);
+    fail_unless(ret == EOK, "Failed to convert entries");
 
-    fail_if(!triples, "Received a NULL triple");
-    fail_if(!triples[0], "Did not get any responses");
-    fail_unless(triples[0] && triples[1] && !triples[2],
+    fail_if(!entries, "Received a NULL triple");
+    fail_if(!entries[0], "Did not get any responses");
+    fail_unless(entries[0] && entries[1] && !entries[2],
             "Did not get exactly two responses");
 
-    fail_unless(strcmp(triples[0]->hostname, hostname1) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.hostname, hostname1) == 0,
                 "Got [%s], expected [%s] for hostname",
-                triples[0]->hostname, hostname1);
+                entries[0]->value.triple.hostname, hostname1);
 
-    fail_unless(strcmp(triples[0]->username, username1) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.username, username1) == 0,
                 "Got [%s], expected [%s] for username",
-                triples[0]->username, username1);
+                entries[0]->value.triple.username, username1);
 
-    fail_unless(strcmp(triples[0]->domainname, domainname1) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.domainname, domainname1) == 0,
                 "Got [%s], expected [%s] for domainname",
-                triples[0]->domainname, domainname1);
+                entries[0]->value.triple.domainname, domainname1);
 
-    fail_unless(strcmp(triples[1]->hostname, hostname2) == 0,
+    fail_unless(strcmp(entries[1]->value.triple.hostname, hostname2) == 0,
                 "Got [%s], expected [%s] for hostname",
-                triples[0]->hostname, hostname2);
+                entries[0]->value.triple.hostname, hostname2);
 
-    fail_unless(strcmp(triples[1]->username, username2) == 0,
+    fail_unless(strcmp(entries[1]->value.triple.username, username2) == 0,
                 "Got [%s], expected [%s] for username",
-                triples[0]->username, username2);
+                entries[0]->value.triple.username, username2);
 
-    fail_unless(strcmp(triples[1]->domainname, domainname2) == 0,
+    fail_unless(strcmp(entries[1]->value.triple.domainname, domainname2) == 0,
                 "Got [%s], expected [%s] for domainname",
-                triples[0]->domainname, domainname2);
+                entries[0]->value.triple.domainname, domainname2);
 
     talloc_free(test_ctx);
 }
@@ -2617,7 +2617,7 @@ START_TEST(test_sysdb_remove_netgroup_member)
     const char *netgrname;
     const char *membername;
     struct ldb_result *res;
-    struct sysdb_netgroup_ctx **triples;
+    struct sysdb_netgroup_ctx **entries;
 
     char *hostname;
     char *username;
@@ -2649,25 +2649,25 @@ START_TEST(test_sysdb_remove_netgroup_member)
                          &res);
     fail_unless(ret == EOK, "Failed to retrieve netgr information");
 
-    ret = sysdb_netgr_to_triples(test_ctx, res, &triples);
-    fail_unless(ret == EOK, "Failed to convert triples");
+    ret = sysdb_netgr_to_entries(test_ctx, res, &entries);
+    fail_unless(ret == EOK, "Failed to convert entries");
 
-    fail_if(!triples, "Received a NULL triple");
-    fail_if(!triples[0], "Did not get any responses");
-    fail_unless(triples[0] && !triples[1],
+    fail_if(!entries, "Received a NULL triple");
+    fail_if(!entries[0], "Did not get any responses");
+    fail_unless(entries[0] && !entries[1],
                 "Did not get exactly one response");
 
-    fail_unless(strcmp(triples[0]->hostname, hostname) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.hostname, hostname) == 0,
                 "Got [%s], expected [%s] for hostname",
-                triples[0]->hostname, hostname);
+                entries[0]->value.triple.hostname, hostname);
 
-    fail_unless(strcmp(triples[0]->username, username) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.username, username) == 0,
                 "Got [%s], expected [%s] for username",
-                triples[0]->username, username);
+                entries[0]->value.triple.username, username);
 
-    fail_unless(strcmp(triples[0]->domainname, domainname) == 0,
+    fail_unless(strcmp(entries[0]->value.triple.domainname, domainname) == 0,
                 "Got [%s], expected [%s] for domainname",
-                triples[0]->domainname, domainname);
+                entries[0]->value.triple.domainname, domainname);
 
     talloc_free(test_ctx);
 }
