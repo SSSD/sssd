@@ -1370,6 +1370,9 @@ struct sdap_get_groups_state {
     char *higher_timestamp;
     struct sysdb_attrs **groups;
     size_t count;
+
+    hash_table_t *user_hash;
+    hash_table_t *group_hash;
 };
 
 static void sdap_get_groups_process(struct tevent_req *subreq);
@@ -1416,6 +1419,15 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     return req;
 }
 
+static struct tevent_req *sdap_nested_group_process_send(
+        TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+        struct sss_domain_info *domain,
+        struct sysdb_ctx *sysdb, struct sysdb_attrs *group,
+        hash_table_t *users, hash_table_t *groups,
+        struct sdap_options *opts, struct sdap_handle *sh,
+        uint32_t nesting);
+static void sdap_nested_done(struct tevent_req *req);
+static errno_t sdap_nested_group_process_recv(struct tevent_req *req);
 static void sdap_get_groups_process(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -1434,9 +1446,53 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
 
     DEBUG(6, ("Search for groups, returned %d results.\n", state->count));
 
-    if (state->count == 0) {
+    switch (state->count) {
+    case 0:
         tevent_req_error(req, ENOENT);
         return;
+    case 1:
+        /* Single group search */
+
+        if (state->opts->schema_type == SDAP_SCHEMA_RFC2307) {
+            break;
+        } else {
+
+            /* Prepare hashes for nested user procesing */
+            ret = sss_hash_create(state, 32, &state->user_hash);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+
+            ret = sss_hash_create(state, 32, &state->group_hash);
+            if (ret != EOK) {
+                tevent_req_error(req, ret);
+                return;
+            }
+
+            subreq = sdap_nested_group_process_send(state,
+                                                    state->ev,
+                                                    state->dom,
+                                                    state->sysdb,
+                                                    state->groups[0],
+                                                    state->user_hash,
+                                                    state->group_hash,
+                                                    state->opts,
+                                                    state->sh,
+                                                    0);
+            if (!subreq) {
+                tevent_req_error(req, EIO);
+                return;
+            }
+
+            tevent_req_set_callback(subreq, sdap_nested_done, req);
+            return;
+        }
+        break;
+
+    default:
+        /* Enumeration */
+        break;
     }
 
     subreq = sdap_save_groups_send(state, state->ev, state->dom,
@@ -1444,6 +1500,110 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                                    state->groups, state->count);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_get_groups_done, req);
+}
+
+static void sdap_nested_users_done(struct tevent_req *subreq);
+static void sdap_nested_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int hret;
+    unsigned long i;
+    unsigned long count;
+    hash_value_t *values;
+    struct sysdb_attrs **users = NULL;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+
+    ret = sdap_nested_group_process_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(1, ("Nested group processing failed: [%d][%s]\n",
+                  ret, strerror(ret)));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    hret = hash_values(state->user_hash, &count, &values);
+    if (hret != HASH_SUCCESS) {
+        tevent_req_error(req, EIO);
+    }
+
+    if (count) {
+        users = talloc_array(state, struct sysdb_attrs *, count);
+        if (!users) {
+            talloc_free(values);
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        for (i = 0; i < count; i++) {
+            users[i] = talloc_get_type(values[i].ptr, struct sysdb_attrs);
+        }
+        talloc_zfree(values);
+    }
+
+    /* Save all of the users first so that they are in
+     * place for the groups to add them.
+     */
+    subreq = sdap_save_users_send(state, state->ev, state->dom,
+                                  state->sysdb, state->opts,
+                                  users, count);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_nested_users_done, req);
+}
+
+static void sdap_nested_users_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    int hret;
+    unsigned long i;
+    unsigned long count;
+    hash_value_t *values;
+    struct sysdb_attrs **groups;
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+
+    ret = sdap_save_users_recv(subreq, NULL, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Users are all saved. Now save groups */
+    hret = hash_values(state->group_hash, &count, &values);
+    if (hret != HASH_SUCCESS) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    groups = talloc_array(state, struct sysdb_attrs *, count);
+    if (!groups) {
+        talloc_free(values);
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    for (i = 0; i < count; i++) {
+        groups[i] = talloc_get_type(values[i].ptr, struct sysdb_attrs);
+    }
+    talloc_zfree(values);
+
+    subreq = sdap_save_groups_send(state, state->ev, state->dom,
+                                   state->sysdb, state->opts,
+                                   groups, count);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
         return;
     }
     tevent_req_set_callback(subreq, sdap_get_groups_done, req);
@@ -2507,3 +2667,696 @@ int sdap_get_initgr_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct sdap_nested_group_ctx {
+    struct tevent_context *ev;
+    struct sysdb_ctx *sysdb;
+    struct sss_domain_info *domain;
+
+    hash_table_t *users;
+    hash_table_t *groups;
+
+    struct sdap_options *opts;
+    struct sdap_handle *sh;
+
+    uint32_t nesting_level;
+
+    struct ldb_message_element *members;
+    uint32_t member_index;
+    char *member_dn;
+};
+
+static errno_t sdap_nested_group_process_step(struct tevent_req *req);
+static struct tevent_req *sdap_nested_group_process_send(
+        TALLOC_CTX *mem_ctx, struct tevent_context *ev,
+        struct sss_domain_info *domain,
+        struct sysdb_ctx *sysdb, struct sysdb_attrs *group,
+        hash_table_t *users, hash_table_t *groups,
+        struct sdap_options *opts, struct sdap_handle *sh,
+        uint32_t nesting)
+{
+    errno_t ret;
+    int hret;
+    struct tevent_req *req;
+    struct sdap_nested_group_ctx *state;
+    const char *groupname;
+    hash_key_t key;
+    hash_value_t value;
+
+    req = tevent_req_create(mem_ctx, &state, struct sdap_nested_group_ctx);
+    if (!req) {
+        return NULL;
+    }
+
+    state->ev = ev;
+    state->sysdb = sysdb;
+    state->domain = domain;
+    state->users = users;
+    state->groups = groups;
+    state->opts = opts;
+    state->sh = sh;
+    state->nesting_level = nesting;
+
+    /* If this is too many levels deep, just return success */
+    if (nesting > dp_opt_get_int(opts->basic, SDAP_NESTING_LEVEL)) {
+        ret = EOK;
+        goto immediate;
+    }
+
+    /* Add the current group to the groups hash so we don't
+     * look it up more than once
+     */
+    key.type = HASH_KEY_STRING;
+
+    ret = sysdb_attrs_get_string(
+            group,
+            opts->group_map[SDAP_AT_GROUP_NAME].sys_name,
+            &groupname);
+    if (ret != EOK) goto immediate;
+
+    key.str = talloc_strdup(state, groupname);
+    if (!key.str) {
+        ret = ENOMEM;
+        goto immediate;
+    }
+
+    if (hash_has_key(groups, &key)) {
+        /* This group has already been processed
+         * (or is in progress)
+         * Skip it and just return success
+         */
+        ret = EOK;
+        goto immediate;
+    }
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = talloc_steal(groups, group);
+
+    hret = hash_enter(groups, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        ret = EIO;
+        goto immediate;
+    }
+    talloc_free(key.str);
+
+    /* Process group memberships */
+
+    /* TODO: future enhancement, check for memberuid as well
+     * See https://fedorahosted.org/sssd/ticket/445
+     */
+
+    ret = sysdb_attrs_get_el(
+            group,
+            opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+            &state->members);
+    if (ret != EOK) {
+        if (ret == ENOENT) {
+            /* No members to process */
+            ret = EOK;
+        }
+        goto immediate;
+    }
+
+    state->member_index = 0;
+
+    ret = sdap_nested_group_process_step(req);
+    if (ret != EAGAIN) goto immediate;
+
+    return req;
+
+immediate:
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else {
+        tevent_req_error(req, ret);
+    }
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sdap_nested_group_process_sysdb_users(struct tevent_req *subreq);
+static errno_t sdap_nested_group_process_step(struct tevent_req *req)
+{
+    errno_t ret;
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    struct tevent_req *subreq;
+    char *filter;
+    static const char *attrs[] = SYSDB_PW_ATTRS;
+    bool has_key = false;
+    hash_key_t key;
+    uint8_t *data;
+
+    do {
+        if (state->member_index >= state->members->num_values) {
+            /* No more entries to check. Return success */
+            return EOK;
+        }
+
+        /* First check whether this origDN is present (and not expired)
+         * in the sysdb
+         */
+        data = state->members->values[state->member_index].data;
+        state->member_dn = talloc_strdup(state, (const char *)data);
+        if (!state->member_dn) {
+            ret = ENOMEM;
+            goto error;
+        }
+
+        /* Check the user hash
+         * If it's there, we can save ourselves a trip to the
+         * sysdb and possibly LDAP as well
+         */
+        key.type = HASH_KEY_STRING;
+        key.str = state->member_dn;
+        has_key = hash_has_key(state->users, &key);
+        if (has_key) {
+            talloc_zfree(state->member_dn);
+            state->member_index++;
+            continue;
+        }
+
+
+    } while (has_key);
+
+    /* Check for the specified origDN in the sysdb */
+    filter = talloc_asprintf(NULL, "(%s=%s)",
+                             SYSDB_ORIG_DN,
+                             state->member_dn);
+    if (!filter) {
+        ret = ENOMEM;
+        goto error;
+    }
+
+    /* Try users first */
+    subreq = sysdb_search_users_send(state, state->ev, state->sysdb,
+                                      NULL, state->domain, filter,
+                                      attrs);
+    if (!subreq) {
+        ret = EIO;
+        talloc_free(filter);
+        goto error;
+    }
+    talloc_steal(subreq, filter);
+    tevent_req_set_callback(subreq,
+                            sdap_nested_group_process_sysdb_users,
+                            req);
+
+    return EAGAIN;
+
+error:
+    talloc_zfree(state->member_dn);
+    return ret;
+}
+
+static void sdap_nested_group_process_user(struct tevent_req *subreq);
+static void sdap_nested_group_process_group(struct tevent_req *subreq);
+static void sdap_nested_group_process_sysdb_groups(struct tevent_req *subreq);
+static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
+                                             tevent_req_fn fn);
+static void sdap_nested_group_process_sysdb_users(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    size_t count;
+    struct ldb_message **msgs;
+    uint64_t expiration;
+    time_t now = time(NULL);
+    char *filter;
+
+    static const char *attrs[] = SYSDB_GRSRC_ATTRS;
+
+    ret = sysdb_search_users_recv(subreq, state, &count, &msgs);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    } if (ret == ENOENT || count == 0) {
+        /* It wasn't a user. Check whether it's a group */
+        if (ret == EOK) talloc_zfree(msgs);
+
+        filter = talloc_asprintf(NULL, "(%s=%s)",
+                                 SYSDB_ORIG_DN,
+                                 state->member_dn);
+        if (!filter) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        subreq = sysdb_search_groups_send(state, state->ev, state->sysdb,
+                                          NULL, state->domain, filter,
+                                          attrs);
+        if (!subreq) {
+            talloc_free(filter);
+            tevent_req_error(req, EIO);
+            return;
+        }
+        talloc_steal(subreq, filter);
+        tevent_req_set_callback(subreq,
+                                sdap_nested_group_process_sysdb_groups,
+                                req);
+        return;
+    }
+
+    /* Check whether the entry is valid */
+    if (count != 1) {
+        DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
+        goto skip;
+    }
+
+    expiration = ldb_msg_find_attr_as_uint64(msgs[0],
+                                             SYSDB_CACHE_EXPIRE,
+                                             0);
+    if (expiration && expiration > now) {
+        DEBUG(6, ("Cached values are still valid. Skipping\n"));
+        goto skip;
+    }
+
+    ret = sdap_nested_group_lookup_user(req, sdap_nested_group_process_user);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return;
+
+skip:
+    state->member_index++;
+    talloc_zfree(state->member_dn);
+    ret = sdap_nested_group_process_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means that we should re-enter
+     * the mainloop
+     */
+}
+
+static errno_t sdap_nested_group_lookup_user(struct tevent_req *req,
+                                             tevent_req_fn fn)
+{
+    errno_t ret;
+    const char **sdap_attrs;
+    char *filter;
+    struct tevent_req *subreq;
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    ret = build_attrs_from_map(state, state->opts->user_map,
+                               SDAP_OPTS_USER, &sdap_attrs);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    filter = talloc_asprintf(
+            sdap_attrs, "(objectclass=%s)",
+            state->opts->user_map[SDAP_OC_USER].name);
+    if (!filter) {
+        talloc_free(sdap_attrs);
+        return ENOMEM;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev, state->opts,
+                                   state->sh, state->member_dn,
+                                   LDAP_SCOPE_BASE,
+                                   filter, sdap_attrs,
+                                   state->opts->user_map,
+                                   SDAP_OPTS_USER);
+    if (!subreq) {
+        talloc_free(sdap_attrs);
+        return EIO;
+    }
+    talloc_steal(subreq, sdap_attrs);
+
+    tevent_req_set_callback(subreq, fn, req);
+    return EOK;
+}
+
+static errno_t sdap_nested_group_lookup_group(struct tevent_req *req);
+static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq);
+static void sdap_nested_group_process_sysdb_groups(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    size_t count;
+    uint64_t expiration;
+    struct ldb_message **msgs;
+    time_t now = time(NULL);
+
+    ret = sysdb_search_groups_recv(subreq, state, &count, &msgs);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        return;
+    } if (ret == ENOENT || count == 0) {
+        /* It wasn't found in the groups either
+         * We'll have to do a blind lookup for both
+         */
+
+        /* Try users first */
+        ret = sdap_nested_group_lookup_user(
+                req, sdap_nested_group_process_ldap_user);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        return;
+    }
+
+    /* Check whether the entry is valid */
+    if (count != 1) {
+        DEBUG(1, ("More than one entry with this origDN? Skipping\n"));
+        goto skip;
+    }
+
+    expiration = ldb_msg_find_attr_as_uint64(msgs[0],
+                                             SYSDB_CACHE_EXPIRE,
+                                             0);
+    if (expiration && expiration > now) {
+        DEBUG(6, ("Cached values are still valid. Skipping\n"));
+        goto skip;
+    }
+
+    /* Look up the group in LDAP */
+    ret = sdap_nested_group_lookup_group(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+    return;
+
+skip:
+    state->member_index++;
+    talloc_zfree(state->member_dn);
+    ret = sdap_nested_group_process_step(req);
+    if (ret == EOK) {
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+}
+
+static errno_t sdap_nested_group_lookup_group(struct tevent_req *req)
+{
+    errno_t ret;
+    const char **sdap_attrs;
+    char *filter;
+    struct tevent_req *subreq;
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    ret = build_attrs_from_map(state, state->opts->group_map,
+                               SDAP_OPTS_GROUP, &sdap_attrs);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    filter = talloc_asprintf(
+            sdap_attrs, "(objectclass=%s)",
+            state->opts->group_map[SDAP_OC_GROUP].name);
+    if (!filter) {
+        talloc_free(sdap_attrs);
+        return ENOMEM;
+    }
+
+    subreq = sdap_get_generic_send(state, state->ev, state->opts,
+                                   state->sh, state->member_dn,
+                                   LDAP_SCOPE_BASE,
+                                   filter, sdap_attrs,
+                                   state->opts->group_map,
+                                   SDAP_OPTS_GROUP);
+    if (!subreq) {
+        talloc_free(sdap_attrs);
+        return EIO;
+    }
+    talloc_steal(subreq, sdap_attrs);
+
+    tevent_req_set_callback(subreq, sdap_nested_group_process_group, req);
+    return EOK;
+}
+
+static void sdap_nested_group_process_user(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    TALLOC_CTX *tmp_ctx;
+    size_t count;
+    struct sysdb_attrs **replies;
+    int hret;
+    hash_key_t key;
+    hash_value_t value;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    ret = sdap_get_generic_recv(subreq, tmp_ctx, &count, &replies);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        goto done;
+    } else if (ret == ENOENT || count == 0) {
+        /* Nothing to do if the user doesn't exist */
+        goto skip;
+    }
+
+    if (count != 1) {
+        /* There should only ever be one reply for a
+         * BASE search. If otherwise, it's a serious
+         * error.
+         */
+        DEBUG(1,("Received multiple replies for a BASE search!\n"));
+        tevent_req_error(req, EIO);
+        goto done;
+    }
+
+    /* Save the user attributes to the user hash so we can store
+     * them all at once later.
+     */
+
+    key.type = HASH_KEY_STRING;
+    key.str = state->member_dn;
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = replies[0];
+
+    hret = hash_enter(state->users, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        tevent_req_error(req, EIO);
+        goto done;
+    }
+    talloc_steal(state->users, replies[0]);
+
+skip:
+    state->member_index++;
+    talloc_zfree(state->member_dn);
+    ret = sdap_nested_group_process_step(req);
+    if (ret == EOK) {
+        /* EOK means it's complete */
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means that we should re-enter
+     * the mainloop
+     */
+
+done:
+    talloc_free(tmp_ctx);
+}
+
+static void sdap_group_internal_nesting_done(struct tevent_req *subreq);
+static void sdap_nested_group_process_group(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    TALLOC_CTX *tmp_ctx;
+    size_t count;
+    struct sysdb_attrs **replies;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    ret = sdap_get_generic_recv(subreq, tmp_ctx, &count, &replies);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        goto done;
+    } else if (ret == ENOENT || count == 0) {
+        /* Nothing to do if the group doesn't exist */
+        goto skip;
+    }
+
+    if (count != 1) {
+        /* There should only ever be one reply for a
+         * BASE search. If otherwise, it's a serious
+         * error.
+         */
+        DEBUG(1,("Received multiple replies for a BASE search!\n"));
+        tevent_req_error(req, EIO);
+        goto done;
+    }
+
+    /* Recurse down into the member group */
+    subreq = sdap_nested_group_process_send(state, state->ev, state->domain,
+                                            state->sysdb, replies[0],
+                                            state->users, state->groups,
+                                            state->opts, state->sh,
+                                            state->nesting_level + 1);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        goto done;
+    }
+    tevent_req_set_callback(subreq, sdap_group_internal_nesting_done, req);
+
+    talloc_free(tmp_ctx);
+    return;
+
+skip:
+    state->member_index++;
+    talloc_zfree(state->member_dn);
+    ret = sdap_nested_group_process_step(req);
+    if (ret == EOK) {
+        /* EOK means it's complete */
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means that we should re-enter
+     * the mainloop
+     */
+
+done:
+    talloc_free(tmp_ctx);
+}
+
+static void sdap_group_internal_nesting_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+
+    ret = sdap_nested_group_process_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    }
+
+    state->member_index++;
+    talloc_zfree(state->member_dn);
+    ret = sdap_nested_group_process_step(req);
+    if (ret == EOK) {
+        /* EOK means it's complete */
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means that we should re-enter
+     * the mainloop
+     */
+}
+
+static void sdap_nested_group_process_ldap_user(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+    struct sdap_nested_group_ctx *state =
+            tevent_req_data(req, struct sdap_nested_group_ctx);
+    TALLOC_CTX *tmp_ctx;
+    size_t count;
+    struct sysdb_attrs **replies;
+    int hret;
+    hash_key_t key;
+    hash_value_t value;
+
+    tmp_ctx = talloc_new(NULL);
+    if (!tmp_ctx) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    ret = sdap_get_generic_recv(subreq, tmp_ctx, &count, &replies);
+    talloc_zfree(subreq);
+    if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ret);
+        goto done;
+    } else if (ret == ENOENT || count == 0) {
+        /* No user found. Assume it's a group */
+        ret = sdap_nested_group_lookup_group(req);
+        if (ret != EOK) {
+            tevent_req_error(req, ret);
+        }
+        goto done;
+    }
+
+    if (count != 1) {
+        /* There should only ever be one reply for a
+         * BASE search. If otherwise, it's a serious
+         * error.
+         */
+        DEBUG(1,("Received multiple replies for a BASE search!\n"));
+        tevent_req_error(req, EIO);
+        goto done;
+    }
+
+    /* Save the user attributes to the user hash so we can store
+     * them all at once later.
+     */
+    key.type = HASH_KEY_STRING;
+    key.str = state->member_dn;
+
+    value.type = HASH_VALUE_PTR;
+    value.ptr = replies[0];
+
+    hret = hash_enter(state->users, &key, &value);
+    if (hret != HASH_SUCCESS) {
+        tevent_req_error(req, EIO);
+        goto done;
+    }
+    talloc_steal(state->users, replies[0]);
+
+    /* Move on to the next member */
+    state->member_index++;
+    talloc_zfree(state->member_dn);
+    ret = sdap_nested_group_process_step(req);
+    if (ret == EOK) {
+        /* EOK means it's complete */
+        tevent_req_done(req);
+    } else if (ret != EAGAIN) {
+        tevent_req_error(req, ret);
+    }
+
+    /* EAGAIN means that we should re-enter
+     * the mainloop
+     */
+
+done:
+    talloc_free(tmp_ctx);
+}
+
+static errno_t sdap_nested_group_process_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+
+    return EOK;
+}
