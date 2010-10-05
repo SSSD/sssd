@@ -79,6 +79,8 @@
 #define SYSDB_INITGR_EXPIRE "initgrExpireTimestamp"
 
 #define SYSDB_NETGROUP_TRIPLE "netgroupTriple"
+#define SYSDB_ORIG_NETGROUP_MEMBER "originalMemberNisNetgroup"
+#define SYSDB_NETGROUP_MEMBER "memberNisNetgroup"
 #define SYSDB_DESCRIPTION   "description"
 
 #define SYSDB_CACHEDPWD "cachedPassword"
@@ -142,6 +144,7 @@
                            NULL}
 
 #define SYSDB_NETGR_ATTRS {SYSDB_NAME, SYSDB_NETGROUP_TRIPLE, \
+                           SYSDB_NETGROUP_MEMBER, \
                            SYSDB_DEFAULT_ATTRS, \
                            NULL}
 

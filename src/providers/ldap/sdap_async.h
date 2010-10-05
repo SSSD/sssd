@@ -59,6 +59,19 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 int sdap_get_groups_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, char **timestamp);
 
+struct tevent_req *sdap_get_netgroups_send(TALLOC_CTX *memctx,
+                                           struct tevent_context *ev,
+                                           struct sss_domain_info *dom,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sdap_options *opts,
+                                           struct sdap_handle *sh,
+                                           const char **attrs,
+                                           const char *wildcard);
+int sdap_get_netgroups_recv(struct tevent_req *req,
+                            TALLOC_CTX *mem_ctx, char **timestamp,
+                            size_t *reply_count,
+                            struct sysdb_attrs ***reply);
+
 struct tevent_req *sdap_kinit_send(TALLOC_CTX *memctx,
                                    struct tevent_context *ev,
                                    struct be_ctx *be,
@@ -135,5 +148,4 @@ struct tevent_req *sdap_get_generic_send(TALLOC_CTX *memctx,
 int sdap_get_generic_recv(struct tevent_req *req,
                          TALLOC_CTX *mem_ctx, size_t *reply_count,
                          struct sysdb_attrs ***reply_list);
-
 #endif /* _SDAP_ASYNC_H_ */
