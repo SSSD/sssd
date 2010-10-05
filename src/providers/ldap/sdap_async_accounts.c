@@ -1375,6 +1375,563 @@ static int sdap_save_groups_recv(struct tevent_req *req,
     return EOK;
 }
 
+/* ==Process-Groups======================================================= */
+
+struct tevent_req *
+sdap_process_group_members_2307_send(TALLOC_CTX *memctx,
+                                     struct tevent_context *ev,
+                                     struct sss_domain_info *dom,
+                                     struct sysdb_ctx *sysdb,
+                                     struct ldb_message_element *memberel,
+                                     struct ldb_message_element *sysdb_dns);
+static int sdap_process_group_members_2307_recv(struct tevent_req *req);
+
+struct sdap_process_group_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+    struct sysdb_attrs *group;
+
+    struct ldb_message_element *sysdb_dns;
+    struct ldb_message_element *memberel;
+};
+
+
+static void sdap_process_group_2307_done(struct tevent_req *subreq);
+
+struct tevent_req *sdap_process_group_send(TALLOC_CTX *memctx,
+                                           struct tevent_context *ev,
+                                           struct sss_domain_info *dom,
+                                           struct sysdb_ctx *sysdb,
+                                           struct sdap_options *opts,
+                                           struct sysdb_attrs *group)
+{
+    struct sdap_process_group_state *grp_state;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq;
+    const char **attrs;
+    char* filter;
+    int ret;
+
+    req = tevent_req_create(memctx, &grp_state,
+                            struct sdap_process_group_state);
+    if (!req) return NULL;
+
+    ret = build_attrs_from_map(grp_state, opts->user_map,
+                               SDAP_OPTS_USER, &attrs);
+    if (ret) {
+        goto fail;
+    }
+
+    /* FIXME: we ignore nested rfc2307bis groups for now */
+    filter = talloc_asprintf(grp_state, "(objectclass=%s)",
+                             opts->user_map[SDAP_OC_USER].name);
+    if (!filter) {
+        talloc_zfree(req);
+        return NULL;
+    }
+
+    grp_state->ev = ev;
+    grp_state->dom = dom;
+    grp_state->sysdb = sysdb;
+    grp_state->group = group;
+
+    ret = sysdb_attrs_get_el(group,
+                             opts->group_map[SDAP_AT_GROUP_MEMBER].sys_name,
+                             &grp_state->memberel);
+    if (ret) {
+        goto fail;
+    }
+
+    /* Group without members */
+    if (grp_state->memberel->num_values == 0) {
+        DEBUG(2, ("No Members. Done!\n"));
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    grp_state->sysdb_dns = talloc(grp_state,
+                                  struct ldb_message_element);
+    if (!grp_state->sysdb_dns) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    grp_state->sysdb_dns->values = talloc_array(grp_state, struct ldb_val,
+                                            grp_state->memberel->num_values);
+    if (!grp_state->sysdb_dns->values) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    grp_state->sysdb_dns->num_values = 0;
+
+    switch (opts->schema_type) {
+        case SDAP_SCHEMA_RFC2307:
+            subreq = sdap_process_group_members_2307_send(grp_state,
+                                                          grp_state->ev,
+                                                          grp_state->dom,
+                                                          grp_state->sysdb,
+                                                          grp_state->memberel,
+                                                          grp_state->sysdb_dns);
+            if (!subreq) {
+                ret = ENOMEM;
+                goto fail;
+            }
+            tevent_req_set_callback(subreq, sdap_process_group_2307_done,
+                                    req);
+            break;
+
+        case SDAP_SCHEMA_IPA_V1:
+        case SDAP_SCHEMA_AD:
+        case SDAP_SCHEMA_RFC2307BIS:
+            DEBUG(2, ("Processing users for RFC2307BIS not yet implemeted\n"));
+            tevent_req_done(req);
+            tevent_req_post(req, ev);
+            break;
+
+        default:
+            DEBUG(1, ("Unknown schema type %d\n", opts->schema_type));
+            ret = EINVAL;
+            goto fail;
+    }
+
+    return req;
+fail:
+    tevent_req_error(req, ret);
+    tevent_req_post(req, ev);
+    return req;
+}
+
+static void sdap_process_group_2307_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_process_group_state *state =
+        tevent_req_data(req, struct sdap_process_group_state);
+
+    int ret;
+
+    ret = sdap_process_group_members_2307_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->memberel->values = talloc_steal(state->group,
+                                           state->sysdb_dns->values);
+    state->memberel->num_values = state->sysdb_dns->num_values;
+    tevent_req_done(req);
+}
+
+static int sdap_process_group_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+/*===Process-group-members-of-RFC2307-group============================*/
+
+struct tevent_req *
+sdap_process_missing_member_2307_send(TALLOC_CTX *memctx,
+                                      struct tevent_context *ev,
+                                      struct sss_domain_info *dom,
+                                      struct sysdb_ctx *sysdb,
+                                      struct sysdb_handle *handle,
+                                      const char *username,
+                                      struct ldb_message_element* sysdb_dns);
+static int sdap_process_missing_member_2307_recv(struct tevent_req *req);
+
+struct sdap_process_group_members_2307_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+    struct sysdb_handle *handle;
+
+    struct ldb_message_element *sysdb_dns;
+    struct ldb_message_element *memberel;
+    int cur;
+
+    const char **missing;
+    int mi;
+    int ai;
+};
+
+static void sdap_process_group_members_2307_added(struct tevent_req *subreq);
+void sdap_process_group_members_2307_step(struct tevent_req *req);
+static void sdap_process_group_members_2307_check_add(struct tevent_req *req);
+static void
+sdap_process_group_members_2307_trans(struct tevent_req *subreq);
+static void sdap_process_group_members_2307_add(struct tevent_req *req);
+static void sdap_process_group_members_2307_added(struct tevent_req *subreq);
+static void sdap_process_group_members_2307_post(struct tevent_req *req);
+static void sdap_process_group_members_2307_trans_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_process_group_members_2307_send(TALLOC_CTX *memctx,
+                                     struct tevent_context *ev,
+                                     struct sss_domain_info *dom,
+                                     struct sysdb_ctx *sysdb,
+                                     struct ldb_message_element *memberel,
+                                     struct ldb_message_element *sysdb_dns)
+{
+    struct tevent_req *req = NULL;
+    struct sdap_process_group_members_2307_state *state;
+    struct tevent_req *subreq = NULL;
+
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_process_group_members_2307_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->dom = dom;
+    state->sysdb = sysdb;
+    state->sysdb_dns = sysdb_dns;
+    state->memberel = memberel;
+    state->cur = 0;
+
+    if (state->memberel->num_values == 0) {
+        /* No members. Done. */
+        tevent_req_done(req);
+        tevent_req_post(req, ev);
+        return req;
+    }
+
+    state->missing = talloc_array(state, const char *,
+                                  state->memberel->num_values+1);
+    if (!state->missing) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    state->mi = 0;
+    state->missing[state->mi] = NULL;
+
+    subreq = sysdb_search_user_by_name_send(state, state->ev,
+                        state->sysdb, NULL,
+                        state->dom,
+                        (const char *) state->memberel->values[state->cur].data,
+                        NULL);
+    if (!subreq) {
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq, sdap_process_group_members_2307_step, req);
+
+    return req;
+}
+
+void sdap_process_group_members_2307_step(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_process_group_members_2307_state *state =
+        tevent_req_data(req, struct sdap_process_group_members_2307_state);
+    struct ldb_message *msg;
+    char *strdn;
+    int ret;
+
+    ret = sysdb_search_user_recv(subreq, state, &msg);
+    talloc_zfree(subreq);
+    if (ret == EOK) {
+        /*
+         * User already cached in sysdb. Remember the sysdb DN for later
+         * use by sdap_save_groups()
+         */
+        strdn = sysdb_user_strdn(state->sysdb_dns->values,
+                    state->dom->name,
+                    (const char *) state->memberel->values[state->cur].data);
+        if (!strdn) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+
+        DEBUG(7,("Member already cached in sysdb: %s\n", strdn));
+        state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+            (uint8_t *) strdn;
+        state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+            strlen(strdn);
+        state->sysdb_dns->num_values++;
+    } else if (ret == ENOENT) {
+        /* The user is not in sysdb, need to add it */
+        DEBUG(7, ("member #%d (%s): not found in sysdb\n",
+                   state->cur,
+                   (char *) state->memberel->values[state->cur].data));
+
+        /* Just remember the name and store all the fake
+         * entries later in one transaction */
+        state->missing[state->mi] =
+            (const char *) state->memberel->values[state->cur].data;
+        state->mi++;
+        state->missing[state->mi] = NULL;
+    } else {
+        DEBUG(1, ("Error checking cache for member #%d (%s):\n",
+                   state->cur,
+                   (char *) state->memberel->values[state->cur].data));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+
+    state->cur++;
+    if (state->cur == state->memberel->num_values) {
+        /* All members processed. Add fake entries if needed. */
+        state->ai = 0;
+        sdap_process_group_members_2307_check_add(req);
+        return;
+    }
+
+    /* Go to the next member */
+    subreq = sysdb_search_user_by_name_send(state, state->ev,
+                        state->sysdb, NULL,
+                        state->dom,
+                        (char *) state->memberel->values[state->cur].data,
+                        NULL);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_process_group_members_2307_step,
+                            req);
+    return;
+}
+
+static void
+sdap_process_group_members_2307_check_add(struct tevent_req *req)
+{
+    struct sdap_process_group_members_2307_state *state =
+        tevent_req_data(req, struct sdap_process_group_members_2307_state);
+    struct tevent_req *subreq;
+
+    if (state->mi == 0) {
+        /* Do not need to add any members. We are done. */
+        tevent_req_done(req);
+        return;
+    }
+
+    subreq = sysdb_transaction_send(state, state->ev, state->sysdb);
+    if (!subreq) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    tevent_req_set_callback(subreq, sdap_process_group_members_2307_trans,
+                            req);
+}
+
+static void
+sdap_process_group_members_2307_trans(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_process_group_members_2307_state *state =
+        tevent_req_data(req, struct sdap_process_group_members_2307_state);
+    int ret;
+
+    ret = sysdb_transaction_recv(subreq, state, &state->handle);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    sdap_process_group_members_2307_add(req);
+}
+
+static void
+sdap_process_group_members_2307_add(struct tevent_req *req)
+{
+    struct sdap_process_group_members_2307_state *state =
+        tevent_req_data(req, struct sdap_process_group_members_2307_state);
+    struct tevent_req *subreq;
+
+    if (state->ai == state->mi) {
+        sdap_process_group_members_2307_post(req);
+        return;
+    }
+
+    subreq = sdap_process_missing_member_2307_send(state, state->ev,
+                                                   state->dom,
+                                                   state->sysdb,
+                                                   state->handle,
+                                                   state->missing[state->ai],
+                                                   state->sysdb_dns);
+    if (!subreq) {
+        DEBUG(1, ("Error adding missing member #%d (%s):\n",
+                    state->ai, state->missing[state->ai]));
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+    tevent_req_set_callback(subreq, sdap_process_group_members_2307_added, req);
+    return;
+}
+
+static void
+sdap_process_group_members_2307_added(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_process_group_members_2307_state *state =
+        tevent_req_data(req, struct sdap_process_group_members_2307_state);
+    int ret;
+
+    ret = sdap_process_missing_member_2307_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->ai++;
+    sdap_process_group_members_2307_add(req);
+}
+
+static void
+sdap_process_group_members_2307_post(struct tevent_req *req)
+{
+    struct sdap_process_group_members_2307_state *state =
+        tevent_req_data(req, struct sdap_process_group_members_2307_state);
+    struct tevent_req *subreq;
+
+    /* Commit the transaction */
+    subreq = sysdb_transaction_commit_send(state, state->ev, state->handle);
+    if (!subreq) {
+        tevent_req_error(req, EIO);
+        return;
+    }
+
+    tevent_req_set_callback(subreq,
+                            sdap_process_group_members_2307_trans_done,
+                            req);
+}
+
+static void
+sdap_process_group_members_2307_trans_done(struct tevent_req *subreq)
+{
+    errno_t ret;
+    struct tevent_req *req =
+            tevent_req_callback_data(subreq, struct tevent_req);
+
+    ret = sysdb_transaction_commit_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /* Processing completed. */
+    tevent_req_done(req);
+}
+
+int sdap_process_group_members_2307_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
+
+/*===Process-missing-group-member-of-RFC2307-group============================*/
+
+struct sdap_process_missing_member_2307_state {
+    struct tevent_context *ev;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+    struct sysdb_handle *handle;
+
+    const char *username;
+    struct ldb_message_element* sysdb_dns;
+
+};
+
+static void sdap_process_missing_member_2307_done(struct tevent_req *subreq);
+
+struct tevent_req *
+sdap_process_missing_member_2307_send(TALLOC_CTX *memctx,
+                                      struct tevent_context *ev,
+                                      struct sss_domain_info *dom,
+                                      struct sysdb_ctx *sysdb,
+                                      struct sysdb_handle *handle,
+                                      const char *username,
+                                      struct ldb_message_element *sysdb_dns)
+{
+    struct sdap_process_missing_member_2307_state *state;
+    struct tevent_req *req = NULL;
+    struct tevent_req *subreq;
+
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_process_missing_member_2307_state);
+    if (!req) return NULL;
+
+    state->ev = ev;
+    state->dom = dom;
+    state->handle = handle;
+    state->sysdb = sysdb;
+    state->sysdb_dns = sysdb_dns;
+    state->username = username;
+
+    DEBUG(7, ("Adding a dummy entry\n"));
+    subreq = sysdb_add_fake_user_send(state, state->ev, state->handle,
+                                      state->dom, state->username);
+    if (!subreq) {
+        DEBUG(2, ("Cannot store fake user entry\n"));
+        talloc_zfree(req);
+        return NULL;
+    }
+    tevent_req_set_callback(subreq,
+                            sdap_process_missing_member_2307_done,
+                            req);
+    return req;
+}
+
+static void sdap_process_missing_member_2307_done(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_process_missing_member_2307_state *state =
+                tevent_req_data(req,
+                                struct sdap_process_missing_member_2307_state);
+    int ret;
+    struct ldb_dn *dn;
+    char* dn_string;
+
+    ret = sysdb_add_fake_user_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    /*
+     * Convert the just received DN into the corresponding sysdb DN
+     * for saving into member attribute of the group
+     */
+    dn = sysdb_user_dn(state->sysdb, state, state->dom->name,
+                       state->username);
+    if (!dn) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    dn_string = ldb_dn_alloc_linearized(state->sysdb_dns->values, dn);
+    if (!dn_string) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    }
+
+    state->sysdb_dns->values[state->sysdb_dns->num_values].data =
+        (uint8_t *) dn_string;
+    state->sysdb_dns->values[state->sysdb_dns->num_values].length =
+        strlen(dn_string);
+    state->sysdb_dns->num_values++;
+
+    tevent_req_done(req);
+}
+
+static int sdap_process_missing_member_2307_recv(struct tevent_req *req)
+{
+    TEVENT_REQ_RETURN_ON_ERROR(req);
+    return EOK;
+}
 
 /* ==Search-Groups-with-filter============================================ */
 
@@ -1391,11 +1948,14 @@ struct sdap_get_groups_state {
     struct sysdb_attrs **groups;
     size_t count;
 
+    size_t check_count;
+
     hash_table_t *user_hash;
     hash_table_t *group_hash;
 };
 
 static void sdap_get_groups_process(struct tevent_req *subreq);
+static void sdap_get_groups_processed(struct tevent_req *subreq);
 static void sdap_get_groups_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
@@ -1455,6 +2015,7 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
     struct sdap_get_groups_state *state = tevent_req_data(req,
                                             struct sdap_get_groups_state);
     int ret;
+    int i;
 
     ret = sdap_get_generic_recv(subreq, state,
                                 &state->count, &state->groups);
@@ -1474,7 +2035,18 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
         /* Single group search */
 
         if (state->opts->schema_type == SDAP_SCHEMA_RFC2307) {
-            break;
+            state->check_count = state->count;
+            for (i=0; i < state->count; i++) {
+                subreq = sdap_process_group_send(state, state->ev, state->dom,
+                                                 state->sysdb, state->opts,
+                                                 state->groups[i]);
+                if (!subreq) {
+                    tevent_req_error(req, ENOMEM);
+                    return;
+                }
+                tevent_req_set_callback(subreq, sdap_get_groups_processed, req);
+            }
+            return;
         } else {
 
             /* Prepare hashes for nested user procesing */
@@ -1520,9 +2092,39 @@ static void sdap_get_groups_process(struct tevent_req *subreq)
                                    state->groups, false, state->count);
     if (!subreq) {
         tevent_req_error(req, ENOMEM);
-        return;
     }
     tevent_req_set_callback(subreq, sdap_get_groups_done, req);
+}
+
+static void sdap_get_groups_processed(struct tevent_req *subreq)
+{
+    struct tevent_req *req = tevent_req_callback_data(subreq,
+                                                      struct tevent_req);
+    struct sdap_get_groups_state *state = tevent_req_data(req,
+                                            struct sdap_get_groups_state);
+    int ret;
+
+    ret = sdap_process_group_recv(subreq);
+    talloc_zfree(subreq);
+    if (ret) {
+        DEBUG(2, ("Failed to process group.\n"));
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    state->check_count--;
+    DEBUG(9, ("Groups remaining: %d\n", state->check_count));
+
+    if (state->check_count == 0) {
+        subreq = sdap_save_groups_send(state, state->ev, state->dom,
+                                       state->sysdb, state->opts,
+                                       state->groups, true, state->count);
+        if (!subreq) {
+            tevent_req_error(req, ENOMEM);
+            return;
+        }
+        tevent_req_set_callback(subreq, sdap_get_groups_done, req);
+    }
 }
 
 static void sdap_nested_users_done(struct tevent_req *subreq);
